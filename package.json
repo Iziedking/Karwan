@@ -1,0 +1,21 @@
+{
+  "name": "karwan",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Agentic settlement and reputation rails for cross-border SME trade on Arc",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=backend",
+    "smoke-test": "npm run smoke-test --workspace=backend",
+    "typecheck": "npm run typecheck --workspace=backend",
+    "contracts:build": "cd contracts && forge build",
+    "contracts:test": "cd contracts && forge test -vv"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

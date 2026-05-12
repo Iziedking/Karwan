@@ -1,0 +1,38 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# foundry
+cache/
+broadcast/
+contracts/out/
+contracts/cache/
+
+# logs
+*.log
+npm-debug.log*
+pino.log
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# secrets
+*.pem
+*.key
+.circle-*
+
+# internal — not for public repo
+PLAN.md
+

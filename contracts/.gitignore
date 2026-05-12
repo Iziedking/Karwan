@@ -1,0 +1,7 @@
+cache/
+out/
+broadcast/
+lib/
+
+# foundry artifacts are produced from source
+*.t.sol.lcov
