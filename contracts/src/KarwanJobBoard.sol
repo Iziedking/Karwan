@@ -92,6 +92,8 @@ contract KarwanJobBoard {
     function submitBid(bytes32 jobId, uint256 price, uint64 deadline) external {
         Job storage j = jobs[jobId];
         if (j.state != JobState.Posted) revert JobNotOpen();
+        // Deadlines are day/week-scale; validator-controlled timestamp drift is negligible.
+        // forge-lint: disable-next-line(block-timestamp)
         if (price == 0 || deadline <= block.timestamp) revert InvalidBid();
         bids[jobId][msg.sender] =
             Bid({seller: msg.sender, price: price, deadline: deadline, exists: true});

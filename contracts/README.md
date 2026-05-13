@@ -9,8 +9,8 @@
 ```bash
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
-forge install foundry-rs/forge-std --no-commit
-forge install OpenZeppelin/openzeppelin-contracts --no-commit
+forge install foundry-rs/forge-std
+forge install OpenZeppelin/openzeppelin-contracts
 ```
 
 ## Build and test

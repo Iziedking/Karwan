@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const blankToUndefined = (v: unknown) => (v === '' ? undefined : v);
+const optionalAddr = z.preprocess(blankToUndefined, z.string().startsWith('0x').optional());
+const optionalString = z.preprocess(blankToUndefined, z.string().optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(8787),
@@ -31,23 +35,23 @@ const envSchema = z.object({
     .startsWith('0x')
     .default('0x3600000000000000000000000000000000000000'),
 
-  KARWAN_JOBBOARD_ADDR: z.string().startsWith('0x').optional(),
-  KARWAN_ESCROW_ADDR: z.string().startsWith('0x').optional(),
-  KARWAN_REPUTATION_ADDR: z.string().startsWith('0x').optional(),
+  KARWAN_JOBBOARD_ADDR: optionalAddr,
+  KARWAN_ESCROW_ADDR: optionalAddr,
+  KARWAN_REPUTATION_ADDR: optionalAddr,
 
-  CIRCLE_API_KEY: z.string().optional(),
-  CIRCLE_ENTITY_SECRET: z.string().optional(),
-  CIRCLE_WALLET_SET_ID: z.string().optional(),
+  CIRCLE_API_KEY: optionalString,
+  CIRCLE_ENTITY_SECRET: optionalString,
+  CIRCLE_WALLET_SET_ID: optionalString,
 
-  BUYER_AGENT_WALLET_ID: z.string().optional(),
-  BUYER_AGENT_ADDRESS: z.string().startsWith('0x').optional(),
-  SELLER_AGENT_WALLET_ID: z.string().optional(),
-  SELLER_AGENT_ADDRESS: z.string().startsWith('0x').optional(),
+  BUYER_AGENT_WALLET_ID: optionalString,
+  BUYER_AGENT_ADDRESS: optionalAddr,
+  SELLER_AGENT_WALLET_ID: optionalString,
+  SELLER_AGENT_ADDRESS: optionalAddr,
 
-  ANTHROPIC_API_KEY: z.string().optional(),
-  LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
+  OPENROUTER_API_KEY: optionalString,
+  LLM_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
 
-  DATABASE_URL: z.string().optional(),
+  DATABASE_URL: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

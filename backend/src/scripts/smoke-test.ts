@@ -1,6 +1,7 @@
 import { formatUnits, isAddress } from 'viem';
 import { config } from '../config.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
+import { jobBoard, escrow, reputation, usdc } from '../chain/contracts.js';
 import { logger } from '../logger.js';
 
 async function main() {
@@ -15,11 +16,7 @@ async function main() {
   }
 
   logger.info(
-    {
-      chainId,
-      latestBlock: blockNumber.toString(),
-      rpc: config.ARC_TESTNET_RPC_URL,
-    },
+    { chainId, latestBlock: blockNumber.toString(), rpc: config.ARC_TESTNET_RPC_URL },
     'rpc reachable',
   );
 
@@ -47,6 +44,22 @@ async function main() {
       'wallet balance',
     );
   }
+
+  const escrowUsdc = await escrow.read.usdc();
+  if (escrowUsdc.toLowerCase() !== usdc.toLowerCase()) {
+    logger.error({ expected: usdc, got: escrowUsdc }, 'escrow.usdc address mismatch');
+    process.exit(1);
+  }
+
+  logger.info(
+    {
+      jobBoard: jobBoard.address,
+      escrow: escrow.address,
+      reputation: reputation.address,
+      escrowUsdcBinding: escrowUsdc,
+    },
+    'karwan contracts reachable',
+  );
 
   logger.info('ok');
 }
