@@ -10,6 +10,8 @@ export interface BuyerProfile {
   bidCollectionSeconds: number;
   maxCounterRounds: number;
   confidenceThreshold: number;
+  /** Sum must equal 100, length 1..4. KarwanEscrow rejects otherwise. */
+  milestonePcts: number[];
 }
 
 export function loadBuyerProfile(): BuyerProfile {
@@ -26,5 +28,6 @@ export function loadBuyerProfile(): BuyerProfile {
     bidCollectionSeconds: 30,
     maxCounterRounds: 2,
     confidenceThreshold: 0.7,
+    milestonePcts: [50, 50],
   };
 }

@@ -19,6 +19,7 @@
     "agent:seller": "npm run agent:seller --workspace=backend",
     "agent:buyer": "npm run agent:buyer --workspace=backend",
     "job:post": "npm run job:post --workspace=backend",
+    "milestones:release": "npm run milestones:release --workspace=backend",
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test -vv"
   },

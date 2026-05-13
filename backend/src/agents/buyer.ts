@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, wsClient } from '../chain/client.js';
-import { jobBoard, reputation } from '../chain/contracts.js';
+import { jobBoard, escrow, reputation, usdc as usdcAddress } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
@@ -36,13 +36,21 @@ interface JobState {
   counterRoundsBySeller: Map<`0x${string}`, number>;
   lastCounterPriceBySeller: Map<`0x${string}`, string>;
   finalized: boolean;
+  escrowFunded: boolean;
 }
 
 const jobs = new Map<`0x${string}`, JobState>();
 
 export function startBuyerAgent(buyer: BuyerProfile) {
+  validateMilestonePcts(buyer.milestonePcts);
   logger.info(
-    { buyer: buyer.displayName, address: buyer.address, jobBoard: jobBoard.address },
+    {
+      buyer: buyer.displayName,
+      address: buyer.address,
+      jobBoard: jobBoard.address,
+      escrow: escrow.address,
+      milestonePcts: buyer.milestonePcts,
+    },
     'buyer agent starting',
   );
 
@@ -87,6 +95,14 @@ export function startBuyerAgent(buyer: BuyerProfile) {
   };
 }
 
+function validateMilestonePcts(pcts: number[]) {
+  if (pcts.length < 1 || pcts.length > 4) {
+    throw new Error(`milestonePcts length must be 1..4, got ${pcts.length}`);
+  }
+  const sum = pcts.reduce((a, b) => a + b, 0);
+  if (sum !== 100) throw new Error(`milestonePcts must sum to 100, got ${sum}`);
+}
+
 function handleJobPosted(buyer: BuyerProfile, log: Log) {
   const args = (log as unknown as { args: JobPostedArgs }).args;
   if (args.buyer.toLowerCase() !== buyer.address.toLowerCase()) return;
@@ -108,6 +124,7 @@ function handleJobPosted(buyer: BuyerProfile, log: Log) {
     counterRoundsBySeller: new Map(),
     lastCounterPriceBySeller: new Map(),
     finalized: false,
+    escrowFunded: false,
   };
   jobs.set(args.jobId, state);
   logger.info({ jobId: args.jobId, budget: state.context.budgetUsdc }, 'tracking own job');
@@ -117,7 +134,6 @@ async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
   const args = (log as unknown as { args: BidSubmittedArgs }).args;
   const state = jobs.get(args.jobId);
   if (!state || state.finalized) return;
-
   if (state.bids.has(args.seller)) return;
 
   let sellerReputationBps = 5000;
@@ -155,7 +171,7 @@ async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
   } catch (err) {
     logger.warn(
       { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
-      'bid scoring failed, keeping with no score',
+      'bid scoring failed',
     );
   }
 
@@ -180,7 +196,7 @@ async function finalizeBidCollection(buyer: BuyerProfile, state: JobState) {
 
   const ranked = [...state.bids.values()]
     .filter((b) => typeof b.score === 'number')
-    .sort((a, b) => (b.score! - a.score!));
+    .sort((a, b) => b.score! - a.score!);
 
   if (ranked.length === 0) {
     logger.warn({ jobId: state.jobId }, 'no scored bids — nothing to counter');
@@ -204,10 +220,7 @@ async function issueCounter(buyer: BuyerProfile, state: JobState, bid: Bid) {
 
   const counterPrice = Number(bid.suggestedCounterPrice);
   if (counterPrice > buyer.maxBudgetUsdc) {
-    logger.warn(
-      { jobId: state.jobId, counterPrice },
-      'LLM counter exceeds buyer max budget, skipping',
-    );
+    logger.warn({ jobId: state.jobId, counterPrice }, 'LLM counter exceeds buyer max, skipping');
     return;
   }
 
@@ -216,7 +229,10 @@ async function issueCounter(buyer: BuyerProfile, state: JobState, bid: Bid) {
   const counterPriceWei = parseUnits(bid.suggestedCounterPrice, USDC_DECIMALS);
 
   state.lastCounterPriceBySeller.set(bid.seller, bid.suggestedCounterPrice);
-  state.counterRoundsBySeller.set(bid.seller, (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1);
+  state.counterRoundsBySeller.set(
+    bid.seller,
+    (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1,
+  );
 
   const result = await executeContractCall(
     {
@@ -242,7 +258,8 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
   if (!state || state.finalized) return;
 
   if (args.accepted) {
-    await acceptBid(buyer, state, args.seller);
+    const agreedPriceUsdc = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
+    await acceptAndFund(buyer, state, args.seller, agreedPriceUsdc);
     return;
   }
 
@@ -270,10 +287,7 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
     });
     decision = result.object;
   } catch (err) {
-    logger.warn(
-      { jobId: state.jobId, err: (err as Error).message },
-      'counter evaluation LLM failed, declining',
-    );
+    logger.warn({ jobId: state.jobId, err: (err as Error).message }, 'counter eval failed');
     state.finalized = true;
     return;
   }
@@ -281,23 +295,22 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
   logger.info({ jobId: state.jobId, seller: args.seller, decision }, 'counter-response evaluated');
 
   if (decision.confidence < buyer.confidenceThreshold) {
-    logger.info({ jobId: state.jobId, confidence: decision.confidence }, 'low confidence, declining');
+    logger.info({ jobId: state.jobId }, 'low confidence, declining');
     state.finalized = true;
     return;
   }
 
   if (decision.decision === 'accept') {
-    await acceptBid(buyer, state, args.seller);
+    await acceptAndFund(buyer, state, args.seller, sellerCounterPrice);
     return;
   }
 
   if (decision.decision === 'decline') {
-    logger.info({ jobId: state.jobId, seller: args.seller }, 'declined seller counter');
+    logger.info({ jobId: state.jobId }, 'declined seller counter');
     state.finalized = true;
     return;
   }
 
-  // decision === 'counter'
   const rounds = state.counterRoundsBySeller.get(args.seller) ?? 0;
   if (rounds >= buyer.maxCounterRounds) {
     logger.info({ jobId: state.jobId, rounds }, 'max counter rounds reached, declining');
@@ -306,7 +319,7 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
   }
 
   if (!decision.counterPrice || !decision.counterDeadlineDays) {
-    logger.warn({ jobId: state.jobId }, 'counter requested without price/deadline, declining');
+    logger.warn({ jobId: state.jobId }, 'counter requested without price/deadline');
     state.finalized = true;
     return;
   }
@@ -321,9 +334,15 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
   });
 }
 
-async function acceptBid(buyer: BuyerProfile, state: JobState, seller: `0x${string}`) {
+async function acceptAndFund(
+  buyer: BuyerProfile,
+  state: JobState,
+  seller: `0x${string}`,
+  agreedPriceUsdc: string,
+) {
   state.finalized = true;
-  const result = await executeContractCall(
+
+  const acceptResult = await executeContractCall(
     {
       walletId: buyer.walletId,
       contractAddress: jobBoard.address,
@@ -332,7 +351,51 @@ async function acceptBid(buyer: BuyerProfile, state: JobState, seller: `0x${stri
     },
     `acceptBid(${state.jobId})`,
   );
-  logger.info({ jobId: state.jobId, seller, ...result }, 'bid accepted on chain');
+  logger.info({ jobId: state.jobId, seller, ...acceptResult }, 'bid accepted on chain');
+
+  const priceWei = parseUnits(agreedPriceUsdc, USDC_DECIMALS);
+  await fundEscrow(buyer, state, seller, priceWei);
+}
+
+async function fundEscrow(
+  buyer: BuyerProfile,
+  state: JobState,
+  seller: `0x${string}`,
+  priceWei: bigint,
+) {
+  if (state.escrowFunded) return;
+
+  const approveResult = await executeContractCall(
+    {
+      walletId: buyer.walletId,
+      contractAddress: usdcAddress,
+      abiFunctionSignature: 'approve(address,uint256)',
+      abiParameters: [escrow.address, priceWei.toString()],
+    },
+    `usdc.approve(escrow, ${state.jobId})`,
+  );
+  logger.info({ jobId: state.jobId, ...approveResult }, 'usdc approved for escrow');
+
+  const fundResult = await executeContractCall(
+    {
+      walletId: buyer.walletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
+      abiParameters: [state.jobId, seller, priceWei.toString(), buyer.milestonePcts],
+    },
+    `fundEscrow(${state.jobId})`,
+  );
+  state.escrowFunded = true;
+  logger.info(
+    {
+      jobId: state.jobId,
+      seller,
+      amountWei: priceWei.toString(),
+      milestonePcts: buyer.milestonePcts,
+      ...fundResult,
+    },
+    'escrow funded',
+  );
 }
 
 export async function backfillRecentJobsForBuyer(buyer: BuyerProfile, fromBlock?: bigint) {
