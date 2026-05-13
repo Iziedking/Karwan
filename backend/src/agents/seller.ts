@@ -12,19 +12,30 @@ import {
   type JobContext,
 } from '../llm/prompts.js';
 import { logger } from '../logger.js';
+import { bus } from '../events.js';
 import type { SellerProfile } from './seller-profile.js';
 
-const USDC_DECIMALS = 18;
+// ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
+// ride the ERC-20 rail because escrow.transferFrom is ERC-20.
+const USDC_DECIMALS = 6;
 
 interface ActiveBid {
   jobContext: JobContext;
   lastBidPrice: string;
   counterRounds: number;
   finalized: boolean;
+  responding: boolean;
 }
 
 const activeBids = new Map<`0x${string}`, ActiveBid>();
 const seenJobs = new Set<string>();
+const handledEvents = new Set<string>();
+
+function logDedupeKey(label: string, log: Log): string {
+  const tx = (log as unknown as { transactionHash?: string }).transactionHash ?? '';
+  const idx = (log as unknown as { logIndex?: number }).logIndex ?? '';
+  return `${label}:${tx}:${idx}`;
+}
 
 export function startSellerAgent(seller: SellerProfile) {
   logger.info(
@@ -36,8 +47,8 @@ export function startSellerAgent(seller: SellerProfile) {
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'JobPosted',
-    onLogs: async (logs) => {
-      await Promise.all(logs.map((log) => handleJobPosted(seller, log)));
+    onLogs: (logs) => {
+      for (const log of logs) safe('JobPosted', () => handleJobPosted(seller, log));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
@@ -46,8 +57,8 @@ export function startSellerAgent(seller: SellerProfile) {
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'CounterOfferIssued',
-    onLogs: async (logs) => {
-      await Promise.all(logs.map((log) => handleCounterOffer(seller, log)));
+    onLogs: (logs) => {
+      for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(seller, log));
     },
     onError: (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
   });
@@ -59,7 +70,25 @@ export function startSellerAgent(seller: SellerProfile) {
   };
 }
 
+function safe(label: string, fn: () => Promise<unknown>) {
+  Promise.resolve()
+    .then(fn)
+    .catch((err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ scope: label, err: message }, 'agent handler error');
+      bus.emitEvent({
+        type: 'agent.error',
+        actor: 'seller',
+        payload: { scope: label, message },
+      });
+    });
+}
+
 async function handleJobPosted(seller: SellerProfile, log: Log) {
+  const dedupeKey = logDedupeKey('JobPosted', log);
+  if (handledEvents.has(dedupeKey)) return;
+  handledEvents.add(dedupeKey);
+
   const args = (log as unknown as { args: JobPostedArgs }).args;
   const jobId = args.jobId;
   if (seenJobs.has(jobId)) return;
@@ -74,8 +103,15 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
     buyerReputationBps: 5000,
   };
 
-  if (!matchesProfile(seller, job)) {
-    logger.info({ jobId, reason: 'profile-mismatch' }, 'skipping job');
+  const mismatch = profileMismatchReason(seller, job);
+  if (mismatch) {
+    logger.info({ jobId, reason: mismatch.reason }, 'skipping job');
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId,
+      actor: 'seller',
+      payload: mismatch,
+    });
     return;
   }
 
@@ -109,6 +145,12 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
 
   if (decision.decision === 'skip' || decision.confidence < seller.confidenceThreshold) {
     logger.info({ jobId, confidence: decision.confidence }, 'skipping: low confidence');
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId,
+      actor: 'seller',
+      payload: { reason: 'low-confidence-or-skip', decision },
+    });
     return;
   }
 
@@ -138,18 +180,49 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
     lastBidPrice: decision.suggestedPrice,
     counterRounds: 0,
     finalized: false,
+    responding: false,
   });
 
   logger.info({ jobId, ...txResult }, 'bid submitted');
+  bus.emitEvent({
+    type: 'bid.submitted',
+    jobId,
+    actor: 'seller',
+    payload: {
+      priceUsdc: decision.suggestedPrice,
+      deadlineUnix,
+      txHash: txResult.txHash,
+    },
+  });
 }
 
 async function handleCounterOffer(seller: SellerProfile, log: Log) {
   const args = (log as unknown as { args: CounterOfferIssuedArgs }).args;
   if (args.seller.toLowerCase() !== seller.address.toLowerCase()) return;
 
+  const dedupeKey = logDedupeKey('CounterOfferIssued', log);
+  if (handledEvents.has(dedupeKey)) return;
+  handledEvents.add(dedupeKey);
+
   const active = activeBids.get(args.jobId);
   if (!active || active.finalized) return;
+  // Per-(jobId,seller) mutex. If a redelivered event reaches us while we're already
+  // running the LLM or broadcasting a respondToCounter tx, drop it.
+  if (active.responding) return;
+  active.responding = true;
 
+  try {
+    await runCounterEvaluation(seller, active, args);
+  } finally {
+    active.responding = false;
+  }
+}
+
+async function runCounterEvaluation(
+  seller: SellerProfile,
+  active: ActiveBid,
+  args: CounterOfferIssuedArgs,
+) {
   const buyerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const buyerCounterDeadlineUnix = Number(args.newDeadline);
 
@@ -162,7 +235,8 @@ async function handleCounterOffer(seller: SellerProfile, log: Log) {
         active.jobContext,
         {
           side: 'seller',
-          maxBudgetUsdc: seller.maxBudgetUsdc,
+          minAcceptablePriceUsdc: seller.minBudgetUsdc,
+          maxAcceptablePriceUsdc: seller.maxBudgetUsdc,
           minDeadlineDays: seller.minDeadlineDays,
           maxDeadlineDays: seller.maxDeadlineDays,
         },
@@ -195,6 +269,12 @@ async function handleCounterOffer(seller: SellerProfile, log: Log) {
     );
     active.finalized = true;
     logger.info({ jobId: args.jobId, ...result }, 'counter accepted');
+    bus.emitEvent({
+      type: 'counter.response.submitted',
+      jobId: args.jobId,
+      actor: 'seller',
+      payload: { accepted: true, txHash: result.txHash },
+    });
     return;
   }
 
@@ -247,16 +327,53 @@ async function handleCounterOffer(seller: SellerProfile, log: Log) {
   );
   active.lastBidPrice = decision.counterPrice;
   logger.info({ jobId: args.jobId, ...result }, 'counter back submitted');
+  bus.emitEvent({
+    type: 'counter.response.submitted',
+    jobId: args.jobId,
+    actor: 'seller',
+    payload: {
+      accepted: false,
+      counterPrice: decision.counterPrice,
+      counterDeadlineDays: decision.counterDeadlineDays,
+      txHash: result.txHash,
+    },
+  });
 }
 
-function matchesProfile(seller: SellerProfile, job: JobContext): boolean {
+function profileMismatchReason(
+  seller: SellerProfile,
+  job: JobContext,
+): { reason: string; budgetUsdc?: string; daysToDeadline?: number } | null {
   const budget = Number(job.budgetUsdc);
-  if (budget < seller.minBudgetUsdc || budget > seller.maxBudgetUsdc) return false;
-  const daysToDeadline = (job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400;
-  if (daysToDeadline < seller.minDeadlineDays || daysToDeadline > seller.maxDeadlineDays) {
-    return false;
+  if (budget < seller.minBudgetUsdc) {
+    return {
+      reason: `budget ${budget} USDC below seller minimum of ${seller.minBudgetUsdc} USDC`,
+      budgetUsdc: job.budgetUsdc,
+    };
   }
-  return true;
+  if (budget > seller.maxBudgetUsdc) {
+    return {
+      reason: `budget ${budget} USDC above seller maximum of ${seller.maxBudgetUsdc} USDC`,
+      budgetUsdc: job.budgetUsdc,
+    };
+  }
+  // Round up so that "24h from now" counts as 1 day even if processing latency
+  // makes the raw float < 1.
+  const rawDays = (job.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400;
+  const daysToDeadline = Math.ceil(rawDays);
+  if (daysToDeadline < seller.minDeadlineDays) {
+    return {
+      reason: `deadline ${daysToDeadline}d sooner than seller minimum of ${seller.minDeadlineDays}d`,
+      daysToDeadline,
+    };
+  }
+  if (daysToDeadline > seller.maxDeadlineDays) {
+    return {
+      reason: `deadline ${daysToDeadline}d longer than seller maximum of ${seller.maxDeadlineDays}d`,
+      daysToDeadline,
+    };
+  }
+  return null;
 }
 
 interface JobPostedArgs {
@@ -272,6 +389,30 @@ interface CounterOfferIssuedArgs {
   seller: `0x${string}`;
   newPrice: bigint;
   newDeadline: bigint;
+}
+
+export interface SellerActiveBidSnapshot {
+  jobId: string;
+  jobBuyer: string;
+  budgetUsdc: string;
+  deadlineUnix: number;
+  lastBidPrice: string;
+  counterRounds: number;
+  finalized: boolean;
+}
+
+export function getSellerSnapshot(): { activeBids: SellerActiveBidSnapshot[] } {
+  return {
+    activeBids: [...activeBids.entries()].map(([jobId, b]) => ({
+      jobId,
+      jobBuyer: b.jobContext.buyer,
+      budgetUsdc: b.jobContext.budgetUsdc,
+      deadlineUnix: b.jobContext.deadlineUnix,
+      lastBidPrice: b.lastBidPrice,
+      counterRounds: b.counterRounds,
+      finalized: b.finalized,
+    })),
+  };
 }
 
 export async function backfillRecentJobs(seller: SellerProfile, fromBlock?: bigint) {

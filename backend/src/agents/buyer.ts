@@ -13,9 +13,13 @@ import {
   type JobContext,
 } from '../llm/prompts.js';
 import { logger } from '../logger.js';
+import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
 
-const USDC_DECIMALS = 18;
+// USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
+// for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
+// uses 6.
+const USDC_DECIMALS = 6;
 
 interface Bid {
   seller: `0x${string}`;
@@ -40,6 +44,13 @@ interface JobState {
 }
 
 const jobs = new Map<`0x${string}`, JobState>();
+const handledEvents = new Set<string>();
+
+function logDedupeKey(label: string, log: Log): string {
+  const tx = (log as unknown as { transactionHash?: string }).transactionHash ?? '';
+  const idx = (log as unknown as { logIndex?: number }).logIndex ?? '';
+  return `${label}:${tx}:${idx}`;
+}
 
 export function startBuyerAgent(buyer: BuyerProfile) {
   validateMilestonePcts(buyer.milestonePcts);
@@ -59,7 +70,7 @@ export function startBuyerAgent(buyer: BuyerProfile) {
     abi: jobBoardAbi,
     eventName: 'JobPosted',
     onLogs: (logs) => {
-      for (const log of logs) handleJobPosted(buyer, log);
+      for (const log of logs) safe('JobPosted', () => Promise.resolve(handleJobPosted(buyer, log)));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
@@ -68,8 +79,8 @@ export function startBuyerAgent(buyer: BuyerProfile) {
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'BidSubmitted',
-    onLogs: async (logs) => {
-      await Promise.all(logs.map((log) => handleBidSubmitted(buyer, log)));
+    onLogs: (logs) => {
+      for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(buyer, log));
     },
     onError: (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
   });
@@ -78,8 +89,8 @@ export function startBuyerAgent(buyer: BuyerProfile) {
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'CounterResponse',
-    onLogs: async (logs) => {
-      await Promise.all(logs.map((log) => handleCounterResponse(buyer, log)));
+    onLogs: (logs) => {
+      for (const log of logs) safe('CounterResponse', () => handleCounterResponse(buyer, log));
     },
     onError: (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
   });
@@ -95,6 +106,20 @@ export function startBuyerAgent(buyer: BuyerProfile) {
   };
 }
 
+function safe(label: string, fn: () => Promise<unknown>) {
+  Promise.resolve()
+    .then(fn)
+    .catch((err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error({ scope: label, err: message }, 'agent handler error');
+      bus.emitEvent({
+        type: 'agent.error',
+        actor: 'buyer',
+        payload: { scope: label, message },
+      });
+    });
+}
+
 function validateMilestonePcts(pcts: number[]) {
   if (pcts.length < 1 || pcts.length > 4) {
     throw new Error(`milestonePcts length must be 1..4, got ${pcts.length}`);
@@ -104,6 +129,10 @@ function validateMilestonePcts(pcts: number[]) {
 }
 
 function handleJobPosted(buyer: BuyerProfile, log: Log) {
+  const dedupeKey = logDedupeKey('JobPosted', log);
+  if (handledEvents.has(dedupeKey)) return;
+  handledEvents.add(dedupeKey);
+
   const args = (log as unknown as { args: JobPostedArgs }).args;
   if (args.buyer.toLowerCase() !== buyer.address.toLowerCase()) return;
   if (jobs.has(args.jobId)) return;
@@ -128,9 +157,19 @@ function handleJobPosted(buyer: BuyerProfile, log: Log) {
   };
   jobs.set(args.jobId, state);
   logger.info({ jobId: args.jobId, budget: state.context.budgetUsdc }, 'tracking own job');
+  bus.emitEvent({
+    type: 'job.tracked',
+    jobId: args.jobId,
+    actor: 'buyer',
+    payload: { budgetUsdc: state.context.budgetUsdc, deadlineUnix: state.context.deadlineUnix },
+  });
 }
 
 async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
+  const dedupeKey = logDedupeKey('BidSubmitted', log);
+  if (handledEvents.has(dedupeKey)) return;
+  handledEvents.add(dedupeKey);
+
   const args = (log as unknown as { args: BidSubmittedArgs }).args;
   const state = jobs.get(args.jobId);
   if (!state || state.finalized) return;
@@ -168,6 +207,12 @@ async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
     bid.suggestedCounterPrice = score.suggestedCounterPrice;
     bid.suggestedCounterDeadlineDays = score.suggestedCounterDeadlineDays;
     logger.info({ jobId: state.jobId, seller: args.seller, score }, 'bid scored');
+    bus.emitEvent({
+      type: 'bid.scored',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: { seller: args.seller, priceUsdc, ...score },
+    });
   } catch (err) {
     logger.warn(
       { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
@@ -250,9 +295,24 @@ async function issueCounter(buyer: BuyerProfile, state: JobState, bid: Bid) {
   );
 
   logger.info({ jobId: state.jobId, seller: bid.seller, ...result }, 'counter issued');
+  bus.emitEvent({
+    type: 'counter.issued',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: {
+      seller: bid.seller,
+      counterPriceUsdc: bid.suggestedCounterPrice,
+      counterDeadlineDays: bid.suggestedCounterDeadlineDays,
+      txHash: result.txHash,
+    },
+  });
 }
 
 async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
+  const dedupeKey = logDedupeKey('CounterResponse', log);
+  if (handledEvents.has(dedupeKey)) return;
+  handledEvents.add(dedupeKey);
+
   const args = (log as unknown as { args: CounterResponseArgs }).args;
   const state = jobs.get(args.jobId);
   if (!state || state.finalized) return;
@@ -276,7 +336,8 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
         state.context,
         {
           side: 'buyer',
-          maxBudgetUsdc: buyer.maxBudgetUsdc,
+          minAcceptablePriceUsdc: 0,
+          maxAcceptablePriceUsdc: buyer.maxBudgetUsdc,
           minDeadlineDays: buyer.minDeadlineDays,
           maxDeadlineDays: buyer.maxDeadlineDays,
         },
@@ -352,6 +413,12 @@ async function acceptAndFund(
     `acceptBid(${state.jobId})`,
   );
   logger.info({ jobId: state.jobId, seller, ...acceptResult }, 'bid accepted on chain');
+  bus.emitEvent({
+    type: 'bid.accepted',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { seller, agreedPriceUsdc, txHash: acceptResult.txHash },
+  });
 
   const priceWei = parseUnits(agreedPriceUsdc, USDC_DECIMALS);
   await fundEscrow(buyer, state, seller, priceWei);
@@ -375,6 +442,12 @@ async function fundEscrow(
     `usdc.approve(escrow, ${state.jobId})`,
   );
   logger.info({ jobId: state.jobId, ...approveResult }, 'usdc approved for escrow');
+  bus.emitEvent({
+    type: 'escrow.approved',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { amountWei: priceWei.toString(), txHash: approveResult.txHash },
+  });
 
   const fundResult = await executeContractCall(
     {
@@ -396,6 +469,67 @@ async function fundEscrow(
     },
     'escrow funded',
   );
+  bus.emitEvent({
+    type: 'escrow.funded',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: {
+      seller,
+      amountWei: priceWei.toString(),
+      milestonePcts: buyer.milestonePcts,
+      txHash: fundResult.txHash,
+    },
+  });
+}
+
+export interface BuyerJobSnapshot {
+  jobId: string;
+  buyer: string;
+  budgetUsdc: string;
+  deadlineUnix: number;
+  termsHash: string;
+  finalized: boolean;
+  escrowFunded: boolean;
+  bids: Array<{
+    seller: string;
+    priceUsdc: string;
+    deadlineUnix: number;
+    score: number | null;
+    suggestedCounterPrice: string | null;
+    suggestedCounterDeadlineDays: number | null;
+  }>;
+  lastCounterPriceBySeller: Record<string, string>;
+  counterRoundsBySeller: Record<string, number>;
+}
+
+export function getBuyerSnapshot(): { jobs: BuyerJobSnapshot[] } {
+  return {
+    jobs: [...jobs.values()].map((s) => ({
+      jobId: s.jobId,
+      buyer: s.context.buyer,
+      budgetUsdc: s.context.budgetUsdc,
+      deadlineUnix: s.context.deadlineUnix,
+      termsHash: s.context.termsHash,
+      finalized: s.finalized,
+      escrowFunded: s.escrowFunded,
+      bids: [...s.bids.values()].map((b) => ({
+        seller: b.seller,
+        priceUsdc: b.priceUsdc,
+        deadlineUnix: b.deadlineUnix,
+        score: b.score ?? null,
+        suggestedCounterPrice: b.suggestedCounterPrice ?? null,
+        suggestedCounterDeadlineDays: b.suggestedCounterDeadlineDays ?? null,
+      })),
+      lastCounterPriceBySeller: Object.fromEntries(s.lastCounterPriceBySeller),
+      counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),
+    })),
+  };
+}
+
+export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
+  const s = jobs.get(jobId as `0x${string}`);
+  if (!s) return null;
+  return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
 }
 
 export async function backfillRecentJobsForBuyer(buyer: BuyerProfile, fromBlock?: bigint) {

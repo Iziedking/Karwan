@@ -21,7 +21,7 @@ export function loadBuyerProfile(): BuyerProfile {
   return {
     walletId: config.BUYER_AGENT_WALLET_ID,
     address: config.BUYER_AGENT_ADDRESS,
-    displayName: 'Dubai SaaS Buyer — v0',
+    displayName: 'Dubai SaaS Buyer',
     maxBudgetUsdc: 5000,
     minDeadlineDays: 2,
     maxDeadlineDays: 30,

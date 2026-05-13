@@ -8,11 +8,13 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=backend",
-    "build": "npm run build --workspace=backend",
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
     "smoke-test": "npm run smoke-test --workspace=backend",
     "abis:sync": "npm run abis:sync --workspace=backend",
-    "typecheck": "npm run typecheck --workspace=backend",
+    "typecheck": "npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
     "entity-secret:register": "npm run entity-secret:register --workspace=backend",
     "wallets:create": "npm run wallets:create --workspace=backend",
     "identity:register": "npm run identity:register --workspace=backend",
@@ -25,5 +27,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

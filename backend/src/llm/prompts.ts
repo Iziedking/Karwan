@@ -25,25 +25,36 @@ function daysFromNow(unix: number): number {
 
 export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile): string {
   const daysToBuyerDeadline = daysFromNow(job.deadlineUnix);
+  const budgetN = Number(job.budgetUsdc);
+  const inBudgetRange = budgetN >= seller.minBudgetUsdc && budgetN <= seller.maxBudgetUsdc;
+  const inDeadlineRange =
+    daysToBuyerDeadline >= seller.minDeadlineDays && daysToBuyerDeadline <= seller.maxDeadlineDays;
   return [
-    'You are a freelancer agent evaluating whether to bid on a cross-border SME job.',
+    'You are a freelancer agent deciding whether to bid on a job.',
     '',
-    'Seller profile:',
-    `- Skills: ${seller.skills.join(', ')}`,
+    'Hard rules — apply mechanically, do not override with your own intuition:',
+    `- Minimum acceptable price: ${seller.minBudgetUsdc} USDC`,
+    `- Maximum acceptable price: ${seller.maxBudgetUsdc} USDC`,
+    `- Minimum days to delivery: ${seller.minDeadlineDays}`,
+    `- Maximum days to delivery: ${seller.maxDeadlineDays}`,
+    `- If buyer budget is inside [${seller.minBudgetUsdc}, ${seller.maxBudgetUsdc}] USDC, the seller WILL consider bidding regardless of perceived market rate.`,
+    `- If days-to-deadline is inside [${seller.minDeadlineDays}, ${seller.maxDeadlineDays}], the timeline is acceptable.`,
+    `- Pre-computed: budget-in-range=${inBudgetRange}, deadline-in-range=${inDeadlineRange}.`,
+    '',
+    'Seller skills:',
+    `- ${seller.skills.join(', ')}`,
     `- Bio: ${seller.bio}`,
-    `- Accepted budget range: ${seller.minBudgetUsdc} to ${seller.maxBudgetUsdc} USDC`,
-    `- Accepted deadline range: ${seller.minDeadlineDays} to ${seller.maxDeadlineDays} days`,
     '',
     'Job:',
     `- Buyer reputation: ${job.buyerReputationBps} / 10000 (5000 = neutral)`,
-    `- Budget posted by buyer: ${job.budgetUsdc} USDC`,
+    `- Buyer-posted budget: ${job.budgetUsdc} USDC`,
     `- Days until buyer's deadline: ${daysToBuyerDeadline}`,
     `- Terms hash: ${job.termsHash}`,
     '',
     'Output rules:',
-    '- decision: "bid" or "skip"',
-    '- suggestedPrice: digits only, inside the seller budget range',
-    `- suggestedDeadlineDays: integer 1..${Math.min(60, daysToBuyerDeadline)}`,
+    '- decision: "bid" if budget-in-range AND deadline-in-range AND skills are at least partially relevant. Otherwise "skip".',
+    `- suggestedPrice: digits only USDC amount, must be between ${seller.minBudgetUsdc} and Math.min(buyer budget, ${seller.maxBudgetUsdc}). For tiny jobs bid close to buyer's posted budget.`,
+    `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.min(seller.maxDeadlineDays, daysToBuyerDeadline)}]`,
     '- confidence: 0..1',
     '- reasoning: one or two sentences',
   ].join('\n');
@@ -74,7 +85,7 @@ export function buildBidRankingPrompt(
     'Output rules:',
     '- score: 0..100 composite (higher is better). Weight reputation, price-vs-budget, delivery timing.',
     '- suggestedCounterPrice: digits only USDC amount the buyer should propose. Aim to negotiate down 5-20% off the bid unless the bid is already a great deal.',
-    `- suggestedCounterDeadlineDays: integer 1..${Math.min(60, daysFromNow(job.deadlineUnix))}, normally tighter than the bid.`,
+    `- suggestedCounterDeadlineDays: integer days from now. KEEP this equal to the seller's proposed delivery (${daysToDelivery} days) — do not tighten further. Only push back on price.`,
     '- confidence: 0..1 in this assessment',
     '- reasoning: one or two sentences',
   ].join('\n');
@@ -82,7 +93,8 @@ export function buildBidRankingPrompt(
 
 export interface CounterPartyConstraints {
   side: 'buyer' | 'seller';
-  maxBudgetUsdc: number;
+  minAcceptablePriceUsdc: number;
+  maxAcceptablePriceUsdc: number;
   minDeadlineDays: number;
   maxDeadlineDays: number;
 }
@@ -95,15 +107,23 @@ export function buildCounterEvaluationPrompt(
   theirCounterDeadlineUnix: number,
 ): string {
   const daysToTheirDeadline = daysFromNow(theirCounterDeadlineUnix);
-  const role = party.side === 'buyer' ? 'buyer' : 'seller';
-  const other = party.side === 'buyer' ? 'seller' : 'buyer';
+  const role = party.side;
+  const other = role === 'buyer' ? 'seller' : 'buyer';
+  const theirPriceN = Number(theirCounterPriceUsdc);
+  const priceInRange =
+    theirPriceN >= party.minAcceptablePriceUsdc && theirPriceN <= party.maxAcceptablePriceUsdc;
+  const deadlineInRange =
+    daysToTheirDeadline >= party.minDeadlineDays && daysToTheirDeadline <= party.maxDeadlineDays;
   return [
-    `You are a ${role} agent. The ${other} has sent a counter-offer.`,
+    `You are the ${role} agent. The ${other} has sent a counter-offer.`,
     'Decide whether to accept, counter again, or decline.',
     '',
-    `${role[0]!.toUpperCase() + role.slice(1)} constraints:`,
-    `- Max ${party.side === 'buyer' ? 'budget' : 'price'} acceptable: ${party.maxBudgetUsdc} USDC`,
-    `- Acceptable delivery window: ${party.minDeadlineDays} to ${party.maxDeadlineDays} days`,
+    `Hard constraints — apply mechanically:`,
+    `- Minimum acceptable price: ${party.minAcceptablePriceUsdc} USDC`,
+    `- Maximum acceptable price: ${party.maxAcceptablePriceUsdc} USDC`,
+    `- Minimum acceptable days to delivery: ${party.minDeadlineDays}`,
+    `- Maximum acceptable days to delivery: ${party.maxDeadlineDays}`,
+    `- Pre-computed: their-price-in-range=${priceInRange}, their-deadline-in-range=${deadlineInRange}.`,
     '',
     'Job:',
     `- Original budget posted: ${job.budgetUsdc} USDC`,
@@ -115,8 +135,9 @@ export function buildCounterEvaluationPrompt(
     `- Their counter deadline: ${daysToTheirDeadline} days from now`,
     '',
     'Output rules:',
+    '- If their-price-in-range AND their-deadline-in-range, accept unless you have strong reason to counter further.',
     '- decision: "accept" | "counter" | "decline"',
-    '- If counter: counterPrice (digits only) and counterDeadlineDays (integer 1..60) are required.',
+    `- If counter: counterPrice must be in [${party.minAcceptablePriceUsdc}, ${party.maxAcceptablePriceUsdc}] and counterDeadlineDays must be in [${party.minDeadlineDays}, ${party.maxDeadlineDays}].`,
     '- confidence: 0..1',
     '- reasoning: one or two sentences',
   ].join('\n');

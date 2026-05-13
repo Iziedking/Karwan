@@ -20,13 +20,13 @@ export function loadSellerProfile(): SellerProfile {
   return {
     walletId: config.SELLER_AGENT_WALLET_ID,
     address: config.SELLER_AGENT_ADDRESS,
-    displayName: 'Lagos Frontend Dev — v0',
-    skills: ['next.js', 'react', 'typescript', 'tailwind', 'landing-page', 'web3-ui'],
-    bio: 'Builds production-grade Next.js landing pages and dApp frontends. 4 years shipping for MEASA SMEs and small SaaS founders.',
-    minBudgetUsdc: 5,
+    displayName: 'Lagos Frontend Dev',
+    skills: ['Next.js', 'React', 'TypeScript', 'Tailwind', 'Web3 UI'],
+    bio: 'Frontend dev open to gigs of any size, from a CSS color swap to a full landing-page build.',
+    minBudgetUsdc: 1,
     maxBudgetUsdc: 5000,
-    minDeadlineDays: 2,
-    maxDeadlineDays: 30,
+    minDeadlineDays: 1,
+    maxDeadlineDays: 60,
     confidenceThreshold: 0.7,
   };
 }

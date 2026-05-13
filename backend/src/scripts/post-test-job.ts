@@ -4,7 +4,8 @@ import { jobBoard } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { logger } from '../logger.js';
 
-const USDC_DECIMALS = 18;
+// ERC-20 USDC on Arc uses 6 decimals.
+const USDC_DECIMALS = 6;
 
 async function main() {
   if (!config.BUYER_AGENT_WALLET_ID) throw new Error('BUYER_AGENT_WALLET_ID required');

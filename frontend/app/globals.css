@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-bg: #fafaf7;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f4ef;
+  --color-line: #e6e4dc;
+  --color-line-strong: #d4d1c5;
+  --color-ink: #0c0e10;
+  --color-ink-2: #36383b;
+  --color-ink-dim: #6b6f76;
+  --color-ink-faint: #9a9da3;
+  --color-accent: #1b3a5b;
+  --color-accent-soft: rgba(27, 58, 91, 0.08);
+  --color-positive: #0f5132;
+  --color-positive-soft: rgba(15, 81, 50, 0.1);
+  --color-warning: #855300;
+  --color-warning-soft: rgba(133, 83, 0, 0.1);
+  --color-critical: #7a1f1a;
+  --color-critical-soft: rgba(122, 31, 26, 0.08);
+
+  --font-sans: var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --shadow-card: 0 1px 0 rgba(12, 14, 16, 0.04), 0 12px 28px -16px rgba(12, 14, 16, 0.08);
+  --shadow-card-hover: 0 1px 0 rgba(12, 14, 16, 0.06), 0 20px 40px -18px rgba(12, 14, 16, 0.12);
+}
+
+html, body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--color-ink); color: var(--color-bg); }
+
+a { color: inherit; }
+
+.mono { font-family: var(--font-mono); font-feature-settings: "calt" 0; }
+
+input, textarea, select, button {
+  font: inherit;
+  color: inherit;
+}
+
+input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
+
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in {
+  0% { opacity: 0; transform: translateX(-4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.fade-up { animation: fade-up 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.fade-up-1 { animation-delay: 0.04s; }
+.fade-up-2 { animation-delay: 0.10s; }
+.fade-up-3 { animation-delay: 0.16s; }
+.fade-up-4 { animation-delay: 0.22s; }
+.slide-in { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .slide-in { animation: none !important; }
+}
