@@ -257,7 +257,12 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
       schema: counterEvaluationSchema,
       prompt: buildCounterEvaluationPrompt(
         state.context,
-        buyer,
+        {
+          side: 'buyer',
+          maxBudgetUsdc: buyer.maxBudgetUsdc,
+          minDeadlineDays: buyer.minDeadlineDays,
+          maxDeadlineDays: buyer.maxDeadlineDays,
+        },
         buyerLastCounter,
         sellerCounterPrice,
         sellerCounterDeadlineUnix,

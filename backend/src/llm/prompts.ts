@@ -80,30 +80,39 @@ export function buildBidRankingPrompt(
   ].join('\n');
 }
 
+export interface CounterPartyConstraints {
+  side: 'buyer' | 'seller';
+  maxBudgetUsdc: number;
+  minDeadlineDays: number;
+  maxDeadlineDays: number;
+}
+
 export function buildCounterEvaluationPrompt(
   job: JobContext,
-  buyer: BuyerProfile,
-  buyerLastCounterUsdc: string,
-  sellerCounterPriceUsdc: string,
-  sellerCounterDeadlineUnix: number,
+  party: CounterPartyConstraints,
+  ourLastPriceUsdc: string,
+  theirCounterPriceUsdc: string,
+  theirCounterDeadlineUnix: number,
 ): string {
-  const daysToSellerDeadline = daysFromNow(sellerCounterDeadlineUnix);
+  const daysToTheirDeadline = daysFromNow(theirCounterDeadlineUnix);
+  const role = party.side === 'buyer' ? 'buyer' : 'seller';
+  const other = party.side === 'buyer' ? 'seller' : 'buyer';
   return [
-    'You are a buyer agent. The seller has responded to your counter-offer with their own counter.',
+    `You are a ${role} agent. The ${other} has sent a counter-offer.`,
     'Decide whether to accept, counter again, or decline.',
     '',
-    'Buyer profile:',
-    `- Max budget acceptable: ${buyer.maxBudgetUsdc} USDC`,
-    `- Acceptable delivery window: ${buyer.minDeadlineDays} to ${buyer.maxDeadlineDays} days`,
+    `${role[0]!.toUpperCase() + role.slice(1)} constraints:`,
+    `- Max ${party.side === 'buyer' ? 'budget' : 'price'} acceptable: ${party.maxBudgetUsdc} USDC`,
+    `- Acceptable delivery window: ${party.minDeadlineDays} to ${party.maxDeadlineDays} days`,
     '',
     'Job:',
-    `- Original budget: ${job.budgetUsdc} USDC`,
+    `- Original budget posted: ${job.budgetUsdc} USDC`,
     `- Days until original deadline: ${daysFromNow(job.deadlineUnix)}`,
     '',
-    'Negotiation:',
-    `- Buyer's last counter price: ${buyerLastCounterUsdc} USDC`,
-    `- Seller's counter price: ${sellerCounterPriceUsdc} USDC`,
-    `- Seller's counter deadline: ${daysToSellerDeadline} days from now`,
+    'Negotiation state:',
+    `- Our last price on the table: ${ourLastPriceUsdc} USDC`,
+    `- Their counter price: ${theirCounterPriceUsdc} USDC`,
+    `- Their counter deadline: ${daysToTheirDeadline} days from now`,
     '',
     'Output rules:',
     '- decision: "accept" | "counter" | "decline"',
