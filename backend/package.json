@@ -15,6 +15,7 @@
     "wallets:create": "tsx --env-file=../.env src/scripts/create-wallets.ts",
     "identity:register": "tsx --env-file=../.env src/scripts/register-identities.ts",
     "agent:seller": "tsx --env-file=../.env src/scripts/seller-agent.ts",
+    "agent:buyer": "tsx --env-file=../.env src/scripts/buyer-agent.ts",
     "job:post": "tsx --env-file=../.env src/scripts/post-test-job.ts"
   },
   "dependencies": {

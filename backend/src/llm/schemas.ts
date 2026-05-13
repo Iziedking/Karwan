@@ -7,18 +7,20 @@ const decimalString = z
 export const bidDecisionSchema = z.object({
   decision: z.enum(['bid', 'skip']),
   confidence: z.number().min(0).max(1),
-  suggestedPrice: decimalString.describe(
-    "USDC amount as decimal digits only — no currency suffix, no commas. e.g. '450' or '450.5'.",
-  ),
-  suggestedDeadlineDays: z
-    .number()
-    .int()
-    .min(1)
-    .max(60)
-    .describe('Days from now until the proposed delivery deadline. Integer between 1 and 60.'),
+  suggestedPrice: decimalString,
+  suggestedDeadlineDays: z.number().int().min(1).max(60),
   reasoning: z.string(),
 });
 export type BidDecision = z.infer<typeof bidDecisionSchema>;
+
+export const bidScoreSchema = z.object({
+  score: z.number().min(0).max(100),
+  suggestedCounterPrice: decimalString,
+  suggestedCounterDeadlineDays: z.number().int().min(1).max(60),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+});
+export type BidScore = z.infer<typeof bidScoreSchema>;
 
 export const counterEvaluationSchema = z.object({
   decision: z.enum(['accept', 'counter', 'decline']),

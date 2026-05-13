@@ -17,6 +17,7 @@
     "wallets:create": "npm run wallets:create --workspace=backend",
     "identity:register": "npm run identity:register --workspace=backend",
     "agent:seller": "npm run agent:seller --workspace=backend",
+    "agent:buyer": "npm run agent:buyer --workspace=backend",
     "job:post": "npm run job:post --workspace=backend",
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test -vv"
