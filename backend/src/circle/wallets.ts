@@ -16,3 +16,40 @@ export function circleWalletsClient() {
 }
 
 export const ARC_TESTNET_BLOCKCHAIN = 'ARC-TESTNET' as const;
+
+export interface ProvisionedAgentWallets {
+  buyerWalletId: string;
+  buyerAddress: string;
+  sellerWalletId: string;
+  sellerAddress: string;
+}
+
+/// Creates a buyer agent wallet and a seller agent wallet for one user. Both are
+/// SCA wallets on Arc Testnet under the platform wallet set. The user funds them
+/// themselves; the platform never holds their keys beyond the entity secret.
+export async function provisionUserAgentWallets(): Promise<ProvisionedAgentWallets> {
+  if (!config.CIRCLE_WALLET_SET_ID) {
+    throw new Error('CIRCLE_WALLET_SET_ID is not set');
+  }
+  const client = circleWalletsClient();
+  const res = await client.createWallets({
+    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    count: 2,
+    walletSetId: config.CIRCLE_WALLET_SET_ID,
+    accountType: 'SCA',
+  });
+  const wallets = res.data?.wallets ?? [];
+  if (wallets.length !== 2) {
+    throw new Error(`expected 2 wallets, got ${wallets.length}`);
+  }
+  const [buyer, seller] = wallets;
+  if (!buyer?.id || !buyer.address || !seller?.id || !seller.address) {
+    throw new Error('wallet provisioning returned incomplete data');
+  }
+  return {
+    buyerWalletId: buyer.id,
+    buyerAddress: buyer.address,
+    sellerWalletId: seller.id,
+    sellerAddress: seller.address,
+  };
+}

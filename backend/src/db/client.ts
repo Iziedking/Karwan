@@ -41,6 +41,10 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS direct_deals_buyer_idx ON direct_deals (buyer);
     CREATE INDEX IF NOT EXISTS direct_deals_seller_idx ON direct_deals (seller);
+    CREATE TABLE IF NOT EXISTS agent_wallets (
+      user_address TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    );
   `);
   logger.info('postgres schema ensured');
 }

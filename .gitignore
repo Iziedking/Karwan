@@ -37,6 +37,7 @@ recovery/
 # local persisted user data
 backend/data/
 
-# internal — not for public repo
+# internal, not for public repo
 PLAN.md
+docs/demo-script.md
 .claude/
