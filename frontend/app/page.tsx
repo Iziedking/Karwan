@@ -1,386 +1,371 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { HeroFlow } from '@/features/activity/components/HeroFlow';
-import { PeerNetwork } from '@/shared/components/PeerNetwork';
 import { PartnerLogos } from '@/shared/components/PartnerLogos';
-import { LivePulseStrip } from '@/features/activity/components/LivePulseStrip';
-import { DealsFeed } from '@/features/deals/components/DealsFeed';
+import { StatsTicker } from '@/features/activity/components/StatsTicker';
+import { cn } from '@/shared/utils/cn';
 
 export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
   return (
-    <div className="space-y-24 -mt-2">
-      {/* HERO */}
-      <section className="relative -mx-6 px-6 pt-4 pb-10">
-        <PeerNetwork />
-        <div className="relative grid md:grid-cols-5 gap-10 items-center">
-          <div className="md:col-span-3 space-y-6">
-            <span className="inline-block text-[11px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-              Built on Arc · Circle USDC
-            </span>
-            <h1 className="text-[40px] md:text-[56px] leading-[1.02] tracking-[-0.02em] font-semibold text-[var(--color-ink)]">
-              Service payments, settled on delivery.
+    <div className="-mt-10 -mb-10">
+      <StatsTicker />
+
+      {/* HERO — dark */}
+      <Band
+        tone="dark"
+        overlay={
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-50"
+            style={{
+              backgroundImage:
+                'linear-gradient(var(--lp-border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--lp-border-subtle) 1px, transparent 1px)',
+              backgroundSize: '80px 80px',
+              maskImage: 'radial-gradient(ellipse 90% 80% at 50% 0%, black, transparent 75%)',
+              WebkitMaskImage:
+                'radial-gradient(ellipse 90% 80% at 50% 0%, black, transparent 75%)',
+            }}
+          />
+        }
+      >
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="space-y-7">
+            <SectionTag tone="dark">SETTLEMENT NETWORK</SectionTag>
+            <h1 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]">
+              Agree. Escrow.<br />Deliver.{' '}
+              <span className="text-[var(--lp-accent)]">Settle.</span>
             </h1>
-            <p className="text-[16px] text-[var(--color-ink-dim)] leading-relaxed max-w-xl">
-              Karwan is an on-chain settlement network for service deals. Open an escrow with a
-              counterparty you already have, or post a brief and let agents find one. USDC settles
-              on Arc in seconds, and milestones release as the work lands.
+            <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
+              Karwan is an on-chain settlement network for cross-border service deals. USDC sits
+              in milestone escrow on Arc while the work gets done, and releases as it lands.
             </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Link
-                href="/app"
-                style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-                className="px-5 py-2.5 rounded-md text-[14px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2"
-              >
-                Launch app
-                <span aria-hidden>→</span>
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="px-5 py-2.5 rounded-md border border-[var(--color-line-strong)] text-[14px] font-medium hover:bg-[var(--color-surface-2)] transition-colors"
-              >
-                How it works
-              </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <CTAPill href="/app">Launch app ↓</CTAPill>
+              <CTAPill href="/how-it-works" variant="secondary" tone="dark">
+                How it works →
+              </CTAPill>
             </div>
+            <p className="mono text-[12px] text-[var(--lp-text-sub)]">
+              Free on Arc Testnet. No mainnet funds, no signup.
+            </p>
           </div>
-          <div className="md:col-span-2">
+          <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">
             <HeroFlow />
           </div>
         </div>
-      </section>
+      </Band>
 
-      {/* PARTNER STRIP */}
-      <section className="border-y border-[var(--color-line)] -mx-6 px-6 py-8 bg-[var(--color-surface)]/60">
-        <PartnerLogos />
-      </section>
+      {/* ECOSYSTEM — light */}
+      <Band tone="light" compact>
+        <div className="space-y-6">
+          <SectionTag>BUILT ON</SectionTag>
+          <PartnerLogos />
+        </div>
+      </Band>
 
-      {/* PROBLEM */}
-      <section className="grid md:grid-cols-5 gap-10">
-        <div className="md:col-span-2">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-critical)]">
-            The problem
-          </span>
-          <h2 className="text-[32px] md:text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold mt-3">
-            Getting paid for work across borders still runs on 1990s rails.
-          </h2>
-          <p className="text-[15px] text-[var(--color-ink-dim)] mt-4 leading-relaxed">
-            A Lagos developer selling a $500 site to a Dubai founder waits two months for the wire
-            to land. By then a tenth of the deal is gone to processors, FX spreads, and bank fees.
-            Neither side has a verifiable record of past work to lean on. They start from scratch
-            every time. The corridor changes, the friction does not.
-          </p>
-        </div>
-        <div className="md:col-span-3 grid sm:grid-cols-3 gap-3">
-          <ProblemStat value="30–90d" label="Settlement time" hint="Cards, wires, reconciliation." decoration="timeline" />
-          <ProblemStat value="5–8%" label="Lost per deal" hint="Processor and FX fees." decoration="leak" />
-          <ProblemStat value="$0" label="Portable reputation" hint="Trust resets every relationship." decoration="reset" />
-        </div>
-      </section>
-
-      {/* TWO MODES */}
-      <section className="space-y-10">
-        <div className="max-w-2xl">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
-            Two ways in
-          </span>
-          <h2 className="text-[32px] md:text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold mt-3">
-            Bring your own counterparty, or let an agent find one.
-          </h2>
-          <p className="text-[15px] text-[var(--color-ink-dim)] mt-4 leading-relaxed">
-            Same settlement spine underneath. The difference is how the deal starts.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          <ModeTile
-            tag="Direct deal"
-            title="You already have a seller"
-            body="You agreed with someone on X, Discord, anywhere. Open an escrow naming their wallet. They sign in, deliver the work, and you release the funds in tranches. No auction, no waiting."
-            points={[
-              'Name the seller wallet, set the amount and a first-release slice',
-              'Seller marks the work delivered to unlock your releases',
-              'You release the first slice, then the rest once it is verified',
-            ]}
+      {/* DIRECT DEALS — light */}
+      <Band tone="light">
+        <SectionTag>DIRECT DEALS</SectionTag>
+        <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
+          Bring your own counterparty.
+        </h2>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
+          You already agreed with someone, on X, Discord, anywhere. Name their wallet, set the
+          amount and a first-release slice, and the escrow is ready. No auction, no waiting.
+        </p>
+        <div className="mt-10 grid sm:grid-cols-2 gap-5">
+          <FeatureTile
+            glyph={<GlyphWallet />}
+            title="Name the wallet"
+            body="Point the escrow at your counterparty. They sign in with that wallet, accept the terms, and deliver."
           />
-          <ModeTile
-            tag="Managed deal"
-            title="You need a seller"
-            body="Post a brief and your buyer agent runs a sealed auction against seller agents. It scores bids, counters once, and accepts the best terms. You wake up to a funded escrow."
-            points={[
-              'Write the brief, set a budget and deadline',
-              'Buyer and seller agents negotiate on chain, on their own',
-              'Escrow funds on acceptance, you release on sign-off',
-            ]}
+          <FeatureTile
+            glyph={<GlyphTranches />}
+            title="Release in tranches"
+            body="A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet."
           />
         </div>
-      </section>
+      </Band>
 
-      {/* SETTLEMENT SPINE */}
-      <section className="space-y-10">
-        <div className="max-w-2xl">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
-            What we built
-          </span>
-          <h2 className="text-[32px] md:text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold mt-3">
-            One settlement spine, four primitives.
-          </h2>
-          <p className="text-[15px] text-[var(--color-ink-dim)] mt-4 leading-relaxed">
-            USDC settles the deal. A smart contract holds the funds and splits a small fee. Past
-            outcomes are recorded so the next deal can lean on the last. Funds bridge in from other
-            chains when they need to. It runs on Circle&apos;s stack and on Arc.
-          </p>
+      {/* MANAGED DEALS — dark */}
+      <Band tone="dark">
+        <SectionTag tone="dark">MANAGED DEALS</SectionTag>
+        <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
+          Or let an agent find one.
+        </h2>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
+          Post a brief and your buyer agent runs a sealed auction against seller agents. It scores
+          bids, counters once, and funds the escrow on acceptance. You wake up to a settled deal.
+        </p>
+        <div className="mt-10 grid sm:grid-cols-2 gap-5">
+          <FeatureTile
+            tone="dark"
+            glyph={<GlyphAuction />}
+            title="Agents negotiate"
+            body="Buyer and seller agents bid and counter on chain, on their own, inside the ranges you set in your profile."
+          />
+          <FeatureTile
+            tone="dark"
+            glyph={<GlyphSettle />}
+            title="Escrow on acceptance"
+            body="When terms land, the buyer agent funds the milestone escrow. Releases follow the same spine as a direct deal."
+          />
         </div>
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <SolutionTile
+      </Band>
+
+      {/* THE SPINE — light */}
+      <Band tone="light">
+        <SectionTag>THE SETTLEMENT SPINE</SectionTag>
+        <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
+          One spine. Four primitives.
+        </h2>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
+          Both deal modes run on the same rails. USDC settles it, a contract holds it, reputation
+          remembers it, and CCTP brings liquidity to it.
+        </p>
+        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <AdvantageCard
             n="01"
             title="USDC settlement"
-            body="Funds land in seconds on Arc Testnet. USDC is the gas, so fees come out in pennies, not percentage points."
+            body="Funds land in seconds on Arc. USDC is the gas, so fees come out in pennies, not percentage points."
           />
-          <SolutionTile
+          <AdvantageCard
             n="02"
             title="Milestone escrow"
-            body="The escrow contract holds the budget until each milestone is released. A 1.5% platform fee is split evenly between buyer and seller, collected on chain."
+            body="A contract holds the budget until each milestone releases. A 1.5% fee is split evenly, collected on chain."
           />
-          <SolutionTile
+          <AdvantageCard
             n="03"
             title="Portable reputation"
-            body="Built on ERC-8004. When a deal settles, the outcome is recorded on chain against the seller. The track record travels with the wallet, not our servers."
+            body="Built on ERC-8004. Settled outcomes are recorded against the wallet, so a track record travels to the next deal."
           />
-          <SolutionTile
+          <AdvantageCard
             n="04"
             title="Cross-chain funding"
-            body="Bring USDC over from Base or Ethereum Sepolia with CCTP V2, or top up an agent straight from your Arc balance. Liquidity follows the deal."
+            body="Bring USDC over from Base or Ethereum Sepolia with CCTP V2, or top up an agent from your Arc balance."
           />
         </div>
-      </section>
+      </Band>
 
-      {/* LIVE METRICS */}
-      <section className="space-y-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">Live</span>
-            <h2 className="text-[24px] md:text-[28px] tracking-tight font-semibold mt-1">
-              Activity on Arc Testnet, right now
-            </h2>
-          </div>
-          <Link
-            href="/activity"
-            className="text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-          >
-            See full feed →
-          </Link>
-        </div>
-        <LivePulseStrip />
-      </section>
-
-      {/* DEALS ON THE NETWORK */}
-      <section className="space-y-4">
-        <div>
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-            Network
-          </span>
-          <h2 className="text-[24px] md:text-[28px] tracking-tight font-semibold mt-1">
-            Deals across Karwan
-          </h2>
-          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed max-w-xl">
-            Every direct deal opened on the network, with its live escrow state. Active deals are
-            mid-flight, completed ones have settled in full.
-          </p>
-        </div>
-        <DealsFeed />
-      </section>
-
-      {/* CTA BAND */}
-      <section className="-mx-6 px-6 py-16 bg-[var(--color-surface)] border-y border-[var(--color-line)] relative overflow-hidden">
-        <PeerNetwork />
-        <div className="relative max-w-2xl mx-auto text-center space-y-6">
-          <h2 className="text-[32px] md:text-[40px] leading-[1.05] tracking-[-0.02em] font-semibold">
+      {/* FINAL CTA — dark */}
+      <Band tone="dark" className="text-center">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <SectionTag tone="dark">
+            <span className="sr-only">Get started</span>OPEN A DEAL
+          </SectionTag>
+          <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.5rem,5vw,4.5rem)]">
             Open your first deal in about a minute.
           </h2>
-          <p className="text-[15px] text-[var(--color-ink-dim)]">
+          <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
             Direct or agent-run, your call. Every step is a real transaction on Arc Testnet.
           </p>
-          <div className="flex flex-wrap gap-3 justify-center pt-2">
-            <Link
-              href="/app"
-              style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-              className="px-5 py-2.5 rounded-md text-[14px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2"
-            >
-              Launch app
-              <span aria-hidden>→</span>
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="px-5 py-2.5 rounded-md border border-[var(--color-line-strong)] text-[14px] font-medium hover:bg-[var(--color-surface-2)] transition-colors"
-            >
-              Read how it works
-            </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+            <CTAPill href="/app">Launch app ↓</CTAPill>
+            <CTAPill href="/how-it-works" variant="secondary" tone="dark">
+              Read how it works →
+            </CTAPill>
           </div>
         </div>
-      </section>
+      </Band>
     </div>
   );
 }
 
-function ModeTile({
-  tag,
+/* ---- layout ---- */
+
+function Band({
+  tone,
+  children,
+  className,
+  compact,
+  overlay,
+}: {
+  tone: 'dark' | 'light';
+  children: ReactNode;
+  className?: string;
+  compact?: boolean;
+  overlay?: ReactNode;
+}) {
+  const dark = tone === 'dark';
+  return (
+    // True full-bleed: span the viewport regardless of the constrained app
+    // shell. overflow-x-clip on the layout wrapper keeps this from scrolling.
+    <section
+      className={cn(
+        'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden',
+        dark
+          ? 'bg-[var(--lp-dark)] text-white'
+          : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
+      )}
+    >
+      {overlay}
+      <div
+        className={cn(
+          'relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)]',
+          compact ? 'py-[clamp(36px,5vw,64px)]' : 'py-[clamp(64px,9vw,140px)]',
+          className,
+        )}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/* ---- ui primitives ---- */
+
+function SectionTag({
+  children,
+  tone = 'light',
+}: {
+  children: ReactNode;
+  tone?: 'dark' | 'light';
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-2 mono text-[12px] font-medium uppercase tracking-[0.08em]',
+        tone === 'dark' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-text-sub)]',
+      )}
+    >
+      <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
+      [:{children}]
+    </span>
+  );
+}
+
+function CTAPill({
+  href,
+  children,
+  variant = 'primary',
+  tone = 'dark',
+}: {
+  href: string;
+  children: ReactNode;
+  variant?: 'primary' | 'secondary';
+  tone?: 'dark' | 'light';
+}) {
+  const base =
+    'inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase ' +
+    'tracking-[0.08em] rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] ' +
+    'transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none ' +
+    'focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2';
+  if (variant === 'primary') {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          base,
+          'bg-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)]',
+          tone === 'dark'
+            ? 'focus-visible:ring-offset-[var(--lp-dark)]'
+            : 'focus-visible:ring-offset-[var(--lp-light)]',
+        )}
+      >
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      className={cn(
+        base,
+        tone === 'dark'
+          ? 'border border-white/25 text-white hover:border-white/55 focus-visible:ring-offset-[var(--lp-dark)]'
+          : 'border border-black/20 text-[var(--lp-dark)] hover:border-black/45 focus-visible:ring-offset-[var(--lp-light)]',
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function FeatureTile({
+  glyph,
   title,
   body,
-  points,
+  tone = 'light',
 }: {
-  tag: string;
+  glyph: ReactNode;
   title: string;
   body: string;
-  points: string[];
+  tone?: 'dark' | 'light';
 }) {
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-6 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
-      <span className="inline-block text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] font-semibold">
-        {tag}
-      </span>
-      <h3 className="text-[20px] font-semibold tracking-tight mt-2">{title}</h3>
-      <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{body}</p>
-      <ul className="mt-4 pt-4 border-t border-[var(--color-line)] space-y-2">
-        {points.map((p) => (
-          <li key={p} className="flex items-start gap-2 text-[12px] text-[var(--color-ink-dim)]">
-            <span
-              aria-hidden
-              className="mt-[6px] w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] shrink-0"
-            />
-            <span className="leading-relaxed">{p}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ProblemStat({
-  value,
-  label,
-  hint,
-  decoration,
-}: {
-  value: string;
-  label: string;
-  hint: string;
-  decoration: 'timeline' | 'leak' | 'reset';
-}) {
-  return (
-    <div className="group relative overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
-      {/* diagonal stripe wash, subtle */}
+    <div>
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(135deg, var(--color-ink) 0 1px, transparent 1px 9px)',
-          maskImage: 'radial-gradient(ellipse 80% 60% at 100% 0%, black, transparent 70%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 100% 0%, black, transparent 70%)',
-        }}
-      />
-
-      {/* corner brackets */}
-      <CornerBrackets />
-
-      {/* per-stat decoration top-right */}
-      <span className="absolute top-3 right-3 text-[var(--color-critical)] opacity-70 group-hover:opacity-100 transition-opacity">
-        <StatGlyph kind={decoration} />
-      </span>
-
-      <div className="relative">
-        <p className="text-[28px] mono font-semibold tracking-tight tabular-nums">{value}</p>
-        <p className="text-[13px] font-medium mt-1.5">{label}</p>
-        <p className="text-[12px] text-[var(--color-ink-faint)] mt-1 leading-snug">{hint}</p>
-      </div>
-
-      {/* animated baseline */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute left-5 right-5 bottom-3 h-px bg-[var(--color-line)] overflow-hidden"
+        className="inline-flex size-14 items-center justify-center rounded-xl bg-[var(--lp-card)] text-[var(--lp-dark)] shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)]"
       >
-        <span className="stat-sweep block h-full w-1/3 bg-[var(--color-critical)] opacity-70" />
+        {glyph}
       </span>
+      <h3 className="mt-4 text-[16px] font-bold uppercase tracking-[-0.01em]">{title}</h3>
+      <p
+        className={cn(
+          'mt-2 text-pretty text-[13px] leading-relaxed',
+          tone === 'dark' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-text-sub)]',
+        )}
+      >
+        {body}
+      </p>
     </div>
   );
 }
 
-function CornerBrackets() {
-  const stroke = 'currentColor';
-  const cls = 'pointer-events-none absolute w-3.5 h-3.5 text-[var(--color-line-strong)]';
+function AdvantageCard({ n, title, body }: { n: string; title: string; body: string }) {
   return (
-    <>
-      <svg className={`${cls} top-1.5 left-1.5`} viewBox="0 0 12 12" aria-hidden>
-        <path d="M1 5V1h4" stroke={stroke} strokeWidth="1.2" fill="none" />
-      </svg>
-      <svg className={`${cls} top-1.5 right-1.5`} viewBox="0 0 12 12" aria-hidden>
-        <path d="M11 5V1H7" stroke={stroke} strokeWidth="1.2" fill="none" />
-      </svg>
-      <svg className={`${cls} bottom-1.5 left-1.5`} viewBox="0 0 12 12" aria-hidden>
-        <path d="M1 7v4h4" stroke={stroke} strokeWidth="1.2" fill="none" />
-      </svg>
-      <svg className={`${cls} bottom-1.5 right-1.5`} viewBox="0 0 12 12" aria-hidden>
-        <path d="M11 7v4H7" stroke={stroke} strokeWidth="1.2" fill="none" />
-      </svg>
-    </>
+    <div className="rounded-2xl bg-[var(--lp-card)] p-7 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.05)] transition-transform duration-200 ease-out hover:scale-[1.035] hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_40px_rgba(0,0,0,0.10)]">
+      <p className="mono text-[12px] tabular-nums text-[var(--lp-text-sub)]">{n}</p>
+      <h3 className="mt-3 text-[16px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
+        {title}
+      </h3>
+      <p className="mt-2 text-pretty text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+        {body}
+      </p>
+    </div>
   );
 }
 
-function StatGlyph({ kind }: { kind: 'timeline' | 'leak' | 'reset' }) {
-  if (kind === 'timeline') {
-    // long horizontal bar slowly filling, settlement that drags
-    return (
-      <svg width="44" height="22" viewBox="0 0 44 22" fill="none" aria-hidden>
-        <rect x="0.5" y="6" width="43" height="10" rx="2" stroke="currentColor" strokeWidth="1" opacity="0.4" />
-        <rect x="2" y="7.5" width="0" height="7" fill="currentColor" rx="1">
-          <animate attributeName="width" values="0;40;40;0" keyTimes="0;0.7;0.95;1" dur="4.5s" repeatCount="indefinite" />
-        </rect>
-        <circle cx="2" cy="11" r="1.4" fill="currentColor" />
-        <circle cx="42" cy="11" r="1.4" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (kind === 'leak') {
-    // chunks being chipped off, fees eating into the deal
-    return (
-      <svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden>
-        <rect x="0.5" y="6" width="35" height="10" rx="2" stroke="currentColor" strokeWidth="1" opacity="0.4" />
-        <g fill="currentColor">
-          <rect x="3" y="8" width="6" height="6" rx="1">
-            <animate attributeName="opacity" values="1;0;1" dur="2.2s" repeatCount="indefinite" begin="0s" />
-          </rect>
-          <rect x="11" y="8" width="6" height="6" rx="1">
-            <animate attributeName="opacity" values="1;0;1" dur="2.2s" repeatCount="indefinite" begin="0.5s" />
-          </rect>
-          <rect x="19" y="8" width="6" height="6" rx="1">
-            <animate attributeName="opacity" values="1;0;1" dur="2.2s" repeatCount="indefinite" begin="1s" />
-          </rect>
-          <rect x="27" y="8" width="6" height="6" rx="1" opacity="0.4" />
-        </g>
-      </svg>
-    );
-  }
-  // reset, three empty slots with a sweeping wipe
+/* ---- line glyphs (Lucide is not installed; hand-rolled to match the line-icon look) ---- */
+
+function GlyphWallet() {
   return (
-    <svg width="44" height="22" viewBox="0 0 44 22" fill="none" aria-hidden>
-      <g stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" fill="none" opacity="0.55">
-        <rect x="1" y="6" width="12" height="10" rx="1.5" />
-        <rect x="16" y="6" width="12" height="10" rx="1.5" />
-        <rect x="31" y="6" width="12" height="10" rx="1.5" />
-      </g>
-      <line x1="0" y1="11" x2="44" y2="11" stroke="currentColor" strokeWidth="1" opacity="0.7">
-        <animate attributeName="x1" values="-10;44" dur="3.2s" repeatCount="indefinite" />
-        <animate attributeName="x2" values="-2;52" dur="3.2s" repeatCount="indefinite" />
-      </line>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3 9h18" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="16.5" cy="13.5" r="1.4" fill="currentColor" />
     </svg>
   );
 }
 
-function SolutionTile({ n, title, body }: { n: string; title: string; body: string }) {
+function GlyphTranches() {
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
-      <p className="text-[11px] mono text-[var(--color-ink-faint)]">{n}</p>
-      <h3 className="text-[16px] font-semibold tracking-tight mt-1.5">{title}</h3>
-      <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{body}</p>
-    </div>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="5" width="18" height="4" rx="1.4" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="3" y="14" width="10" height="4" rx="1.4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M16 16h5M19 13.5l2.5 2.5L19 18.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function GlyphAuction() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 15l6-6M8 6l4 4M14 12l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M3 21h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="13" y="13" width="6" height="6" rx="1.2" transform="rotate(45 16 16)" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function GlyphSettle() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8.5 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

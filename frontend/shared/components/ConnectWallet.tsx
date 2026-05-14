@@ -21,8 +21,7 @@ export function ConnectWalletButton() {
                     onClick={openConnectModal}
                     type="button"
                     suppressHydrationWarning
-                    style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-                    className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)] text-[12px] font-semibold hover:bg-[var(--lp-accent-hover)] transition-colors inline-flex items-center gap-1.5"
                   >
                     <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
                       <rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
@@ -38,8 +37,8 @@ export function ConnectWalletButton() {
                     onClick={openChainModal}
                     type="button"
                     suppressHydrationWarning
-                    style={{ backgroundColor: '#7a1f1a', color: '#ffffff' }}
-                    className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: '#e5484d', color: '#ffffff' }}
+                    className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold hover:opacity-90 transition-opacity"
                   >
                     Wrong network
                   </button>
@@ -50,7 +49,7 @@ export function ConnectWalletButton() {
                   onClick={openAccountModal}
                   type="button"
                   suppressHydrationWarning
-                  className="px-3.5 py-1.5 rounded-md border border-[var(--color-line-strong)] text-[12px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-2 mono"
+                  className="px-3.5 py-1.5 rounded-full border border-[var(--color-line-strong)] text-[12px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-2 mono"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
                   {account.displayName}

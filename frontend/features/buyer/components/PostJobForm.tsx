@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 
 export function PostJobForm() {
@@ -46,6 +47,7 @@ export function PostJobForm() {
         budgetUsdc: budget,
         deadlineDays: days,
       });
+      sfx.send();
       router.push(`/jobs/${r.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.message === 'insufficient buyer balance') {

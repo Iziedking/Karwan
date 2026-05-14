@@ -4,6 +4,7 @@ import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { Card } from '@/shared/components/Card';
 import { CopyAddress } from '@/shared/components/CopyAddress';
+import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
@@ -328,20 +329,7 @@ export function ArcFundCard({
 }
 
 function AgentAvatar({ address }: { address: string }) {
-  const seed = address && address.length >= 8 ? address.slice(2, 8) : '000000';
-  const hue = parseInt(seed, 16) % 360;
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full shrink-0"
-      style={{
-        width: 26,
-        height: 26,
-        background: `conic-gradient(from 210deg at 50% 50%, hsl(${hue} 65% 55%), hsl(${(hue + 80) % 360} 55% 45%), hsl(${(hue + 200) % 360} 60% 50%), hsl(${hue} 65% 55%))`,
-        boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.55), 0 1px 2px rgba(0,0,0,0.12)',
-      }}
-      aria-hidden
-    />
-  );
+  return <WalletAvatar address={address} size={26} />;
 }
 
 function phaseLabel(phase: FundPhase): string {

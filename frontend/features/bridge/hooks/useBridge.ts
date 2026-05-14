@@ -11,6 +11,7 @@ import {
 import { api, type ChainEvent } from '@/core/api';
 import { ARC_TESTNET, SOURCE_CHAINS, addressToBytes32, FINALITY_THRESHOLD_FAST, type SourceChainConfig } from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
+import { sfx } from '@/shared/utils/sfx';
 
 const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
@@ -180,6 +181,7 @@ export function useBridges() {
               mintTxHash: e.payload?.txHash as `0x${string}` | undefined,
               updatedAt: Date.now(),
             };
+            if (cur.phase !== 'done') sfx.success();
           } else if (e.type === 'bridge.error') {
             next = {
               ...cur,
@@ -287,6 +289,7 @@ export function useBridges() {
           account: address,
         });
         await sourcePublicClient.waitForTransactionReceipt({ hash: burnHash });
+        sfx.send();
         patch(record.id, (b) => ({ ...b, burnTxHash: burnHash, phase: 'relaying' }));
 
         await api.bridgeRelay({

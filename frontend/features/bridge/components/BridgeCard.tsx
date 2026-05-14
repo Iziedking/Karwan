@@ -5,6 +5,8 @@ import { Card } from '@/shared/components/Card';
 import { SOURCE_CHAINS, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
+import { WalletAvatar } from '@/shared/components/WalletAvatar';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -14,12 +16,6 @@ const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 const STUCK_AFTER_MS = 30 * 60 * 1000;
 
 const STEP_ORDER: BridgePhase[] = ['approving', 'burning', 'attesting', 'minting', 'done'];
-
-const CHAIN_MARK: Record<string, { letter: string; bg: string; fg: string; name: string }> = {
-  baseSepolia: { letter: 'B', bg: '#0052FF', fg: '#FFFFFF', name: 'Base' },
-  sepolia:     { letter: 'E', bg: '#627EEA', fg: '#FFFFFF', name: 'Ethereum' },
-  arc:         { letter: 'A', bg: '#0E5E3E', fg: '#FFFFFF', name: 'Arc' },
-};
 
 function stepIndexFor(phase: BridgePhase): number {
   if (phase === 'error') return -1;
@@ -65,24 +61,7 @@ function phaseTone(phase: BridgePhase): 'live' | 'positive' | 'critical' {
 }
 
 function ChainMark({ which, size = 22 }: { which: string; size?: number }) {
-  const m = CHAIN_MARK[which] ?? CHAIN_MARK.arc!;
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-[6px] font-bold mono shrink-0 select-none"
-      style={{
-        width: size,
-        height: size,
-        background: m.bg,
-        color: m.fg,
-        fontSize: size * 0.5,
-        letterSpacing: 0,
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)',
-      }}
-      aria-label={m.name}
-    >
-      {m.letter}
-    </span>
-  );
+  return <ChainLogo chain={which as ChainKey} size={size} />;
 }
 
 function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
@@ -278,19 +257,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
 }
 
 function AgentAvatar({ address }: { address: string }) {
-  const hue = parseInt(address.slice(2, 8), 16) % 360;
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full shrink-0"
-      style={{
-        width: 26,
-        height: 26,
-        background: `conic-gradient(from 210deg at 50% 50%, hsl(${hue} 65% 55%), hsl(${(hue + 80) % 360} 55% 45%), hsl(${(hue + 200) % 360} 60% 50%), hsl(${hue} 65% 55%))`,
-        boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.55), 0 1px 2px rgba(0,0,0,0.12)',
-      }}
-      aria-hidden
-    />
-  );
+  return <WalletAvatar address={address} size={26} />;
 }
 
 function BridgeRow({

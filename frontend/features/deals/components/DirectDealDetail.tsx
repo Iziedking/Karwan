@@ -6,6 +6,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { Card } from '@/shared/components/Card';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
@@ -63,6 +64,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     setError(null);
     try {
       await api.acceptDirectDeal(jobId, address);
+      sfx.send();
       refresh();
     } catch (err) {
       setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
@@ -97,7 +99,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     setBusy(true);
     setError(null);
     try {
-      await api.releaseDirectDeal(jobId, address);
+      const r = await api.releaseDirectDeal(jobId, address);
+      if (r.settled) sfx.success();
+      else sfx.send();
       refresh();
     } catch (err) {
       setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);

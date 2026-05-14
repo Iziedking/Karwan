@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { sfx } from '@/shared/utils/sfx';
 import { feeBreakdown } from '../config';
 import { formatUsdc } from '@/shared/utils/format';
 
@@ -56,6 +57,7 @@ export function DirectDealForm() {
         terms: terms.trim(),
         firstReleasePct: firstPct as number,
       });
+      sfx.send();
       router.push(`/deals/${r.deal.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.detail) setError(String(err.detail));

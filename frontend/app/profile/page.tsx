@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Card } from '@/shared/components/Card';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { ActivationModal } from '@/shared/components/ActivationModal';
@@ -14,6 +13,16 @@ import { AgentWithdrawCard } from '@/features/profile/components/AgentWithdrawCa
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { type UserProfile } from '@/core/api';
+import {
+  AppCanvas,
+  Section,
+  GridOverlay,
+  Pill,
+  EyebrowChip,
+  AddressChip,
+  Skeleton,
+  WalletGate,
+} from '@/shared/components/AppUI';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -28,237 +37,204 @@ export default function ProfilePage() {
     buyer: activation.agents?.buyer,
     seller: activation.agents?.seller,
   };
+  const defaultAgent: 'buyer' | 'seller' = profile?.role === 'seller' ? 'seller' : 'buyer';
 
   if (!isConnected) {
     return (
-      <div className="max-w-xl mx-auto fade-up text-center space-y-6 py-12">
-        <h1 className="display text-[36px]">Connect your wallet</h1>
-        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-          Karwan profiles are keyed by wallet address.
-        </p>
-        <div className="flex justify-center">
+      <AppCanvas>
+        <WalletGate
+          title="Connect your wallet."
+          body="Karwan profiles are keyed by wallet address. Connect a browser wallet to set up your buyer or seller profile."
+        >
           <ConnectButton />
-        </div>
-      </div>
+        </WalletGate>
+      </AppCanvas>
     );
   }
 
   if (fetchState === 'error') {
     return (
-      <Card>
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
-          Could not load your profile. Try again in a moment.
-        </p>
-      </Card>
+      <AppCanvas>
+        <Section>
+          <EyebrowChip dot="warning">Profile</EyebrowChip>
+          <p className="mt-4 text-[14px] text-[var(--lp-text-sub)]">
+            Could not load your profile. Try again in a moment.
+          </p>
+        </Section>
+      </AppCanvas>
     );
   }
 
   if (fetchState === 'idle' || fetchState === 'loading') {
-    return <p className="text-[13px] text-[var(--color-ink-faint)] fade-up">Loading your profile…</p>;
+    return (
+      <AppCanvas>
+        <Section>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </Section>
+      </AppCanvas>
+    );
   }
 
-  const defaultAgent: 'buyer' | 'seller' =
-    profile?.role === 'seller' ? 'seller' : 'buyer';
-
   return (
-    <div className="space-y-8 fade-up max-w-4xl">
-      {profile ? (
-        <header className="grid md:grid-cols-[1fr_auto] gap-4 items-end pb-3 border-b border-[var(--color-line)]">
+    <AppCanvas>
+      {/* HEADER */}
+      <Section tone="dark" className="relative overflow-hidden">
+        <GridOverlay />
+        <div className="relative flex flex-wrap items-start justify-between gap-5">
           <div>
-            <p className="eyebrow">Profile</p>
-            <h1 className="display text-[44px] leading-[1.02] mt-1">{profile.displayName}</h1>
-            <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-2">
-              {shortAddress(profile.address)} · created{' '}
-              {new Date(profile.createdAt).toLocaleDateString()} · updated{' '}
-              {new Date(profile.updatedAt).toLocaleDateString()}
-            </p>
+            <EyebrowChip tone="dark">Profile</EyebrowChip>
+            <h1 className="mt-4 font-sans font-bold tracking-[-0.025em] text-[clamp(2rem,4vw,3rem)]">
+              {profile ? profile.displayName : 'Your wallet'}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {address && <AddressChip address={address} tone="dark" />}
+              {profile && (
+                <span className="mono text-[11px] text-[var(--lp-text-sub)]">
+                  updated {new Date(profile.updatedAt).toLocaleDateString()}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 w-fit">
-            <ConnectXButton />
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding')}
-              className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-ink-dim)] transition-colors inline-flex items-center gap-1.5"
-            >
-              Edit details
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path
-                  d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
-        </header>
-      ) : (
-        <header className="pb-3 border-b border-[var(--color-line)]">
-          <p className="eyebrow">Account</p>
-          <h1 className="display text-[44px] leading-[1.02] mt-1">Your wallet</h1>
-          <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-2">
-            {address ? shortAddress(address) : ''}
-          </p>
-        </header>
-      )}
+          {profile && (
+            <div className="flex items-center gap-2">
+              <ConnectXButton />
+              <Pill variant="secondary" tone="dark" onClick={() => router.push('/onboarding')}>
+                Edit details
+              </Pill>
+            </div>
+          )}
+        </div>
+      </Section>
 
-      <section>
+      {/* ACTIVATION BANNER */}
+      <Section className="py-5 md:py-6">
         {activation.loading ? (
-          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] px-5 py-4">
-            <p className="text-[12px] text-[var(--color-ink-faint)]">
-              Checking your agent wallets…
-            </p>
-          </div>
+          <p className="mono text-[12px] text-[var(--lp-text-sub)]">Checking your agent wallets…</p>
         ) : activation.activated ? (
-          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] px-5 py-4 flex items-center gap-3">
-            <span
-              className="inline-flex items-center justify-center w-6 h-6 rounded-md shrink-0"
-              style={{ background: 'var(--color-positive)', color: 'var(--color-surface)' }}
-              aria-hidden
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <p className="text-[12.5px] text-[var(--color-ink-dim)] flex-1 leading-snug">
-              <span className="text-[var(--color-ink)] font-medium">Agents active.</span> Your
-              buyer and seller agent wallets sign every on-chain action. Fund them from your Arc
-              balance below.
+          <div className="flex items-center gap-3">
+            <EyebrowChip dot="live">Agents active</EyebrowChip>
+            <p className="text-[13px] text-[var(--lp-text-sub)]">
+              Your buyer and seller agent wallets sign every on-chain action. Fund or withdraw
+              below.
             </p>
           </div>
         ) : (
-          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] px-5 py-4 flex items-center gap-3">
-            <span
-              className="inline-flex items-center justify-center w-6 h-6 rounded-md shrink-0"
-              style={{ background: 'var(--color-ink)', color: 'var(--color-surface)' }}
-              aria-hidden
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <rect x="3" y="7" width="10" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </span>
-            <p className="text-[12.5px] text-[var(--color-ink-dim)] flex-1 leading-snug">
-              <span className="text-[var(--color-ink)] font-medium">Activate your agents</span> to
-              get a buyer and seller Circle wallet for this address. Direct deals run on them.
-            </p>
-            <button
-              type="button"
-              onClick={() => setActivationOpen(true)}
-              style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
-              className="text-[12px] font-semibold rounded-md px-3 py-1.5 hover:opacity-90 transition-opacity shrink-0"
-            >
-              Activate agents
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <EyebrowChip dot="warning">Not activated</EyebrowChip>
+              <p className="text-[13px] text-[var(--lp-text-sub)]">
+                Activate to get a buyer and seller Circle wallet for this address.
+              </p>
+            </div>
+            <Pill onClick={() => setActivationOpen(true)}>Activate agents</Pill>
           </div>
         )}
-      </section>
+      </Section>
 
       {profile ? (
         <>
-      <section>
-        <RoleToggle profile={profile} onUpdate={setProfile} />
-      </section>
+          <Section>
+            <EyebrowChip>Account type</EyebrowChip>
+            <div className="mt-4">
+              <RoleToggle profile={profile} onUpdate={setProfile} />
+            </div>
+          </Section>
 
-      <section className="grid md:grid-cols-2 gap-4">
-        {profile.buyer && (
-          <Card noPadding>
-            <div className="px-5 pt-5 pb-3 border-b border-[var(--color-line)] flex items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Agent</p>
-                <h3 className="display text-[20px] leading-tight mt-0.5">Buyer</h3>
-              </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0">
-                {agents.buyer && (
-                  <span className="text-[10px] mono text-[var(--color-ink-faint)]">
-                    {shortAddress(agents.buyer)}
-                  </span>
-                )}
-                <ReputationBadge address={agents.buyer} size="sm" withDetail />
-              </div>
-            </div>
-            <div className="px-5 py-3">
-              <Row label="Max budget" value={`${profile.buyer.maxBudgetUsdc} USDC`} mono />
-              <Row
-                label="Deadline range"
-                value={`${profile.buyer.minDeadlineDays} – ${profile.buyer.maxDeadlineDays} days`}
-                mono
-              />
-              <Row
-                label="Bid window"
-                value={`${profile.buyer.bidCollectionSeconds}s`}
-                mono
-              />
-              <Row
-                label="Milestones"
-                value={profile.buyer.milestonePcts.join(' / ') || '—'}
-                mono
-              />
-            </div>
-          </Card>
-        )}
+          <div className="grid md:grid-cols-2 gap-4">
+            {profile.buyer && (
+              <Section>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <EyebrowChip>Agent</EyebrowChip>
+                    <h3 className="mt-2 font-sans text-[20px] font-bold tracking-[-0.01em]">
+                      Buyer
+                    </h3>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {agents.buyer && (
+                      <span className="mono text-[10px] text-[var(--lp-text-sub)]">
+                        {shortAddress(agents.buyer)}
+                      </span>
+                    )}
+                    <ReputationBadge address={agents.buyer} size="sm" withDetail />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Row label="Max budget" value={`${profile.buyer.maxBudgetUsdc} USDC`} mono />
+                  <Row
+                    label="Deadline range"
+                    value={`${profile.buyer.minDeadlineDays} – ${profile.buyer.maxDeadlineDays} days`}
+                    mono
+                  />
+                  <Row label="Bid window" value={`${profile.buyer.bidCollectionSeconds}s`} mono />
+                  <Row
+                    label="Milestones"
+                    value={profile.buyer.milestonePcts.join(' / ') || '—'}
+                    mono
+                  />
+                </div>
+              </Section>
+            )}
 
-        {profile.seller && (
-          <Card noPadding>
-            <div className="px-5 pt-5 pb-3 border-b border-[var(--color-line)] flex items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">Agent</p>
-                <h3 className="display text-[20px] leading-tight mt-0.5">Seller</h3>
-              </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0">
-                {agents.seller && (
-                  <span className="text-[10px] mono text-[var(--color-ink-faint)]">
-                    {shortAddress(agents.seller)}
-                  </span>
-                )}
-                <ReputationBadge address={agents.seller} size="sm" withDetail />
-              </div>
-            </div>
-            <div className="px-5 py-3">
-              <Row label="Skills" value={profile.seller.skills.join(', ') || '—'} />
-              <Row
-                label="Bio"
-                value={profile.seller.bio || '—'}
-              />
-              <Row
-                label="Budget range"
-                value={`${profile.seller.minBudgetUsdc} – ${profile.seller.maxBudgetUsdc} USDC`}
-                mono
-              />
-              <Row
-                label="Delivery window"
-                value={`${profile.seller.minDeadlineDays} – ${profile.seller.maxDeadlineDays} days`}
-                mono
-              />
-            </div>
-          </Card>
-        )}
-      </section>
+            {profile.seller && (
+              <Section>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <EyebrowChip>Agent</EyebrowChip>
+                    <h3 className="mt-2 font-sans text-[20px] font-bold tracking-[-0.01em]">
+                      Seller
+                    </h3>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {agents.seller && (
+                      <span className="mono text-[10px] text-[var(--lp-text-sub)]">
+                        {shortAddress(agents.seller)}
+                      </span>
+                    )}
+                    <ReputationBadge address={agents.seller} size="sm" withDetail />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Row label="Skills" value={profile.seller.skills.join(', ') || '—'} />
+                  <Row label="Bio" value={profile.seller.bio || '—'} />
+                  <Row
+                    label="Budget range"
+                    value={`${profile.seller.minBudgetUsdc} – ${profile.seller.maxBudgetUsdc} USDC`}
+                    mono
+                  />
+                  <Row
+                    label="Delivery window"
+                    value={`${profile.seller.minDeadlineDays} – ${profile.seller.maxDeadlineDays} days`}
+                    mono
+                  />
+                </div>
+              </Section>
+            )}
+          </div>
         </>
       ) : (
-        <section>
-          <Card noPadding>
-            <div className="px-5 py-5 space-y-3">
-              <h3 className="display text-[20px]">Set up a profile</h3>
-              <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-                A profile gives you a display name and lets your agents run managed deals, where
-                they post briefs and bid in the auction. It stays optional: direct deals and the
-                agent wallets below work without one.
-              </p>
-              <Link
-                href="/onboarding"
-                style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-                className="inline-flex px-4 py-2 rounded-md text-[13px] font-semibold hover:opacity-90 transition-opacity"
-              >
-                Set up profile
-              </Link>
-            </div>
-          </Card>
-        </section>
+        <Section>
+          <EyebrowChip>Profile</EyebrowChip>
+          <h2 className="mt-3 font-sans font-bold tracking-[-0.02em] text-[clamp(1.4rem,2.2vw,1.9rem)]">
+            Set up a profile
+          </h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
+            A profile gives you a display name and lets your agents run managed deals, where they
+            post briefs and bid in the auction. It stays optional: direct deals and the agent
+            wallets below work without one.
+          </p>
+          <div className="mt-5">
+            <Pill href="/onboarding">Set up profile</Pill>
+          </div>
+        </Section>
       )}
 
-      <section className="grid lg:grid-cols-2 gap-4 items-start">
+      {/* FUND + WITHDRAW */}
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
         <ArcFundCard
           buyerAgent={agents.buyer}
           sellerAgent={agents.seller}
@@ -271,7 +247,7 @@ export default function ProfilePage() {
             defaultAgent={defaultAgent}
           />
         )}
-      </section>
+      </div>
 
       <ActivationModal
         open={activationOpen}
@@ -282,24 +258,20 @@ export default function ProfilePage() {
         activated={activation.activated}
         agents={activation.agents}
       />
-    </div>
+    </AppCanvas>
   );
 }
 
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="py-2.5 border-b border-[var(--color-line)] last:border-0 flex items-baseline justify-between gap-4">
-      <span className="eyebrow shrink-0">{label}</span>
+    <div className="flex items-baseline justify-between gap-4 border-b border-black/[0.06] py-2.5 last:border-0">
+      <span className="mono text-[11px] uppercase tracking-[0.06em] text-[var(--lp-text-sub)] shrink-0">
+        {label}
+      </span>
       <span
-        className={`text-right ${mono ? 'mono text-[12px]' : 'text-[13px]'} text-[var(--color-ink)] truncate`}
+        className={`text-right text-[var(--lp-dark)] truncate ${
+          mono ? 'mono text-[12px]' : 'text-[13px]'
+        }`}
       >
         {value}
       </span>

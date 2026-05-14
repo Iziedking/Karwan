@@ -14,7 +14,14 @@ const STAGE_BY_EVENT: Record<string, 0 | 1 | 2 | 3 | 4> = {
   'escrow.settled': 4,
 };
 
-const stageLabel = ['Brief posted', 'Bids in', 'Negotiating', 'Accepted', 'Settling'] as const;
+// Dark-native palette — this lives only on the landing hero, which is always
+// dark, so it does not read the themeable --color-* tokens.
+const CARD_BG = '#151515';
+const STROKE = 'rgba(255,255,255,0.16)';
+const ACCENT = '#d4ff3f';
+const INK_ACTIVE = '#ededed';
+const INK_IDLE = '#5a5a60';
+const SUB = '#8a8a90';
 
 export function HeroFlow() {
   const events = useLiveEvents(undefined, 30);
@@ -32,19 +39,23 @@ export function HeroFlow() {
   }, [idle]);
 
   const shown = idle ? demoStage : (stage as 0 | 1 | 2 | 3 | 4);
+  const settled = shown >= 4;
 
   return (
-    <div className="relative rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-6 overflow-hidden">
-      <svg width="100%" height="200" viewBox="0 0 360 200" className="block">
+    <div
+      className="relative rounded-2xl border p-6 overflow-hidden"
+      style={{ background: CARD_BG, borderColor: STROKE }}
+    >
+      <svg width="100%" height="220" viewBox="0 0 360 200" className="block">
         <defs>
           <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#1b3a5b" stopOpacity="0.1" />
-            <stop offset="0.5" stopColor="#1b3a5b" stopOpacity="0.45" />
-            <stop offset="1" stopColor="#1b3a5b" stopOpacity="0.1" />
+            <stop offset="0" stopColor={ACCENT} stopOpacity="0.15" />
+            <stop offset="0.5" stopColor={ACCENT} stopOpacity="0.7" />
+            <stop offset="1" stopColor={ACCENT} stopOpacity="0.15" />
           </linearGradient>
         </defs>
 
-        <line x1="60" y1="100" x2="300" y2="100" stroke="var(--color-line-strong)" strokeWidth="1" />
+        <line x1="60" y1="100" x2="300" y2="100" stroke={STROKE} strokeWidth="1" />
         <line x1="60" y1="100" x2="300" y2="100" stroke="url(#lineGrad)" strokeWidth="2" />
 
         <Node x={60} label="Buyer" sublabel="agent" active={shown >= 0} variant="left" />
@@ -52,12 +63,21 @@ export function HeroFlow() {
 
         {/* Animated USDC token traveling */}
         <g className={`token token-${shown}`}>
-          <circle r="9" fill="#fff" stroke="#1b3a5b" strokeWidth="1.5" />
-          <text textAnchor="middle" y="3.5" fontSize="8" fontWeight="600" fill="#1b3a5b" fontFamily="var(--font-geist-mono, monospace)">$</text>
+          <circle r="9" fill={ACCENT} />
+          <text
+            textAnchor="middle"
+            y="3.5"
+            fontSize="8"
+            fontWeight="700"
+            fill="#0e0e0e"
+            fontFamily="var(--font-geist-mono, monospace)"
+          >
+            $
+          </text>
         </g>
 
         {/* Stage labels under the line */}
-        <g fontSize="9.5" fill="#6b6f76" fontFamily="var(--font-geist, sans-serif)" textAnchor="middle">
+        <g fontSize="9.5" fill={SUB} fontFamily="var(--font-geist, sans-serif)" textAnchor="middle">
           <text x="105" y="128">brief</text>
           <text x="160" y="128">bid</text>
           <text x="215" y="128">counter</text>
@@ -65,19 +85,29 @@ export function HeroFlow() {
         </g>
 
         {/* Escrow / settle nodes below */}
-        <line x1="180" y1="135" x2="180" y2="158" stroke="var(--color-line-strong)" strokeWidth="1" />
+        <line x1="180" y1="135" x2="180" y2="158" stroke={STROKE} strokeWidth="1" />
         <g transform="translate(180 168)">
-          <rect x="-58" y="-12" width="116" height="24" rx="6" fill="#fff" stroke={shown >= 4 ? '#0f5132' : 'var(--color-line-strong)'} strokeWidth="1" />
-          <text textAnchor="middle" y="4.5" fontSize="11" fontWeight="600" fill={shown >= 4 ? '#0f5132' : '#6b6f76'}>
-            {shown >= 4 ? 'Escrow · settling' : 'Escrow'}
+          <rect
+            x="-58"
+            y="-12"
+            width="116"
+            height="24"
+            rx="6"
+            fill={CARD_BG}
+            stroke={settled ? ACCENT : STROKE}
+            strokeWidth="1"
+          />
+          <text
+            textAnchor="middle"
+            y="4.5"
+            fontSize="11"
+            fontWeight="600"
+            fill={settled ? ACCENT : SUB}
+          >
+            {settled ? 'Escrow · settling' : 'Escrow'}
           </text>
         </g>
       </svg>
-
-      <div className="absolute top-4 left-6 flex items-center gap-2 text-[11px] text-[var(--color-ink-faint)]">
-        <span className={`w-1.5 h-1.5 rounded-full ${idle ? 'bg-[var(--color-ink-faint)]' : 'bg-[var(--color-positive)] pulse-soft'}`} />
-        <span>{idle ? 'awaiting activity' : stageLabel[shown]}</span>
-      </div>
 
       <style>{`
         .token {
@@ -89,11 +119,6 @@ export function HeroFlow() {
         .token-2 { transform: translate(220px, 100px); }
         .token-3 { transform: translate(300px, 100px); }
         .token-4 { transform: translate(180px, 168px); }
-        @keyframes pulse-soft {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(15, 81, 50, 0.5); }
-          50% { box-shadow: 0 0 0 6px rgba(15, 81, 50, 0); }
-        }
-        .pulse-soft { animation: pulse-soft 1.6s ease-out infinite; }
       `}</style>
     </div>
   );
@@ -112,12 +137,12 @@ function Node({
   active: boolean;
   variant: 'left' | 'right';
 }) {
-  const color = active ? '#0c0e10' : '#9a9da3';
+  const color = active ? INK_ACTIVE : INK_IDLE;
   const labelX = variant === 'left' ? x - 26 : x + 26;
   const labelAnchor = variant === 'left' ? 'end' : 'start';
   return (
     <g>
-      <circle cx={x} cy={100} r="14" fill="#fff" stroke={color} strokeWidth="1.5" />
+      <circle cx={x} cy={100} r="14" fill={CARD_BG} stroke={color} strokeWidth="1.5" />
       {variant === 'left' ? (
         <g transform={`translate(${x - 6} 94)`} stroke={color} fill="none" strokeWidth="1.5" strokeLinecap="round">
           <circle cx="6" cy="3" r="2.5" />
@@ -134,8 +159,8 @@ function Node({
         y={97}
         textAnchor={labelAnchor}
         fontSize="12"
-        fontWeight="600"
-        fill="#0c0e10"
+        fontWeight="700"
+        fill={INK_ACTIVE}
         fontFamily="var(--font-geist, sans-serif)"
       >
         {label}
@@ -145,7 +170,7 @@ function Node({
         y={110}
         textAnchor={labelAnchor}
         fontSize="9.5"
-        fill="#9a9da3"
+        fill={SUB}
         fontFamily="var(--font-geist, sans-serif)"
       >
         {sublabel}

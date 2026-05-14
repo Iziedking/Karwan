@@ -1,180 +1,199 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, type ApiStatus } from '@/core/api';
-import { Card } from '@/shared/components/Card';
-import { BalancesCard } from '@/features/balances/components/BalancesCard';
-import { LivePulseStrip } from '@/features/activity/components/LivePulseStrip';
+import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { shortAddress } from '@/shared/utils/format';
+import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import {
+  AppCanvas,
+  Section,
+  GridOverlay,
+  Pill,
+  EyebrowChip,
+  AddressChip,
+  ActionTile,
+  StatTile,
+  Skeleton,
+  WalletGate,
+} from '@/shared/components/AppUI';
+
+interface NetStats {
+  deals: number;
+  settled: number;
+  usdc: number;
+}
 
 export default function AppHome() {
   const router = useRouter();
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const [status, setStatus] = useState<ApiStatus | null>(null);
+  const [stats, setStats] = useState<NetStats | null>(null);
 
   useEffect(() => {
     api.status().then(setStatus).catch(() => setStatus(null));
   }, []);
 
   useEffect(() => {
-    // Only bounce to onboarding once we've confirmed (200 OK with no profile) that
-    // this wallet has no profile yet. Network errors leave us here so we can show
-    // the "Backend offline" card instead of ping-ponging between routes.
+    api
+      .dealsFeed()
+      .then((r) => {
+        const settled = r.deals.filter((d) => d.onChain?.state === 2).length;
+        const usdc = r.deals.reduce((s, d) => s + (Number(d.dealAmountUsdc) || 0), 0);
+        setStats({ deals: r.deals.length, settled, usdc });
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Only bounce to onboarding once confirmed (200 OK, no profile).
     if (isConnected && fetchState === 'success' && !profile) {
       router.replace('/onboarding');
     }
   }, [isConnected, fetchState, profile, router]);
 
+  let body: ReactNode;
+
   if (!status) {
-    return (
-      <Card title="Backend offline">
-        <p className="text-sm text-[var(--color-ink-dim)]">
-          Could not reach the backend at{' '}
-          <span className="mono">{api.baseUrl}</span>.
+    body = (
+      <Section tone="card">
+        <EyebrowChip dot="warning">Backend</EyebrowChip>
+        <h1 className="mt-4 font-sans font-bold tracking-[-0.02em] text-[clamp(1.75rem,3vw,2.5rem)]">
+          The backend is offline.
+        </h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-md">
+          Couldn&apos;t reach the API at <span className="mono">{api.baseUrl}</span>. Start it and
+          this page picks up automatically.
         </p>
-      </Card>
+      </Section>
     );
-  }
-
-  if (!isConnected) {
-    return <SignInPrompt />;
-  }
-
-  if (loading || !profile) {
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-[var(--color-ink-dim)]">Loading your profile…</p>
-      </div>
+  } else if (!isConnected) {
+    body = (
+      <WalletGate
+        title="Connect your wallet."
+        body="Karwan identifies you by wallet address. Connect a browser wallet to enter the app and set up your buyer or seller profile."
+        note="Circle Passkey sign-in ships next."
+      >
+        <ConnectButton />
+      </WalletGate>
     );
-  }
-
-  return (
-    <div className="space-y-10">
-      <header className="fade-up flex flex-wrap items-end justify-between gap-4 pb-2">
-        <div>
-          <h1 className="text-[28px] tracking-tight font-semibold">{profile.displayName}</h1>
-          <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">
-            {shortAddress(profile.address)} · role: {profile.role}
-          </p>
+  } else if (loading || !profile) {
+    body = (
+      <Section tone="card">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-9 w-72" />
+          <Skeleton className="h-4 w-56" />
         </div>
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-positive-soft)] text-[var(--color-positive)] text-[12px] font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
-          Agent active
-        </span>
-      </header>
+      </Section>
+    );
+  } else {
+    body = (
+      <>
+        {/* HEADER — a compact dark hero for the settlement desk */}
+        <Section tone="dark" className="relative overflow-hidden">
+          <GridOverlay />
+          <div className="relative">
+            <EyebrowChip dot="live" tone="dark">
+              Agent active
+            </EyebrowChip>
+            <h1 className="mt-5 font-sans font-bold tracking-[-0.025em] leading-[1.02] text-[clamp(2rem,4vw,3.25rem)]">
+              Welcome back, {profile.displayName}.
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
+              Post a brief and your buyer agent runs the auction, or open a direct deal with a
+              counterparty you already have. You just approve.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Pill href="/buyer">Post a brief</Pill>
+              <Pill href="/activity" variant="secondary" tone="dark">
+                View activity →
+              </Pill>
+              <span className="ml-1">
+                <AddressChip address={profile.address} tone="dark" />
+              </span>
+            </div>
+          </div>
+        </Section>
 
-      <section className="fade-up fade-up-1 grid md:grid-cols-3 gap-4">
-        {(profile.role === 'buyer' || profile.role === 'both') && (
-          <ActionCard
+        {/* QUICK ACTIONS — three tiles, varied surfaces */}
+        <div className="grid md:grid-cols-3 gap-4">
+          <ActionTile
             href="/buyer"
+            tone="card"
             eyebrow="Buyer"
             title="Post a brief"
-            body="Describe what you need built. Your buyer agent posts it on chain and handles the negotiation."
-            cta="Post a brief"
+            body="Describe the work. Your buyer agent posts it on chain and runs the negotiation."
           />
-        )}
-        {(profile.role === 'seller' || profile.role === 'both') && (
-          <ActionCard
+          <ActionTile
             href="/seller"
+            tone="dark"
             eyebrow="Seller"
-            title="See the agent at work"
-            body="Your seller agent is watching the chain. Briefs that match your skills get bids on your behalf."
-            cta="Open seller view"
+            title="See the agent work"
+            body="Your seller agent watches the chain and bids on briefs that match your skills."
           />
-        )}
-        <ActionCard
-          href="/activity"
-          eyebrow="Activity"
-          title="Watch chain events"
-          body="Live SSE feed of every event across all agents. Each row links to its transaction."
-          cta="Open activity feed"
-        />
-      </section>
-
-      <section className="fade-up fade-up-2">
-        <BalancesCard />
-      </section>
-
-      <section className="fade-up fade-up-3 space-y-3">
-        <div className="flex items-end justify-between">
-          <div>
-            <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">Live</span>
-            <h2 className="text-[20px] tracking-tight font-semibold mt-1">Today on chain</h2>
-          </div>
-          <Link
+          <ActionTile
             href="/activity"
-            className="text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-          >
-            See full feed →
-          </Link>
+            tone="accent"
+            eyebrow="Activity"
+            title="Watch chain events"
+            body="A live feed of every event across all agents. Each row links to its transaction."
+          />
         </div>
-        <LivePulseStrip />
-      </section>
-    </div>
-  );
-}
 
-function SignInPrompt() {
-  return (
-    <div className="max-w-xl mx-auto fade-up text-center space-y-6 py-12">
-      <h1 className="text-[28px] tracking-tight font-semibold">Connect your wallet</h1>
-      <p className="text-sm text-[var(--color-ink-dim)] leading-relaxed">
-        Karwan identifies you by wallet address. Connect a browser wallet to enter the app and configure your buyer or seller profile.
-      </p>
-      <div className="flex justify-center">
-        <ConnectButton />
-      </div>
-      <p className="text-[11px] text-[var(--color-ink-faint)]">
-        Circle Passkey sign-in ships next.
-      </p>
-    </div>
-  );
-}
+        {/* LIVE NETWORK STRIP */}
+        <Section tone="dark">
+          <div className="flex items-baseline justify-between gap-4">
+            <EyebrowChip dot="live" tone="dark">
+              Live network
+            </EyebrowChip>
+            <Link
+              href="/activity"
+              className="text-[13px] text-[var(--lp-text-muted)] hover:text-white transition-colors"
+            >
+              Full feed →
+            </Link>
+          </div>
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatTile
+              label="Direct deals"
+              loading={!stats}
+              value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} />}
+            />
+            <StatTile
+              label="Settled in full"
+              loading={!stats}
+              value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} />}
+            />
+            <StatTile
+              label="USDC through escrow"
+              loading={!stats}
+              value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} />}
+            />
+            <StatTile label="Chain" value="5042002" hint="Arc Testnet" />
+          </div>
+        </Section>
 
-function ActionCard({
-  href,
-  eyebrow,
-  title,
-  body,
-  cta = 'Open',
-}: {
-  href: string;
-  eyebrow: string;
-  title: string;
-  body: string;
-  cta?: string;
-}) {
-  const router = useRouter();
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => router.push(href)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          router.push(href);
-        }
-      }}
-      className="group cursor-pointer rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:-translate-y-0.5 hover:border-[var(--color-ink)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200 flex flex-col"
-    >
-      <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">{eyebrow}</p>
-      <h3 className="text-[17px] font-semibold tracking-tight mt-1.5">{title}</h3>
-      <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed flex-1">{body}</p>
-      <Link
-        href={href}
-        onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1 self-start mt-4 text-[12px] font-medium text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors"
-      >
-        {cta}
-        <span aria-hidden className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
-          →
-        </span>
-      </Link>
-    </div>
-  );
-}
+        {/* DEALS FEED */}
+        <Section tone="card" className="p-0 overflow-hidden">
+          <div className="px-7 md:px-10 pt-7 md:pt-9">
+            <EyebrowChip>Network</EyebrowChip>
+            <h2 className="mt-3 font-sans font-bold tracking-[-0.02em] text-[clamp(1.5rem,2.4vw,2rem)]">
+              Deals across Karwan
+            </h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
+              Every direct deal on the network, with its live escrow state.
+            </p>
+          </div>
+          <div className="mt-6">
+            <DealsFeed />
+          </div>
+        </Section>
+      </>
+    );
+  }
 
+  return <AppCanvas>{body}</AppCanvas>;
+}

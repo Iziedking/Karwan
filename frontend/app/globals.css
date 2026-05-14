@@ -21,7 +21,7 @@
   --color-critical: #7a1f1a;
   --color-critical-soft: rgba(122, 31, 26, 0.08);
 
-  --font-sans: var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-sans: "General Sans", var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-serif: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
 
@@ -52,47 +52,96 @@ html[data-theme="dark"] {
   --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 40px -18px rgba(0, 0, 0, 0.7);
 }
 
-html, body {
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11", "tnum";
-  font-variant-numeric: tabular-nums;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+/* Landing page tokens — fixed and theme-independent. The landing page runs its
+   own high-contrast dark/light system, separate from the app's themed palette. */
+:root {
+  --lp-dark: #0e0e0e;
+  --lp-light: #f2f2f2;
+  --lp-card: #ffffff;
+  --lp-accent: #d4ff3f;
+  --lp-accent-hover: #c2ee2a;
+  --lp-text-muted: #9a9a9a;
+  --lp-text-sub: #6b6b6b;
+  --lp-border-subtle: rgba(255, 255, 255, 0.08);
+  --lp-border-light: rgba(0, 0, 0, 0.08);
 }
 
-html { color-scheme: light; }
-html[data-theme="dark"] { color-scheme: dark; }
+/* Element-level resets live in @layer base so Tailwind utilities (which sit in
+   @layer utilities) can override them. Unlayered rules beat every layer, so
+   `button { color: inherit }` would otherwise win over `text-[...]` utilities. */
+@layer base {
+  html,
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11", "tnum";
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 
-::selection { background: var(--color-ink); color: var(--color-bg); }
+  html {
+    color-scheme: light;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
 
-a { color: inherit; }
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  /* Visible keyboard focus everywhere. Components that render their own ring
+     (Button) opt out with focus-visible:outline-none. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  /* Hide the native number-input spinner arrows where we provide our own affordance. */
+  input.no-spinner::-webkit-outer-spin-button,
+  input.no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input.no-spinner {
+    -moz-appearance: textfield;
+  }
+}
 
 .mono { font-family: var(--font-mono); font-feature-settings: "calt" 0; }
 .serif { font-family: var(--font-serif); }
-
-input, textarea, select, button {
-  font: inherit;
-  color: inherit;
-}
-
-button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
-  cursor: pointer;
-}
-button:disabled, [role="button"][aria-disabled="true"] {
-  cursor: not-allowed;
-}
-
-input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
-
-/* Hide the native number-input spinner arrows where we provide our own affordance. */
-input.no-spinner::-webkit-outer-spin-button,
-input.no-spinner::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input.no-spinner { -moz-appearance: textfield; }
 
 @keyframes fade-up {
   0% { opacity: 0; transform: translateY(6px); }
@@ -135,6 +184,12 @@ input.no-spinner { -moz-appearance: textfield; }
   100% { transform: translateX(180%); opacity: 0; }
 }
 
+/* Landing page stats ticker — a duplicated track scrolled by exactly one set. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* Editorial display utility — Instrument Serif at a generous size with tight tracking. */
 .display {
   font-family: var(--font-serif);
@@ -156,6 +211,16 @@ input.no-spinner { -moz-appearance: textfield; }
   font-weight: 500;
 }
 
+/* Robust reduced-motion guard: collapses every animation and transition,
+   including looping decorations (peer-drop, stat-sweep, bridgeShimmer,
+   flowPulse) and Tailwind's spin/ping/pulse. */
 @media (prefers-reduced-motion: reduce) {
-  .fade-up, .slide-in, .stat-sweep, .peer-drop { animation: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
