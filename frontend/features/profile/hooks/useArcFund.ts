@@ -96,7 +96,7 @@ function saveToStorage(address: `0x${string}` | null | undefined, records: FundR
   try {
     window.localStorage.setItem(key, JSON.stringify(records.slice(0, MAX_HISTORY)));
   } catch {
-    /* quota — ignore */
+    /* quota, ignore */
   }
 }
 
@@ -183,7 +183,7 @@ export function useArcFund() {
           await switchChainAsync({ chainId: ARC_CHAIN_ID });
         }
 
-        // USDC is Arc's native asset — check the native balance, not an ERC-20 view.
+        // USDC is Arc's native asset, so check the native balance, not an ERC-20 view.
         const balance = await arcClient.getBalance({ address });
         if (balance < amountWei) {
           throw new Error('Not enough USDC on Arc');

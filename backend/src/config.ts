@@ -41,6 +41,16 @@ const envSchema = z.object({
   // Treasury that collects the platform fee. Must match the address the escrow
   // was deployed with; surfaced here for display and reconciliation.
   KARWAN_TREASURY_ADDR: optionalAddr,
+  // Direct-deal review window in milliseconds. Used for two timers: the buyer
+  // has this long to release the first milestone after the seller delivers, and
+  // again to release the final milestone. When it expires the agent
+  // auto-releases. Default 5 min for demos; raise to hours for mainnet.
+  DEAL_REVIEW_WINDOW_MS: z.coerce.number().int().positive().default(300_000),
+  // Each "still reviewing" tip adds this much time to the final-release window.
+  // Default 10 min for demos.
+  DEAL_REVIEW_EXTENSION_MS: z.coerce.number().int().positive().default(600_000),
+  // Most times the buyer can extend the final-release window.
+  DEAL_MAX_REVIEW_EXTENSIONS: z.coerce.number().int().positive().default(3),
 
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,

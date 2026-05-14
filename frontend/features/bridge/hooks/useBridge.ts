@@ -118,7 +118,7 @@ function saveToStorage(address: `0x${string}` | null | undefined, bridges: Bridg
   try {
     window.localStorage.setItem(key, JSON.stringify(bridges.slice(0, MAX_HISTORY)));
   } catch {
-    /* quota — ignore */
+    /* quota, ignore */
   }
 }
 
@@ -149,7 +149,7 @@ export function useBridges() {
     setHydratedFor(address.toLowerCase());
   }, [address]);
 
-  // Persist only after hydrate has completed for this address — otherwise we'd
+  // Persist only after hydrate has completed for this address, otherwise we'd
   // overwrite saved bridges with the empty initial state on the first commit.
   useEffect(() => {
     if (!address) return;

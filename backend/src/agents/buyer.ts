@@ -251,7 +251,7 @@ async function finalizeBidCollection(buyer: BuyerProfile, state: JobState) {
     .sort((a, b) => b.score! - a.score!);
 
   if (ranked.length === 0) {
-    logger.warn({ jobId: state.jobId }, 'no scored bids — nothing to counter');
+    logger.warn({ jobId: state.jobId }, 'no scored bids, nothing to counter');
     return;
   }
 

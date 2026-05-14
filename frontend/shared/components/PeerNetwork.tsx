@@ -76,7 +76,7 @@ export function PeerNetwork() {
           )}
         </g>
 
-        {/* the ring itself — a faint outline tying the nodes together */}
+        {/* the ring itself, a faint outline tying the nodes together */}
         <ellipse
           cx={cx}
           cy={cy}

@@ -5,6 +5,8 @@ import { LiveDot } from './LiveDot';
 import { BalanceRail } from '@/features/balances/components/BalanceRail';
 import { ConnectWalletButton } from './ConnectWallet';
 import { ThemeToggle } from './ThemeToggle';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { ProfileAvatar } from './ProfileAvatar';
 
 export function TopNav() {
   const pathname = usePathname();
@@ -21,10 +23,9 @@ export function TopNav() {
           {isApp && (
             <nav className="hidden md:flex items-center gap-1 text-[13px]">
               <NavLink href="/app" active={pathname === '/app'}>Home</NavLink>
-              <NavLink href="/buyer" active={pathname.startsWith('/buyer') || pathname.startsWith('/jobs')}>Buyer</NavLink>
+              <NavLink href="/buyer" active={pathname.startsWith('/buyer') || pathname.startsWith('/jobs') || pathname.startsWith('/deals')}>Buyer</NavLink>
               <NavLink href="/seller" active={pathname.startsWith('/seller')}>Seller</NavLink>
               <NavLink href="/activity" active={pathname.startsWith('/activity')}>Activity</NavLink>
-              <NavLink href="/profile" active={pathname.startsWith('/profile')}>Profile</NavLink>
               <a
                 href="https://testnet.arcscan.app"
                 target="_blank"
@@ -46,8 +47,10 @@ export function TopNav() {
                 <BalanceRail />
               </div>
               <LiveDot />
+              <NotificationBell />
               <ThemeToggle />
               <ConnectWalletButton />
+              <ProfileAvatar />
             </>
           ) : (
             <>

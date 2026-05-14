@@ -87,11 +87,21 @@ export function ArcFundCard({
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const selectedAgent = options.find((o) => o.key === selected);
+
+  // Native transfers from one wallet are nonce-sequential, so a second one
+  // fired while the first is pending just queues behind it, and if the first
+  // stalls they all stall. Only one transfer may be in flight at a time.
+  const activeCount = records.filter(
+    (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
+  ).length;
+  const hasActiveTransfer = activeCount > 0;
+
   const canSubmit =
     isConnected &&
     typeof amount === 'number' &&
     amount > 0 &&
-    !!selectedAgent?.address;
+    !!selectedAgent?.address &&
+    !hasActiveTransfer;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -107,10 +117,6 @@ export function ArcFundCard({
     arcBalance.data && !arcBalance.isLoading
       ? formatUnits(arcBalance.data.value, arcBalance.data.decimals)
       : null;
-
-  const activeCount = records.filter(
-    (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
-  ).length;
 
   return (
     <Card noPadding>
@@ -258,7 +264,11 @@ export function ArcFundCard({
                 : 'none',
             }}
           >
-            {isConnected ? (
+            {!isConnected ? (
+              'Connect wallet to fund'
+            ) : hasActiveTransfer ? (
+              'Transfer in progress…'
+            ) : (
               <>
                 <span>Send to {selectedAgent?.label.toLowerCase() ?? 'agent'}</span>
                 <span
@@ -276,10 +286,14 @@ export function ArcFundCard({
                   </svg>
                 </span>
               </>
-            ) : (
-              'Connect wallet to fund'
             )}
           </button>
+          {hasActiveTransfer && (
+            <p className="text-[11px] text-[var(--color-ink-faint)] leading-snug">
+              One transfer at a time. Native transfers settle in nonce order, so a second one
+              would just queue behind this until it confirms.
+            </p>
+          )}
         </form>
 
         {records.length > 0 && (
@@ -372,6 +386,11 @@ function FundRow({
   const tone = phaseTone(record.phase);
   const elapsedSec = Math.max(0, Math.floor((Date.now() - record.startedAt) / 1000));
   const isSlow = record.phase === 'confirming' && elapsedSec > 15;
+  // A real Arc tx confirms in seconds. Past two minutes it is almost certainly
+  // a dropped or dead tx, so offer the same escape hatch as a failed one.
+  const isStuck = record.phase === 'confirming' && elapsedSec > 120;
+  const canRetry = record.phase === 'error' || isStuck;
+  const canDismiss = record.phase === 'done' || record.phase === 'error' || isStuck;
   return (
     <li
       className={`rounded-lg border transition-all overflow-hidden ${
@@ -491,8 +510,15 @@ function FundRow({
             )}
           </div>
 
+          {isStuck && (
+            <p className="text-[11px] text-[var(--color-ink-faint)] leading-snug">
+              This transfer has not confirmed in a while. It is likely a dropped tx. Retry to send
+              a fresh one, or dismiss it.
+            </p>
+          )}
+
           <div className="flex items-center gap-2 pt-0.5">
-            {record.phase === 'error' && (
+            {canRetry && (
               <button
                 type="button"
                 onClick={onRetry}
@@ -502,7 +528,7 @@ function FundRow({
                 Retry
               </button>
             )}
-            {(record.phase === 'done' || record.phase === 'error') && (
+            {canDismiss && (
               <button
                 type="button"
                 onClick={onDismiss}

@@ -13,10 +13,13 @@ import { activityRoutes } from './routes/activity.js';
 import { profileRoutes } from './routes/profile.js';
 import { bridgeRoutes } from './routes/bridge.js';
 import { reputationRoutes } from './routes/reputation.js';
+import { dealsRoutes } from './routes/deals.js';
 import { startBuyerAgent } from './agents/buyer.js';
 import { startSellerAgent } from './agents/seller.js';
+import { startDealWatcher } from './agents/dealWatcher.js';
 import { loadBuyerProfile } from './agents/buyer-profile.js';
 import { loadSellerProfile } from './agents/seller-profile.js';
+import { ensureSchema, pgEnabled } from './db/client.js';
 
 const app = new Hono();
 
@@ -49,6 +52,7 @@ app.route('/api/activity', activityRoutes);
 app.route('/api/profile', profileRoutes);
 app.route('/api/bridge', bridgeRoutes);
 app.route('/api/reputation', reputationRoutes);
+app.route('/api/deals', dealsRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');
@@ -65,7 +69,7 @@ function bootAgents() {
     return;
   }
   if (!config.OPENROUTER_API_KEY) {
-    appLogger.warn('OPENROUTER_API_KEY not set — agents will start but cannot score bids');
+    appLogger.warn('OPENROUTER_API_KEY not set, agents will start but cannot score bids');
   }
   try {
     const buyer = loadBuyerProfile();
@@ -79,9 +83,30 @@ function bootAgents() {
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'seller agent not started');
   }
+  try {
+    stopFns.push(startDealWatcher());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'deal watcher not started');
+  }
 }
 
-bootAgents();
+async function boot() {
+  if (pgEnabled) {
+    try {
+      await ensureSchema();
+    } catch (err) {
+      appLogger.error(
+        { err: (err as Error).message },
+        'postgres schema init failed, check DATABASE_URL',
+      );
+    }
+  } else {
+    appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
+  }
+  bootAgents();
+}
+
+void boot();
 
 const port = config.PORT;
 serve({ fetch: app.fetch, port }, (info) => {

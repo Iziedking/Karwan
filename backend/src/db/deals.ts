@@ -1,5 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { eq, or, desc } from 'drizzle-orm';
+import { db, pgEnabled } from './client.js';
+import { directDeals } from './schema.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
 
@@ -13,42 +16,52 @@ export interface DirectDeal {
   firstReleasePct: number;
   deadlineUnix: number;
   terms: string;
+  // The seller has confirmed they agree to the deal terms. A deal cannot be
+  // marked delivered until it is accepted.
+  acceptedAt?: number;
   delivered: boolean;
   deliveredAt?: number;
+  // Optional deliverable reference the seller submits on mark-delivered.
+  deliveryProof?: string;
+  // Set when the first milestone is released (by the buyer or by the auto
+  // first-release). Starts the final-release window during which the buyer
+  // must release the final milestone, else the agent auto-releases.
+  reviewWindowStartedAt?: number;
+  // Total time the buyer has added to the final-release window by tipping
+  // "still reviewing", and how many times they have done so.
+  reviewExtensionMs?: number;
+  reviewExtensionCount?: number;
+  // True once the first milestone was auto-released because the buyer stalled.
+  firstAutoReleased?: boolean;
+  // Seller filed an appeal; escrow is moved to Disputed on chain.
+  disputed?: boolean;
+  disputedAt?: number;
+  // Buyer reclaimed funds because the seller never delivered by the deadline.
+  // The escrow is moved Disputed then Refunded on chain.
+  cancelledAt?: number;
+  // Agent auto-released the final milestone after the window expired silently.
+  autoReleasedAt?: number;
   settledAt?: number;
   fundTxHash?: string;
   createdAt: number;
   updatedAt: number;
 }
 
-function ensureFile() {
-  const dir = dirname(STORE_PATH);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  if (!existsSync(STORE_PATH)) writeFileSync(STORE_PATH, '{}', 'utf8');
-}
+// --- public API: same names as before, now async, Postgres-backed when
+// DATABASE_URL is set and flat-file otherwise ---
 
-function load(): Record<string, DirectDeal> {
-  ensureFile();
-  try {
-    return JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, DirectDeal>;
-  } catch {
-    return {};
+export async function getDeal(jobId: string): Promise<DirectDeal | null> {
+  const key = jobId.toLowerCase();
+  if (pgEnabled) {
+    const rows = await db().select().from(directDeals).where(eq(directDeals.jobId, key));
+    return rows[0]?.data ?? null;
   }
+  return loadFile()[key] ?? null;
 }
 
-function save(store: Record<string, DirectDeal>) {
-  ensureFile();
-  writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
-}
-
-export function getDeal(jobId: string): DirectDeal | null {
-  return load()[jobId.toLowerCase()] ?? null;
-}
-
-export function createDeal(
+export async function createDeal(
   input: Omit<DirectDeal, 'delivered' | 'createdAt' | 'updatedAt'>,
-): DirectDeal {
-  const store = load();
+): Promise<DirectDeal> {
   const now = Date.now();
   const deal: DirectDeal = {
     ...input,
@@ -58,26 +71,87 @@ export function createDeal(
     createdAt: now,
     updatedAt: now,
   };
-  store[input.jobId.toLowerCase()] = deal;
-  save(store);
+  const key = input.jobId.toLowerCase();
+  if (pgEnabled) {
+    await db().insert(directDeals).values({
+      jobId: key,
+      buyer: deal.buyer,
+      seller: deal.seller,
+      createdAt: deal.createdAt,
+      data: deal,
+    });
+    return deal;
+  }
+  const store = loadFile();
+  store[key] = deal;
+  saveFile(store);
   return deal;
 }
 
-export function patchDeal(jobId: string, patch: Partial<DirectDeal>): DirectDeal | null {
-  const store = load();
+export async function patchDeal(
+  jobId: string,
+  patch: Partial<DirectDeal>,
+): Promise<DirectDeal | null> {
   const key = jobId.toLowerCase();
-  const existing = store[key];
+  const existing = await getDeal(key);
   if (!existing) return null;
-  const next = { ...existing, ...patch, updatedAt: Date.now() };
+  const next: DirectDeal = { ...existing, ...patch, updatedAt: Date.now() };
+  if (pgEnabled) {
+    await db()
+      .update(directDeals)
+      .set({ buyer: next.buyer, seller: next.seller, data: next })
+      .where(eq(directDeals.jobId, key));
+    return next;
+  }
+  const store = loadFile();
   store[key] = next;
-  save(store);
+  saveFile(store);
   return next;
 }
 
 /// Deals where the address is either the buyer (creator) or the seller.
-export function listDealsForAddress(address: string): DirectDeal[] {
+export async function listDealsForAddress(address: string): Promise<DirectDeal[]> {
   const a = address.toLowerCase();
-  return Object.values(load())
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(directDeals)
+      .where(or(eq(directDeals.buyer, a), eq(directDeals.seller, a)))
+      .orderBy(desc(directDeals.createdAt));
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile())
     .filter((d) => d.buyer === a || d.seller === a)
     .sort((x, y) => y.createdAt - x.createdAt);
+}
+
+/// All deals, newest first. Used by the auto-release watcher.
+export async function listAllDeals(): Promise<DirectDeal[]> {
+  if (pgEnabled) {
+    const rows = await db().select().from(directDeals).orderBy(desc(directDeals.createdAt));
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile()).sort((x, y) => y.createdAt - x.createdAt);
+}
+
+// --- flat-file fallback ---
+
+function ensureFile() {
+  const dir = dirname(STORE_PATH);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (!existsSync(STORE_PATH)) writeFileSync(STORE_PATH, '{}', 'utf8');
+}
+
+function loadFile(): Record<string, DirectDeal> {
+  ensureFile();
+  try {
+    return JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, DirectDeal>;
+  } catch {
+    return {};
+  }
+}
+
+function saveFile(store: Record<string, DirectDeal>) {
+  ensureFile();
+  writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
 }

@@ -20,7 +20,13 @@ export type KarwanEventType =
   | 'bridge.error'
   | 'reputation.recorded'
   | 'deal.direct.created'
+  | 'deal.accepted'
   | 'deal.delivered'
+  | 'deal.review.started'
+  | 'deal.review.heartbeat'
+  | 'deal.auto_released'
+  | 'deal.disputed'
+  | 'deal.cancelled'
   | 'agent.skipped'
   | 'agent.declined'
   | 'agent.error';

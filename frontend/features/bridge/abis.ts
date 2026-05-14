@@ -28,7 +28,7 @@ export const usdcAbi = [
   },
 ] as const;
 
-// TokenMessengerV2.depositForBurn — CCTP V2 signature, includes maxFee and minFinalityThreshold.
+// TokenMessengerV2.depositForBurn: CCTP V2 signature, includes maxFee and minFinalityThreshold.
 export const tokenMessengerV2Abi = [
   {
     name: 'depositForBurn',

@@ -47,7 +47,7 @@ export async function executeContractCall(
       return { txId, txHash: hash, explorerUrl };
     }
     if (state === 'FAILED' || state === 'CANCELLED' || state === 'DENIED') {
-      throw new Error(`${label}: tx ${state} — ${JSON.stringify(data?.transaction)}`);
+      throw new Error(`${label}: tx ${state}: ${JSON.stringify(data?.transaction)}`);
     }
   }
   throw new Error(`${label}: tx did not settle within 90s`);

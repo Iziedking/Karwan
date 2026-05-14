@@ -20,6 +20,7 @@ export function ConnectWalletButton() {
                   <button
                     onClick={openConnectModal}
                     type="button"
+                    suppressHydrationWarning
                     style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
                     className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
                   >
@@ -36,6 +37,7 @@ export function ConnectWalletButton() {
                   <button
                     onClick={openChainModal}
                     type="button"
+                    suppressHydrationWarning
                     style={{ backgroundColor: '#7a1f1a', color: '#ffffff' }}
                     className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity"
                   >
@@ -47,6 +49,7 @@ export function ConnectWalletButton() {
                 <button
                   onClick={openAccountModal}
                   type="button"
+                  suppressHydrationWarning
                   className="px-3.5 py-1.5 rounded-md border border-[var(--color-line-strong)] text-[12px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-2 mono"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />

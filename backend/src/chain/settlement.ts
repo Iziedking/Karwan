@@ -5,7 +5,18 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
 // KarwanReputation.Outcome enum: None=0, Success=1, DisputeResolved=2, Failed=3.
-const OUTCOME_SUCCESS = 1;
+export const OUTCOME_SUCCESS = 1;
+export const OUTCOME_DISPUTE_RESOLVED = 2;
+export const OUTCOME_FAILED = 3;
+export type ReputationOutcome =
+  | typeof OUTCOME_SUCCESS
+  | typeof OUTCOME_DISPUTE_RESOLVED
+  | typeof OUTCOME_FAILED;
+const OUTCOME_LABEL: Record<ReputationOutcome, string> = {
+  [OUTCOME_SUCCESS]: 'success',
+  [OUTCOME_DISPUTE_RESOLVED]: 'dispute',
+  [OUTCOME_FAILED]: 'failed',
+};
 // KarwanEscrow.EscrowState enum: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
 export const ESCROW_FUNDED = 1;
 export const ESCROW_SETTLED = 2;
@@ -52,10 +63,16 @@ export async function finalizeIfSettled(jobId: string): Promise<boolean> {
   return true;
 }
 
-/// Records a successful completion on the reputation registry. Idempotent: the
-/// contract locks one record per jobId, and we skip if already recorded.
-export async function recordReputation(jobId: string): Promise<void> {
+/// Records a deal outcome on the reputation registry. Outcome defaults to
+/// success; pass Failed for a buyer cancel (the seller never delivered) or
+/// DisputeResolved for an appeal. Idempotent: the contract locks one record per
+/// jobId, and we skip if already recorded.
+export async function recordReputation(
+  jobId: string,
+  outcome: ReputationOutcome = OUTCOME_SUCCESS,
+): Promise<void> {
   if (!config.BUYER_AGENT_WALLET_ID) return;
+  const label = OUTCOME_LABEL[outcome];
   try {
     const { buyer, seller } = await readEscrow(jobId);
     const alreadyRecorded = (await reputation.read.recorded([
@@ -71,17 +88,17 @@ export async function recordReputation(jobId: string): Promise<void> {
         walletId: config.BUYER_AGENT_WALLET_ID,
         contractAddress: reputation.address,
         abiFunctionSignature: 'recordCompletion(bytes32,address,address,uint8)',
-        abiParameters: [jobId, buyer, seller, OUTCOME_SUCCESS.toString()],
+        abiParameters: [jobId, buyer, seller, outcome.toString()],
       },
-      `recordCompletion(${jobId}, success)`,
+      `recordCompletion(${jobId}, ${label})`,
     );
     bus.emitEvent({
       type: 'reputation.recorded',
       jobId,
       actor: 'buyer',
-      payload: { subject: seller, rater: buyer, outcome: 'success', txHash: result.txHash },
+      payload: { subject: seller, rater: buyer, outcome: label, txHash: result.txHash },
     });
-    logger.info({ jobId, seller, txHash: result.txHash }, 'reputation recorded for seller');
+    logger.info({ jobId, seller, outcome: label, txHash: result.txHash }, 'reputation recorded');
   } catch (err) {
     logger.warn({ jobId, err: (err as Error).message }, 'reputation record failed');
     bus.emitEvent({

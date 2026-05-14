@@ -96,6 +96,51 @@ export interface UserProfile {
   };
 }
 
+// KarwanEscrow.EscrowState: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
+export interface DirectDealOnChain {
+  state: number;
+  milestonesReleased: number;
+  dealAmountWei: string;
+  sellerNetWei: string;
+  feeTotalWei: string;
+  releasedWei: string;
+}
+
+export interface DirectDeal {
+  jobId: string;
+  buyer: string;
+  seller: string;
+  dealAmountUsdc: string;
+  firstReleasePct: number;
+  deadlineUnix: number;
+  terms: string;
+  acceptedAt?: number;
+  delivered: boolean;
+  deliveredAt?: number;
+  deliveryProof?: string;
+  reviewWindowStartedAt?: number;
+  reviewExtensionMs?: number;
+  reviewExtensionCount?: number;
+  firstAutoReleased?: boolean;
+  disputed?: boolean;
+  disputedAt?: number;
+  cancelledAt?: number;
+  autoReleasedAt?: number;
+  settledAt?: number;
+  fundTxHash?: string;
+  createdAt: number;
+  updatedAt: number;
+  reviewWindowMs?: number;
+  onChain: DirectDealOnChain | null;
+}
+
+export interface DirectDealFunding {
+  dealAmountUsdc: string;
+  fundedAmountUsdc: string;
+  sellerNetUsdc: string;
+  feeTotalUsdc: string;
+}
+
 export interface Reputation {
   address: string;
   scoreBps: number;
@@ -192,6 +237,55 @@ export const api = {
   },
   reputation: (address: string) =>
     json<Reputation>(`/api/reputation?address=${address}`),
+  createDirectDeal: (body: {
+    buyerAddress: string;
+    sellerAddress: string;
+    dealAmountUsdc: number;
+    deadlineDays: number;
+    terms: string;
+    firstReleasePct: number;
+  }) =>
+    json<{ deal: DirectDeal; funding: DirectDealFunding; txHash: string }>(
+      '/api/deals/direct',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  directDeals: (address: string) =>
+    json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
+  directDeal: (jobId: string) =>
+    json<{ deal: DirectDeal }>(`/api/deals/direct/${jobId}`),
+  acceptDirectDeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string }>(
+      `/api/deals/direct/${jobId}/accept`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  markDelivered: (jobId: string, caller: string, deliveryProof?: string) =>
+    json<{ accepted: boolean; jobId: string }>(
+      `/api/deals/direct/${jobId}/delivered`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ caller, ...(deliveryProof ? { deliveryProof } : {}) }),
+      },
+    ),
+  releaseDirectDeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; txHash: string; settled: boolean }>(
+      `/api/deals/direct/${jobId}/release`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  stillReviewing: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string }>(
+      `/api/deals/direct/${jobId}/still-reviewing`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  appealDeal: (jobId: string, caller: string, reason?: string) =>
+    json<{ accepted: boolean; jobId: string; txHash: string }>(
+      `/api/deals/direct/${jobId}/appeal`,
+      { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
+    ),
+  cancelDirectDeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; txHash: string }>(
+      `/api/deals/direct/${jobId}/cancel`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
   bridgeRelay: (input: {
     bridgeId: string;
     sourceDomain: number;

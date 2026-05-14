@@ -1,0 +1,774 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { api, ApiError, type DirectDeal } from '@/core/api';
+import { Card } from '@/shared/components/Card';
+import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { useDirectDeal } from '../hooks/useDirectDeals';
+import { stageOf, StageBadge, type DealStage } from './DirectDealList';
+import {
+  feeBreakdown,
+  REVIEW_WINDOW_MS,
+  REVIEW_EXTENSION_MS,
+  MAX_REVIEW_EXTENSIONS,
+} from '../config';
+import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
+
+const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
+
+export function DirectDealDetail({ jobId }: { jobId: string }) {
+  const { address, isConnected } = useAccount();
+  const { deal, fetchState, refresh } = useDirectDeal(jobId);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [deliveryProof, setDeliveryProof] = useState('');
+
+  // 1Hz tick so the review-window countdown stays live.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (fetchState === 'loading') {
+    return <p className="text-[13px] text-[var(--color-ink-faint)] fade-up">Loading deal…</p>;
+  }
+  if (fetchState === 'error' || !deal) {
+    return (
+      <Card>
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
+          This deal could not be found.{' '}
+          <Link href="/buyer" className="underline text-[var(--color-ink)]">
+            Back to dashboard
+          </Link>
+        </p>
+      </Card>
+    );
+  }
+
+  const stage = stageOf(deal);
+  const viewerIsBuyer = !!address && address.toLowerCase() === deal.buyer;
+  const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
+  const fee = feeBreakdown(Number(deal.dealAmountUsdc));
+
+  async function onAccept() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.acceptDirectDeal(jobId, address);
+      refresh();
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onMarkDelivered() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.markDelivered(jobId, address, deliveryProof.trim() || undefined);
+      refresh();
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRelease() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.releaseDirectDeal(jobId, address);
+      refresh();
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onStillReviewing() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.stillReviewing(jobId, address);
+      refresh();
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onAppeal() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.appealDeal(jobId, address);
+      refresh();
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onCancel() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.cancelDirectDeal(jobId, address);
+      refresh();
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6 fade-up max-w-3xl">
+      <header className="pb-3 border-b border-[var(--color-line)]">
+        <div className="flex items-center gap-2.5">
+          <p className="eyebrow">Direct deal</p>
+          <StageBadge stage={stage} />
+        </div>
+        <div className="flex items-baseline gap-2 mt-1.5">
+          <h1
+            className="text-[44px] leading-[1.02] tabular-nums tracking-tight"
+            style={{ fontFamily: 'var(--font-serif)' }}
+          >
+            {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
+          </h1>
+          <span className="text-[14px] mono text-[var(--color-ink-dim)] font-semibold">USDC</span>
+        </div>
+        <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-2">
+          {shortHash(deal.jobId, 10, 6)} · opened {relativeTime(deal.createdAt)}
+        </p>
+      </header>
+
+      <section className="grid md:grid-cols-2 gap-4">
+        <Card noPadding>
+          <div className="px-5 pt-4 pb-3 border-b border-[var(--color-line)]">
+            <p className="eyebrow">Parties</p>
+          </div>
+          <div className="px-5 py-3 space-y-3">
+            <PartyRow
+              role="Buyer"
+              address={deal.buyer}
+              you={viewerIsBuyer}
+            />
+            <PartyRow
+              role="Seller"
+              address={deal.seller}
+              you={viewerIsSeller}
+              showReputation
+            />
+          </div>
+        </Card>
+
+        <Card noPadding>
+          <div className="px-5 pt-4 pb-3 border-b border-[var(--color-line)]">
+            <p className="eyebrow">Funding · 1.5% fee, split evenly</p>
+          </div>
+          <div className="px-5 py-3 space-y-2">
+            <MoneyRow label="Buyer funded" value={fee.fundedAmount} />
+            <MoneyRow label="Seller receives" value={fee.sellerNet} strong />
+            <MoneyRow label="Platform fee" value={fee.feeTotal} faint />
+            <div className="pt-2 mt-1 border-t border-[var(--color-line)]">
+              <MoneyRow
+                label={`On delivery · ${deal.firstReleasePct}%`}
+                value={(fee.sellerNet * deal.firstReleasePct) / 100}
+              />
+              <MoneyRow
+                label={`On verification · ${100 - deal.firstReleasePct}%`}
+                value={(fee.sellerNet * (100 - deal.firstReleasePct)) / 100}
+              />
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      <Card title="Terms">
+        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed whitespace-pre-wrap">
+          {deal.terms}
+        </p>
+        <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-3 pt-3 border-t border-[var(--color-line)]">
+          Deadline {relativeTime(deal.deadlineUnix * 1000)}
+        </p>
+      </Card>
+
+      {deal.delivered && deal.deliveryProof && (
+        <Card noPadding>
+          <div className="px-5 pt-4 pb-3 border-b border-[var(--color-line)]">
+            <p className="eyebrow">Delivery proof</p>
+          </div>
+          <div className="px-5 py-3">
+            <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed whitespace-pre-wrap break-words">
+              {deal.deliveryProof}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      <ProgressTrack deal={deal} stage={stage} />
+
+      <Card>
+        {!isConnected ? (
+          <div className="space-y-3">
+            <p className="text-[13px] text-[var(--color-ink-dim)]">
+              Connect the wallet for this deal to act on it.
+            </p>
+            <ConnectButton />
+          </div>
+        ) : (
+          <ActionPanel
+            stage={stage}
+            viewerIsBuyer={viewerIsBuyer}
+            viewerIsSeller={viewerIsSeller}
+            firstPct={deal.firstReleasePct}
+            busy={busy}
+            deal={deal}
+            now={now}
+            deliveryProof={deliveryProof}
+            onDeliveryProofChange={setDeliveryProof}
+            onAccept={onAccept}
+            onMarkDelivered={onMarkDelivered}
+            onRelease={onRelease}
+            onStillReviewing={onStillReviewing}
+            onAppeal={onAppeal}
+            onCancel={onCancel}
+          />
+        )}
+        {error && <p className="text-[12px] text-[var(--color-critical)] mt-3">{error}</p>}
+      </Card>
+
+      {(deal.fundTxHash || deal.onChain) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[11px]">
+          {deal.fundTxHash && (
+            <a
+              href={ARC_EXPLORER_TX(deal.fundTxHash)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]"
+            >
+              <span className="eyebrow">Funding tx</span>
+              <span className="mono">{shortHash(deal.fundTxHash)}</span>
+              <ExternalIcon />
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PartyRow({
+  role,
+  address,
+  you,
+  showReputation,
+}: {
+  role: string;
+  address: string;
+  you: boolean;
+  showReputation?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
+          {role}
+          {you && <span className="text-[var(--color-accent)]"> · you</span>}
+        </p>
+        <p className="text-[12px] mono mt-0.5">{shortAddress(address)}</p>
+      </div>
+      {showReputation && <ReputationBadge address={address} size="sm" withDetail />}
+    </div>
+  );
+}
+
+function MoneyRow({
+  label,
+  value,
+  strong,
+  faint,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+  faint?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span
+        className={`text-[12px] ${faint ? 'text-[var(--color-ink-faint)]' : 'text-[var(--color-ink-dim)]'}`}
+      >
+        {label}
+      </span>
+      <span
+        className={`mono tabular-nums ${
+          strong
+            ? 'text-[14px] font-semibold text-[var(--color-ink)]'
+            : 'text-[12px] text-[var(--color-ink)]'
+        }`}
+      >
+        {formatUsdc(value)}
+      </span>
+    </div>
+  );
+}
+
+function ProgressTrack({ deal, stage }: { deal: { firstReleasePct: number }; stage: DealStage }) {
+  // A cancelled deal never progressed past funding.
+  const cancelled = stage === 'cancelled';
+  const past = (...stages: DealStage[]) => !cancelled && !stages.includes(stage);
+  const steps = [
+    {
+      key: 'funded',
+      label: 'Escrow funded',
+      done: true,
+    },
+    {
+      key: 'accepted',
+      label: 'Seller accepted the deal',
+      done: past('awaiting-acceptance'),
+    },
+    {
+      key: 'delivered',
+      label: 'Seller marked delivered',
+      done: past('awaiting-acceptance', 'awaiting-delivery'),
+    },
+    {
+      key: 'first',
+      label: `First ${deal.firstReleasePct}% released`,
+      done: stage === 'awaiting-final-release' || stage === 'settled',
+    },
+    {
+      key: 'final',
+      label: `Final ${100 - deal.firstReleasePct}% released`,
+      done: stage === 'settled',
+    },
+  ];
+  const firstPending = steps.findIndex((s) => !s.done);
+  const terminal = stage === 'settled' || stage === 'disputed' || stage === 'cancelled';
+
+  return (
+    <Card noPadding>
+      <div className="px-5 py-4">
+        <ol className="space-y-3">
+          {steps.map((s, i) => {
+            const done = s.done;
+            const active = i === firstPending && !terminal;
+            return (
+              <li key={s.key} className="flex items-center gap-3">
+                <span
+                  className={`relative shrink-0 w-4 h-4 rounded-full grid place-items-center ${
+                    done
+                      ? 'bg-[var(--color-positive)] text-white'
+                      : 'bg-[var(--color-surface-2)] border border-[var(--color-line)]'
+                  }`}
+                >
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: 'var(--color-positive)',
+                        opacity: 0.35,
+                        animation: 'flowPulse 1.8s ease-out infinite',
+                      }}
+                    />
+                  )}
+                  {done && (
+                    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" className="relative">
+                      <path
+                        d="M3 8.5 L6.5 12 L13 5"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <span
+                  className={`text-[13px] ${
+                    done ? 'text-[var(--color-ink)] font-medium' : 'text-[var(--color-ink-faint)]'
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </Card>
+  );
+}
+
+function fmtCountdown(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function ActionPanel({
+  stage,
+  viewerIsBuyer,
+  viewerIsSeller,
+  firstPct,
+  busy,
+  deal,
+  now,
+  deliveryProof,
+  onDeliveryProofChange,
+  onAccept,
+  onMarkDelivered,
+  onRelease,
+  onStillReviewing,
+  onAppeal,
+  onCancel,
+}: {
+  stage: DealStage;
+  viewerIsBuyer: boolean;
+  viewerIsSeller: boolean;
+  firstPct: number;
+  busy: boolean;
+  deal: DirectDeal;
+  now: number;
+  deliveryProof: string;
+  onDeliveryProofChange: (v: string) => void;
+  onAccept: () => void;
+  onMarkDelivered: () => void;
+  onRelease: () => void;
+  onStillReviewing: () => void;
+  onAppeal: () => void;
+  onCancel: () => void;
+}) {
+  if (stage === 'settled') {
+    return (
+      <p className="text-[13px] text-[var(--color-positive)] font-medium">
+        {deal.autoReleasedAt
+          ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
+          : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
+      </p>
+    );
+  }
+  if (stage === 'cancelled') {
+    return (
+      <p className="text-[13px] text-[var(--color-ink-dim)]">
+        Cancelled. The seller did not mark the work delivered by the deadline, so the escrow was
+        refunded to the buyer in full.
+      </p>
+    );
+  }
+  if (stage === 'disputed') {
+    return (
+      <p className="text-[13px] text-[var(--color-critical)]">
+        This deal is in dispute. The escrow is frozen on chain; resolution is handled
+        off-platform for now.
+      </p>
+    );
+  }
+
+  if (stage === 'awaiting-acceptance') {
+    if (viewerIsSeller) {
+      return (
+        <div className="space-y-3">
+          <p className="text-[13px] text-[var(--color-ink-dim)]">
+            Review the terms and the funding split above. Accepting confirms you agree to deliver
+            on these terms. The buyer cannot release funds until you have accepted and delivered.
+          </p>
+          <BlackButton busy={busy} onClick={onAccept} label="Accept deal" />
+        </div>
+      );
+    }
+    // Buyer view, deal not yet accepted by the seller.
+    return (
+      <div className="space-y-3">
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
+          Waiting for the seller to accept the deal terms. The escrow is funded and held. You can
+          cancel and reclaim it anytime until they accept.
+        </p>
+        <OutlineButton busy={busy} onClick={onCancel} label="Cancel & reclaim funds" critical />
+      </div>
+    );
+  }
+
+  if (stage === 'awaiting-delivery') {
+    if (viewerIsSeller) {
+      return (
+        <div className="space-y-3">
+          <p className="text-[13px] text-[var(--color-ink-dim)]">
+            Mark the work delivered when it is done. This lets the buyer release the first{' '}
+            {firstPct}%, then the remainder once they are satisfied.
+          </p>
+          <label className="block space-y-1.5">
+            <span className="eyebrow">Delivery proof (optional)</span>
+            <textarea
+              value={deliveryProof}
+              onChange={(e) => onDeliveryProofChange(e.target.value)}
+              rows={2}
+              placeholder="Link to the deliverable, a repo, a file, or a short note."
+              className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[13px] leading-relaxed focus:outline-none focus:border-[var(--color-ink)] resize-none"
+            />
+          </label>
+          <BlackButton busy={busy} onClick={onMarkDelivered} label="Mark delivered" />
+        </div>
+      );
+    }
+    // Buyer view, still awaiting delivery.
+    const deadlinePassed = now > deal.deadlineUnix * 1000;
+    return (
+      <div className="space-y-3">
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
+          The seller accepted the deal. Waiting for them to mark the work delivered.
+          {!deadlinePassed && ' If they miss the deadline, you can cancel and reclaim your funds.'}
+        </p>
+        {deadlinePassed && (
+          <>
+            <WindowNote tone="warning">
+              The deadline passed and the seller has not marked the work delivered. You can cancel
+              the deal and reclaim the full escrow balance.
+            </WindowNote>
+            <OutlineButton busy={busy} onClick={onCancel} label="Cancel & reclaim funds" critical />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const windowMs = deal.reviewWindowMs ?? REVIEW_WINDOW_MS;
+
+  if (stage === 'awaiting-first-release') {
+    // The first-release timer runs from when the seller marked delivered.
+    const endsAt = deal.deliveredAt ? deal.deliveredAt + windowMs : null;
+    const msLeft = endsAt ? endsAt - now : 0;
+    const open = endsAt != null && msLeft > 0;
+    const expired = endsAt != null && msLeft <= 0;
+
+    if (viewerIsBuyer) {
+      return (
+        <div className="space-y-3">
+          <p className="text-[13px] text-[var(--color-ink-dim)]">
+            The seller marked the work delivered. Release the first {firstPct}% now. The
+            remaining {100 - firstPct}% releases once you verify the work.
+          </p>
+          {open && (
+            <WindowNote tone="warning">
+              Auto-releases the first {firstPct}% to the seller in{' '}
+              <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you do not act.
+            </WindowNote>
+          )}
+          {expired && (
+            <WindowNote tone="muted">
+              The release window passed. The agent will release the first {firstPct}% shortly
+              unless you release it now.
+            </WindowNote>
+          )}
+          <BlackButton busy={busy} onClick={onRelease} label={`Release first ${firstPct}%`} />
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
+          Delivered. Waiting for the buyer to release the first {firstPct}%.
+        </p>
+        {open && (
+          <WindowNote tone="muted">
+            Buyer release window:{' '}
+            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left. If it passes,
+            the first {firstPct}% releases to you automatically.
+          </WindowNote>
+        )}
+        {expired && (
+          <WindowNote tone="muted">
+            Release window passed. The agent will release the first {firstPct}% to you shortly.
+          </WindowNote>
+        )}
+      </div>
+    );
+  }
+
+  // awaiting-final-release: the buyer review window lives here.
+  const rest = 100 - firstPct;
+  const extensionMs = deal.reviewExtensionMs ?? 0;
+  const extensionCount = deal.reviewExtensionCount ?? 0;
+  const canExtend = extensionCount < MAX_REVIEW_EXTENSIONS;
+  const extensionMins = Math.round(REVIEW_EXTENSION_MS / 60000);
+  const windowEndsAt = deal.reviewWindowStartedAt
+    ? deal.reviewWindowStartedAt + windowMs + extensionMs
+    : null;
+  const msLeft = windowEndsAt ? windowEndsAt - now : 0;
+  const windowOpen = windowEndsAt != null && msLeft > 0;
+  const windowExpired = windowEndsAt != null && msLeft <= 0;
+  const baseWindowPassed = deal.reviewWindowStartedAt
+    ? now > deal.reviewWindowStartedAt + windowMs
+    : false;
+
+  if (viewerIsBuyer) {
+    return (
+      <div className="space-y-3">
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
+          First {firstPct}% released. Verify the work and release the remaining {rest}% to
+          settle the deal.
+        </p>
+        {windowOpen && (
+          <WindowNote tone="warning">
+            Auto-releases the final {rest}% to the seller in{' '}
+            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you do not act.
+            {canExtend
+              ? ` Need longer? "Still reviewing" adds ${extensionMins} minutes.`
+              : ' You have used all your extensions.'}
+            {extensionCount > 0 &&
+              ` (${extensionCount} extension${extensionCount > 1 ? 's' : ''} used)`}
+          </WindowNote>
+        )}
+        {windowExpired && (
+          <WindowNote tone="muted">
+            Review window passed. The agent will auto-release the final {rest}% shortly unless
+            you release it now.
+          </WindowNote>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <BlackButton busy={busy} onClick={onRelease} label={`Verify & release final ${rest}%`} />
+          {windowOpen && canExtend && (
+            <OutlineButton
+              busy={busy}
+              onClick={onStillReviewing}
+              label={`Still reviewing (+${extensionMins} min)`}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // seller view
+  return (
+    <div className="space-y-3">
+      <p className="text-[13px] text-[var(--color-ink-dim)]">
+        First {firstPct}% released. Waiting for the buyer to verify and release the final{' '}
+        {rest}%.
+      </p>
+      {windowOpen && !baseWindowPassed && (
+        <WindowNote tone="muted">
+          Buyer review window:{' '}
+          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left. If it passes
+          without action, the final {rest}% releases to you automatically.
+        </WindowNote>
+      )}
+      {baseWindowPassed && (
+        <div className="space-y-2.5">
+          <WindowNote tone="warning">
+            {windowExpired
+              ? `The review window passed. The agent will auto-release the final ${rest}% to you shortly.`
+              : `The buyer extended the review window (${fmtCountdown(msLeft)} left). You can wait for the automatic release or appeal to move the deal to dispute.`}
+          </WindowNote>
+          <OutlineButton busy={busy} onClick={onAppeal} label="Appeal this deal" critical />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WindowNote({
+  tone,
+  children,
+}: {
+  tone: 'warning' | 'muted';
+  children: React.ReactNode;
+}) {
+  const style =
+    tone === 'warning'
+      ? { background: 'var(--color-warning-soft)', color: 'var(--color-warning)' }
+      : { background: 'var(--color-surface-2)', color: 'var(--color-ink-dim)' };
+  return (
+    <p className="text-[12px] leading-snug rounded-md px-2.5 py-2" style={style}>
+      {children}
+    </p>
+  );
+}
+
+function OutlineButton({
+  busy,
+  onClick,
+  label,
+  critical,
+}: {
+  busy: boolean;
+  onClick: () => void;
+  label: string;
+  critical?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50 disabled:cursor-wait"
+      style={
+        critical
+          ? { borderColor: 'var(--color-critical)', color: 'var(--color-critical)' }
+          : { borderColor: 'var(--color-line-strong)', color: 'var(--color-ink)' }
+      }
+    >
+      {busy && (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="animate-spin" aria-hidden>
+          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
+          <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {busy ? 'Working…' : label}
+    </button>
+  );
+}
+
+function BlackButton({
+  busy,
+  onClick,
+  label,
+}: {
+  busy: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
+    >
+      {busy && (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="animate-spin" aria-hidden>
+          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
+          <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {busy ? 'Confirming on Arc…' : label}
+    </button>
+  );
+}
+
+function ExternalIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}

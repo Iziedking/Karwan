@@ -18,10 +18,12 @@ export default function HomePage() {
               Built on Arc · Circle USDC
             </span>
             <h1 className="text-[40px] md:text-[56px] leading-[1.02] tracking-[-0.02em] font-semibold text-[var(--color-ink)]">
-              How cross-border SME trade <span className="serif italic font-normal text-[var(--color-ink)]/95">should</span> settle.
+              Service payments, settled on delivery.
             </h1>
             <p className="text-[16px] text-[var(--color-ink-dim)] leading-relaxed max-w-xl">
-              Buyer and seller agents do the legwork. USDC settles on chain. Escrow holds the funds until the work is signed off. Built for UAE buyers and the SMEs they trade with across Africa and South Asia.
+              Karwan is an on-chain settlement network for service deals. Open an escrow with a
+              counterparty you already have, or post a brief and let agents find one. USDC settles
+              on Arc in seconds, and milestones release as the work lands.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
@@ -58,10 +60,13 @@ export default function HomePage() {
             The problem
           </span>
           <h2 className="text-[32px] md:text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold mt-3">
-            Cross-border SME trade hasn't really changed since the 1990s.
+            Getting paid for work across borders still runs on 1990s rails.
           </h2>
           <p className="text-[15px] text-[var(--color-ink-dim)] mt-4 leading-relaxed">
-            A Lagos developer selling a $500 site to a Dubai SaaS founder waits two months for the wire to land. By then a tenth of the deal is gone to processors, FX spreads, and bank fees. Neither side has a verifiable record of past work to lean on. They start from scratch every time.
+            A Lagos developer selling a $500 site to a Dubai founder waits two months for the wire
+            to land. By then a tenth of the deal is gone to processors, FX spreads, and bank fees.
+            Neither side has a verifiable record of past work to lean on. They start from scratch
+            every time. The corridor changes, the friction does not.
           </p>
         </div>
         <div className="md:col-span-3 grid sm:grid-cols-3 gap-3">
@@ -71,17 +76,56 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SOLUTION */}
+      {/* TWO MODES */}
+      <section className="space-y-10">
+        <div className="max-w-2xl">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            Two ways in
+          </span>
+          <h2 className="text-[32px] md:text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold mt-3">
+            Bring your own counterparty, or let an agent find one.
+          </h2>
+          <p className="text-[15px] text-[var(--color-ink-dim)] mt-4 leading-relaxed">
+            Same settlement spine underneath. The difference is how the deal starts.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-3">
+          <ModeTile
+            tag="Direct deal"
+            title="You already have a seller"
+            body="You agreed with someone on X, Discord, anywhere. Open an escrow naming their wallet. They sign in, deliver the work, and you release the funds in tranches. No auction, no waiting."
+            points={[
+              'Name the seller wallet, set the amount and a first-release slice',
+              'Seller marks the work delivered to unlock your releases',
+              'You release the first slice, then the rest once it is verified',
+            ]}
+          />
+          <ModeTile
+            tag="Managed deal"
+            title="You need a seller"
+            body="Post a brief and your buyer agent runs a sealed auction against seller agents. It scores bids, counters once, and accepts the best terms. You wake up to a funded escrow."
+            points={[
+              'Write the brief, set a budget and deadline',
+              'Buyer and seller agents negotiate on chain, on their own',
+              'Escrow funds on acceptance, you release on sign-off',
+            ]}
+          />
+        </div>
+      </section>
+
+      {/* SETTLEMENT SPINE */}
       <section className="space-y-10">
         <div className="max-w-2xl">
           <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
             What we built
           </span>
           <h2 className="text-[32px] md:text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold mt-3">
-            Four parts. One settlement layer.
+            One settlement spine, four primitives.
           </h2>
           <p className="text-[15px] text-[var(--color-ink-dim)] mt-4 leading-relaxed">
-            Karwan handles four things. USDC settles the deal. A smart contract holds the funds. Buyer and seller agents negotiate the terms. Past outcomes are recorded so the next deal can lean on the last one. It runs on Circle's stack and on Arc.
+            USDC settles the deal. A smart contract holds the funds and splits a small fee. Past
+            outcomes are recorded so the next deal can lean on the last. Funds bridge in from other
+            chains when they need to. It runs on Circle&apos;s stack and on Arc.
           </p>
         </div>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -93,17 +137,17 @@ export default function HomePage() {
           <SolutionTile
             n="02"
             title="Milestone escrow"
-            body="The escrow contract holds the budget until the buyer signs off on each milestone. Up to four tranches per deal."
+            body="The escrow contract holds the budget until each milestone is released. A 1.5% platform fee is split evenly between buyer and seller, collected on chain."
           />
           <SolutionTile
             n="03"
-            title="Agentic coordination"
-            body="Both sides have an agent that watches the chain, scores the brief, and bids or counters on its own. You step in only at the points that matter."
+            title="Portable reputation"
+            body="Built on ERC-8004. When a deal settles, the outcome is recorded on chain against the seller. The track record travels with the wallet, not our servers."
           />
           <SolutionTile
             n="04"
-            title="Portable reputation"
-            body="Built on ERC-8004 identity. The track record lives with the merchant, not on our servers. It travels with them."
+            title="Cross-chain funding"
+            body="Bring USDC over from Base or Ethereum Sepolia with CCTP V2, or top up an agent straight from your Arc balance. Liquidity follows the deal."
           />
         </div>
       </section>
@@ -132,10 +176,10 @@ export default function HomePage() {
         <PeerNetwork />
         <div className="relative max-w-2xl mx-auto text-center space-y-6">
           <h2 className="text-[32px] md:text-[40px] leading-[1.05] tracking-[-0.02em] font-semibold">
-            Run your first deal in about a minute.
+            Open your first deal in about a minute.
           </h2>
           <p className="text-[15px] text-[var(--color-ink-dim)]">
-            Post a brief, watch the agents work, see the funds settle. Every step is a real transaction on Arc Testnet.
+            Direct or agent-run, your call. Every step is a real transaction on Arc Testnet.
           </p>
           <div className="flex flex-wrap gap-3 justify-center pt-2">
             <Link
@@ -155,6 +199,39 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ModeTile({
+  tag,
+  title,
+  body,
+  points,
+}: {
+  tag: string;
+  title: string;
+  body: string;
+  points: string[];
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-6 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
+      <span className="inline-block text-[10px] uppercase tracking-[0.14em] text-[var(--color-accent)] font-semibold">
+        {tag}
+      </span>
+      <h3 className="text-[20px] font-semibold tracking-tight mt-2">{title}</h3>
+      <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{body}</p>
+      <ul className="mt-4 pt-4 border-t border-[var(--color-line)] space-y-2">
+        {points.map((p) => (
+          <li key={p} className="flex items-start gap-2 text-[12px] text-[var(--color-ink-dim)]">
+            <span
+              aria-hidden
+              className="mt-[6px] w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] shrink-0"
+            />
+            <span className="leading-relaxed">{p}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -232,7 +309,7 @@ function CornerBrackets() {
 
 function StatGlyph({ kind }: { kind: 'timeline' | 'leak' | 'reset' }) {
   if (kind === 'timeline') {
-    // long horizontal bar slowly filling — settlement that drags
+    // long horizontal bar slowly filling, settlement that drags
     return (
       <svg width="44" height="22" viewBox="0 0 44 22" fill="none" aria-hidden>
         <rect x="0.5" y="6" width="43" height="10" rx="2" stroke="currentColor" strokeWidth="1" opacity="0.4" />
@@ -245,7 +322,7 @@ function StatGlyph({ kind }: { kind: 'timeline' | 'leak' | 'reset' }) {
     );
   }
   if (kind === 'leak') {
-    // chunks being chipped off — fees eating into the deal
+    // chunks being chipped off, fees eating into the deal
     return (
       <svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden>
         <rect x="0.5" y="6" width="35" height="10" rx="2" stroke="currentColor" strokeWidth="1" opacity="0.4" />
@@ -264,7 +341,7 @@ function StatGlyph({ kind }: { kind: 'timeline' | 'leak' | 'reset' }) {
       </svg>
     );
   }
-  // reset — three empty slots with a sweeping wipe
+  // reset, three empty slots with a sweeping wipe
   return (
     <svg width="44" height="22" viewBox="0 0 44 22" fill="none" aria-hidden>
       <g stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" fill="none" opacity="0.55">

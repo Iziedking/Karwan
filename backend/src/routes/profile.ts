@@ -33,12 +33,12 @@ const profileSchema = z.object({
 
 export const profileRoutes = new Hono();
 
-profileRoutes.get('/', (c) => {
+profileRoutes.get('/', async (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
-  const profile = getProfile(parsed.data);
+  const profile = await getProfile(parsed.data);
   return c.json({ profile });
 });
 
@@ -61,6 +61,6 @@ profileRoutes.post('/', async (c) => {
   if (body.buyer && body.buyer.milestonePcts.reduce((s, n) => s + n, 0) !== 100) {
     return c.json({ error: 'buyer milestonePcts must sum to 100' }, 400);
   }
-  const profile = upsertProfile(body);
+  const profile = await upsertProfile(body);
   return c.json({ profile }, 200);
 });

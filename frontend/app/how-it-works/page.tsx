@@ -18,31 +18,76 @@ export default async function HowItWorksPage() {
           How Karwan works
         </h1>
         <p className="text-[15px] text-[var(--color-ink-dim)] leading-relaxed">
-          A walkthrough of how a deal moves from brief to settled. The on-chain calls, the Circle products, and the parts each agent plays. Every step is a real transaction on Arc Testnet.
+          Karwan secures USDC in escrow while a service is delivered. There are two ways to open a
+          deal, one settlement spine underneath. This is the walkthrough: the flows, the on-chain
+          calls, and the Circle products behind them. Every step is a real transaction on Arc
+          Testnet.
         </p>
       </header>
 
-      {/* DEMO STEPS */}
+      {/* DIRECT DEAL FLOW */}
       <section className="space-y-6">
         <div className="max-w-2xl">
           <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
-            The 60-second demo
+            Direct deal
           </span>
-          <h2 className="text-[26px] tracking-tight font-semibold mt-2">Three steps, on chain</h2>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">
+            When you already have a counterparty
+          </h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
+            You agreed with someone off-platform. Karwan just secures the money while the work gets
+            done.
+          </p>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           <DemoStep
             n="1"
-            title="Post a brief"
+            title="Open the deal"
             cta={<Link href="/buyer" className="underline">Open buyer dashboard</Link>}
           >
-            On <span className="mono">/buyer</span>, write what you need built, pick a budget, pick a deadline, submit. A <span className="mono">postJob</span> transaction lands on Arc in a few seconds.
+            On <span className="mono">/buyer</span>, pick &quot;I have a seller&quot;. Enter their
+            wallet address, the amount, a deadline, and how much releases on delivery. The escrow
+            funds on Arc, naming that seller directly.
           </DemoStep>
-          <DemoStep n="2" title="Watch agents negotiate">
-            The seller agent reads the brief, scores it against its profile, and calls <span className="mono">submitBid</span>. Your buyer agent ranks the bid, counters once, and accepts. Each step shows up on the live timeline.
+          <DemoStep n="2" title="Seller delivers">
+            The seller signs in with the wallet you named. The deal is waiting on their dashboard.
+            When the work is done, they mark it delivered, which unlocks your releases.
+          </DemoStep>
+          <DemoStep n="3" title="Release in tranches">
+            You release the first slice, then verify the work and release the rest. The escrow
+            settles, the platform fee is collected, and the seller&apos;s reputation is recorded
+            on chain.
+          </DemoStep>
+        </div>
+      </section>
+
+      {/* MANAGED DEAL FLOW */}
+      <section className="space-y-6">
+        <div className="max-w-2xl">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            Managed deal
+          </span>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">
+            When you need an agent to find one
+          </h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
+            Post a brief and the agents run the auction and negotiation for you.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <DemoStep n="1" title="Post a brief">
+            On <span className="mono">/buyer</span>, pick &quot;Find me a seller&quot;. Write what
+            you need, set a budget and deadline. A <span className="mono">postJob</span>{' '}
+            transaction lands on Arc in a few seconds.
+          </DemoStep>
+          <DemoStep n="2" title="Agents negotiate">
+            The seller agent scores the brief and calls <span className="mono">submitBid</span>.
+            Your buyer agent ranks it, counters once, and accepts the best terms. Each step shows
+            on the live timeline.
           </DemoStep>
           <DemoStep n="3" title="Settle the deal">
-            On acceptance, the buyer agent approves USDC and calls <span className="mono">fundEscrow</span> to lock the budget. When the work is done, click <span className="mono">Release milestones</span>. Funds move to the seller in tranches.
+            On acceptance, the buyer agent approves USDC and funds the escrow. When the work is
+            done, release the milestones. Funds move to the seller in tranches.
           </DemoStep>
         </div>
       </section>
@@ -55,34 +100,37 @@ export default async function HowItWorksPage() {
           </span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">The on-chain calls</h2>
           <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
-            Each demo step maps to a transaction on a deployed Karwan contract.
+            A managed deal walks the full path below. A direct deal skips straight to{' '}
+            <span className="mono">fundEscrow</span>, naming the seller without an auction.
           </p>
         </div>
         <Card>
           <ol className="space-y-4">
-            <Step label="postJob(bytes32, uint256, uint64, string)" actor="Buyer agent">
-              Records the brief on the JobBoard. Emits <span className="mono">JobPosted</span>, which is the event seller agents subscribe to.
+            <Step label="postJob(bytes32, uint256, uint64, string)" actor="Buyer agent · managed only">
+              Records the brief on the JobBoard. Emits <span className="mono">JobPosted</span>,
+              the event seller agents subscribe to.
             </Step>
-            <Step label="submitBid(bytes32, uint256, uint64)" actor="Seller agent">
-              After LLM scoring, the seller posts a bid. Emits <span className="mono">BidSubmitted</span>.
+            <Step label="submitBid · counterOffer · respondToCounter · acceptBid" actor="Both agents · managed only">
+              The negotiation loop. Seller bids, buyer counters once, seller responds, buyer locks
+              final terms.
             </Step>
-            <Step label="counterOffer(bytes32, address, uint256, uint64)" actor="Buyer agent">
-              After the bid-collection window, the buyer agent issues a counter to the top-scored seller.
-            </Step>
-            <Step label="respondToCounter(bytes32, bool, uint256, uint64)" actor="Seller agent">
-              Seller accepts, counters back, or declines. Emits <span className="mono">CounterResponse</span>.
-            </Step>
-            <Step label="acceptBid(bytes32, address)" actor="Buyer agent">
-              Buyer locks final terms. Emits <span className="mono">BidAccepted</span>.
-            </Step>
-            <Step label="USDC.approve(escrow, amount)" actor="Buyer agent">
-              ERC-20 approval so KarwanEscrow can pull funds. Uses USDC's ERC-20 interface (6 decimals).
+            <Step label="USDC.approve(escrow, fundedAmount)" actor="Buyer agent">
+              ERC-20 approval so KarwanEscrow can pull funds. The approval covers the deal amount
+              plus the buyer&apos;s half of the platform fee.
             </Step>
             <Step label="fundEscrow(bytes32, address, uint256, uint8[])" actor="Buyer agent">
-              Locks the agreed amount with a milestone schedule. Emits <span className="mono">EscrowFunded</span>.
+              Locks the deal amount with a milestone schedule. The contract pulls{' '}
+              <span className="mono">dealAmount + feeHalf</span>, stores what the seller nets and
+              what the treasury collects. Emits <span className="mono">EscrowFunded</span>.
             </Step>
-            <Step label="releaseProgress(bytes32, uint8)" actor="Buyer (human)">
-              Tranches funds to the seller per milestone. Final release marks the escrow settled.
+            <Step label="releaseProgress(bytes32, uint8)" actor="Buyer">
+              Releases one milestone. The seller gets their cut, the treasury gets its
+              proportional slice of the 1.5% fee. The final milestone sweeps any remainder and
+              marks the escrow settled.
+            </Step>
+            <Step label="recordCompletion(bytes32, address, address, uint8)" actor="Buyer agent">
+              On settlement, records the outcome against the seller on KarwanReputation. ERC-8004
+              forbids self-rating, so the buyer rates the seller.
             </Step>
           </ol>
         </Card>
@@ -99,27 +147,19 @@ export default async function HowItWorksPage() {
         <div className="grid md:grid-cols-2 gap-3">
           <StackTile
             name="USDC"
-            role="The currency we settle in. Holds bid prices, escrow balances, and milestone payouts."
+            role="The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, and the platform fee."
           />
           <StackTile
             name="Developer-Controlled Wallets"
-            role="Every agent runs on an SCA wallet on Arc Testnet, with per-wallet spend limits scoped to the deal flow."
+            role="Every agent runs on an SCA wallet on Arc Testnet. The buyer agent funds escrows and releases milestones; the seller agent bids and negotiates."
           />
           <StackTile
-            name="Nanopayments"
-            role="Agents pay per research call (reputation lookups, market data). Progress payments stream as milestones close."
-          />
-          <StackTile
-            name="CCTP and Bridge Kit"
-            role="Buyer USDC moves from Ethereum or Base over to Arc before escrow gets funded. v0 supports one direction."
-          />
-          <StackTile
-            name="Gateway"
-            role="Treasury pools fees into a single balance across chains and keeps refund liquidity ready."
+            name="CCTP V2"
+            role="Buyer USDC bridges in from Base or Ethereum Sepolia. The user signs the burn, the backend relays the mint on Arc once Circle attests."
           />
           <StackTile
             name="Arc Testnet"
-            role="Chain 5042002. Blocks finalize in under a second. USDC is the native gas token. The ERC-8004 identity registry is already deployed here."
+            role="Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity registry is already deployed here."
           />
         </div>
       </section>
@@ -130,23 +170,27 @@ export default async function HowItWorksPage() {
           <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
             Roadmap
           </span>
-          <h2 className="text-[26px] tracking-tight font-semibold mt-2">Coming in v1</h2>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">Coming next</h2>
           <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
-            What's shipping next, after the testnet build.
+            What ships after the testnet build.
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
           <RoadmapTile
             title="Passkey sign-in"
-            body="Sign in with a Circle Passkey. Email plus biometrics. No browser extension needed."
+            body="Sign in with a Circle Passkey. Email plus biometrics, no browser extension needed."
           />
           <RoadmapTile
             title="Self-custodied agent wallets"
-            body="Each agent gets its own Circle wallet under a spend allowance you set, so you stay in control of funds."
+            body="Each agent gets its own wallet under a spend allowance you set once at activation."
           />
           <RoadmapTile
-            title="Disputes and CCTP"
-            body="On-chain dispute resolution for stuck deals. CCTP bridging so buyer USDC can come from Ethereum or Base."
+            title="Disputes and appeals"
+            body="On-chain dispute resolution, plus a seller appeal path to renegotiate if a buyer stalls on release."
+          />
+          <RoadmapTile
+            title="Agent micro-payments"
+            body="An x402 rail so agents can pay for verification calls and data while they work a deal."
           />
         </div>
       </section>
@@ -160,23 +204,50 @@ export default async function HowItWorksPage() {
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">Common questions</h2>
         </div>
         <div className="divide-y divide-[var(--color-line)] border border-[var(--color-line)] rounded-xl bg-[var(--color-surface)]">
+          <Faq q="What is the difference between a direct deal and a managed deal?">
+            A direct deal is for two parties who already found each other. You open an escrow
+            naming the seller&apos;s wallet, no auction. A managed deal is for when you need a
+            seller: you post a brief and agents run the auction and negotiation. Both use the same
+            escrow, reputation, and settlement underneath.
+          </Faq>
+          <Faq q="What is the platform fee?">
+            1.5% of the deal amount, split evenly between buyer and seller. The buyer funds the
+            deal amount plus their half; the seller nets the deal amount minus their half. The fee
+            is collected on chain by the escrow contract as milestones release, and goes to a
+            treasury address.
+          </Faq>
           <Faq q="Who controls the agent wallets today?">
-            For this demo, agent wallets are Circle Dev-Controlled Wallets we provisioned ahead of time. In v1, each user connects their own wallet (browser wallet or Circle passkey) and either activates an agent under a spending allowance they set, or runs their own.
+            For this demo, agent wallets are Circle Dev-Controlled Wallets we provisioned ahead of
+            time. In v1, each user connects their own wallet and either activates an agent under a
+            spending allowance they set, or runs their own.
           </Faq>
           <Faq q="Are the smart contracts deployed?">
-            Yes. KarwanJobBoard, KarwanEscrow, and KarwanReputation are live on Arc Testnet (chain 5042002). Every event on the Activity feed links to its transaction on testnet.arcscan.app.
-          </Faq>
-          <Faq q="Why MEASA?">
-            UAE non-oil trade with Africa alone is $50B+ and growing about 15% a year. There's heavy informal trade volume, weak existing card rails, and stablecoin acceptance is rising fast. Karwan fits that intersection.
-          </Faq>
-          <Faq q="What if the seller agent skips my job?">
-            The seller's profile has a budget and deadline range. If your job falls outside it, the agent skips and the timeline shows you why (e.g. "budget 0.5 USDC below seller minimum of 1 USDC"). The LLM can also skip on confidence, and that gets logged too.
+            Yes. KarwanJobBoard, KarwanEscrow, and KarwanReputation are live on Arc Testnet (chain
+            5042002). The escrow carries the platform fee split on chain. Every event on the
+            Activity feed links to its transaction on testnet.arcscan.app.
           </Faq>
           <Faq q="How is escrow released?">
-            KarwanEscrow holds the USDC until the buyer calls releaseProgress on each milestone. The final release marks the escrow settled. Disputes today go to a manual review on our side. v1 will add on-chain arbitration.
+            The buyer releases each milestone with releaseProgress. The seller&apos;s cut goes to
+            the seller, the treasury&apos;s slice of the fee goes to the treasury, and the final
+            release marks the escrow settled. In a direct deal the seller must mark the work
+            delivered before the buyer can release. Disputes today go to manual review; v1 adds
+            on-chain arbitration.
+          </Faq>
+          <Faq q="What if the seller agent skips my managed job?">
+            The seller&apos;s profile has a budget and deadline range. If your brief falls outside
+            it, the agent skips and the timeline shows you why. The LLM can also skip on
+            confidence, and that gets logged too.
+          </Faq>
+          <Faq q="Why this corridor?">
+            We started with MEASA because UAE non-oil trade with Africa alone is $50B+ and growing
+            about 15% a year, with heavy informal volume and weak card rails. But the escrow,
+            reputation, and agent layer is corridor-agnostic. It works for any cross-border service
+            deal.
           </Faq>
           <Faq q="Where does the LLM run?">
-            Agent decisions go through OpenRouter (default model: google/gemini-2.5-flash-lite) to keep cost low. We use Zod schemas for structured outputs, so the agent can only submit bids inside its accepted budget and deadline range.
+            Agent decisions go through OpenRouter (default model: google/gemini-2.5-flash-lite) to
+            keep cost low. We use Zod schemas for structured outputs, so an agent can only act
+            inside its accepted budget and deadline range.
           </Faq>
         </div>
       </section>
@@ -185,7 +256,7 @@ export default async function HowItWorksPage() {
       <section className="text-center space-y-4 py-6">
         <h2 className="text-[28px] tracking-tight font-semibold">Try it on Arc Testnet</h2>
         <p className="text-[14px] text-[var(--color-ink-dim)]">
-          The dashboard runs the full flow against real testnet contracts.
+          The dashboard runs both flows against real testnet contracts.
         </p>
         <div className="pt-2">
           <Link

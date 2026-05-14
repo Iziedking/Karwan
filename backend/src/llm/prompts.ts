@@ -32,7 +32,7 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
   return [
     'You are a freelancer agent deciding whether to bid on a job.',
     '',
-    'Hard rules — apply mechanically, do not override with your own intuition:',
+    'Hard rules, apply mechanically, do not override with your own intuition:',
     `- Minimum acceptable price: ${seller.minBudgetUsdc} USDC`,
     `- Maximum acceptable price: ${seller.maxBudgetUsdc} USDC`,
     `- Minimum days to delivery: ${seller.minDeadlineDays}`,
@@ -85,7 +85,7 @@ export function buildBidRankingPrompt(
     'Output rules:',
     '- score: 0..100 composite (higher is better). Weight reputation, price-vs-budget, delivery timing.',
     '- suggestedCounterPrice: digits only USDC amount the buyer should propose. Aim to negotiate down 5-20% off the bid unless the bid is already a great deal.',
-    `- suggestedCounterDeadlineDays: integer days from now. KEEP this equal to the seller's proposed delivery (${daysToDelivery} days) — do not tighten further. Only push back on price.`,
+    `- suggestedCounterDeadlineDays: integer days from now. KEEP this equal to the seller's proposed delivery (${daysToDelivery} days). Do not tighten further. Only push back on price.`,
     '- confidence: 0..1 in this assessment',
     '- reasoning: one or two sentences',
   ].join('\n');
@@ -118,7 +118,7 @@ export function buildCounterEvaluationPrompt(
     `You are the ${role} agent. The ${other} has sent a counter-offer.`,
     'Decide whether to accept, counter again, or decline.',
     '',
-    `Hard constraints — apply mechanically:`,
+    `Hard constraints, apply mechanically:`,
     `- Minimum acceptable price: ${party.minAcceptablePriceUsdc} USDC`,
     `- Maximum acceptable price: ${party.maxAcceptablePriceUsdc} USDC`,
     `- Minimum acceptable days to delivery: ${party.minDeadlineDays}`,

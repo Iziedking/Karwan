@@ -8,6 +8,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { shortAddress } from '@/shared/utils/format';
 import { RoleToggle } from '@/features/profile/components/RoleToggle';
 import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
+import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { api, type UserProfile } from '@/core/api';
 
@@ -98,22 +99,25 @@ export default function ProfilePage() {
             {shortAddress(profile.address)} · created {created} · updated {updated}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push('/onboarding')}
-          className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-ink-dim)] transition-colors inline-flex items-center gap-1.5 w-fit"
-        >
-          Edit details
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path
-              d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2 w-fit">
+          <ConnectXButton />
+          <button
+            type="button"
+            onClick={() => router.push('/onboarding')}
+            className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-ink-dim)] transition-colors inline-flex items-center gap-1.5"
+          >
+            Edit details
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path
+                d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <section>

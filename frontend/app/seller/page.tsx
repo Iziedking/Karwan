@@ -4,7 +4,8 @@ import { Card } from '@/shared/components/Card';
 import { Tag } from '@/shared/components/Tag';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
-import { shortAddress } from '@/shared/utils/format';
+import { DirectDealList } from '@/features/deals/components/DirectDealList';
+import { UserIdentityLine } from '@/shared/components/UserIdentityLine';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,10 +24,8 @@ export default async function SellerPage() {
     <div className="space-y-8">
       <header className="fade-up pb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] tracking-tight font-semibold">{data.profile.displayName}</h1>
-          <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">
-            {shortAddress(data.profile.address)}
-          </p>
+          <h1 className="text-[28px] tracking-tight font-semibold">Seller</h1>
+          <UserIdentityLine />
         </div>
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-positive-soft)] text-[var(--color-positive)] text-[12px] font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
@@ -63,7 +62,13 @@ export default async function SellerPage() {
         </Card>
       </div>
 
-      <div className="fade-up fade-up-2 grid md:grid-cols-3 gap-4">
+      <div className="fade-up fade-up-2">
+        <Card title="Direct deals for you" noPadding>
+          <DirectDealList role="seller" />
+        </Card>
+      </div>
+
+      <div className="fade-up fade-up-3 grid md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <Card
             title={`Active bids${data.activeBids.length > 0 ? ` · ${data.activeBids.length}` : ''}`}

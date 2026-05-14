@@ -17,7 +17,7 @@ async function main() {
   });
 
   logger.info({ recoveryDir }, 'entity secret registered');
-  logger.warn(`recovery file written under ${recoveryDir}/ — move it offline. Circle cannot recover the secret for you.`);
+  logger.warn(`recovery file written under ${recoveryDir}/. Move it offline. Circle cannot recover the secret for you.`);
 }
 
 main().catch((err) => {

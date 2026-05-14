@@ -9,9 +9,13 @@ export function shortAddress(h?: string | null): string {
   return `${h.slice(0, 6)}…${h.slice(-4)}`;
 }
 
-export function formatUsdc(value: string | number, opts?: { withSuffix?: boolean }): string {
+export function formatUsdc(
+  value: string | number | null | undefined,
+  opts?: { withSuffix?: boolean },
+): string {
+  if (value == null || value === '') return '—';
   const n = typeof value === 'string' ? Number(value) : value;
-  if (Number.isNaN(n)) return '—';
+  if (!Number.isFinite(n)) return '—';
   const fixed = n.toLocaleString('en-US', { maximumFractionDigits: 2 });
   return opts?.withSuffix === false ? fixed : `${fixed} USDC`;
 }

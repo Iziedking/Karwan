@@ -5,7 +5,7 @@ async function main() {
   const client = circleWalletsClient();
 
   const walletSetRes = await client.createWalletSet({
-    name: `Karwan Agent Wallets — ${new Date().toISOString().slice(0, 10)}`,
+    name: `Karwan Agent Wallets ${new Date().toISOString().slice(0, 10)}`,
   });
   const walletSetId = walletSetRes.data?.walletSet?.id;
   if (!walletSetId) throw new Error('createWalletSet returned no id');

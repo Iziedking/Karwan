@@ -21,6 +21,14 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'bridge.minted': { text: 'USDC minted on Arc', tone: 'system' },
   'bridge.error': { text: 'Bridge hit an error', tone: 'error' },
   'reputation.recorded': { text: 'Reputation recorded on chain', tone: 'system' },
+  'deal.direct.created': { text: 'Direct deal opened and funded', tone: 'buyer' },
+  'deal.accepted': { text: 'Seller accepted the deal terms', tone: 'seller' },
+  'deal.delivered': { text: 'Seller marked the work delivered', tone: 'seller' },
+  'deal.review.started': { text: 'Buyer review window opened', tone: 'buyer' },
+  'deal.review.heartbeat': { text: 'Buyer is still reviewing', tone: 'buyer' },
+  'deal.auto_released': { text: 'Final milestone auto-released', tone: 'system' },
+  'deal.disputed': { text: 'Deal moved to dispute', tone: 'error' },
+  'deal.cancelled': { text: 'Deal cancelled and refunded', tone: 'system' },
 };
 
 interface Chip {

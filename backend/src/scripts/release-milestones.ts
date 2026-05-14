@@ -46,7 +46,7 @@ async function main() {
     logger.info({ jobId, milestoneIndex: i, ...result }, 'milestone released');
   }
 
-  logger.info({ jobId }, 'all milestones released — escrow settled');
+  logger.info({ jobId }, 'all milestones released, escrow settled');
 }
 
 main().catch((err) => {

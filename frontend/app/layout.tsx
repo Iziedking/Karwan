@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
+import { ProfileNudge } from '@/shared/components/ProfileNudge';
 import { AppProviders } from '@/shared/components/AppProviders';
 
 const geist = Geist({
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders>
           <div className="min-h-screen flex flex-col">
             <TopNav />
+            <ProfileNudge />
             <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>
             <SiteFooter />
           </div>
