@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { parseUnits } from 'viem';
 import {
   useAccount,
@@ -8,12 +8,7 @@ import {
   useSwitchChain,
   useWalletClient,
 } from 'wagmi';
-import { usdcAbi } from '@/features/bridge/abis';
-import {
-  ARC_CHAIN_ID,
-  ARC_USDC_ADDRESS,
-  ARC_USDC_DECIMALS,
-} from '../config';
+import { ARC_CHAIN_ID, ARC_NATIVE_DECIMALS } from '../config';
 
 export type FundPhase =
   | 'switching'
@@ -77,11 +72,19 @@ function loadFromStorage(address?: `0x${string}` | null): FundRecord[] {
     const raw = window.localStorage.getItem(key);
     if (!raw) return [];
     const arr = JSON.parse(raw) as FundRecord[];
-    return arr.map((r) =>
-      r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming'
-        ? { ...r, phase: 'error' as const, error: r.error ?? 'Interrupted on reload. Retry to resume.' }
-        : r,
-    );
+    return arr.map((r) => {
+      // 'confirming' with a tx hash means the tx is already submitted on chain.
+      // Keep it active so the resume effect can poll for the receipt.
+      if (r.phase === 'confirming' && r.txHash) return r;
+      if (r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming') {
+        return {
+          ...r,
+          phase: 'error' as const,
+          error: r.error ?? 'Interrupted on reload. Retry to resume.',
+        };
+      }
+      return r;
+    });
   } catch {
     return [];
   }
@@ -123,6 +126,8 @@ export function useArcFund() {
     saveToStorage(address, records);
   }, [address, records, hydratedFor]);
 
+  const resumeStartedRef = useRef<Set<string>>(new Set());
+
   const patch = useCallback((id: string, fn: (r: FundRecord) => FundRecord) => {
     setRecords((list) => {
       const idx = list.findIndex((r) => r.id === id);
@@ -133,52 +138,85 @@ export function useArcFund() {
     });
   }, []);
 
+  // Resume any record stuck in 'confirming' from a prior session by polling
+  // for the receipt. The tx is already on chain; we just need to learn its fate.
+  useEffect(() => {
+    if (!arcClient || hydratedFor !== (address?.toLowerCase() ?? '')) return;
+    for (const r of records) {
+      if (r.phase !== 'confirming' || !r.txHash) continue;
+      if (resumeStartedRef.current.has(r.id)) continue;
+      resumeStartedRef.current.add(r.id);
+      arcClient
+        .waitForTransactionReceipt({
+          hash: r.txHash,
+          timeout: 60_000,
+          pollingInterval: 1500,
+          retryCount: 8,
+        })
+        .then((receipt) => {
+          patch(r.id, (cur) =>
+            receipt.status === 'success'
+              ? { ...cur, phase: 'done' }
+              : { ...cur, phase: 'error', error: 'Transaction reverted on chain' },
+          );
+        })
+        .catch((err: unknown) => {
+          patch(r.id, (cur) => ({
+            ...cur,
+            phase: 'error',
+            error: (err as Error).message ?? 'Receipt lookup failed',
+          }));
+        });
+    }
+  }, [arcClient, address, hydratedFor, records, patch]);
+
   const runFlow = useCallback(
     async (record: FundRecord) => {
       if (!isConnected || !address || !walletClient || !arcClient) {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: 'Connect your wallet first' }));
         return;
       }
-      const amountWei = parseUnits(record.amountUsdc, ARC_USDC_DECIMALS);
+      const amountWei = parseUnits(record.amountUsdc, ARC_NATIVE_DECIMALS);
 
       try {
         if (chainId !== ARC_CHAIN_ID) {
           await switchChainAsync({ chainId: ARC_CHAIN_ID });
         }
 
-        const balance = (await arcClient.readContract({
-          address: ARC_USDC_ADDRESS,
-          abi: usdcAbi,
-          functionName: 'balanceOf',
-          args: [address],
-        })) as bigint;
+        // USDC is Arc's native asset — check the native balance, not an ERC-20 view.
+        const balance = await arcClient.getBalance({ address });
         if (balance < amountWei) {
           throw new Error('Not enough USDC on Arc');
         }
 
         patch(record.id, (r) => ({ ...r, phase: 'signing' }));
-        const hash = await walletClient.writeContract({
-          address: ARC_USDC_ADDRESS,
-          abi: [
-            {
-              type: 'function',
-              name: 'transfer',
-              stateMutability: 'nonpayable',
-              inputs: [
-                { name: 'to', type: 'address' },
-                { name: 'amount', type: 'uint256' },
-              ],
-              outputs: [{ type: 'bool' }],
-            },
-          ] as const,
-          functionName: 'transfer',
-          args: [record.agentAddress, amountWei],
+        // Plain native value transfer. The recipient's native balance is exactly
+        // what the app and backend read as the agent's USDC holdings.
+        const hash = await walletClient.sendTransaction({
+          to: record.agentAddress,
+          value: amountWei,
           chain: walletClient.chain,
           account: address,
         });
         patch(record.id, (r) => ({ ...r, phase: 'confirming', txHash: hash }));
-        await arcClient.waitForTransactionReceipt({ hash });
-        patch(record.id, (r) => ({ ...r, phase: 'done' }));
+        // Cap the wait so a flaky RPC doesn't strand the UI. If we time out,
+        // the resume effect will pick this record back up on next page load and
+        // a one-click Retry continues polling.
+        const receipt = await arcClient.waitForTransactionReceipt({
+          hash,
+          timeout: 60_000,
+          pollingInterval: 1500,
+          retryCount: 8,
+        });
+        if (receipt.status === 'success') {
+          patch(record.id, (r) => ({ ...r, phase: 'done' }));
+        } else {
+          patch(record.id, (r) => ({
+            ...r,
+            phase: 'error',
+            error: 'Transaction reverted on chain',
+          }));
+        }
       } catch (err) {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyFundError(err) }));
       }

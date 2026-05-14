@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api, type BuyerJob, type BuyerBid } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
+import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 
 const REFRESH_TRIGGERS = new Set([
   'bid.submitted',
@@ -68,10 +69,11 @@ function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
           Lead bid
         </span>
       )}
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <span className="mono text-[12px] text-[var(--color-ink-dim)]">
           {shortAddress(bid.seller)}
         </span>
+        <ReputationBadge address={bid.seller} size="sm" />
       </div>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="text-[22px] mono font-semibold tabular-nums leading-none">{price}</span>

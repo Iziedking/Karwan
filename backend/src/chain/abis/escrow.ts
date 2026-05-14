@@ -6,6 +6,16 @@ export const escrowAbi = [
         "name": "_usdc",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "_feeBps",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "_treasury",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "nonpayable"
@@ -50,12 +60,27 @@ export const escrowAbi = [
         "internalType": "address"
       },
       {
-        "name": "totalAmount",
+        "name": "dealAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "sellerNet",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeTotal",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
         "name": "released",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeReleased",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -68,6 +93,19 @@ export const escrowAbi = [
         "name": "state",
         "type": "uint8",
         "internalType": "enum KarwanEscrow.EscrowState"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "feeBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -87,7 +125,7 @@ export const escrowAbi = [
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "dealAmount",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -146,6 +184,19 @@ export const escrowAbi = [
   },
   {
     "type": "function",
+    "name": "treasury",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "usdc",
     "inputs": [],
     "outputs": [
@@ -199,7 +250,19 @@ export const escrowAbi = [
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "dealAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fundedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeTotal",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -243,10 +306,47 @@ export const escrowAbi = [
         "internalType": "bytes32"
       },
       {
-        "name": "finalAmount",
+        "name": "sellerTotal",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "feeTotal",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeeCollected",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "milestoneIndex",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "treasury",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -289,12 +389,22 @@ export const escrowAbi = [
   },
   {
     "type": "error",
+    "name": "FeeTooHigh",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidMilestones",
     "inputs": []
   },
   {
     "type": "error",
     "name": "InvalidState",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTreasury",
     "inputs": []
   },
   {

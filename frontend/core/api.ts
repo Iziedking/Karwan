@@ -96,6 +96,15 @@ export interface UserProfile {
   };
 }
 
+export interface Reputation {
+  address: string;
+  scoreBps: number;
+  successCount: number;
+  disputedCount: number;
+  failedCount: number;
+  totalDeals: number;
+}
+
 export interface BalanceRow {
   label: string;
   address: string | null;
@@ -181,6 +190,8 @@ export const api = {
     if (jobId) q.set('jobId', jobId);
     return json<{ events: ChainEvent[] }>(`/api/activity?${q.toString()}`);
   },
+  reputation: (address: string) =>
+    json<Reputation>(`/api/reputation?address=${address}`),
   bridgeRelay: (input: {
     bridgeId: string;
     sourceDomain: number;

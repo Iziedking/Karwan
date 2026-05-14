@@ -60,6 +60,17 @@ export function ArcFundCard({
   const refreshing =
     arcBalance.isRefetching || buyerArcBalance.isRefetching || sellerArcBalance.isRefetching;
 
+  // 1Hz tick while any record is live so elapsed time and slow-hint render fresh.
+  const [, setTick] = useState(0);
+  const hasLive = records.some(
+    (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
+  );
+  useEffect(() => {
+    if (!hasLive) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [hasLive]);
+
   const options: AgentOption[] = [
     { key: 'buyer', label: 'Buyer agent', address: buyerAgent },
     { key: 'seller', label: 'Seller agent', address: sellerAgent },
@@ -359,6 +370,8 @@ function FundRow({
   onDismiss: () => void;
 }) {
   const tone = phaseTone(record.phase);
+  const elapsedSec = Math.max(0, Math.floor((Date.now() - record.startedAt) / 1000));
+  const isSlow = record.phase === 'confirming' && elapsedSec > 15;
   return (
     <li
       className={`rounded-lg border transition-all overflow-hidden ${
@@ -385,7 +398,7 @@ function FundRow({
               → {record.agentKey}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <PhaseDot tone={tone} pulse={tone === 'live'} />
             <span
               className={`text-[11px] font-medium leading-none ${
@@ -401,8 +414,34 @@ function FundRow({
             <span className="text-[10px] mono text-[var(--color-ink-faint)] leading-none">
               · {elapsed(record.startedAt)}
             </span>
+            {isSlow && (
+              <span
+                className="text-[10px] uppercase tracking-[0.1em] leading-none px-1.5 py-0.5 rounded"
+                style={{
+                  background: 'var(--color-warning-soft)',
+                  color: 'var(--color-warning)',
+                }}
+              >
+                Slow
+              </span>
+            )}
           </div>
         </div>
+        {record.txHash && (
+          <a
+            href={ARC_EXPLORER_TX(record.txHash)}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[10px] mono text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] px-2 py-1 rounded-md border border-[var(--color-line)] hover:border-[var(--color-line-strong)] shrink-0"
+            title="View on Arcscan"
+          >
+            <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+            {shortHash(record.txHash)}
+          </a>
+        )}
         <svg
           width="10"
           height="10"

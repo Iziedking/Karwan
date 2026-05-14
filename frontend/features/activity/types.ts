@@ -21,6 +21,7 @@ const GROUP_BY_TYPE: Record<string, EventGroup> = {
   'bridge.attested':            'bridge',
   'bridge.minted':              'bridge',
   'bridge.error':               'bridge',
+  'reputation.recorded':        'settlement',
   'agent.error':                'jobs', // errors stay visible; group as jobs for counting
 };
 

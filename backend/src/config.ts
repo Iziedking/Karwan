@@ -38,6 +38,9 @@ const envSchema = z.object({
   KARWAN_JOBBOARD_ADDR: optionalAddr,
   KARWAN_ESCROW_ADDR: optionalAddr,
   KARWAN_REPUTATION_ADDR: optionalAddr,
+  // Treasury that collects the platform fee. Must match the address the escrow
+  // was deployed with; surfaced here for display and reconciliation.
+  KARWAN_TREASURY_ADDR: optionalAddr,
 
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,

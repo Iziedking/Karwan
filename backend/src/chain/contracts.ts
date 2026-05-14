@@ -30,3 +30,74 @@ export const reputation = getContract({
 
 export const usdc = required('USDC_ADDR', config.USDC_ADDR);
 export const identityRegistry = required('IDENTITY_REGISTRY_ADDR', config.IDENTITY_REGISTRY_ADDR);
+
+// EscrowState enum from KarwanEscrow: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
+export interface EscrowAccount {
+  buyer: `0x${string}`;
+  seller: `0x${string}`;
+  dealAmount: bigint;
+  sellerNet: bigint;
+  feeTotal: bigint;
+  released: bigint;
+  feeReleased: bigint;
+  milestonesReleased: number;
+  state: number;
+}
+
+// feeBps is immutable on the escrow contract, so it is safe to cache.
+let _feeBpsCache: number | null = null;
+export async function getEscrowFeeBps(): Promise<number> {
+  if (_feeBpsCache === null) {
+    _feeBpsCache = Number(await escrow.read.feeBps());
+  }
+  return _feeBpsCache;
+}
+
+export interface FundingBreakdown {
+  feeTotal: bigint;
+  buyerFee: bigint;
+  sellerFee: bigint;
+  sellerNet: bigint;
+  fundedAmount: bigint;
+}
+
+/// Mirrors KarwanEscrow.fundEscrow math: 1.5% fee split evenly. Buyer transfers
+/// in dealAmount + buyerFee; seller nets dealAmount - sellerFee.
+export function computeFunding(dealAmountWei: bigint, feeBps: number): FundingBreakdown {
+  const feeTotal = (dealAmountWei * BigInt(feeBps)) / 10000n;
+  const buyerFee = feeTotal / 2n;
+  const sellerFee = feeTotal - buyerFee;
+  return {
+    feeTotal,
+    buyerFee,
+    sellerFee,
+    sellerNet: dealAmountWei - sellerFee,
+    fundedAmount: dealAmountWei + buyerFee,
+  };
+}
+
+/// Reads the escrow struct getter, which omits the dynamic milestonePcts array.
+export async function readEscrow(jobId: string): Promise<EscrowAccount> {
+  const tuple = (await escrow.read.escrows([jobId as `0x${string}`])) as readonly [
+    `0x${string}`,
+    `0x${string}`,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    bigint,
+    number,
+    number,
+  ];
+  return {
+    buyer: tuple[0],
+    seller: tuple[1],
+    dealAmount: tuple[2],
+    sellerNet: tuple[3],
+    feeTotal: tuple[4],
+    released: tuple[5],
+    feeReleased: tuple[6],
+    milestonesReleased: tuple[7],
+    state: tuple[8],
+  };
+}

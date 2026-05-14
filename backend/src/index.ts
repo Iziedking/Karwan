@@ -12,6 +12,7 @@ import { balancesRoutes } from './routes/balances.js';
 import { activityRoutes } from './routes/activity.js';
 import { profileRoutes } from './routes/profile.js';
 import { bridgeRoutes } from './routes/bridge.js';
+import { reputationRoutes } from './routes/reputation.js';
 import { startBuyerAgent } from './agents/buyer.js';
 import { startSellerAgent } from './agents/seller.js';
 import { loadBuyerProfile } from './agents/buyer-profile.js';
@@ -47,6 +48,7 @@ app.route('/api/balances', balancesRoutes);
 app.route('/api/activity', activityRoutes);
 app.route('/api/profile', profileRoutes);
 app.route('/api/bridge', bridgeRoutes);
+app.route('/api/reputation', reputationRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');

@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { config } from '../config.js';
-import { escrow } from '../chain/contracts.js';
-import { executeContractCall } from '../chain/txs.js';
+import { readEscrow } from '../chain/contracts.js';
+import { releaseMilestone, finalizeIfSettled, ESCROW_FUNDED } from '../chain/settlement.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -31,21 +31,13 @@ milestonesRoutes.post('/release', async (c) => {
     return c.json({ accepted: false, reason: 'release already in progress for this job' }, 409);
   }
 
-  const account = (await escrow.read.escrows([body.jobId as `0x${string}`])) as readonly [
-    `0x${string}`,
-    `0x${string}`,
-    bigint,
-    bigint,
-    number,
-    number,
-  ];
-  const [, , , , milestonesReleased, state] = account;
-  if (state !== 1) {
-    return c.json({ error: `escrow state must be Funded(1), got ${state}` }, 409);
+  const account = await readEscrow(body.jobId);
+  if (account.state !== ESCROW_FUNDED) {
+    return c.json({ error: `escrow state must be Funded(1), got ${account.state}` }, 409);
   }
 
   inFlight.add(body.jobId);
-  releaseLoop(body.jobId, body.totalMilestones, milestonesReleased).finally(() => {
+  releaseLoop(body.jobId, body.totalMilestones, account.milestonesReleased).finally(() => {
     inFlight.delete(body.jobId);
   });
 
@@ -55,21 +47,7 @@ milestonesRoutes.post('/release', async (c) => {
 async function releaseLoop(jobId: string, total: number, startIndex: number) {
   for (let i = startIndex; i < total; i++) {
     try {
-      const result = await executeContractCall(
-        {
-          walletId: config.BUYER_AGENT_WALLET_ID!,
-          contractAddress: escrow.address,
-          abiFunctionSignature: 'releaseProgress(bytes32,uint8)',
-          abiParameters: [jobId, i.toString()],
-        },
-        `releaseProgress(${jobId}, ${i})`,
-      );
-      bus.emitEvent({
-        type: 'escrow.milestone.released',
-        jobId,
-        actor: 'buyer',
-        payload: { milestoneIndex: i, txHash: result.txHash, totalMilestones: total },
-      });
+      await releaseMilestone(jobId, i);
     } catch (err) {
       logger.error({ jobId, i, err: (err as Error).message }, 'release failed');
       bus.emitEvent({
@@ -81,10 +59,5 @@ async function releaseLoop(jobId: string, total: number, startIndex: number) {
       return;
     }
   }
-  bus.emitEvent({
-    type: 'escrow.settled',
-    jobId,
-    actor: 'buyer',
-    payload: { milestonesReleased: total },
-  });
+  await finalizeIfSettled(jobId);
 }

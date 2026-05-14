@@ -18,6 +18,7 @@ const TRACKED_TYPES = [
   'bridge.attested',
   'bridge.minted',
   'bridge.error',
+  'reputation.recorded',
   'agent.skipped',
   'agent.declined',
   'agent.error',

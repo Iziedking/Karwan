@@ -18,6 +18,9 @@ export type KarwanEventType =
   | 'bridge.attested'
   | 'bridge.minted'
   | 'bridge.error'
+  | 'reputation.recorded'
+  | 'deal.direct.created'
+  | 'deal.delivered'
   | 'agent.skipped'
   | 'agent.declined'
   | 'agent.error';

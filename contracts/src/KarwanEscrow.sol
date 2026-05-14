@@ -10,8 +10,11 @@ interface IERC20 {
 
 /// @title KarwanEscrow
 /// @notice Milestone-based USDC escrow. Buyer funds upfront; releases happen per
-///         milestone signed by the buyer. Final balance releases on full delivery.
-/// @dev Paired with KarwanJobBoard via jobId. Holds USDC at contract address.
+///         milestone signed by the buyer. A platform fee is split evenly between
+///         buyer and seller: the buyer funds dealAmount + half the fee, the seller
+///         nets dealAmount - half the fee, and the treasury collects the full fee
+///         proportionally across milestone releases.
+/// @dev Paired with KarwanJobBoard via jobId. Holds USDC at the contract address.
 contract KarwanEscrow {
     enum EscrowState {
         None,
@@ -24,8 +27,11 @@ contract KarwanEscrow {
     struct EscrowAccount {
         address buyer;
         address seller;
-        uint256 totalAmount;
-        uint256 released;
+        uint256 dealAmount; // headline amount the parties agreed on
+        uint256 sellerNet; // dealAmount minus the seller's fee half; total seller payout
+        uint256 feeTotal; // platform fee for the whole deal; goes to treasury
+        uint256 released; // running tally of seller payouts
+        uint256 feeReleased; // running tally of treasury payouts
         uint8[] milestonePcts;
         uint8 milestonesReleased;
         EscrowState state;
@@ -33,8 +39,14 @@ contract KarwanEscrow {
 
     uint8 internal constant MAX_MILESTONES = 4;
     uint8 internal constant PCT_TOTAL = 100;
+    uint16 internal constant BPS_DENOMINATOR = 10000;
 
     IERC20 public immutable usdc;
+    /// @notice Platform fee in basis points applied to the deal amount (e.g. 150 = 1.5%).
+    uint16 public immutable feeBps;
+    /// @notice Address that collects the platform fee.
+    address public immutable treasury;
+
     mapping(bytes32 => EscrowAccount) public escrows;
 
     uint256 private _reentrancyStatus = 1;
@@ -50,13 +62,16 @@ contract KarwanEscrow {
         bytes32 indexed jobId,
         address indexed buyer,
         address indexed seller,
-        uint256 amount,
+        uint256 dealAmount,
+        uint256 fundedAmount,
+        uint256 feeTotal,
         uint8[] milestonePcts
     );
     event ProgressReleased(
         bytes32 indexed jobId, uint8 milestoneIndex, uint256 amount, address indexed to
     );
-    event EscrowSettled(bytes32 indexed jobId, uint256 finalAmount);
+    event FeeCollected(bytes32 indexed jobId, uint8 milestoneIndex, uint256 amount, address indexed treasury);
+    event EscrowSettled(bytes32 indexed jobId, uint256 sellerTotal, uint256 feeTotal);
     event EscrowDisputed(bytes32 indexed jobId, string reasonHash);
     event EscrowRefunded(bytes32 indexed jobId, uint256 amount);
 
@@ -67,15 +82,25 @@ contract KarwanEscrow {
     error InvalidState();
     error TooManyReleases();
     error TransferFailed();
+    error InvalidTreasury();
+    error FeeTooHigh();
 
-    constructor(address _usdc) {
+    constructor(address _usdc, uint16 _feeBps, address _treasury) {
+        if (_treasury == address(0)) revert InvalidTreasury();
+        // Cap the fee at 10% so a misconfigured deploy can't drain deals.
+        if (_feeBps > 1000) revert FeeTooHigh();
         usdc = IERC20(_usdc);
+        feeBps = _feeBps;
+        treasury = _treasury;
     }
 
+    /// @notice Fund an escrow for a deal. The buyer transfers in dealAmount plus
+    ///         their half of the platform fee. Milestone percentages apply to the
+    ///         seller's net payout.
     function fundEscrow(
         bytes32 jobId,
         address seller,
-        uint256 amount,
+        uint256 dealAmount,
         uint8[] calldata milestonePcts
     ) external nonReentrant {
         if (escrows[jobId].state != EscrowState.None) revert AlreadyFunded();
@@ -88,21 +113,33 @@ contract KarwanEscrow {
         }
         if (sum != PCT_TOTAL) revert InvalidMilestones();
 
+        uint256 feeTotal = (dealAmount * feeBps) / BPS_DENOMINATOR;
+        uint256 buyerFee = feeTotal / 2;
+        uint256 sellerFee = feeTotal - buyerFee; // exact even when feeTotal is odd
+        uint256 sellerNet = dealAmount - sellerFee;
+        uint256 fundedAmount = dealAmount + buyerFee;
+
         escrows[jobId] = EscrowAccount({
             buyer: msg.sender,
             seller: seller,
-            totalAmount: amount,
+            dealAmount: dealAmount,
+            sellerNet: sellerNet,
+            feeTotal: feeTotal,
             released: 0,
+            feeReleased: 0,
             milestonePcts: milestonePcts,
             milestonesReleased: 0,
             state: EscrowState.Funded
         });
 
-        if (!usdc.transferFrom(msg.sender, address(this), amount)) revert TransferFailed();
+        if (!usdc.transferFrom(msg.sender, address(this), fundedAmount)) revert TransferFailed();
 
-        emit EscrowFunded(jobId, msg.sender, seller, amount, milestonePcts);
+        emit EscrowFunded(jobId, msg.sender, seller, dealAmount, fundedAmount, feeTotal, milestonePcts);
     }
 
+    /// @notice Release one milestone. Sends the seller their cut and the treasury
+    ///         its proportional fee cut. The final milestone sweeps any rounding
+    ///         remainder so the escrow ends empty.
     function releaseProgress(bytes32 jobId, uint8 milestoneIndex) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Funded) revert InvalidState();
@@ -110,35 +147,63 @@ contract KarwanEscrow {
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
 
-        uint256 amount = (e.totalAmount * e.milestonePcts[milestoneIndex]) / PCT_TOTAL;
-        e.released += amount;
-        e.milestonesReleased += 1;
+        bool isFinalMilestone = (e.milestonesReleased + 1) == e.milestonePcts.length;
 
-        bool isFinalMilestone = e.milestonesReleased == e.milestonePcts.length;
+        uint256 sellerCut;
+        uint256 feeCut;
+        if (isFinalMilestone) {
+            sellerCut = e.sellerNet - e.released;
+            feeCut = e.feeTotal - e.feeReleased;
+        } else {
+            uint8 pct = e.milestonePcts[milestoneIndex];
+            sellerCut = (e.sellerNet * pct) / PCT_TOTAL;
+            feeCut = (e.feeTotal * pct) / PCT_TOTAL;
+        }
+
+        e.released += sellerCut;
+        e.feeReleased += feeCut;
+        e.milestonesReleased += 1;
         if (isFinalMilestone) {
             e.state = EscrowState.Settled;
         }
 
-        if (!usdc.transfer(e.seller, amount)) revert TransferFailed();
-        emit ProgressReleased(jobId, milestoneIndex, amount, e.seller);
+        if (sellerCut > 0) {
+            if (!usdc.transfer(e.seller, sellerCut)) revert TransferFailed();
+        }
+        emit ProgressReleased(jobId, milestoneIndex, sellerCut, e.seller);
+
+        if (feeCut > 0) {
+            if (!usdc.transfer(treasury, feeCut)) revert TransferFailed();
+            emit FeeCollected(jobId, milestoneIndex, feeCut, treasury);
+        }
+
         if (isFinalMilestone) {
-            emit EscrowSettled(jobId, e.released);
+            emit EscrowSettled(jobId, e.released, e.feeReleased);
         }
     }
 
+    /// @notice Settle a funded escrow in one call, sweeping all remaining seller
+    ///         and treasury balances.
     function releaseFinal(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Funded) revert InvalidState();
         if (msg.sender != e.buyer) revert NotBuyer();
 
-        uint256 remaining = e.totalAmount - e.released;
-        e.released = e.totalAmount;
+        uint256 sellerRemaining = e.sellerNet - e.released;
+        uint256 feeRemaining = e.feeTotal - e.feeReleased;
+        e.released = e.sellerNet;
+        e.feeReleased = e.feeTotal;
+        e.milestonesReleased = uint8(e.milestonePcts.length);
         e.state = EscrowState.Settled;
 
-        if (remaining > 0) {
-            if (!usdc.transfer(e.seller, remaining)) revert TransferFailed();
+        if (sellerRemaining > 0) {
+            if (!usdc.transfer(e.seller, sellerRemaining)) revert TransferFailed();
         }
-        emit EscrowSettled(jobId, e.totalAmount);
+        if (feeRemaining > 0) {
+            if (!usdc.transfer(treasury, feeRemaining)) revert TransferFailed();
+            emit FeeCollected(jobId, e.milestonesReleased, feeRemaining, treasury);
+        }
+        emit EscrowSettled(jobId, e.sellerNet, e.feeTotal);
     }
 
     function dispute(bytes32 jobId, string calldata reasonHash) external {
@@ -149,12 +214,16 @@ contract KarwanEscrow {
         emit EscrowDisputed(jobId, reasonHash);
     }
 
+    /// @notice Return all unreleased funds (seller portion + uncollected fee) to
+    ///         the buyer. A refunded deal collects no platform fee.
     function refund(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
         // v0: caller is a platform admin acting on off-chain dispute resolution.
         // Access control hardens here in v1 (Ownable / role-based).
-        uint256 remaining = e.totalAmount - e.released;
+        uint256 remaining = (e.sellerNet - e.released) + (e.feeTotal - e.feeReleased);
+        e.released = e.sellerNet;
+        e.feeReleased = e.feeTotal;
         e.state = EscrowState.Refunded;
         if (remaining > 0) {
             if (!usdc.transfer(e.buyer, remaining)) revert TransferFailed();

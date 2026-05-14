@@ -1,12 +1,11 @@
 import { arcTestnet } from '@/core/wagmi';
 
-// USDC on Arc Testnet — dual-interface contract:
-//   native: 18 decimals (gas asset, sendTransaction value)
-//   ERC-20: 6 decimals (transfer/approve at this contract address)
-// We use the ERC-20 interface so the agent's 6-decimal balanceOf reflects the credit.
-export const ARC_USDC_ADDRESS = '0x3600000000000000000000000000000000000000' as const;
-
-export const ARC_USDC_DECIMALS = 6;
+// USDC on Arc Testnet is the native gas asset (18 decimals). Funding an agent
+// is a plain native value transfer: the recipient's native balance is exactly
+// what the app and backend read as the agent's USDC balance. This avoids the
+// dual-interface decimal ambiguity of calling ERC-20 transfer on the system
+// contract, which interprets amounts at 18-decimal precision.
+export const ARC_NATIVE_DECIMALS = 18;
 
 export const ARC_CHAIN_ID = arcTestnet.id;
 

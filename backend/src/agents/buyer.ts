@@ -1,7 +1,14 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, wsClient } from '../chain/client.js';
-import { jobBoard, escrow, reputation, usdc as usdcAddress } from '../chain/contracts.js';
+import {
+  jobBoard,
+  escrow,
+  reputation,
+  usdc as usdcAddress,
+  getEscrowFeeBps,
+  computeFunding,
+} from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
@@ -432,12 +439,17 @@ async function fundEscrow(
 ) {
   if (state.escrowFunded) return;
 
+  // The escrow pulls dealAmount + the buyer's half of the platform fee, so the
+  // approval must cover the full funded amount, not just the deal price.
+  const feeBps = await getEscrowFeeBps();
+  const { fundedAmount } = computeFunding(priceWei, feeBps);
+
   const approveResult = await executeContractCall(
     {
       walletId: buyer.walletId,
       contractAddress: usdcAddress,
       abiFunctionSignature: 'approve(address,uint256)',
-      abiParameters: [escrow.address, priceWei.toString()],
+      abiParameters: [escrow.address, fundedAmount.toString()],
     },
     `usdc.approve(escrow, ${state.jobId})`,
   );
@@ -446,7 +458,7 @@ async function fundEscrow(
     type: 'escrow.approved',
     jobId: state.jobId,
     actor: 'buyer',
-    payload: { amountWei: priceWei.toString(), txHash: approveResult.txHash },
+    payload: { amountWei: fundedAmount.toString(), txHash: approveResult.txHash },
   });
 
   const fundResult = await executeContractCall(
@@ -463,7 +475,8 @@ async function fundEscrow(
     {
       jobId: state.jobId,
       seller,
-      amountWei: priceWei.toString(),
+      dealAmountWei: priceWei.toString(),
+      fundedAmountWei: fundedAmount.toString(),
       milestonePcts: buyer.milestonePcts,
       ...fundResult,
     },

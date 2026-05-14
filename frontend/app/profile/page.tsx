@@ -8,6 +8,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { shortAddress } from '@/shared/utils/format';
 import { RoleToggle } from '@/features/profile/components/RoleToggle';
 import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
+import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { api, type UserProfile } from '@/core/api';
 
 export default function ProfilePage() {
@@ -127,11 +128,14 @@ export default function ProfilePage() {
                 <p className="eyebrow">Agent</p>
                 <h3 className="display text-[20px] leading-tight mt-0.5">Buyer</h3>
               </div>
-              {agents.buyer && (
-                <span className="text-[10px] mono text-[var(--color-ink-faint)]">
-                  {shortAddress(agents.buyer)}
-                </span>
-              )}
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                {agents.buyer && (
+                  <span className="text-[10px] mono text-[var(--color-ink-faint)]">
+                    {shortAddress(agents.buyer)}
+                  </span>
+                )}
+                <ReputationBadge address={agents.buyer} size="sm" withDetail />
+              </div>
             </div>
             <div className="px-5 py-3">
               <Row label="Max budget" value={`${profile.buyer.maxBudgetUsdc} USDC`} mono />
@@ -161,11 +165,14 @@ export default function ProfilePage() {
                 <p className="eyebrow">Agent</p>
                 <h3 className="display text-[20px] leading-tight mt-0.5">Seller</h3>
               </div>
-              {agents.seller && (
-                <span className="text-[10px] mono text-[var(--color-ink-faint)]">
-                  {shortAddress(agents.seller)}
-                </span>
-              )}
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                {agents.seller && (
+                  <span className="text-[10px] mono text-[var(--color-ink-faint)]">
+                    {shortAddress(agents.seller)}
+                  </span>
+                )}
+                <ReputationBadge address={agents.seller} size="sm" withDetail />
+              </div>
             </div>
             <div className="px-5 py-3">
               <Row label="Skills" value={profile.seller.skills.join(', ') || '—'} />

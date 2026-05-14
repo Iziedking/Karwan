@@ -20,6 +20,7 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'bridge.attested': { text: 'Circle attestation received', tone: 'system' },
   'bridge.minted': { text: 'USDC minted on Arc', tone: 'system' },
   'bridge.error': { text: 'Bridge hit an error', tone: 'error' },
+  'reputation.recorded': { text: 'Reputation recorded on chain', tone: 'system' },
 };
 
 interface Chip {

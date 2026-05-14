@@ -1,5 +1,5 @@
 import { config } from '../config.js';
-import { escrow } from '../chain/contracts.js';
+import { escrow, readEscrow } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { logger } from '../logger.js';
 
@@ -13,35 +13,27 @@ async function main() {
     throw new Error(`MILESTONES must be 1..4, got ${totalMilestones}`);
   }
 
-  // Auto-generated public mapping getter on KarwanEscrow omits the dynamic milestonePcts array.
-  // Tuple order: [buyer, seller, totalAmount, released, milestonesReleased, state]
-  const account = (await escrow.read.escrows([jobId as `0x${string}`])) as readonly [
-    `0x${string}`,
-    `0x${string}`,
-    bigint,
-    bigint,
-    number,
-    number,
-  ];
-  const [buyer, seller, totalAmount, released, milestonesReleased, state] = account;
-  if (state !== 1) {
-    throw new Error(`escrow state must be Funded(1), got ${state}`);
+  const account = await readEscrow(jobId);
+  if (account.state !== 1) {
+    throw new Error(`escrow state must be Funded(1), got ${account.state}`);
   }
 
   logger.info(
     {
       jobId,
-      buyer,
-      seller,
-      totalAmount: totalAmount.toString(),
-      released: released.toString(),
-      milestonesReleased,
+      buyer: account.buyer,
+      seller: account.seller,
+      dealAmount: account.dealAmount.toString(),
+      sellerNet: account.sellerNet.toString(),
+      feeTotal: account.feeTotal.toString(),
+      released: account.released.toString(),
+      milestonesReleased: account.milestonesReleased,
       totalMilestones,
     },
     'releasing remaining milestones',
   );
 
-  for (let i = milestonesReleased; i < totalMilestones; i++) {
+  for (let i = account.milestonesReleased; i < totalMilestones; i++) {
     const result = await executeContractCall(
       {
         walletId: config.BUYER_AGENT_WALLET_ID,
