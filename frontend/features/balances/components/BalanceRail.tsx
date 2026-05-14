@@ -29,59 +29,40 @@ export function BalanceRail() {
           onClick={() => switchChain({ chainId: arcTestnet.id })}
           disabled={switching}
           title="Your wallet is not on Arc Testnet"
-          className="group relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight overflow-hidden transition-all hover:-translate-y-px disabled:opacity-70 disabled:cursor-wait disabled:translate-y-0"
+          className="group inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-full text-[11px] font-medium tracking-tight transition-all hover:-translate-y-px disabled:opacity-70 disabled:cursor-wait disabled:translate-y-0"
           style={{
-            background: 'linear-gradient(180deg, #14181c 0%, #0c0e10 100%)',
-            color: '#ffffff',
-            border: `1px solid color-mix(in oklab, ${ARC_GREEN} 55%, #14181c)`,
-            boxShadow: `0 0 0 1px color-mix(in oklab, ${ARC_GREEN} 18%, transparent), 0 0 20px -4px color-mix(in oklab, ${ARC_GREEN} 60%, transparent), 0 2px 6px -2px rgba(0,0,0,0.45)`,
+            background: 'linear-gradient(180deg, #F2FBF6 0%, #E6F5EC 100%)',
+            color: ARC_GREEN,
+            border: '1px solid #C9E5D5',
           }}
         >
-          {/* Pulsing outer halo */}
-          <span
-            aria-hidden
-            className="absolute -inset-px rounded-full pointer-events-none"
-            style={{
-              border: `1px solid color-mix(in oklab, ${ARC_GREEN} 80%, transparent)`,
-              opacity: 0.65,
-              animation: 'flowPulse 2.2s ease-out infinite',
-            }}
-          />
-          {/* Diagonal sheen sweep */}
-          <span
-            aria-hidden
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                'linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.10) 50%, transparent 60%)',
-              animation: 'stat-sweep 3.4s linear infinite',
-              width: '40%',
-            }}
-          />
-          {/* Live Arc dot */}
           <span className="relative flex h-1.5 w-1.5">
             <span
-              className="absolute inline-flex h-full w-full rounded-full opacity-80 animate-ping"
-              style={{ background: ARC_GREEN }}
+              className="absolute inline-flex h-full w-full rounded-full"
+              style={{
+                background: ARC_GREEN,
+                opacity: 0.35,
+                animation: 'flowPulse 2.4s ease-out infinite',
+              }}
             />
             <span
               className="relative inline-flex h-1.5 w-1.5 rounded-full"
-              style={{ background: ARC_GREEN, boxShadow: `0 0 6px ${ARC_GREEN}` }}
+              style={{ background: ARC_GREEN }}
             />
           </span>
-          <span className="relative">{switching ? 'Switching…' : 'Switch to Arc'}</span>
+          <span>{switching ? 'Switching' : 'Switch to Arc'}</span>
           <svg
             width="10"
             height="10"
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden
-            className="relative transition-transform group-hover:translate-x-0.5"
+            className="transition-transform group-hover:translate-x-0.5 opacity-70"
           >
             <path
               d="M3 8h10M9 4l4 4-4 4"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="1.6"
               strokeLinecap="round"
               strokeLinejoin="round"
             />

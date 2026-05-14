@@ -1,7 +1,6 @@
 import { api } from '@/core/api';
-import { Card } from '@/shared/components/Card';
-import { ActivityFeed } from '@/features/activity/components/ActivityFeed';
-import { BalancesCard } from '@/features/balances/components/BalancesCard';
+import { ActivityView } from '@/features/activity/components/ActivityView';
+import { LiveDot } from '@/shared/components/LiveDot';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,21 +9,23 @@ export default async function ActivityPage() {
   const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
 
   return (
-    <div className="space-y-8">
-      <header className="fade-up pb-2">
-        <h1 className="text-[28px] tracking-tight font-semibold">Activity</h1>
-        <p className="text-sm text-[var(--color-ink-dim)] mt-1">
-          Live feed of agent activity across all jobs. Each event links to its tx on Arcscan.
-        </p>
+    <div className="space-y-8 max-w-5xl">
+      <header className="fade-up flex items-end justify-between gap-4 pb-3 border-b border-[var(--color-line)]">
+        <div className="min-w-0">
+          <p className="eyebrow">Stream</p>
+          <h1 className="display text-[44px] leading-[1.02] mt-1">Activity</h1>
+          <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 max-w-md">
+            Live from Arc Testnet. Every bid, counter, settlement, and bridge,
+            as it happens.
+          </p>
+        </div>
+        <div className="shrink-0 pb-1">
+          <LiveDot />
+        </div>
       </header>
 
-      <div className="fade-up fade-up-1 grid md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <Card title="Recent events">
-            <ActivityFeed explorer={explorer} />
-          </Card>
-        </div>
-        <BalancesCard />
+      <div className="fade-up fade-up-1">
+        <ActivityView explorer={explorer} />
       </div>
     </div>
   );

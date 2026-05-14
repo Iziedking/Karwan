@@ -1,21 +1,46 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Card } from '@/shared/components/Card';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { shortAddress } from '@/shared/utils/format';
+import { RoleToggle } from '@/features/profile/components/RoleToggle';
+import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
+import { api, type UserProfile } from '@/core/api';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { profile, isConnected, fetchState } = useUserProfile();
+  const { profile: loadedProfile, isConnected, fetchState } = useUserProfile();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [agents, setAgents] = useState<{ buyer?: string; seller?: string }>({});
+
+  useEffect(() => setProfile(loadedProfile), [loadedProfile]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .status()
+      .then((s) => {
+        if (cancelled) return;
+        setAgents({
+          buyer: s.agents.buyer.address,
+          seller: s.agents.seller.address,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!isConnected) {
     return (
       <div className="max-w-xl mx-auto fade-up text-center space-y-6 py-12">
-        <h1 className="text-[28px] tracking-tight font-semibold">Connect your wallet</h1>
-        <p className="text-sm text-[var(--color-ink-dim)] leading-relaxed">
-          Karwan profiles are keyed by wallet address. Connect to see yours.
+        <h1 className="display text-[36px]">Connect your wallet</h1>
+        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
+          Karwan profiles are keyed by wallet address.
         </p>
         <div className="flex justify-center">
           <ConnectButton />
@@ -26,8 +51,8 @@ export default function ProfilePage() {
 
   if (fetchState === 'error') {
     return (
-      <Card title="Backend offline">
-        <p className="text-sm text-[var(--color-ink-dim)]">
+      <Card>
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
           Could not load your profile. Try again in a moment.
         </p>
       </Card>
@@ -35,14 +60,14 @@ export default function ProfilePage() {
   }
 
   if (fetchState === 'idle' || fetchState === 'loading') {
-    return <p className="text-sm text-[var(--color-ink-dim)] fade-up">Loading your profile…</p>;
+    return <p className="text-[13px] text-[var(--color-ink-faint)] fade-up">Loading your profile…</p>;
   }
 
   if (!profile) {
     return (
       <div className="max-w-xl mx-auto fade-up text-center space-y-5 py-10">
-        <h1 className="text-[28px] tracking-tight font-semibold">No profile yet</h1>
-        <p className="text-sm text-[var(--color-ink-dim)] leading-relaxed">
+        <h1 className="display text-[32px]">No profile yet</h1>
+        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
           You haven't set up an agent profile for this wallet. It only takes a minute.
         </p>
         <Link
@@ -59,72 +84,116 @@ export default function ProfilePage() {
   const created = new Date(profile.createdAt).toLocaleDateString();
   const updated = new Date(profile.updatedAt).toLocaleDateString();
 
+  const defaultAgent: 'buyer' | 'seller' =
+    profile.role === 'seller' ? 'seller' : 'buyer';
+
   return (
     <div className="space-y-8 fade-up max-w-4xl">
-      <header className="flex flex-wrap items-end justify-between gap-3 pb-2">
+      <header className="grid md:grid-cols-[1fr_auto] gap-4 items-end pb-3 border-b border-[var(--color-line)]">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-            Your profile
-          </p>
-          <h1 className="text-[28px] tracking-tight font-semibold mt-1">{profile.displayName}</h1>
-          <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">
+          <p className="eyebrow">Profile</p>
+          <h1 className="display text-[44px] leading-[1.02] mt-1">{profile.displayName}</h1>
+          <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-2">
             {shortAddress(profile.address)} · created {created} · updated {updated}
           </p>
         </div>
         <button
           type="button"
           onClick={() => router.push('/onboarding')}
-          style={{ backgroundColor: 'transparent', color: 'var(--color-ink)' }}
-          className="px-3.5 py-1.5 rounded-md text-[13px] font-medium border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
+          className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-ink-dim)] transition-colors inline-flex items-center gap-1.5 w-fit"
         >
-          Edit profile
+          Edit details
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path
+              d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
       </header>
 
+      <section>
+        <RoleToggle profile={profile} onUpdate={setProfile} />
+      </section>
+
       <section className="grid md:grid-cols-2 gap-4">
-        <Card title="Identity">
-          <Row label="Display name" value={profile.displayName} />
-          <Row label="Wallet" value={profile.address} mono small />
-          <Row label="Role" value={profile.role} />
-        </Card>
+        {profile.buyer && (
+          <Card noPadding>
+            <div className="px-5 pt-5 pb-3 border-b border-[var(--color-line)] flex items-center justify-between gap-3">
+              <div>
+                <p className="eyebrow">Agent</p>
+                <h3 className="display text-[20px] leading-tight mt-0.5">Buyer</h3>
+              </div>
+              {agents.buyer && (
+                <span className="text-[10px] mono text-[var(--color-ink-faint)]">
+                  {shortAddress(agents.buyer)}
+                </span>
+              )}
+            </div>
+            <div className="px-5 py-3">
+              <Row label="Max budget" value={`${profile.buyer.maxBudgetUsdc} USDC`} mono />
+              <Row
+                label="Deadline range"
+                value={`${profile.buyer.minDeadlineDays} – ${profile.buyer.maxDeadlineDays} days`}
+                mono
+              />
+              <Row
+                label="Bid window"
+                value={`${profile.buyer.bidCollectionSeconds}s`}
+                mono
+              />
+              <Row
+                label="Milestones"
+                value={profile.buyer.milestonePcts.join(' / ') || '—'}
+                mono
+              />
+            </div>
+          </Card>
+        )}
 
         {profile.seller && (
-          <Card title="Seller agent">
-            <Row label="Skills" value={profile.seller.skills.join(', ') || '—'} />
-            <Row label="Bio" value={profile.seller.bio || '—'} />
-            <Row
-              label="Accepted budget"
-              value={`${profile.seller.minBudgetUsdc} – ${profile.seller.maxBudgetUsdc} USDC`}
-              mono
-            />
-            <Row
-              label="Delivery window"
-              value={`${profile.seller.minDeadlineDays} – ${profile.seller.maxDeadlineDays} days`}
-              mono
-            />
+          <Card noPadding>
+            <div className="px-5 pt-5 pb-3 border-b border-[var(--color-line)] flex items-center justify-between gap-3">
+              <div>
+                <p className="eyebrow">Agent</p>
+                <h3 className="display text-[20px] leading-tight mt-0.5">Seller</h3>
+              </div>
+              {agents.seller && (
+                <span className="text-[10px] mono text-[var(--color-ink-faint)]">
+                  {shortAddress(agents.seller)}
+                </span>
+              )}
+            </div>
+            <div className="px-5 py-3">
+              <Row label="Skills" value={profile.seller.skills.join(', ') || '—'} />
+              <Row
+                label="Bio"
+                value={profile.seller.bio || '—'}
+              />
+              <Row
+                label="Budget range"
+                value={`${profile.seller.minBudgetUsdc} – ${profile.seller.maxBudgetUsdc} USDC`}
+                mono
+              />
+              <Row
+                label="Delivery window"
+                value={`${profile.seller.minDeadlineDays} – ${profile.seller.maxDeadlineDays} days`}
+                mono
+              />
+            </div>
           </Card>
         )}
+      </section>
 
-        {profile.buyer && (
-          <Card title="Buyer agent">
-            <Row label="Max budget per job" value={`${profile.buyer.maxBudgetUsdc} USDC`} mono />
-            <Row
-              label="Bid collection window"
-              value={`${profile.buyer.bidCollectionSeconds}s`}
-              mono
-            />
-            <Row
-              label="Deadline range"
-              value={`${profile.buyer.minDeadlineDays} – ${profile.buyer.maxDeadlineDays} days`}
-              mono
-            />
-            <Row
-              label="Milestone split"
-              value={profile.buyer.milestonePcts.join(' / ') || '—'}
-              mono
-            />
-          </Card>
-        )}
+      <section>
+        <ArcFundCard
+          buyerAgent={agents.buyer}
+          sellerAgent={agents.seller}
+          defaultAgent={defaultAgent}
+        />
       </section>
     </div>
   );
@@ -134,22 +203,16 @@ function Row({
   label,
   value,
   mono,
-  small,
 }: {
   label: string;
   value: string;
   mono?: boolean;
-  small?: boolean;
 }) {
   return (
-    <div className="py-2 border-b border-[var(--color-line)] last:border-0 grid grid-cols-3 gap-3 items-baseline">
-      <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] capitalize">
-        {label}
-      </span>
+    <div className="py-2.5 border-b border-[var(--color-line)] last:border-0 flex items-baseline justify-between gap-4">
+      <span className="eyebrow shrink-0">{label}</span>
       <span
-        className={`col-span-2 text-right ${mono ? 'mono' : ''} ${
-          small ? 'text-[12px] break-all' : 'text-[13px]'
-        } text-[var(--color-ink)]`}
+        className={`text-right ${mono ? 'mono text-[12px]' : 'text-[13px]'} text-[var(--color-ink)] truncate`}
       >
         {value}
       </span>

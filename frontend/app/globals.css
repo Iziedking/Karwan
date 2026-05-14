@@ -86,6 +86,14 @@ button:disabled, [role="button"][aria-disabled="true"] {
 
 input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
 
+/* Hide the native number-input spinner arrows where we provide our own affordance. */
+input.no-spinner::-webkit-outer-spin-button,
+input.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.no-spinner { -moz-appearance: textfield; }
+
 @keyframes fade-up {
   0% { opacity: 0; transform: translateY(6px); }
   100% { opacity: 1; transform: translateY(0); }

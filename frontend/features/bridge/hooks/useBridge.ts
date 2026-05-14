@@ -103,7 +103,7 @@ function loadFromStorage(address: `0x${string}` | null | undefined): BridgeRecor
     // so the user can retry cleanly. Attesting/minting bridges continue via SSE.
     return arr.map((b) => {
       if (b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning' || b.phase === 'relaying') {
-        return { ...b, phase: 'error' as const, error: b.error ?? 'Interrupted — retry' };
+        return { ...b, phase: 'error' as const, error: b.error ?? 'Interrupted on reload. Retry to resume.' };
       }
       return b;
     });

@@ -190,11 +190,12 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
             <div className="px-4 pb-3 flex items-baseline gap-3">
               <input
                 type="number"
-                min={0.1}
-                step={0.1}
+                inputMode="decimal"
+                min={0}
+                step="any"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="flex-1 bg-transparent text-[32px] font-medium tracking-tight tabular-nums focus:outline-none placeholder:text-[var(--color-ink-faint)] min-w-0"
+                className="no-spinner flex-1 bg-transparent text-[32px] font-medium tracking-tight tabular-nums focus:outline-none placeholder:text-[var(--color-ink-faint)] min-w-0"
                 style={{ fontFamily: 'var(--font-serif)' }}
                 placeholder="0"
               />
