@@ -8,6 +8,7 @@ export function Card({
   footer,
   className,
   noPadding,
+  interactive,
 }: {
   title?: string;
   eyebrow?: string;
@@ -16,11 +17,15 @@ export function Card({
   footer?: ReactNode;
   className?: string;
   noPadding?: boolean;
+  interactive?: boolean;
 }) {
+  const baseStyle =
+    'rounded-xl bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-card)] transition-[transform,border-color,box-shadow] duration-200';
+  const interactiveStyle = interactive
+    ? 'hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)]'
+    : '';
   return (
-    <section
-      className={`rounded-xl bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-card)] ${className ?? ''}`}
-    >
+    <section className={`${baseStyle} ${interactiveStyle} ${className ?? ''}`}>
       {(title || eyebrow || action) && (
         <header className="px-5 pt-4 pb-3 flex items-start justify-between gap-4 border-b border-[var(--color-line)]">
           <div className="min-w-0">

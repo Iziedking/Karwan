@@ -3,12 +3,16 @@ import { Card } from '@/shared/components/Card';
 import { PostJobForm } from '@/features/buyer/components/PostJobForm';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
+import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { shortAddress } from '@/shared/utils/format';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BuyerPage() {
-  const data = await api.buyer().catch((err) => ({ error: (err as Error).message }) as const);
+  const [data, status] = await Promise.all([
+    api.buyer().catch((err) => ({ error: (err as Error).message }) as const),
+    api.status().catch(() => null),
+  ]);
 
   if ('error' in data) {
     return (
@@ -44,7 +48,10 @@ export default async function BuyerPage() {
             <PostJobForm />
           </Card>
         </div>
-        <BalancesCard />
+        <div className="space-y-4" id="bridge-section">
+          <BalancesCard />
+          <BridgeCard mintRecipient={status?.agents.buyer.address as `0x${string}` | undefined} />
+        </div>
       </div>
 
       <div className="fade-up fade-up-2">

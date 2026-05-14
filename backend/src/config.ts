@@ -51,6 +51,14 @@ const envSchema = z.object({
   OPENROUTER_API_KEY: optionalString,
   LLM_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
 
+  // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to mint).
+  CCTP_MESSAGE_TRANSMITTER_ADDR: z
+    .string()
+    .startsWith('0x')
+    .default('0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275'),
+  // Circle's CCTP V2 attestation API. Sandbox covers all V2 testnets.
+  IRIS_API_BASE: z.string().url().default('https://iris-api-sandbox.circle.com'),
+
   DATABASE_URL: optionalString,
 });
 

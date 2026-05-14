@@ -71,6 +71,31 @@ export interface SellerActiveBid {
   finalized: boolean;
 }
 
+export type UserRole = 'buyer' | 'seller' | 'both';
+
+export interface UserProfile {
+  address: string;
+  role: UserRole;
+  displayName: string;
+  createdAt: number;
+  updatedAt: number;
+  seller?: {
+    skills: string[];
+    bio: string;
+    minBudgetUsdc: number;
+    maxBudgetUsdc: number;
+    minDeadlineDays: number;
+    maxDeadlineDays: number;
+  };
+  buyer?: {
+    maxBudgetUsdc: number;
+    minDeadlineDays: number;
+    maxDeadlineDays: number;
+    bidCollectionSeconds: number;
+    milestonePcts: number[];
+  };
+}
+
 export interface BalanceRow {
   label: string;
   address: string | null;
@@ -143,10 +168,28 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ jobId, totalMilestones }) },
     ),
   balances: () => json<{ wallets: BalanceRow[]; fetchedAt: number }>('/api/balances'),
+  getProfile: (address: string) =>
+    json<{ profile: UserProfile | null }>(`/api/profile?address=${address}`),
+  saveProfile: (input: Omit<UserProfile, 'createdAt' | 'updatedAt'>) =>
+    json<{ profile: UserProfile }>('/api/profile', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
   activity: (limit = 100, jobId?: string) => {
     const q = new URLSearchParams();
     q.set('limit', String(limit));
     if (jobId) q.set('jobId', jobId);
     return json<{ events: ChainEvent[] }>(`/api/activity?${q.toString()}`);
   },
+  bridgeRelay: (input: {
+    bridgeId: string;
+    sourceDomain: number;
+    sourceTxHash: string;
+    amountUsdc: string;
+    mintRecipient: string;
+  }) =>
+    json<{ accepted: boolean; bridgeId: string }>('/api/bridge/relay', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 };

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { LiveDot } from './LiveDot';
 import { BalanceRail } from '@/features/balances/components/BalanceRail';
 import { ConnectWalletButton } from './ConnectWallet';
+import { ThemeToggle } from './ThemeToggle';
 
 export function TopNav() {
   const pathname = usePathname();
@@ -23,6 +24,7 @@ export function TopNav() {
               <NavLink href="/buyer" active={pathname.startsWith('/buyer') || pathname.startsWith('/jobs')}>Buyer</NavLink>
               <NavLink href="/seller" active={pathname.startsWith('/seller')}>Seller</NavLink>
               <NavLink href="/activity" active={pathname.startsWith('/activity')}>Activity</NavLink>
+              <NavLink href="/profile" active={pathname.startsWith('/profile')}>Profile</NavLink>
               <a
                 href="https://testnet.arcscan.app"
                 target="_blank"
@@ -37,24 +39,28 @@ export function TopNav() {
             </nav>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {isApp ? (
             <>
               <div className="hidden lg:block">
                 <BalanceRail />
               </div>
               <LiveDot />
+              <ThemeToggle />
               <ConnectWalletButton />
             </>
           ) : (
-            <Link
-              href="/app"
-              style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-              className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
-            >
-              Launch app
-              <span aria-hidden>→</span>
-            </Link>
+            <>
+              <ThemeToggle />
+              <Link
+                href="/app"
+                style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
+                className="px-3.5 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
+              >
+                Launch app
+                <span aria-hidden>→</span>
+              </Link>
+            </>
           )}
         </div>
       </div>

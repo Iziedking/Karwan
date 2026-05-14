@@ -124,6 +124,33 @@ export default async function HowItWorksPage() {
         </div>
       </section>
 
+      {/* ROADMAP */}
+      <section className="space-y-6">
+        <div className="max-w-2xl">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            Roadmap
+          </span>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">Coming in v1</h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
+            What's shipping next, after the testnet build.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          <RoadmapTile
+            title="Passkey sign-in"
+            body="Sign in with a Circle Passkey. Email plus biometrics. No browser extension needed."
+          />
+          <RoadmapTile
+            title="Self-custodied agent wallets"
+            body="Each agent gets its own Circle wallet under a spend allowance you set, so you stay in control of funds."
+          />
+          <RoadmapTile
+            title="Disputes and CCTP"
+            body="On-chain dispute resolution for stuck deals. CCTP bridging so buyer USDC can come from Ethereum or Base."
+          />
+        </div>
+      </section>
+
       {/* FAQ */}
       <section id="faq" className="space-y-6">
         <div className="max-w-2xl">
@@ -192,7 +219,7 @@ function DemoStep({
   cta?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-3">
+    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-3 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
       <div className="flex items-baseline gap-3">
         <span className="text-[26px] mono font-semibold leading-none text-[var(--color-ink-faint)]">{n}</span>
         <span className="text-[15px] font-medium">{title}</span>
@@ -227,9 +254,18 @@ function Step({
 
 function StackTile({ name, role }: { name: string; role: string }) {
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
+    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
       <p className="text-[14px] font-semibold">{name}</p>
       <p className="text-[12px] text-[var(--color-ink-dim)] mt-1.5 leading-relaxed">{role}</p>
+    </div>
+  );
+}
+
+function RoadmapTile({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
+      <p className="text-[14px] font-semibold">{title}</p>
+      <p className="text-[12px] text-[var(--color-ink-dim)] mt-1.5 leading-relaxed">{body}</p>
     </div>
   );
 }

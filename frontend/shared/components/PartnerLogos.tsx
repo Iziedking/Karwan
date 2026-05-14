@@ -1,14 +1,35 @@
+import type { ReactNode } from 'react';
+
 export function PartnerLogos() {
+  // 12s cycle: each logo fades + drops in with a small stagger, holds, fades back,
+  // then the strip loops. Keyframe (peer-drop) lives in globals.css so this can
+  // stay a server component.
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 text-[var(--color-ink-dim)]">
       <span className="text-[11px] uppercase tracking-[0.2em] text-[var(--color-ink-faint)] mr-2">
         Built on
       </span>
-      <Circle />
-      <Arc />
-      <Ignyte />
-      <Difc />
+      <LogoSlot delay="0s">
+        <Circle />
+      </LogoSlot>
+      <LogoSlot delay="0.25s">
+        <Arc />
+      </LogoSlot>
+      <LogoSlot delay="0.5s">
+        <Ignyte />
+      </LogoSlot>
+      <LogoSlot delay="0.75s">
+        <Difc />
+      </LogoSlot>
     </div>
+  );
+}
+
+function LogoSlot({ delay, children }: { delay: string; children: ReactNode }) {
+  return (
+    <span className="peer-drop inline-flex" style={{ animationDelay: delay }}>
+      {children}
+    </span>
   );
 }
 

@@ -1,21 +1,53 @@
+'use client';
 import Link from 'next/link';
-import { api } from '@/core/api';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { api, type ApiStatus } from '@/core/api';
 import { Card } from '@/shared/components/Card';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { LivePulseStrip } from '@/features/activity/components/LivePulseStrip';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { shortAddress } from '@/shared/utils/format';
 
-export const dynamic = 'force-dynamic';
+export default function AppHome() {
+  const router = useRouter();
+  const { profile, isConnected, loading, fetchState } = useUserProfile();
+  const [status, setStatus] = useState<ApiStatus | null>(null);
 
-export default async function AppHome() {
-  let status;
-  try {
-    status = await api.status();
-  } catch (err) {
+  useEffect(() => {
+    api.status().then(setStatus).catch(() => setStatus(null));
+  }, []);
+
+  useEffect(() => {
+    // Only bounce to onboarding once we've confirmed (200 OK with no profile) that
+    // this wallet has no profile yet. Network errors leave us here so we can show
+    // the "Backend offline" card instead of ping-ponging between routes.
+    if (isConnected && fetchState === 'success' && !profile) {
+      router.replace('/onboarding');
+    }
+  }, [isConnected, fetchState, profile, router]);
+
+  if (!status) {
     return (
       <Card title="Backend offline">
-        <p className="text-sm text-[var(--color-ink-dim)] mono">{String(err)}</p>
+        <p className="text-sm text-[var(--color-ink-dim)]">
+          Could not reach the backend at{' '}
+          <span className="mono">{api.baseUrl}</span>.
+        </p>
       </Card>
+    );
+  }
+
+  if (!isConnected) {
+    return <SignInPrompt />;
+  }
+
+  if (loading || !profile) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-[var(--color-ink-dim)]">Loading your profile…</p>
+      </div>
     );
   }
 
@@ -23,50 +55,47 @@ export default async function AppHome() {
     <div className="space-y-10">
       <header className="fade-up flex flex-wrap items-end justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-[28px] tracking-tight font-semibold">Welcome to Karwan</h1>
-          <p className="text-[13px] text-[var(--color-ink-dim)] mt-1">
-            Your pre-provisioned demo agents are running on Arc Testnet. Pick where to start.
+          <h1 className="text-[28px] tracking-tight font-semibold">{profile.displayName}</h1>
+          <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">
+            {shortAddress(profile.address)} · role: {profile.role}
           </p>
         </div>
         <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-positive-soft)] text-[var(--color-positive)] text-[12px] font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
-          Agents live
+          Agent active
         </span>
       </header>
 
       <section className="fade-up fade-up-1 grid md:grid-cols-3 gap-4">
-        <ActionCard
-          href="/buyer"
-          eyebrow="Buyer"
-          title="Post a brief"
-          body="Describe what you need built. Set a budget. Hit post. The seller agent reads it and bids within seconds."
-        />
-        <ActionCard
-          href="/seller"
-          eyebrow="Seller"
-          title="See the agent at work"
-          body="The seller agent watches the chain, scores incoming briefs, and bids on the ones that fit its profile."
-        />
+        {(profile.role === 'buyer' || profile.role === 'both') && (
+          <ActionCard
+            href="/buyer"
+            eyebrow="Buyer"
+            title="Post a brief"
+            body="Describe what you need built. Your buyer agent posts it on chain and handles the negotiation."
+            cta="Post a brief"
+          />
+        )}
+        {(profile.role === 'seller' || profile.role === 'both') && (
+          <ActionCard
+            href="/seller"
+            eyebrow="Seller"
+            title="See the agent at work"
+            body="Your seller agent is watching the chain. Briefs that match your skills get bids on your behalf."
+            cta="Open seller view"
+          />
+        )}
         <ActionCard
           href="/activity"
           eyebrow="Activity"
           title="Watch chain events"
-          body="Live SSE feed of every event from both agents. Each row links to its transaction on Arcscan."
+          body="Live SSE feed of every event across all agents. Each row links to its transaction."
+          cta="Open activity feed"
         />
       </section>
 
-      <section className="fade-up fade-up-2 grid md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <BalancesCard />
-        </div>
-        <Card title="Network">
-          <div className="space-y-3 text-[13px]">
-            <Row label="Chain" value={`Arc Testnet · ${status.chain.id}`} />
-            <Row label="Settlement" value="USDC" />
-            <Row label="Buyer wallet" value={shortAddress(status.agents.buyer.address)} mono />
-            <Row label="Seller wallet" value={shortAddress(status.agents.seller.address)} mono />
-          </div>
-        </Card>
+      <section className="fade-up fade-up-2">
+        <BalancesCard />
       </section>
 
       <section className="fade-up fade-up-3 space-y-3">
@@ -84,38 +113,23 @@ export default async function AppHome() {
         </div>
         <LivePulseStrip />
       </section>
+    </div>
+  );
+}
 
-      <section className="fade-up fade-up-3 grid md:grid-cols-2 gap-4">
-        <Card title="New here?">
-          <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-            The fastest way to see Karwan work is to post a one-line brief. Pick a small budget, a short deadline, and submit. The seller agent will respond on chain in seconds.
-          </p>
-          <div className="pt-3">
-            <Link
-              href="/how-it-works"
-              className="text-[13px] underline decoration-dotted text-[var(--color-ink)]"
-            >
-              Or read the full walkthrough
-            </Link>
-          </div>
-        </Card>
-        <Card title="Coming in v1">
-          <ul className="space-y-2 text-[13px] text-[var(--color-ink-dim)]">
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--color-ink-faint)] shrink-0" />
-              <span>Connect your own wallet via Circle passkey or browser extension.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--color-ink-faint)] shrink-0" />
-              <span>Activate a buyer or seller agent under your control. Set your own spend limits.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--color-ink-faint)] shrink-0" />
-              <span>On-chain dispute resolution. CCTP bridging from Ethereum and Base.</span>
-            </li>
-          </ul>
-        </Card>
-      </section>
+function SignInPrompt() {
+  return (
+    <div className="max-w-xl mx-auto fade-up text-center space-y-6 py-12">
+      <h1 className="text-[28px] tracking-tight font-semibold">Connect your wallet</h1>
+      <p className="text-sm text-[var(--color-ink-dim)] leading-relaxed">
+        Karwan identifies you by wallet address. Connect a browser wallet to enter the app and configure your buyer or seller profile.
+      </p>
+      <div className="flex justify-center">
+        <ConnectButton />
+      </div>
+      <p className="text-[11px] text-[var(--color-ink-faint)]">
+        Circle Passkey sign-in ships next.
+      </p>
     </div>
   );
 }
@@ -125,32 +139,42 @@ function ActionCard({
   eyebrow,
   title,
   body,
+  cta = 'Open',
 }: {
   href: string;
   eyebrow: string;
   title: string;
   body: string;
+  cta?: string;
 }) {
+  const router = useRouter();
   return (
-    <Link
-      href={href}
-      className="group block rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:border-[var(--color-ink)] transition-colors"
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => router.push(href)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          router.push(href);
+        }
+      }}
+      className="group cursor-pointer rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 hover:-translate-y-0.5 hover:border-[var(--color-ink)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200 flex flex-col"
     >
       <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">{eyebrow}</p>
       <h3 className="text-[17px] font-semibold tracking-tight mt-1.5">{title}</h3>
-      <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{body}</p>
-      <p className="text-[12px] text-[var(--color-ink-dim)] mt-3 group-hover:text-[var(--color-ink)] transition-colors">
-        Open →
-      </p>
-    </Link>
-  );
-}
-
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</span>
-      <span className={`text-[13px] text-[var(--color-ink)] ${mono ? 'mono' : ''}`}>{value}</span>
+      <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed flex-1">{body}</p>
+      <Link
+        href={href}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center gap-1 self-start mt-4 text-[12px] font-medium text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors"
+      >
+        {cta}
+        <span aria-hidden className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+          →
+        </span>
+      </Link>
     </div>
   );
 }
+

@@ -14,6 +14,10 @@ export type KarwanEventType =
   | 'escrow.funded'
   | 'escrow.milestone.released'
   | 'escrow.settled'
+  | 'bridge.burned'
+  | 'bridge.attested'
+  | 'bridge.minted'
+  | 'bridge.error'
   | 'agent.skipped'
   | 'agent.declined'
   | 'agent.error';

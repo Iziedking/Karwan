@@ -24,48 +24,75 @@ export function FlowStepper({
   active: StepKey;
   completed: StepKey[];
 }) {
-  const activeIndex = steps.findIndex((s) => s.key === active);
+  const activeIndex = Math.max(steps.findIndex((s) => s.key === active), 0);
   const completedSet = new Set(completed);
+  const total = steps.length;
+  // Progress as a fraction across the row of nodes.
+  const progress = activeIndex / (total - 1);
 
   return (
-    <ol className="flex items-center w-full overflow-x-auto">
-      {steps.map((s, i) => {
-        const done = completedSet.has(s.key) || i < activeIndex;
-        const isActive = i === activeIndex;
-        const isLast = i === steps.length - 1;
-        return (
-          <li key={s.key} className="flex items-center flex-1 min-w-fit">
-            <div className="flex flex-col items-center gap-2 px-2">
+    <div className="relative">
+      {/* track */}
+      <div
+        aria-hidden
+        className="absolute left-3.5 right-3.5 top-3.5 h-px bg-[var(--color-line)]"
+      />
+      {/* progress */}
+      <div
+        aria-hidden
+        className="absolute left-3.5 top-3.5 h-px"
+        style={{
+          width: `calc((100% - 28px) * ${progress})`,
+          background:
+            'linear-gradient(90deg, var(--color-positive) 0%, var(--color-positive) 70%, var(--color-accent) 100%)',
+          transition: 'width 600ms cubic-bezier(0.4, 0.0, 0.2, 1)',
+        }}
+      />
+
+      <ol className="relative grid" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
+        {steps.map((s, i) => {
+          const done = completedSet.has(s.key) || i < activeIndex;
+          const isActive = i === activeIndex;
+          return (
+            <li key={s.key} className="flex flex-col items-center gap-2">
               <span
-                className={`w-7 h-7 rounded-full grid place-items-center text-[11px] mono border ${
+                className={`relative w-7 h-7 rounded-full grid place-items-center text-[11px] mono border transition-colors duration-300 ${
                   done
                     ? 'bg-[var(--color-positive)] text-[#ffffff] border-[var(--color-positive)]'
                     : isActive
-                      ? 'bg-[var(--color-accent)] text-[#ffffff] border-[var(--color-accent)]'
-                      : 'bg-[var(--color-surface)] text-[var(--color-ink-faint)] border-[var(--color-line)]'
+                    ? 'bg-[var(--color-accent)] text-[#ffffff] border-[var(--color-accent)]'
+                    : 'bg-[var(--color-surface)] text-[var(--color-ink-faint)] border-[var(--color-line)]'
                 }`}
               >
-                {done ? <Check /> : i + 1}
+                {isActive && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: 'var(--color-accent)',
+                      opacity: 0.4,
+                      animation: 'flowPulse 1.8s ease-out infinite',
+                    }}
+                  />
+                )}
+                <span className="relative z-10">{done ? <Check /> : i + 1}</span>
               </span>
               <span
-                className={`text-[11px] tracking-tight whitespace-nowrap ${
-                  isActive || done ? 'text-[var(--color-ink)] font-medium' : 'text-[var(--color-ink-faint)]'
+                className={`text-[11px] tracking-tight whitespace-nowrap text-center px-1 transition-colors duration-300 ${
+                  isActive
+                    ? 'text-[var(--color-ink)] font-semibold'
+                    : done
+                    ? 'text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink-faint)]'
                 }`}
               >
                 {s.label}
               </span>
-            </div>
-            {!isLast && (
-              <div
-                className={`flex-1 h-px ${
-                  done ? 'bg-[var(--color-positive)]/60' : 'bg-[var(--color-line)]'
-                }`}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
+import { AppProviders } from '@/shared/components/AppProviders';
 
 const geist = Geist({
   subsets: ['latin'],
@@ -14,6 +15,13 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   display: 'swap',
 });
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-instrument-serif',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Karwan · cross-border SME settlement',
@@ -23,13 +31,22 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>
-        <div className="min-h-screen flex flex-col">
-          <TopNav />
-          <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>
-          <SiteFooter />
-        </div>
+        <AppProviders>
+          <div className="min-h-screen flex flex-col">
+            <TopNav />
+            <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>
+            <SiteFooter />
+          </div>
+        </AppProviders>
       </body>
     </html>
   );
@@ -103,10 +120,19 @@ function FooterLink({
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors inline-flex items-center gap-1"
+        className="group text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors inline-flex items-center gap-1 w-fit"
       >
-        {children}
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <span className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+          {children}
+        </span>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+        >
           <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
       </a>
@@ -115,9 +141,15 @@ function FooterLink({
   return (
     <Link
       href={href}
-      className="text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
+      className="group text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors inline-flex items-center gap-1.5 w-fit"
     >
-      {children}
+      <span
+        aria-hidden
+        className="inline-block w-0 h-px bg-current opacity-0 group-hover:opacity-100 group-hover:w-3 transition-[width,opacity] duration-200"
+      />
+      <span className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+        {children}
+      </span>
     </Link>
   );
 }

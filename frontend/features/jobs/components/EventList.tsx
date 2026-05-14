@@ -1,32 +1,80 @@
 'use client';
 import type { ChainEvent } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
-import { shortHash, relativeTime } from '@/shared/utils/format';
+import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
 
-const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system' }> = {
+const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system' | 'error' }> = {
   'job.tracked': { text: 'Job posted on chain', tone: 'system' },
-  'bid.scored': { text: 'Buyer scored the bid', tone: 'buyer' },
-  'bid.submitted': { text: 'Seller submitted bid', tone: 'seller' },
-  'counter.issued': { text: 'Buyer issued counter-offer', tone: 'buyer' },
-  'counter.response.submitted': { text: 'Seller responded to counter', tone: 'seller' },
+  'bid.scored': { text: 'Buyer agent scored the bid', tone: 'buyer' },
+  'bid.submitted': { text: 'Seller submitted a bid', tone: 'seller' },
+  'counter.issued': { text: 'Buyer agent issued a counter', tone: 'buyer' },
+  'counter.response.submitted': { text: 'Seller responded to the counter', tone: 'seller' },
   'bid.accepted': { text: 'Buyer accepted final terms', tone: 'buyer' },
   'escrow.approved': { text: 'USDC approved for escrow', tone: 'buyer' },
   'escrow.funded': { text: 'Escrow funded', tone: 'buyer' },
   'escrow.milestone.released': { text: 'Milestone released', tone: 'buyer' },
-  'escrow.settled': { text: 'Escrow settled', tone: 'system' },
-  'agent.skipped': { text: 'Seller skipped this job', tone: 'seller' },
+  'escrow.settled': { text: 'Deal settled', tone: 'system' },
+  'agent.skipped': { text: 'Seller skipped this brief', tone: 'seller' },
+  'agent.error': { text: 'Agent hit an error', tone: 'error' },
+  'bridge.burned': { text: 'USDC burned on source chain', tone: 'system' },
+  'bridge.attested': { text: 'Circle attestation received', tone: 'system' },
+  'bridge.minted': { text: 'USDC minted on Arc', tone: 'system' },
+  'bridge.error': { text: 'Bridge hit an error', tone: 'error' },
 };
 
-const interesting = [
-  'reason',
-  'priceUsdc',
-  'agreedPriceUsdc',
-  'counterPriceUsdc',
-  'counterPrice',
-  'milestoneIndex',
-  'confidence',
-  'score',
-];
+interface Chip {
+  key: string;
+  label: string;
+  value: string;
+}
+
+function chipsFor(payload: Record<string, unknown>): Chip[] {
+  const out: Chip[] = [];
+  const price = payload.priceUsdc ?? payload.agreedPriceUsdc;
+  if (price != null) {
+    out.push({ key: 'price', label: 'Price', value: `${formatUsdc(String(price), { withSuffix: false })} USDC` });
+  }
+  const counter = payload.counterPriceUsdc ?? payload.counterPrice;
+  if (counter != null) {
+    out.push({ key: 'counter', label: 'Counter', value: `${formatUsdc(String(counter), { withSuffix: false })} USDC` });
+  }
+  if (payload.confidence != null) {
+    const pct = Math.round(Number(payload.confidence) * 100);
+    out.push({ key: 'confidence', label: 'Confidence', value: `${pct}%` });
+  }
+  if (payload.score != null) {
+    out.push({ key: 'score', label: 'Match', value: `${payload.score}/100` });
+  }
+  if (payload.milestoneIndex != null) {
+    out.push({
+      key: 'milestone',
+      label: 'Milestone',
+      value: `#${Number(payload.milestoneIndex) + 1}`,
+    });
+  }
+  if (payload.reason != null) {
+    out.push({ key: 'reason', label: 'Reason', value: String(payload.reason) });
+  }
+  if (payload.scope != null) {
+    out.push({ key: 'scope', label: 'Scope', value: String(payload.scope) });
+  }
+  if (payload.message != null) {
+    out.push({ key: 'message', label: 'Detail', value: String(payload.message) });
+  }
+  if (payload.amountUsdc != null) {
+    out.push({ key: 'amount', label: 'Amount', value: `${payload.amountUsdc} USDC` });
+  }
+  if (payload.sourceDomain != null) {
+    const sourceName =
+      payload.sourceDomain === 0
+        ? 'Ethereum Sepolia'
+        : payload.sourceDomain === 6
+        ? 'Base Sepolia'
+        : `domain ${payload.sourceDomain}`;
+    out.push({ key: 'source', label: 'From', value: sourceName });
+  }
+  return out;
+}
 
 export function EventList({
   events,
@@ -46,54 +94,89 @@ export function EventList({
   }
 
   return (
-    <ul className="divide-y divide-[var(--color-line)] -my-3">
+    <ol className="relative -my-3">
+      <span
+        aria-hidden
+        className="absolute left-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
+      />
       {events.map((e, i) => {
         const meta = labels[e.type];
         const text = meta?.text ?? e.type;
         const tone = meta?.tone ?? 'system';
-        const dotTone = tone === 'buyer' ? 'accent' : tone === 'seller' ? 'positive' : 'muted';
+        const dotTone =
+          tone === 'buyer'
+            ? 'accent'
+            : tone === 'seller'
+            ? 'positive'
+            : tone === 'error'
+            ? 'critical'
+            : 'muted';
+        const tagTone =
+          tone === 'buyer'
+            ? 'accent'
+            : tone === 'seller'
+            ? 'positive'
+            : tone === 'error'
+            ? 'critical'
+            : 'muted';
         const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
-        const parts: string[] = [];
-        for (const k of interesting) {
-          if (e.payload[k] != null) {
-            parts.push(`${k}=${typeof e.payload[k] === 'string' ? e.payload[k] : JSON.stringify(e.payload[k])}`);
-          }
-        }
+        const chips = chipsFor(e.payload);
         return (
-          <li key={`${e.ts}-${i}`} className="slide-in py-3 flex items-start gap-3">
-            <span className="mt-1.5 shrink-0">
+          <li key={`${e.ts}-${i}`} className="slide-in py-3 pl-6 relative">
+            <span className="absolute left-0 top-[14px]">
               <StatusDot tone={dotTone} />
             </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] text-[var(--color-ink)]">{text}</span>
-                <span className="text-[11px] text-[var(--color-ink-faint)] mono shrink-0">
-                  {relativeTime(e.ts)}
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] text-[var(--color-ink)] font-medium">{text}</span>
+              <span className="text-[11px] text-[var(--color-ink-faint)] mono shrink-0">
+                {relativeTime(e.ts)}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <Tag tone={tagTone}>{e.actor}</Tag>
+              {showJobId && e.jobId && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-ink-faint)]">
+                  job
+                  <span className="mono">{shortHash(e.jobId, 6, 4)}</span>
                 </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                <Tag tone={tone === 'buyer' ? 'accent' : tone === 'seller' ? 'positive' : 'muted'}>{e.actor}</Tag>
-                {showJobId && e.jobId && (
-                  <span className="text-[11px] mono text-[var(--color-ink-faint)]">job {shortHash(e.jobId, 6, 4)}</span>
-                )}
-                {parts.length > 0 && (
-                  <span className="text-[11px] mono text-[var(--color-ink-dim)]">{parts.join(' · ')}</span>
-                )}
-                {txHash && (
-                  <a
-                    href={`${explorer}/tx/${txHash}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[11px] mono text-[var(--color-accent)] underline decoration-dotted underline-offset-2"
+              )}
+              {chips.map((c) => (
+                <DetailChip key={c.key} label={c.label} value={c.value} />
+              ))}
+              {txHash && (
+                <a
+                  href={`${explorer}/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group inline-flex items-center gap-1 text-[11px] mono text-[var(--color-accent)] hover:underline decoration-dotted underline-offset-2"
+                  title="Open on Arc Testnet explorer"
+                >
+                  <span>{shortHash(txHash, 6, 4)}</span>
+                  <svg
+                    width="9"
+                    height="9"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden
+                    className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                   >
-                    {shortHash(txHash, 6, 4)}
-                  </a>
-                )}
-              </div>
+                    <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </a>
+              )}
             </div>
           </li>
         );
       })}
-    </ul>
+    </ol>
+  );
+}
+
+function DetailChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-[var(--color-surface-2)] border border-[var(--color-line)] text-[11px]">
+      <span className="text-[var(--color-ink-faint)] tracking-tight">{label}</span>
+      <span className="text-[var(--color-ink)] mono">{value}</span>
+    </span>
   );
 }

@@ -1,0 +1,66 @@
+import { Hono } from 'hono';
+import { z } from 'zod';
+import { getProfile, upsertProfile } from '../db/profiles.js';
+
+const addrSchema = z
+  .string()
+  .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+const profileSchema = z.object({
+  address: addrSchema,
+  role: z.enum(['buyer', 'seller', 'both']),
+  displayName: z.string().min(1).max(80),
+  seller: z
+    .object({
+      skills: z.array(z.string().min(1)).min(1).max(20),
+      bio: z.string().max(400).default(''),
+      minBudgetUsdc: z.number().nonnegative(),
+      maxBudgetUsdc: z.number().positive(),
+      minDeadlineDays: z.number().int().min(0).max(90),
+      maxDeadlineDays: z.number().int().min(1).max(180),
+    })
+    .optional(),
+  buyer: z
+    .object({
+      maxBudgetUsdc: z.number().positive(),
+      minDeadlineDays: z.number().int().min(0).max(90),
+      maxDeadlineDays: z.number().int().min(1).max(180),
+      bidCollectionSeconds: z.number().int().min(5).max(600),
+      milestonePcts: z.array(z.number().int().min(1).max(100)).min(1).max(4),
+    })
+    .optional(),
+});
+
+export const profileRoutes = new Hono();
+
+profileRoutes.get('/', (c) => {
+  const address = c.req.query('address');
+  if (!address) return c.json({ error: 'address query param required' }, 400);
+  const parsed = addrSchema.safeParse(address);
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  const profile = getProfile(parsed.data);
+  return c.json({ profile });
+});
+
+profileRoutes.post('/', async (c) => {
+  let body;
+  try {
+    body = profileSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if ((body.role === 'seller' || body.role === 'both') && !body.seller) {
+    return c.json({ error: 'seller profile required when role includes seller' }, 400);
+  }
+  if ((body.role === 'buyer' || body.role === 'both') && !body.buyer) {
+    return c.json({ error: 'buyer profile required when role includes buyer' }, 400);
+  }
+  if (body.seller && body.seller.minBudgetUsdc > body.seller.maxBudgetUsdc) {
+    return c.json({ error: 'seller minBudgetUsdc cannot exceed maxBudgetUsdc' }, 400);
+  }
+  if (body.buyer && body.buyer.milestonePcts.reduce((s, n) => s + n, 0) !== 100) {
+    return c.json({ error: 'buyer milestonePcts must sum to 100' }, 400);
+  }
+  const profile = upsertProfile(body);
+  return c.json({ profile }, 200);
+});

@@ -23,9 +23,33 @@
 
   --font-sans: var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
 
   --shadow-card: 0 1px 0 rgba(12, 14, 16, 0.04), 0 12px 28px -16px rgba(12, 14, 16, 0.08);
   --shadow-card-hover: 0 1px 0 rgba(12, 14, 16, 0.06), 0 20px 40px -18px rgba(12, 14, 16, 0.12);
+}
+
+html[data-theme="dark"] {
+  --color-bg: #0a0a0c;
+  --color-surface: #111114;
+  --color-surface-2: #16171b;
+  --color-line: rgba(245, 245, 245, 0.08);
+  --color-line-strong: rgba(245, 245, 245, 0.16);
+  --color-ink: #ededed;
+  --color-ink-2: #cccccc;
+  --color-ink-dim: #8a8a90;
+  --color-ink-faint: #5a5a60;
+  --color-accent: #8db1d8;
+  --color-accent-soft: rgba(141, 177, 216, 0.14);
+  --color-positive: #6fbf6f;
+  --color-positive-soft: rgba(111, 191, 111, 0.14);
+  --color-warning: #e6b167;
+  --color-warning-soft: rgba(230, 177, 103, 0.14);
+  --color-critical: #e58072;
+  --color-critical-soft: rgba(229, 128, 114, 0.12);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 30px -16px rgba(0, 0, 0, 0.6);
+  --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 40px -18px rgba(0, 0, 0, 0.7);
 }
 
 html, body {
@@ -38,15 +62,26 @@ html, body {
   text-rendering: optimizeLegibility;
 }
 
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+
 ::selection { background: var(--color-ink); color: var(--color-bg); }
 
 a { color: inherit; }
 
 .mono { font-family: var(--font-mono); font-feature-settings: "calt" 0; }
+.serif { font-family: var(--font-serif); }
 
 input, textarea, select, button {
   font: inherit;
   color: inherit;
+}
+
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+button:disabled, [role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
 }
 
 input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
@@ -66,6 +101,53 @@ input::placeholder, textarea::placeholder { color: var(--color-ink-faint); }
 .fade-up-4 { animation-delay: 0.22s; }
 .slide-in { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
+@keyframes stat-sweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(330%); }
+}
+.stat-sweep { animation: stat-sweep 4.5s linear infinite; }
+
+@keyframes flowPulse {
+  0% { transform: scale(1); opacity: 0.45; }
+  70% { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@keyframes peer-drop {
+  0% { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
+  12%, 86% { opacity: 1; transform: translateY(0); filter: blur(0); }
+  96% { opacity: 0; transform: translateY(2px); filter: blur(2px); }
+  100% { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
+}
+.peer-drop { animation: peer-drop 12s ease-in-out infinite; opacity: 0; }
+
+@keyframes bridgeShimmer {
+  0%   { transform: translateX(-100%); opacity: 0.45; }
+  60%  { transform: translateX(80%); opacity: 1; }
+  100% { transform: translateX(180%); opacity: 0; }
+}
+
+/* Editorial display utility — Instrument Serif at a generous size with tight tracking. */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  line-height: 1.05;
+}
+.display-em {
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* Eyebrow microcopy — restrained, single source of truth. */
+.eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-faint);
+  font-weight: 500;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .fade-up, .slide-in { animation: none !important; }
+  .fade-up, .slide-in, .stat-sweep, .peer-drop { animation: none !important; }
 }

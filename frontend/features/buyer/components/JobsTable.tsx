@@ -1,4 +1,5 @@
-import Link from 'next/link';
+'use client';
+import { useRouter } from 'next/navigation';
 import type { BuyerJob } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -11,6 +12,8 @@ function status(j: BuyerJob): { label: string; tone: 'positive' | 'warning' | 'a
 }
 
 export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
+  const router = useRouter();
+
   if (jobs.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-[var(--color-ink-faint)]">
@@ -34,10 +37,25 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
         <tbody>
           {jobs.map((j) => {
             const s = status(j);
+            const href = `/jobs/${j.jobId}`;
+            const go = () => router.push(href);
+            const onPrefetch = () => router.prefetch(href);
             return (
               <tr
                 key={j.jobId}
-                className="border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-surface-2)] transition-colors"
+                onClick={go}
+                onMouseEnter={onPrefetch}
+                onFocus={onPrefetch}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    go();
+                  }
+                }}
+                tabIndex={0}
+                role="link"
+                aria-label={`Open deal ${shortHash(j.jobId, 8, 4)}`}
+                className="group cursor-pointer border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-surface-2)] focus:bg-[var(--color-surface-2)] focus:outline-none transition-colors"
               >
                 <td className="px-5 py-3 mono text-[12px] text-[var(--color-ink)]">{shortHash(j.jobId, 8, 4)}</td>
                 <td className="px-5 py-3 mono">{formatUsdc(j.budgetUsdc)}</td>
@@ -51,12 +69,15 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                   </span>
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <Link
-                    href={`/jobs/${j.jobId}`}
-                    className="text-[12px] text-[var(--color-accent)] hover:underline"
-                  >
-                    View →
-                  </Link>
+                  <span className="inline-flex items-center gap-1 text-[12px] text-[var(--color-accent)] font-medium">
+                    View
+                    <span
+                      aria-hidden
+                      className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                    >
+                      →
+                    </span>
+                  </span>
                 </td>
               </tr>
             );

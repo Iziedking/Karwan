@@ -14,6 +14,10 @@ const TRACKED_TYPES = [
   'escrow.funded',
   'escrow.milestone.released',
   'escrow.settled',
+  'bridge.burned',
+  'bridge.attested',
+  'bridge.minted',
+  'bridge.error',
   'agent.skipped',
   'agent.declined',
   'agent.error',
@@ -34,7 +38,7 @@ export function useLiveEvents(filterJobId?: string, max = 100) {
     const onMsg = (e: MessageEvent) => {
       try {
         const parsed = JSON.parse(e.data) as ChainEvent;
-        if (filterJobId && parsed.jobId && parsed.jobId !== filterJobId) return;
+        if (filterJobId && parsed.jobId !== filterJobId) return;
         setEvents((prev) => [parsed, ...prev].slice(0, max));
       } catch {
         /* ignore */
