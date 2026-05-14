@@ -63,6 +63,7 @@ export interface SellerAgentProfile {
 
 export interface SellerActiveBid {
   jobId: string;
+  seller?: string;
   jobBuyer: string;
   budgetUsdc: string;
   deadlineUnix: number;
@@ -141,6 +142,11 @@ export interface DirectDealFunding {
   feeTotalUsdc: string;
 }
 
+export interface ActivationStatus {
+  activated: boolean;
+  agents?: { buyer: string; seller: string };
+}
+
 export interface Reputation {
   address: string;
   scoreBps: number;
@@ -206,12 +212,22 @@ export const api = {
   baseUrl: BASE,
   eventsUrl: () => `${BASE}/api/events`,
   status: () => json<ApiStatus>('/api/agents/status'),
-  buyer: () =>
-    json<{ profile: BuyerAgentProfile; jobs: BuyerJob[] }>('/api/agents/buyer'),
-  seller: () =>
-    json<{ profile: SellerAgentProfile; activeBids: SellerActiveBid[] }>('/api/agents/seller'),
+  buyer: (address?: string) =>
+    json<{ profile: BuyerAgentProfile | null; jobs: BuyerJob[] }>(
+      `/api/agents/buyer${address ? `?address=${address}` : ''}`,
+    ),
+  seller: (address?: string) =>
+    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[] }>(
+      `/api/agents/seller${address ? `?address=${address}` : ''}`,
+    ),
   job: (id: string) => json<BuyerJob>(`/api/jobs/${id}`),
-  postJob: (body: { brief: string; budgetUsdc: number; deadlineDays: number }) =>
+  dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
+  postJob: (body: {
+    posterAddress: string;
+    brief: string;
+    budgetUsdc: number;
+    deadlineDays: number;
+  }) =>
     json<{ jobId: string; deadlineUnix: number; txHash: string; explorerUrl: string }>(
       '/api/jobs',
       { method: 'POST', body: JSON.stringify(body) },
@@ -237,6 +253,23 @@ export const api = {
   },
   reputation: (address: string) =>
     json<Reputation>(`/api/reputation?address=${address}`),
+  activationStatus: (address: string) =>
+    json<ActivationStatus>(`/api/activation/status?address=${address}`),
+  activate: (address: string) =>
+    json<ActivationStatus>('/api/activation/activate', {
+      method: 'POST',
+      body: JSON.stringify({ address }),
+    }),
+  withdrawFromAgent: (body: {
+    address: string;
+    agent: 'buyer' | 'seller';
+    toAddress: string;
+    amountUsdc: number;
+  }) =>
+    json<{ accepted: boolean; txHash: string }>('/api/activation/withdraw', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   createDirectDeal: (body: {
     buyerAddress: string;
     sellerAddress: string;
@@ -245,10 +278,10 @@ export const api = {
     terms: string;
     firstReleasePct: number;
   }) =>
-    json<{ deal: DirectDeal; funding: DirectDealFunding; txHash: string }>(
-      '/api/deals/direct',
-      { method: 'POST', body: JSON.stringify(body) },
-    ),
+    json<{ deal: DirectDeal; funding: DirectDealFunding }>('/api/deals/direct', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   directDeals: (address: string) =>
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
   directDeal: (jobId: string) =>

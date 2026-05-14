@@ -1,11 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
 
 export function PostJobForm() {
   const router = useRouter();
+  const { address, isConnected } = useAccount();
+  const { profile, loading: profileLoading } = useUserProfile();
   const [brief, setBrief] = useState('');
   const [budget, setBudget] = useState<number | ''>(10);
   const [days, setDays] = useState<number | ''>(5);
@@ -29,12 +35,17 @@ export function PostJobForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!brief || typeof budget !== 'number' || typeof days !== 'number') return;
+    if (!address || !brief || typeof budget !== 'number' || typeof days !== 'number') return;
     setSubmitting(true);
     setError(null);
     setInsufficientBalance(false);
     try {
-      const r = await api.postJob({ brief, budgetUsdc: budget, deadlineDays: days });
+      const r = await api.postJob({
+        posterAddress: address,
+        brief,
+        budgetUsdc: budget,
+        deadlineDays: days,
+      });
       router.push(`/jobs/${r.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.message === 'insufficient buyer balance') {
@@ -57,6 +68,38 @@ export function PostJobForm() {
       ? `Waiting for Arc to confirm… ${elapsed}s`
       : `Still waiting on Circle… ${elapsed}s`
     : 'Post on chain';
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-4">
+        <p className="text-[13px] text-[var(--color-ink-dim)]">
+          Connect your wallet to post a managed job.
+        </p>
+        <ConnectButton />
+      </div>
+    );
+  }
+
+  // Managed jobs run on the poster's own buyer agent, driven by their buyer
+  // profile. Without one, there is nothing to run the auction with.
+  if (!profileLoading && !profile?.buyer) {
+    return (
+      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] p-5 space-y-3">
+        <h3 className="text-[14px] font-semibold tracking-tight">Set up a buyer profile</h3>
+        <p className="text-[12.5px] text-[var(--color-ink-dim)] leading-relaxed">
+          Managed jobs run on your own buyer agent, using your budget, deadline range, and
+          milestone split. Set those once and your agent runs the auction for you.
+        </p>
+        <Link
+          href="/onboarding"
+          style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
+          className="inline-flex px-4 py-2 rounded-md text-[13px] font-semibold hover:opacity-90 transition-opacity"
+        >
+          Set up buyer profile
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="space-y-5">

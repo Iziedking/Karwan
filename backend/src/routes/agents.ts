@@ -1,28 +1,28 @@
 import { Hono } from 'hono';
 import { config } from '../config.js';
-import { loadBuyerProfile } from '../agents/buyer-profile.js';
-import { loadSellerProfile } from '../agents/seller-profile.js';
 import { getBuyerSnapshot } from '../agents/buyer.js';
 import { getSellerSnapshot } from '../agents/seller.js';
+import { getAgentWallets } from '../db/agentWallets.js';
 
 export const agentsRoutes = new Hono();
 
-agentsRoutes.get('/buyer', (c) => {
-  try {
-    const { walletId: _wid, ...profile } = loadBuyerProfile();
-    return c.json({ profile, ...getBuyerSnapshot() });
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 400);
-  }
+// Managed deals run on per-user agents. With ?address= these endpoints scope the
+// snapshot to that user's own agent; without it they return the whole network.
+
+agentsRoutes.get('/buyer', async (c) => {
+  const address = c.req.query('address');
+  if (!address) return c.json({ profile: null, ...getBuyerSnapshot() });
+  const agents = await getAgentWallets(address);
+  if (!agents) return c.json({ profile: null, jobs: [] });
+  return c.json({ profile: null, ...getBuyerSnapshot(agents.buyerAddress) });
 });
 
-agentsRoutes.get('/seller', (c) => {
-  try {
-    const { walletId: _wid, ...profile } = loadSellerProfile();
-    return c.json({ profile, ...getSellerSnapshot() });
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 400);
-  }
+agentsRoutes.get('/seller', async (c) => {
+  const address = c.req.query('address');
+  if (!address) return c.json({ profile: null, ...getSellerSnapshot() });
+  const agents = await getAgentWallets(address);
+  if (!agents) return c.json({ profile: null, activeBids: [] });
+  return c.json({ profile: null, ...getSellerSnapshot(agents.sellerAddress) });
 });
 
 agentsRoutes.get('/status', (c) =>

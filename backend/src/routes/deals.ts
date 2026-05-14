@@ -24,8 +24,11 @@ import {
   getDeal,
   patchDeal,
   listDealsForAddress,
+  listAllDeals,
   type DirectDeal,
 } from '../db/deals.js';
+import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -59,13 +62,10 @@ const inFlight = new Set<string>();
 
 export const dealsRoutes = new Hono();
 
-/// Create and fund a direct deal. The buyer agent funds the escrow naming the
-/// seller wallet directly, no auction, no bidding.
+/// Create a direct deal. The escrow is not funded here: the deal sits in
+/// awaiting-seller until the named seller accepts. The buyer must have activated
+/// their agent wallets; the seller activates lazily on accept.
 dealsRoutes.post('/direct', async (c) => {
-  if (!config.BUYER_AGENT_WALLET_ID) {
-    return c.json({ error: 'BUYER_AGENT_WALLET_ID not configured' }, 500);
-  }
-
   let body;
   try {
     body = createSchema.parse(await c.req.json());
@@ -76,81 +76,67 @@ dealsRoutes.post('/direct', async (c) => {
     return c.json({ error: 'buyer and seller must be different wallets' }, 400);
   }
 
+  // The buyer agent funds the escrow when the seller accepts, so the buyer must
+  // be activated now. The seller is not required to be activated yet.
+  const buyerAgents = await getAgentWallets(body.buyerAddress);
+  if (!buyerAgents) {
+    return c.json({ error: 'activate your agent wallets before opening a deal' }, 409);
+  }
+
   const jobId = `0x${randomBytes(32).toString('hex')}`;
-  const milestonePcts = [body.firstReleasePct, 100 - body.firstReleasePct];
   const dealAmountWei = parseUnits(body.dealAmountUsdc.toString(), USDC_DECIMALS);
   const feeBps = await getEscrowFeeBps();
   const { fundedAmount, sellerNet, feeTotal } = computeFunding(dealAmountWei, feeBps);
 
-  try {
-    // The escrow pulls dealAmount + the buyer's fee half on fundEscrow.
-    await executeContractCall(
-      {
-        walletId: config.BUYER_AGENT_WALLET_ID,
-        contractAddress: usdcAddress,
-        abiFunctionSignature: 'approve(address,uint256)',
-        abiParameters: [escrow.address, fundedAmount.toString()],
-      },
-      `usdc.approve(escrow, direct ${jobId})`,
-    );
-    const fundResult = await executeContractCall(
-      {
-        walletId: config.BUYER_AGENT_WALLET_ID,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
-        abiParameters: [
-          jobId,
-          body.sellerAddress,
-          dealAmountWei.toString(),
-          milestonePcts,
-        ],
-      },
-      `fundEscrow(direct ${jobId})`,
-    );
+  const deadlineUnix = Math.floor(Date.now() / 1000) + body.deadlineDays * 86400;
+  const deal = await createDeal({
+    jobId,
+    buyer: body.buyerAddress,
+    seller: body.sellerAddress,
+    buyerAgentWalletId: buyerAgents.buyerWalletId,
+    buyerAgentAddress: buyerAgents.buyerAddress,
+    dealAmountUsdc: body.dealAmountUsdc.toString(),
+    firstReleasePct: body.firstReleasePct,
+    deadlineUnix,
+    terms: body.terms,
+  });
 
-    const deadlineUnix = Math.floor(Date.now() / 1000) + body.deadlineDays * 86400;
-    const deal = await createDeal({
-      jobId,
+  bus.emitEvent({
+    type: 'deal.direct.created',
+    jobId,
+    actor: 'buyer',
+    payload: {
       buyer: body.buyerAddress,
       seller: body.sellerAddress,
       dealAmountUsdc: body.dealAmountUsdc.toString(),
       firstReleasePct: body.firstReleasePct,
-      deadlineUnix,
-      terms: body.terms,
-      fundTxHash: fundResult.txHash,
-    });
+    },
+  });
 
-    bus.emitEvent({
-      type: 'deal.direct.created',
-      jobId,
-      actor: 'buyer',
-      payload: {
-        buyer: body.buyerAddress,
-        seller: body.sellerAddress,
+  logger.info(
+    { jobId, buyer: body.buyerAddress, seller: body.sellerAddress },
+    'direct deal created, awaiting seller',
+  );
+  return c.json(
+    {
+      deal,
+      funding: {
         dealAmountUsdc: body.dealAmountUsdc.toString(),
-        firstReleasePct: body.firstReleasePct,
-        txHash: fundResult.txHash,
+        fundedAmountUsdc: formatUnits(fundedAmount, USDC_DECIMALS),
+        sellerNetUsdc: formatUnits(sellerNet, USDC_DECIMALS),
+        feeTotalUsdc: formatUnits(feeTotal, USDC_DECIMALS),
       },
-    });
+    },
+    200,
+  );
+});
 
-    logger.info({ jobId, ...fundResult }, 'direct deal funded');
-    return c.json(
-      {
-        deal,
-        funding: {
-          dealAmountUsdc: body.dealAmountUsdc.toString(),
-          fundedAmountUsdc: formatUnits(fundedAmount, USDC_DECIMALS),
-          sellerNetUsdc: formatUnits(sellerNet, USDC_DECIMALS),
-          feeTotalUsdc: formatUnits(feeTotal, USDC_DECIMALS),
-        },
-        txHash: fundResult.txHash,
-      },
-      200,
-    );
-  } catch (err) {
-    logger.error({ jobId, err: (err as Error).message }, 'direct deal funding failed');
-    return c.json({ error: 'funding failed', detail: (err as Error).message }, 502);
-  }
+/// Public feed of direct deals across the whole network, newest first, enriched
+/// with on-chain escrow state. Backs the home page deals section.
+dealsRoutes.get('/feed', async (c) => {
+  const deals = await listAllDeals();
+  const enriched = await Promise.all(deals.slice(0, 60).map((d) => enrich(d)));
+  return c.json({ deals: enriched });
 });
 
 /// List direct deals where the address is buyer or seller, enriched with the
@@ -173,8 +159,9 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   return c.json({ deal: await enrich(deal) });
 });
 
-/// Seller confirms they agree to the deal terms. A deal cannot be marked
-/// delivered until it has been accepted.
+/// Seller accepts the deal terms. This lazily provisions the seller's agent
+/// wallets if they have not activated, then the buyer agent funds the escrow
+/// naming the seller agent. The deal moves to awaiting-delivery.
 dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
@@ -192,20 +179,91 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   if (deal.acceptedAt) {
     return c.json({ error: 'deal already accepted' }, 409);
   }
-
-  const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED) {
-    return c.json({ error: `escrow state must be Funded(1), got ${account.state}` }, 409);
+  if (deal.cancelledAt) {
+    return c.json({ error: 'this deal was cancelled' }, 409);
+  }
+  if (!deal.buyerAgentWalletId) {
+    return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+  }
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
-  await patchDeal(jobId, { acceptedAt: Date.now() });
-  bus.emitEvent({
-    type: 'deal.accepted',
-    jobId,
-    actor: 'seller',
-    payload: { seller: deal.seller, buyer: deal.buyer },
-  });
-  return c.json({ accepted: true, jobId }, 200);
+  inFlight.add(jobId);
+  try {
+    // Lazily provision the seller's agent wallets on first accept.
+    let sellerAgents = await getAgentWallets(deal.seller);
+    if (!sellerAgents) {
+      const provisioned = await provisionUserAgentWallets(deal.seller);
+      sellerAgents = await saveAgentWallets({ userAddress: deal.seller, ...provisioned });
+      bus.emitEvent({
+        type: 'agent.activated',
+        actor: 'platform',
+        payload: {
+          user: deal.seller,
+          buyer: sellerAgents.buyerAddress,
+          seller: sellerAgents.sellerAddress,
+        },
+      });
+    }
+
+    // Fund the escrow now: the buyer agent approves, then funds it naming the
+    // seller agent as the on-chain seller.
+    const milestonePcts = [deal.firstReleasePct, 100 - deal.firstReleasePct];
+    const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
+    const feeBps = await getEscrowFeeBps();
+    const { fundedAmount } = computeFunding(dealAmountWei, feeBps);
+
+    await executeContractCall(
+      {
+        walletId: deal.buyerAgentWalletId,
+        contractAddress: usdcAddress,
+        abiFunctionSignature: 'approve(address,uint256)',
+        abiParameters: [escrow.address, fundedAmount.toString()],
+      },
+      `usdc.approve(escrow, direct ${jobId})`,
+    );
+    const fundResult = await executeContractCall(
+      {
+        walletId: deal.buyerAgentWalletId,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
+        abiParameters: [
+          jobId,
+          sellerAgents.sellerAddress,
+          dealAmountWei.toString(),
+          milestonePcts,
+        ],
+      },
+      `fundEscrow(direct ${jobId})`,
+    );
+
+    await patchDeal(jobId, {
+      acceptedAt: Date.now(),
+      sellerAgentWalletId: sellerAgents.sellerWalletId,
+      sellerAgentAddress: sellerAgents.sellerAddress,
+      fundTxHash: fundResult.txHash,
+    });
+    bus.emitEvent({
+      type: 'deal.accepted',
+      jobId,
+      actor: 'seller',
+      payload: { seller: deal.seller, buyer: deal.buyer },
+    });
+    bus.emitEvent({
+      type: 'escrow.funded',
+      jobId,
+      actor: 'buyer',
+      payload: { seller: sellerAgents.sellerAddress, txHash: fundResult.txHash },
+    });
+    logger.info({ jobId, ...fundResult }, 'direct deal accepted and escrow funded');
+    return c.json({ accepted: true, jobId, txHash: fundResult.txHash }, 200);
+  } catch (err) {
+    logger.error({ jobId, err: (err as Error).message }, 'direct deal accept failed');
+    return c.json({ error: 'accept failed', detail: (err as Error).message }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
 });
 
 /// Seller marks the work delivered, optionally with a deliverable reference.
@@ -270,6 +328,9 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   if (!deal.delivered) {
     return c.json({ error: 'seller has not marked the work delivered yet' }, 409);
   }
+  if (!deal.buyerAgentWalletId) {
+    return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+  }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'a release is already in progress for this deal' }, 409);
   }
@@ -282,8 +343,8 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   inFlight.add(jobId);
   try {
     const releasedIndex = account.milestonesReleased;
-    const txHash = await releaseMilestone(jobId, releasedIndex);
-    const settled = await finalizeIfSettled(jobId);
+    const txHash = await releaseMilestone(jobId, releasedIndex, deal.buyerAgentWalletId);
+    const settled = await finalizeIfSettled(jobId, deal.buyerAgentWalletId);
     if (settled) {
       await patchDeal(jobId, { settledAt: Date.now() });
     } else if (releasedIndex === 0) {
@@ -383,6 +444,9 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   if (!windowPassed) {
     return c.json({ error: 'the buyer review window is still open' }, 409);
   }
+  if (!deal.sellerAgentWalletId || !deal.buyerAgentWalletId) {
+    return c.json({ error: 'this deal has no agent wallets on record' }, 409);
+  }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
@@ -395,9 +459,10 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   inFlight.add(jobId);
   try {
     const reasonHash = body.reason ?? 'seller appeal: final release overdue';
+    // The seller agent is a party to the escrow, so it signs the dispute.
     const result = await executeContractCall(
       {
-        walletId: config.BUYER_AGENT_WALLET_ID!,
+        walletId: deal.sellerAgentWalletId,
         contractAddress: escrow.address,
         abiFunctionSignature: 'dispute(bytes32,string)',
         abiParameters: [jobId, reasonHash],
@@ -412,7 +477,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
       payload: { seller: deal.seller, buyer: deal.buyer, reason: reasonHash, txHash: result.txHash },
     });
     // A dispute is a neutral marker on the record until it is resolved.
-    await recordReputation(jobId, OUTCOME_DISPUTE_RESOLVED);
+    await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_DISPUTE_RESOLVED);
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
   } catch (err) {
     logger.error({ jobId, err: (err as Error).message }, 'appeal failed');
@@ -422,8 +487,9 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   }
 });
 
-/// Buyer reclaims funds when the seller never marked the work delivered and the
-/// deadline has passed. Moves the escrow Disputed then Refunded on chain via the
+/// Buyer cancels the deal. Before the seller accepts, this is a plain state
+/// change with no escrow to unwind. After acceptance, once the deadline passes
+/// without delivery, it moves the escrow Disputed then Refunded on chain via the
 /// buyer agent, returning the full escrow balance to the buyer.
 dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   const jobId = c.req.param('jobId');
@@ -445,10 +511,31 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   if (deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'this deal is no longer cancellable' }, 409);
   }
-  // While the seller has not accepted, the buyer can back out anytime. Once
-  // accepted, cancel is gated on the deadline passing without delivery.
-  if (deal.acceptedAt && Date.now() < deal.deadlineUnix * 1000) {
+
+  // Before the seller accepts, no escrow exists yet, so cancel is a plain state
+  // change with nothing to refund on chain.
+  if (!deal.acceptedAt) {
+    await patchDeal(jobId, { cancelledAt: Date.now() });
+    bus.emitEvent({
+      type: 'deal.cancelled',
+      jobId,
+      actor: 'buyer',
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        reason: 'buyer withdrew before the seller accepted',
+      },
+    });
+    return c.json({ accepted: true, jobId }, 200);
+  }
+
+  // Once accepted and funded, cancel is gated on the deadline passing without
+  // delivery, and reclaims the escrow on chain.
+  if (Date.now() < deal.deadlineUnix * 1000) {
     return c.json({ error: 'the deadline has not passed yet' }, 409);
+  }
+  if (!deal.buyerAgentWalletId) {
+    return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
@@ -464,7 +551,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     const reason = 'buyer cancel: seller did not deliver by deadline';
     await executeContractCall(
       {
-        walletId: config.BUYER_AGENT_WALLET_ID!,
+        walletId: deal.buyerAgentWalletId,
         contractAddress: escrow.address,
         abiFunctionSignature: 'dispute(bytes32,string)',
         abiParameters: [jobId, reason],
@@ -473,7 +560,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     );
     const refundResult = await executeContractCall(
       {
-        walletId: config.BUYER_AGENT_WALLET_ID!,
+        walletId: deal.buyerAgentWalletId,
         contractAddress: escrow.address,
         abiFunctionSignature: 'refund(bytes32)',
         abiParameters: [jobId],
@@ -488,7 +575,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
       payload: { buyer: deal.buyer, seller: deal.seller, reason, txHash: refundResult.txHash },
     });
     // The seller never delivered by the deadline: record a failure against them.
-    await recordReputation(jobId, OUTCOME_FAILED);
+    await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
     return c.json({ accepted: true, jobId, txHash: refundResult.txHash }, 200);
   } catch (err) {
     logger.error({ jobId, err: (err as Error).message }, 'cancel failed');
@@ -500,6 +587,8 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
 
 async function enrich(deal: DirectDeal) {
   const base = { ...deal, reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS };
+  // No escrow exists on chain until the seller accepts.
+  if (!deal.acceptedAt) return { ...base, onChain: null };
   try {
     const account = await readEscrow(deal.jobId);
     return {

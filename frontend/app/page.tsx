@@ -3,6 +3,7 @@ import { HeroFlow } from '@/features/activity/components/HeroFlow';
 import { PeerNetwork } from '@/shared/components/PeerNetwork';
 import { PartnerLogos } from '@/shared/components/PartnerLogos';
 import { LivePulseStrip } from '@/features/activity/components/LivePulseStrip';
+import { DealsFeed } from '@/features/deals/components/DealsFeed';
 
 export const dynamic = 'force-dynamic';
 
@@ -169,6 +170,23 @@ export default function HomePage() {
           </Link>
         </div>
         <LivePulseStrip />
+      </section>
+
+      {/* DEALS ON THE NETWORK */}
+      <section className="space-y-4">
+        <div>
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
+            Network
+          </span>
+          <h2 className="text-[24px] md:text-[28px] tracking-tight font-semibold mt-1">
+            Deals across Karwan
+          </h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed max-w-xl">
+            Every direct deal opened on the network, with its live escrow state. Active deals are
+            mid-flight, completed ones have settled in full.
+          </p>
+        </div>
+        <DealsFeed />
       </section>
 
       {/* CTA BAND */}

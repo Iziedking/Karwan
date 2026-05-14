@@ -8,6 +8,11 @@ import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
+// CCTP attestation runs ~10-19 min. Past 30 the bridge is stale: the relay was
+// likely interrupted, or the mint already landed and the UI just missed the
+// event. Either way the card needs a dismiss escape hatch.
+const STUCK_AFTER_MS = 30 * 60 * 1000;
+
 const STEP_ORDER: BridgePhase[] = ['approving', 'burning', 'attesting', 'minting', 'done'];
 
 const CHAIN_MARK: Record<string, { letter: string; bg: string; fg: string; name: string }> = {
@@ -304,6 +309,9 @@ function BridgeRow({
   const source = SOURCE_CHAINS[bridge.sourceChainKey];
   const tone = phaseTone(bridge.phase);
   const idx = stepIndexFor(bridge.phase);
+  const isStuck =
+    (bridge.phase === 'attesting' || bridge.phase === 'minting') &&
+    Date.now() - bridge.startedAt > STUCK_AFTER_MS;
 
   return (
     <li
@@ -347,6 +355,17 @@ function BridgeRow({
             <span className="text-[10px] mono text-[var(--color-ink-faint)] leading-none">
               · {elapsed(bridge.startedAt)}
             </span>
+            {isStuck && (
+              <span
+                className="text-[10px] uppercase tracking-[0.1em] leading-none px-1.5 py-0.5 rounded"
+                style={{
+                  background: 'var(--color-warning-soft)',
+                  color: 'var(--color-warning)',
+                }}
+              >
+                Stale
+              </span>
+            )}
           </div>
         </div>
         <svg
@@ -414,6 +433,14 @@ function BridgeRow({
             </div>
           )}
 
+          {isStuck && (
+            <p className="text-[11px] text-[var(--color-ink-faint)] leading-snug">
+              This bridge has been waiting far longer than the usual 10 to 19 minutes. The relay
+              was likely interrupted, or the mint already landed and this card missed the event.
+              Dismissing it only clears the card; the burn on chain and any mint are unaffected.
+            </p>
+          )}
+
           <div className="flex items-center gap-2 pt-0.5">
             {bridge.phase === 'error' && (
               <button
@@ -425,7 +452,7 @@ function BridgeRow({
                 Retry
               </button>
             )}
-            {(bridge.phase === 'done' || bridge.phase === 'error') && (
+            {(bridge.phase === 'done' || bridge.phase === 'error' || isStuck) && (
               <button
                 type="button"
                 onClick={onDismiss}

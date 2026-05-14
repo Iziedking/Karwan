@@ -27,16 +27,28 @@ export interface ProvisionedAgentWallets {
 /// Creates a buyer agent wallet and a seller agent wallet for one user. Both are
 /// SCA wallets on Arc Testnet under the platform wallet set. The user funds them
 /// themselves; the platform never holds their keys beyond the entity secret.
-export async function provisionUserAgentWallets(): Promise<ProvisionedAgentWallets> {
+///
+/// Each wallet carries the user's address as its Circle refId. The wallets live
+/// on Circle's infrastructure, not in our database, so if our store is ever
+/// lost the user -> wallet mapping can be rebuilt by listing the wallet set and
+/// reading refId. No funds are at risk from a database loss.
+export async function provisionUserAgentWallets(
+  userAddress: string,
+): Promise<ProvisionedAgentWallets> {
   if (!config.CIRCLE_WALLET_SET_ID) {
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
   }
+  const refId = userAddress.toLowerCase();
   const client = circleWalletsClient();
   const res = await client.createWallets({
     blockchains: [ARC_TESTNET_BLOCKCHAIN],
     count: 2,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     accountType: 'SCA',
+    metadata: [
+      { name: 'karwan-buyer-agent', refId },
+      { name: 'karwan-seller-agent', refId },
+    ],
   });
   const wallets = res.data?.wallets ?? [];
   if (wallets.length !== 2) {

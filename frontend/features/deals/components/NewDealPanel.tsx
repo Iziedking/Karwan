@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { PostJobForm } from '@/features/buyer/components/PostJobForm';
+import { ActivationGate } from '@/shared/components/ActivationGate';
 import { DirectDealForm } from './DirectDealForm';
 
 type Mode = 'managed' | 'direct';
@@ -52,7 +53,9 @@ export function NewDealPanel() {
 
       <p className="text-[12px] text-[var(--color-ink-dim)] leading-relaxed mb-5">{active.blurb}</p>
 
-      {mode === 'managed' ? <PostJobForm /> : <DirectDealForm />}
+      <ActivationGate>
+        {mode === 'managed' ? <PostJobForm /> : <DirectDealForm />}
+      </ActivationGate>
     </div>
   );
 }

@@ -20,12 +20,16 @@ async function tick() {
   const now = Date.now();
   for (const deal of await listAllDeals()) {
     if (deal.disputed || deal.cancelledAt || deal.settledAt) continue;
+    // No escrow exists until the seller accepts, so there is nothing to watch.
+    if (!deal.acceptedAt) continue;
+    if (!deal.buyerAgentWalletId) continue;
     if (processing.has(deal.jobId)) continue;
 
     processing.add(deal.jobId);
     try {
       const account = await readEscrow(deal.jobId);
       if (account.state !== ESCROW_FUNDED) continue;
+      const buyerWalletId = deal.buyerAgentWalletId;
 
       // Timer 1: first-release auto.
       const firstWindowOpen =
@@ -35,7 +39,7 @@ async function tick() {
         account.milestonesReleased === 0;
       if (firstWindowOpen) {
         if (now <= deal.deliveredAt! + config.DEAL_REVIEW_WINDOW_MS) continue;
-        await releaseMilestone(deal.jobId, 0);
+        await releaseMilestone(deal.jobId, 0, buyerWalletId);
         const startedAt = Date.now();
         await patchDeal(deal.jobId, {
           reviewWindowStartedAt: startedAt,
@@ -68,8 +72,8 @@ async function tick() {
           (deal.reviewExtensionMs ?? 0);
         if (now <= effectiveDeadline) continue;
 
-        await releaseMilestone(deal.jobId, account.milestonesReleased);
-        await finalizeIfSettled(deal.jobId);
+        await releaseMilestone(deal.jobId, account.milestonesReleased, buyerWalletId);
+        await finalizeIfSettled(deal.jobId, buyerWalletId);
         await patchDeal(deal.jobId, { autoReleasedAt: now, settledAt: Date.now() });
         bus.emitEvent({
           type: 'deal.auto_released',
@@ -93,11 +97,9 @@ async function tick() {
   }
 }
 
-/// Starts the periodic auto-release watcher. Returns a stop function.
+/// Starts the periodic auto-release watcher. Returns a stop function. Each deal
+/// carries its own buyer agent wallet; deals without one are skipped.
 export function startDealWatcher(): () => void {
-  if (!config.BUYER_AGENT_WALLET_ID) {
-    logger.warn('BUYER_AGENT_WALLET_ID not set, deal watcher cannot auto-release');
-  }
   const id = setInterval(() => {
     tick().catch((err) =>
       logger.error({ err: (err as Error).message }, 'deal watcher tick failed'),

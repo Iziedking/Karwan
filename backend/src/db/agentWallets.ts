@@ -28,6 +28,27 @@ export async function getAgentWallets(userAddress: string): Promise<AgentWallets
   return loadFile()[key] ?? null;
 }
 
+export async function listAllAgentWallets(): Promise<AgentWallets[]> {
+  if (pgEnabled) {
+    const rows = await db().select().from(agentWallets);
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile());
+}
+
+/// Finds the agent wallet record that owns a given agent address, matching on
+/// either the buyer or the seller agent address. Used for reverse lookups when
+/// only the on-chain agent address is known.
+export async function findAgentWalletByAgentAddress(
+  agentAddress: string,
+): Promise<AgentWallets | null> {
+  const a = agentAddress.toLowerCase();
+  const all = await listAllAgentWallets();
+  return (
+    all.find((w) => w.buyerAddress === a || w.sellerAddress === a) ?? null
+  );
+}
+
 export async function saveAgentWallets(
   input: Omit<AgentWallets, 'createdAt'>,
 ): Promise<AgentWallets> {

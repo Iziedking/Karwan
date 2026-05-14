@@ -27,6 +27,8 @@ export type KarwanEventType =
   | 'deal.auto_released'
   | 'deal.disputed'
   | 'deal.cancelled'
+  | 'agent.activated'
+  | 'agent.withdrawal'
   | 'agent.skipped'
   | 'agent.declined'
   | 'agent.error';

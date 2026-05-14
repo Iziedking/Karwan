@@ -45,6 +45,10 @@ export async function ensureSchema(): Promise<void> {
       user_address TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS bridges (
+      bridge_id TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    );
   `);
   logger.info('postgres schema ensured');
 }

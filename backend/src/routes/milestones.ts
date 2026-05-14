@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { config } from '../config.js';
 import { readEscrow } from '../chain/contracts.js';
 import { releaseMilestone, finalizeIfSettled, ESCROW_FUNDED } from '../chain/settlement.js';
+import { findWalletIdForAgent } from '../agents/agent-registry.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -16,10 +16,6 @@ const inFlight = new Set<string>();
 export const milestonesRoutes = new Hono();
 
 milestonesRoutes.post('/release', async (c) => {
-  if (!config.BUYER_AGENT_WALLET_ID) {
-    return c.json({ error: 'BUYER_AGENT_WALLET_ID not configured' }, 500);
-  }
-
   let body;
   try {
     body = releaseSchema.parse(await c.req.json());
@@ -36,18 +32,26 @@ milestonesRoutes.post('/release', async (c) => {
     return c.json({ error: `escrow state must be Funded(1), got ${account.state}` }, 409);
   }
 
+  // Managed deals settle through the buyer agent that funded the escrow.
+  const walletId = await findWalletIdForAgent(account.buyer);
+  if (!walletId) {
+    return c.json({ error: 'no agent wallet on record for this job buyer' }, 409);
+  }
+
   inFlight.add(body.jobId);
-  releaseLoop(body.jobId, body.totalMilestones, account.milestonesReleased).finally(() => {
-    inFlight.delete(body.jobId);
-  });
+  releaseLoop(body.jobId, body.totalMilestones, account.milestonesReleased, walletId).finally(
+    () => {
+      inFlight.delete(body.jobId);
+    },
+  );
 
   return c.json({ accepted: true, jobId: body.jobId, totalMilestones: body.totalMilestones }, 202);
 });
 
-async function releaseLoop(jobId: string, total: number, startIndex: number) {
+async function releaseLoop(jobId: string, total: number, startIndex: number, walletId: string) {
   for (let i = startIndex; i < total; i++) {
     try {
-      await releaseMilestone(jobId, i);
+      await releaseMilestone(jobId, i, walletId);
     } catch (err) {
       logger.error({ jobId, i, err: (err as Error).message }, 'release failed');
       bus.emitEvent({
@@ -59,5 +63,5 @@ async function releaseLoop(jobId: string, total: number, startIndex: number) {
       return;
     }
   }
-  await finalizeIfSettled(jobId);
+  await finalizeIfSettled(jobId, walletId);
 }

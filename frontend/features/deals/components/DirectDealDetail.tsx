@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { Card } from '@/shared/components/Card';
+import { useActivation } from '@/shared/hooks/useActivation';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
@@ -21,10 +22,12 @@ const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 export function DirectDealDetail({ jobId }: { jobId: string }) {
   const { address, isConnected } = useAccount();
   const { deal, fetchState, refresh } = useDirectDeal(jobId);
+  const { activated } = useActivation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [deliveryProof, setDeliveryProof] = useState('');
+  const [showAcceptConsent, setShowAcceptConsent] = useState(false);
 
   // 1Hz tick so the review-window countdown stays live.
   useEffect(() => {
@@ -53,8 +56,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
   const fee = feeBreakdown(Number(deal.dealAmountUsdc));
 
-  async function onAccept() {
+  async function doAccept() {
     if (!address) return;
+    setShowAcceptConsent(false);
     setBusy(true);
     setError(null);
     try {
@@ -65,6 +69,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  // The seller's first accept provisions their agent wallets. If they have not
+  // activated yet, confirm that before the accept call does it server-side.
+  function requestAccept() {
+    if (activated) doAccept();
+    else setShowAcceptConsent(true);
   }
 
   async function onMarkDelivered() {
@@ -183,7 +194,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             <p className="eyebrow">Funding · 1.5% fee, split evenly</p>
           </div>
           <div className="px-5 py-3 space-y-2">
-            <MoneyRow label="Buyer funded" value={fee.fundedAmount} />
+            <MoneyRow label="Buyer funds" value={fee.fundedAmount} />
             <MoneyRow label="Seller receives" value={fee.sellerNet} strong />
             <MoneyRow label="Platform fee" value={fee.feeTotal} faint />
             <div className="pt-2 mt-1 border-t border-[var(--color-line)]">
@@ -243,7 +254,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             now={now}
             deliveryProof={deliveryProof}
             onDeliveryProofChange={setDeliveryProof}
-            onAccept={onAccept}
+            onAccept={requestAccept}
             onMarkDelivered={onMarkDelivered}
             onRelease={onRelease}
             onStillReviewing={onStillReviewing}
@@ -270,6 +281,72 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           )}
         </div>
       )}
+
+      {showAcceptConsent && (
+        <AcceptConsentModal
+          busy={busy}
+          onConfirm={doAccept}
+          onClose={() => setShowAcceptConsent(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/// Shown when a seller without agent wallets accepts a deal. Accepting will
+/// provision their agent wallet pair on the backend, so we confirm first.
+function AcceptConsentModal({
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  busy: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'color-mix(in oklab, var(--color-ink) 32%, transparent)' }}
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden"
+      >
+        <div className="px-6 pt-6 pb-4">
+          <p className="eyebrow">Circle wallets</p>
+          <h2 className="display text-[24px] leading-tight mt-1">An agent wallet will be created</h2>
+        </div>
+        <div className="px-6 pb-6 space-y-4">
+          <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
+            Accepting this deal provisions a Circle agent wallet pair tied to your wallet, then the
+            buyer&apos;s escrow funds against it. Your seller agent receives the payouts. This is a
+            one-time setup.
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={busy}
+              style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
+              className="flex-1 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
+            >
+              {busy ? 'Working…' : 'Proceed & accept'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="px-4 py-2.5 rounded-md text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] disabled:opacity-50 transition-colors"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -336,13 +413,13 @@ function ProgressTrack({ deal, stage }: { deal: { firstReleasePct: number }; sta
   const past = (...stages: DealStage[]) => !cancelled && !stages.includes(stage);
   const steps = [
     {
-      key: 'funded',
-      label: 'Escrow funded',
+      key: 'opened',
+      label: 'Deal opened',
       done: true,
     },
     {
       key: 'accepted',
-      label: 'Seller accepted the deal',
+      label: 'Seller accepted · escrow funded',
       done: past('awaiting-acceptance'),
     },
     {
@@ -469,8 +546,9 @@ function ActionPanel({
   if (stage === 'cancelled') {
     return (
       <p className="text-[13px] text-[var(--color-ink-dim)]">
-        Cancelled. The seller did not mark the work delivered by the deadline, so the escrow was
-        refunded to the buyer in full.
+        {deal.fundTxHash
+          ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
+          : 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.'}
       </p>
     );
   }
@@ -488,8 +566,9 @@ function ActionPanel({
       return (
         <div className="space-y-3">
           <p className="text-[13px] text-[var(--color-ink-dim)]">
-            Review the terms and the funding split above. Accepting confirms you agree to deliver
-            on these terms. The buyer cannot release funds until you have accepted and delivered.
+            Review the terms and the funding split above. Accepting agrees to deliver on these
+            terms and funds the escrow. The buyer cannot release funds until you have accepted and
+            delivered.
           </p>
           <BlackButton busy={busy} onClick={onAccept} label="Accept deal" />
         </div>
@@ -499,10 +578,10 @@ function ActionPanel({
     return (
       <div className="space-y-3">
         <p className="text-[13px] text-[var(--color-ink-dim)]">
-          Waiting for the seller to accept the deal terms. The escrow is funded and held. You can
-          cancel and reclaim it anytime until they accept.
+          Waiting for the seller to accept the deal terms. Nothing is funded yet; the escrow funds
+          when they accept. You can cancel anytime until then.
         </p>
-        <OutlineButton busy={busy} onClick={onCancel} label="Cancel & reclaim funds" critical />
+        <OutlineButton busy={busy} onClick={onCancel} label="Cancel deal" critical />
       </div>
     );
   }

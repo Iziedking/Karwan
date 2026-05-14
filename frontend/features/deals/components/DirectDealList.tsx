@@ -54,7 +54,7 @@ const STAGE_META: Record<DealStage, { label: string; color: string; bg: string }
     bg: 'var(--color-positive-soft)',
   },
   cancelled: {
-    label: 'Cancelled · refunded',
+    label: 'Cancelled',
     color: 'var(--color-ink-dim)',
     bg: 'var(--color-surface-2)',
   },

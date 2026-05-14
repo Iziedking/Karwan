@@ -11,14 +11,13 @@ import { milestonesRoutes } from './routes/milestones.js';
 import { balancesRoutes } from './routes/balances.js';
 import { activityRoutes } from './routes/activity.js';
 import { profileRoutes } from './routes/profile.js';
-import { bridgeRoutes } from './routes/bridge.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
-import { startBuyerAgent } from './agents/buyer.js';
-import { startSellerAgent } from './agents/seller.js';
+import { activationRoutes } from './routes/activation.js';
+import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
+import { startBuyerAgents } from './agents/buyer.js';
+import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
-import { loadBuyerProfile } from './agents/buyer-profile.js';
-import { loadSellerProfile } from './agents/seller-profile.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
 
 const app = new Hono();
@@ -53,6 +52,7 @@ app.route('/api/profile', profileRoutes);
 app.route('/api/bridge', bridgeRoutes);
 app.route('/api/reputation', reputationRoutes);
 app.route('/api/deals', dealsRoutes);
+app.route('/api/activation', activationRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');
@@ -72,14 +72,12 @@ function bootAgents() {
     appLogger.warn('OPENROUTER_API_KEY not set, agents will start but cannot score bids');
   }
   try {
-    const buyer = loadBuyerProfile();
-    stopFns.push(startBuyerAgent(buyer));
+    stopFns.push(startBuyerAgents());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'buyer agent not started');
   }
   try {
-    const seller = loadSellerProfile();
-    stopFns.push(startSellerAgent(seller));
+    stopFns.push(startSellerAgents());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'seller agent not started');
   }
@@ -104,6 +102,10 @@ async function boot() {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
   bootAgents();
+  // Resume any bridge that burned but never minted, e.g. across a restart.
+  resumePendingBridges().catch((err) =>
+    appLogger.error({ err: (err as Error).message }, 'bridge resume failed'),
+  );
 }
 
 void boot();

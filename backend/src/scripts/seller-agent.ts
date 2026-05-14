@@ -1,5 +1,4 @@
-import { startSellerAgent, backfillRecentJobs } from '../agents/seller.js';
-import { loadSellerProfile } from '../agents/seller-profile.js';
+import { startSellerAgents, backfillRecentJobs } from '../agents/seller.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -8,13 +7,11 @@ async function main() {
     throw new Error('OPENROUTER_API_KEY is required for agent LLM scoring');
   }
 
-  const seller = loadSellerProfile();
-
   if (process.env.BACKFILL === '1') {
-    await backfillRecentJobs(seller);
+    await backfillRecentJobs();
   }
 
-  const stop = startSellerAgent(seller);
+  const stop = startSellerAgents();
 
   for (const sig of ['SIGINT', 'SIGTERM'] as const) {
     process.on(sig, () => {

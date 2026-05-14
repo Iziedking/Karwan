@@ -14,12 +14,15 @@ import {
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import type { SellerProfile } from './seller-profile.js';
+import { resolveAllSellerProfiles, resolveSellerProfile, siblingSellerAddress } from './agent-registry.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
 const USDC_DECIMALS = 6;
 
 interface ActiveBid {
+  // The seller profile of the user whose seller agent placed this bid.
+  seller: SellerProfile;
   jobContext: JobContext;
   lastBidPrice: string;
   counterRounds: number;
@@ -27,9 +30,13 @@ interface ActiveBid {
   responding: boolean;
 }
 
-const activeBids = new Map<`0x${string}`, ActiveBid>();
-const seenJobs = new Set<string>();
+// Keyed by `${jobId}:${sellerAgentAddress}` since many sellers can bid on one job.
+const activeBids = new Map<string, ActiveBid>();
 const handledEvents = new Set<string>();
+
+function bidKey(jobId: string, sellerAddress: string): string {
+  return `${jobId.toLowerCase()}:${sellerAddress.toLowerCase()}`;
+}
 
 function logDedupeKey(label: string, log: Log): string {
   const tx = (log as unknown as { transactionHash?: string }).transactionHash ?? '';
@@ -37,18 +44,18 @@ function logDedupeKey(label: string, log: Log): string {
   return `${label}:${tx}:${idx}`;
 }
 
-export function startSellerAgent(seller: SellerProfile) {
-  logger.info(
-    { seller: seller.displayName, address: seller.address, jobBoard: jobBoard.address },
-    'seller agent starting',
-  );
+/// Starts the multi-tenant seller agent. One set of watchers serves every user:
+/// each posted job is evaluated by every activated user who has a seller
+/// profile, and each bids through their own seller agent wallet.
+export function startSellerAgents() {
+  logger.info({ jobBoard: jobBoard.address }, 'seller agent starting (multi-tenant)');
 
   const unwatchPosted = wsClient.watchContractEvent({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'JobPosted',
     onLogs: (logs) => {
-      for (const log of logs) safe('JobPosted', () => handleJobPosted(seller, log));
+      for (const log of logs) safe('JobPosted', () => handleJobPosted(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
@@ -58,7 +65,7 @@ export function startSellerAgent(seller: SellerProfile) {
     abi: jobBoardAbi,
     eventName: 'CounterOfferIssued',
     onLogs: (logs) => {
-      for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(seller, log));
+      for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
   });
@@ -84,17 +91,21 @@ function safe(label: string, fn: () => Promise<unknown>) {
     });
 }
 
-async function handleJobPosted(seller: SellerProfile, log: Log) {
+async function handleJobPosted(log: Log) {
   const dedupeKey = logDedupeKey('JobPosted', log);
   if (handledEvents.has(dedupeKey)) return;
   handledEvents.add(dedupeKey);
 
   const args = (log as unknown as { args: JobPostedArgs }).args;
   const jobId = args.jobId;
-  if (seenJobs.has(jobId)) return;
-  seenJobs.add(jobId);
 
-  const job: JobContext = {
+  const sellers = await resolveAllSellerProfiles();
+  if (sellers.length === 0) return;
+
+  // Keep a user's own seller agent out of their own auction.
+  const excludeSeller = (await siblingSellerAddress(args.buyer))?.toLowerCase();
+
+  const baseJob: JobContext = {
     jobId,
     buyer: args.buyer,
     budgetUsdc: formatUnits(args.budget, USDC_DECIMALS),
@@ -103,28 +114,40 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
     buyerReputationBps: 5000,
   };
 
-  const mismatch = profileMismatchReason(seller, job);
-  if (mismatch) {
-    logger.info({ jobId, reason: mismatch.reason }, 'skipping job');
-    bus.emitEvent({
-      type: 'agent.skipped',
-      jobId,
-      actor: 'seller',
-      payload: mismatch,
-    });
-    return;
-  }
-
+  // The buyer reputation is the same for every seller, so read it once.
   try {
-    job.buyerReputationBps = Number(
+    baseJob.buyerReputationBps = Number(
       await reputation.read.getReputationScore([args.buyer as `0x${string}`]),
     );
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'reputation lookup failed, using neutral');
   }
 
+  for (const seller of sellers) {
+    if (seller.address.toLowerCase() === excludeSeller) continue;
+    if (activeBids.has(bidKey(jobId, seller.address))) continue;
+    await evaluateAndBid(seller, { ...baseJob });
+  }
+}
+
+async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
+  const mismatch = profileMismatchReason(seller, job);
+  if (mismatch) {
+    logger.info({ jobId: job.jobId, seller: seller.address, reason: mismatch.reason }, 'skipping job');
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: mismatch,
+    });
+    return;
+  }
+
   if (job.buyerReputationBps < 3000) {
-    logger.info({ jobId, score: job.buyerReputationBps }, 'skipping: buyer reputation too low');
+    logger.info(
+      { jobId: job.jobId, seller: seller.address, score: job.buyerReputationBps },
+      'skipping: buyer reputation too low',
+    );
     return;
   }
 
@@ -137,17 +160,17 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
     });
     decision = result.object;
   } catch (err) {
-    logger.warn({ jobId, err: (err as Error).message }, 'llm output did not match schema');
+    logger.warn({ jobId: job.jobId, err: (err as Error).message }, 'llm output did not match schema');
     return;
   }
 
-  logger.info({ jobId, decision }, 'llm decision');
+  logger.info({ jobId: job.jobId, seller: seller.address, decision }, 'llm decision');
 
   if (decision.decision === 'skip' || decision.confidence < seller.confidenceThreshold) {
-    logger.info({ jobId, confidence: decision.confidence }, 'skipping: low confidence');
+    logger.info({ jobId: job.jobId, confidence: decision.confidence }, 'skipping: low confidence');
     bus.emitEvent({
       type: 'agent.skipped',
-      jobId,
+      jobId: job.jobId,
       actor: 'seller',
       payload: { reason: 'low-confidence-or-skip', decision },
     });
@@ -156,7 +179,7 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
 
   const priceUsdc = Number(decision.suggestedPrice);
   if (priceUsdc < seller.minBudgetUsdc || priceUsdc > seller.maxBudgetUsdc) {
-    logger.warn({ jobId, priceUsdc }, 'skipping: LLM price outside seller range');
+    logger.warn({ jobId: job.jobId, priceUsdc }, 'skipping: LLM price outside seller range');
     return;
   }
 
@@ -170,12 +193,13 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
       walletId: seller.walletId,
       contractAddress: jobBoard.address,
       abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
-      abiParameters: [jobId, priceWei.toString(), deadlineUnix.toString()],
+      abiParameters: [job.jobId, priceWei.toString(), deadlineUnix.toString()],
     },
-    `submitBid(${jobId})`,
+    `submitBid(${job.jobId})`,
   );
 
-  activeBids.set(jobId, {
+  activeBids.set(bidKey(job.jobId, seller.address), {
+    seller,
     jobContext: job,
     lastBidPrice: decision.suggestedPrice,
     counterRounds: 0,
@@ -183,12 +207,13 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
     responding: false,
   });
 
-  logger.info({ jobId, ...txResult }, 'bid submitted');
+  logger.info({ jobId: job.jobId, seller: seller.address, ...txResult }, 'bid submitted');
   bus.emitEvent({
     type: 'bid.submitted',
-    jobId,
+    jobId: job.jobId,
     actor: 'seller',
     payload: {
+      seller: seller.address,
       priceUsdc: decision.suggestedPrice,
       deadlineUnix,
       txHash: txResult.txHash,
@@ -196,15 +221,18 @@ async function handleJobPosted(seller: SellerProfile, log: Log) {
   });
 }
 
-async function handleCounterOffer(seller: SellerProfile, log: Log) {
+async function handleCounterOffer(log: Log) {
   const args = (log as unknown as { args: CounterOfferIssuedArgs }).args;
-  if (args.seller.toLowerCase() !== seller.address.toLowerCase()) return;
 
   const dedupeKey = logDedupeKey('CounterOfferIssued', log);
   if (handledEvents.has(dedupeKey)) return;
   handledEvents.add(dedupeKey);
 
-  const active = activeBids.get(args.jobId);
+  // The counter names a seller agent address; only act if it is one of ours.
+  const seller = await resolveSellerProfile(args.seller);
+  if (!seller) return;
+
+  const active = activeBids.get(bidKey(args.jobId, seller.address));
   if (!active || active.finalized) return;
   // Per-(jobId,seller) mutex. If a redelivered event reaches us while we're already
   // running the LLM or broadcasting a respondToCounter tx, drop it.
@@ -255,7 +283,7 @@ async function runCounterEvaluation(
     return;
   }
 
-  logger.info({ jobId: args.jobId, decision }, 'counter-offer evaluated');
+  logger.info({ jobId: args.jobId, seller: seller.address, decision }, 'counter-offer evaluated');
 
   if (decision.decision === 'accept') {
     const result = await executeContractCall(
@@ -393,6 +421,7 @@ interface CounterOfferIssuedArgs {
 
 export interface SellerActiveBidSnapshot {
   jobId: string;
+  seller: string;
   jobBuyer: string;
   budgetUsdc: string;
   deadlineUnix: number;
@@ -401,10 +430,18 @@ export interface SellerActiveBidSnapshot {
   finalized: boolean;
 }
 
-export function getSellerSnapshot(): { activeBids: SellerActiveBidSnapshot[] } {
+/// Snapshot of active bids. Pass a seller agent address to scope it to the bids
+/// that agent placed.
+export function getSellerSnapshot(
+  filterSellerAddress?: string,
+): { activeBids: SellerActiveBidSnapshot[] } {
+  const f = filterSellerAddress?.toLowerCase();
   return {
-    activeBids: [...activeBids.entries()].map(([jobId, b]) => ({
-      jobId,
+    activeBids: [...activeBids.values()]
+      .filter((b) => !f || b.seller.address.toLowerCase() === f)
+      .map((b) => ({
+      jobId: b.jobContext.jobId,
+      seller: b.seller.address,
       jobBuyer: b.jobContext.buyer,
       budgetUsdc: b.jobContext.budgetUsdc,
       deadlineUnix: b.jobContext.deadlineUnix,
@@ -415,7 +452,9 @@ export function getSellerSnapshot(): { activeBids: SellerActiveBidSnapshot[] } {
   };
 }
 
-export async function backfillRecentJobs(seller: SellerProfile, fromBlock?: bigint) {
+/// Replays recent JobPosted logs through the live handler, so a freshly started
+/// agent picks up jobs posted while it was down.
+export async function backfillRecentJobs(fromBlock?: bigint) {
   const latest = await publicClient.getBlockNumber();
   const from = fromBlock ?? (latest > 10_000n ? latest - 10_000n : 0n);
   const logs = await publicClient.getLogs({
@@ -424,6 +463,6 @@ export async function backfillRecentJobs(seller: SellerProfile, fromBlock?: bigi
     fromBlock: from,
     toBlock: latest,
   });
-  logger.info({ count: logs.length, fromBlock: from.toString() }, 'backfilling jobs');
-  for (const log of logs) await handleJobPosted(seller, log as unknown as Log);
+  logger.info({ count: logs.length, fromBlock: from.toString() }, 'seller backfilling jobs');
+  for (const log of logs) await handleJobPosted(log as unknown as Log);
 }

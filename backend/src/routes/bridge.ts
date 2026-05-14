@@ -2,10 +2,43 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { executeContractCall } from '../chain/txs.js';
+import { publicClient } from '../chain/client.js';
+import { createBridge, patchBridge, listPendingBridges } from '../db/bridges.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
 const SOURCE_DOMAINS = new Set([0, 6]);
+
+// CCTP V2 MessageTransmitter marks a nonce non-zero once its message has been
+// received, so the same burn cannot mint twice. We read this to keep relays
+// idempotent across restarts.
+const messageTransmitterAbi = [
+  {
+    type: 'function',
+    name: 'usedNonces',
+    stateMutability: 'view',
+    inputs: [{ name: 'nonce', type: 'bytes32' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
+/// True if this CCTP message has already been received on Arc. Used to skip a
+/// redundant receiveMessage that would otherwise revert on chain.
+async function isMessageAlreadyReceived(eventNonce: string): Promise<boolean> {
+  try {
+    const used = (await publicClient.readContract({
+      address: config.CCTP_MESSAGE_TRANSMITTER_ADDR as `0x${string}`,
+      abi: messageTransmitterAbi,
+      functionName: 'usedNonces',
+      args: [eventNonce as `0x${string}`],
+    })) as bigint;
+    return used !== 0n;
+  } catch (err) {
+    // If the read fails we cannot tell; let receiveMessage be authoritative.
+    logger.warn({ err: (err as Error).message }, 'usedNonces check failed');
+    return false;
+  }
+}
 
 const relaySchema = z.object({
   bridgeId: z.string().min(1),
@@ -20,7 +53,7 @@ const relaySchema = z.object({
 const inFlight = new Set<string>();
 
 const POLL_INTERVAL_MS = 5_000;
-const POLL_TIMEOUT_MS = 25 * 60 * 1000; // 25 min; CCTP V2 fast finality is ~13-19 min on testnet
+const POLL_TIMEOUT_MS = 25 * 60 * 1000; // 25 min; CCTP V2 standard finality is ~13-19 min on testnet
 
 export const bridgeRoutes = new Hono();
 
@@ -40,7 +73,16 @@ bridgeRoutes.post('/relay', async (c) => {
     return c.json({ accepted: false, reason: 'bridge already in progress' }, 409);
   }
 
-  inFlight.add(body.bridgeId);
+  // Persist before starting the loop, so a backend restart can resume the relay
+  // instead of stranding the burn.
+  await createBridge({
+    bridgeId: body.bridgeId,
+    sourceDomain: body.sourceDomain,
+    sourceTxHash: body.sourceTxHash,
+    amountUsdc: body.amountUsdc,
+    mintRecipient: body.mintRecipient,
+  });
+
   bus.emitEvent({
     type: 'bridge.burned',
     actor: 'buyer',
@@ -53,7 +95,7 @@ bridgeRoutes.post('/relay', async (c) => {
     },
   });
 
-  relayLoop(body).finally(() => inFlight.delete(body.bridgeId));
+  startRelay(body);
   return c.json({ accepted: true, bridgeId: body.bridgeId }, 202);
 });
 
@@ -65,22 +107,69 @@ interface RelayInput {
   mintRecipient: string;
 }
 
+/// Starts the relay loop for one bridge, guarded so the same bridge is never
+/// relayed twice concurrently.
+function startRelay(input: RelayInput) {
+  if (inFlight.has(input.bridgeId)) return;
+  inFlight.add(input.bridgeId);
+  relayLoop(input).finally(() => inFlight.delete(input.bridgeId));
+}
+
+/// On boot, pick up any bridge that burned but never minted or errored, and
+/// resume its relay. This is what keeps a restart from stranding a bridge.
+export async function resumePendingBridges(): Promise<void> {
+  const pending = await listPendingBridges();
+  if (pending.length === 0) return;
+  logger.info({ count: pending.length }, 'resuming pending bridge relays');
+  for (const b of pending) {
+    startRelay({
+      bridgeId: b.bridgeId,
+      sourceDomain: b.sourceDomain,
+      sourceTxHash: b.sourceTxHash,
+      amountUsdc: b.amountUsdc,
+      mintRecipient: b.mintRecipient,
+    });
+  }
+}
+
+/// Marks a bridge minted and emits the event. Used both after a successful
+/// receiveMessage and when a relay finds the message was already received.
+async function markBridgeMinted(input: RelayInput, txHash?: string) {
+  await patchBridge(input.bridgeId, { status: 'minted', ...(txHash ? { mintTxHash: txHash } : {}) });
+  bus.emitEvent({
+    type: 'bridge.minted',
+    actor: 'buyer',
+    payload: {
+      bridgeId: input.bridgeId,
+      amountUsdc: input.amountUsdc,
+      mintRecipient: input.mintRecipient,
+      sourceTxHash: input.sourceTxHash,
+      ...(txHash ? { txHash } : { alreadyMinted: true }),
+    },
+  });
+}
+
 async function relayLoop(input: RelayInput) {
   const startedAt = Date.now();
   const url = `${config.IRIS_API_BASE}/v2/messages/${input.sourceDomain}?transactionHash=${input.sourceTxHash}`;
 
-  let attestation: { message: string; attestation: string } | null = null;
+  let attestation: { message: string; attestation: string; eventNonce?: string } | null = null;
 
   while (Date.now() - startedAt < POLL_TIMEOUT_MS) {
     try {
       const res = await fetch(url);
       if (res.ok) {
         const data = (await res.json()) as {
-          messages?: Array<{ status?: string; message?: string; attestation?: string }>;
+          messages?: Array<{
+            status?: string;
+            message?: string;
+            attestation?: string;
+            eventNonce?: string;
+          }>;
         };
         const m = data.messages?.[0];
         if (m?.status === 'complete' && m.message && m.attestation) {
-          attestation = { message: m.message, attestation: m.attestation };
+          attestation = { message: m.message, attestation: m.attestation, eventNonce: m.eventNonce };
           break;
         }
       } else if (res.status !== 404) {
@@ -95,6 +184,7 @@ async function relayLoop(input: RelayInput) {
   if (!attestation) {
     const message = 'Attestation did not arrive within poll window';
     logger.error({ bridgeId: input.bridgeId, sourceTxHash: input.sourceTxHash }, message);
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
       actor: 'buyer',
@@ -109,6 +199,14 @@ async function relayLoop(input: RelayInput) {
     payload: { bridgeId: input.bridgeId, sourceTxHash: input.sourceTxHash },
   });
 
+  // If a prior relay already minted this (e.g. across a restart), skip the call.
+  // receiveMessage would just revert on a consumed nonce.
+  if (attestation.eventNonce && (await isMessageAlreadyReceived(attestation.eventNonce))) {
+    logger.info({ bridgeId: input.bridgeId }, 'message already received on chain, marking minted');
+    await markBridgeMinted(input);
+    return;
+  }
+
   try {
     const result = await executeContractCall(
       {
@@ -119,20 +217,21 @@ async function relayLoop(input: RelayInput) {
       },
       `cctp.receiveMessage(${input.bridgeId})`,
     );
-    bus.emitEvent({
-      type: 'bridge.minted',
-      actor: 'buyer',
-      payload: {
-        bridgeId: input.bridgeId,
-        amountUsdc: input.amountUsdc,
-        mintRecipient: input.mintRecipient,
-        txHash: result.txHash,
-        sourceTxHash: input.sourceTxHash,
-      },
-    });
+    await markBridgeMinted(input, result.txHash);
   } catch (err) {
     const message = (err as Error).message;
+    // A revert on an already-attested message is almost always a nonce that was
+    // consumed by a concurrent relay. Re-check before declaring a real failure.
+    if (attestation.eventNonce && (await isMessageAlreadyReceived(attestation.eventNonce))) {
+      logger.info(
+        { bridgeId: input.bridgeId },
+        'receiveMessage reverted but message is already received, marking minted',
+      );
+      await markBridgeMinted(input);
+      return;
+    }
     logger.error({ bridgeId: input.bridgeId, err: message }, 'receiveMessage failed');
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
       actor: 'buyer',

@@ -12,6 +12,14 @@ export interface DirectDeal {
   // buyer agent; this is who the deal belongs to for dashboards and auth checks.
   buyer: string;
   seller: string;
+  // Per-user agent wallets bound to this deal at creation. The buyer agent funds
+  // the escrow and signs releases; the seller agent is named as the on-chain
+  // seller and receives payouts, and signs a seller appeal. Optional so deals
+  // created before per-user wallets still load; routes guard on their presence.
+  buyerAgentWalletId?: string;
+  buyerAgentAddress?: string;
+  sellerAgentWalletId?: string;
+  sellerAgentAddress?: string;
   dealAmountUsdc: string;
   firstReleasePct: number;
   deadlineUnix: number;

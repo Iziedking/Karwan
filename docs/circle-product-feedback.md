@@ -16,18 +16,23 @@ What worked:
 
 Friction:
 
-- The transaction API is async with no webhook in our setup, so every call
-  becomes a poll loop against `getTransaction`. We poll up to 90 seconds. A
-  push notification or a long-poll option would remove that loop.
-- A submitted transaction returns an id immediately but no `txHash` until it
-  reaches `COMPLETE`. Surfacing the hash at broadcast time would let a UI link
-  to the explorer sooner.
+- The transaction API is async. We poll `getTransaction` up to 90 seconds per
+  call. Circle does offer webhook notifications for transaction state changes,
+  so this is on us for the hackathon timeline, not a gap in the product. The
+  poll loop was the faster thing to ship without a public endpoint.
+- `createContractExecutionTransaction` returns only `{ id, state: 'INITIATED' }`.
+  The `txHash` shows up later through `getTransaction`. The docs do not say which
+  state first populates it. Since the lifecycle is
+  INITIATED -> CLEARED -> QUEUED -> SENT -> CONFIRMED -> COMPLETE and `SENT`
+  means submitted to the chain, the hash should be readable at `SENT`. Our poll
+  loop only reads it on `COMPLETE`, so we never confirmed the earliest state.
 
 Asks:
 
-- An optional webhook or SSE stream for transaction state changes.
-- Return the `txHash` as soon as the transaction is broadcast, not only on
-  completion.
+- State in the API reference at which transaction state `txHash` is first
+  populated, so a UI can link to the explorer as soon as the tx is broadcast.
+- An SSE stream or long-poll option, as a lighter alternative to standing up a
+  webhook endpoint for local development.
 
 ## USDC on Arc
 
@@ -63,13 +68,18 @@ What worked:
 
 Friction:
 
-- Sandbox attestation latency was variable, roughly 10 to 19 minutes in our
-  runs. Our relay polls IRIS for up to 25 minutes before giving up. A rough
-  expected-latency figure in the docs would help set timeouts.
+- We used CCTP V2 Standard Transfer, which waits for source-chain hard
+  finality. Sandbox attestation latency was variable, roughly 10 to 19 minutes
+  in our runs, which lines up with the documented finality windows. Our relay
+  polls IRIS for up to 25 minutes before giving up. Fast Transfer would cut this
+  to seconds; we stayed on Standard Transfer to keep the burn-and-relay path
+  simple for the hackathon.
+- A rough expected-latency figure per source chain, surfaced near the IRIS
+  polling docs, would help set timeouts without trial and error.
 
 Asks:
 
-- A documented latency range for sandbox attestations.
+- A per-source-chain sandbox attestation latency range in the docs.
 - A webhook for attestation-ready, as an alternative to polling IRIS.
 
 ## Arc Testnet

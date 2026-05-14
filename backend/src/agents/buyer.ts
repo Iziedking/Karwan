@@ -22,6 +22,7 @@ import {
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
+import { resolveBuyerProfile } from './agent-registry.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -40,6 +41,9 @@ interface Bid {
 
 interface JobState {
   jobId: `0x${string}`;
+  // The buyer profile of the user whose buyer agent posted this job. Carried on
+  // the state so bid/counter handlers do not have to re-resolve it per event.
+  buyer: BuyerProfile;
   context: JobContext;
   bids: Map<`0x${string}`, Bid>;
   collectionTimer: NodeJS.Timeout | null;
@@ -59,17 +63,13 @@ function logDedupeKey(label: string, log: Log): string {
   return `${label}:${tx}:${idx}`;
 }
 
-export function startBuyerAgent(buyer: BuyerProfile) {
-  validateMilestonePcts(buyer.milestonePcts);
+/// Starts the multi-tenant buyer agent. One set of watchers serves every user:
+/// each posted job is matched to the buyer profile of whoever's buyer agent
+/// posted it, and that profile drives the auction.
+export function startBuyerAgents() {
   logger.info(
-    {
-      buyer: buyer.displayName,
-      address: buyer.address,
-      jobBoard: jobBoard.address,
-      escrow: escrow.address,
-      milestonePcts: buyer.milestonePcts,
-    },
-    'buyer agent starting',
+    { jobBoard: jobBoard.address, escrow: escrow.address },
+    'buyer agent starting (multi-tenant)',
   );
 
   const unwatchPosted = wsClient.watchContractEvent({
@@ -77,7 +77,7 @@ export function startBuyerAgent(buyer: BuyerProfile) {
     abi: jobBoardAbi,
     eventName: 'JobPosted',
     onLogs: (logs) => {
-      for (const log of logs) safe('JobPosted', () => Promise.resolve(handleJobPosted(buyer, log)));
+      for (const log of logs) safe('JobPosted', () => handleJobPosted(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
@@ -87,7 +87,7 @@ export function startBuyerAgent(buyer: BuyerProfile) {
     abi: jobBoardAbi,
     eventName: 'BidSubmitted',
     onLogs: (logs) => {
-      for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(buyer, log));
+      for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
   });
@@ -97,7 +97,7 @@ export function startBuyerAgent(buyer: BuyerProfile) {
     abi: jobBoardAbi,
     eventName: 'CounterResponse',
     onLogs: (logs) => {
-      for (const log of logs) safe('CounterResponse', () => handleCounterResponse(buyer, log));
+      for (const log of logs) safe('CounterResponse', () => handleCounterResponse(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
   });
@@ -127,25 +127,21 @@ function safe(label: string, fn: () => Promise<unknown>) {
     });
 }
 
-function validateMilestonePcts(pcts: number[]) {
-  if (pcts.length < 1 || pcts.length > 4) {
-    throw new Error(`milestonePcts length must be 1..4, got ${pcts.length}`);
-  }
-  const sum = pcts.reduce((a, b) => a + b, 0);
-  if (sum !== 100) throw new Error(`milestonePcts must sum to 100, got ${sum}`);
-}
-
-function handleJobPosted(buyer: BuyerProfile, log: Log) {
+async function handleJobPosted(log: Log) {
   const dedupeKey = logDedupeKey('JobPosted', log);
   if (handledEvents.has(dedupeKey)) return;
   handledEvents.add(dedupeKey);
 
   const args = (log as unknown as { args: JobPostedArgs }).args;
-  if (args.buyer.toLowerCase() !== buyer.address.toLowerCase()) return;
   if (jobs.has(args.jobId)) return;
+
+  // Only manage jobs posted by one of our users' buyer agents.
+  const buyer = await resolveBuyerProfile(args.buyer);
+  if (!buyer) return;
 
   const state: JobState = {
     jobId: args.jobId,
+    buyer,
     context: {
       jobId: args.jobId,
       buyer: args.buyer,
@@ -163,7 +159,10 @@ function handleJobPosted(buyer: BuyerProfile, log: Log) {
     escrowFunded: false,
   };
   jobs.set(args.jobId, state);
-  logger.info({ jobId: args.jobId, budget: state.context.budgetUsdc }, 'tracking own job');
+  logger.info(
+    { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName },
+    'tracking job',
+  );
   bus.emitEvent({
     type: 'job.tracked',
     jobId: args.jobId,
@@ -172,7 +171,7 @@ function handleJobPosted(buyer: BuyerProfile, log: Log) {
   });
 }
 
-async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
+async function handleBidSubmitted(log: Log) {
   const dedupeKey = logDedupeKey('BidSubmitted', log);
   if (handledEvents.has(dedupeKey)) return;
   handledEvents.add(dedupeKey);
@@ -181,6 +180,7 @@ async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
   const state = jobs.get(args.jobId);
   if (!state || state.finalized) return;
   if (state.bids.has(args.seller)) return;
+  const buyer = state.buyer;
 
   let sellerReputationBps = 5000;
   try {
@@ -231,7 +231,7 @@ async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
 
   if (!state.collectionTimer && !state.collectionFired) {
     state.collectionTimer = setTimeout(
-      () => finalizeBidCollection(buyer, state),
+      () => finalizeBidCollection(state),
       buyer.bidCollectionSeconds * 1000,
     );
     logger.info(
@@ -241,7 +241,7 @@ async function handleBidSubmitted(buyer: BuyerProfile, log: Log) {
   }
 }
 
-async function finalizeBidCollection(buyer: BuyerProfile, state: JobState) {
+async function finalizeBidCollection(state: JobState) {
   if (state.collectionFired || state.finalized) return;
   state.collectionFired = true;
   state.collectionTimer = null;
@@ -261,10 +261,11 @@ async function finalizeBidCollection(buyer: BuyerProfile, state: JobState) {
     'top bid picked, issuing counter',
   );
 
-  await issueCounter(buyer, state, top);
+  await issueCounter(state, top);
 }
 
-async function issueCounter(buyer: BuyerProfile, state: JobState, bid: Bid) {
+async function issueCounter(state: JobState, bid: Bid) {
+  const buyer = state.buyer;
   if (!bid.suggestedCounterPrice || !bid.suggestedCounterDeadlineDays) {
     logger.warn({ jobId: state.jobId }, 'bid missing counter suggestion');
     return;
@@ -315,7 +316,7 @@ async function issueCounter(buyer: BuyerProfile, state: JobState, bid: Bid) {
   });
 }
 
-async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
+async function handleCounterResponse(log: Log) {
   const dedupeKey = logDedupeKey('CounterResponse', log);
   if (handledEvents.has(dedupeKey)) return;
   handledEvents.add(dedupeKey);
@@ -323,10 +324,11 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
   const args = (log as unknown as { args: CounterResponseArgs }).args;
   const state = jobs.get(args.jobId);
   if (!state || state.finalized) return;
+  const buyer = state.buyer;
 
   if (args.accepted) {
     const agreedPriceUsdc = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
-    await acceptAndFund(buyer, state, args.seller, agreedPriceUsdc);
+    await acceptAndFund(state, args.seller, agreedPriceUsdc);
     return;
   }
 
@@ -369,7 +371,7 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
   }
 
   if (decision.decision === 'accept') {
-    await acceptAndFund(buyer, state, args.seller, sellerCounterPrice);
+    await acceptAndFund(state, args.seller, sellerCounterPrice);
     return;
   }
 
@@ -392,7 +394,7 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
     return;
   }
 
-  await issueCounter(buyer, state, {
+  await issueCounter(state, {
     seller: args.seller,
     priceUsdc: sellerCounterPrice,
     priceWei: args.newPrice,
@@ -403,11 +405,11 @@ async function handleCounterResponse(buyer: BuyerProfile, log: Log) {
 }
 
 async function acceptAndFund(
-  buyer: BuyerProfile,
   state: JobState,
   seller: `0x${string}`,
   agreedPriceUsdc: string,
 ) {
+  const buyer = state.buyer;
   state.finalized = true;
 
   const acceptResult = await executeContractCall(
@@ -428,16 +430,16 @@ async function acceptAndFund(
   });
 
   const priceWei = parseUnits(agreedPriceUsdc, USDC_DECIMALS);
-  await fundEscrow(buyer, state, seller, priceWei);
+  await fundEscrow(state, seller, priceWei);
 }
 
 async function fundEscrow(
-  buyer: BuyerProfile,
   state: JobState,
   seller: `0x${string}`,
   priceWei: bigint,
 ) {
   if (state.escrowFunded) return;
+  const buyer = state.buyer;
 
   // The escrow pulls dealAmount + the buyer's half of the platform fee, so the
   // approval must cover the full funded amount, not just the deal price.
@@ -515,9 +517,14 @@ export interface BuyerJobSnapshot {
   counterRoundsBySeller: Record<string, number>;
 }
 
-export function getBuyerSnapshot(): { jobs: BuyerJobSnapshot[] } {
+/// Snapshot of tracked managed jobs. Pass a buyer agent address to scope it to
+/// the jobs that agent posted.
+export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobSnapshot[] } {
+  const f = filterBuyerAddress?.toLowerCase();
   return {
-    jobs: [...jobs.values()].map((s) => ({
+    jobs: [...jobs.values()]
+      .filter((s) => !f || s.context.buyer.toLowerCase() === f)
+      .map((s) => ({
       jobId: s.jobId,
       buyer: s.context.buyer,
       budgetUsdc: s.context.budgetUsdc,
@@ -545,7 +552,9 @@ export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
   return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
 }
 
-export async function backfillRecentJobsForBuyer(buyer: BuyerProfile, fromBlock?: bigint) {
+/// Replays recent JobPosted logs through the live handler, so a freshly started
+/// agent picks up jobs posted while it was down.
+export async function backfillRecentJobs(fromBlock?: bigint) {
   const latest = await publicClient.getBlockNumber();
   const from = fromBlock ?? (latest > 10_000n ? latest - 10_000n : 0n);
   const logs = await publicClient.getLogs({
@@ -554,8 +563,8 @@ export async function backfillRecentJobsForBuyer(buyer: BuyerProfile, fromBlock?
     fromBlock: from,
     toBlock: latest,
   });
-  logger.info({ count: logs.length }, 'buyer backfilling own jobs');
-  for (const log of logs) handleJobPosted(buyer, log as unknown as Log);
+  logger.info({ count: logs.length }, 'buyer backfilling jobs');
+  for (const log of logs) await handleJobPosted(log as unknown as Log);
 }
 
 interface JobPostedArgs {

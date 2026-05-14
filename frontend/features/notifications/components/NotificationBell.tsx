@@ -7,7 +7,7 @@ import { relativeTime } from '@/shared/utils/format';
 
 export function NotificationBell() {
   const { isConnected } = useAccount();
-  const { notifications, unreadCount, markAllRead, markRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -31,15 +31,10 @@ export function NotificationBell() {
 
   if (!isConnected) return null;
 
+  // Opening the bell does not clear anything. A notification is marked read only
+  // when the user clicks it.
   function toggle() {
-    setOpen((s) => {
-      const next = !s;
-      if (next && unreadCount > 0) {
-        // Give the user a beat to see what's unread before clearing the badge.
-        setTimeout(markAllRead, 1200);
-      }
-      return next;
-    });
+    setOpen((s) => !s);
   }
 
   return (

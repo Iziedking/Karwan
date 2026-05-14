@@ -164,10 +164,6 @@ export function useNotifications() {
     };
   }, [address, isConnected]);
 
-  const markAllRead = useCallback(() => {
-    setNotifications((list) => list.map((n) => (n.read ? n : { ...n, read: true })));
-  }, []);
-
   const markRead = useCallback((id: string) => {
     setNotifications((list) =>
       list.map((n) => (n.id === id ? { ...n, read: true } : n)),
@@ -178,5 +174,5 @@ export function useNotifications() {
 
   const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 
-  return { notifications, unreadCount, markAllRead, markRead, clearAll };
+  return { notifications, unreadCount, markRead, clearAll };
 }

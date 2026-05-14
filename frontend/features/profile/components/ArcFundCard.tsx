@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { Card } from '@/shared/components/Card';
+import { CopyAddress } from '@/shared/components/CopyAddress';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
@@ -202,9 +203,12 @@ export function ArcFundCard({
                         <p className="text-[13px] font-semibold tracking-tight leading-tight">
                           {o.label}
                         </p>
-                        <p className="text-[10px] mono text-[var(--color-ink-faint)] mt-0.5 truncate">
-                          {o.address ? shortAddress(o.address) : 'not configured'}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] mono text-[var(--color-ink-faint)] truncate">
+                            {o.address ? shortAddress(o.address) : 'not configured'}
+                          </span>
+                          {o.address && <CopyAddress value={o.address} />}
+                        </div>
                       </div>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-[var(--color-line)] flex items-baseline justify-between gap-2">

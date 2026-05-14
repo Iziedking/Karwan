@@ -187,6 +187,9 @@ export function DirectDealForm() {
               Released {firstPct}% on delivery · {100 - firstPct}% on your verification
             </p>
           )}
+          <p className="text-[11px] text-[var(--color-ink-faint)]">
+            The escrow funds when the seller accepts, not now.
+          </p>
         </div>
       )}
 
@@ -202,7 +205,7 @@ export function DirectDealForm() {
             <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         )}
-        {submitting ? 'Funding escrow on Arc…' : 'Open deal and fund escrow'}
+        {submitting ? 'Opening deal…' : 'Open deal'}
       </button>
       {error && <p className="text-sm text-[var(--color-critical)]">Couldn&apos;t open deal: {error}</p>}
     </form>

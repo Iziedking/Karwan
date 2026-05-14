@@ -1,4 +1,3 @@
-import { config } from '../config.js';
 import { escrow, reputation, readEscrow } from './contracts.js';
 import { executeContractCall } from './txs.js';
 import { bus } from '../events.js';
@@ -21,15 +20,17 @@ const OUTCOME_LABEL: Record<ReputationOutcome, string> = {
 export const ESCROW_FUNDED = 1;
 export const ESCROW_SETTLED = 2;
 
-/// Releases a single milestone via the buyer agent wallet and emits the event.
-/// Returns the tx hash.
-export async function releaseMilestone(jobId: string, index: number): Promise<string> {
-  if (!config.BUYER_AGENT_WALLET_ID) {
-    throw new Error('BUYER_AGENT_WALLET_ID not configured');
-  }
+/// Releases a single milestone via the given buyer agent wallet and emits the
+/// event. The wallet must be the escrow's on-chain buyer. Returns the tx hash.
+export async function releaseMilestone(
+  jobId: string,
+  index: number,
+  walletId: string,
+): Promise<string> {
+  if (!walletId) throw new Error('release requires a buyer agent wallet id');
   const result = await executeContractCall(
     {
-      walletId: config.BUYER_AGENT_WALLET_ID,
+      walletId,
       contractAddress: escrow.address,
       abiFunctionSignature: 'releaseProgress(bytes32,uint8)',
       abiParameters: [jobId, index.toString()],
@@ -46,8 +47,12 @@ export async function releaseMilestone(jobId: string, index: number): Promise<st
 }
 
 /// Reads the escrow on chain; if it has reached the Settled state, emits the
-/// settled event and records reputation. Safe to call after any release.
-export async function finalizeIfSettled(jobId: string): Promise<boolean> {
+/// settled event and records reputation via the buyer agent wallet. Safe to
+/// call after any release.
+export async function finalizeIfSettled(
+  jobId: string,
+  walletId: string,
+): Promise<boolean> {
   const account = await readEscrow(jobId);
   if (account.state !== ESCROW_SETTLED) return false;
   bus.emitEvent({
@@ -59,19 +64,20 @@ export async function finalizeIfSettled(jobId: string): Promise<boolean> {
       feeTotalWei: account.feeReleased.toString(),
     },
   });
-  await recordReputation(jobId);
+  await recordReputation(jobId, walletId);
   return true;
 }
 
-/// Records a deal outcome on the reputation registry. Outcome defaults to
-/// success; pass Failed for a buyer cancel (the seller never delivered) or
-/// DisputeResolved for an appeal. Idempotent: the contract locks one record per
-/// jobId, and we skip if already recorded.
+/// Records a deal outcome on the reputation registry, rated by the buyer agent
+/// wallet. Outcome defaults to success; pass Failed for a buyer cancel (the
+/// seller never delivered) or DisputeResolved for an appeal. Idempotent: the
+/// contract locks one record per jobId, and we skip if already recorded.
 export async function recordReputation(
   jobId: string,
+  walletId: string,
   outcome: ReputationOutcome = OUTCOME_SUCCESS,
 ): Promise<void> {
-  if (!config.BUYER_AGENT_WALLET_ID) return;
+  if (!walletId) return;
   const label = OUTCOME_LABEL[outcome];
   try {
     const { buyer, seller } = await readEscrow(jobId);
@@ -85,7 +91,7 @@ export async function recordReputation(
 
     const result = await executeContractCall(
       {
-        walletId: config.BUYER_AGENT_WALLET_ID,
+        walletId,
         contractAddress: reputation.address,
         abiFunctionSignature: 'recordCompletion(bytes32,address,address,uint8)',
         abiParameters: [jobId, buyer, seller, outcome.toString()],
