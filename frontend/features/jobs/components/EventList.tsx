@@ -114,8 +114,12 @@ export function EventList({
 }) {
   if (events.length === 0) {
     return (
-      <div className="py-12 text-center">
-        <p className="text-sm text-[var(--color-ink-faint)]">No events yet.</p>
+      <div className="py-8 text-center space-y-1.5">
+        <p className="eyebrow">Timeline empty</p>
+        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed max-w-[40ch] mx-auto">
+          Awaiting the first on-chain event. Seller scoring and bids will land here as the auction
+          opens.
+        </p>
       </div>
     );
   }

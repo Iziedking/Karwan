@@ -95,10 +95,10 @@ function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
 
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <span className="text-[26px] mono font-semibold tabular-nums leading-none tracking-tight">
+          <span className="serif text-[32px] tabular-nums leading-none tracking-[-0.02em]">
             {price}
           </span>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
             USDC
           </span>
         </div>

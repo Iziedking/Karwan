@@ -67,10 +67,39 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       </div>
 
       <div className="fade-up fade-up-1 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatTile label="Budget" value={<><span className="mono tabular-nums">{formatUsdc(job.budgetUsdc, { withSuffix: false })}</span><span className="text-[12px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] ml-2">USDC</span></>} />
-        <StatTile label="Bids" value={<span className="mono tabular-nums">{job.bids.length}</span>} />
-        <StatTile label="Buyer deadline" value={<span className="text-[var(--color-ink)]">{relativeTime(job.deadlineUnix)}</span>} />
-        <StatTile label="Terms hash" value={<span className="mono text-[14px]">{shortHash(job.termsHash, 6, 4)}</span>} />
+        <StatTile
+          label="Budget"
+          value={
+            <>
+              <span className="serif text-[32px] tabular-nums leading-none tracking-[-0.02em]">
+                {formatUsdc(job.budgetUsdc, { withSuffix: false })}
+              </span>
+              <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)] ml-2 align-baseline">
+                USDC
+              </span>
+            </>
+          }
+        />
+        <StatTile
+          label="Bids"
+          value={
+            <span className="serif text-[32px] tabular-nums leading-none tracking-[-0.02em]">
+              {job.bids.length}
+            </span>
+          }
+        />
+        <StatTile
+          label="Buyer deadline"
+          value={
+            <span className="text-[18px] font-medium tracking-tight text-[var(--color-ink)]">
+              {relativeTime(job.deadlineUnix)}
+            </span>
+          }
+        />
+        <StatTile
+          label="Terms hash"
+          value={<span className="mono text-[15px]">{shortHash(job.termsHash, 6, 4)}</span>}
+        />
       </div>
 
       {proposal && (
@@ -216,7 +245,7 @@ function StatTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="group relative rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5">
       <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">{label}</p>
-      <p className="mt-2 text-[20px] leading-none font-semibold tracking-tight">{value}</p>
+      <p className="mt-2.5 leading-none">{value}</p>
     </div>
   );
 }
@@ -310,28 +339,32 @@ function FundingStep({
   return (
     <div className="flex items-center gap-2.5">
       <span
-        className={`relative shrink-0 w-4 h-4 rounded-full grid place-items-center transition-colors ${
+        aria-hidden
+        data-instrument-blink={active || undefined}
+        className="shrink-0 grid place-items-center w-[11px] h-[11px]"
+        style={
           done
-            ? 'bg-[var(--color-positive)] text-white'
+            ? { background: 'var(--color-positive)' }
             : active
-            ? 'bg-[var(--color-accent)] text-white'
-            : 'bg-[var(--color-surface-2)] border border-[var(--color-line)] text-[var(--color-ink-faint)]'
-        }`}
+              ? {
+                  background: 'var(--color-accent)',
+                  animation: 'instrumentBlink 1.6s ease-in-out infinite',
+                }
+              : {
+                  background: 'var(--color-surface-2)',
+                  boxShadow: 'inset 0 0 0 1px var(--color-line)',
+                }
+        }
       >
-        {active && (
-          <span
-            aria-hidden
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: 'var(--color-accent)',
-              opacity: 0.4,
-              animation: 'flowPulse 1.8s ease-out infinite',
-            }}
-          />
-        )}
         {done && (
-          <svg width="9" height="9" viewBox="0 0 16 16" fill="none" className="relative">
-            <path d="M3 8.5 L6.5 12 L13 5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="8" height="8" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M3 8.5 L6.5 12 L13 5"
+              stroke="#ffffff"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         )}
       </span>

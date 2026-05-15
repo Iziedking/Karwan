@@ -95,12 +95,12 @@ export function MatchBanner({ proposal, onChange }: Props) {
         <div className="flex items-baseline gap-3">
           <div className="flex items-baseline gap-1.5">
             <span
-              className="text-[34px] mono tabular-nums leading-none font-semibold tracking-tight"
+              className="serif text-[38px] tabular-nums leading-none tracking-[-0.02em]"
               style={{ color: 'var(--color-ink)' }}
             >
               {formatUsdc(proposal.agreedPriceUsdc, { withSuffix: false })}
             </span>
-            <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
               USDC
             </span>
           </div>

@@ -159,7 +159,41 @@ async function scanBriefsForListing(
 
     if (!decision.match || decision.confidence < 0.6) continue;
 
+    // Price feasibility: if the seller's floor exceeds the buyer's ceiling there
+    // is no number both sides would accept. Skip without bidding so the listing
+    // stays open for other briefs and we don't waste an on-chain bid that's
+    // guaranteed to be rejected during negotiation.
     const floor = listingFloor(listing);
+    const buyerPct = (job as { negotiationMaxIncreasePct?: number }).negotiationMaxIncreasePct ?? 0;
+    const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
+    if (floor > buyerCeiling) {
+      logger.info(
+        {
+          listingId: listing.id,
+          jobId: job.jobId,
+          listingFloor: floor,
+          buyerCeiling,
+          listingAsking: listing.askingPriceUsdc,
+          buyerBudget: job.budgetUsdc,
+        },
+        'topical match but price gap uncrossable, skipping',
+      );
+      bus.emitEvent({
+        type: 'agent.skipped',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: {
+          seller: listing.sellerUser,
+          reason: 'price-gap-uncrossable',
+          listingAskingUsdc: listing.askingPriceUsdc,
+          listingFloorUsdc: floor,
+          buyerBudgetUsdc: job.budgetUsdc,
+          buyerCeilingUsdc: buyerCeiling,
+        },
+      });
+      continue;
+    }
+
     const result = await submitListingBid(
       job,
       seller,
@@ -183,7 +217,8 @@ async function scanBriefsForListing(
           reasoning: decision.reasoning,
         },
       });
-      // First match wins; one listing → one bid. Stop scanning.
+      // Listing consumed by the first feasible match. The seller can post
+      // a new listing if they want to chase other briefs.
       return;
     }
   }
