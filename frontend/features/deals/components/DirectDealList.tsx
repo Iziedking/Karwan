@@ -27,41 +27,44 @@ export function stageOf(deal: DirectDeal): DealStage {
   return 'awaiting-acceptance';
 }
 
+// Fixed status colors. StageBadge renders on fixed white --lp-card surfaces, so
+// it must not borrow the themeable --color-* tokens (they flip to dark values
+// in dark mode and the pill turns black on a white card).
 const STAGE_META: Record<DealStage, { label: string; color: string; bg: string }> = {
   'awaiting-acceptance': {
     label: 'Awaiting seller acceptance',
-    color: 'var(--color-accent)',
-    bg: 'var(--color-accent-soft)',
+    color: '#2c5f8f',
+    bg: 'rgba(44,95,143,0.10)',
   },
   'awaiting-delivery': {
     label: 'Awaiting delivery',
-    color: 'var(--color-accent)',
-    bg: 'var(--color-accent-soft)',
+    color: '#2c5f8f',
+    bg: 'rgba(44,95,143,0.10)',
   },
   'awaiting-first-release': {
     label: 'Delivered · awaiting release',
-    color: 'var(--color-warning)',
-    bg: 'var(--color-warning-soft)',
+    color: '#b45309',
+    bg: 'rgba(180,83,9,0.12)',
   },
   'awaiting-final-release': {
     label: 'Awaiting final release',
-    color: 'var(--color-warning)',
-    bg: 'var(--color-warning-soft)',
+    color: '#b45309',
+    bg: 'rgba(180,83,9,0.12)',
   },
   settled: {
     label: 'Settled',
-    color: 'var(--color-positive)',
-    bg: 'var(--color-positive-soft)',
+    color: '#15803d',
+    bg: 'rgba(21,128,61,0.12)',
   },
   cancelled: {
     label: 'Cancelled',
-    color: 'var(--color-ink-dim)',
-    bg: 'var(--color-surface-2)',
+    color: '#b91c1c',
+    bg: 'rgba(185,28,28,0.10)',
   },
   disputed: {
     label: 'Disputed',
-    color: 'var(--color-critical)',
-    bg: 'var(--color-critical-soft)',
+    color: '#9a1f3a',
+    bg: 'rgba(154,31,58,0.12)',
   },
 };
 

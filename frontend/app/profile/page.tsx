@@ -234,7 +234,7 @@ export default function ProfilePage() {
       )}
 
       {/* FUND + WITHDRAW */}
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid lg:grid-cols-2 gap-4">
         <ArcFundCard
           buyerAgent={agents.buyer}
           sellerAgent={agents.seller}
@@ -265,12 +265,10 @@ export default function ProfilePage() {
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-black/[0.06] py-2.5 last:border-0">
-      <span className="mono text-[11px] uppercase tracking-[0.06em] text-[var(--lp-text-sub)] shrink-0">
-        {label}
-      </span>
+      <span className="text-[12px] font-medium text-[var(--lp-text-sub)] shrink-0">{label}</span>
       <span
-        className={`text-right text-[var(--lp-dark)] truncate ${
-          mono ? 'mono text-[12px]' : 'text-[13px]'
+        className={`text-right font-sans text-[13px] text-[var(--lp-dark)] truncate ${
+          mono ? 'tabular-nums font-semibold' : ''
         }`}
       >
         {value}

@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/shared/utils/cn';
+import { Note } from '@/shared/components/AppUI';
 import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
 
 type Option = { value: UserRole; label: string; description: string };
@@ -58,17 +60,12 @@ export function RoleToggle({
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2.5">
-        <p className="eyebrow">Account type</p>
-        {error && <p className="text-[11px] text-[var(--color-critical)]">{error}</p>}
-      </div>
-      <div
-        className="grid grid-cols-3 rounded-lg p-1 gap-1"
-        style={{
-          background: 'var(--color-surface-2)',
-          border: '1px solid var(--color-line)',
-        }}
-      >
+      {error && (
+        <div className="mb-3">
+          <Note tone="error">{error}</Note>
+        </div>
+      )}
+      <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Account type">
         {OPTIONS.map((opt) => {
           const active = profile.role === opt.value;
           const eligibility = eligibilityFor(opt.value);
@@ -77,35 +74,35 @@ export function RoleToggle({
             <button
               key={opt.value}
               type="button"
+              role="radio"
+              aria-checked={active}
               onClick={() => switchTo(opt.value)}
               disabled={busy || active}
               title={!eligibility.ok ? eligibility.reason : undefined}
-              className={`relative text-left rounded-md px-3 py-2.5 transition-all overflow-hidden ${
+              className={cn(
+                'relative text-left rounded-[20px] p-5 min-h-[104px] transition-all duration-200 text-[var(--lp-dark)]',
                 active
-                  ? 'bg-[var(--color-surface)] shadow-[var(--shadow-card)]'
+                  ? 'bg-[var(--lp-card)] ring-2 ring-[var(--lp-dark)]'
                   : eligibility.ok
-                  ? 'hover:bg-[var(--color-surface)]/60'
-                  : 'opacity-60 cursor-help'
-              }`}
+                    ? 'bg-[var(--lp-light)] hover:-translate-y-0.5'
+                    : 'bg-[var(--lp-light)] opacity-55 cursor-help',
+              )}
             >
-              <div className="flex items-center gap-2">
-                <span
-                  className="relative inline-flex w-3.5 h-3.5 rounded-full items-center justify-center shrink-0"
-                  style={{
-                    background: active ? 'var(--color-ink)' : 'transparent',
-                    border: active ? 'none' : '1.5px solid var(--color-line-strong)',
-                  }}
-                >
-                  {active && (
-                    <span
-                      className="block w-1.5 h-1.5 rounded-full"
-                      style={{ background: 'var(--color-surface)' }}
+              {active && (
+                <span className="absolute top-4 right-4 inline-flex size-5 items-center justify-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)]">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+                    <path
+                      d="M3.5 8.5l3 3 6-7"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                  )}
+                  </svg>
                 </span>
-                <span className="text-[13px] font-semibold tracking-tight">{opt.label}</span>
-              </div>
-              <p className="text-[10px] mono text-[var(--color-ink-faint)] mt-1 leading-tight">
+              )}
+              <span className="text-[15px] font-bold tracking-[-0.01em]">{opt.label}</span>
+              <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">
                 {busy ? 'Saving…' : !eligibility.ok ? eligibility.reason : opt.description}
               </p>
             </button>

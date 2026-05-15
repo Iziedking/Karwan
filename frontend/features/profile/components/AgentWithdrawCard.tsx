@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
-import { Card } from '@/shared/components/Card';
+import { cn } from '@/shared/utils/cn';
+import { Note } from '@/shared/components/AppUI';
+import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { api, ApiError } from '@/core/api';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
@@ -72,11 +74,7 @@ export function AgentWithdrawCard({
   const destValid = ADDR_RE.test(dest.trim());
   const amountValid = typeof amount === 'number' && amount > 0;
   const canSubmit =
-    isConnected &&
-    !!selectedAgent?.address &&
-    destValid &&
-    amountValid &&
-    phase !== 'sending';
+    isConnected && !!selectedAgent?.address && destValid && amountValid && phase !== 'sending';
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,151 +101,167 @@ export function AgentWithdrawCard({
   }
 
   return (
-    <Card noPadding>
-      <div className="px-5 pt-5 pb-4">
-        <h2 className="display text-[26px] text-[var(--color-ink)]">Withdraw from agent</h2>
-        <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1">
-          agent wallet signs the transfer · settles on Arc
-        </p>
-      </div>
+    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] p-7 md:p-9 h-full flex flex-col">
+      <h2 className="font-sans text-[22px] md:text-[24px] font-bold tracking-[-0.02em]">
+        Withdraw from agent
+      </h2>
+      <p className="mt-1 mono text-[12px] text-[var(--lp-text-sub)]">
+        agent wallet signs the transfer · settles on Arc
+      </p>
 
-      <div className="px-5 pb-5">
-        <form onSubmit={submit} className="space-y-5">
-          <div>
-            <p className="eyebrow mb-2">From</p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {options.map((o) => {
-                const active = selected === o.key;
-                const disabled = !o.address;
-                const bal = o.key === 'buyer' ? buyerBalance : sellerBalance;
-                const human =
-                  bal.data && !bal.isLoading
-                    ? formatUsdc(formatUnits(bal.data.value, bal.data.decimals), {
-                        withSuffix: false,
-                      })
-                    : null;
-                return (
-                  <button
-                    key={o.key}
-                    type="button"
-                    onClick={() => o.address && setSelected(o.key)}
-                    disabled={disabled}
-                    className={`text-left px-3 py-3 rounded-lg border transition-all ${
-                      active
-                        ? 'border-[var(--color-ink)] bg-[var(--color-surface-2)]'
-                        : disabled
-                        ? 'border-[var(--color-line)] bg-[var(--color-surface)] opacity-50 cursor-not-allowed'
-                        : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)] bg-[var(--color-surface)]'
-                    }`}
-                  >
-                    <p className="text-[13px] font-semibold tracking-tight leading-tight">
-                      {o.label}
-                    </p>
-                    <p className="text-[10px] mono text-[var(--color-ink-faint)] mt-0.5 truncate">
-                      {o.address ? shortAddress(o.address) : 'not configured'}
-                    </p>
-                    <div className="mt-2.5 pt-2 border-t border-[var(--color-line)] flex items-baseline justify-between gap-2">
-                      <span className="eyebrow">Balance</span>
-                      <span className="inline-flex items-baseline gap-1">
-                        <span
-                          className="text-[15px] font-medium tabular-nums tracking-tight leading-none"
-                          style={{ fontFamily: 'var(--font-serif)' }}
-                        >
-                          {o.address ? human ?? '—' : '—'}
-                        </span>
-                        <span className="text-[9px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)] leading-none">
-                          USDC
-                        </span>
-                      </span>
+      <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-5">
+        <div>
+          <p className="mb-2 text-[12px] font-medium text-[var(--lp-text-sub)]">From</p>
+          <div className="grid grid-cols-2 gap-3">
+            {options.map((o) => {
+              const active = selected === o.key;
+              const disabled = !o.address;
+              const bal = o.key === 'buyer' ? buyerBalance : sellerBalance;
+              const human =
+                bal.data && !bal.isLoading
+                  ? formatUsdc(formatUnits(bal.data.value, bal.data.decimals), {
+                      withSuffix: false,
+                    })
+                  : null;
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => o.address && setSelected(o.key)}
+                  disabled={disabled}
+                  className={cn(
+                    'relative text-left p-4 rounded-[18px] transition-all duration-200 text-[var(--lp-dark)]',
+                    active
+                      ? 'bg-[var(--lp-card)] ring-2 ring-[var(--lp-dark)]'
+                      : disabled
+                        ? 'bg-[var(--lp-light)] opacity-50 cursor-not-allowed'
+                        : 'bg-[var(--lp-light)] hover:-translate-y-0.5',
+                  )}
+                >
+                  {active && (
+                    <span className="absolute top-3 right-3 inline-flex size-[18px] items-center justify-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)]">
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
+                        <path
+                          d="M3.5 8.5l3 3 6-7"
+                          stroke="currentColor"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2.5">
+                    <WalletAvatar address={o.address ?? '0x0'} size={26} />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold tracking-[-0.01em] leading-tight">
+                        {o.label}
+                      </p>
+                      <p className="mono text-[10px] mt-0.5 truncate text-[var(--lp-text-sub)]">
+                        {o.address ? shortAddress(o.address) : 'not configured'}
+                      </p>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+                  <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-black/[0.07]">
+                    <span className="text-[11px] font-medium text-[var(--lp-text-sub)]">
+                      Balance
+                    </span>
+                    <span className="inline-flex items-baseline gap-1">
+                      <span className="font-sans text-[15px] font-bold tabular-nums tracking-[-0.01em] leading-none">
+                        {o.address ? (human ?? '—') : '—'}
+                      </span>
+                      <span className="mono text-[9px] uppercase tracking-[0.1em] leading-none text-[var(--lp-text-sub)]">
+                        USDC
+                      </span>
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
-          <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] focus-within:border-[var(--color-ink)] transition-colors">
-            <div className="px-4 pt-3 pb-1 flex items-baseline justify-between">
-              <span className="eyebrow">Amount</span>
-              <button
-                type="button"
-                onClick={() => balHuman && setAmount(Number(balHuman))}
-                disabled={!balHuman}
-                className="text-[10px] mono text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] transition-colors disabled:opacity-60"
-              >
-                {balHuman ? `${formatUsdc(balHuman, { withSuffix: false })} available` : '—'}
-              </button>
-            </div>
-            <div className="px-4 pb-3 flex items-baseline gap-3">
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="no-spinner flex-1 bg-transparent text-[32px] font-medium tracking-tight tabular-nums focus:outline-none placeholder:text-[var(--color-ink-faint)] min-w-0"
-                style={{ fontFamily: 'var(--font-serif)' }}
-                placeholder="0"
-              />
-              <span className="text-[14px] mono text-[var(--color-ink-dim)] font-semibold">USDC</span>
-            </div>
+        <div className="rounded-[18px] bg-[var(--lp-light)] p-5 transition-colors focus-within:ring-2 focus-within:ring-[var(--lp-dark)]/15">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[12px] font-medium text-[var(--lp-text-sub)]">Amount</span>
+            <button
+              type="button"
+              onClick={() => balHuman && setAmount(Number(balHuman))}
+              disabled={!balHuman}
+              className="mono text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60"
+            >
+              {balHuman ? `${formatUsdc(balHuman, { withSuffix: false })} available` : '—'}
+            </button>
           </div>
-
-          <label className="block space-y-1.5">
-            <span className="eyebrow">Destination</span>
+          <div className="mt-2 flex items-baseline gap-3">
             <input
-              type="text"
-              value={dest}
-              onChange={(e) => setDest(e.target.value)}
-              placeholder="0x…"
-              className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--color-ink)]"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              className="no-spinner flex-1 bg-transparent font-sans text-[34px] font-bold tracking-[-0.02em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0"
+              placeholder="0"
             />
-            {dest.length > 0 && !destValid && (
-              <span className="text-[11px] text-[var(--color-critical)]">
-                Not a valid 20-byte address.
-              </span>
-            )}
-            {destValid && address && dest.trim().toLowerCase() === address.toLowerCase() && (
-              <span className="text-[11px] text-[var(--color-ink-faint)]">
-                Your connected wallet.
-              </span>
-            )}
-          </label>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--lp-card)] px-3 py-1.5">
+              <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
+              <span className="mono text-[12px] font-semibold">USDC</span>
+            </span>
+          </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-            className="w-full px-4 py-3 rounded-lg text-[13px] font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity inline-flex items-center justify-center gap-2"
-          >
-            {phase === 'sending' && (
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="animate-spin" aria-hidden>
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-                <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            )}
-            {!isConnected
-              ? 'Connect wallet to withdraw'
-              : phase === 'sending'
+        <label className="block space-y-1.5">
+          <span className="text-[12px] font-medium text-[var(--lp-text-sub)]">Destination</span>
+          <input
+            type="text"
+            value={dest}
+            onChange={(e) => setDest(e.target.value)}
+            placeholder="0x…"
+            className="w-full rounded-[14px] bg-[var(--lp-light)] px-4 py-3 text-[13px] mono focus:outline-none focus:ring-2 focus:ring-[var(--lp-dark)]/15"
+          />
+          {dest.length > 0 && !destValid && (
+            <Note tone="error">Not a valid 20-byte address.</Note>
+          )}
+          {destValid && address && dest.trim().toLowerCase() === address.toLowerCase() && (
+            <span className="text-[11px] text-[var(--lp-text-sub)]">Your connected wallet.</span>
+          )}
+        </label>
+
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="mt-auto w-full inline-flex items-center justify-center gap-2 rounded-full px-5 py-4 text-[14px] font-semibold transition-all duration-200 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+        >
+          {phase === 'sending' && (
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              className="animate-spin"
+              aria-hidden
+            >
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
+              <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          )}
+          {!isConnected
+            ? 'Connect wallet to withdraw'
+            : phase === 'sending'
               ? 'Sending on Arc…'
               : `Withdraw from ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
-          </button>
+        </button>
 
-          {phase === 'done' && txHash && (
-            <div
-              className="rounded-md px-3 py-2.5 flex items-center justify-between gap-3"
-              style={{
-                border: '1px solid color-mix(in oklab, var(--color-positive) 30%, transparent)',
-                background: 'color-mix(in oklab, var(--color-positive) 8%, transparent)',
-              }}
-            >
-              <p className="text-[12px] text-[var(--color-positive)]">Withdrawal sent.</p>
+        {phase === 'done' && txHash && (
+          <Note tone="success">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">Withdrawal sent.</span>
               <a
                 href={ARC_EXPLORER_TX(txHash)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[10px] mono text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] px-2 py-1 rounded-md border border-[var(--color-line)]"
+                className="inline-flex items-center gap-1 mono text-[10px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] px-2 py-1 rounded-md bg-[var(--lp-card)] transition-colors"
               >
                 {shortHash(txHash)}
                 <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -255,12 +269,10 @@ export function AgentWithdrawCard({
                 </svg>
               </a>
             </div>
-          )}
-          {phase === 'error' && error && (
-            <p className="text-sm text-[var(--color-critical)]">Couldn&apos;t withdraw: {error}</p>
-          )}
-        </form>
-      </div>
-    </Card>
+          </Note>
+        )}
+        {phase === 'error' && error && <Note tone="error">Couldn&apos;t withdraw: {error}</Note>}
+      </form>
+    </section>
   );
 }

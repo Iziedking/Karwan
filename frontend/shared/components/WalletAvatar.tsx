@@ -1,18 +1,21 @@
 import { cn } from '@/shared/utils/cn';
 
-// Curated gradient pairs so a deterministic avatar always looks intentional,
-// never the muddy random-hue conic.
-const PAIRS: Array<[string, string]> = [
-  ['#7C6BF0', '#AB9FF2'],
-  ['#2775CA', '#6CA8FF'],
-  ['#0E5E3E', '#2BBF7A'],
-  ['#E0623F', '#F2B85C'],
-  ['#1B1330', '#5A4E78'],
-  ['#0052FF', '#7CA8FF'],
-];
+// A deterministic identicon: a mirrored 5x5 grid keyed on the address, in a
+// single brand-adjacent ink color on a faint tint of itself. Reads as an
+// address fingerprint, not a generic gradient orb. This is a placeholder —
+// it gives way to the bound X profile picture once X account binding ships.
 
-/// A deterministic wallet/agent avatar — a clean two-stop gradient orb keyed on
-/// the address, with a soft inner highlight.
+const PALETTE = ['#0e0e0e', '#2c3e63', '#1f7a3f', '#b45309', '#5b4b8a', '#0b6b6b', '#9a1f3a'];
+
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
+  return h;
+}
+
 export function WalletAvatar({
   address,
   size = 28,
@@ -22,20 +25,42 @@ export function WalletAvatar({
   size?: number;
   className?: string;
 }) {
-  const seed =
-    address && address.length >= 8 ? parseInt(address.slice(2, 8), 16) || 0 : 0;
-  const [a, b] = PAIRS[seed % PAIRS.length]!;
-  const angle = 110 + (seed % 6) * 20;
+  const h = hash((address ?? '').toLowerCase() || 'karwan');
+  const fg = PALETTE[h % PALETTE.length]!;
+
+  // Deterministic per-cell bits from a small LCG seeded by the hash.
+  let r = h || 1;
+  const bit = () => {
+    r = (r * 1664525 + 1013904223) >>> 0;
+    return ((r >> 8) & 1) === 1;
+  };
+
+  const rects: Array<{ x: number; y: number }> = [];
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 3; x++) {
+      if (bit()) {
+        rects.push({ x, y });
+        if (x < 2) rects.push({ x: 4 - x, y });
+      }
+    }
+  }
+
   return (
     <span
-      className={cn('inline-block rounded-full shrink-0', className)}
+      className={cn('inline-block overflow-hidden rounded-full shrink-0', className)}
       style={{
         width: size,
         height: size,
-        background: `linear-gradient(${angle}deg, ${a}, ${b})`,
-        boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.16)',
+        background: `color-mix(in srgb, ${fg} 14%, #ffffff)`,
+        boxShadow: 'inset 0 0 0 1px rgba(12,14,16,0.08)',
       }}
       aria-hidden
-    />
+    >
+      <svg width={size} height={size} viewBox="0 0 5 5" shapeRendering="crispEdges">
+        {rects.map((c, i) => (
+          <rect key={i} x={c.x} y={c.y} width={1} height={1} fill={fg} />
+        ))}
+      </svg>
+    </span>
   );
 }

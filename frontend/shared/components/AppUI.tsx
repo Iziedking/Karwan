@@ -252,6 +252,38 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
+/// Soft inline note for errors, confirmations and hints inside app sections.
+/// A tinted rounded banner with a leading dot — carries the message without
+/// the raw-red-text look.
+export function Note({
+  tone = 'info',
+  children,
+  className,
+}: {
+  tone?: 'error' | 'success' | 'info';
+  children: ReactNode;
+  className?: string;
+}) {
+  const styles =
+    tone === 'error'
+      ? 'bg-[rgba(185,28,28,0.07)] text-[#b91c1c]'
+      : tone === 'success'
+        ? 'bg-[rgba(21,128,61,0.08)] text-[#15803d]'
+        : 'bg-[var(--lp-light)] text-[var(--lp-text-sub)]';
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-2 rounded-[12px] px-3 py-2 text-[12px] leading-snug',
+        styles,
+        className,
+      )}
+    >
+      <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-current opacity-70" />
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
 /* ---- wallet gate ---- */
 
 export function WalletGate({

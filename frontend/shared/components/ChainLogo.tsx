@@ -60,17 +60,21 @@ export function ChainLogo({
     );
   }
 
-  // Arc — the white arch mark with its foot, on the navy brand gradient.
-  return tile(
-    'linear-gradient(155deg, #2c3e63, #0b1220)',
-    <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <path
-        d="M8 27.5 C 8 11 11 5.5 16 5.5 C 21 5.5 24 11 24 19.5"
-        stroke="#fff"
-        strokeWidth="4.4"
-        strokeLinecap="round"
-      />
-      <path d="M20.5 22 L 27.5 25.6" stroke="#fff" strokeWidth="4.4" strokeLinecap="round" />
-    </svg>,
+  // Arc — render the literal brand mark from /public so we never drift from
+  // the real logo.
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/arc-logo.png"
+      alt="Arc"
+      width={size}
+      height={size}
+      className={cn('inline-block rounded-[8px] shrink-0 object-cover', className)}
+      style={{
+        width: size,
+        height: size,
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)',
+      }}
+    />
   );
 }
