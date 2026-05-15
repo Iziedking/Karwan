@@ -133,6 +133,11 @@ export default function OnboardingPage() {
           },
         }),
       });
+      // Notify every useUserProfile consumer so banners like ProfileNudge
+      // refresh immediately instead of waiting for a remount.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('karwan:profile-saved'));
+      }
       router.push('/app');
     } catch (err) {
       setError(prettifyError(err));

@@ -39,7 +39,7 @@ export function SiteFooter() {
         </FooterCol>
         <FooterCol title="Resources">
           <FooterLink href="/how-it-works">How it works</FooterLink>
-          <FooterLink href="/how-it-works#faq">FAQ</FooterLink>
+          <FooterLink href="/how-it-works#faq">FAQs</FooterLink>
           <FooterLink href="https://testnet.arcscan.app" external>
             Arc Testnet Explorer
           </FooterLink>

@@ -15,9 +15,13 @@ import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { activationRoutes } from './routes/activation.js';
 import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
+import { chatRoutes } from './routes/chat.js';
+import { telegramRoutes } from './routes/telegram.js';
 import { startBuyerAgents } from './agents/buyer.js';
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
+import { startTelegramBot } from './telegram/bot.js';
+import { startTelegramNotifier } from './telegram/notifier.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
 
 const app = new Hono();
@@ -53,6 +57,8 @@ app.route('/api/bridge', bridgeRoutes);
 app.route('/api/reputation', reputationRoutes);
 app.route('/api/deals', dealsRoutes);
 app.route('/api/activation', activationRoutes);
+app.route('/api/chat', chatRoutes);
+app.route('/api/telegram', telegramRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');
@@ -102,6 +108,13 @@ async function boot() {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
   bootAgents();
+  // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
+  try {
+    stopFns.push(startTelegramBot());
+    stopFns.push(startTelegramNotifier());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'telegram not started');
+  }
   // Resume any bridge that burned but never minted, e.g. across a restart.
   resumePendingBridges().catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'bridge resume failed'),

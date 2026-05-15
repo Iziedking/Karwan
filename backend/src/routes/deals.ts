@@ -60,6 +60,33 @@ const appealSchema = z.object({
 
 const inFlight = new Set<string>();
 
+/// Maps a raw agent-side error to a structured frontend code with a friendly
+/// message. The Circle SDK error body includes the agent's balance failure as
+/// `errorReason":"INSUFFICIENT_TOKEN_BALANCE"` or "transfer amount exceeds
+/// balance"; everything else falls through as a generic agent failure.
+function classifyAgentError(err: unknown): { code: string; message: string; raw: string } {
+  const raw = err instanceof Error ? err.message : String(err ?? '');
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes('insufficient_token_balance') ||
+    lower.includes('transfer amount exceeds balance')
+  ) {
+    return {
+      code: 'INSUFFICIENT_AGENT_BALANCE',
+      message: 'The buyer agent does not have enough USDC on Arc to fund this escrow.',
+      raw,
+    };
+  }
+  if (lower.includes('insufficient funds') && lower.includes('gas')) {
+    return {
+      code: 'INSUFFICIENT_AGENT_GAS',
+      message: 'The buyer agent does not have enough native gas on Arc to send this transaction.',
+      raw,
+    };
+  }
+  return { code: 'AGENT_TX_FAILED', message: 'The agent transaction failed.', raw };
+}
+
 export const dealsRoutes = new Hono();
 
 /// Create a direct deal. The escrow is not funded here: the deal sits in
@@ -259,8 +286,26 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     logger.info({ jobId, ...fundResult }, 'direct deal accepted and escrow funded');
     return c.json({ accepted: true, jobId, txHash: fundResult.txHash }, 200);
   } catch (err) {
-    logger.error({ jobId, err: (err as Error).message }, 'direct deal accept failed');
-    return c.json({ error: 'accept failed', detail: (err as Error).message }, 502);
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'direct deal accept failed');
+    // Emit a notification event so the buyer sees this in the bell — they need
+    // to top the buyer agent up before the seller can accept.
+    if (info.code === 'INSUFFICIENT_AGENT_BALANCE' || info.code === 'INSUFFICIENT_AGENT_GAS') {
+      bus.emitEvent({
+        type: 'deal.fund.insufficient',
+        jobId,
+        actor: 'platform',
+        payload: {
+          buyer: deal.buyer,
+          seller: deal.seller,
+          buyerAgent: deal.buyerAgentAddress,
+          dealAmountUsdc: deal.dealAmountUsdc,
+          code: info.code,
+        },
+      });
+    }
+    const status = info.code === 'INSUFFICIENT_AGENT_BALANCE' ? 409 : 502;
+    return c.json({ error: 'accept failed', code: info.code, detail: info.message }, status);
   } finally {
     inFlight.delete(jobId);
   }
@@ -365,8 +410,9 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     }
     return c.json({ accepted: true, jobId, txHash, settled }, 200);
   } catch (err) {
-    logger.error({ jobId, err: (err as Error).message }, 'release failed');
-    return c.json({ error: 'release failed', detail: (err as Error).message }, 502);
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'release failed');
+    return c.json({ error: 'release failed', code: info.code, detail: info.message }, 502);
   } finally {
     inFlight.delete(jobId);
   }
@@ -480,8 +526,9 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_DISPUTE_RESOLVED);
     return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
   } catch (err) {
-    logger.error({ jobId, err: (err as Error).message }, 'appeal failed');
-    return c.json({ error: 'appeal failed', detail: (err as Error).message }, 502);
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'appeal failed');
+    return c.json({ error: 'appeal failed', code: info.code, detail: info.message }, 502);
   } finally {
     inFlight.delete(jobId);
   }
@@ -578,8 +625,9 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
     return c.json({ accepted: true, jobId, txHash: refundResult.txHash }, 200);
   } catch (err) {
-    logger.error({ jobId, err: (err as Error).message }, 'cancel failed');
-    return c.json({ error: 'cancel failed', detail: (err as Error).message }, 502);
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'cancel failed');
+    return c.json({ error: 'cancel failed', code: info.code, detail: info.message }, 502);
   } finally {
     inFlight.delete(jobId);
   }

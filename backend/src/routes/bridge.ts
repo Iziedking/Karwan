@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { executeContractCall } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
-import { createBridge, patchBridge, listPendingBridges } from '../db/bridges.js';
+import { createBridge, getBridge, patchBridge, listPendingBridges } from '../db/bridges.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -53,7 +53,10 @@ const relaySchema = z.object({
 const inFlight = new Set<string>();
 
 const POLL_INTERVAL_MS = 5_000;
-const POLL_TIMEOUT_MS = 25 * 60 * 1000; // 25 min; CCTP V2 standard finality is ~13-19 min on testnet
+// CCTP V2 standard finality is ~13-19 min on testnet, but Circle's IRIS Sandbox
+// sometimes lags much longer. Give the relay a long, generous window before
+// declaring a hard error; the user can also call /recheck at any point.
+const POLL_TIMEOUT_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export const bridgeRoutes = new Hono();
 
@@ -243,3 +246,111 @@ async function relayLoop(input: RelayInput) {
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
+
+/// Manual recheck: re-queries IRIS for the attestation and tries to mint, even
+/// for bridges that had been marked 'error'. Covers the case where the SSE
+/// event was missed by a closed tab, or where the relay loop ended before
+/// Circle finally posted the attestation.
+bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
+  if (!config.BUYER_AGENT_WALLET_ID) {
+    return c.json({ error: 'BUYER_AGENT_WALLET_ID not configured' }, 500);
+  }
+  const bridgeId = c.req.param('bridgeId');
+  const record = await getBridge(bridgeId);
+  if (!record) return c.json({ error: 'bridge not found' }, 404);
+  if (record.status === 'minted') {
+    return c.json({ status: 'minted', mintTxHash: record.mintTxHash ?? null });
+  }
+  if (inFlight.has(bridgeId)) {
+    return c.json({ status: 'relaying', detail: 'a relay is already in progress' }, 409);
+  }
+
+  const url = `${config.IRIS_API_BASE}/v2/messages/${record.sourceDomain}?transactionHash=${record.sourceTxHash}`;
+  let attestation: { message: string; attestation: string; eventNonce?: string } | null = null;
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = (await res.json()) as {
+        messages?: Array<{
+          status?: string;
+          message?: string;
+          attestation?: string;
+          eventNonce?: string;
+        }>;
+      };
+      const m = data.messages?.[0];
+      if (m?.status === 'complete' && m.message && m.attestation) {
+        attestation = { message: m.message, attestation: m.attestation, eventNonce: m.eventNonce };
+      }
+    }
+  } catch (err) {
+    return c.json({ error: 'iris lookup failed', detail: (err as Error).message }, 502);
+  }
+
+  if (!attestation) {
+    // Attestation still not ready. Kick the relay back into 'relaying' so the
+    // loop resumes on the next boot too, and return a friendly status.
+    await patchBridge(bridgeId, { status: 'relaying', error: undefined });
+    startRelay({
+      bridgeId,
+      sourceDomain: record.sourceDomain,
+      sourceTxHash: record.sourceTxHash,
+      amountUsdc: record.amountUsdc,
+      mintRecipient: record.mintRecipient,
+    });
+    return c.json({ status: 'relaying', detail: 'attestation not ready yet, polling resumed' });
+  }
+
+  // Attestation is in hand. If the message was already received on chain, just
+  // settle the record; otherwise call receiveMessage with the buyer agent.
+  if (attestation.eventNonce && (await isMessageAlreadyReceived(attestation.eventNonce))) {
+    await markBridgeMinted({
+      bridgeId,
+      sourceDomain: record.sourceDomain,
+      sourceTxHash: record.sourceTxHash,
+      amountUsdc: record.amountUsdc,
+      mintRecipient: record.mintRecipient,
+    });
+    return c.json({ status: 'minted', detail: 'message was already received on chain' });
+  }
+
+  inFlight.add(bridgeId);
+  try {
+    const result = await executeContractCall(
+      {
+        walletId: config.BUYER_AGENT_WALLET_ID!,
+        contractAddress: config.CCTP_MESSAGE_TRANSMITTER_ADDR,
+        abiFunctionSignature: 'receiveMessage(bytes,bytes)',
+        abiParameters: [attestation.message, attestation.attestation],
+      },
+      `cctp.receiveMessage(recheck ${bridgeId})`,
+    );
+    await markBridgeMinted(
+      {
+        bridgeId,
+        sourceDomain: record.sourceDomain,
+        sourceTxHash: record.sourceTxHash,
+        amountUsdc: record.amountUsdc,
+        mintRecipient: record.mintRecipient,
+      },
+      result.txHash,
+    );
+    return c.json({ status: 'minted', mintTxHash: result.txHash });
+  } catch (err) {
+    const message = (err as Error).message;
+    if (attestation.eventNonce && (await isMessageAlreadyReceived(attestation.eventNonce))) {
+      await markBridgeMinted({
+        bridgeId,
+        sourceDomain: record.sourceDomain,
+        sourceTxHash: record.sourceTxHash,
+        amountUsdc: record.amountUsdc,
+        mintRecipient: record.mintRecipient,
+      });
+      return c.json({ status: 'minted', detail: 'message was already received on chain' });
+    }
+    await patchBridge(bridgeId, { status: 'error', error: message });
+    return c.json({ status: 'error', error: message }, 502);
+  } finally {
+    inFlight.delete(bridgeId);
+  }
+});

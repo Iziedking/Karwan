@@ -78,7 +78,7 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 
 export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` }) {
   const { isConnected } = useAccount();
-  const { bridges, start, retry, dismiss, isActive } = useBridges();
+  const { bridges, start, retry, recheck, dismiss, isActive } = useBridges();
   const [sourceKey, setSourceKey] = useState<SourceChainConfig['key']>('baseSepolia');
   const [amount, setAmount] = useState<number | ''>(5);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -106,28 +106,29 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
   const activeCount = bridges.filter((b) => isActive(b.phase)).length;
 
   return (
-    <Card noPadding>
+    <Card noPadding className="h-full flex flex-col">
       <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="display text-[28px] text-[var(--color-ink)]">
+          <h2 className="font-sans text-[22px] md:text-[24px] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
             Top up agent
           </h2>
-          <p className="text-[12px] mono text-[var(--color-ink-faint)] mt-1 tracking-tight">
-            cross-chain via CCTP V2
+          <p className="mt-1 inline-flex items-center gap-1.5 mono text-[12px] text-[var(--color-ink-dim)]">
+            <span>cross-chain via CCTP V2</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/circle-logo.png"
+              alt="Circle"
+              width={14}
+              height={14}
+              className="inline-block rounded-full shrink-0"
+            />
           </p>
         </div>
         {activeCount > 0 && (
-          <span
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.12em] shrink-0"
-            style={{
-              background: 'color-mix(in oklab, var(--color-accent) 10%, transparent)',
-              color: 'var(--color-accent)',
-              border: '1px solid color-mix(in oklab, var(--color-accent) 35%, transparent)',
-            }}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent)] opacity-60 animate-ping" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-ink)] shrink-0">
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--lp-accent)] opacity-60 motion-safe:animate-ping" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-[var(--lp-accent)]" />
             </span>
             {activeCount} in flight
           </span>
@@ -245,6 +246,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
                   expanded={expandedId === b.id}
                   onToggle={() => setExpandedId(expandedId === b.id ? null : b.id)}
                   onRetry={() => retry(b.id)}
+                  onRecheck={() => recheck(b.id)}
                   onDismiss={() => dismiss(b.id)}
                 />
               ))}
@@ -265,12 +267,14 @@ function BridgeRow({
   expanded,
   onToggle,
   onRetry,
+  onRecheck,
   onDismiss,
 }: {
   bridge: BridgeRecord;
   expanded: boolean;
   onToggle: () => void;
   onRetry: () => void;
+  onRecheck: () => void;
   onDismiss: () => void;
 }) {
   const source = SOURCE_CHAINS[bridge.sourceChainKey];
@@ -409,6 +413,15 @@ function BridgeRow({
           )}
 
           <div className="flex items-center gap-2 pt-0.5">
+            {(isStuck || bridge.phase === 'error') && (
+              <button
+                type="button"
+                onClick={onRecheck}
+                className="px-3 py-1.5 rounded-md text-[12px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+              >
+                Recheck on chain
+              </button>
+            )}
             {bridge.phase === 'error' && (
               <button
                 type="button"
@@ -416,7 +429,7 @@ function BridgeRow({
                 style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
                 className="px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition-opacity"
               >
-                Retry
+                Retry from start
               </button>
             )}
             {(bridge.phase === 'done' || bridge.phase === 'error' || isStuck) && (

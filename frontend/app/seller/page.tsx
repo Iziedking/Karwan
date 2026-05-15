@@ -35,7 +35,7 @@ const STEPS = [
 
 export default function SellerPage() {
   const { address, isConnected } = useAccount();
-  const { activated } = useActivation();
+  const { activated, agents } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
 
@@ -155,7 +155,7 @@ export default function SellerPage() {
             )}
           </div>
         </Section>
-        <BalancesCard />
+        <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
       </div>
     </AppCanvas>
   );

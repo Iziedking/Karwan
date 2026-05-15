@@ -177,6 +177,7 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     public detail?: unknown,
+    public code?: string,
   ) {
     super(message);
   }
@@ -203,7 +204,11 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
       typeof parsed === 'object' && parsed && 'detail' in parsed
         ? (parsed as { detail: unknown }).detail
         : undefined;
-    throw new ApiError(res.status, message, detail);
+    const code =
+      typeof parsed === 'object' && parsed && 'code' in parsed
+        ? String((parsed as { code: unknown }).code)
+        : undefined;
+    throw new ApiError(res.status, message, detail, code);
   }
   return res.json() as Promise<T>;
 }
@@ -330,4 +335,45 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     }),
+  bridgeRecheck: (bridgeId: string) =>
+    json<{ status: string; mintTxHash?: string; detail?: string; error?: string }>(
+      `/api/bridge/${bridgeId}/recheck`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  listMessages: (jobId: string, caller: string) =>
+    json<{ messages: ChatMessage[] }>(`/api/chat/${jobId}?caller=${caller}`),
+  sendMessage: (jobId: string, caller: string, body: string) =>
+    json<{ message: ChatMessage }>(`/api/chat/${jobId}`, {
+      method: 'POST',
+      body: JSON.stringify({ caller, body }),
+    }),
+  telegramStatus: (address: string) =>
+    json<TelegramStatus>(`/api/telegram/status?address=${address}`),
+  telegramLinkStart: (address: string) =>
+    json<{ token: string; deepLink: string | null; botUsername: string | null }>(
+      '/api/telegram/link/start',
+      { method: 'POST', body: JSON.stringify({ address }) },
+    ),
+  telegramLinkRemove: (address: string) =>
+    json<{ ok: true }>('/api/telegram/link/remove', {
+      method: 'POST',
+      body: JSON.stringify({ address }),
+    }),
 };
+
+export interface ChatMessage {
+  id: string;
+  jobId: string;
+  sender: string;
+  body: string;
+  ts: number;
+}
+
+export interface TelegramStatus {
+  enabled: boolean;
+  botUsername: string | null;
+  linked: boolean;
+  chatId: number | null;
+  username: string | null;
+  linkedAt: number | null;
+}

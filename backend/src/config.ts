@@ -73,6 +73,15 @@ const envSchema = z.object({
   IRIS_API_BASE: z.string().url().default('https://iris-api-sandbox.circle.com'),
 
   DATABASE_URL: optionalString,
+
+  // Telegram bot for deal alerts and chat notifications. When unset, the bot
+  // module no-ops gracefully and the /telegram routes report "not configured".
+  TELEGRAM_BOT_TOKEN: optionalString,
+  TELEGRAM_BOT_USERNAME: optionalString,
+
+  // Public origin of the frontend, used to embed deal links in Telegram
+  // messages so users can jump straight to the deal page from a notification.
+  FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
 });
 
 const parsed = envSchema.safeParse(process.env);

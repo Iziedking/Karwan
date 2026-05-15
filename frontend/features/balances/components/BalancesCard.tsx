@@ -1,9 +1,11 @@
 'use client';
+import { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { shortAddress } from '@/shared/utils/format';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
 import { arcTestnet } from '@/core/wagmi';
+import { cn } from '@/shared/utils/cn';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 
@@ -13,19 +15,54 @@ const CHAIN_META: Record<string, { name: string; sub: string; key: ChainKey }> =
   sepolia: { name: 'Ethereum', sub: 'Sepolia', key: 'sepolia' },
 };
 
-const CARD = 'rounded-[24px] bg-[var(--lp-card)] border border-black/[0.06]';
+const CARD = 'rounded-[24px] bg-[var(--lp-card)] border border-black/[0.06] h-full flex flex-col';
 
-export function BalancesCard() {
+type View = 'you' | 'buyer' | 'seller';
+
+export function BalancesCard({
+  buyerAgent,
+  sellerAgent,
+}: {
+  buyerAgent?: string;
+  sellerAgent?: string;
+} = {}) {
   const { address, isConnected } = useAccount();
+  const [view, setView] = useState<View>('you');
 
-  const arc = useBalance({ address, chainId: arcTestnet.id });
-  const baseSep = useBalance({
+  const yArc = useBalance({ address, chainId: arcTestnet.id });
+  const yBase = useBalance({
     address,
     chainId: SOURCE_CHAINS.baseSepolia.chainId,
     token: SOURCE_CHAINS.baseSepolia.usdc,
   });
-  const ethSep = useBalance({
+  const yEth = useBalance({
     address,
+    chainId: SOURCE_CHAINS.sepolia.chainId,
+    token: SOURCE_CHAINS.sepolia.usdc,
+  });
+
+  const buyer = (buyerAgent as `0x${string}` | undefined) ?? undefined;
+  const bArc = useBalance({ address: buyer, chainId: arcTestnet.id });
+  const bBase = useBalance({
+    address: buyer,
+    chainId: SOURCE_CHAINS.baseSepolia.chainId,
+    token: SOURCE_CHAINS.baseSepolia.usdc,
+  });
+  const bEth = useBalance({
+    address: buyer,
+    chainId: SOURCE_CHAINS.sepolia.chainId,
+    token: SOURCE_CHAINS.sepolia.usdc,
+  });
+
+  const seller = (sellerAgent as `0x${string}` | undefined) ?? undefined;
+  const sArc = useBalance({ address: seller, chainId: arcTestnet.id });
+  const sBase = useBalance({
+    address: seller,
+    chainId: SOURCE_CHAINS.baseSepolia.chainId,
+    token: SOURCE_CHAINS.baseSepolia.usdc,
+  });
+  const sEth = useBalance({
+    address: seller,
     chainId: SOURCE_CHAINS.sepolia.chainId,
     token: SOURCE_CHAINS.sepolia.usdc,
   });
@@ -40,19 +77,34 @@ export function BalancesCard() {
     );
   }
 
-  const busy = arc.isRefetching || baseSep.isRefetching || ethSep.isRefetching;
-  const lastUpdated = Math.max(arc.dataUpdatedAt, baseSep.dataUpdatedAt, ethSep.dataUpdatedAt);
+  const groups = {
+    you: { address, arc: yArc, base: yBase, eth: yEth },
+    buyer: { address: buyer, arc: bArc, base: bBase, eth: bEth },
+    seller: { address: seller, arc: sArc, base: sBase, eth: sEth },
+  } as const;
+
+  const active = groups[view];
+  const tabs: Array<{ key: View; label: string; disabled?: boolean }> = [
+    { key: 'you', label: 'You' },
+    { key: 'buyer', label: 'Buyer', disabled: !buyer },
+    { key: 'seller', label: 'Seller', disabled: !seller },
+  ];
+
+  const allBalances = [yArc, yBase, yEth, bArc, bBase, bEth, sArc, sBase, sEth];
+  const busy = allBalances.some((b) => b.isRefetching);
+  const lastUpdated = Math.max(
+    ...allBalances.map((b) => b.dataUpdatedAt).filter((t) => t > 0),
+    0,
+  );
 
   function refreshAll() {
-    arc.refetch();
-    baseSep.refetch();
-    ethSep.refetch();
+    for (const b of allBalances) b.refetch();
   }
 
-  const rows: Array<{ key: keyof typeof CHAIN_META; data: typeof arc.data; loading: boolean }> = [
-    { key: 'arc', data: arc.data, loading: arc.isLoading },
-    { key: 'baseSepolia', data: baseSep.data, loading: baseSep.isLoading },
-    { key: 'sepolia', data: ethSep.data, loading: ethSep.isLoading },
+  const rows: Array<{ key: keyof typeof CHAIN_META; data: typeof yArc.data; loading: boolean }> = [
+    { key: 'arc', data: active.arc.data, loading: active.arc.isLoading },
+    { key: 'baseSepolia', data: active.base.data, loading: active.base.isLoading },
+    { key: 'sepolia', data: active.eth.data, loading: active.eth.isLoading },
   ];
 
   return (
@@ -92,13 +144,38 @@ export function BalancesCard() {
         </button>
       </div>
 
+      <div className="px-7 pb-3">
+        <div className="inline-flex rounded-full p-1 gap-1 bg-[var(--lp-light)]">
+          {tabs.map((t) => {
+            const isActive = view === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => !t.disabled && setView(t.key)}
+                disabled={t.disabled}
+                className={cn(
+                  'rounded-full px-3 py-1 text-[11px] font-semibold tracking-tight transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+                  isActive
+                    ? 'bg-[var(--lp-dark)] text-white'
+                    : t.disabled
+                      ? 'text-[var(--lp-text-muted)] opacity-50 cursor-not-allowed'
+                      : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]',
+                )}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <ul className="px-7">
         {rows.map((r, i) => {
           const m = CHAIN_META[r.key]!;
           const num =
-            r.loading || !r.data
-              ? null
-              : Number(formatUnits(r.data.value, r.data.decimals));
+            r.loading || !r.data ? null : Number(formatUnits(r.data.value, r.data.decimals));
           return (
             <li
               key={r.key}
@@ -128,10 +205,14 @@ export function BalancesCard() {
         })}
       </ul>
 
-      <div className="px-7 py-3.5 mt-1 border-t border-[var(--lp-border-light)] flex items-baseline justify-between gap-3">
-        <p className="mono text-[11px] text-[var(--lp-text-muted)]">{shortAddress(address)}</p>
+      <div className="px-7 py-3.5 mt-auto border-t border-[var(--lp-border-light)] flex items-baseline justify-between gap-3">
+        <p className="mono text-[11px] text-[var(--lp-text-muted)]">
+          {active.address ? shortAddress(active.address) : 'not configured'}
+        </p>
         {lastUpdated > 0 && (
-          <p className="mono text-[10px] text-[var(--lp-text-muted)]">updated {timeAgo(lastUpdated)}</p>
+          <p className="mono text-[10px] text-[var(--lp-text-muted)]">
+            updated {timeAgo(lastUpdated)}
+          </p>
         )}
       </div>
     </div>

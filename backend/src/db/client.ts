@@ -49,6 +49,18 @@ export async function ensureSchema(): Promise<void> {
       bridge_id TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      sender TEXT NOT NULL,
+      ts BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS messages_job_idx ON messages (job_id);
+    CREATE TABLE IF NOT EXISTS telegram_links (
+      address TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    );
   `);
   logger.info('postgres schema ensured');
 }

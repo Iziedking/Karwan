@@ -84,7 +84,7 @@ export default function BuyerPage() {
           <NewDealPanel />
         </Section>
         <div className="space-y-4" id="bridge-section">
-          <BalancesCard />
+          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
           <BridgeCard mintRecipient={agents?.buyer as `0x${string}` | undefined} />
         </div>
       </div>

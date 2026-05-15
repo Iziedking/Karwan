@@ -100,6 +100,29 @@ Live on Arc Testnet (chain 5042002):
 buyer and seller, collected by a treasury address set at deploy time. Build,
 test, and deploy instructions are in [contracts/README.md](./contracts/README.md).
 
+## Communication
+
+Buyer and seller can chat inside the deal page. Messages are end-to-end between
+the two parties — only the buyer and seller of a deal can read or post to its
+thread. The transcript is persisted, delivered live via SSE, and replayed on
+reload.
+
+Anyone can pair their wallet to Telegram from `/profile`. Once linked, the
+Karwan bot pushes deal updates, chat messages from the other party, and bridge
+state changes to that chat — so you don't have to keep the dashboard open.
+
+To enable Telegram on a deployment:
+
+```
+TELEGRAM_BOT_TOKEN=<token from @BotFather>
+TELEGRAM_BOT_USERNAME=<bot username, no @>
+```
+
+Without those set, the bot is disabled cleanly and `/profile` shows a "not
+configured" hint instead of the connect flow.
+
+Email notifications for deal alerts are planned for a later release.
+
 ## Docs
 
 - [docs/architecture.md](./docs/architecture.md) — components, the two deal

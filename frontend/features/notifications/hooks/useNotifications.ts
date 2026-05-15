@@ -20,6 +20,7 @@ const NOTIFY_TYPES = new Set([
   'deal.direct.created',
   'deal.accepted',
   'deal.delivered',
+  'deal.fund.insufficient',
   'escrow.milestone.released',
   'deal.review.started',
   'deal.review.heartbeat',
@@ -37,6 +38,8 @@ function summaryFor(type: string): string {
       return 'Seller accepted the deal terms';
     case 'deal.delivered':
       return 'Seller marked the work delivered';
+    case 'deal.fund.insufficient':
+      return 'Buyer agent needs USDC to fund escrow';
     case 'escrow.milestone.released':
       return 'A milestone was released';
     case 'deal.review.started':
@@ -98,6 +101,44 @@ export function useNotifications() {
       .catch(() => {});
   }, [address]);
 
+  // Backfill historical events on hydrate so notifications that fired while
+  // the user was offline (e.g. a buyer creating a direct deal naming them as
+  // seller) still surface in the bell. SSE is live-only, so without this the
+  // seller never sees the deal until the buyer triggers a new event.
+  const backfill = useCallback(async (me: string) => {
+    try {
+      const { events } = await api.activity(200);
+      const myJobs = new Set<string>();
+      const fresh: AppNotification[] = [];
+      for (const e of events) {
+        if (!NOTIFY_TYPES.has(e.type) || !e.jobId) continue;
+        const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+        const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+        if (buyer !== me && seller !== me) continue;
+        myJobs.add(e.jobId.toLowerCase());
+        fresh.push({
+          id: `${e.jobId}-${e.type}-${e.ts}`,
+          jobId: e.jobId,
+          type: e.type,
+          summary: summaryFor(e.type),
+          ts: e.ts,
+          read: false,
+        });
+      }
+      for (const j of myJobs) jobIdsRef.current.add(j);
+      setNotifications((list) => {
+        const seen = new Set(list.map((n) => n.id));
+        const merged = [...list];
+        // Preserve the `read` state for entries we've already stored.
+        for (const n of fresh) if (!seen.has(n.id)) merged.push(n);
+        merged.sort((a, b) => b.ts - a.ts);
+        return merged.slice(0, MAX_STORED);
+      });
+    } catch {
+      /* ignore — the live SSE will still pick up new events */
+    }
+  }, []);
+
   // Hydrate stored notifications + the user's deal jobId set on connect.
   useEffect(() => {
     if (!isConnected || !address) {
@@ -109,7 +150,8 @@ export function useNotifications() {
     setNotifications(load(address));
     setHydratedFor(address.toLowerCase());
     refreshJobIds();
-  }, [address, isConnected, refreshJobIds]);
+    void backfill(address.toLowerCase());
+  }, [address, isConnected, refreshJobIds, backfill]);
 
   // Persist after hydration completes.
   useEffect(() => {

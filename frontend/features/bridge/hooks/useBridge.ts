@@ -362,5 +362,31 @@ export function useBridges() {
     setBridges((list) => list.filter((b) => isActive(b.phase)));
   }, []);
 
-  return { bridges, start, retry, dismiss, clearCompleted, isActive };
+  /// Ask the backend to re-query Circle's attestation and try to mint. Covers
+  /// bridges where the SSE update was missed (closed tab) or where the relay
+  /// loop ended before IRIS finally posted the attestation.
+  const recheck = useCallback(
+    async (id: string) => {
+      patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
+      try {
+        const r = await api.bridgeRecheck(id);
+        if (r.status === 'minted') {
+          patch(id, (b) => ({
+            ...b,
+            phase: 'done',
+            mintTxHash: (r.mintTxHash as `0x${string}` | undefined) ?? b.mintTxHash,
+          }));
+        } else if (r.status === 'error') {
+          patch(id, (b) => ({ ...b, phase: 'error', error: r.error ?? 'Recheck failed' }));
+        }
+        // 'relaying' = still polling on the backend; leave the row in
+        // 'attesting' so the user sees the live indicator again.
+      } catch (err) {
+        patch(id, (b) => ({ ...b, phase: 'error', error: (err as Error).message }));
+      }
+    },
+    [patch],
+  );
+
+  return { bridges, start, retry, recheck, dismiss, clearCompleted, isActive };
 }

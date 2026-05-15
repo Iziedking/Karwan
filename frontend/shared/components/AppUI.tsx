@@ -252,9 +252,10 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
-/// Soft inline note for errors, confirmations and hints inside app sections.
-/// A tinted rounded banner with a leading dot — carries the message without
-/// the raw-red-text look.
+/// Inline status banner for errors, confirmations and hints inside app
+/// sections. Designed to read as an intentional, premium UI element: a filled
+/// badge icon, refined hierarchy, soft tinted surface, and a fade-up entrance.
+/// Used for every internal alert so the app speaks with one voice.
 export function Note({
   tone = 'info',
   children,
@@ -264,23 +265,68 @@ export function Note({
   children: ReactNode;
   className?: string;
 }) {
-  const styles =
+  const palette =
     tone === 'error'
-      ? 'bg-[rgba(185,28,28,0.07)] text-[#b91c1c]'
+      ? { bg: 'rgba(185,28,28,0.07)', fg: '#7a1f1a', badge: '#b91c1c' }
       : tone === 'success'
-        ? 'bg-[rgba(21,128,61,0.08)] text-[#15803d]'
-        : 'bg-[var(--lp-light)] text-[var(--lp-text-sub)]';
+        ? { bg: 'rgba(21,128,61,0.08)', fg: '#0f5132', badge: '#15803d' }
+        : { bg: 'var(--lp-light)', fg: 'var(--lp-text-sub)', badge: 'var(--lp-dark)' };
   return (
     <div
+      role={tone === 'error' ? 'alert' : 'status'}
       className={cn(
-        'flex items-start gap-2 rounded-[12px] px-3 py-2 text-[12px] leading-snug',
-        styles,
+        'fade-up flex items-start gap-3 rounded-[14px] px-3.5 py-3 text-[12.5px] leading-relaxed',
         className,
       )}
+      style={{ background: palette.bg, color: palette.fg }}
     >
-      <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-current opacity-70" />
-      <div className="min-w-0">{children}</div>
+      <span
+        aria-hidden
+        className="inline-flex size-[22px] items-center justify-center rounded-full shrink-0 mt-[1px] text-white"
+        style={{ background: palette.badge }}
+      >
+        {tone === 'error' ? (
+          <NoteExclaim />
+        ) : tone === 'success' ? (
+          <NoteCheck />
+        ) : (
+          <NoteInfo />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
+  );
+}
+
+function NoteExclaim() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="7" y="3.5" width="2" height="5.5" rx="1" fill="currentColor" />
+      <rect x="7" y="10.5" width="2" height="2" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function NoteCheck() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M3.5 8.5l3 3 6-7"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function NoteInfo() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="7" y="3.5" width="2" height="2" rx="1" fill="currentColor" />
+      <rect x="7" y="6.5" width="2" height="6" rx="1" fill="currentColor" />
+    </svg>
   );
 }
 

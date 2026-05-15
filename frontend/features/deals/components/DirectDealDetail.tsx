@@ -5,6 +5,8 @@ import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { Card } from '@/shared/components/Card';
+import { Note } from '@/shared/components/AppUI';
+import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
@@ -25,7 +27,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const { deal, fetchState, refresh } = useDirectDeal(jobId);
   const { activated } = useActivation();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<{ code?: string; message: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
@@ -57,17 +59,76 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
   const fee = feeBreakdown(Number(deal.dealAmountUsdc));
 
+  // Detail visibility is restricted to the two parties — and the screens shown
+  // to outsiders deliberately leak nothing about who the deal is between or
+  // its job hash. Public discovery happens on the deals feed.
+  if (!isConnected) {
+    return (
+      <div className="space-y-4 fade-up max-w-2xl">
+        <Card>
+          <p className="eyebrow">Deals</p>
+          <h1 className="font-sans text-[22px] font-bold tracking-[-0.02em] mt-1">
+            Connect your wallet to view this deal
+          </h1>
+          <p className="mt-2 text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
+            Deals are visible only to the buyer and seller they're opened between. Connect the
+            wallet you used to open or accept this deal.
+          </p>
+          <div className="mt-4">
+            <ConnectButton />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  if (!viewerIsBuyer && !viewerIsSeller) {
+    return (
+      <div className="space-y-4 fade-up max-w-2xl">
+        <Card>
+          <p className="eyebrow">Deals</p>
+          <h1 className="font-sans text-[22px] font-bold tracking-[-0.02em] mt-1">
+            You don&apos;t have any open deals here
+          </h1>
+          <p className="mt-2 text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
+            Deals are visible only to the wallets that are party to them. Switch wallets if you&apos;re
+            meant to see this one, or head back to start a new deal.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link
+              href="/buyer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)] text-[var(--color-surface)] px-4 py-2 text-[12px] font-semibold hover:opacity-90 transition-opacity"
+            >
+              Open a deal
+              <span aria-hidden>→</span>
+            </Link>
+            <Link
+              href="/app"
+              className="text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
+            >
+              Back to home
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   async function doAccept() {
     if (!address) return;
     setShowAcceptConsent(false);
     setBusy(true);
-    setError(null);
+    setErrorInfo(null);
     try {
       await api.acceptDirectDeal(jobId, address);
       sfx.send();
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
@@ -83,12 +144,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   async function onMarkDelivered() {
     if (!address) return;
     setBusy(true);
-    setError(null);
+    setErrorInfo(null);
     try {
       await api.markDelivered(jobId, address, deliveryProof.trim() || undefined);
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
@@ -97,14 +163,19 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   async function onRelease() {
     if (!address) return;
     setBusy(true);
-    setError(null);
+    setErrorInfo(null);
     try {
       const r = await api.releaseDirectDeal(jobId, address);
       if (r.settled) sfx.success();
       else sfx.send();
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
@@ -113,12 +184,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   async function onStillReviewing() {
     if (!address) return;
     setBusy(true);
-    setError(null);
+    setErrorInfo(null);
     try {
       await api.stillReviewing(jobId, address);
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
@@ -127,12 +203,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   async function onAppeal() {
     if (!address) return;
     setBusy(true);
-    setError(null);
+    setErrorInfo(null);
     try {
       await api.appealDeal(jobId, address);
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
@@ -141,12 +222,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   async function onCancel() {
     if (!address) return;
     setBusy(true);
-    setError(null);
+    setErrorInfo(null);
     try {
       await api.cancelDirectDeal(jobId, address);
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
@@ -266,7 +352,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             onCancel={onCancel}
           />
         )}
-        {error && <p className="text-[12px] text-[var(--color-critical)] mt-3">{error}</p>}
+        {errorInfo && (
+          <div className="mt-3">
+            <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} />
+          </div>
+        )}
       </Card>
 
       {(deal.fundTxHash || deal.onChain) && (
@@ -284,6 +374,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </a>
           )}
         </div>
+      )}
+
+      {address && (
+        <ChatPanel
+          jobId={jobId}
+          caller={address}
+          counterpartyLabel={
+            viewerIsBuyer ? `seller ${shortAddress(deal.seller)}` : `buyer ${shortAddress(deal.buyer)}`
+          }
+        />
       )}
 
       {showAcceptConsent && (
@@ -854,4 +954,47 @@ function ExternalIcon() {
       <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
+}
+
+/// Renders a backend deal error as a clean Note. Recognises agent-balance
+/// failures and explains them in plain language, with a profile link for the
+/// buyer so they can top the agent up.
+function DealErrorNote({
+  info,
+  viewerIsBuyer,
+}: {
+  info: { code?: string; message: string };
+  viewerIsBuyer: boolean;
+}) {
+  if (info.code === 'INSUFFICIENT_AGENT_BALANCE') {
+    return (
+      <Note tone="error">
+        <div className="space-y-1.5">
+          <p className="font-medium">Buyer agent does not have enough USDC on Arc.</p>
+          {viewerIsBuyer ? (
+            <p className="text-[11px] opacity-90">
+              Top up the buyer agent from your profile, then the seller can accept.{' '}
+              <Link href="/profile" className="underline font-medium">
+                Fund agent
+              </Link>
+            </p>
+          ) : (
+            <p className="text-[11px] opacity-90">
+              The buyer has been notified to top it up. Try accepting again once it is funded.
+            </p>
+          )}
+        </div>
+      </Note>
+    );
+  }
+  if (info.code === 'INSUFFICIENT_AGENT_GAS') {
+    return (
+      <Note tone="error">
+        <p className="font-medium">
+          The buyer agent does not have enough native gas on Arc to send this transaction.
+        </p>
+      </Note>
+    );
+  }
+  return <Note tone="error">{info.message}</Note>;
 }

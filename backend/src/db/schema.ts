@@ -3,6 +3,8 @@ import type { UserProfile } from './profiles.js';
 import type { DirectDeal } from './deals.js';
 import type { AgentWallets } from './agentWallets.js';
 import type { BridgeRelay } from './bridges.js';
+import type { ChatMessage } from './messages.js';
+import type { TelegramLink } from './telegramLinks.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -36,4 +38,23 @@ export const agentWallets = pgTable('agent_wallets', {
 export const bridges = pgTable('bridges', {
   bridgeId: text('bridge_id').primaryKey(),
   data: jsonb('data').$type<BridgeRelay>().notNull(),
+});
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: text('id').primaryKey(),
+    jobId: text('job_id').notNull(),
+    sender: text('sender').notNull(),
+    ts: bigint('ts', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<ChatMessage>().notNull(),
+  },
+  (t) => ({
+    jobIdx: index('messages_job_idx').on(t.jobId),
+  }),
+);
+
+export const telegramLinks = pgTable('telegram_links', {
+  address: text('address').primaryKey(),
+  data: jsonb('data').$type<TelegramLink>().notNull(),
 });

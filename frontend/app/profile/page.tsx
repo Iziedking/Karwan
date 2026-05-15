@@ -11,6 +11,9 @@ import { RoleToggle } from '@/features/profile/components/RoleToggle';
 import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
 import { AgentWithdrawCard } from '@/features/profile/components/AgentWithdrawCard';
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
+import { BalancesCard } from '@/features/balances/components/BalancesCard';
+import { BridgeCard } from '@/features/bridge/components/BridgeCard';
+import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { type UserProfile } from '@/core/api';
 import {
@@ -100,8 +103,11 @@ export default function ProfilePage() {
             </div>
           </div>
           {profile && (
-            <div className="flex items-center gap-2">
-              <ConnectXButton />
+            <div className="flex items-start gap-2">
+              <div className="flex flex-col items-start gap-2">
+                <ConnectXButton />
+                <TelegramConnectButton address={address} />
+              </div>
               <Pill variant="secondary" tone="dark" onClick={() => router.push('/onboarding')}>
                 Edit details
               </Pill>
@@ -232,6 +238,12 @@ export default function ProfilePage() {
           </div>
         </Section>
       )}
+
+      {/* HOLDINGS + BRIDGE */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
+        <BridgeCard mintRecipient={agents.buyer as `0x${string}` | undefined} />
+      </div>
 
       {/* FUND + WITHDRAW */}
       <div className="grid lg:grid-cols-2 gap-4">

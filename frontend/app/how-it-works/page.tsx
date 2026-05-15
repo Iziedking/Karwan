@@ -199,7 +199,7 @@ export default async function HowItWorksPage() {
       <section id="faq" className="space-y-6">
         <div className="max-w-2xl">
           <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
-            FAQ
+            FAQs
           </span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">Common questions</h2>
         </div>
