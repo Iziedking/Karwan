@@ -930,6 +930,14 @@ export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
   return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
 }
 
+/// Returns the JobContext of every open (not finalized, not escrow-funded) job.
+/// Used by listings cross-matching to scan briefs that a new listing could fill.
+export function listOpenJobContexts(): JobContext[] {
+  return [...jobs.values()]
+    .filter((s) => !s.finalized && !s.escrowFunded)
+    .map((s) => ({ ...s.context }));
+}
+
 /// Replays recent JobPosted logs through the live handler, so a freshly started
 /// agent picks up jobs posted while it was down.
 export async function backfillRecentJobs(fromBlock?: bigint) {

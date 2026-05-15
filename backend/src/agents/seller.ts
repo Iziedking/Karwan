@@ -30,11 +30,89 @@ interface ActiveBid {
   counterRounds: number;
   finalized: boolean;
   responding: boolean;
+  /** When the bid was triggered by a seller listing: the listing's floor below
+   *  which the seller agent must NOT accept counters. Falls back to the seller
+   *  profile's minBudgetUsdc when undefined. */
+  listingFloorUsdc?: number;
+  listingAskingPriceUsdc?: number;
 }
 
 // Keyed by `${jobId}:${sellerAgentAddress}` since many sellers can bid on one job.
 const activeBids = new Map<string, ActiveBid>();
 const handledEvents = new Set<string>();
+
+/// Submit a bid on an open buyer brief on behalf of a seller listing. Bypasses
+/// the seller agent's LLM bid decision because the listing IS the decision —
+/// the seller has pre-committed to this price and tolerance. From here the bid
+/// flows through the normal counter/accept loop, with the listing's tolerance
+/// applied in counter-evaluation.
+export async function submitListingBid(
+  job: JobContext,
+  seller: SellerProfile,
+  listing: {
+    askingPriceUsdc: number;
+    floorUsdc: number;
+    description: string;
+    deadlineDays?: number;
+  },
+): Promise<{ ok: true; txHash: string } | { ok: false; reason: string }> {
+  const key = bidKey(job.jobId, seller.address);
+  if (activeBids.has(key)) return { ok: false, reason: 'already-bid' };
+
+  const proposedDays = listing.deadlineDays ?? seller.maxDeadlineDays;
+  const proposedDeadline = Math.floor(Date.now() / 1000) + proposedDays * 86_400;
+  const deadlineUnix = Math.min(proposedDeadline, job.deadlineUnix);
+  const priceUsdc = listing.askingPriceUsdc.toString();
+  const priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
+
+  try {
+    const txResult = await executeContractCall(
+      {
+        walletId: seller.walletId,
+        contractAddress: jobBoard.address,
+        abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
+        abiParameters: [job.jobId, priceWei.toString(), deadlineUnix.toString()],
+      },
+      `submitBid(listing-driven ${job.jobId})`,
+    );
+
+    activeBids.set(key, {
+      seller,
+      jobContext: job,
+      lastBidPrice: priceUsdc,
+      counterRounds: 0,
+      finalized: false,
+      responding: false,
+      listingAskingPriceUsdc: listing.askingPriceUsdc,
+      listingFloorUsdc: listing.floorUsdc,
+    });
+
+    bus.emitEvent({
+      type: 'bid.submitted',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        priceUsdc,
+        deadlineUnix,
+        source: 'listing',
+        listingFloorUsdc: listing.floorUsdc,
+        txHash: txResult.txHash,
+      },
+    });
+    logger.info(
+      { jobId: job.jobId, seller: seller.address, priceUsdc, floor: listing.floorUsdc, ...txResult },
+      'listing-driven bid submitted',
+    );
+    return { ok: true, txHash: txResult.txHash };
+  } catch (err) {
+    logger.error(
+      { jobId: job.jobId, seller: seller.address, err: (err as Error).message },
+      'listing-driven submitBid failed',
+    );
+    return { ok: false, reason: (err as Error).message };
+  }
+}
 
 function bidKey(jobId: string, sellerAddress: string): string {
   return `${jobId.toLowerCase()}:${sellerAddress.toLowerCase()}`;
@@ -294,6 +372,11 @@ async function runCounterEvaluation(
   const buyerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const buyerCounterDeadlineUnix = Number(args.newDeadline);
 
+  // For listing-driven bids, the floor is the listing's asking price minus the
+  // seller's negotiation tolerance — overrides the profile-wide minBudgetUsdc.
+  const minAcceptable = active.listingFloorUsdc ?? seller.minBudgetUsdc;
+  const maxAcceptable = active.listingAskingPriceUsdc ?? seller.maxBudgetUsdc;
+
   let decision;
   try {
     const result = await withLlmTimeout(
@@ -305,8 +388,8 @@ async function runCounterEvaluation(
           active.jobContext,
           {
             side: 'seller',
-            minAcceptablePriceUsdc: seller.minBudgetUsdc,
-            maxAcceptablePriceUsdc: seller.maxBudgetUsdc,
+            minAcceptablePriceUsdc: minAcceptable,
+            maxAcceptablePriceUsdc: maxAcceptable,
             minDeadlineDays: seller.minDeadlineDays,
             maxDeadlineDays: seller.maxDeadlineDays,
           },
