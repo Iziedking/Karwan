@@ -149,7 +149,7 @@ function safe(label: string, fn: () => Promise<unknown>) {
     });
 }
 
-async function handleJobPosted(log: Log) {
+async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   const dedupeKey = logDedupeKey('JobPosted', log);
   if (handledEvents.has(dedupeKey)) return;
   handledEvents.add(dedupeKey);
@@ -192,9 +192,13 @@ async function handleJobPosted(log: Log) {
   };
   jobs.set(args.jobId, state);
   logger.info(
-    { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName },
+    { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName, silent: opts?.silent ?? false },
     'tracking job',
   );
+  // Don't broadcast tracked-events during boot backfill — the JobPosted log is
+  // historical, and emitting it now would surface every old job in the activity
+  // feed as if it had just been posted (timestamp comes from Date.now()).
+  if (opts?.silent) return;
   bus.emitEvent({
     type: 'job.tracked',
     jobId: args.jobId,
@@ -1018,7 +1022,7 @@ export async function backfillRecentJobs(fromBlock?: bigint) {
     toBlock: latest,
   });
   logger.info({ count: logs.length }, 'buyer backfilling jobs');
-  for (const log of logs) await handleJobPosted(log as unknown as Log);
+  for (const log of logs) await handleJobPosted(log as unknown as Log, { silent: true });
 }
 
 interface JobPostedArgs {

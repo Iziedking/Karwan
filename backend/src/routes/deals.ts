@@ -536,16 +536,17 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   // Before the seller accepts, no escrow exists yet, so cancel is a plain state
   // change with nothing to refund on chain.
   if (!deal.acceptedAt) {
-    await patchDeal(jobId, { cancelledAt: Date.now() });
+    const reason = 'buyer withdrew before the seller accepted';
+    await patchDeal(jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: 'pre-accept',
+      cancelReason: reason,
+    });
     bus.emitEvent({
       type: 'deal.cancelled',
       jobId,
       actor: 'buyer',
-      payload: {
-        buyer: deal.buyer,
-        seller: deal.seller,
-        reason: 'buyer withdrew before the seller accepted',
-      },
+      payload: { buyer: deal.buyer, seller: deal.seller, kind: 'pre-accept', reason },
     });
     return c.json({ accepted: true, jobId }, 200);
   }
@@ -588,12 +589,22 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
       },
       `refund(${jobId})`,
     );
-    await patchDeal(jobId, { cancelledAt: Date.now() });
+    await patchDeal(jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: 'unilateral',
+      cancelReason: reason,
+    });
     bus.emitEvent({
       type: 'deal.cancelled',
       jobId,
       actor: 'buyer',
-      payload: { buyer: deal.buyer, seller: deal.seller, reason, txHash: refundResult.txHash },
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        kind: 'unilateral',
+        reason,
+        txHash: refundResult.txHash,
+      },
     });
     // The seller never delivered by the deadline: record a failure against them.
     await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
@@ -605,6 +616,227 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   } finally {
     inFlight.delete(jobId);
   }
+});
+
+const cancelProposeSchema = z.object({
+  caller: addrSchema,
+  reason: z.string().min(3).max(400),
+  kind: z.enum(['mutual', 'platform-attributed']).default('mutual'),
+});
+
+/// Mutual / platform-attributed cancel proposal flow.
+///
+/// Either party proposes with a reason and a kind. The counterparty can accept
+/// (refunds escrow if funded, marks the deal cancelled with the proposed kind,
+/// no reputation impact) or decline (clears the proposal, deal continues
+/// normally). A second propose call from the same party overwrites the prior
+/// proposal; a propose call from the opposite side while one is pending is
+/// treated as an accept (both want out).
+dealsRoutes.post('/direct/:jobId/cancel/propose', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = cancelProposeSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  const callerLower = body.caller.toLowerCase();
+  const callerRole: 'buyer' | 'seller' | null =
+    callerLower === deal.buyer ? 'buyer' : callerLower === deal.seller ? 'seller' : null;
+  if (!callerRole) {
+    return c.json({ error: 'caller is not a party to this deal' }, 403);
+  }
+  if (deal.cancelledAt || deal.settledAt || deal.disputed) {
+    return c.json({ error: 'this deal is no longer in a proposable state' }, 409);
+  }
+
+  const reason = body.reason.trim();
+  const proposal = {
+    proposedBy: callerRole,
+    kind: body.kind,
+    reason,
+    proposedAt: Date.now(),
+  } as const;
+
+  await patchDeal(jobId, { cancellationProposal: proposal });
+  bus.emitEvent({
+    type: 'deal.cancel.proposed',
+    jobId,
+    actor: callerRole,
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      proposedBy: callerRole,
+      kind: body.kind,
+      reason,
+    },
+  });
+  return c.json({ accepted: true, jobId, proposal }, 200);
+});
+
+dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  const proposal = deal.cancellationProposal;
+  if (!proposal) {
+    return c.json({ error: 'no cancellation is pending' }, 409);
+  }
+  const callerLower = body.caller.toLowerCase();
+  const callerRole: 'buyer' | 'seller' | null =
+    callerLower === deal.buyer ? 'buyer' : callerLower === deal.seller ? 'seller' : null;
+  if (!callerRole) {
+    return c.json({ error: 'caller is not a party to this deal' }, 403);
+  }
+  if (callerRole === proposal.proposedBy) {
+    return c.json({ error: 'the proposer cannot accept their own proposal' }, 409);
+  }
+  if (deal.cancelledAt || deal.settledAt || deal.disputed) {
+    return c.json({ error: 'this deal is no longer cancellable' }, 409);
+  }
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this deal' }, 409);
+  }
+
+  // Pre-accept: no escrow exists, plain state change.
+  if (!deal.acceptedAt) {
+    await patchDeal(jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: proposal.kind,
+      cancelReason: proposal.reason,
+      cancellationProposal: undefined,
+    });
+    bus.emitEvent({
+      type: 'deal.cancelled',
+      jobId,
+      actor: callerRole,
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        kind: proposal.kind,
+        reason: proposal.reason,
+        proposedBy: proposal.proposedBy,
+        acceptedBy: callerRole,
+      },
+    });
+    return c.json({ accepted: true, jobId }, 200);
+  }
+
+  // Post-accept: dispute + refund on chain.
+  if (!deal.buyerAgentWalletId) {
+    return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+  }
+  const account = await readEscrow(jobId);
+  if (account.state !== ESCROW_FUNDED) {
+    return c.json({ error: `escrow is not in a cancellable state (${account.state})` }, 409);
+  }
+
+  inFlight.add(jobId);
+  try {
+    const chainReason = `${proposal.kind === 'platform-attributed' ? 'platform' : 'mutual'} cancel: ${proposal.reason}`;
+    await executeContractCall(
+      {
+        walletId: deal.buyerAgentWalletId,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'dispute(bytes32,string)',
+        abiParameters: [jobId, chainReason],
+      },
+      `dispute(${proposal.kind}-cancel ${jobId})`,
+    );
+    const refundResult = await executeContractCall(
+      {
+        walletId: deal.buyerAgentWalletId,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'refund(bytes32)',
+        abiParameters: [jobId],
+      },
+      `refund(${jobId})`,
+    );
+    await patchDeal(jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: proposal.kind,
+      cancelReason: proposal.reason,
+      cancellationProposal: undefined,
+    });
+    bus.emitEvent({
+      type: 'deal.cancelled',
+      jobId,
+      actor: callerRole,
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        kind: proposal.kind,
+        reason: proposal.reason,
+        proposedBy: proposal.proposedBy,
+        acceptedBy: callerRole,
+        txHash: refundResult.txHash,
+      },
+    });
+    // Both 'mutual' and 'platform-attributed' are reputation-neutral by design.
+    // No recordReputation() call here.
+    return c.json({ accepted: true, jobId, txHash: refundResult.txHash }, 200);
+  } catch (err) {
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'cancel-accept failed');
+    return c.json({ error: 'cancel failed', code: info.code, detail: info.message }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
+dealsRoutes.post('/direct/:jobId/cancel/decline', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  const proposal = deal.cancellationProposal;
+  if (!proposal) {
+    return c.json({ error: 'no cancellation is pending' }, 409);
+  }
+  const callerLower = body.caller.toLowerCase();
+  const callerRole: 'buyer' | 'seller' | null =
+    callerLower === deal.buyer ? 'buyer' : callerLower === deal.seller ? 'seller' : null;
+  if (!callerRole) {
+    return c.json({ error: 'caller is not a party to this deal' }, 403);
+  }
+  if (callerRole === proposal.proposedBy) {
+    return c.json({ error: 'the proposer cannot decline their own proposal' }, 409);
+  }
+
+  await patchDeal(jobId, { cancellationProposal: undefined });
+  bus.emitEvent({
+    type: 'deal.cancel.declined',
+    jobId,
+    actor: callerRole,
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      proposedBy: proposal.proposedBy,
+      declinedBy: callerRole,
+      kind: proposal.kind,
+      reason: proposal.reason,
+    },
+  });
+  return c.json({ accepted: true, jobId }, 200);
 });
 
 async function enrich(deal: DirectDeal) {

@@ -47,6 +47,26 @@ export interface DirectDeal {
   // Buyer reclaimed funds because the seller never delivered by the deadline.
   // The escrow is moved Disputed then Refunded on chain.
   cancelledAt?: number;
+  /// How the cancellation happened. Drives reputation:
+  /// - 'mutual'             — counterparty agreed to a proposed cancel; rep-neutral.
+  /// - 'platform-attributed'— agent misroute, both parties agreed; rep-neutral.
+  /// - 'unilateral'         — buyer cancel after deadline passed without delivery;
+  ///                          rep against the seller (the existing /cancel path).
+  /// - 'pre-accept'         — buyer withdrew before the seller accepted; no escrow, no rep.
+  cancelKind?: 'mutual' | 'platform-attributed' | 'unilateral' | 'pre-accept';
+  /// Free-text reason captured at cancellation. Optional for unilateral and
+  /// pre-accept (we synthesize a default); required for mutual / platform-attributed.
+  cancelReason?: string;
+  /// Pending mutual / platform-attributed cancellation proposal. Cleared on
+  /// accept (deal becomes cancelled) or decline (deal continues). Only one
+  /// proposal at a time; a second propose call overwrites the first if it's
+  /// from the same party, otherwise rejects.
+  cancellationProposal?: {
+    proposedBy: 'buyer' | 'seller';
+    kind: 'mutual' | 'platform-attributed';
+    reason: string;
+    proposedAt: number;
+  };
   // Agent auto-released the final milestone after the window expired silently.
   autoReleasedAt?: number;
   settledAt?: number;

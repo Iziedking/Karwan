@@ -126,6 +126,14 @@ export interface DirectDeal {
   disputed?: boolean;
   disputedAt?: number;
   cancelledAt?: number;
+  cancelKind?: 'mutual' | 'platform-attributed' | 'unilateral' | 'pre-accept';
+  cancelReason?: string;
+  cancellationProposal?: {
+    proposedBy: 'buyer' | 'seller';
+    kind: 'mutual' | 'platform-attributed';
+    reason: string;
+    proposedAt: number;
+  };
   autoReleasedAt?: number;
   settledAt?: number;
   fundTxHash?: string;
@@ -377,6 +385,35 @@ export const api = {
   cancelDirectDeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string; txHash: string }>(
       `/api/deals/direct/${jobId}/cancel`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  proposeCancelDirectDeal: (
+    jobId: string,
+    caller: string,
+    reason: string,
+    kind: 'mutual' | 'platform-attributed' = 'mutual',
+  ) =>
+    json<{
+      accepted: boolean;
+      jobId: string;
+      proposal: {
+        proposedBy: 'buyer' | 'seller';
+        kind: 'mutual' | 'platform-attributed';
+        reason: string;
+        proposedAt: number;
+      };
+    }>(`/api/deals/direct/${jobId}/cancel/propose`, {
+      method: 'POST',
+      body: JSON.stringify({ caller, reason, kind }),
+    }),
+  acceptCancelDirectDeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; txHash?: string }>(
+      `/api/deals/direct/${jobId}/cancel/accept`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  declineCancelDirectDeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string }>(
+      `/api/deals/direct/${jobId}/cancel/decline`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   bridgeRelay: (input: {

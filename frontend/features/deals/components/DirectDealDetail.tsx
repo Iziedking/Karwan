@@ -257,7 +257,82 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     }
   }
 
+  const [proposeOpen, setProposeOpen] = useState(false);
+
+  async function onProposeCancel(reason: string, kind: 'mutual' | 'platform-attributed') {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.proposeCancelDirectDeal(jobId, address, reason, kind);
+      setProposeOpen(false);
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onAcceptCancel() {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.acceptCancelDirectDeal(jobId, address);
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDeclineCancel() {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.declineCancelDirectDeal(jobId, address);
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const rail = STAGE_RAIL[stage];
+  const viewerRole: 'buyer' | 'seller' | null = viewerIsBuyer
+    ? 'buyer'
+    : viewerIsSeller
+      ? 'seller'
+      : null;
+  const proposal = deal.cancellationProposal;
+  // The counterparty is the party who DIDN'T propose. They see Accept/Decline.
+  const viewerIsCounterparty = !!proposal && viewerRole !== null && viewerRole !== proposal.proposedBy;
+  // The proposer sees a "waiting on X" state with a way to retract is out of
+  // scope for this slice; a re-propose from the same side overwrites.
+  const viewerIsProposer = !!proposal && viewerRole !== null && viewerRole === proposal.proposedBy;
+  // Stages where either party may propose a mutual / platform-attributed cancel.
+  // Pre-accept and settled / disputed / already-cancelled are excluded — pre-accept
+  // has its own buyer-only path and the others are terminal.
+  const proposableStages: DealStage[] = [
+    'awaiting-delivery',
+    'awaiting-first-release',
+    'awaiting-final-release',
+  ];
+  const canPropose =
+    !proposal && proposableStages.includes(stage) && viewerRole !== null && !deal.cancelledAt;
 
   return (
     <FullBleed>
@@ -391,6 +466,18 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               borderBottomRightRadius: 5,
             }}
           >
+            {proposal && (
+              <div className="mb-4">
+                <CancelProposalBanner
+                  proposal={proposal}
+                  viewerIsCounterparty={viewerIsCounterparty}
+                  viewerIsProposer={viewerIsProposer}
+                  busy={busy}
+                  onAccept={onAcceptCancel}
+                  onDecline={onDeclineCancel}
+                />
+              </div>
+            )}
             <ActionPanel
               stage={stage}
               viewerIsBuyer={viewerIsBuyer}
@@ -408,6 +495,27 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onAppeal={onAppeal}
               onCancel={onCancel}
             />
+            {canPropose && (
+              <div className="mt-5 pt-5 border-t border-white/[0.08]">
+                <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+                  [:OR:]
+                </p>
+                <p className="mt-2 text-[13px] leading-relaxed text-white/65">
+                  Need to call it off? Propose a cancellation. Your counterparty has to agree;
+                  no reputation hit if they do.
+                </p>
+                <div className="mt-3">
+                  <CTAPill
+                    variant="secondary"
+                    tone="dark"
+                    onClick={() => setProposeOpen(true)}
+                    disabled={busy}
+                  >
+                    Propose cancellation
+                  </CTAPill>
+                </div>
+              </div>
+            )}
             {errorInfo && (
               <div className="mt-4">
                 <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} />
@@ -463,6 +571,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           busy={busy}
           onConfirm={doAccept}
           onClose={() => setShowAcceptConsent(false)}
+        />
+      )}
+
+      {proposeOpen && (
+        <ProposeCancelModal
+          busy={busy}
+          onConfirm={onProposeCancel}
+          onClose={() => setProposeOpen(false)}
         />
       )}
     </FullBleed>
@@ -659,12 +775,32 @@ function ActionPanel({
     );
   }
   if (stage === 'cancelled') {
+    const body =
+      deal.cancelKind === 'mutual'
+        ? 'Cancelled by mutual agreement. The escrow was refunded in full. Reputation unaffected on either side.'
+        : deal.cancelKind === 'platform-attributed'
+          ? 'Cancelled as a platform misroute. The escrow was refunded in full. Reputation unaffected on either side.'
+          : deal.cancelKind === 'unilateral'
+            ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
+            : deal.cancelKind === 'pre-accept'
+              ? 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.'
+              : deal.fundTxHash
+                ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
+                : 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.';
     return (
-      <Body>
-        {deal.fundTxHash
-          ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
-          : 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.'}
-      </Body>
+      <div className="space-y-2">
+        <Body>{body}</Body>
+        {deal.cancelReason && (deal.cancelKind === 'mutual' || deal.cancelKind === 'platform-attributed') && (
+          <div className="mt-1">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+              [:REASON:]
+            </p>
+            <p className="mt-1 text-[13px] text-white/70 leading-relaxed whitespace-pre-wrap">
+              {deal.cancelReason}
+            </p>
+          </div>
+        )}
+      </div>
     );
   }
   if (stage === 'disputed') {
@@ -987,6 +1123,209 @@ function AcceptConsentModal({
           <div className="flex items-center gap-3">
             <CTAPill onClick={onConfirm} disabled={busy}>
               {busy ? 'Working…' : 'Proceed & accept'}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
+              Not now
+            </CTAPill>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CancelProposalBanner({
+  proposal,
+  viewerIsCounterparty,
+  viewerIsProposer,
+  busy,
+  onAccept,
+  onDecline,
+}: {
+  proposal: NonNullable<DirectDeal['cancellationProposal']>;
+  viewerIsCounterparty: boolean;
+  viewerIsProposer: boolean;
+  busy: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  const kindLabel =
+    proposal.kind === 'platform-attributed' ? 'PLATFORM MISROUTE' : 'MUTUAL CANCEL';
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-accent)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+        boxShadow: '0 1px 0 rgba(212,255,63,0.20)',
+      }}
+    >
+      <div
+        className="flex items-center gap-1.5 px-3 py-1.5"
+        style={{ background: 'var(--lp-accent)' }}
+      >
+        <span aria-hidden className="inline-block w-[5px] h-[5px] bg-[var(--lp-dark)]" />
+        <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
+          {kindLabel} PROPOSED
+        </span>
+        <span className="ml-auto mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-dark)]/70">
+          BY {proposal.proposedBy.toUpperCase()}
+        </span>
+      </div>
+      <div className="px-4 py-3 space-y-2.5">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          [:REASON:]
+        </p>
+        <p className="text-[13px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
+          {proposal.reason}
+        </p>
+        <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
+          {proposal.kind === 'platform-attributed'
+            ? "Both sides agree the agent misrouted. Accepting refunds the escrow with no reputation hit on either side."
+            : 'No reputation hit on either side if accepted. Escrow refunds in full.'}
+        </p>
+        {viewerIsCounterparty && (
+          <div className="pt-2 flex flex-wrap items-center gap-2">
+            <CTAPill onClick={onAccept} disabled={busy}>
+              {busy ? 'Confirming…' : 'Accept & refund'}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="light" onClick={onDecline} disabled={busy}>
+              Decline · keep the deal
+            </CTAPill>
+          </div>
+        )}
+        {viewerIsProposer && (
+          <p className="pt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Waiting on counterparty to accept or decline.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProposeCancelModal({
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  busy: boolean;
+  onConfirm: (reason: string, kind: 'mutual' | 'platform-attributed') => void;
+  onClose: () => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [kind, setKind] = useState<'mutual' | 'platform-attributed'>('mutual');
+  const valid = reason.trim().length >= 3;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(14,14,14,0.55)' }}
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden"
+        style={{
+          background: 'var(--lp-card)',
+          color: 'var(--lp-dark)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div className="px-6 pt-6 pb-3">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:PROPOSE CANCELLATION:]
+          </span>
+          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
+            Call it off
+            <span style={{ color: 'var(--lp-accent)' }}>.</span>
+          </h2>
+        </div>
+        <div className="px-6 pb-6 space-y-5">
+          <p className="text-[13.5px] text-[var(--lp-text-sub)] leading-relaxed">
+            Your counterparty has to agree. If they accept, escrow refunds in full with no
+            reputation hit on either side. If they decline, the deal continues normally.
+          </p>
+
+          <div className="space-y-2">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:KIND:]
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { key: 'mutual', label: 'Mutual', body: "We've both decided to walk." },
+                  {
+                    key: 'platform-attributed',
+                    label: 'Platform misroute',
+                    body: 'The agent matched us wrong.',
+                  },
+                ] as const
+              ).map((opt) => {
+                const active = kind === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setKind(opt.key)}
+                    className="relative overflow-hidden text-left p-3 transition-colors"
+                    style={{
+                      background: active ? 'rgba(212,255,63,0.10)' : 'var(--lp-card)',
+                      color: 'var(--lp-dark)',
+                      border: active
+                        ? '1px solid var(--lp-accent)'
+                        : '1px solid var(--lp-border-light)',
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        style={{ background: 'var(--lp-accent)' }}
+                      />
+                    )}
+                    <p className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)]">
+                      {opt.label}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[var(--lp-text-sub)] leading-snug">
+                      {opt.body}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label className="block space-y-2">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:REASON:]
+            </span>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="Plain language. The other side reads this in their banner."
+              className="form-input form-textarea"
+            />
+          </label>
+
+          <div className="flex items-center gap-3">
+            <CTAPill onClick={() => onConfirm(reason.trim(), kind)} disabled={busy || !valid}>
+              {busy ? 'Proposing…' : 'Send proposal'}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
               Not now

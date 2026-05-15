@@ -5,6 +5,7 @@ import { api, type ChainEvent } from '@/core/api';
 const TRACKED_TYPES = [
   'job.posted',
   'job.tracked',
+  'job.expired',
   'bid.scored',
   'bid.submitted',
   'counter.issued',
@@ -27,6 +28,8 @@ const TRACKED_TYPES = [
   'deal.auto_released',
   'deal.disputed',
   'deal.cancelled',
+  'deal.cancel.proposed',
+  'deal.cancel.declined',
   'agent.skipped',
   'agent.declined',
   'agent.error',

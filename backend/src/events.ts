@@ -1,4 +1,6 @@
 import { EventEmitter } from 'node:events';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 export type KarwanEventType =
   | 'job.posted'
@@ -31,6 +33,8 @@ export type KarwanEventType =
   | 'deal.auto_released'
   | 'deal.disputed'
   | 'deal.cancelled'
+  | 'deal.cancel.proposed'
+  | 'deal.cancel.declined'
   | 'deal.fund.insufficient'
   | 'listing.posted'
   | 'listing.matched'
@@ -51,9 +55,25 @@ export interface KarwanEvent {
 }
 
 const HISTORY_CAPACITY = 500;
+const STORE_PATH = resolve(process.cwd(), 'data', 'events.json');
+// Debounce window. Bursts of events (one auction can fire 5-10 events back to
+// back) collapse to a single fsync.
+const PERSIST_DEBOUNCE_MS = 800;
+
+function loadHistory(): KarwanEvent[] {
+  if (!existsSync(STORE_PATH)) return [];
+  try {
+    const raw = readFileSync(STORE_PATH, 'utf8');
+    const arr = JSON.parse(raw) as KarwanEvent[];
+    return Array.isArray(arr) ? arr.slice(-HISTORY_CAPACITY) : [];
+  } catch {
+    return [];
+  }
+}
 
 class KarwanBus extends EventEmitter {
-  private history: KarwanEvent[] = [];
+  private history: KarwanEvent[] = loadHistory();
+  private persistTimer: NodeJS.Timeout | null = null;
 
   emitEvent(e: Omit<KarwanEvent, 'ts'>) {
     const full: KarwanEvent = { ...e, ts: Date.now() };
@@ -61,6 +81,7 @@ class KarwanBus extends EventEmitter {
     if (this.history.length > HISTORY_CAPACITY) {
       this.history.shift();
     }
+    this.schedulePersist();
     this.emit('event', full);
   }
 
@@ -72,6 +93,24 @@ class KarwanBus extends EventEmitter {
   recent(limit = 100, jobId?: string): KarwanEvent[] {
     const filtered = jobId ? this.history.filter((e) => e.jobId === jobId) : this.history;
     return filtered.slice(-limit).reverse();
+  }
+
+  /// Debounced flush to data/events.json. We accept losing the trailing window
+  /// (~1s) of events on a hard crash — full per-event fsync would be wasteful
+  /// since one auction emits ~10 events back to back. Postgres-backed in a
+  /// future iteration.
+  private schedulePersist() {
+    if (this.persistTimer) return;
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      try {
+        const dir = dirname(STORE_PATH);
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        writeFileSync(STORE_PATH, JSON.stringify(this.history), 'utf8');
+      } catch {
+        /* persist failures are non-fatal — history stays in memory */
+      }
+    }, PERSIST_DEBOUNCE_MS);
   }
 }
 

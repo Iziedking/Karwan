@@ -1,7 +1,21 @@
 'use client';
+import Link from 'next/link';
 import type { ChainEvent } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
+
+/// Direct-deal events live on /deals/[id]; everything else with a jobId lives
+/// on /jobs/[id]. Returns null for events that don't have a navigable target.
+function hrefForEvent(e: ChainEvent): string | null {
+  if (!e.jobId) return null;
+  if (e.type.startsWith('deal.direct.') || e.type === 'deal.delivered' ||
+      e.type === 'deal.accepted' || e.type === 'deal.review.started' ||
+      e.type === 'deal.review.heartbeat' || e.type === 'deal.auto_released' ||
+      e.type === 'deal.disputed' || e.type === 'deal.cancelled') {
+    return `/deals/${e.jobId}`;
+  }
+  return `/jobs/${e.jobId}`;
+}
 
 const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system' | 'error' }> = {
   'job.tracked': { text: 'Job posted on chain', tone: 'system' },
@@ -36,6 +50,8 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'deal.auto_released': { text: 'Final milestone auto-released', tone: 'system' },
   'deal.disputed': { text: 'Deal moved to dispute', tone: 'error' },
   'deal.cancelled': { text: 'Deal cancelled and refunded', tone: 'system' },
+  'deal.cancel.proposed': { text: 'Cancellation proposed', tone: 'system' },
+  'deal.cancel.declined': { text: 'Cancellation declined', tone: 'error' },
 };
 
 interface Chip {
@@ -158,20 +174,10 @@ export function EventList({
           const rail = RAIL_COLOR[tone];
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
           const chips = chipsFor(e.payload);
-          return (
-            <li
-              key={`${e.ts}-${i}`}
-              className="slide-in relative overflow-hidden p-4 pl-5 transition-shadow"
-              style={{
-                background: 'var(--lp-card)',
-                border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
-                boxShadow: '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
-              }}
-            >
+          const href = hrefForEvent(e);
+
+          const body = (
+            <>
               <span
                 aria-hidden
                 className="absolute left-0 top-0 bottom-0 w-[3px]"
@@ -203,7 +209,8 @@ export function EventList({
                     href={`${explorer}/tx/${txHash}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="group inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-colors"
+                    onClick={(ev) => ev.stopPropagation()}
+                    className="group inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-colors relative z-10"
                     style={{ color: 'var(--lp-dark)' }}
                     title="Open on Arc Testnet explorer"
                   >
@@ -227,7 +234,43 @@ export function EventList({
                     </svg>
                   </a>
                 )}
+                {href && (
+                  <span
+                    aria-hidden
+                    className="ml-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
+                  >
+                    OPEN →
+                  </span>
+                )}
               </div>
+            </>
+          );
+
+          const cardStyle = {
+            background: 'var(--lp-card)',
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+            boxShadow: '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
+          } as const;
+
+          return (
+            <li key={`${e.ts}-${i}`} className="slide-in">
+              {href ? (
+                <Link
+                  href={href}
+                  className="group relative overflow-hidden block p-4 pl-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-px hover:shadow-[0_1px_0_rgba(0,0,0,0.04),0_10px_24px_-14px_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                  style={cardStyle}
+                >
+                  {body}
+                </Link>
+              ) : (
+                <div className="group relative overflow-hidden p-4 pl-5" style={cardStyle}>
+                  {body}
+                </div>
+              )}
             </li>
           );
         })}

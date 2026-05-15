@@ -1,8 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { BuyerJob } from '@/core/api';
-import { Card } from '@/shared/components/Card';
 import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
 import { FlowStepper } from './FlowStepper';
@@ -12,6 +11,15 @@ import { MatchBanner } from './MatchBanner';
 import { ReleaseMilestonesButton } from './ReleaseMilestonesButton';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
+import {
+  FullBleed,
+  Band,
+  GridOverlay,
+  SectionTag,
+  HeroHeadline,
+  Punc,
+  PageCard,
+} from '@/shared/components/Bands';
 
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
@@ -26,111 +34,174 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
     ? { label: `Escrow funded · ${formatUsdc(job.budgetUsdc)}`, tone: 'positive', live: false }
     : declined
-    ? { label: 'Negotiation ended · no agreement', tone: 'critical', live: false }
-    : matchPending
-    ? { label: `Match · ${proposal!.agreedPriceUsdc} USDC · awaiting approval`, tone: 'warning', live: true }
-    : job.finalized
-    ? { label: 'Accepted · funding escrow', tone: 'warning', live: true }
-    : job.bids.length > 0
-    ? { label: `${job.bids.length} bid${job.bids.length === 1 ? '' : 's'} · negotiating`, tone: 'accent', live: true }
-    : { label: 'Open · waiting on seller agents', tone: 'default', live: true };
+      ? { label: 'Negotiation ended', tone: 'critical', live: false }
+      : matchPending
+        ? {
+            label: `Match · ${proposal!.agreedPriceUsdc} USDC · awaiting approval`,
+            tone: 'warning',
+            live: true,
+          }
+        : job.finalized
+          ? { label: 'Accepted · funding escrow', tone: 'warning', live: true }
+          : job.bids.length > 0
+            ? {
+                label: `${job.bids.length} bid${job.bids.length === 1 ? '' : 's'} · negotiating`,
+                tone: 'accent',
+                live: true,
+              }
+            : { label: 'Waiting on seller agents', tone: 'default', live: true };
 
   return (
-    <div className="space-y-8">
-      <div className="fade-up">
-        <Link
-          href="/buyer"
-          className="group inline-flex items-center gap-1 text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] mb-3 transition-colors"
-        >
-          <span
-            aria-hidden
-            className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
+    <FullBleed>
+      {/* HERO */}
+      <Band tone="dark" overlay={<GridOverlay />}>
+        <div className="fade-up">
+          <Link
+            href="/buyer"
+            className="group inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-white/55 hover:text-white transition-colors mb-6"
           >
-            ←
-          </span>
-          <span className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            Back to buyer
-          </span>
-        </Link>
-        <div className="flex items-start justify-between gap-6">
+            <span
+              aria-hidden
+              className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
+            >
+              ←
+            </span>
+            BACK TO BUYER
+          </Link>
+        </div>
+        <div className="grid lg:grid-cols-[1.4fr_auto] gap-6 items-start">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)] mb-1">
-              Deal
+            <div className="fade-up fade-up-1">
+              <SectionTag tone="dark" dot={status.live ? 'live' : undefined}>
+                MANAGED DEAL
+              </SectionTag>
+            </div>
+            <div className="fade-up fade-up-2">
+              <HeroHeadline>
+                {shortHash(job.jobId, 10, 6)}
+                <Punc>.</Punc>
+              </HeroHeadline>
+            </div>
+            <p className="fade-up fade-up-3 mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45 tabular-nums break-all">
+              {job.jobId}
             </p>
-            <h1 className="text-[26px] tracking-tight font-semibold mono break-all">
-              {shortHash(job.jobId, 10, 6)}
-            </h1>
-            <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-1 break-all">{job.jobId}</p>
           </div>
-          <StatusPill label={status.label} tone={status.tone} live={status.live} />
+          <div className="fade-up fade-up-4">
+            <StatusChip label={status.label} tone={status.tone} live={status.live} />
+          </div>
         </div>
-      </div>
+      </Band>
 
-      <div className="fade-up fade-up-1 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatTile
-          label="Budget"
-          value={
-            <>
-              <span className="serif text-[32px] tabular-nums leading-none tracking-[-0.02em]">
-                {formatUsdc(job.budgetUsdc, { withSuffix: false })}
-              </span>
-              <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)] ml-2 align-baseline">
-                USDC
-              </span>
-            </>
-          }
-        />
-        <StatTile
-          label="Bids"
-          value={
-            <span className="serif text-[32px] tabular-nums leading-none tracking-[-0.02em]">
-              {job.bids.length}
-            </span>
-          }
-        />
-        <StatTile
-          label="Buyer deadline"
-          value={
-            <span className="text-[18px] font-medium tracking-tight text-[var(--color-ink)]">
-              {relativeTime(job.deadlineUnix)}
-            </span>
-          }
-        />
-        <StatTile
-          label="Terms hash"
-          value={<span className="mono text-[15px]">{shortHash(job.termsHash, 6, 4)}</span>}
-        />
-      </div>
-
-      {proposal && (
-        <div className="fade-up fade-up-2">
-          <MatchBanner proposal={proposal} onChange={refreshProposal} />
+      {/* STAT TILES */}
+      <Band tone="light" compact>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 fade-up">
+          <StatTile
+            label="Budget"
+            value={formatUsdc(job.budgetUsdc, { withSuffix: false })}
+            unit="USDC"
+          />
+          <StatTile label="Bids" value={String(job.bids.length)} />
+          <StatTile label="Deadline" value={relativeTime(job.deadlineUnix)} small />
+          <StatTile label="Terms hash" value={shortHash(job.termsHash, 6, 4)} mono />
         </div>
-      )}
 
-      <div className="fade-up fade-up-2 grid md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <FlowStepper active={active} completed={completed} declined={declined} />
-          </Card>
-          <Card title="Timeline">
-            <EventList events={events} explorer={explorer} />
-          </Card>
-          <div className="fade-up-3">
+        {/* MATCH BANNER */}
+        {proposal && (
+          <div className="mt-8 fade-up fade-up-1">
+            <MatchBanner proposal={proposal} onChange={refreshProposal} />
+          </div>
+        )}
+
+        {/* FLOW + TIMELINE + BIDS */}
+        <div className="mt-8 grid lg:grid-cols-3 gap-5 items-start">
+          <div className="lg:col-span-2 space-y-5">
+            <PageCard>
+              <div className="p-6">
+                <SectionTag>FLOW</SectionTag>
+                <div className="mt-6">
+                  <FlowStepper active={active} completed={completed} declined={declined} />
+                </div>
+              </div>
+            </PageCard>
+
+            <PageCard>
+              <div className="px-6 pt-6">
+                <SectionTag>TIMELINE</SectionTag>
+              </div>
+              <div className="px-6 pb-6 pt-3">
+                <EventList events={events} explorer={explorer} />
+              </div>
+            </PageCard>
+
             <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
           </div>
+
+          <div className="space-y-5">
+            <PageCard>
+              <div className="px-6 pt-6">
+                <SectionTag>BIDS</SectionTag>
+              </div>
+              <LiveBidsPanel initial={job} />
+            </PageCard>
+          </div>
         </div>
-        <div className="space-y-4">
-          <Card title="Bids" noPadding>
-            <LiveBidsPanel initial={job} />
-          </Card>
-        </div>
+      </Band>
+    </FullBleed>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  unit,
+  mono,
+  small,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  mono?: boolean;
+  small?: boolean;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden p-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 18,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 4,
+        boxShadow: '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
+      }}
+    >
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:{label.toUpperCase()}:]
+      </p>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span
+          className={
+            mono
+              ? 'mono tabular-nums text-[18px] font-medium text-[var(--lp-dark)] leading-none'
+              : small
+                ? 'font-sans text-[18px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-none'
+                : 'font-sans text-[clamp(2rem,3.4vw,2.75rem)] font-extrabold tabular-nums tracking-[-0.025em] text-[var(--lp-dark)] leading-none'
+          }
+        >
+          {value}
+        </span>
+        {unit && (
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            {unit}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-function StatusPill({
+function StatusChip({
   label,
   tone,
   live,
@@ -139,114 +210,58 @@ function StatusPill({
   tone: StatusTone;
   live: boolean;
 }) {
-  const toneStyle: Record<
-    StatusTone,
-    { ink: string; border: string; eyebrow: string; eyebrowLabel: string }
-  > = {
-    positive: {
-      ink: 'var(--color-positive)',
-      border: 'color-mix(in srgb, var(--color-positive) 30%, var(--color-line))',
-      eyebrow: 'color-mix(in srgb, var(--color-positive) 70%, var(--color-ink) 30%)',
-      eyebrowLabel: 'Settled',
-    },
-    warning: {
-      ink: 'var(--color-warning)',
-      border: 'color-mix(in srgb, var(--color-warning) 30%, var(--color-line))',
-      eyebrow: 'color-mix(in srgb, var(--color-warning) 70%, var(--color-ink) 30%)',
-      eyebrowLabel: 'In progress',
-    },
-    accent: {
-      ink: 'var(--color-accent)',
-      border: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-line))',
-      eyebrow: 'color-mix(in srgb, var(--color-accent) 70%, var(--color-ink) 30%)',
-      eyebrowLabel: 'Live',
-    },
-    default: {
-      ink: 'var(--color-ink)',
-      border: 'var(--color-line-strong)',
-      eyebrow: 'var(--color-ink-faint)',
-      eyebrowLabel: 'Open',
-    },
-    critical: {
-      ink: 'var(--color-critical)',
-      border: 'color-mix(in srgb, var(--color-critical) 30%, var(--color-line))',
-      eyebrow: 'color-mix(in srgb, var(--color-critical) 70%, var(--color-ink) 30%)',
-      eyebrowLabel: 'Declined',
-    },
+  // Instrument-readout chip — same family as navbar LiveDot/wallet button.
+  // Body is white-on-dark; status color lives only in the LED cell.
+  const cell: Record<StatusTone, string> = {
+    positive: '#0a7553',
+    warning: '#b25425',
+    accent: 'var(--lp-accent)',
+    default: '#6b6b6b',
+    critical: '#b03d3a',
   };
-  const t = toneStyle[tone];
-  const [primary, ...rest] = label.split(' · ');
-  const secondary = rest.join(' · ');
-
+  const eyebrowText: Record<StatusTone, string> = {
+    positive: 'SETTLED',
+    warning: 'IN PROGRESS',
+    accent: 'LIVE',
+    default: 'OPEN',
+    critical: 'DECLINED',
+  };
   return (
-    <div
-      className="relative shrink-0 inline-flex items-stretch border"
+    <span
+      className="inline-flex items-stretch overflow-hidden mono leading-none text-white"
       style={{
-        borderColor: t.border,
-        background: 'var(--color-surface)',
-        borderRadius: 2,
+        background: 'var(--lp-dark)',
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 2,
+        boxShadow: '0 2px 0 rgba(0,0,0,0.22)',
       }}
     >
-      {/* tone rail */}
-      <span aria-hidden className="w-[3px]" style={{ background: t.ink }} />
-
-      {/* LED indicator cell */}
-      <div
-        className="flex items-center px-2 border-r"
-        style={{ borderColor: t.border }}
+      <span
+        aria-hidden
+        className="flex items-center justify-center px-2"
+        style={{ background: cell[tone] }}
       >
         <span
-          data-instrument-blink={live || undefined}
           aria-hidden
-          className="block w-[7px] h-[7px]"
+          data-instrument-blink={live || undefined}
+          className="inline-block w-[6px] h-[6px] bg-white"
           style={{
-            background: t.ink,
-            opacity: live ? undefined : 0.8,
             animation: live ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
           }}
         />
-      </div>
-
-      {/* eyebrow + primary cell */}
-      <div className="flex flex-col leading-tight px-2.5 py-1">
+      </span>
+      <span className="flex flex-col gap-[2px] px-3 py-2">
         <span
-          className="mono uppercase font-semibold text-[8.5px] tracking-[0.22em]"
-          style={{ color: t.eyebrow }}
+          className="text-[8.5px] font-bold uppercase tracking-[0.22em]"
+          style={{ color: tone === 'accent' ? 'var(--lp-accent)' : 'rgba(255,255,255,0.55)' }}
         >
-          {t.eyebrowLabel}
+          {eyebrowText[tone]}
         </span>
-        <span
-          className="text-[12px] tracking-tight font-medium mt-[1px]"
-          style={{ color: t.ink }}
-        >
-          {primary}
-        </span>
-      </div>
-
-      {/* secondary (amount) cell */}
-      {secondary && (
-        <div
-          className="flex items-center border-l px-2.5"
-          style={{ borderColor: t.border }}
-        >
-          <span
-            className="mono tabular-nums text-[11px]"
-            style={{ color: t.ink }}
-          >
-            {secondary}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatTile({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="group relative rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5">
-      <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">{label}</p>
-      <p className="mt-2.5 leading-none">{value}</p>
-    </div>
+        <span className="text-[12px] font-semibold tracking-[-0.005em]">{label}</span>
+      </span>
+    </span>
   );
 }
 
@@ -260,7 +275,6 @@ function SettleSection({
   declined: boolean;
 }) {
   const [now, setNow] = useState(() => Date.now());
-  // Funding phase is only real when finalized AND we're NOT in a declined state.
   const fundingPhase = job.finalized && !job.escrowFunded && !declined;
   useEffect(() => {
     if (!fundingPhase) return;
@@ -270,24 +284,27 @@ function SettleSection({
 
   if (job.escrowFunded) {
     return (
-      <Card title="Settle">
-        <p className="text-sm text-[var(--color-ink-dim)] mb-3">
-          Escrow holds <span className="mono text-[var(--color-ink)]">{formatUsdc(job.budgetUsdc)}</span>.
-          Release milestones to stream funds to the seller.
+      <SettleCard label="SETTLE" title="Escrow live">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] mb-4">
+          Escrow holds{' '}
+          <span className="font-sans font-extrabold tabular-nums text-[var(--lp-dark)]">
+            {formatUsdc(job.budgetUsdc)}
+          </span>
+          . Release milestones to stream funds to the seller.
         </p>
         <ReleaseMilestonesButton jobId={job.jobId} totalMilestones={2} />
-      </Card>
+      </SettleCard>
     );
   }
 
   if (declined) {
     return (
-      <Card title="Negotiation ended">
-        <p className="text-sm text-[var(--color-ink-dim)]">
+      <SettleCard label="NEGOTIATION ENDED" title="No agreement">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
           Your agent ended the negotiation. No terms agreed, no escrow funded. Post a fresh brief
           with a higher budget or tolerance.
         </p>
-      </Card>
+      </SettleCard>
     );
   }
 
@@ -295,24 +312,50 @@ function SettleSection({
     const elapsed = acceptedAt ? Math.max(0, Math.floor((now - acceptedAt) / 1000)) : null;
     const stalled = elapsed != null && elapsed > 120;
     return (
-      <Card title={stalled ? 'Funding stalled' : 'Funding escrow'}>
-        {!stalled ? (
-          <FundingProgress elapsed={elapsed ?? 0} amount={formatUsdc(job.budgetUsdc)} />
-        ) : (
-          <p className="text-sm text-[var(--color-ink-dim)]">
+      <SettleCard
+        label={stalled ? 'FUNDING STALLED' : 'FUNDING ESCROW'}
+        title={stalled ? `Stalled · ${formatElapsed(elapsed!)}` : 'Approve · fund'}
+      >
+        {stalled ? (
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
             Escrow has not funded in {formatElapsed(elapsed!)}.
           </p>
+        ) : (
+          <FundingProgress elapsed={elapsed ?? 0} amount={formatUsdc(job.budgetUsdc)} />
         )}
-      </Card>
+      </SettleCard>
     );
   }
 
   return (
-    <Card title="Settle" footer="Releases unlock after escrow funds.">
-      <p className="text-sm text-[var(--color-ink-faint)]">
-        Funds will be locked in escrow once the buyer agent accepts a final bid.
+    <SettleCard label="SETTLE" title="Locked after accept">
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        Funds lock in escrow once the buyer agent accepts a final bid. Releases unlock after
+        escrow funds.
       </p>
-    </Card>
+    </SettleCard>
+  );
+}
+
+function SettleCard({
+  label,
+  title,
+  children,
+}: {
+  label: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <PageCard>
+      <div className="px-6 pt-6 pb-3">
+        <SectionTag>{label}</SectionTag>
+        <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+          {title}
+        </h3>
+      </div>
+      <div className="px-6 pb-6">{children}</div>
+    </PageCard>
   );
 }
 
@@ -320,9 +363,9 @@ function FundingProgress({ elapsed }: { elapsed: number; amount: string }) {
   const approveDone = elapsed > 30;
   const fundDone = elapsed > 60;
   return (
-    <div className="space-y-2">
-      <FundingStep label="Approve" done={approveDone} active={!approveDone} />
-      <FundingStep label="Fund escrow" done={fundDone} active={approveDone && !fundDone} />
+    <div className="space-y-2.5">
+      <FundingStep label="APPROVE USDC" done={approveDone} active={!approveDone} />
+      <FundingStep label="FUND ESCROW" done={fundDone} active={approveDone && !fundDone} />
     </div>
   );
 }
@@ -336,41 +379,21 @@ function FundingStep({
   done: boolean;
   active: boolean;
 }) {
+  const fill = done ? '#0a7553' : active ? 'var(--lp-accent)' : 'rgba(0,0,0,0.10)';
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-3">
       <span
         aria-hidden
         data-instrument-blink={active || undefined}
-        className="shrink-0 grid place-items-center w-[11px] h-[11px]"
-        style={
-          done
-            ? { background: 'var(--color-positive)' }
-            : active
-              ? {
-                  background: 'var(--color-accent)',
-                  animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                }
-              : {
-                  background: 'var(--color-surface-2)',
-                  boxShadow: 'inset 0 0 0 1px var(--color-line)',
-                }
-        }
-      >
-        {done && (
-          <svg width="8" height="8" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M3 8.5 L6.5 12 L13 5"
-              stroke="#ffffff"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </span>
+        className="shrink-0 inline-block w-[11px] h-[11px]"
+        style={{
+          background: fill,
+          animation: active ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
+        }}
+      />
       <span
-        className={`text-[13px] ${
-          done || active ? 'text-[var(--color-ink)] font-medium' : 'text-[var(--color-ink-faint)]'
+        className={`mono text-[11px] uppercase tracking-[0.14em] ${
+          done || active ? 'text-[var(--lp-dark)] font-bold' : 'text-[var(--lp-text-muted)]'
         }`}
       >
         {label}
