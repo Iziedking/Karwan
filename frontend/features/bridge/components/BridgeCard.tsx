@@ -137,7 +137,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
 
       <div className="px-5 pb-5">
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {(Object.values(SOURCE_CHAINS) as SourceChainConfig[]).map((c) => {
               const active = sourceKey === c.key;
               return (

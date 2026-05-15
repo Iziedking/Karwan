@@ -101,7 +101,7 @@ export function AgentWithdrawCard({
   }
 
   return (
-    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] p-7 md:p-9 h-full flex flex-col">
+    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] p-5 md:p-9 h-full flex flex-col">
       <h2 className="font-sans text-[22px] md:text-[24px] font-bold tracking-[-0.02em]">
         Withdraw from agent
       </h2>
@@ -112,7 +112,7 @@ export function AgentWithdrawCard({
       <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-5">
         <div>
           <p className="mb-2 text-[12px] font-medium text-[var(--lp-text-sub)]">From</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {options.map((o) => {
               const active = selected === o.key;
               const disabled = !o.address;

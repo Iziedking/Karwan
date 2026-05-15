@@ -9,11 +9,14 @@ import { shortAddress } from '@/shared/utils/format';
 
 /* ---- shell ---- */
 
-/// Full-bleed light canvas. Sections inside float on it with gaps.
+/// Full-bleed light canvas. Sections inside float on it with gaps. Narrows the
+/// gutter on phones so the inner cards aren't squeezed into a thin column.
 export function AppCanvas({ children }: { children: ReactNode }) {
   return (
     <div className="-mt-10 -mb-10 relative left-1/2 w-screen -translate-x-1/2 bg-[var(--lp-light)]">
-      <div className="mx-auto max-w-[1240px] px-6 py-6 space-y-4 min-h-[60vh]">{children}</div>
+      <div className="mx-auto max-w-[1240px] px-3 sm:px-6 py-6 space-y-4 min-h-[60vh]">
+        {children}
+      </div>
     </div>
   );
 }
@@ -33,7 +36,7 @@ export function Section({
       : tone === 'accent'
       ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)]'
       : 'bg-[var(--lp-card)] text-[var(--lp-dark)]';
-  return <section className={cn('rounded-[28px] p-7 md:p-10', bg, className)}>{children}</section>;
+  return <section className={cn('rounded-[28px] p-5 md:p-10', bg, className)}>{children}</section>;
 }
 
 export function GridOverlay() {
