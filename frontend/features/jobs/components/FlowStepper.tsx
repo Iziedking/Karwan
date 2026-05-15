@@ -20,15 +20,20 @@ const steps: Array<{ key: StepKey; label: string }> = [
 export function FlowStepper({
   active,
   completed,
+  declined = false,
 }: {
   active: StepKey;
   completed: StepKey[];
+  declined?: boolean;
 }) {
   const activeIndex = Math.max(steps.findIndex((s) => s.key === active), 0);
   const completedSet = new Set(completed);
   const total = steps.length;
-  // Progress as a fraction across the row of nodes.
-  const progress = activeIndex / (total - 1);
+  // When the negotiation ended without agreement, the progress bar should stop
+  // at the last completed step (i.e. just before the terminal active step) and
+  // the terminal step gets a critical-tone marker instead of the pulsing dot.
+  const progressIndex = declined ? Math.max(activeIndex - 1, 0) : activeIndex;
+  const progress = progressIndex / (total - 1);
 
   return (
     <div className="relative">
@@ -43,8 +48,9 @@ export function FlowStepper({
         className="absolute left-3.5 top-3.5 h-px"
         style={{
           width: `calc((100% - 28px) * ${progress})`,
-          background:
-            'linear-gradient(90deg, var(--color-positive) 0%, var(--color-positive) 70%, var(--color-accent) 100%)',
+          background: declined
+            ? 'var(--color-positive)'
+            : 'linear-gradient(90deg, var(--color-positive) 0%, var(--color-positive) 70%, var(--color-accent) 100%)',
           transition: 'width 600ms cubic-bezier(0.4, 0.0, 0.2, 1)',
         }}
       />
@@ -53,18 +59,21 @@ export function FlowStepper({
         {steps.map((s, i) => {
           const done = completedSet.has(s.key) || i < activeIndex;
           const isActive = i === activeIndex;
+          const isTerminalDeclined = declined && isActive;
           return (
             <li key={s.key} className="flex flex-col items-center gap-2">
               <span
                 className={`relative w-7 h-7 rounded-full grid place-items-center text-[11px] mono border transition-colors duration-300 ${
                   done
                     ? 'bg-[var(--color-positive)] text-[#ffffff] border-[var(--color-positive)]'
+                    : isTerminalDeclined
+                    ? 'bg-[var(--color-critical)] text-[#ffffff] border-[var(--color-critical)]'
                     : isActive
                     ? 'bg-[var(--color-accent)] text-[#ffffff] border-[var(--color-accent)]'
                     : 'bg-[var(--color-surface)] text-[var(--color-ink-faint)] border-[var(--color-line)]'
                 }`}
               >
-                {isActive && (
+                {isActive && !declined && (
                   <span
                     aria-hidden
                     className="absolute inset-0 rounded-full"
@@ -75,18 +84,22 @@ export function FlowStepper({
                     }}
                   />
                 )}
-                <span className="relative z-10">{done ? <Check /> : i + 1}</span>
+                <span className="relative z-10">
+                  {done ? <Check /> : isTerminalDeclined ? <Cross /> : i + 1}
+                </span>
               </span>
               <span
                 className={`text-[11px] tracking-tight whitespace-nowrap text-center px-1 transition-colors duration-300 ${
-                  isActive
+                  isTerminalDeclined
+                    ? 'text-[var(--color-critical)] font-semibold'
+                    : isActive
                     ? 'text-[var(--color-ink)] font-semibold'
                     : done
                     ? 'text-[var(--color-ink)]'
                     : 'text-[var(--color-ink-faint)]'
                 }`}
               >
-                {s.label}
+                {isTerminalDeclined ? 'Ended here' : s.label}
               </span>
             </li>
           );
@@ -105,6 +118,19 @@ function Check() {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function Cross() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M4 4 L12 12 M12 4 L4 12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
       />
     </svg>
   );

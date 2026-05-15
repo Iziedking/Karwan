@@ -135,6 +135,19 @@ export interface DirectDeal {
   onChain: DirectDealOnChain | null;
 }
 
+export interface Listing {
+  id: string;
+  sellerUser: string;
+  sellerAgent: string;
+  title: string;
+  description: string;
+  askingPriceUsdc: number;
+  negotiationMaxDecreasePct?: number;
+  postedAt: number;
+  matchedAt?: number;
+  matchedJobId?: string;
+}
+
 export interface MatchProposal {
   jobId: string;
   buyerUser: string;
@@ -252,6 +265,20 @@ export const api = {
       `/api/jobs/${jobId}/decline-match`,
       { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
     ),
+  listings: () => json<{ listings: Listing[] }>('/api/listings'),
+  listingsForSeller: (address: string) =>
+    json<{ listings: Listing[] }>(`/api/listings/mine?address=${address}`),
+  postListing: (body: {
+    sellerUser: string;
+    title: string;
+    description: string;
+    askingPriceUsdc: number;
+    negotiationMaxDecreasePct?: number;
+  }) =>
+    json<{ listing: Listing }>('/api/listings', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
   postJob: (body: {
     posterAddress: string;

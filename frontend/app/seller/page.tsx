@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { api, type SellerActiveBid } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
+import { PostListingForm } from '@/features/seller/components/PostListingForm';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import {
@@ -112,6 +113,21 @@ export default function SellerPage() {
           </Link>
           .
         </p>
+      </Section>
+
+      {/* POST A LISTING */}
+      <Section className="p-0 overflow-hidden">
+        <div className="px-7 md:px-10 pt-7 md:pt-9 pb-6">
+          <EyebrowChip>Sell</EyebrowChip>
+          <h2 className="mt-3 mb-1 font-sans font-bold tracking-[-0.02em] text-[clamp(1.4rem,2.2vw,1.9rem)]">
+            Post what you offer
+          </h2>
+          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed max-w-2xl mb-5">
+            Publish a standing offer. When a buyer brief matches, your agent bids at your asking
+            price and negotiates within your tolerance.
+          </p>
+          <PostListingForm />
+        </div>
       </Section>
 
       {/* DIRECT DEALS FOR YOU */}

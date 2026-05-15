@@ -15,7 +15,13 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'escrow.milestone.released': { text: 'Milestone released', tone: 'buyer' },
   'escrow.settled': { text: 'Deal settled', tone: 'system' },
   'agent.skipped': { text: 'Seller skipped this brief', tone: 'seller' },
+  'agent.declined': { text: 'Agent ended negotiation', tone: 'error' },
   'agent.error': { text: 'Agent hit an error', tone: 'error' },
+  'deal.matched': { text: 'Match found · awaiting approval', tone: 'buyer' },
+  'deal.match.approved': { text: 'Match approved · escrow funded', tone: 'buyer' },
+  'deal.match.declined': { text: 'Match declined', tone: 'error' },
+  'listing.posted': { text: 'Listing posted', tone: 'seller' },
+  'listing.matched': { text: 'Listing matched a brief', tone: 'seller' },
   'bridge.burned': { text: 'USDC burned on source chain', tone: 'system' },
   'bridge.attested': { text: 'Circle attestation received', tone: 'system' },
   'bridge.minted': { text: 'USDC minted on Arc', tone: 'system' },
@@ -35,6 +41,22 @@ interface Chip {
   key: string;
   label: string;
   value: string;
+}
+
+/// Translates internal agent reason codes into UI copy. Falls back to the raw
+/// code if unmapped so we still see something rather than blank.
+const REASON_LABELS: Record<string, string> = {
+  'llm-counter-over-budget': 'Price above ceiling',
+  'no-keyword-match': 'Outside skills',
+  'low-confidence-or-skip': 'Not a topical match',
+  'buyer-reputation-too-low': 'Buyer reputation too low',
+  'llm-price-out-of-range': 'Price out of range',
+  'no-bids': 'No bids received',
+  'no-counter-suggestion': 'No counter prepared',
+  'price-gap-uncrossable': 'Price gap too wide',
+};
+function reasonLabel(code: string): string {
+  return REASON_LABELS[code] ?? code;
 }
 
 function chipsFor(payload: Record<string, unknown>): Chip[] {
@@ -62,14 +84,10 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
     });
   }
   if (payload.reason != null) {
-    out.push({ key: 'reason', label: 'Reason', value: String(payload.reason) });
+    const code = String(payload.reason);
+    out.push({ key: 'reason', label: 'Reason', value: reasonLabel(code) });
   }
-  if (payload.scope != null) {
-    out.push({ key: 'scope', label: 'Scope', value: String(payload.scope) });
-  }
-  if (payload.message != null) {
-    out.push({ key: 'message', label: 'Detail', value: String(payload.message) });
-  }
+  // Hide raw scope/message chips from end users — they're for debug logs only.
   if (payload.amountUsdc != null) {
     out.push({ key: 'amount', label: 'Amount', value: `${payload.amountUsdc} USDC` });
   }

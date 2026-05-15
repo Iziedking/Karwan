@@ -1,7 +1,12 @@
 // Off-chain brief metadata keyed by on-chain jobId. The on-chain JobBoard only
 // stores termsHash for integrity; this side-store carries the human-readable
 // brief plus negotiation knobs (tolerance, keywords) the agents consult when
-// scoring and counter-evaluating.
+// scoring and counter-evaluating. Persisted to a flat file so brief text
+// survives backend restarts (Postgres-backed in a future iteration).
+
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { logger } from '../logger.js';
 
 export interface Brief {
   jobId: string;
@@ -12,13 +17,43 @@ export interface Brief {
   createdAt: number;
 }
 
+const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');
 const store = new Map<string, Brief>();
+let loaded = false;
+
+function load(): void {
+  if (loaded) return;
+  loaded = true;
+  if (!existsSync(STORE_PATH)) return;
+  try {
+    const raw = readFileSync(STORE_PATH, 'utf8');
+    const obj = JSON.parse(raw) as Record<string, Brief>;
+    for (const [k, v] of Object.entries(obj)) store.set(k, v);
+    logger.info({ count: store.size }, 'briefs loaded from disk');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'briefs load failed, starting empty');
+  }
+}
+
+function persist(): void {
+  try {
+    const dir = dirname(STORE_PATH);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const obj: Record<string, Brief> = {};
+    for (const [k, v] of store.entries()) obj[k] = v;
+    writeFileSync(STORE_PATH, JSON.stringify(obj, null, 2), 'utf8');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'briefs persist failed');
+  }
+}
 
 export function getBrief(jobId: string): Brief | null {
+  load();
   return store.get(jobId.toLowerCase()) ?? null;
 }
 
 export function createBrief(input: Omit<Brief, 'createdAt'>): Brief {
+  load();
   const brief: Brief = {
     ...input,
     jobId: input.jobId.toLowerCase(),
@@ -26,13 +61,16 @@ export function createBrief(input: Omit<Brief, 'createdAt'>): Brief {
     createdAt: Date.now(),
   };
   store.set(brief.jobId, brief);
+  persist();
   return brief;
 }
 
 export function patchBrief(jobId: string, patch: Partial<Brief>): Brief | null {
+  load();
   const existing = store.get(jobId.toLowerCase());
   if (!existing) return null;
   const next = { ...existing, ...patch };
   store.set(existing.jobId, next);
+  persist();
   return next;
 }

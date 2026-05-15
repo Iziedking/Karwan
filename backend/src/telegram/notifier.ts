@@ -109,7 +109,7 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       return withLink(
         role === 'buyer'
           ? `*Your agent found a match*${price ? ` at ${price} USDC` : ''}. Review and approve to fund escrow.`
-          : `*A buyer's agent matched with you*${price ? ` at ${price} USDC` : ''}. Awaiting their approval — you'll be notified when escrow funds.`,
+          : `*A buyer's agent matched with you*${price ? ` at ${price} USDC` : ''}. Awaiting their approval. You'll be notified when escrow funds.`,
         link,
       );
     }

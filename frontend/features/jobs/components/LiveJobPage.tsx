@@ -11,20 +11,24 @@ import { LiveBidsPanel } from './LiveBidsPanel';
 import { MatchBanner } from './MatchBanner';
 import { ReleaseMilestonesButton } from './ReleaseMilestonesButton';
 import { useMatchProposal } from '../hooks/useMatchProposal';
-import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 
-type StatusTone = 'positive' | 'warning' | 'accent' | 'default';
+type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const { job } = useJobSnapshot(initial);
-  const { events, active, completed } = useJobLiveState(job);
+  const { events, active, completed, declined } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
 
   const acceptedAt = events.find((e) => e.type === 'bid.accepted')?.ts;
+  const matchPending = proposal && !proposal.approvedAt && !proposal.declinedAt;
 
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
     ? { label: `Escrow funded · ${formatUsdc(job.budgetUsdc)}`, tone: 'positive', live: false }
+    : declined
+    ? { label: 'Negotiation ended · no agreement', tone: 'critical', live: false }
+    : matchPending
+    ? { label: `Match · ${proposal!.agreedPriceUsdc} USDC · awaiting approval`, tone: 'warning', live: true }
     : job.finalized
     ? { label: 'Accepted · funding escrow', tone: 'warning', live: true }
     : job.bids.length > 0
@@ -78,22 +82,20 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       <div className="fade-up fade-up-2 grid md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-6">
           <Card>
-            <FlowStepper active={active} completed={completed} />
+            <FlowStepper active={active} completed={completed} declined={declined} />
           </Card>
           <Card title="Timeline">
             <EventList events={events} explorer={explorer} />
           </Card>
+          <div className="fade-up-3">
+            <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
+          </div>
         </div>
         <div className="space-y-4">
           <Card title="Bids" noPadding>
             <LiveBidsPanel initial={job} />
           </Card>
-          <BalancesCard />
         </div>
-      </div>
-
-      <div className="fade-up fade-up-3">
-        <SettleSection job={job} acceptedAt={acceptedAt} />
       </div>
     </div>
   );
@@ -135,6 +137,12 @@ function StatusPill({
       border: 'var(--color-line-strong)',
       eyebrow: 'var(--color-ink-faint)',
       eyebrowLabel: 'Open',
+    },
+    critical: {
+      ink: 'var(--color-critical)',
+      border: 'color-mix(in srgb, var(--color-critical) 30%, var(--color-line))',
+      eyebrow: 'color-mix(in srgb, var(--color-critical) 70%, var(--color-ink) 30%)',
+      eyebrowLabel: 'Declined',
     },
   };
   const t = toneStyle[tone];
@@ -213,9 +221,18 @@ function StatTile({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function SettleSection({ job, acceptedAt }: { job: BuyerJob; acceptedAt?: number }) {
+function SettleSection({
+  job,
+  acceptedAt,
+  declined,
+}: {
+  job: BuyerJob;
+  acceptedAt?: number;
+  declined: boolean;
+}) {
   const [now, setNow] = useState(() => Date.now());
-  const fundingPhase = job.finalized && !job.escrowFunded;
+  // Funding phase is only real when finalized AND we're NOT in a declined state.
+  const fundingPhase = job.finalized && !job.escrowFunded && !declined;
   useEffect(() => {
     if (!fundingPhase) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -230,6 +247,17 @@ function SettleSection({ job, acceptedAt }: { job: BuyerJob; acceptedAt?: number
           Release milestones to stream funds to the seller.
         </p>
         <ReleaseMilestonesButton jobId={job.jobId} totalMilestones={2} />
+      </Card>
+    );
+  }
+
+  if (declined) {
+    return (
+      <Card title="Negotiation ended">
+        <p className="text-sm text-[var(--color-ink-dim)]">
+          Your agent ended the negotiation. No terms agreed, no escrow funded. Post a fresh brief
+          with a higher budget or tolerance.
+        </p>
       </Card>
     );
   }

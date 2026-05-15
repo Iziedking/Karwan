@@ -31,6 +31,8 @@ export type KarwanEventType =
   | 'deal.disputed'
   | 'deal.cancelled'
   | 'deal.fund.insufficient'
+  | 'listing.posted'
+  | 'listing.matched'
   | 'chat.message'
   | 'telegram.linked'
   | 'agent.activated'

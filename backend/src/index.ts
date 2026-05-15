@@ -18,7 +18,11 @@ import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
 import { chatRoutes } from './routes/chat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
-import { startBuyerAgents } from './agents/buyer.js';
+import { listingsRoutes } from './routes/listings.js';
+import {
+  startBuyerAgents,
+  backfillRecentJobs as backfillBuyer,
+} from './agents/buyer.js';
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
 import { startTelegramBot } from './telegram/bot.js';
@@ -61,6 +65,7 @@ app.route('/api/activation', activationRoutes);
 app.route('/api/chat', chatRoutes);
 app.route('/api/telegram', telegramRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/listings', listingsRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');
@@ -81,11 +86,21 @@ function bootAgents() {
   }
   try {
     stopFns.push(startBuyerAgents());
+    // Replay recent JobPosted events so the in-memory jobs map survives restarts.
+    // Fire-and-forget; agents handle live events while the backfill catches up.
+    backfillBuyer().catch((err) =>
+      appLogger.warn({ err: (err as Error).message }, 'buyer backfill failed'),
+    );
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'buyer agent not started');
   }
   try {
     stopFns.push(startSellerAgents());
+    // Seller-side backfill is intentionally NOT called: replaying JobPosted
+    // events causes seller agents to re-bid on jobs they already bid on, since
+    // their activeBids map is wiped on restart but the chain still has the
+    // original bid. Live events handle new jobs; old jobs the seller missed
+    // during downtime stay missed.
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'seller agent not started');
   }

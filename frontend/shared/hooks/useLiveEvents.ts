@@ -30,6 +30,11 @@ const TRACKED_TYPES = [
   'agent.skipped',
   'agent.declined',
   'agent.error',
+  'deal.matched',
+  'deal.match.approved',
+  'deal.match.declined',
+  'listing.posted',
+  'listing.matched',
 ];
 
 export function useLiveEvents(filterJobId?: string, max = 100) {
