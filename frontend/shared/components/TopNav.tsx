@@ -11,10 +11,9 @@ import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { ProfileAvatar } from './ProfileAvatar';
 
-// The landing routes are always dark, so the nav forces the dark palette there
-// by overriding the themeable --color-* tokens for the subtree. App routes get
-// no override, so the nav follows the light/dark theme toggle — white in white
-// mode, dark in dark mode — and every embedded control comes along for free.
+// Landing routes are forced dark via these var overrides, so every embedded
+// child (BalanceRail, bell, toggles, ConnectWalletButton) picks up dark mode
+// without each one knowing about route context.
 const DARK_NAV_VARS = {
   '--color-surface': '#0e0e0e',
   '--color-surface-2': 'rgba(255,255,255,0.07)',
@@ -30,8 +29,6 @@ export function TopNav() {
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Close the mobile menu whenever the route changes so a link tap doesn't
-  // leave the panel hanging open over the next page.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -41,8 +38,9 @@ export function TopNav() {
       style={isApp ? undefined : DARK_NAV_VARS}
       className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
     >
-      <div className="mx-auto max-w-[1240px] px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
-        <div className="flex items-center gap-3 sm:gap-7 min-w-0">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5">
+        {/* LEFT — mobile toggle + logo */}
+        <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
           {isApp && (
             <button
               type="button"
@@ -70,70 +68,71 @@ export function TopNav() {
               </svg>
             </button>
           )}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            {/* Fixed-dark logo tile so the lime mark reads on a white or dark bar. */}
-            <span className="inline-flex items-center justify-center w-9 h-9 rounded-[10px] bg-[#0e0e0e] border border-white/10 text-[var(--lp-accent)]">
+          <Link href="/" className="group inline-flex items-center gap-2.5 shrink-0">
+            <span
+              aria-hidden
+              className="inline-flex items-center justify-center w-10 h-10 border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5"
+              style={{
+                background: '#0e0e0e',
+                borderTopLeftRadius: 11,
+                borderTopRightRadius: 11,
+                borderBottomLeftRadius: 11,
+                borderBottomRightRadius: 3,
+              }}
+            >
               <Logo />
             </span>
-            <span className="font-sans text-[18px] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+            <span className="font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--color-ink)]">
               Karwan
             </span>
           </Link>
-          {isApp && (
-            <nav className="hidden md:flex items-center gap-1 text-[13px]">
-              <NavLink href="/app" active={pathname === '/app'}>
-                Home
-              </NavLink>
-              <NavLink
-                href="/buyer"
-                active={
-                  pathname.startsWith('/buyer') ||
-                  pathname.startsWith('/jobs') ||
-                  pathname.startsWith('/deals')
-                }
-              >
-                Buyer
-              </NavLink>
-              <NavLink href="/seller" active={pathname.startsWith('/seller')}>
-                Seller
-              </NavLink>
-              <NavLink href="/activity" active={pathname.startsWith('/activity')}>
-                Activity
-              </NavLink>
-              <a
-                href="https://testnet.arcscan.app"
-                target="_blank"
-                rel="noreferrer"
-                className="px-3.5 py-1.5 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-1"
-              >
-                Explorer
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <path
-                    d="M5.5 4.5h6v6M11 5l-6.5 6.5"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </a>
-            </nav>
-          )}
         </div>
-        <div className="flex items-center gap-1.5 md:gap-2.5">
+
+        {/* CENTER — floating pill nav (app only) */}
+        {isApp && (
+          <nav
+            className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
+          >
+            <NavLink href="/app" active={pathname === '/app'}>
+              Home
+            </NavLink>
+            <NavLink
+              href="/buyer"
+              active={
+                pathname.startsWith('/buyer') ||
+                pathname.startsWith('/jobs') ||
+                pathname.startsWith('/deals')
+              }
+            >
+              Buyer
+            </NavLink>
+            <NavLink href="/seller" active={pathname.startsWith('/seller')}>
+              Seller
+            </NavLink>
+            <NavLink href="/activity" active={pathname.startsWith('/activity')}>
+              Activity
+            </NavLink>
+            <ExternalNavLink href="https://testnet.arcscan.app">Explorer</ExternalNavLink>
+          </nav>
+        )}
+
+        {/* RIGHT — control cluster */}
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {isApp ? (
             <>
-              <div className="hidden lg:block">
+              <div className="hidden lg:inline-flex items-center pl-3 pr-2 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono">
                 <BalanceRail />
               </div>
               <div className="hidden md:inline-flex">
                 <LiveDot />
               </div>
-              <NotificationBell />
-              <div className="hidden md:inline-flex">
+              <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
+                <NotificationBell />
                 <SoundToggle />
-              </div>
-              <div className="hidden sm:inline-flex">
                 <ThemeToggle />
+              </div>
+              <div className="md:hidden inline-flex">
+                <NotificationBell />
               </div>
               <ConnectWalletButton />
               <ProfileAvatar />
@@ -146,17 +145,12 @@ export function TopNav() {
               <div className="hidden sm:inline-flex">
                 <ThemeToggle />
               </div>
-              <Link
-                href="/app"
-                className="px-3.5 sm:px-4 py-2 rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)] text-[13px] font-semibold hover:bg-[var(--lp-accent-hover)] transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
-              >
-                Launch app
-                <span aria-hidden>→</span>
-              </Link>
+              <LaunchAppCTA />
             </>
           )}
         </div>
       </div>
+
       {isApp && menuOpen && (
         <div
           className="md:hidden absolute left-0 right-0 top-full bg-[var(--color-surface)] border-b border-[var(--color-line)] shadow-sm fade-up"
@@ -250,9 +244,9 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'px-3.5 py-1.5 rounded-full font-medium transition-colors',
+        'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors',
         active
-          ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
+          ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-[0_2px_0_rgba(0,0,0,0.15)]'
           : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
       )}
     >
@@ -261,9 +255,57 @@ function NavLink({
   );
 }
 
+function ExternalNavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="group px-3 pr-3.5 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-1"
+    >
+      {children}
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden
+        className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+      >
+        <path
+          d="M5.5 4.5h6v6M11 5l-6.5 6.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    </a>
+  );
+}
+
+function LaunchAppCTA() {
+  return (
+    <Link
+      href="/app"
+      className="group inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 shadow-[0_3px_0_rgba(0,0,0,0.22)] whitespace-nowrap"
+      style={{
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      Launch app
+      <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
+        ↓
+      </span>
+    </Link>
+  );
+}
+
 function Logo() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M7 17 L10 7 L12 13 L14 7 L17 17"
         stroke="currentColor"
