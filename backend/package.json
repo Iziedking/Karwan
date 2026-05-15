@@ -17,7 +17,8 @@
     "agent:seller": "tsx --env-file=../.env src/scripts/seller-agent.ts",
     "agent:buyer": "tsx --env-file=../.env src/scripts/buyer-agent.ts",
     "job:post": "tsx --env-file=../.env src/scripts/post-test-job.ts",
-    "milestones:release": "tsx --env-file=../.env src/scripts/release-milestones.ts"
+    "milestones:release": "tsx --env-file=../.env src/scripts/release-milestones.ts",
+    "view": "tsx --env-file=../.env src/scripts/view-cli.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^9.0.0",

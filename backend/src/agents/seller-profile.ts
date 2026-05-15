@@ -9,4 +9,7 @@ export interface SellerProfile {
   minDeadlineDays: number;
   maxDeadlineDays: number;
   confidenceThreshold: number;
+  /** Canonical match tags extracted from skills+bio at profile-save time.
+   *  Used to gate bidding when the brief is in an unrelated topic. */
+  keywords: string[];
 }

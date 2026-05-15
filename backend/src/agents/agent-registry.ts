@@ -48,6 +48,7 @@ function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProf
     minDeadlineDays: s.minDeadlineDays,
     maxDeadlineDays: s.maxDeadlineDays,
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
+    keywords: s.keywords ?? [],
   };
 }
 

@@ -23,6 +23,11 @@ import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import { resolveBuyerProfile } from './agent-registry.js';
+import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
+import { createDeal, getDeal } from '../db/deals.js';
+import { getBrief } from '../db/briefs.js';
+import { withLlmTimeout } from './llm-utils.js';
+import { classifyAgentError } from '../chain/errors.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -56,6 +61,19 @@ interface JobState {
 
 const jobs = new Map<`0x${string}`, JobState>();
 const handledEvents = new Set<string>();
+
+/// The cap the buyer agent will accept counters up to. Per-brief tolerance
+/// raises the cap above the budget; the user's profile maxBudgetUsdc remains
+/// an absolute ceiling regardless of brief tolerance.
+function computeBuyerEffectiveCap(
+  context: { budgetUsdc: string; negotiationMaxIncreasePct?: number },
+  buyer: BuyerProfile,
+): number {
+  const base = Number(context.budgetUsdc);
+  const tolerance = context.negotiationMaxIncreasePct ?? 0;
+  const fromTolerance = base * (1 + tolerance / 100);
+  return Math.min(fromTolerance, buyer.maxBudgetUsdc);
+}
 
 function logDedupeKey(label: string, log: Log): string {
   const tx = (log as unknown as { transactionHash?: string }).transactionHash ?? '';
@@ -139,6 +157,7 @@ async function handleJobPosted(log: Log) {
   const buyer = await resolveBuyerProfile(args.buyer);
   if (!buyer) return;
 
+  const brief = getBrief(args.jobId);
   const state: JobState = {
     jobId: args.jobId,
     buyer,
@@ -149,6 +168,7 @@ async function handleJobPosted(log: Log) {
       deadlineUnix: Number(args.deadline),
       termsHash: args.termsHash,
       buyerReputationBps: 5000,
+      negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
     },
     bids: new Map(),
     collectionTimer: null,
@@ -205,11 +225,14 @@ async function handleBidSubmitted(log: Log) {
   };
 
   try {
-    const { object: score } = await generateObject({
-      model: llmModel,
-      schema: bidScoreSchema,
-      prompt: buildBidRankingPrompt(state.context, bidContext, buyer),
-    });
+    const { object: score } = await withLlmTimeout(
+      `bidScore(${state.jobId})`,
+      generateObject({
+        model: llmModel,
+        schema: bidScoreSchema,
+        prompt: buildBidRankingPrompt(state.context, bidContext, buyer),
+      }),
+    );
     bid.score = score.score;
     bid.suggestedCounterPrice = score.suggestedCounterPrice;
     bid.suggestedCounterDeadlineDays = score.suggestedCounterDeadlineDays;
@@ -221,10 +244,17 @@ async function handleBidSubmitted(log: Log) {
       payload: { seller: args.seller, priceUsdc, ...score },
     });
   } catch (err) {
+    const message = (err as Error).message;
     logger.warn(
-      { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
+      { jobId: state.jobId, seller: args.seller, err: message },
       'bid scoring failed',
     );
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: { seller: args.seller, scope: 'bidScore', message },
+    });
   }
 
   state.bids.set(args.seller, bid);
@@ -252,6 +282,17 @@ async function finalizeBidCollection(state: JobState) {
 
   if (ranked.length === 0) {
     logger.warn({ jobId: state.jobId }, 'no scored bids, nothing to counter');
+    state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        reason: 'no-bids',
+        detail: `bid collection window closed with no scored bids from any seller`,
+        receivedBids: state.bids.size,
+      },
+    });
     return;
   }
 
@@ -268,12 +309,40 @@ async function issueCounter(state: JobState, bid: Bid) {
   const buyer = state.buyer;
   if (!bid.suggestedCounterPrice || !bid.suggestedCounterDeadlineDays) {
     logger.warn({ jobId: state.jobId }, 'bid missing counter suggestion');
+    state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        seller: bid.seller,
+        scope: 'issueCounter',
+        message: 'top bid arrived without a counter price/deadline from the LLM',
+      },
+    });
     return;
   }
 
   const counterPrice = Number(bid.suggestedCounterPrice);
-  if (counterPrice > buyer.maxBudgetUsdc) {
-    logger.warn({ jobId: state.jobId, counterPrice }, 'LLM counter exceeds buyer max, skipping');
+  const effectiveCap = computeBuyerEffectiveCap(state.context, buyer);
+  if (counterPrice > effectiveCap) {
+    logger.warn(
+      { jobId: state.jobId, counterPrice, effectiveCap },
+      'LLM counter exceeds brief effective cap, skipping',
+    );
+    state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        seller: bid.seller,
+        reason: 'llm-counter-over-budget',
+        detail: `${counterPrice} USDC exceeds the brief's ${effectiveCap} USDC effective cap`,
+        counterPrice,
+        effectiveCap,
+      },
+    });
     return;
   }
 
@@ -328,37 +397,48 @@ async function handleCounterResponse(log: Log) {
 
   if (args.accepted) {
     const agreedPriceUsdc = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
-    await acceptAndFund(state, args.seller, agreedPriceUsdc);
+    await proposeMatch(state, args.seller, agreedPriceUsdc);
     return;
   }
 
   const sellerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const sellerCounterDeadlineUnix = Number(args.newDeadline);
   const buyerLastCounter = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
+  const effectiveMaxAcceptable = computeBuyerEffectiveCap(state.context, buyer);
 
   let decision;
   try {
-    const result = await generateObject({
-      model: llmModel,
-      schema: counterEvaluationSchema,
-      prompt: buildCounterEvaluationPrompt(
-        state.context,
-        {
-          side: 'buyer',
-          minAcceptablePriceUsdc: 0,
-          maxAcceptablePriceUsdc: buyer.maxBudgetUsdc,
-          minDeadlineDays: buyer.minDeadlineDays,
-          maxDeadlineDays: buyer.maxDeadlineDays,
-        },
-        buyerLastCounter,
-        sellerCounterPrice,
-        sellerCounterDeadlineUnix,
-      ),
-    });
+    const result = await withLlmTimeout(
+      `counterEvaluation(${state.jobId})`,
+      generateObject({
+        model: llmModel,
+        schema: counterEvaluationSchema,
+        prompt: buildCounterEvaluationPrompt(
+          state.context,
+          {
+            side: 'buyer',
+            minAcceptablePriceUsdc: 0,
+            maxAcceptablePriceUsdc: effectiveMaxAcceptable,
+            minDeadlineDays: buyer.minDeadlineDays,
+            maxDeadlineDays: buyer.maxDeadlineDays,
+          },
+          buyerLastCounter,
+          sellerCounterPrice,
+          sellerCounterDeadlineUnix,
+        ),
+      }),
+    );
     decision = result.object;
   } catch (err) {
-    logger.warn({ jobId: state.jobId, err: (err as Error).message }, 'counter eval failed');
+    const message = (err as Error).message;
+    logger.warn({ jobId: state.jobId, err: message }, 'counter eval failed');
     state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: { seller: args.seller, scope: 'counterEvaluation', message },
+    });
     return;
   }
 
@@ -367,17 +447,34 @@ async function handleCounterResponse(log: Log) {
   if (decision.confidence < buyer.confidenceThreshold) {
     logger.info({ jobId: state.jobId }, 'low confidence, declining');
     state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        seller: args.seller,
+        reason: 'low-confidence',
+        detail: `confidence ${decision.confidence} is below the buyer's ${buyer.confidenceThreshold} threshold`,
+        decision,
+      },
+    });
     return;
   }
 
   if (decision.decision === 'accept') {
-    await acceptAndFund(state, args.seller, sellerCounterPrice);
+    await proposeMatch(state, args.seller, sellerCounterPrice);
     return;
   }
 
   if (decision.decision === 'decline') {
     logger.info({ jobId: state.jobId }, 'declined seller counter');
     state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: { seller: args.seller, reason: 'llm-decline', decision },
+    });
     return;
   }
 
@@ -385,12 +482,33 @@ async function handleCounterResponse(log: Log) {
   if (rounds >= buyer.maxCounterRounds) {
     logger.info({ jobId: state.jobId, rounds }, 'max counter rounds reached, declining');
     state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        seller: args.seller,
+        reason: 'max-counter-rounds',
+        detail: `buyer hit the ${buyer.maxCounterRounds}-round counter cap`,
+        rounds,
+      },
+    });
     return;
   }
 
   if (!decision.counterPrice || !decision.counterDeadlineDays) {
     logger.warn({ jobId: state.jobId }, 'counter requested without price/deadline');
     state.finalized = true;
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        seller: args.seller,
+        scope: 'counterEvaluation',
+        message: 'LLM asked for a counter but produced no counterPrice/counterDeadlineDays',
+      },
+    });
     return;
   }
 
@@ -404,33 +522,279 @@ async function handleCounterResponse(log: Log) {
   });
 }
 
-async function acceptAndFund(
+/// Classifies an agent chain failure into a structured event. INSUFFICIENT
+/// balance/gas surfaces as `deal.fund.insufficient` so the buyer sees the same
+/// banner + Telegram alert as the direct-deal flow; everything else falls
+/// through as `agent.error` for the activity feed.
+function emitAgentChainError(
+  state: JobState,
+  seller: `0x${string}`,
+  scope: string,
+  err: unknown,
+) {
+  const info = classifyAgentError(err);
+  if (info.code === 'INSUFFICIENT_AGENT_BALANCE' || info.code === 'INSUFFICIENT_AGENT_GAS') {
+    bus.emitEvent({
+      type: 'deal.fund.insufficient',
+      jobId: state.jobId,
+      actor: 'platform',
+      payload: {
+        buyer: state.buyer.address,
+        buyerAgent: state.buyer.address,
+        seller,
+        code: info.code,
+        scope,
+      },
+    });
+    return;
+  }
+  bus.emitEvent({
+    type: 'agent.error',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { seller, scope, message: info.message, raw: info.raw },
+  });
+}
+
+export interface MatchProposal {
+  jobId: string;
+  buyerUser: string;
+  buyerAgent: string;
+  sellerUser: string;
+  sellerAgent: string;
+  agreedPriceUsdc: string;
+  deadlineUnix: number;
+  termsHash: string;
+  proposedAt: number;
+  approvedAt?: number;
+  declinedAt?: number;
+}
+
+const matchProposals = new Map<string, MatchProposal>();
+
+export function getMatchProposal(jobId: string): MatchProposal | null {
+  return matchProposals.get(jobId.toLowerCase()) ?? null;
+}
+
+export function listMatchProposalsForUser(userAddress: string): MatchProposal[] {
+  const a = userAddress.toLowerCase();
+  return [...matchProposals.values()].filter(
+    (p) => p.buyerUser === a || p.sellerUser === a,
+  );
+}
+
+export function listAllMatchProposals(): MatchProposal[] {
+  return [...matchProposals.values()].sort((a, b) => b.proposedAt - a.proposedAt);
+}
+
+/// The agent has reached agreement with a seller. It does NOT touch the chain
+/// here — it records a match proposal and notifies both parties. The buyer
+/// human approves separately, which triggers acceptBid + fundEscrow.
+async function proposeMatch(
   state: JobState,
   seller: `0x${string}`,
   agreedPriceUsdc: string,
 ) {
-  const buyer = state.buyer;
   state.finalized = true;
+  try {
+    const buyerWallets = await findAgentWalletByAgentAddress(state.buyer.address);
+    const sellerWallets = await findAgentWalletByAgentAddress(seller);
+    if (!buyerWallets || !sellerWallets) {
+      logger.warn(
+        { jobId: state.jobId, buyerAgent: state.buyer.address, sellerAgent: seller },
+        'match not proposed: missing wallet binding',
+      );
+      bus.emitEvent({
+        type: 'agent.error',
+        jobId: state.jobId,
+        actor: 'buyer',
+        payload: {
+          seller,
+          scope: 'proposeMatch',
+          message: 'could not resolve user wallets behind agent addresses',
+        },
+      });
+      return;
+    }
 
-  const acceptResult = await executeContractCall(
-    {
-      walletId: buyer.walletId,
-      contractAddress: jobBoard.address,
-      abiFunctionSignature: 'acceptBid(bytes32,address)',
-      abiParameters: [state.jobId, seller],
-    },
-    `acceptBid(${state.jobId})`,
-  );
-  logger.info({ jobId: state.jobId, seller, ...acceptResult }, 'bid accepted on chain');
+    const proposal: MatchProposal = {
+      jobId: state.jobId,
+      buyerUser: buyerWallets.userAddress,
+      buyerAgent: buyerWallets.buyerAddress,
+      sellerUser: sellerWallets.userAddress,
+      sellerAgent: sellerWallets.sellerAddress,
+      agreedPriceUsdc,
+      deadlineUnix: state.context.deadlineUnix,
+      termsHash: state.context.termsHash,
+      proposedAt: Date.now(),
+    };
+    matchProposals.set(state.jobId.toLowerCase(), proposal);
+
+    logger.info(
+      {
+        jobId: state.jobId,
+        buyerUser: proposal.buyerUser,
+        sellerUser: proposal.sellerUser,
+        agreedPriceUsdc,
+      },
+      'agent reached agreement, match proposed for human approval',
+    );
+
+    bus.emitEvent({
+      type: 'deal.matched',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        buyer: proposal.buyerUser,
+        seller: proposal.sellerUser,
+        sellerAgent: proposal.sellerAgent,
+        agreedPriceUsdc,
+        deadlineUnix: proposal.deadlineUnix,
+      },
+    });
+  } catch (err) {
+    logger.error(
+      { jobId: state.jobId, err: (err as Error).message },
+      'proposeMatch failed',
+    );
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: { seller, scope: 'proposeMatch', message: (err as Error).message },
+    });
+  }
+}
+
+/// Trigger the on-chain acceptBid + fundEscrow that proposeMatch deferred.
+/// Called from the approve-match endpoint when the human accepts the proposal.
+export async function approveAgentMatch(
+  jobId: string,
+): Promise<{ ok: true; txHash: string } | { ok: false; code: string; message: string }> {
+  const proposal = getMatchProposal(jobId);
+  if (!proposal) return { ok: false, code: 'NO_PROPOSAL', message: 'no match proposal for this job' };
+  if (proposal.approvedAt) {
+    return { ok: false, code: 'ALREADY_APPROVED', message: 'match already approved' };
+  }
+  if (proposal.declinedAt) {
+    return { ok: false, code: 'DECLINED', message: 'match was declined' };
+  }
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return { ok: false, code: 'NO_JOB_STATE', message: 'job state not in memory' };
+
+  const seller = proposal.sellerAgent as `0x${string}`;
+  let acceptResult;
+  try {
+    acceptResult = await executeContractCall(
+      {
+        walletId: state.buyer.walletId,
+        contractAddress: jobBoard.address,
+        abiFunctionSignature: 'acceptBid(bytes32,address)',
+        abiParameters: [state.jobId, seller],
+      },
+      `acceptBid(${state.jobId})`,
+    );
+  } catch (err) {
+    logger.error({ jobId, err: (err as Error).message }, 'acceptBid (post-approval) failed');
+    emitAgentChainError(state, seller, 'acceptBid', err);
+    const info = classifyAgentError(err);
+    return { ok: false, code: info.code, message: info.message };
+  }
+  logger.info({ jobId, seller, ...acceptResult }, 'bid accepted on chain (human-approved)');
   bus.emitEvent({
     type: 'bid.accepted',
-    jobId: state.jobId,
+    jobId,
     actor: 'buyer',
-    payload: { seller, agreedPriceUsdc, txHash: acceptResult.txHash },
+    payload: { seller, agreedPriceUsdc: proposal.agreedPriceUsdc, txHash: acceptResult.txHash },
   });
 
-  const priceWei = parseUnits(agreedPriceUsdc, USDC_DECIMALS);
+  const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
   await fundEscrow(state, seller, priceWei);
+
+  // Persist a deal row so the post-funding flow (seller marks delivered, buyer
+  // releases, dispute, auto-release) reuses the direct-deal mechanics.
+  await persistApprovedMatch(proposal, state, acceptResult.txHash);
+
+  proposal.approvedAt = Date.now();
+  matchProposals.set(jobId.toLowerCase(), proposal);
+
+  bus.emitEvent({
+    type: 'deal.match.approved',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: proposal.buyerUser,
+      seller: proposal.sellerUser,
+      agreedPriceUsdc: proposal.agreedPriceUsdc,
+      txHash: acceptResult.txHash,
+    },
+  });
+  return { ok: true, txHash: acceptResult.txHash };
+}
+
+async function persistApprovedMatch(
+  proposal: MatchProposal,
+  state: JobState,
+  fundTxHash: string,
+) {
+  try {
+    if (await getDeal(proposal.jobId)) return;
+    const buyerWallets = await findAgentWalletByAgentAddress(proposal.buyerAgent);
+    const sellerWallets = await findAgentWalletByAgentAddress(proposal.sellerAgent);
+    if (!buyerWallets || !sellerWallets) return;
+    const firstReleasePct = state.buyer.milestonePcts[0];
+    if (firstReleasePct == null) return;
+    if (state.buyer.milestonePcts.length !== 2) return;
+
+    const now = Date.now();
+    await createDeal({
+      jobId: proposal.jobId,
+      buyer: buyerWallets.userAddress,
+      seller: sellerWallets.userAddress,
+      buyerAgentWalletId: buyerWallets.buyerWalletId,
+      buyerAgentAddress: buyerWallets.buyerAddress,
+      sellerAgentWalletId: sellerWallets.sellerWalletId,
+      sellerAgentAddress: sellerWallets.sellerAddress,
+      dealAmountUsdc: proposal.agreedPriceUsdc,
+      firstReleasePct,
+      deadlineUnix: proposal.deadlineUnix,
+      terms: proposal.termsHash,
+      acceptedAt: now,
+      fundTxHash,
+    });
+    logger.info(
+      { jobId: proposal.jobId, buyer: proposal.buyerUser, seller: proposal.sellerUser },
+      'approved match persisted as deal row',
+    );
+  } catch (err) {
+    logger.warn(
+      { jobId: proposal.jobId, err: (err as Error).message },
+      'persist approved match failed; direct-deal flow may be unavailable',
+    );
+  }
+}
+
+/// Decline the proposal. The job returns to its bidding state with the
+/// previously matched seller skipped (caller intent is "not this seller"). For
+/// v1 we just mark it declined; re-running the auction is a follow-up.
+export function declineAgentMatch(
+  jobId: string,
+  reason?: string,
+): { ok: true } | { ok: false; code: string; message: string } {
+  const proposal = getMatchProposal(jobId);
+  if (!proposal) return { ok: false, code: 'NO_PROPOSAL', message: 'no match proposal for this job' };
+  if (proposal.approvedAt) return { ok: false, code: 'ALREADY_APPROVED', message: 'match already approved' };
+  if (proposal.declinedAt) return { ok: false, code: 'ALREADY_DECLINED', message: 'match already declined' };
+
+  proposal.declinedAt = Date.now();
+  matchProposals.set(jobId.toLowerCase(), proposal);
+  bus.emitEvent({
+    type: 'deal.match.declined',
+    jobId,
+    actor: 'buyer',
+    payload: { buyer: proposal.buyerUser, seller: proposal.sellerUser, reason },
+  });
+  return { ok: true };
 }
 
 async function fundEscrow(
@@ -446,15 +810,22 @@ async function fundEscrow(
   const feeBps = await getEscrowFeeBps();
   const { fundedAmount } = computeFunding(priceWei, feeBps);
 
-  const approveResult = await executeContractCall(
-    {
-      walletId: buyer.walletId,
-      contractAddress: usdcAddress,
-      abiFunctionSignature: 'approve(address,uint256)',
-      abiParameters: [escrow.address, fundedAmount.toString()],
-    },
-    `usdc.approve(escrow, ${state.jobId})`,
-  );
+  let approveResult;
+  try {
+    approveResult = await executeContractCall(
+      {
+        walletId: buyer.walletId,
+        contractAddress: usdcAddress,
+        abiFunctionSignature: 'approve(address,uint256)',
+        abiParameters: [escrow.address, fundedAmount.toString()],
+      },
+      `usdc.approve(escrow, ${state.jobId})`,
+    );
+  } catch (err) {
+    logger.error({ jobId: state.jobId, err: (err as Error).message }, 'usdc approve failed');
+    emitAgentChainError(state, seller, 'usdc.approve', err);
+    return;
+  }
   logger.info({ jobId: state.jobId, ...approveResult }, 'usdc approved for escrow');
   bus.emitEvent({
     type: 'escrow.approved',
@@ -463,15 +834,22 @@ async function fundEscrow(
     payload: { amountWei: fundedAmount.toString(), txHash: approveResult.txHash },
   });
 
-  const fundResult = await executeContractCall(
-    {
-      walletId: buyer.walletId,
-      contractAddress: escrow.address,
-      abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
-      abiParameters: [state.jobId, seller, priceWei.toString(), buyer.milestonePcts],
-    },
-    `fundEscrow(${state.jobId})`,
-  );
+  let fundResult;
+  try {
+    fundResult = await executeContractCall(
+      {
+        walletId: buyer.walletId,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
+        abiParameters: [state.jobId, seller, priceWei.toString(), buyer.milestonePcts],
+      },
+      `fundEscrow(${state.jobId})`,
+    );
+  } catch (err) {
+    logger.error({ jobId: state.jobId, err: (err as Error).message }, 'fundEscrow failed');
+    emitAgentChainError(state, seller, 'fundEscrow', err);
+    return;
+  }
   state.escrowFunded = true;
   logger.info(
     {

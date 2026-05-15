@@ -8,6 +8,13 @@ export interface JobContext {
   deadlineUnix: number;
   termsHash: string;
   buyerReputationBps: number;
+  /** Buyer's per-brief tolerance: agent may accept counters up to
+   *  budgetUsdc * (1 + pct/100). Undefined means strict (no tolerance). */
+  negotiationMaxIncreasePct?: number;
+  /** Human-readable brief text. Sourced from the off-chain briefs store; absent
+   *  for jobs posted before we tracked it, in which case the LLM falls back to
+   *  budget/deadline matching only. */
+  briefText?: string;
 }
 
 export interface BidContext {
@@ -29,34 +36,41 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
   const inBudgetRange = budgetN >= seller.minBudgetUsdc && budgetN <= seller.maxBudgetUsdc;
   const inDeadlineRange =
     daysToBuyerDeadline >= seller.minDeadlineDays && daysToBuyerDeadline <= seller.maxDeadlineDays;
+  const briefLine = job.briefText
+    ? `- Brief: ${job.briefText}`
+    : `- Brief: (not provided; only terms hash ${job.termsHash} is available)`;
   return [
-    'You are a freelancer agent deciding whether to bid on a job.',
+    'You are a freelancer agent deciding whether to bid on a job for your principal.',
+    'You must apply BOTH a topical-match check and the hard range checks below.',
     '',
-    'Hard rules, apply mechanically, do not override with your own intuition:',
+    'Seller profile:',
+    `- Skills: ${seller.skills.join(', ')}`,
+    `- Bio: ${seller.bio}`,
+    '',
+    'Job:',
+    briefLine,
+    `- Buyer reputation: ${job.buyerReputationBps} / 10000 (5000 = neutral)`,
+    `- Buyer-posted budget: ${job.budgetUsdc} USDC`,
+    `- Days until buyer's deadline: ${daysToBuyerDeadline}`,
+    '',
+    'Topical match (apply FIRST):',
+    "- Decide if the brief is in the seller's wheelhouse, based on the brief text against the seller's skills + bio.",
+    '- Match generously on synonyms and abbreviations (e.g. "WL" ≈ "whitelist", "ETH dev" ≈ "Ethereum developer", "Morse NFT" matches any NFT-related skill).',
+    '- If the brief is clearly outside the seller\'s skills (e.g. brief asks for graphic design but the seller does smart contracts), decision MUST be "skip" with low confidence. Do NOT bid out of topic.',
+    '',
+    'Hard range checks (apply SECOND, only if topical match passes):',
     `- Minimum acceptable price: ${seller.minBudgetUsdc} USDC`,
     `- Maximum acceptable price: ${seller.maxBudgetUsdc} USDC`,
     `- Minimum days to delivery: ${seller.minDeadlineDays}`,
     `- Maximum days to delivery: ${seller.maxDeadlineDays}`,
-    `- If buyer budget is inside [${seller.minBudgetUsdc}, ${seller.maxBudgetUsdc}] USDC, the seller WILL consider bidding regardless of perceived market rate.`,
-    `- If days-to-deadline is inside [${seller.minDeadlineDays}, ${seller.maxDeadlineDays}], the timeline is acceptable.`,
     `- Pre-computed: budget-in-range=${inBudgetRange}, deadline-in-range=${inDeadlineRange}.`,
     '',
-    'Seller skills:',
-    `- ${seller.skills.join(', ')}`,
-    `- Bio: ${seller.bio}`,
-    '',
-    'Job:',
-    `- Buyer reputation: ${job.buyerReputationBps} / 10000 (5000 = neutral)`,
-    `- Buyer-posted budget: ${job.budgetUsdc} USDC`,
-    `- Days until buyer's deadline: ${daysToBuyerDeadline}`,
-    `- Terms hash: ${job.termsHash}`,
-    '',
     'Output rules:',
-    '- decision: "bid" if budget-in-range AND deadline-in-range AND skills are at least partially relevant. Otherwise "skip".',
-    `- suggestedPrice: digits only USDC amount, must be between ${seller.minBudgetUsdc} and Math.min(buyer budget, ${seller.maxBudgetUsdc}). For tiny jobs bid close to buyer's posted budget.`,
+    '- decision: "bid" ONLY if topical match passes AND budget-in-range AND deadline-in-range. Otherwise "skip".',
+    `- suggestedPrice: digits only USDC amount, must be between ${seller.minBudgetUsdc} and Math.min(buyer budget, ${seller.maxBudgetUsdc}).`,
     `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.min(seller.maxDeadlineDays, daysToBuyerDeadline)}]`,
-    '- confidence: 0..1',
-    '- reasoning: one or two sentences',
+    '- confidence: 0..1. Lower confidence (≤ 0.5) means weak topical match or borderline range.',
+    '- reasoning: one or two sentences explaining the topical fit (or lack of it) and price logic.',
   ].join('\n');
 }
 

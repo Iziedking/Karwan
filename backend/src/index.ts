@@ -17,6 +17,7 @@ import { activationRoutes } from './routes/activation.js';
 import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
 import { chatRoutes } from './routes/chat.js';
 import { telegramRoutes } from './routes/telegram.js';
+import { adminRoutes } from './routes/admin.js';
 import { startBuyerAgents } from './agents/buyer.js';
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
@@ -59,6 +60,7 @@ app.route('/api/deals', dealsRoutes);
 app.route('/api/activation', activationRoutes);
 app.route('/api/chat', chatRoutes);
 app.route('/api/telegram', telegramRoutes);
+app.route('/api/admin', adminRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');

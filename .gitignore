@@ -40,5 +40,7 @@ backend/data/
 # internal, not for public repo
 PLAN.md
 docs/demo-script.md
+docs/telegram-bot-setup.md
+docs/bot-assets
 .claude/
 SESSION_STATE.md

@@ -135,6 +135,20 @@ export interface DirectDeal {
   onChain: DirectDealOnChain | null;
 }
 
+export interface MatchProposal {
+  jobId: string;
+  buyerUser: string;
+  buyerAgent: string;
+  sellerUser: string;
+  sellerAgent: string;
+  agreedPriceUsdc: string;
+  deadlineUnix: number;
+  termsHash: string;
+  proposedAt: number;
+  approvedAt?: number;
+  declinedAt?: number;
+}
+
 export interface DirectDealFunding {
   dealAmountUsdc: string;
   fundedAmountUsdc: string;
@@ -226,12 +240,25 @@ export const api = {
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
   job: (id: string) => json<BuyerJob>(`/api/jobs/${id}`),
+  matchProposal: (jobId: string) =>
+    json<{ proposal: MatchProposal | null }>(`/api/jobs/${jobId}/match`),
+  approveMatch: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; txHash: string }>(
+      `/api/jobs/${jobId}/approve-match`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  declineMatch: (jobId: string, caller: string, reason?: string) =>
+    json<{ accepted: boolean; jobId: string }>(
+      `/api/jobs/${jobId}/decline-match`,
+      { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
+    ),
   dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
   postJob: (body: {
     posterAddress: string;
     brief: string;
     budgetUsdc: number;
     deadlineDays: number;
+    negotiationMaxIncreasePct?: number;
   }) =>
     json<{ jobId: string; deadlineUnix: number; txHash: string; explorerUrl: string }>(
       '/api/jobs',

@@ -95,21 +95,33 @@ export function ReputationBadge({
     return null;
   }
 
+  const cellPad = size === 'sm' ? 'px-1.5 py-[3px]' : 'px-2 py-1';
+  const labelSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+  const scoreSize = size === 'sm' ? 'text-[10px]' : 'text-[11px]';
+
   if (fetchState === 'loading' || !data) {
     return (
       <span
-        className={`inline-flex items-center gap-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface-2)] ${
-          size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]'
-        } text-[var(--color-ink-faint)]`}
+        className="inline-flex items-stretch border border-[var(--color-line)] bg-[var(--color-surface)]"
+        style={{ borderRadius: 2 }}
       >
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-line-strong)] animate-pulse" />
-        <span>—</span>
+        <span
+          aria-hidden
+          className="w-[3px]"
+          style={{ background: 'var(--color-line-strong)' }}
+        />
+        <span
+          className={`mono uppercase tracking-[0.18em] text-[var(--color-ink-faint)] ${cellPad} ${labelSize}`}
+        >
+          —
+        </span>
       </span>
     );
   }
 
   const tier = tierFor(data.scoreBps, data.totalDeals);
   const score = Math.round(data.scoreBps / 100);
+  const showScore = data.totalDeals > 0;
 
   return (
     <span ref={wrapRef} className="relative inline-block">
@@ -118,24 +130,36 @@ export function ReputationBadge({
         onClick={withDetail ? () => setOpen((s) => !s) : undefined}
         disabled={!withDetail}
         title={`${tier.label} · ${data.totalDeals} ${data.totalDeals === 1 ? 'deal' : 'deals'}`}
-        className={`group inline-flex items-center gap-1.5 rounded-full font-medium tracking-tight transition-colors ${
-          size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]'
-        } ${withDetail ? 'hover:brightness-95' : 'cursor-default'}`}
+        className={`group inline-flex items-stretch border transition-colors ${
+          withDetail ? 'hover:brightness-95' : 'cursor-default'
+        }`}
         style={{
-          background: tier.bg,
-          color: tier.color,
-          border: `1px solid ${tier.border}`,
+          borderColor: tier.border,
+          background: 'var(--color-surface)',
+          borderRadius: 2,
         }}
       >
-        <ShieldGlyph size={size === 'sm' ? 9 : 10} />
-        <span>{tier.label}</span>
-        {data.totalDeals > 0 && (
-          <span
-            className="mono tabular-nums"
-            style={{ fontSize: size === 'sm' ? 9 : 10, opacity: 0.75 }}
-          >
-            {score}
-          </span>
+        <span aria-hidden className="w-[3px]" style={{ background: tier.color }} />
+        <span
+          className={`flex items-center ${cellPad} mono uppercase tracking-[0.18em] font-semibold ${labelSize}`}
+          style={{ color: tier.color }}
+        >
+          {tier.label}
+        </span>
+        {showScore && (
+          <>
+            <span
+              aria-hidden
+              className="w-px self-stretch"
+              style={{ background: tier.border }}
+            />
+            <span
+              className={`flex items-center ${cellPad} mono tabular-nums ${scoreSize}`}
+              style={{ color: 'var(--color-ink-dim)' }}
+            >
+              {score}
+            </span>
+          </>
         )}
       </button>
 
@@ -200,15 +224,3 @@ function StatRow({
   );
 }
 
-function ShieldGlyph({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M8 2L3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4l-5-2z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}

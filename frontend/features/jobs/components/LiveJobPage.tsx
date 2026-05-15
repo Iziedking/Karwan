@@ -8,7 +8,9 @@ import { useJobLiveState } from '../hooks/useJobLiveState';
 import { FlowStepper } from './FlowStepper';
 import { EventList } from './EventList';
 import { LiveBidsPanel } from './LiveBidsPanel';
+import { MatchBanner } from './MatchBanner';
 import { ReleaseMilestonesButton } from './ReleaseMilestonesButton';
+import { useMatchProposal } from '../hooks/useMatchProposal';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 
@@ -17,6 +19,7 @@ type StatusTone = 'positive' | 'warning' | 'accent' | 'default';
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const { job } = useJobSnapshot(initial);
   const { events, active, completed } = useJobLiveState(job);
+  const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
 
   const acceptedAt = events.find((e) => e.type === 'bid.accepted')?.ts;
 
@@ -66,6 +69,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         <StatTile label="Terms hash" value={<span className="mono text-[14px]">{shortHash(job.termsHash, 6, 4)}</span>} />
       </div>
 
+      {proposal && (
+        <div className="fade-up fade-up-2">
+          <MatchBanner proposal={proposal} onChange={refreshProposal} />
+        </div>
+      )}
+
       <div className="fade-up fade-up-2 grid md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-6">
           <Card>
@@ -101,37 +110,29 @@ function StatusPill({
 }) {
   const toneStyle: Record<
     StatusTone,
-    { ink: string; ring: string; soft: string; glow: string; eyebrow: string; eyebrowLabel: string }
+    { ink: string; border: string; eyebrow: string; eyebrowLabel: string }
   > = {
     positive: {
       ink: 'var(--color-positive)',
-      ring: 'color-mix(in srgb, var(--color-positive) 35%, transparent)',
-      soft: 'var(--color-positive-soft)',
-      glow: 'color-mix(in srgb, var(--color-positive) 45%, transparent)',
+      border: 'color-mix(in srgb, var(--color-positive) 30%, var(--color-line))',
       eyebrow: 'color-mix(in srgb, var(--color-positive) 70%, var(--color-ink) 30%)',
       eyebrowLabel: 'Settled',
     },
     warning: {
       ink: 'var(--color-warning)',
-      ring: 'color-mix(in srgb, var(--color-warning) 35%, transparent)',
-      soft: 'var(--color-warning-soft)',
-      glow: 'color-mix(in srgb, var(--color-warning) 50%, transparent)',
+      border: 'color-mix(in srgb, var(--color-warning) 30%, var(--color-line))',
       eyebrow: 'color-mix(in srgb, var(--color-warning) 70%, var(--color-ink) 30%)',
       eyebrowLabel: 'In progress',
     },
     accent: {
       ink: 'var(--color-accent)',
-      ring: 'color-mix(in srgb, var(--color-accent) 30%, transparent)',
-      soft: 'var(--color-accent-soft)',
-      glow: 'color-mix(in srgb, var(--color-accent) 45%, transparent)',
+      border: 'color-mix(in srgb, var(--color-accent) 28%, var(--color-line))',
       eyebrow: 'color-mix(in srgb, var(--color-accent) 70%, var(--color-ink) 30%)',
       eyebrowLabel: 'Live',
     },
     default: {
       ink: 'var(--color-ink)',
-      ring: 'var(--color-line-strong)',
-      soft: 'var(--color-surface-2)',
-      glow: 'transparent',
+      border: 'var(--color-line-strong)',
       eyebrow: 'var(--color-ink-faint)',
       eyebrowLabel: 'Open',
     },
@@ -142,74 +143,63 @@ function StatusPill({
 
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full border backdrop-blur-sm"
+      className="relative shrink-0 inline-flex items-stretch border"
       style={{
-        borderColor: t.ring,
-        background: `linear-gradient(135deg, ${t.soft} 0%, transparent 60%, ${t.soft} 100%)`,
-        boxShadow: live ? `0 0 0 4px ${t.glow}, 0 1px 2px rgba(0,0,0,0.04)` : '0 1px 2px rgba(0,0,0,0.04)',
-        transition: 'box-shadow 600ms ease',
+        borderColor: t.border,
+        background: 'var(--color-surface)',
+        borderRadius: 2,
       }}
     >
-      {/* sheen sweep for live state */}
-      {live && (
+      {/* tone rail */}
+      <span aria-hidden className="w-[3px]" style={{ background: t.ink }} />
+
+      {/* LED indicator cell */}
+      <div
+        className="flex items-center px-2 border-r"
+        style={{ borderColor: t.border }}
+      >
         <span
+          data-instrument-blink={live || undefined}
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 -inset-x-2 stat-sweep"
+          className="block w-[7px] h-[7px]"
           style={{
-            background: `linear-gradient(110deg, transparent 35%, ${t.soft} 50%, transparent 65%)`,
-            opacity: 0.5,
+            background: t.ink,
+            opacity: live ? undefined : 0.8,
+            animation: live ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
           }}
         />
-      )}
-      <div className="relative flex items-center gap-2.5 pl-2.5 pr-3.5 py-1.5">
-        {/* concentric dot */}
-        <span className="relative flex w-3 h-3 items-center justify-center">
-          {live && (
-            <>
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: t.ink,
-                  opacity: 0.35,
-                  animation: 'flowPulse 1.8s ease-out infinite',
-                }}
-              />
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: t.ink,
-                  opacity: 0.25,
-                  animation: 'flowPulse 1.8s ease-out infinite',
-                  animationDelay: '0.6s',
-                }}
-              />
-            </>
-          )}
-          <span
-            className="relative w-1.5 h-1.5 rounded-full"
-            style={{ background: t.ink, boxShadow: `0 0 0 2px ${t.soft}` }}
-          />
+      </div>
+
+      {/* eyebrow + primary cell */}
+      <div className="flex flex-col leading-tight px-2.5 py-1">
+        <span
+          className="mono uppercase font-semibold text-[8.5px] tracking-[0.22em]"
+          style={{ color: t.eyebrow }}
+        >
+          {t.eyebrowLabel}
         </span>
-        <div className="flex flex-col leading-tight">
+        <span
+          className="text-[12px] tracking-tight font-medium mt-[1px]"
+          style={{ color: t.ink }}
+        >
+          {primary}
+        </span>
+      </div>
+
+      {/* secondary (amount) cell */}
+      {secondary && (
+        <div
+          className="flex items-center border-l px-2.5"
+          style={{ borderColor: t.border }}
+        >
           <span
-            className="text-[9px] uppercase tracking-[0.16em] font-semibold"
-            style={{ color: t.eyebrow }}
-          >
-            {t.eyebrowLabel}
-          </span>
-          <span
-            className="text-[12px] font-medium tracking-tight"
+            className="mono tabular-nums text-[11px]"
             style={{ color: t.ink }}
           >
-            <span className="font-semibold">{primary}</span>
-            {secondary && (
-              <span className="ml-1 opacity-70 font-normal">· {secondary}</span>
-            )}
+            {secondary}
           </span>
         </div>
-      </div>
+      )}
     </div>
   );
 }

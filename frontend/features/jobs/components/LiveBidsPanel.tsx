@@ -61,58 +61,94 @@ function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
   const counter = bid.suggestedCounterPrice
     ? formatUsdc(bid.suggestedCounterPrice, { withSuffix: false })
     : null;
+  const score = bid.score ?? null;
+  const tone = score != null ? scoreTone(score) : null;
+  const SEGMENTS = 10;
+  const filledSegments = score != null ? Math.round((score / 100) * SEGMENTS) : 0;
 
   return (
-    <li className="relative px-5 py-4 hover:bg-[var(--color-surface-2)] transition-colors">
+    <li className="relative px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
       {isLead && (
-        <span className="absolute top-3 right-5 text-[9px] tracking-[0.08em] uppercase text-[var(--color-accent)] font-semibold">
-          Lead bid
-        </span>
+        <span
+          aria-hidden
+          className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
+          style={{ background: 'var(--color-accent)' }}
+        />
       )}
+
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[12px] text-[var(--color-ink-dim)]">
-          {shortAddress(bid.seller)}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          {isLead && (
+            <span
+              className="text-[9px] tracking-[0.16em] uppercase font-semibold"
+              style={{ color: 'var(--color-accent)' }}
+            >
+              Lead
+            </span>
+          )}
+          <span className="mono text-[12px] text-[var(--color-ink-dim)] truncate">
+            {shortAddress(bid.seller)}
+          </span>
+        </div>
         <ReputationBadge address={bid.seller} size="sm" />
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-[22px] mono font-semibold tabular-nums leading-none">{price}</span>
-        <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
-          USDC
-        </span>
-      </div>
-      {bid.score != null && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
-            <span>Match score</span>
-            <span className="mono text-[11px] text-[var(--color-ink)] normal-case tracking-normal">
-              {bid.score}/100
+
+      <div className="mt-3 flex items-baseline justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[26px] mono font-semibold tabular-nums leading-none tracking-tight">
+            {price}
+          </span>
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            USDC
+          </span>
+        </div>
+        {score != null && tone && (
+          <div className="flex items-baseline gap-1 mono leading-none">
+            <span
+              className="text-[15px] tabular-nums font-semibold"
+              style={{ color: tone }}
+            >
+              {score}
+            </span>
+            <span className="text-[9px] tracking-[0.08em] text-[var(--color-ink-faint)]">
+              /100
             </span>
           </div>
-          <div className="mt-1.5 h-1 rounded-full bg-[var(--color-line)] overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.max(0, Math.min(100, bid.score))}%`,
-                background:
-                  bid.score >= 70
-                    ? 'var(--color-positive)'
-                    : bid.score >= 40
-                    ? 'var(--color-accent)'
-                    : 'var(--color-warning)',
-                transition: 'width 500ms cubic-bezier(0.4, 0.0, 0.2, 1)',
-              }}
-            />
-          </div>
+        )}
+      </div>
+
+      {score != null && tone && (
+        <div className="mt-2.5 flex gap-[3px]" aria-hidden>
+          {Array.from({ length: SEGMENTS }).map((_, i) => {
+            const filled = i < filledSegments;
+            return (
+              <span
+                key={i}
+                className="flex-1 h-[3px]"
+                style={{
+                  background: filled ? tone : 'var(--color-line)',
+                  transition: 'background-color 360ms ease',
+                  transitionDelay: `${i * 28}ms`,
+                }}
+              />
+            );
+          })}
         </div>
       )}
-      {(counter || bid.suggestedCounterDeadlineDays) && (
-        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+
+      {(counter || bid.suggestedCounterDeadlineDays != null) && (
+        <div className="mt-3 flex border-t border-[var(--color-line)]">
           {counter && (
-            <Inline label="Counter" value={`${counter} USDC`} />
+            <KeyValue label="Counter" value={`${counter} USDC`} />
+          )}
+          {counter && bid.suggestedCounterDeadlineDays != null && (
+            <span aria-hidden className="w-px my-2 bg-[var(--color-line)]" />
           )}
           {bid.suggestedCounterDeadlineDays != null && (
-            <Inline label="Counter ETA" value={`${bid.suggestedCounterDeadlineDays}d`} />
+            <KeyValue
+              label="ETA"
+              value={`${bid.suggestedCounterDeadlineDays}d`}
+            />
           )}
         </div>
       )}
@@ -120,11 +156,21 @@ function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
   );
 }
 
-function Inline({ label, value }: { label: string; value: string }) {
+function KeyValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 px-2 py-1 rounded-md bg-[var(--color-surface-2)] border border-[var(--color-line)]">
-      <span className="text-[10px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</span>
-      <span className="mono text-[11px] text-[var(--color-ink)]">{value}</span>
+    <div className="flex-1 pt-2.5 flex items-baseline justify-between gap-2 px-0.5">
+      <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+        {label}
+      </span>
+      <span className="mono text-[11px] text-[var(--color-ink)] tabular-nums">
+        {value}
+      </span>
     </div>
   );
+}
+
+function scoreTone(score: number): string {
+  if (score >= 70) return 'var(--color-positive)';
+  if (score >= 40) return 'var(--color-accent)';
+  return 'var(--color-warning)';
 }

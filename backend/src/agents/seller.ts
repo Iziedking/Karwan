@@ -15,6 +15,8 @@ import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import type { SellerProfile } from './seller-profile.js';
 import { resolveAllSellerProfiles, resolveSellerProfile, siblingSellerAddress } from './agent-registry.js';
+import { withLlmTimeout } from './llm-utils.js';
+import { getBrief } from '../db/briefs.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -105,6 +107,9 @@ async function handleJobPosted(log: Log) {
   // Keep a user's own seller agent out of their own auction.
   const excludeSeller = (await siblingSellerAddress(args.buyer))?.toLowerCase();
 
+  // Pull off-chain brief metadata if the buyer posted via our API. Lets the
+  // LLM bid decision evaluate topical match against the seller's profile.
+  const brief = getBrief(jobId);
   const baseJob: JobContext = {
     jobId,
     buyer: args.buyer,
@@ -112,6 +117,8 @@ async function handleJobPosted(log: Log) {
     deadlineUnix: Number(args.deadline),
     termsHash: args.termsHash,
     buyerReputationBps: 5000,
+    briefText: brief?.briefText,
+    negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
   };
 
   // The buyer reputation is the same for every seller, so read it once.
@@ -143,24 +150,46 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     return;
   }
 
+
   if (job.buyerReputationBps < 3000) {
     logger.info(
       { jobId: job.jobId, seller: seller.address, score: job.buyerReputationBps },
       'skipping: buyer reputation too low',
     );
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        reason: 'buyer-reputation-too-low',
+        detail: `buyer reputation ${job.buyerReputationBps} bps is below the 3000 bps minimum`,
+        buyerReputationBps: job.buyerReputationBps,
+      },
+    });
     return;
   }
 
   let decision;
   try {
-    const result = await generateObject({
-      model: llmModel,
-      schema: bidDecisionSchema,
-      prompt: buildBidEvaluationPrompt(job, seller),
-    });
+    const result = await withLlmTimeout(
+      `bidDecision(${job.jobId})`,
+      generateObject({
+        model: llmModel,
+        schema: bidDecisionSchema,
+        prompt: buildBidEvaluationPrompt(job, seller),
+      }),
+    );
     decision = result.object;
   } catch (err) {
-    logger.warn({ jobId: job.jobId, err: (err as Error).message }, 'llm output did not match schema');
+    const message = (err as Error).message;
+    logger.warn({ jobId: job.jobId, err: message }, 'bid LLM call failed');
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: { seller: seller.address, scope: 'bidDecision', message },
+    });
     return;
   }
 
@@ -172,7 +201,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       type: 'agent.skipped',
       jobId: job.jobId,
       actor: 'seller',
-      payload: { reason: 'low-confidence-or-skip', decision },
+      payload: { seller: seller.address, reason: 'low-confidence-or-skip', decision },
     });
     return;
   }
@@ -180,6 +209,17 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const priceUsdc = Number(decision.suggestedPrice);
   if (priceUsdc < seller.minBudgetUsdc || priceUsdc > seller.maxBudgetUsdc) {
     logger.warn({ jobId: job.jobId, priceUsdc }, 'skipping: LLM price outside seller range');
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        reason: 'llm-price-out-of-range',
+        detail: `${priceUsdc} USDC is outside the seller's ${seller.minBudgetUsdc}-${seller.maxBudgetUsdc} USDC range`,
+        priceUsdc,
+      },
+    });
     return;
   }
 
@@ -256,30 +296,40 @@ async function runCounterEvaluation(
 
   let decision;
   try {
-    const result = await generateObject({
-      model: llmModel,
-      schema: counterEvaluationSchema,
-      prompt: buildCounterEvaluationPrompt(
-        active.jobContext,
-        {
-          side: 'seller',
-          minAcceptablePriceUsdc: seller.minBudgetUsdc,
-          maxAcceptablePriceUsdc: seller.maxBudgetUsdc,
-          minDeadlineDays: seller.minDeadlineDays,
-          maxDeadlineDays: seller.maxDeadlineDays,
-        },
-        active.lastBidPrice,
-        buyerCounterPrice,
-        buyerCounterDeadlineUnix,
-      ),
-    });
+    const result = await withLlmTimeout(
+      `counterEvaluation(${args.jobId})`,
+      generateObject({
+        model: llmModel,
+        schema: counterEvaluationSchema,
+        prompt: buildCounterEvaluationPrompt(
+          active.jobContext,
+          {
+            side: 'seller',
+            minAcceptablePriceUsdc: seller.minBudgetUsdc,
+            maxAcceptablePriceUsdc: seller.maxBudgetUsdc,
+            minDeadlineDays: seller.minDeadlineDays,
+            maxDeadlineDays: seller.maxDeadlineDays,
+          },
+          active.lastBidPrice,
+          buyerCounterPrice,
+          buyerCounterDeadlineUnix,
+        ),
+      }),
+    );
     decision = result.object;
   } catch (err) {
+    const message = (err as Error).message;
     logger.warn(
-      { jobId: args.jobId, err: (err as Error).message },
+      { jobId: args.jobId, err: message },
       'counter evaluation failed, declining via no-op',
     );
     active.finalized = true;
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: args.jobId,
+      actor: 'seller',
+      payload: { seller: seller.address, scope: 'counterEvaluation', message },
+    });
     return;
   }
 
@@ -309,6 +359,12 @@ async function runCounterEvaluation(
   if (decision.decision === 'decline') {
     logger.info({ jobId: args.jobId }, 'declined buyer counter');
     active.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: args.jobId,
+      actor: 'seller',
+      payload: { seller: seller.address, reason: 'llm-decline', decision },
+    });
     return;
   }
 
@@ -316,12 +372,33 @@ async function runCounterEvaluation(
   if (active.counterRounds > 2) {
     logger.info({ jobId: args.jobId }, 'too many counter rounds, declining');
     active.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: args.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        reason: 'max-counter-rounds',
+        detail: `seller hit the 2-round counter cap on this auction`,
+        rounds: active.counterRounds,
+      },
+    });
     return;
   }
 
   if (!decision.counterPrice || !decision.counterDeadlineDays) {
     logger.warn({ jobId: args.jobId }, 'counter requested without price/deadline');
     active.finalized = true;
+    bus.emitEvent({
+      type: 'agent.error',
+      jobId: args.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        scope: 'counterEvaluation',
+        message: 'LLM asked for a counter but produced no counterPrice/counterDeadlineDays',
+      },
+    });
     return;
   }
 
@@ -332,6 +409,17 @@ async function runCounterEvaluation(
       'LLM counter outside seller range, declining',
     );
     active.finalized = true;
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: args.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        reason: 'llm-counter-out-of-range',
+        detail: `${counterPriceUsdc} USDC is outside the seller's ${seller.minBudgetUsdc}-${seller.maxBudgetUsdc} USDC range`,
+        counterPriceUsdc,
+      },
+    });
     return;
   }
 

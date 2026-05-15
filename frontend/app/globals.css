@@ -170,6 +170,14 @@ html[data-theme="dark"] {
   100% { transform: scale(1.9); opacity: 0; }
 }
 
+@keyframes instrumentBlink {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-instrument-blink] { animation: none !important; opacity: 1 !important; }
+}
+
 @keyframes peer-drop {
   0% { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
   12%, 86% { opacity: 1; transform: translateY(0); filter: blur(0); }

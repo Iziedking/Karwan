@@ -21,6 +21,9 @@ export interface UserProfile {
     maxBudgetUsdc: number;
     minDeadlineDays: number;
     maxDeadlineDays: number;
+    /** Canonical match tags derived from skills+bio on save. Empty if extraction
+     *  failed. Seller agent compares these to brief keywords to gate bidding. */
+    keywords?: string[];
   };
   buyer?: {
     maxBudgetUsdc: number;

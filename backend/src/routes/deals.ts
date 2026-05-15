@@ -31,6 +31,7 @@ import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { classifyAgentError } from '../chain/errors.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -59,33 +60,6 @@ const appealSchema = z.object({
 });
 
 const inFlight = new Set<string>();
-
-/// Maps a raw agent-side error to a structured frontend code with a friendly
-/// message. The Circle SDK error body includes the agent's balance failure as
-/// `errorReason":"INSUFFICIENT_TOKEN_BALANCE"` or "transfer amount exceeds
-/// balance"; everything else falls through as a generic agent failure.
-function classifyAgentError(err: unknown): { code: string; message: string; raw: string } {
-  const raw = err instanceof Error ? err.message : String(err ?? '');
-  const lower = raw.toLowerCase();
-  if (
-    lower.includes('insufficient_token_balance') ||
-    lower.includes('transfer amount exceeds balance')
-  ) {
-    return {
-      code: 'INSUFFICIENT_AGENT_BALANCE',
-      message: 'The buyer agent does not have enough USDC on Arc to fund this escrow.',
-      raw,
-    };
-  }
-  if (lower.includes('insufficient funds') && lower.includes('gas')) {
-    return {
-      code: 'INSUFFICIENT_AGENT_GAS',
-      message: 'The buyer agent does not have enough native gas on Arc to send this transaction.',
-      raw,
-    };
-  }
-  return { code: 'AGENT_TX_FAILED', message: 'The agent transaction failed.', raw };
-}
 
 export const dealsRoutes = new Hono();
 

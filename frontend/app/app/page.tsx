@@ -131,15 +131,15 @@ export default function AppHome() {
             href="/seller"
             tone="dark"
             eyebrow="Seller"
-            title="See the agent work"
-            body="Your seller agent watches the chain and bids on briefs that match your skills."
+            title="Your seller desk"
+            body="Review your active bids, matched deals, and pending deliveries. Act when your agent needs you."
           />
           <ActionTile
             href="/activity"
             tone="accent"
             eyebrow="Activity"
-            title="Watch chain events"
-            body="A live feed of every event across all agents. Each row links to its transaction."
+            title="Network audit feed"
+            body="Every chain event across every agent and user, newest first. Each row deep-links to its transaction."
           />
         </div>
 

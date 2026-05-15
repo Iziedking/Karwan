@@ -16,6 +16,7 @@ export function PostJobForm() {
   const [brief, setBrief] = useState('');
   const [budget, setBudget] = useState<number | ''>(10);
   const [days, setDays] = useState<number | ''>(5);
+  const [tolerance, setTolerance] = useState<number | ''>(15);
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export function PostJobForm() {
         brief,
         budgetUsdc: budget,
         deadlineDays: days,
+        negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
       });
       sfx.send();
       router.push(`/jobs/${r.jobId}`);
@@ -120,12 +122,12 @@ export function PostJobForm() {
           className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm leading-relaxed focus:outline-none focus:border-[var(--color-ink)] resize-none disabled:opacity-60"
         />
       </label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <label className="block space-y-1.5">
           <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
             Budget (USDC)
             <Hint>
-              The amount you're willing to pay, in USDC. Your buyer agent uses this as the upper bound when scoring bids and countering.
+              Your target price. The agent negotiates from here and can go up to the tolerance set on the right.
             </Hint>
           </span>
           <input
@@ -153,6 +155,24 @@ export function PostJobForm() {
             value={days}
             disabled={submitting}
             onChange={(e) => setDays(e.target.value === '' ? '' : Number(e.target.value))}
+            className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--color-ink)] disabled:opacity-60"
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
+            Tolerance (%)
+            <Hint>
+              How much above budget the agent may accept on a seller counter. 0 = strict at budget. 15% on a $10 brief lets the agent agree up to $11.50.
+            </Hint>
+          </span>
+          <input
+            type="number"
+            min={0}
+            max={50}
+            step={1}
+            value={tolerance}
+            disabled={submitting}
+            onChange={(e) => setTolerance(e.target.value === '' ? '' : Number(e.target.value))}
             className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--color-ink)] disabled:opacity-60"
           />
         </label>

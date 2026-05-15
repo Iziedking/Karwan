@@ -10,6 +10,11 @@ function dealUrl(jobId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/deals/${jobId}`;
 }
 
+function jobUrl(jobId: string | undefined): string | null {
+  if (!jobId || !config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/jobs/${jobId}`;
+}
+
 function withLink(text: string, url: string | null): string {
   return url ? `${text}\n[Open in Karwan](${url})` : text;
 }
@@ -19,6 +24,9 @@ function withLink(text: string, url: string | null): string {
 // subscribes on boot and is a no-op when the bot isn't configured.
 
 const RELEVANT = new Set([
+  'deal.matched',
+  'deal.match.approved',
+  'deal.match.declined',
   'deal.direct.created',
   'deal.accepted',
   'deal.delivered',
@@ -45,6 +53,20 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type.startsWith('bridge.')) {
     const r = (e.payload?.mintRecipient as string | undefined)?.toLowerCase();
     return r ? [{ address: r, role: 'self' }] : [];
+  }
+  // Match-proposal events fire before any deal row exists, so resolve recipients
+  // straight from the payload (the agent already resolved both user addresses).
+  if (
+    e.type === 'deal.matched' ||
+    e.type === 'deal.match.approved' ||
+    e.type === 'deal.match.declined'
+  ) {
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    const out: Recipient[] = [];
+    if (buyer) out.push({ address: buyer, role: 'buyer' });
+    if (seller) out.push({ address: seller, role: 'seller' });
+    return out;
   }
   if (e.type === 'chat.message') {
     const jobId = e.jobId;
@@ -81,6 +103,29 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'deal.matched': {
+      const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
+      const link = jobUrl(e.jobId);
+      return withLink(
+        role === 'buyer'
+          ? `*Your agent found a match*${price ? ` at ${price} USDC` : ''}. Review and approve to fund escrow.`
+          : `*A buyer's agent matched with you*${price ? ` at ${price} USDC` : ''}. Awaiting their approval — you'll be notified when escrow funds.`,
+        link,
+      );
+    }
+    case 'deal.match.approved': {
+      const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
+      return withLink(
+        role === 'seller'
+          ? `*You've been chosen.* Escrow funded${price ? ` (${price} USDC)` : ''}. Deliver in Karwan when ready.`
+          : `*Match approved.* Escrow funded${price ? ` (${price} USDC)` : ''}. The seller has been notified.`,
+        url,
+      );
+    }
+    case 'deal.match.declined':
+      return role === 'buyer'
+        ? '*You declined the matched proposal.*'
+        : '*The buyer declined this match.* The job is closed; you may bid on others.';
     case 'deal.direct.created':
       return withLink(
         role === 'seller'

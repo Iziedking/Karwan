@@ -122,7 +122,7 @@ export function ArcFundCard({
       : null;
 
   return (
-    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] p-5 md:p-9 h-full flex flex-col">
+    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] p-5 md:p-9 h-full min-w-0 flex flex-col overflow-hidden">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="font-sans text-[22px] md:text-[24px] font-bold tracking-[-0.02em]">

@@ -49,9 +49,9 @@ export function ConnectWalletButton() {
                   onClick={openAccountModal}
                   type="button"
                   suppressHydrationWarning
-                  className="px-3.5 py-1.5 rounded-full border border-[var(--color-line-strong)] text-[12px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-2 mono"
+                  className="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full border border-[var(--color-line-strong)] text-[12px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-2 mono"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] shrink-0" />
                   {account.displayName}
                 </button>
               );

@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getProfile, upsertProfile } from '../db/profiles.js';
+import { extractKeywords } from '../llm/keywords.js';
+import { logger } from '../logger.js';
 
 const addrSchema = z
   .string()
@@ -61,6 +63,27 @@ profileRoutes.post('/', async (c) => {
   if (body.buyer && body.buyer.milestonePcts.reduce((s, n) => s + n, 0) !== 100) {
     return c.json({ error: 'buyer milestonePcts must sum to 100' }, 400);
   }
-  const profile = await upsertProfile(body);
+
+  // Extract canonical match keywords from the seller profile (skills+bio) so
+  // future buyer briefs can be filtered/ranked against this seller. Fails open:
+  // an empty keywords array on LLM error still saves the profile.
+  const sellerWithKeywords: (typeof body.seller & { keywords: string[] }) | undefined =
+    body.seller
+      ? {
+          ...body.seller,
+          keywords: await extractKeywords(
+            [body.seller.skills.join(', '), body.seller.bio].filter(Boolean).join('. '),
+            `seller-profile:${body.address}`,
+          ),
+        }
+      : undefined;
+  if (sellerWithKeywords) {
+    logger.info(
+      { address: body.address, keywords: sellerWithKeywords.keywords },
+      'seller profile keywords extracted',
+    );
+  }
+
+  const profile = await upsertProfile({ ...body, seller: sellerWithKeywords });
   return c.json({ profile }, 200);
 });
