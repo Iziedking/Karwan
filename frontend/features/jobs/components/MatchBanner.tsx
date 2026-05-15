@@ -125,7 +125,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
             type="button"
             onClick={onApprove}
             disabled={busy !== null}
-            style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
+            style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
           >
             {busy === 'approve' && <Spinner />}

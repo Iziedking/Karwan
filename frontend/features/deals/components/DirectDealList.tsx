@@ -30,7 +30,7 @@ export function stageOf(deal: DirectDeal): DealStage {
 // Curated palette — slight off-axis hues so the badges feel designed, not
 // pulled from default success/error/warning. Each tone has matching bg, fg, and
 // a slightly punchier rail color for the row edge marker.
-const STAGE_META: Record<
+export const STAGE_META: Record<
   DealStage,
   { label: string; rail: string; chipBg: string; chipFg: string }
 > = {
@@ -82,17 +82,26 @@ export function StageBadge({ stage }: { stage: DealStage }) {
   const m = STAGE_META[stage];
   return (
     <span
-      className="inline-flex items-stretch border text-[10px] mono font-semibold uppercase tracking-[0.14em]"
-      style={{ borderColor: m.chipBg, background: m.chipBg, color: m.chipFg, borderRadius: 3 }}
+      className="inline-flex items-stretch overflow-hidden text-[10px] mono font-bold uppercase tracking-[0.18em] leading-none"
+      style={{
+        background: 'var(--lp-card)',
+        border: `1px solid ${m.chipFg}33`,
+        color: m.chipFg,
+        borderTopLeftRadius: 5,
+        borderTopRightRadius: 5,
+        borderBottomLeftRadius: 5,
+        borderBottomRightRadius: 2,
+        boxShadow: `0 1px 0 ${m.chipFg}1f`,
+      }}
     >
-      <span className="flex items-center px-1.5 border-r" style={{ borderColor: m.chipBg }}>
-        <span
-          aria-hidden
-          className="block w-[5px] h-[5px]"
-          style={{ background: m.chipFg }}
-        />
+      <span
+        aria-hidden
+        className="flex items-center justify-center px-1.5"
+        style={{ background: m.chipFg }}
+      >
+        <span className="block w-[5px] h-[5px] bg-white" />
       </span>
-      <span className="px-2 py-1">{m.label}</span>
+      <span className="px-2 py-[7px]">{m.label}</span>
     </span>
   );
 }

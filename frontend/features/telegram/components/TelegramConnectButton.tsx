@@ -1,13 +1,10 @@
 'use client';
-import { useState } from 'react';
-import { Note } from '@/shared/components/AppUI';
+import { useState, type ReactNode } from 'react';
 import { useTelegramLink } from '../hooks/useTelegramLink';
 
 const TG_BLUE = '#229ED9';
 
 function TelegramGlyph({ size = 14 }: { size?: number }) {
-  // Paper-plane silhouette inside the Telegram-blue tile. Flat fill, no
-  // gradient — fits the rest of the brand chips on the dark header.
   return (
     <span
       aria-hidden
@@ -30,13 +27,10 @@ function TelegramGlyph({ size = 14 }: { size?: number }) {
   );
 }
 
-/// Inline header affordance for Telegram pairing. Sits next to ConnectX; opens
-/// the link modal on click and morphs into a "@username" chip once linked.
 export function TelegramConnectButton({ address }: { address?: string }) {
   const link = useTelegramLink(address);
   const [open, setOpen] = useState(false);
 
-  // Auto-close after a successful link (small delight + matches the modal flow).
   const linkedLabel = link.status?.linked
     ? link.status.username
       ? `@${link.status.username}`
@@ -49,11 +43,17 @@ export function TelegramConnectButton({ address }: { address?: string }) {
         type="button"
         disabled
         title="Telegram alerts are not configured on this server"
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-white/20 text-white/60 cursor-not-allowed w-fit"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white/60 cursor-not-allowed w-fit"
+        style={{
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 2,
+        }}
       >
         <TelegramGlyph />
         Telegram
-        <span className="text-[9px] uppercase tracking-[0.1em] font-bold px-1.5 py-0.5 rounded-full bg-white/[0.08] text-white/55">
+        <span className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 bg-white/[0.08] text-white/55 rounded-sm">
           Off
         </span>
       </button>
@@ -66,14 +66,24 @@ export function TelegramConnectButton({ address }: { address?: string }) {
         type="button"
         onClick={() => setOpen(true)}
         title={linkedLabel ? `Manage Telegram link (${linkedLabel})` : 'Connect Telegram for alerts'}
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-white/20 text-white hover:bg-white/[0.08] hover:border-white/35 transition-colors w-fit"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white hover:bg-white/[0.08] hover:border-white/35 transition-colors w-fit"
+        style={{
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 2,
+        }}
       >
         <TelegramGlyph />
         {linkedLabel ?? 'Connect Telegram'}
         {linkedLabel && (
           <span
-            className="text-[9px] uppercase tracking-[0.1em] font-bold px-1.5 py-0.5 rounded-full"
-            style={{ background: 'rgba(212,255,63,0.18)', color: 'var(--lp-accent)' }}
+            className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5"
+            style={{
+              background: 'rgba(212,255,63,0.18)',
+              color: 'var(--lp-accent)',
+              borderRadius: 3,
+            }}
           >
             Linked
           </span>
@@ -93,6 +103,35 @@ export function TelegramConnectButton({ address }: { address?: string }) {
   );
 }
 
+function ModalNote({ tone, children }: { tone: 'info' | 'error'; children: ReactNode }) {
+  const style =
+    tone === 'error'
+      ? {
+          background: 'rgba(176,61,58,0.10)',
+          color: '#b03d3a',
+          border: '1px solid rgba(176,61,58,0.35)',
+        }
+      : {
+          background: 'rgba(212,255,63,0.10)',
+          color: 'var(--lp-dark)',
+          border: '1px solid rgba(212,255,63,0.30)',
+        };
+  return (
+    <div
+      className="px-3 py-2.5 text-[12.5px] leading-snug"
+      style={{
+        ...style,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function TelegramConnectModal({
   link,
   onClose,
@@ -105,19 +144,35 @@ function TelegramConnectModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'color-mix(in oklab, var(--lp-dark) 55%, transparent)' }}
+      style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-[24px] bg-[var(--lp-card)] text-[var(--lp-dark)] overflow-hidden fade-up"
+        className="w-full max-w-md bg-[var(--lp-card)] text-[var(--lp-dark)] overflow-hidden fade-up"
+        style={{
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
+        }}
       >
-        <div className="px-6 pt-6 pb-2 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <TelegramGlyph size={16} />
-            <h2 className="font-sans text-[20px] font-bold tracking-[-0.02em]">Telegram alerts</h2>
+        <div className="px-6 pt-6 pb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <TelegramGlyph size={16} />
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:TELEGRAM ALERTS:]
+              </span>
+            </div>
+            <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
+              Push to your chat
+              <span style={{ color: 'var(--lp-accent)' }}>.</span>
+            </h2>
           </div>
           <button
             type="button"
@@ -137,20 +192,27 @@ function TelegramConnectModal({
         </div>
 
         <div className="px-6 pb-6 space-y-4">
-          <p className="mono text-[12px] text-[var(--lp-text-sub)]">
-            deal updates · chat messages · bridge state, pushed to your chat
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Deals · chat · bridge state
           </p>
 
           {!status?.linked && !linking && (
             <>
-              <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                Connect your Telegram so deal updates and incoming chat messages reach you outside
-                the app. One tap to open the bot, one more to confirm.
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                One tap to open the bot, one more to confirm. Deal updates and chat messages reach
+                you outside the app.
               </p>
               <button
                 type="button"
                 onClick={startLink}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)] px-5 py-3 text-[13px] font-semibold transition-all duration-200 hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
+                style={{
+                  borderTopLeftRadius: 14,
+                  borderTopRightRadius: 14,
+                  borderBottomLeftRadius: 14,
+                  borderBottomRightRadius: 4,
+                  boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
+                }}
               >
                 Generate link
                 <span aria-hidden>→</span>
@@ -160,42 +222,61 @@ function TelegramConnectModal({
 
           {!status?.linked && linking && deepLink && (
             <>
-              <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 Open the bot in Telegram and tap{' '}
-                <span className="font-semibold text-[var(--lp-dark)]">Start</span>. Karwan will
-                confirm the link automatically.
+                <span className="font-semibold text-[var(--lp-dark)]">Start</span>. Karwan
+                confirms the link automatically.
               </p>
               <a
                 href={deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)] px-5 py-3 text-[13px] font-semibold transition-all duration-200 hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5"
+                className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0"
+                style={{
+                  borderTopLeftRadius: 14,
+                  borderTopRightRadius: 14,
+                  borderBottomLeftRadius: 14,
+                  borderBottomRightRadius: 4,
+                  boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
+                }}
               >
                 Open Telegram
                 <span aria-hidden>↗</span>
               </a>
-              <Note tone="info">
-                <p className="font-medium">Waiting for the /start tap…</p>
-                <p className="text-[11px] opacity-90">
-                  This link expires in 10 minutes. Generate a fresh one if you don&apos;t use it.
+              <ModalNote tone="info">
+                <p className="font-bold uppercase tracking-[0.08em] text-[10px]">
+                  Waiting for /start
                 </p>
-              </Note>
+                <p className="mt-1 text-[11.5px] opacity-90 normal-case">
+                  Link expires in 10 minutes. Generate a fresh one if you don&apos;t use it.
+                </p>
+              </ModalNote>
             </>
           )}
 
           {status?.linked && (
             <>
-              <div className="rounded-[14px] bg-[var(--lp-light)] px-4 py-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <div
+                className="px-4 py-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
+                style={{
+                  background: 'var(--lp-light)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderTopLeftRadius: 12,
+                  borderTopRightRadius: 12,
+                  borderBottomLeftRadius: 12,
+                  borderBottomRightRadius: 3,
+                }}
+              >
                 <div>
-                  <p className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)]">
+                  <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     Telegram
                   </p>
-                  <p className="font-sans text-[15px] font-semibold tracking-[-0.01em]">
+                  <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em]">
                     {status.username ? `@${status.username}` : `chat ${status.chatId ?? ''}`}
                   </p>
                 </div>
                 {status.linkedAt && (
-                  <p className="mono text-[11px] text-[var(--lp-text-sub)]">
+                  <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     linked {formatLinkedAt(status.linkedAt)}
                   </p>
                 )}
@@ -204,7 +285,7 @@ function TelegramConnectModal({
                 <button
                   type="button"
                   onClick={unlink}
-                  className="px-4 py-2 rounded-full text-[12px] font-medium text-[var(--lp-text-sub)] hover:text-[#b91c1c] hover:bg-[rgba(185,28,28,0.07)] transition-colors"
+                  className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
                 >
                   Unlink
                 </button>
@@ -212,7 +293,7 @@ function TelegramConnectModal({
             </>
           )}
 
-          {error && <Note tone="error">{error}</Note>}
+          {error && <ModalNote tone="error">{error}</ModalNote>}
         </div>
       </div>
     </div>

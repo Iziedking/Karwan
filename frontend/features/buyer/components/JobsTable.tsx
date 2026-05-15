@@ -16,7 +16,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
 
   if (jobs.length === 0) {
     return (
-      <div className="py-10 text-center text-sm text-[var(--color-ink-faint)]">
+      <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
         No jobs yet. Post a brief and the seller agent will respond within seconds.
       </div>
     );
@@ -26,12 +26,12 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] border-b border-[var(--color-line)]">
-            <th className="text-left font-medium px-5 py-2.5">Job</th>
-            <th className="text-left font-medium px-5 py-2.5">Budget</th>
-            <th className="text-left font-medium px-5 py-2.5">Deadline</th>
-            <th className="text-left font-medium px-5 py-2.5">Status</th>
-            <th className="text-right font-medium px-5 py-2.5">Open</th>
+          <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
+            <th className="text-left font-medium px-5 py-3">Job</th>
+            <th className="text-left font-medium px-5 py-3">Budget</th>
+            <th className="text-left font-medium px-5 py-3">Deadline</th>
+            <th className="text-left font-medium px-5 py-3">Status</th>
+            <th className="text-right font-medium px-5 py-3">Open</th>
           </tr>
         </thead>
         <tbody>
@@ -55,22 +55,26 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                 tabIndex={0}
                 role="link"
                 aria-label={`Open deal ${shortHash(j.jobId, 8, 4)}`}
-                className="group cursor-pointer border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-surface-2)] focus:bg-[var(--color-surface-2)] focus:outline-none transition-colors"
+                className="group cursor-pointer border-b border-white/[0.06] last:border-0 hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none transition-colors"
               >
-                <td className="px-5 py-3 mono text-[12px] text-[var(--color-ink)]">{shortHash(j.jobId, 8, 4)}</td>
-                <td className="px-5 py-3 mono">{formatUsdc(j.budgetUsdc)}</td>
-                <td className="px-5 py-3 mono text-[12px] text-[var(--color-ink-dim)]">
+                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white">
+                  {shortHash(j.jobId, 8, 4)}
+                </td>
+                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-white">
+                  {formatUsdc(j.budgetUsdc)}
+                </td>
+                <td className="px-5 py-3.5 mono text-[11px] uppercase tracking-[0.1em] text-white/55">
                   {relativeTime(j.deadlineUnix)}
                 </td>
-                <td className="px-5 py-3">
+                <td className="px-5 py-3.5">
                   <span className="inline-flex items-center gap-2">
                     <StatusDot tone={s.dot} />
                     <Tag tone={s.tone}>{s.label}</Tag>
                   </span>
                 </td>
-                <td className="px-5 py-3 text-right">
-                  <span className="inline-flex items-center gap-1 text-[12px] text-[var(--color-accent)] font-medium">
-                    View
+                <td className="px-5 py-3.5 text-right">
+                  <span className="inline-flex items-center gap-1 mono text-[11px] uppercase tracking-[0.12em] font-bold" style={{ color: 'var(--lp-accent)' }}>
+                    Open
                     <span
                       aria-hidden
                       className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"

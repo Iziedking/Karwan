@@ -11,10 +11,13 @@ type Tier = {
 };
 
 function tierFor(scoreBps: number, totalDeals: number): Tier {
+  // Explicit "no data" treatment — the wallet has settled zero deals, so any
+  // displayed score would be misleading. Label and color are deliberately
+  // muted so it reads as "unknown" rather than "low".
   if (totalDeals === 0) {
     return {
-      label: 'New',
-      color: 'var(--color-ink-dim)',
+      label: 'Unrated',
+      color: 'var(--color-ink-faint)',
       bg: 'var(--color-surface-2)',
       border: 'var(--color-line)',
     };

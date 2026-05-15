@@ -38,6 +38,12 @@ function friendlyBridgeError(err: unknown, source: SourceChainConfig): string {
   if (lower.includes('network') && lower.includes('failed')) {
     return 'Network error. Try again.';
   }
+  if (lower.includes('http request failed') || lower.includes('fetch failed')) {
+    return `${source.name} RPC is unreachable. Try again, or set NEXT_PUBLIC_${source.key === 'baseSepolia' ? 'BASE_SEPOLIA' : 'SEPOLIA'}_RPC to a private endpoint.`;
+  }
+  if (lower.includes('429') || lower.includes('too many requests') || lower.includes('rate limit')) {
+    return `${source.name} RPC is rate-limited. Try again in a moment.`;
+  }
   if (lower.includes('timeout')) {
     return 'Request timed out. Try again.';
   }

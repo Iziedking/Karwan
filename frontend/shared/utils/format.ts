@@ -36,7 +36,7 @@ export function relativeTime(unixMsOrSec: number): string {
     const [u, label] = units[i]!;
     if (abs >= u) {
       const value = Math.round(abs / u);
-      return sign < 0 ? `${value} ${label} ago` : `in ${value} ${label}`;
+      return sign < 0 ? `${value}${label} ago` : `in ${value}${label}`;
     }
   }
   return '';

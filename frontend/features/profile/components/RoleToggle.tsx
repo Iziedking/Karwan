@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
-import { Note } from '@/shared/components/AppUI';
 import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
 
 type Option = { value: UserRole; label: string; description: string };
@@ -61,8 +60,19 @@ export function RoleToggle({
   return (
     <div>
       {error && (
-        <div className="mb-3">
-          <Note tone="error">{error}</Note>
+        <div
+          className="mb-3 px-3 py-2.5 text-[12.5px]"
+          style={{
+            background: 'rgba(176,61,58,0.10)',
+            color: '#b03d3a',
+            border: '1px solid rgba(176,61,58,0.35)',
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 2,
+          }}
+        >
+          {error}
         </div>
       )}
       <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Account type">
@@ -80,29 +90,52 @@ export function RoleToggle({
               disabled={busy || active}
               title={!eligibility.ok ? eligibility.reason : undefined}
               className={cn(
-                'relative text-left rounded-[20px] p-5 min-h-[104px] transition-all duration-200 text-[var(--lp-dark)]',
-                active
-                  ? 'bg-[var(--lp-card)] ring-2 ring-[var(--lp-dark)]'
-                  : eligibility.ok
-                    ? 'bg-[var(--lp-light)] hover:-translate-y-0.5'
-                    : 'bg-[var(--lp-light)] opacity-55 cursor-help',
+                'group relative overflow-hidden text-left p-5 min-h-[112px] transition-all duration-200 text-[var(--lp-dark)]',
+                !active && eligibility.ok && 'hover:-translate-y-0.5',
               )}
+              style={{
+                background: active
+                  ? 'rgba(212,255,63,0.10)'
+                  : eligibility.ok
+                    ? 'var(--lp-card)'
+                    : 'var(--lp-light)',
+                border: active
+                  ? '1px solid var(--lp-accent)'
+                  : '1px solid var(--lp-border-light)',
+                opacity: !active && !eligibility.ok ? 0.55 : 1,
+                cursor: !eligibility.ok ? 'help' : undefined,
+                borderTopLeftRadius: 14,
+                borderTopRightRadius: 14,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 4,
+                boxShadow: active ? '0 1px 0 rgba(212,255,63,0.18)' : 'none',
+              }}
             >
               {active && (
-                <span className="absolute top-4 right-4 inline-flex size-5 items-center justify-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)]">
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-                    <path
-                      d="M3.5 8.5l3 3 6-7"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
+                <>
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-0 bottom-0 w-[3px]"
+                    style={{ background: 'var(--lp-accent)' }}
+                  />
+                  <span
+                    aria-hidden
+                    data-instrument-blink
+                    className="absolute top-3.5 right-3.5 inline-block w-[7px] h-[7px]"
+                    style={{
+                      background: 'var(--lp-accent)',
+                      animation: 'instrumentBlink 1.6s ease-in-out infinite',
+                    }}
+                  />
+                </>
               )}
-              <span className="text-[15px] font-bold tracking-[-0.01em]">{opt.label}</span>
-              <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:ROLE:]
+              </span>
+              <p className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+                {opt.label}
+              </p>
+              <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">
                 {busy ? 'Saving…' : !eligibility.ok ? eligibility.reason : opt.description}
               </p>
             </button>

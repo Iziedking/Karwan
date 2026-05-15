@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
-import { Note } from '@/shared/components/AppUI';
 import { useChat } from '../hooks/useChat';
 
 /// Per-deal end-to-end chat between the buyer and seller. Lives inside the
@@ -21,7 +20,6 @@ export function ChatPanel({
   const me = caller.toLowerCase();
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-scroll to bottom on new message.
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
@@ -41,49 +39,85 @@ export function ChatPanel({
   }
 
   return (
-    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] overflow-hidden">
-      <div className="px-7 pt-6 pb-4 border-b border-black/[0.06]">
-        <h2 className="font-sans text-[20px] font-bold tracking-[-0.02em]">Chat</h2>
-        <p className="mt-1 mono text-[11px] text-[var(--lp-text-sub)]">
-          with {counterpartyLabel} · also delivered to Telegram when linked
+    <div className="overflow-hidden">
+      <div className="px-6 pt-6 pb-4 border-b border-[var(--lp-border-light)]">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          [:WITH {counterpartyLabel.toUpperCase()}:]
+        </span>
+        <p className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          Also delivered to Telegram when linked
         </p>
       </div>
 
       <div
         ref={listRef}
-        className="px-7 py-5 max-h-[420px] overflow-y-auto space-y-3 bg-[var(--lp-light)]/40"
+        className="px-6 py-5 max-h-[420px] overflow-y-auto space-y-3 bg-[var(--lp-light)]/50"
       >
         {fetchState === 'loading' && (
           <div className="space-y-2">
-            <div className="h-10 w-2/3 rounded-[14px] bg-black/[0.05] animate-pulse" />
-            <div className="h-10 w-1/2 ml-auto rounded-[14px] bg-black/[0.05] animate-pulse" />
+            <div
+              className="h-10 w-2/3 bg-black/[0.05] animate-pulse motion-reduce:animate-none"
+              style={{
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
+            />
+            <div
+              className="h-10 w-1/2 ml-auto bg-black/[0.05] animate-pulse motion-reduce:animate-none"
+              style={{
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
+            />
           </div>
         )}
-        {fetchState === 'error' && <Note tone="error">Could not load chat history.</Note>}
+        {fetchState === 'error' && (
+          <div
+            className="px-3 py-2.5 text-[12.5px]"
+            style={{
+              background: 'rgba(176,61,58,0.10)',
+              color: '#b03d3a',
+              border: '1px solid rgba(176,61,58,0.35)',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            Could not load chat history.
+          </div>
+        )}
         {fetchState === 'ready' && messages.length === 0 && (
-          <p className="py-6 text-center text-[12.5px] text-[var(--lp-text-sub)]">
-            No messages yet. Say hello to get the deal moving.
+          <p className="py-6 text-center mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            No messages yet. Say hello.
           </p>
         )}
         {messages.map((m) => {
           const mine = m.sender.toLowerCase() === me;
           return (
-            <div
-              key={m.id}
-              className={cn('flex', mine ? 'justify-end' : 'justify-start')}
-            >
+            <div key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
               <div
                 className={cn(
-                  'max-w-[78%] rounded-[16px] px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
+                  'max-w-[78%] px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
                   mine
                     ? 'bg-[var(--lp-dark)] text-white'
-                    : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-black/[0.06]',
+                    : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]',
                 )}
+                style={{
+                  borderTopLeftRadius: mine ? 12 : 12,
+                  borderTopRightRadius: mine ? 12 : 12,
+                  borderBottomLeftRadius: mine ? 12 : 3,
+                  borderBottomRightRadius: mine ? 3 : 12,
+                }}
               >
                 <p>{m.body}</p>
                 <p
                   className={cn(
-                    'mt-1 mono text-[10px]',
+                    'mt-1 mono text-[10px] uppercase tracking-[0.1em]',
                     mine ? 'text-white/55' : 'text-[var(--lp-text-muted)]',
                   )}
                 >
@@ -97,7 +131,7 @@ export function ChatPanel({
 
       <form
         onSubmit={onSubmit}
-        className="px-7 py-4 border-t border-black/[0.06] flex items-center gap-2"
+        className="px-6 py-4 border-t border-[var(--lp-border-light)] flex items-center gap-2"
       >
         <input
           type="text"
@@ -105,18 +139,38 @@ export function ChatPanel({
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write a message…"
           maxLength={2000}
-          className="flex-1 rounded-full bg-[var(--lp-light)] px-4 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--lp-dark)]/15 placeholder:text-[var(--lp-text-muted)]"
+          className="chat-input flex-1 bg-[var(--lp-light)] px-4 py-2.5 text-[13px] focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] transition-shadow"
+          style={{
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
         />
         <button
           type="submit"
           disabled={sending || !draft.trim()}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)] px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          style={{
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+            boxShadow: !sending && draft.trim() ? '0 3px 0 rgba(0,0,0,0.22)' : 'none',
+          }}
         >
           {sending ? 'Sending…' : 'Send'}
           {!sending && <span aria-hidden>→</span>}
         </button>
       </form>
-    </section>
+      <style jsx>{`
+        .chat-input:focus {
+          border-color: var(--lp-dark);
+          box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.25);
+        }
+      `}</style>
+    </div>
   );
 }
 

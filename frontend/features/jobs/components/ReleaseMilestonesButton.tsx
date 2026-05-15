@@ -56,7 +56,10 @@ export function ReleaseMilestonesButton({
       <button
         onClick={go}
         disabled={running || settled}
-        style={{ backgroundColor: settled ? '#0f5132' : '#0c0e10', color: '#ffffff' }}
+        style={{
+          backgroundColor: settled ? 'var(--color-positive)' : 'var(--color-ink)',
+          color: 'var(--color-surface)',
+        }}
         className="px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed transition-opacity inline-flex items-center gap-2"
       >
         {running && (

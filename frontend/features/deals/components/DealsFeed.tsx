@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api, type DirectDeal } from '@/core/api';
-import { stageOf, StageBadge, type DealStage } from './DirectDealList';
+import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealList';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc, shortAddress, shortHash, relativeTime } from '@/shared/utils/format';
 
@@ -14,8 +14,8 @@ const ACTIVE_STAGES: DealStage[] = [
   'awaiting-final-release',
 ];
 
-/// Public, read-only feed of direct deals across the network. Renders inside an
-/// AppUI Section, so it carries no card chrome of its own.
+/// Public, read-only feed of direct deals across the network. Renders inside a
+/// PageCard, so it carries no card chrome of its own.
 export function DealsFeed() {
   const [deals, setDeals] = useState<DirectDeal[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -59,8 +59,18 @@ export function DealsFeed() {
 
   return (
     <div>
-      <div className="px-7 md:px-10 pb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--lp-border-light)]">
-        <div className="inline-flex rounded-full p-1 gap-1 bg-[var(--lp-light)]">
+      <div className="px-6 md:px-8 pt-5 pb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--lp-border-light)]">
+        <div
+          className="inline-flex items-center gap-1 p-1"
+          style={{
+            background: 'var(--lp-light)',
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 9,
+            borderTopRightRadius: 9,
+            borderBottomLeftRadius: 9,
+            borderBottomRightRadius: 2,
+          }}
+        >
           {tabs.map((t) => {
             const active = filter === t.key;
             return (
@@ -68,20 +78,29 @@ export function DealsFeed() {
                 key={t.key}
                 type="button"
                 onClick={() => setFilter(t.key)}
+                aria-pressed={active}
                 className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[12px] font-semibold tracking-tight transition-colors',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
-                  active
-                    ? 'bg-[var(--lp-dark)] text-white'
-                    : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]',
                 )}
+                style={{
+                  background: active ? 'var(--lp-card)' : 'transparent',
+                  color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
+                  border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
+                  borderTopLeftRadius: 7,
+                  borderTopRightRadius: 7,
+                  borderBottomLeftRadius: 7,
+                  borderBottomRightRadius: 2,
+                  boxShadow: active ? '0 1px 0 rgba(0,0,0,0.04)' : 'none',
+                }}
               >
                 {t.label}
                 <span
-                  className={cn(
-                    'ml-1.5 tabular-nums',
-                    active ? 'text-white/55' : 'text-[var(--lp-text-muted)]',
-                  )}
+                  className="tabular-nums"
+                  style={{
+                    color: active ? 'var(--lp-text-muted)' : 'var(--lp-text-muted)',
+                    opacity: active ? 1 : 0.7,
+                  }}
                 >
                   {t.count}
                 </span>
@@ -89,54 +108,82 @@ export function DealsFeed() {
             );
           })}
         </div>
-        <p className="mono text-[11px] uppercase tracking-[0.06em] text-[var(--lp-text-muted)]">
-          direct deals · live on Arc
+        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          DIRECT DEALS · LIVE ON ARC
         </p>
       </div>
 
       {fetchState === 'loading' ? (
-        <div className="px-7 md:px-10 py-6 space-y-3">
-          <div className="h-12 rounded-xl bg-black/[0.05] animate-pulse motion-reduce:animate-none" />
-          <div className="h-12 rounded-xl bg-black/[0.05] animate-pulse motion-reduce:animate-none" />
-          <div className="h-12 rounded-xl bg-black/[0.05] animate-pulse motion-reduce:animate-none" />
+        <div className="px-6 md:px-8 py-6 space-y-3">
+          <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
+          <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
+          <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
         </div>
       ) : fetchState === 'error' ? (
-        <p className="px-7 md:px-10 py-12 text-center text-[13px] text-[var(--lp-text-muted)]">
+        <p className="px-6 md:px-8 py-12 text-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
           Couldn&apos;t load the deals feed.
         </p>
       ) : shown.length === 0 ? (
-        <p className="px-7 md:px-10 py-12 text-center text-[13px] text-[var(--lp-text-sub)]">
-          {filter === 'all'
-            ? 'No deals on the network yet. Open the first one.'
-            : `No ${filter} deals right now.`}
-        </p>
+        <div className="px-6 md:px-8 py-12 text-center space-y-2">
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            {filter === 'all' ? 'EMPTY NETWORK' : 'NO MATCH'}
+          </p>
+          <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
+            {filter === 'all'
+              ? 'No deals on the network yet. Open the first one.'
+              : `No ${filter} deals right now.`}
+          </p>
+        </div>
       ) : (
         <ul className="divide-y divide-[var(--lp-border-light)]">
-          {shown.map(({ deal, stage }) => (
-            <li
-              key={deal.jobId}
-              className="px-7 md:px-10 py-4 flex items-start justify-between gap-4 transition-colors hover:bg-[var(--lp-light)]"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-sans text-[17px] font-bold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
-                    {formatUsdc(deal.dealAmountUsdc)}
-                  </span>
-                  <StageBadge stage={stage} />
+          {shown.map(({ deal, stage }) => {
+            const meta = STAGE_META[stage];
+            return (
+              <li key={deal.jobId} className="group relative">
+                <div className="block px-6 md:px-8 py-5 transition-colors hover:bg-[var(--lp-light)]">
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-3 bottom-3 w-[3px] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
+                    style={{ background: meta.rail }}
+                  />
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <StageBadge stage={stage} />
+                        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                          {relativeTime(deal.createdAt)}
+                        </span>
+                      </div>
+                      <div className="mt-2.5 flex items-baseline gap-2">
+                        <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+                          {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
+                        </span>
+                        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                          USDC
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[13px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch]">
+                        {deal.terms}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 space-y-1.5">
+                      <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+                        PARTIES
+                      </p>
+                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)]">
+                        {shortAddress(deal.buyer)}
+                        <span className="mx-1 text-[var(--lp-text-muted)]">→</span>
+                        {shortAddress(deal.seller)}
+                      </p>
+                      <p className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
+                        {shortHash(deal.jobId, 6, 4)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-1 text-[13px] text-[var(--lp-text-sub)] line-clamp-1">
-                  {deal.terms}
-                </p>
-                <p className="mt-1.5 mono text-[10px] text-[var(--lp-text-muted)]">
-                  {shortAddress(deal.buyer)} → {shortAddress(deal.seller)} ·{' '}
-                  {shortHash(deal.jobId, 6, 4)}
-                </p>
-              </div>
-              <span className="mono text-[10px] text-[var(--lp-text-muted)] shrink-0 mt-1">
-                {relativeTime(deal.createdAt)}
-              </span>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

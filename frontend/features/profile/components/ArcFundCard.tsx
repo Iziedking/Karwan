@@ -3,12 +3,29 @@ import { useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
-import { Note } from '@/shared/components/AppUI';
 import { CopyAddress } from '@/shared/components/CopyAddress';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+
+const CARD_STYLE = {
+  background: 'var(--lp-card)',
+  color: 'var(--lp-dark)',
+  border: '1px solid var(--lp-border-light)',
+  borderTopLeftRadius: 22,
+  borderTopRightRadius: 22,
+  borderBottomLeftRadius: 22,
+  borderBottomRightRadius: 5,
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+} as const;
+
+const TONE_COLOR = {
+  positive: '#0a7553',
+  critical: '#b03d3a',
+  live: 'var(--lp-accent)',
+  warning: '#b25425',
+} as const;
 
 function formatBalance(data: { value: bigint; decimals: number } | undefined): string {
   if (!data) return '—';
@@ -48,7 +65,6 @@ export function ArcFundCard({
     sellerArcBalance.refetch();
   }
 
-  // Refetch agent balances when a transfer transitions to 'done'.
   const lastDoneIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     for (const r of records) {
@@ -63,7 +79,6 @@ export function ArcFundCard({
   const refreshing =
     arcBalance.isRefetching || buyerArcBalance.isRefetching || sellerArcBalance.isRefetching;
 
-  // 1Hz tick while any record is live so elapsed time and slow-hint render fresh.
   const [, setTick] = useState(0);
   const hasLive = records.some(
     (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
@@ -80,7 +95,6 @@ export function ArcFundCard({
   ];
 
   const [selected, setSelected] = useState<'buyer' | 'seller'>(defaultAgent);
-  // If only one agent is configured, force-select it.
   useEffect(() => {
     if (!buyerAgent && sellerAgent) setSelected('seller');
     else if (buyerAgent && !sellerAgent) setSelected('buyer');
@@ -91,9 +105,6 @@ export function ArcFundCard({
 
   const selectedAgent = options.find((o) => o.key === selected);
 
-  // Native transfers from one wallet are nonce-sequential, so a second one
-  // fired while the first is pending just queues behind it, and if the first
-  // stalls they all stall. Only one transfer may be in flight at a time.
   const activeCount = records.filter(
     (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
   ).length;
@@ -122,24 +133,47 @@ export function ArcFundCard({
       : null;
 
   return (
-    <section className="rounded-[28px] bg-[var(--lp-card)] text-[var(--lp-dark)] p-5 md:p-9 h-full min-w-0 flex flex-col overflow-hidden">
+    <section
+      style={CARD_STYLE}
+      className="p-6 md:p-8 h-full min-w-0 flex flex-col overflow-hidden"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="font-sans text-[22px] md:text-[24px] font-bold tracking-[-0.02em]">
-            Fund agent on Arc
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:FUND AGENT:]
+          </span>
+          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+            Top up on Arc
           </h2>
-          <p className="mt-1 mono text-[12px] text-[var(--lp-text-sub)]">
-            direct USDC transfer · single tx · settles in ~3s
+          <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Single tx · settles in ~3s
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {activeCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--lp-light)] px-2.5 py-1 text-[11px] font-medium text-[var(--lp-dark)]">
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[10px] font-bold uppercase tracking-[0.14em]"
+              style={{
+                background: 'rgba(212,255,63,0.10)',
+                color: 'var(--lp-dark)',
+                border: '1px solid rgba(212,255,63,0.35)',
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+            >
               <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--lp-accent)] opacity-60 motion-safe:animate-ping" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-[var(--lp-accent)]" />
+                <span
+                  className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping"
+                  style={{ background: 'var(--lp-accent)' }}
+                />
+                <span
+                  className="relative inline-flex size-1.5 rounded-full"
+                  style={{ background: 'var(--lp-accent)' }}
+                />
               </span>
-              {activeCount} in flight
+              {activeCount} IN FLIGHT
             </span>
           )}
           <button
@@ -147,15 +181,15 @@ export function ArcFundCard({
             onClick={refetchAll}
             disabled={refreshing}
             title="Refresh balances"
-            className="inline-flex items-center gap-1.5 text-[12px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait"
+            className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait"
           >
             <svg
-              width="12"
-              height="12"
+              width="11"
+              height="11"
               viewBox="0 0 16 16"
               fill="none"
               aria-hidden
-              className={refreshing ? 'animate-spin' : ''}
+              className={refreshing ? 'animate-spin motion-reduce:animate-none' : ''}
             >
               <path
                 d="M14 8a6 6 0 1 1-1.76-4.24M14 3v3h-3"
@@ -171,9 +205,12 @@ export function ArcFundCard({
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-1 flex-col gap-5">
+        {/* RECIPIENT PICKER */}
         <div>
-          <p className="mb-2 text-[12px] font-medium text-[var(--lp-text-sub)]">Recipient</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:RECIPIENT:]
+          </span>
+          <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {options.map((o) => {
               const active = selected === o.key;
               const disabled = !o.address;
@@ -185,27 +222,46 @@ export function ArcFundCard({
                   type="button"
                   onClick={() => o.address && setSelected(o.key)}
                   disabled={disabled}
+                  aria-pressed={active}
                   className={cn(
-                    'relative text-left p-4 rounded-[18px] transition-all duration-200 text-[var(--lp-dark)]',
-                    active
-                      ? 'bg-[var(--lp-card)] ring-2 ring-[var(--lp-dark)]'
-                      : disabled
-                        ? 'bg-[var(--lp-light)] opacity-50 cursor-not-allowed'
-                        : 'bg-[var(--lp-light)] hover:-translate-y-0.5',
+                    'relative overflow-hidden text-left p-4 transition-colors text-[var(--lp-dark)]',
+                    !active && !disabled && 'hover:-translate-y-0.5',
                   )}
+                  style={{
+                    background: active
+                      ? 'rgba(212,255,63,0.10)'
+                      : disabled
+                        ? 'var(--lp-light)'
+                        : 'var(--lp-card)',
+                    border: active
+                      ? '1px solid var(--lp-accent)'
+                      : '1px solid var(--lp-border-light)',
+                    opacity: disabled ? 0.5 : 1,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    borderTopLeftRadius: 12,
+                    borderTopRightRadius: 12,
+                    borderBottomLeftRadius: 12,
+                    borderBottomRightRadius: 3,
+                    boxShadow: active ? '0 1px 0 rgba(212,255,63,0.18)' : 'none',
+                  }}
                 >
                   {active && (
-                    <span className="absolute top-3 right-3 inline-flex size-[18px] items-center justify-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)]">
-                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
-                        <path
-                          d="M3.5 8.5l3 3 6-7"
-                          stroke="currentColor"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
+                    <>
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        style={{ background: 'var(--lp-accent)' }}
+                      />
+                      <span
+                        aria-hidden
+                        data-instrument-blink
+                        className="absolute top-2.5 right-2.5 inline-block w-[6px] h-[6px]"
+                        style={{
+                          background: 'var(--lp-accent)',
+                          animation: 'instrumentBlink 1.6s ease-in-out infinite',
+                        }}
+                      />
+                    </>
                   )}
                   <div className="flex items-center gap-2.5">
                     <WalletAvatar address={o.address ?? '0x0'} size={26} />
@@ -214,22 +270,22 @@ export function ArcFundCard({
                         {o.label}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="mono text-[10px] truncate text-[var(--lp-text-sub)]">
+                        <span className="mono text-[10px] tabular-nums truncate text-[var(--lp-text-muted)]">
                           {o.address ? shortAddress(o.address) : 'not configured'}
                         </span>
                         {o.address && <CopyAddress value={o.address} />}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-black/[0.07]">
-                    <span className="text-[11px] font-medium text-[var(--lp-text-sub)]">
+                  <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-[var(--lp-border-light)]">
+                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                       Balance
                     </span>
                     <span className="inline-flex items-baseline gap-1">
-                      <span className="font-sans text-[15px] font-bold tabular-nums tracking-[-0.01em] leading-none">
+                      <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
                         {o.address ? (balHuman ?? '—') : '—'}
                       </span>
-                      <span className="mono text-[9px] uppercase tracking-[0.1em] leading-none text-[var(--lp-text-sub)]">
+                      <span className="mono text-[9px] uppercase tracking-[0.14em] leading-none text-[var(--lp-text-muted)]">
                         USDC
                       </span>
                     </span>
@@ -240,11 +296,25 @@ export function ArcFundCard({
           </div>
         </div>
 
-        <div className="rounded-[18px] bg-[var(--lp-light)] p-5 transition-colors focus-within:ring-2 focus-within:ring-[var(--lp-dark)]/15">
+        {/* AMOUNT */}
+        <div
+          className="fund-amount transition-shadow p-5"
+          style={{
+            background: 'var(--lp-light)',
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
+        >
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] font-medium text-[var(--lp-text-sub)]">Amount</span>
-            <span className="mono text-[11px] text-[var(--lp-text-sub)]">
-              Arc · {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '—'}
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:AMOUNT:]
+            </span>
+            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              Arc ·{' '}
+              {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '—'}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-3">
@@ -255,20 +325,41 @@ export function ArcFundCard({
               step="any"
               value={amount}
               onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              className="no-spinner flex-1 bg-transparent font-sans text-[34px] font-bold tracking-[-0.02em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] min-w-0"
+              className="no-spinner flex-1 bg-transparent font-sans text-[34px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] min-w-0"
               placeholder="0"
             />
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--lp-card)] px-3 py-1.5">
+            <span
+              className="inline-flex items-center gap-1.5 bg-[var(--lp-card)] px-3 py-1.5"
+              style={{
+                borderTopLeftRadius: 8,
+                borderTopRightRadius: 8,
+                borderBottomLeftRadius: 8,
+                borderBottomRightRadius: 2,
+              }}
+            >
               <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-              <span className="mono text-[12px] font-semibold">USDC</span>
+              <span className="mono text-[11px] font-bold uppercase tracking-[0.12em]">USDC</span>
             </span>
           </div>
+          <style jsx>{`
+            .fund-amount:focus-within {
+              border-color: var(--lp-dark);
+              box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.25);
+            }
+          `}</style>
         </div>
 
         <button
           type="submit"
           disabled={!canSubmit}
-          className="group mt-auto w-full inline-flex items-center justify-center gap-2 rounded-full px-5 py-4 text-[14px] font-semibold transition-all duration-200 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="group mt-auto w-full inline-flex items-center justify-center gap-2 px-5 py-4 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          style={{
+            borderTopLeftRadius: 14,
+            borderTopRightRadius: 14,
+            borderBottomLeftRadius: 14,
+            borderBottomRightRadius: 4,
+            boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
+          }}
         >
           {!isConnected ? (
             'Connect wallet to fund'
@@ -295,19 +386,20 @@ export function ArcFundCard({
           )}
         </button>
         {hasActiveTransfer && (
-          <p className="text-[11px] text-[var(--lp-text-sub)] leading-snug">
-            One transfer at a time. Native transfers settle in nonce order, so a second one would
-            just queue behind this until it confirms.
+          <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
+            One transfer at a time. Native transfers settle in nonce order.
           </p>
         )}
       </form>
 
       {records.length > 0 && (
-        <div className="mt-7 pt-5 border-t border-black/[0.07]">
+        <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
           <div className="flex items-baseline justify-between mb-3.5">
-            <h3 className="font-sans text-[15px] font-bold tracking-[-0.01em]">Activity</h3>
-            <p className="mono text-[11px] text-[var(--lp-text-sub)]">
-              {records.length} {records.length === 1 ? 'transfer' : 'transfers'}
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:ACTIVITY:]
+            </span>
+            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              {records.length} {records.length === 1 ? 'TRANSFER' : 'TRANSFERS'}
             </p>
           </div>
           <ul className="space-y-2">
@@ -327,12 +419,6 @@ export function ArcFundCard({
     </section>
   );
 }
-
-const TONE_COLOR = {
-  positive: '#15803d',
-  critical: '#b91c1c',
-  live: 'var(--lp-accent)',
-} as const;
 
 function phaseLabel(phase: FundPhase): string {
   switch (phase) {
@@ -380,52 +466,81 @@ function FundRow({
   const tone = phaseTone(record.phase);
   const elapsedSec = Math.max(0, Math.floor((Date.now() - record.startedAt) / 1000));
   const isSlow = record.phase === 'confirming' && elapsedSec > 15;
-  // A real Arc tx confirms in seconds. Past two minutes it is almost certainly
-  // a dropped or dead tx, so offer the same escape hatch as a failed one.
   const isStuck = record.phase === 'confirming' && elapsedSec > 120;
   const canRetry = record.phase === 'error' || isStuck;
   const canDismiss = record.phase === 'done' || record.phase === 'error' || isStuck;
   const textColor =
-    tone === 'positive' ? TONE_COLOR.positive : tone === 'critical' ? TONE_COLOR.critical : 'var(--lp-text-sub)';
+    tone === 'positive'
+      ? TONE_COLOR.positive
+      : tone === 'critical'
+        ? TONE_COLOR.critical
+        : 'var(--lp-text-sub)';
+  const railColor =
+    tone === 'positive'
+      ? TONE_COLOR.positive
+      : tone === 'critical'
+        ? TONE_COLOR.critical
+        : 'var(--lp-accent)';
   return (
     <li
-      className={cn(
-        'rounded-[16px] transition-all overflow-hidden',
-        expanded ? 'bg-[var(--lp-light)]' : 'bg-[var(--lp-light)]/60 hover:bg-[var(--lp-light)]',
-      )}
+      className="relative overflow-hidden transition-shadow"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+        boxShadow: expanded
+          ? '0 1px 0 rgba(0,0,0,0.04), 0 10px 28px -14px rgba(0,0,0,0.22)'
+          : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
+      }}
     >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: railColor }}
+      />
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-left p-3 flex items-center gap-3"
+        className="w-full text-left p-3 pl-4 flex items-center gap-3"
       >
         <WalletAvatar address={record.agentAddress} size={26} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="font-sans text-[17px] font-bold tabular-nums leading-none tracking-[-0.01em]">
+            <span className="font-sans text-[17px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(record.amountUsdc, { withSuffix: false })}
             </span>
-            <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-sub)] leading-none">
+            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
               → {record.agentKey}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <PhaseDot tone={tone} pulse={tone === 'live'} />
+            <PhaseLED tone={tone} />
             <span
               className="text-[11px] font-medium leading-none"
               style={{ color: textColor }}
             >
               {phaseLabel(record.phase)}
             </span>
-            <span className="mono text-[10px] text-[var(--lp-text-sub)] leading-none">
+            <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-none">
               · {elapsed(record.startedAt)}
             </span>
             {isSlow && (
               <span
-                className="text-[10px] uppercase tracking-[0.1em] leading-none px-1.5 py-0.5 rounded"
-                style={{ background: 'rgba(180,83,9,0.12)', color: '#b45309' }}
+                className="text-[10px] mono uppercase tracking-[0.14em] leading-none px-1.5 py-0.5 font-bold"
+                style={{
+                  background: 'rgba(178,84,37,0.10)',
+                  color: TONE_COLOR.warning,
+                  border: '1px solid rgba(178,84,37,0.30)',
+                  borderTopLeftRadius: 4,
+                  borderTopRightRadius: 4,
+                  borderBottomLeftRadius: 4,
+                  borderBottomRightRadius: 2,
+                }}
               >
-                Slow
+                SLOW
               </span>
             )}
           </div>
@@ -436,11 +551,24 @@ function FundRow({
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 mono text-[10px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] px-2 py-1 rounded-md bg-[var(--lp-card)] shrink-0 transition-colors"
+            className="inline-flex items-center gap-1 mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] px-2 py-1 shrink-0 transition-colors"
+            style={{
+              background: 'var(--lp-card)',
+              border: '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 6,
+              borderTopRightRadius: 6,
+              borderBottomLeftRadius: 6,
+              borderBottomRightRadius: 2,
+            }}
             title="View on Arcscan"
           >
             <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path
+                d="M5.5 4.5h6v6M11 5l-6.5 6.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
             {shortHash(record.txHash)}
           </a>
@@ -452,35 +580,76 @@ function FundRow({
           fill="none"
           aria-hidden
           className={cn(
-            'text-[var(--lp-text-sub)] transition-transform shrink-0',
+            'text-[var(--lp-text-muted)] transition-transform shrink-0',
             expanded && 'rotate-180',
           )}
         >
-          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M4 6l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
       {expanded && (
-        <div className="border-t border-black/[0.07] px-3 py-3 space-y-3">
-          {record.error && <Note tone="error">{record.error}</Note>}
+        <div className="border-t border-[var(--lp-border-light)] px-3 py-3 space-y-3">
+          {record.error && (
+            <div
+              className="overflow-hidden"
+              style={{
+                background: 'var(--lp-card)',
+                border: `1px solid ${TONE_COLOR.critical}`,
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 3,
+                boxShadow: '0 1px 0 rgba(176,61,58,0.18)',
+              }}
+            >
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1.5"
+                style={{ background: TONE_COLOR.critical }}
+              >
+                <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
+                <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-white">
+                  ERROR
+                </span>
+              </div>
+              <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">
+                {record.error}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)]">
-              <span className="font-medium">Recipient</span>
-              <span className="mono">{shortAddress(record.agentAddress)}</span>
+              <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                Recipient
+              </span>
+              <span className="mono tabular-nums">{shortAddress(record.agentAddress)}</span>
             </div>
             {record.txHash && (
               <a
                 href={ARC_EXPLORER_TX(record.txHash)}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
+                className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
               >
-                <span className="font-medium">Tx · Arc</span>
-                <span className="mono inline-flex items-center gap-1">
+                <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  Tx · Arc
+                </span>
+                <span className="mono inline-flex items-center gap-1 tabular-nums">
                   {shortHash(record.txHash)}
                   <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
-                    <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    <path
+                      d="M5.5 4.5h6v6M11 5l-6.5 6.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </span>
               </a>
@@ -488,8 +657,8 @@ function FundRow({
           </div>
 
           {isStuck && (
-            <p className="text-[11px] text-[var(--lp-text-sub)] leading-snug">
-              This transfer has not confirmed in a while. It is likely a dropped tx. Retry to send a
+            <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
+              This transfer has not confirmed in a while. Likely a dropped tx. Retry to send a
               fresh one, or dismiss it.
             </p>
           )}
@@ -499,7 +668,13 @@ function FundRow({
               <button
                 type="button"
                 onClick={onRetry}
-                className="px-4 py-1.5 rounded-full text-[12px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                style={{
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                  borderBottomLeftRadius: 8,
+                  borderBottomRightRadius: 2,
+                }}
               >
                 Retry
               </button>
@@ -508,7 +683,7 @@ function FundRow({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="px-4 py-1.5 rounded-full text-[12px] font-medium text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors"
+                className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
               >
                 Dismiss
               </button>
@@ -520,17 +695,17 @@ function FundRow({
   );
 }
 
-function PhaseDot({ tone, pulse }: { tone: 'live' | 'positive' | 'critical'; pulse: boolean }) {
+function PhaseLED({ tone }: { tone: 'live' | 'positive' | 'critical' }) {
   const color = TONE_COLOR[tone];
   return (
-    <span className="relative flex h-1.5 w-1.5 shrink-0">
-      {pulse && (
-        <span
-          className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping"
-          style={{ background: color }}
-        />
-      )}
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: color }} />
-    </span>
+    <span
+      aria-hidden
+      data-instrument-blink={tone === 'live' || undefined}
+      className="shrink-0 inline-block w-[6px] h-[6px]"
+      style={{
+        background: color,
+        animation: tone === 'live' ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
+      }}
+    />
   );
 }

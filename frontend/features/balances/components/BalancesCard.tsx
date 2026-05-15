@@ -15,7 +15,16 @@ const CHAIN_META: Record<string, { name: string; sub: string; key: ChainKey }> =
   sepolia: { name: 'Ethereum', sub: 'Sepolia', key: 'sepolia' },
 };
 
-const CARD = 'rounded-[24px] bg-[var(--lp-card)] border border-black/[0.06] h-full flex flex-col';
+const CARD_STYLE = {
+  background: 'var(--lp-card)',
+  color: 'var(--lp-dark)',
+  border: '1px solid var(--lp-border-light)',
+  borderTopLeftRadius: 22,
+  borderTopRightRadius: 22,
+  borderBottomLeftRadius: 22,
+  borderBottomRightRadius: 5,
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+} as const;
 
 type View = 'you' | 'buyer' | 'seller';
 
@@ -69,8 +78,11 @@ export function BalancesCard({
 
   if (!isConnected || !address) {
     return (
-      <div className={`${CARD} p-7`}>
-        <p className="text-[13px] text-[var(--lp-text-sub)]">
+      <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          [:HOLDINGS:]
+        </span>
+        <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">
           Connect your wallet to see USDC balances.
         </p>
       </div>
@@ -108,13 +120,16 @@ export function BalancesCard({
   ];
 
   return (
-    <div className={CARD}>
-      <div className="px-7 pt-6 pb-4 flex items-start justify-between gap-4">
+    <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
+      <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="font-sans text-[20px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">
-            Holdings
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:HOLDINGS:]
+          </span>
+          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+            USDC balances
           </h2>
-          <p className="mono text-[11px] text-[var(--lp-text-muted)] mt-0.5">
+          <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             across {rows.length} chains
           </p>
         </div>
@@ -122,7 +137,7 @@ export function BalancesCard({
           type="button"
           onClick={refreshAll}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 text-[11px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full px-1.5 py-0.5"
+          className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full px-1.5 py-0.5"
         >
           <svg
             width="11"
@@ -144,8 +159,18 @@ export function BalancesCard({
         </button>
       </div>
 
-      <div className="px-7 pb-3">
-        <div className="inline-flex rounded-full p-1 gap-1 bg-[var(--lp-light)]">
+      <div className="px-6 pb-3">
+        <div
+          className="inline-flex p-1 gap-1"
+          style={{
+            background: 'var(--lp-light)',
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 9,
+            borderTopRightRadius: 9,
+            borderBottomLeftRadius: 9,
+            borderBottomRightRadius: 2,
+          }}
+        >
           {tabs.map((t) => {
             const isActive = view === t.key;
             return (
@@ -155,7 +180,7 @@ export function BalancesCard({
                 onClick={() => !t.disabled && setView(t.key)}
                 disabled={t.disabled}
                 className={cn(
-                  'rounded-full px-3 py-1 text-[11px] font-semibold tracking-tight transition-colors',
+                  'px-3 py-1 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                   isActive
                     ? 'bg-[var(--lp-dark)] text-white'
@@ -163,6 +188,12 @@ export function BalancesCard({
                       ? 'text-[var(--lp-text-muted)] opacity-50 cursor-not-allowed'
                       : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]',
                 )}
+                style={{
+                  borderTopLeftRadius: 7,
+                  borderTopRightRadius: 7,
+                  borderBottomLeftRadius: 7,
+                  borderBottomRightRadius: 2,
+                }}
               >
                 {t.label}
               </button>
@@ -171,7 +202,7 @@ export function BalancesCard({
         </div>
       </div>
 
-      <ul className="px-7">
+      <ul className="px-6">
         {rows.map((r, i) => {
           const m = CHAIN_META[r.key]!;
           const num =
@@ -183,20 +214,20 @@ export function BalancesCard({
                 i < rows.length - 1 ? 'border-b border-[var(--lp-border-light)]' : ''
               }`}
             >
-              <ChainLogo chain={m.key} size={32} />
+              <ChainLogo chain={m.key} size={30} />
               <div className="flex-1 min-w-0">
                 <p className="font-sans text-[14px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)] leading-tight">
                   {m.name}
                 </p>
-                <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-0.5">
+                <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] mt-0.5">
                   {m.sub}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-sans text-[20px] font-bold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+                <p className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
                   {num === null ? '—' : <AnimatedNumber value={num} decimals={2} />}
                 </p>
-                <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-1">
+                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1">
                   USDC
                 </p>
               </div>
@@ -205,12 +236,12 @@ export function BalancesCard({
         })}
       </ul>
 
-      <div className="px-7 py-3.5 mt-auto border-t border-[var(--lp-border-light)] flex items-baseline justify-between gap-3">
-        <p className="mono text-[11px] text-[var(--lp-text-muted)]">
+      <div className="px-6 py-3.5 mt-auto border-t border-[var(--lp-border-light)] flex items-baseline justify-between gap-3">
+        <p className="mono text-[11px] tabular-nums text-[var(--lp-text-muted)]">
           {active.address ? shortAddress(active.address) : 'not configured'}
         </p>
         {lastUpdated > 0 && (
-          <p className="mono text-[10px] text-[var(--lp-text-muted)]">
+          <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             updated {timeAgo(lastUpdated)}
           </p>
         )}

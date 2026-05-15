@@ -25,6 +25,7 @@ import {
 } from './agents/buyer.js';
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
+import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
@@ -108,6 +109,11 @@ function bootAgents() {
     stopFns.push(startDealWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'deal watcher not started');
+  }
+  try {
+    stopFns.push(startJobExpiryWatcher());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'job expiry watcher not started');
   }
 }
 

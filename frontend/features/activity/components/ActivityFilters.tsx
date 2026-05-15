@@ -20,7 +20,17 @@ export function ActivityFilters({
   const actors: ActorFilter[] = ['buyer', 'seller', 'system'];
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="inline-flex items-center gap-1 p-1 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-line)]">
+      <div
+        className="inline-flex items-center gap-1 p-1"
+        style={{
+          background: 'var(--lp-light)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 9,
+          borderTopRightRadius: 9,
+          borderBottomLeftRadius: 9,
+          borderBottomRightRadius: 2,
+        }}
+      >
         {actors.map((a) => {
           const active = activeActors.has(a);
           return (
@@ -28,16 +38,24 @@ export function ActivityFilters({
               key={a}
               type="button"
               onClick={() => onToggleActor(a)}
-              className={`relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] tracking-tight transition-all ${
-                active
-                  ? 'bg-[var(--color-surface)] text-[var(--color-ink)] font-semibold shadow-[0_1px_2px_rgba(12,14,16,0.06),0_1px_0_rgba(255,255,255,0.7)_inset] border border-[var(--color-line)]'
-                  : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] font-medium border border-transparent'
-              }`}
+              aria-pressed={active}
+              className="relative inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors"
+              style={{
+                background: active ? 'var(--lp-card)' : 'transparent',
+                color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
+                border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
+                borderTopLeftRadius: 7,
+                borderTopRightRadius: 7,
+                borderBottomLeftRadius: 7,
+                borderBottomRightRadius: 2,
+                boxShadow: active ? '0 1px 0 rgba(0,0,0,0.04)' : 'none',
+              }}
             >
               {active && (
                 <span
-                  className="inline-block w-1.5 h-1.5 rounded-full"
-                  style={{ background: 'var(--color-accent)' }}
+                  aria-hidden
+                  className="inline-block w-[6px] h-[6px]"
+                  style={{ background: 'var(--lp-accent)' }}
                 />
               )}
               {ACTOR_LABELS[a]}
@@ -53,7 +71,7 @@ export function ActivityFilters({
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-ink-faint)]"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)]"
         >
           <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
           <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -63,13 +81,20 @@ export function ActivityFilters({
           value={jobIdSearch}
           onChange={(e) => onJobIdSearch(e.target.value)}
           placeholder="Filter by job id…"
-          className="w-full rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] pl-7 pr-7 py-1.5 text-[11px] mono focus:outline-none focus:border-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] placeholder:normal-case"
+          className="activity-search w-full bg-[var(--lp-card)] pl-8 pr-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-muted)] placeholder:normal-case text-[var(--lp-dark)]"
+          style={{
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 9,
+            borderTopRightRadius: 9,
+            borderBottomLeftRadius: 9,
+            borderBottomRightRadius: 2,
+          }}
         />
         {jobIdSearch && (
           <button
             type="button"
             onClick={() => onJobIdSearch('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
             aria-label="Clear"
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
@@ -82,13 +107,19 @@ export function ActivityFilters({
             </svg>
           </button>
         )}
+        <style jsx>{`
+          .activity-search:focus {
+            border-color: var(--lp-dark);
+            box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.25);
+          }
+        `}</style>
       </div>
 
       {hasAnyFilter && (
         <button
           type="button"
           onClick={onClear}
-          className="text-[11px] text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] underline decoration-dotted underline-offset-2"
+          className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
         >
           Clear filters
         </button>

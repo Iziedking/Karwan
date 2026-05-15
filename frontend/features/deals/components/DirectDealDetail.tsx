@@ -1,11 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type DirectDeal } from '@/core/api';
-import { Card } from '@/shared/components/Card';
-import { Note } from '@/shared/components/AppUI';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
@@ -19,8 +17,30 @@ import {
   MAX_REVIEW_EXTENSIONS,
 } from '../config';
 import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
+import {
+  FullBleed,
+  Band,
+  GridOverlay,
+  SectionTag,
+  HeroHeadline,
+  Punc,
+  CTAPill,
+  PageCard,
+} from '@/shared/components/Bands';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
+
+// Curated stage hues — mirror DirectDealList.STAGE_META so the rail accent
+// stays consistent between the list row and the detail view.
+const STAGE_RAIL: Record<DealStage, string> = {
+  'awaiting-acceptance': '#4a5aa3',
+  'awaiting-delivery': '#4a5aa3',
+  'awaiting-first-release': '#c96030',
+  'awaiting-final-release': '#c96030',
+  settled: '#0e8c5f',
+  cancelled: '#b03d3a',
+  disputed: '#92294a',
+};
 
 export function DirectDealDetail({ jobId }: { jobId: string }) {
   const { address, isConnected } = useAccount();
@@ -32,25 +52,44 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
 
-  // 1Hz tick so the review-window countdown stays live.
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
   if (fetchState === 'loading') {
-    return <p className="text-[13px] text-[var(--color-ink-faint)] fade-up">Loading deal…</p>;
+    return (
+      <FullBleed>
+        <Band tone="dark" overlay={<GridOverlay />}>
+          <div className="space-y-4 max-w-[44ch]">
+            <div className="h-3 w-32 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
+            <div className="h-12 w-72 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-48 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
+          </div>
+        </Band>
+      </FullBleed>
+    );
   }
+
   if (fetchState === 'error' || !deal) {
     return (
-      <Card>
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
-          This deal could not be found.{' '}
-          <Link href="/buyer" className="underline text-[var(--color-ink)]">
-            Back to dashboard
-          </Link>
-        </p>
-      </Card>
+      <FullBleed>
+        <Band tone="dark" overlay={<GridOverlay />}>
+          <div className="max-w-[44ch]">
+            <SectionTag tone="dark">DEAL NOT FOUND</SectionTag>
+            <HeroHeadline size="md">
+              We couldn&apos;t load this deal
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
+              The link may be wrong, or your wallet may not be a party.
+            </p>
+            <div className="mt-7">
+              <CTAPill href="/buyer">Back to buyer desk</CTAPill>
+            </div>
+          </div>
+        </Band>
+      </FullBleed>
     );
   }
 
@@ -59,57 +98,51 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
   const fee = feeBreakdown(Number(deal.dealAmountUsdc));
 
-  // Detail visibility is restricted to the two parties — and the screens shown
-  // to outsiders deliberately leak nothing about who the deal is between or
-  // its job hash. Public discovery happens on the deals feed.
   if (!isConnected) {
     return (
-      <div className="space-y-4 fade-up max-w-2xl">
-        <Card>
-          <p className="eyebrow">Deals</p>
-          <h1 className="font-sans text-[22px] font-bold tracking-[-0.02em] mt-1">
-            Connect your wallet to view this deal
-          </h1>
-          <p className="mt-2 text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-            Deals are visible only to the buyer and seller they're opened between. Connect the
-            wallet you used to open or accept this deal.
-          </p>
-          <div className="mt-4">
-            <ConnectButton />
+      <FullBleed>
+        <Band tone="dark" overlay={<GridOverlay />}>
+          <div className="max-w-[44ch]">
+            <SectionTag tone="dark">PRIVATE DEAL</SectionTag>
+            <HeroHeadline size="md">
+              Connect to <span style={{ color: 'var(--lp-accent)' }}>view</span>
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
+              Deals are visible only to the buyer and seller. Connect the wallet that opened or
+              accepted this deal.
+            </p>
+            <div className="mt-7">
+              <ConnectButton />
+            </div>
           </div>
-        </Card>
-      </div>
+        </Band>
+      </FullBleed>
     );
   }
+
   if (!viewerIsBuyer && !viewerIsSeller) {
     return (
-      <div className="space-y-4 fade-up max-w-2xl">
-        <Card>
-          <p className="eyebrow">Deals</p>
-          <h1 className="font-sans text-[22px] font-bold tracking-[-0.02em] mt-1">
-            You don&apos;t have any open deals here
-          </h1>
-          <p className="mt-2 text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-            Deals are visible only to the wallets that are party to them. Switch wallets if you&apos;re
-            meant to see this one, or head back to start a new deal.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link
-              href="/buyer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ink)] text-[var(--color-surface)] px-4 py-2 text-[12px] font-semibold hover:opacity-90 transition-opacity"
-            >
-              Open a deal
-              <span aria-hidden>→</span>
-            </Link>
-            <Link
-              href="/app"
-              className="text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-            >
-              Back to home
-            </Link>
+      <FullBleed>
+        <Band tone="dark" overlay={<GridOverlay />}>
+          <div className="max-w-[44ch]">
+            <SectionTag tone="dark">NOT A PARTY</SectionTag>
+            <HeroHeadline size="md">
+              No open deals <span style={{ color: 'var(--lp-accent)' }}>here</span>
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
+              Switch wallets if you&apos;re meant to see this, or start a new deal.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <CTAPill href="/buyer">Open a deal</CTAPill>
+              <CTAPill href="/app" variant="secondary" tone="dark">
+                Back home
+              </CTAPill>
+            </div>
           </div>
-        </Card>
-      </div>
+        </Band>
+      </FullBleed>
     );
   }
 
@@ -125,17 +158,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const message =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
   }
 
-  // The seller's first accept provisions their agent wallets. If they have not
-  // activated yet, confirm that before the accept call does it server-side.
   function requestAccept() {
     if (activated) doAccept();
     else setShowAcceptConsent(true);
@@ -151,9 +180,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const message =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
       setBusy(false);
@@ -172,9 +199,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const message =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
       setBusy(false);
@@ -191,9 +216,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const message =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
       setBusy(false);
@@ -210,9 +233,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const message =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
       setBusy(false);
@@ -229,161 +250,212 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       const message =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
       setBusy(false);
     }
   }
 
+  const rail = STAGE_RAIL[stage];
+
   return (
-    <div className="space-y-6 fade-up max-w-3xl">
-      <header className="pb-3 border-b border-[var(--color-line)]">
-        <div className="flex items-center gap-2.5">
-          <p className="eyebrow">Direct deal</p>
-          <StageBadge stage={stage} />
+    <FullBleed>
+      {/* HERO */}
+      <Band tone="dark" overlay={<GridOverlay />}>
+        <div className="fade-up">
+          <div className="flex flex-wrap items-center gap-3">
+            <SectionTag tone="dark">DIRECT DEAL</SectionTag>
+            <StageBadge stage={stage} />
+          </div>
         </div>
-        <div className="flex items-baseline gap-2 mt-1.5">
-          <h1
-            className="text-[44px] leading-[1.02] tabular-nums tracking-tight"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
+        <div className="fade-up fade-up-1 mt-7 flex items-baseline gap-3 flex-wrap">
+          <h1 className="font-sans font-extrabold tabular-nums uppercase tracking-[-0.025em] leading-[0.95] text-[clamp(3rem,7vw,5.5rem)]">
             {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
+            <Punc>.</Punc>
           </h1>
-          <span className="text-[14px] mono text-[var(--color-ink-dim)] font-semibold">USDC</span>
+          <span className="mono text-[14px] font-semibold uppercase tracking-[0.12em] text-white/55">
+            USDC
+          </span>
         </div>
-        <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-2">
+        <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-white/45">
           {shortHash(deal.jobId, 10, 6)} · opened {relativeTime(deal.createdAt)}
         </p>
-      </header>
+      </Band>
 
-      <section className="grid md:grid-cols-2 gap-4">
-        <Card noPadding>
-          <div className="px-5 pt-4 pb-3 border-b border-[var(--color-line)]">
-            <p className="eyebrow">Parties</p>
-          </div>
-          <div className="px-5 py-3 space-y-3">
-            <PartyRow
-              role="Buyer"
-              address={deal.buyer}
-              you={viewerIsBuyer}
-            />
-            <PartyRow
-              role="Seller"
-              address={deal.seller}
-              you={viewerIsSeller}
-              showReputation
-            />
-          </div>
-        </Card>
-
-        <Card noPadding>
-          <div className="px-5 pt-4 pb-3 border-b border-[var(--color-line)]">
-            <p className="eyebrow">Funding · 1.5% fee, split evenly</p>
-          </div>
-          <div className="px-5 py-3 space-y-2">
-            <MoneyRow label="Buyer funds" value={fee.fundedAmount} />
-            <MoneyRow label="Seller receives" value={fee.sellerNet} strong />
-            <MoneyRow label="Platform fee" value={fee.feeTotal} faint />
-            <div className="pt-2 mt-1 border-t border-[var(--color-line)]">
-              <MoneyRow
-                label={`On delivery · ${deal.firstReleasePct}%`}
-                value={(fee.sellerNet * deal.firstReleasePct) / 100}
-              />
-              <MoneyRow
-                label={`On verification · ${100 - deal.firstReleasePct}%`}
-                value={(fee.sellerNet * (100 - deal.firstReleasePct)) / 100}
+      {/* PARTIES + FUNDING */}
+      <Band tone="light" compact>
+        <div className="grid md:grid-cols-2 gap-5">
+          <PageCard>
+            <CardHead label="Parties" />
+            <div className="p-5 md:p-6 space-y-4">
+              <PartyRow role="Buyer" address={deal.buyer} you={viewerIsBuyer} />
+              <div className="border-t border-[var(--lp-border-light)]" />
+              <PartyRow
+                role="Seller"
+                address={deal.seller}
+                you={viewerIsSeller}
+                showReputation
               />
             </div>
-          </div>
-        </Card>
-      </section>
+          </PageCard>
 
-      <Card title="Terms">
-        <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed whitespace-pre-wrap">
-          {deal.terms}
-        </p>
-        <p className="text-[11px] mono text-[var(--color-ink-faint)] mt-3 pt-3 border-t border-[var(--color-line)]">
-          Deadline {relativeTime(deal.deadlineUnix * 1000)}
-        </p>
-      </Card>
+          <PageCard>
+            <CardHead label="Funding · 1.5% fee, split evenly" />
+            <div className="p-5 md:p-6 space-y-2.5">
+              <MoneyRow label="Buyer funds" value={fee.fundedAmount} />
+              <MoneyRow label="Seller receives" value={fee.sellerNet} strong />
+              <MoneyRow label="Platform fee" value={fee.feeTotal} faint />
+              <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
+                <MoneyRow
+                  label={`On delivery · ${deal.firstReleasePct}%`}
+                  value={(fee.sellerNet * deal.firstReleasePct) / 100}
+                />
+                <MoneyRow
+                  label={`On verification · ${100 - deal.firstReleasePct}%`}
+                  value={(fee.sellerNet * (100 - deal.firstReleasePct)) / 100}
+                />
+              </div>
+            </div>
+          </PageCard>
+        </div>
+      </Band>
 
-      {deal.delivered && deal.deliveryProof && (
-        <Card noPadding>
-          <div className="px-5 pt-4 pb-3 border-b border-[var(--color-line)]">
-            <p className="eyebrow">Delivery proof</p>
-          </div>
-          <div className="px-5 py-3">
-            <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed whitespace-pre-wrap break-words">
-              {deal.deliveryProof}
-            </p>
-          </div>
-        </Card>
-      )}
+      {/* TERMS + (optional) DELIVERY PROOF */}
+      <Band tone="light" compact>
+        <SectionTag>TERMS</SectionTag>
+        <HeroHeadline size="md">
+          The agreement<Punc>.</Punc>
+        </HeroHeadline>
+        <div className="mt-8 grid md:grid-cols-2 gap-5">
+          <PageCard>
+            <div className="p-5 md:p-6">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap">
+                {deal.terms}
+              </p>
+              <p className="mt-4 pt-4 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                Deadline {relativeTime(deal.deadlineUnix * 1000)}
+              </p>
+            </div>
+          </PageCard>
 
-      <ProgressTrack deal={deal} stage={stage} />
+          {deal.delivered && deal.deliveryProof && (
+            <PageCard>
+              <CardHead label="Delivery proof" />
+              <div className="p-5 md:p-6">
+                <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap break-words">
+                  {deal.deliveryProof}
+                </p>
+              </div>
+            </PageCard>
+          )}
+        </div>
+      </Band>
 
-      <Card>
-        {!isConnected ? (
-          <div className="space-y-3">
-            <p className="text-[13px] text-[var(--color-ink-dim)]">
-              Connect the wallet for this deal to act on it.
-            </p>
-            <ConnectButton />
-          </div>
-        ) : (
-          <ActionPanel
-            stage={stage}
-            viewerIsBuyer={viewerIsBuyer}
-            viewerIsSeller={viewerIsSeller}
-            firstPct={deal.firstReleasePct}
-            busy={busy}
-            deal={deal}
-            now={now}
-            deliveryProof={deliveryProof}
-            onDeliveryProofChange={setDeliveryProof}
-            onAccept={requestAccept}
-            onMarkDelivered={onMarkDelivered}
-            onRelease={onRelease}
-            onStillReviewing={onStillReviewing}
-            onAppeal={onAppeal}
-            onCancel={onCancel}
-          />
-        )}
-        {errorInfo && (
-          <div className="mt-3">
-            <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} />
-          </div>
-        )}
-      </Card>
+      {/* PROGRESS */}
+      <Band tone="light" compact>
+        <SectionTag dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
+          PROGRESS
+        </SectionTag>
+        <HeroHeadline size="md">
+          Where this deal <span style={{ color: 'var(--lp-accent)' }}>stands</span>
+          <Punc>.</Punc>
+        </HeroHeadline>
+        <div className="mt-8">
+          <PageCard>
+            <ProgressTrack deal={deal} stage={stage} rail={rail} />
+          </PageCard>
+        </div>
+      </Band>
 
-      {(deal.fundTxHash || deal.onChain) && (
-        <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[11px]">
-          {deal.fundTxHash && (
+      {/* ACTIONS */}
+      <Band tone="dark" compact>
+        <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
+          <div className="max-w-[42ch]">
+            <SectionTag tone="dark" dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
+              NEXT MOVE
+            </SectionTag>
+            <HeroHeadline size="md">
+              What you can do <span style={{ color: 'var(--lp-accent)' }}>now</span>
+              <Punc>.</Punc>
+            </HeroHeadline>
+          </div>
+          <div
+            className="overflow-hidden p-6 md:p-7"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderTopLeftRadius: 22,
+              borderTopRightRadius: 22,
+              borderBottomLeftRadius: 22,
+              borderBottomRightRadius: 5,
+            }}
+          >
+            <ActionPanel
+              stage={stage}
+              viewerIsBuyer={viewerIsBuyer}
+              viewerIsSeller={viewerIsSeller}
+              firstPct={deal.firstReleasePct}
+              busy={busy}
+              deal={deal}
+              now={now}
+              deliveryProof={deliveryProof}
+              onDeliveryProofChange={setDeliveryProof}
+              onAccept={requestAccept}
+              onMarkDelivered={onMarkDelivered}
+              onRelease={onRelease}
+              onStillReviewing={onStillReviewing}
+              onAppeal={onAppeal}
+              onCancel={onCancel}
+            />
+            {errorInfo && (
+              <div className="mt-4">
+                <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} />
+              </div>
+            )}
+          </div>
+        </div>
+        {deal.fundTxHash && (
+          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-1.5 text-[11px]">
             <a
               href={ARC_EXPLORER_TX(deal.fundTxHash)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]"
+              className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
             >
-              <span className="eyebrow">Funding tx</span>
-              <span className="mono">{shortHash(deal.fundTxHash)}</span>
+              <span>FUNDING TX</span>
+              <span className="tabular-nums">{shortHash(deal.fundTxHash)}</span>
               <ExternalIcon />
             </a>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </Band>
 
+      {/* CHAT */}
       {address && (
-        <ChatPanel
-          jobId={jobId}
-          caller={address}
-          counterpartyLabel={
-            viewerIsBuyer ? `seller ${shortAddress(deal.seller)}` : `buyer ${shortAddress(deal.buyer)}`
-          }
-        />
+        <Band tone="light" compact>
+          <SectionTag>CHAT</SectionTag>
+          <HeroHeadline size="md">
+            Talk to your <span style={{ color: 'var(--lp-accent)' }}>counterparty</span>
+            <Punc>.</Punc>
+          </HeroHeadline>
+          <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+            Per-deal thread. Mirrors to Telegram if connected.
+          </p>
+          <div className="mt-8">
+            <PageCard>
+              <ChatPanel
+                jobId={jobId}
+                caller={address}
+                counterpartyLabel={
+                  viewerIsBuyer
+                    ? `seller ${shortAddress(deal.seller)}`
+                    : `buyer ${shortAddress(deal.buyer)}`
+                }
+              />
+            </PageCard>
+          </div>
+        </Band>
       )}
 
       {showAcceptConsent && (
@@ -393,64 +465,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           onClose={() => setShowAcceptConsent(false)}
         />
       )}
-    </div>
+    </FullBleed>
   );
 }
 
-/// Shown when a seller without agent wallets accepts a deal. Accepting will
-/// provision their agent wallet pair on the backend, so we confirm first.
-function AcceptConsentModal({
-  busy,
-  onConfirm,
-  onClose,
-}: {
-  busy: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
+function CardHead({ label }: { label: string }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'color-mix(in oklab, var(--color-ink) 32%, transparent)' }}
-      onClick={() => !busy && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden"
-      >
-        <div className="px-6 pt-6 pb-4">
-          <p className="eyebrow">Circle wallets</p>
-          <h2 className="display text-[24px] leading-tight mt-1">An agent wallet will be created</h2>
-        </div>
-        <div className="px-6 pb-6 space-y-4">
-          <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-            Accepting this deal provisions a Circle agent wallet pair tied to your wallet, then the
-            buyer&apos;s escrow funds against it. Your seller agent receives the payouts. This is a
-            one-time setup.
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={busy}
-              style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-              className="flex-1 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
-            >
-              {busy ? 'Working…' : 'Proceed & accept'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={busy}
-              className="px-4 py-2.5 rounded-md text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] disabled:opacity-50 transition-colors"
-            >
-              Not now
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="px-5 md:px-6 pt-5 pb-3 border-b border-[var(--lp-border-light)]">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:{label}:]
+      </span>
     </div>
   );
 }
@@ -469,11 +493,13 @@ function PartyRow({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {role}
-          {you && <span className="text-[var(--color-accent)]"> · you</span>}
+          {you && <span style={{ color: 'var(--lp-accent)' }}> · you</span>}
         </p>
-        <p className="text-[12px] mono mt-0.5">{shortAddress(address)}</p>
+        <p className="mt-1 mono text-[13px] text-[var(--lp-dark)] tabular-nums">
+          {shortAddress(address)}
+        </p>
       </div>
       {showReputation && <ReputationBadge address={address} size="sm" withDetail />}
     </div>
@@ -494,15 +520,15 @@ function MoneyRow({
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span
-        className={`text-[12px] ${faint ? 'text-[var(--color-ink-faint)]' : 'text-[var(--color-ink-dim)]'}`}
+        className={`text-[13px] ${faint ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-text-sub)]'}`}
       >
         {label}
       </span>
       <span
         className={`mono tabular-nums ${
           strong
-            ? 'text-[14px] font-semibold text-[var(--color-ink)]'
-            : 'text-[12px] text-[var(--color-ink)]'
+            ? 'text-[16px] font-extrabold text-[var(--lp-dark)]'
+            : 'text-[13px] text-[var(--lp-dark)]'
         }`}
       >
         {formatUsdc(value)}
@@ -511,16 +537,19 @@ function MoneyRow({
   );
 }
 
-function ProgressTrack({ deal, stage }: { deal: { firstReleasePct: number }; stage: DealStage }) {
-  // A cancelled deal never progressed past funding.
+function ProgressTrack({
+  deal,
+  stage,
+  rail,
+}: {
+  deal: { firstReleasePct: number };
+  stage: DealStage;
+  rail: string;
+}) {
   const cancelled = stage === 'cancelled';
   const past = (...stages: DealStage[]) => !cancelled && !stages.includes(stage);
   const steps = [
-    {
-      key: 'opened',
-      label: 'Deal opened',
-      done: true,
-    },
+    { key: 'opened', label: 'Deal opened', done: true },
     {
       key: 'accepted',
       label: 'Seller accepted · escrow funded',
@@ -546,57 +575,39 @@ function ProgressTrack({ deal, stage }: { deal: { firstReleasePct: number }; sta
   const terminal = stage === 'settled' || stage === 'disputed' || stage === 'cancelled';
 
   return (
-    <Card noPadding>
-      <div className="px-5 py-4">
-        <ol className="space-y-3">
-          {steps.map((s, i) => {
-            const done = s.done;
-            const active = i === firstPending && !terminal;
-            return (
-              <li key={s.key} className="flex items-center gap-3">
-                <span
-                  className={`relative shrink-0 w-4 h-4 rounded-full grid place-items-center ${
-                    done
-                      ? 'bg-[var(--color-positive)] text-white'
-                      : 'bg-[var(--color-surface-2)] border border-[var(--color-line)]'
-                  }`}
-                >
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 rounded-full"
-                      style={{
-                        background: 'var(--color-positive)',
-                        opacity: 0.35,
-                        animation: 'flowPulse 1.8s ease-out infinite',
-                      }}
-                    />
-                  )}
-                  {done && (
-                    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" className="relative">
-                      <path
-                        d="M3 8.5 L6.5 12 L13 5"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </span>
-                <span
-                  className={`text-[13px] ${
-                    done ? 'text-[var(--color-ink)] font-medium' : 'text-[var(--color-ink-faint)]'
-                  }`}
-                >
-                  {s.label}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-    </Card>
+    <div className="p-6 md:p-7">
+      <ol className="space-y-3.5">
+        {steps.map((s, i) => {
+          const done = s.done;
+          const active = i === firstPending && !terminal;
+          return (
+            <li key={s.key} className="flex items-center gap-3.5">
+              <span
+                aria-hidden
+                data-instrument-blink={active || undefined}
+                className="shrink-0 inline-block w-[11px] h-[11px]"
+                style={{
+                  background: done ? rail : active ? rail : 'rgba(0,0,0,0.08)',
+                  opacity: done ? 1 : active ? 0.65 : 1,
+                  animation: active ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
+                }}
+              />
+              <span
+                className={`text-[13.5px] ${
+                  done
+                    ? 'text-[var(--lp-dark)] font-medium'
+                    : active
+                      ? 'text-[var(--lp-dark)]'
+                      : 'text-[var(--lp-text-muted)]'
+                }`}
+              >
+                {s.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
@@ -640,52 +651,54 @@ function ActionPanel({
 }) {
   if (stage === 'settled') {
     return (
-      <p className="text-[13px] text-[var(--color-positive)] font-medium">
+      <Body>
         {deal.autoReleasedAt
           ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
           : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
-      </p>
+      </Body>
     );
   }
   if (stage === 'cancelled') {
     return (
-      <p className="text-[13px] text-[var(--color-ink-dim)]">
+      <Body>
         {deal.fundTxHash
           ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
           : 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.'}
-      </p>
+      </Body>
     );
   }
   if (stage === 'disputed') {
     return (
-      <p className="text-[13px] text-[var(--color-critical)]">
-        This deal is in dispute. The escrow is frozen on chain; resolution is handled
+      <Body tone="critical">
+        This deal is in dispute. The escrow is frozen on chain. Resolution is handled
         off-platform for now.
-      </p>
+      </Body>
     );
   }
 
   if (stage === 'awaiting-acceptance') {
     if (viewerIsSeller) {
       return (
-        <div className="space-y-3">
-          <p className="text-[13px] text-[var(--color-ink-dim)]">
-            Review the terms and the funding split above. Accepting agrees to deliver on these
-            terms and funds the escrow. The buyer cannot release funds until you have accepted and
-            delivered.
-          </p>
-          <BlackButton busy={busy} onClick={onAccept} label="Accept deal" />
+        <div className="space-y-4">
+          <Body>
+            Review terms and the funding split. Accepting agrees to deliver on these terms and
+            funds the escrow.
+          </Body>
+          <CTAPill disabled={busy} onClick={onAccept}>
+            {busy ? 'Confirming on Arc…' : 'Accept deal'}
+          </CTAPill>
         </div>
       );
     }
-    // Buyer view, deal not yet accepted by the seller.
     return (
-      <div className="space-y-3">
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
-          Waiting for the seller to accept the deal terms. Nothing is funded yet; the escrow funds
-          when they accept. You can cancel anytime until then.
-        </p>
-        <OutlineButton busy={busy} onClick={onCancel} label="Cancel deal" critical />
+      <div className="space-y-4">
+        <Body>
+          Waiting for the seller to accept. Nothing is funded yet. You can cancel anytime until
+          they accept.
+        </Body>
+        <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+          {busy ? 'Working…' : 'Cancel deal'}
+        </CTAPill>
       </div>
     );
   }
@@ -693,40 +706,50 @@ function ActionPanel({
   if (stage === 'awaiting-delivery') {
     if (viewerIsSeller) {
       return (
-        <div className="space-y-3">
-          <p className="text-[13px] text-[var(--color-ink-dim)]">
-            Mark the work delivered when it is done. This lets the buyer release the first{' '}
-            {firstPct}%, then the remainder once they are satisfied.
-          </p>
+        <div className="space-y-4">
+          <Body>
+            Mark the work delivered when it&apos;s done. The buyer then releases the first{' '}
+            {firstPct}%, and the rest once verified.
+          </Body>
           <label className="block space-y-1.5">
-            <span className="eyebrow">Delivery proof (optional)</span>
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+              [:DELIVERY PROOF — OPTIONAL:]
+            </span>
             <textarea
               value={deliveryProof}
               onChange={(e) => onDeliveryProofChange(e.target.value)}
-              rows={2}
+              rows={3}
               placeholder="Link to the deliverable, a repo, a file, or a short note."
-              className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[13px] leading-relaxed focus:outline-none focus:border-[var(--color-ink)] resize-none"
+              className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(212,255,63,0.25)] resize-none transition-shadow"
+              style={{
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
             />
           </label>
-          <BlackButton busy={busy} onClick={onMarkDelivered} label="Mark delivered" />
+          <CTAPill disabled={busy} onClick={onMarkDelivered}>
+            {busy ? 'Confirming on Arc…' : 'Mark delivered'}
+          </CTAPill>
         </div>
       );
     }
-    // Buyer view, still awaiting delivery.
     const deadlinePassed = now > deal.deadlineUnix * 1000;
     return (
-      <div className="space-y-3">
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
-          The seller accepted the deal. Waiting for them to mark the work delivered.
-          {!deadlinePassed && ' If they miss the deadline, you can cancel and reclaim your funds.'}
-        </p>
+      <div className="space-y-4">
+        <Body>
+          Seller accepted. Waiting for delivery.
+          {!deadlinePassed && ' If they miss the deadline, you can cancel and reclaim funds.'}
+        </Body>
         {deadlinePassed && (
           <>
             <WindowNote tone="warning">
-              The deadline passed and the seller has not marked the work delivered. You can cancel
-              the deal and reclaim the full escrow balance.
+              Deadline passed without delivery. Cancel to reclaim the full escrow.
             </WindowNote>
-            <OutlineButton busy={busy} onClick={onCancel} label="Cancel & reclaim funds" critical />
+            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+              {busy ? 'Working…' : 'Cancel & reclaim funds'}
+            </CTAPill>
           </>
         )}
       </div>
@@ -736,7 +759,6 @@ function ActionPanel({
   const windowMs = deal.reviewWindowMs ?? REVIEW_WINDOW_MS;
 
   if (stage === 'awaiting-first-release') {
-    // The first-release timer runs from when the seller marked delivered.
     const endsAt = deal.deliveredAt ? deal.deliveredAt + windowMs : null;
     const msLeft = endsAt ? endsAt - now : 0;
     const open = endsAt != null && msLeft > 0;
@@ -744,49 +766,49 @@ function ActionPanel({
 
     if (viewerIsBuyer) {
       return (
-        <div className="space-y-3">
-          <p className="text-[13px] text-[var(--color-ink-dim)]">
-            The seller marked the work delivered. Release the first {firstPct}% now. The
-            remaining {100 - firstPct}% releases once you verify the work.
-          </p>
+        <div className="space-y-4">
+          <Body>
+            Seller marked delivered. Release the first {firstPct}% now. The remaining{' '}
+            {100 - firstPct}% releases once you verify.
+          </Body>
           {open && (
             <WindowNote tone="warning">
-              Auto-releases the first {firstPct}% to the seller in{' '}
-              <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you do not act.
+              Auto-releases the first {firstPct}% in{' '}
+              <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you don&apos;t
+              act.
             </WindowNote>
           )}
           {expired && (
             <WindowNote tone="muted">
-              The release window passed. The agent will release the first {firstPct}% shortly
-              unless you release it now.
+              Release window passed. The agent will release the first {firstPct}% shortly unless
+              you act now.
             </WindowNote>
           )}
-          <BlackButton busy={busy} onClick={onRelease} label={`Release first ${firstPct}%`} />
+          <CTAPill disabled={busy} onClick={onRelease}>
+            {busy ? 'Confirming on Arc…' : `Release first ${firstPct}%`}
+          </CTAPill>
         </div>
       );
     }
     return (
-      <div className="space-y-3">
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
-          Delivered. Waiting for the buyer to release the first {firstPct}%.
-        </p>
+      <div className="space-y-4">
+        <Body>Delivered. Waiting for the buyer to release the first {firstPct}%.</Body>
         {open && (
           <WindowNote tone="muted">
-            Buyer release window:{' '}
-            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left. If it passes,
-            the first {firstPct}% releases to you automatically.
+            Buyer window:{' '}
+            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left. If it
+            passes, the first {firstPct}% releases automatically.
           </WindowNote>
         )}
         {expired && (
           <WindowNote tone="muted">
-            Release window passed. The agent will release the first {firstPct}% to you shortly.
+            Window passed. The agent will release the first {firstPct}% to you shortly.
           </WindowNote>
         )}
       </div>
     );
   }
 
-  // awaiting-final-release: the buyer review window lives here.
   const rest = 100 - firstPct;
   const extensionMs = deal.reviewExtensionMs ?? 0;
   const extensionCount = deal.reviewExtensionCount ?? 0;
@@ -804,18 +826,18 @@ function ActionPanel({
 
   if (viewerIsBuyer) {
     return (
-      <div className="space-y-3">
-        <p className="text-[13px] text-[var(--color-ink-dim)]">
-          First {firstPct}% released. Verify the work and release the remaining {rest}% to
-          settle the deal.
-        </p>
+      <div className="space-y-4">
+        <Body>
+          First {firstPct}% released. Verify and release the remaining {rest}% to settle.
+        </Body>
         {windowOpen && (
           <WindowNote tone="warning">
-            Auto-releases the final {rest}% to the seller in{' '}
-            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you do not act.
+            Auto-releases the final {rest}% in{' '}
+            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you don&apos;t
+            act.
             {canExtend
-              ? ` Need longer? "Still reviewing" adds ${extensionMins} minutes.`
-              : ' You have used all your extensions.'}
+              ? ` "Still reviewing" adds ${extensionMins} min.`
+              : ' All extensions used.'}
             {extensionCount > 0 &&
               ` (${extensionCount} extension${extensionCount > 1 ? 's' : ''} used)`}
           </WindowNote>
@@ -823,48 +845,63 @@ function ActionPanel({
         {windowExpired && (
           <WindowNote tone="muted">
             Review window passed. The agent will auto-release the final {rest}% shortly unless
-            you release it now.
+            you release now.
           </WindowNote>
         )}
         <div className="flex flex-wrap gap-2">
-          <BlackButton busy={busy} onClick={onRelease} label={`Verify & release final ${rest}%`} />
+          <CTAPill disabled={busy} onClick={onRelease}>
+            {busy ? 'Confirming on Arc…' : `Verify & release final ${rest}%`}
+          </CTAPill>
           {windowOpen && canExtend && (
-            <OutlineButton
-              busy={busy}
-              onClick={onStillReviewing}
-              label={`Still reviewing (+${extensionMins} min)`}
-            />
+            <CTAPill variant="secondary" tone="dark" onClick={onStillReviewing} disabled={busy}>
+              Still reviewing (+{extensionMins} min)
+            </CTAPill>
           )}
         </div>
       </div>
     );
   }
 
-  // seller view
   return (
-    <div className="space-y-3">
-      <p className="text-[13px] text-[var(--color-ink-dim)]">
+    <div className="space-y-4">
+      <Body>
         First {firstPct}% released. Waiting for the buyer to verify and release the final{' '}
         {rest}%.
-      </p>
+      </Body>
       {windowOpen && !baseWindowPassed && (
         <WindowNote tone="muted">
-          Buyer review window:{' '}
-          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left. If it passes
-          without action, the final {rest}% releases to you automatically.
+          Buyer window:{' '}
+          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left.
         </WindowNote>
       )}
       {baseWindowPassed && (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <WindowNote tone="warning">
             {windowExpired
-              ? `The review window passed. The agent will auto-release the final ${rest}% to you shortly.`
-              : `The buyer extended the review window (${fmtCountdown(msLeft)} left). You can wait for the automatic release or appeal to move the deal to dispute.`}
+              ? `Review window passed. The agent will auto-release the final ${rest}% to you shortly.`
+              : `Buyer extended the window (${fmtCountdown(msLeft)} left). Wait or appeal to move to dispute.`}
           </WindowNote>
-          <OutlineButton busy={busy} onClick={onAppeal} label="Appeal this deal" critical />
+          <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
+            Appeal this deal
+          </CTAPill>
         </div>
       )}
     </div>
+  );
+}
+
+function Body({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone?: 'critical';
+}) {
+  const color = tone === 'critical' ? '#ff8a7a' : 'rgba(255,255,255,0.7)';
+  return (
+    <p className="text-[14px] leading-relaxed" style={{ color }}>
+      {children}
+    </p>
   );
 }
 
@@ -873,92 +910,107 @@ function WindowNote({
   children,
 }: {
   tone: 'warning' | 'muted';
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const style =
     tone === 'warning'
-      ? { background: 'var(--color-warning-soft)', color: 'var(--color-warning)' }
-      : { background: 'var(--color-surface-2)', color: 'var(--color-ink-dim)' };
+      ? {
+          background: 'rgba(212,255,63,0.10)',
+          color: 'var(--lp-accent)',
+          border: '1px solid rgba(212,255,63,0.30)',
+        }
+      : {
+          background: 'rgba(255,255,255,0.04)',
+          color: 'rgba(255,255,255,0.65)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        };
   return (
-    <p className="text-[12px] leading-snug rounded-md px-2.5 py-2" style={style}>
+    <p
+      className="text-[12.5px] leading-snug px-3 py-2.5"
+      style={{
+        ...style,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 3,
+      }}
+    >
       {children}
     </p>
   );
 }
 
-function OutlineButton({
+function AcceptConsentModal({
   busy,
-  onClick,
-  label,
-  critical,
+  onConfirm,
+  onClose,
 }: {
   busy: boolean;
-  onClick: () => void;
-  label: string;
-  critical?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={busy}
-      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50 disabled:cursor-wait"
-      style={
-        critical
-          ? { borderColor: 'var(--color-critical)', color: 'var(--color-critical)' }
-          : { borderColor: 'var(--color-line-strong)', color: 'var(--color-ink)' }
-      }
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(14,14,14,0.55)' }}
+      onClick={() => !busy && onClose()}
     >
-      {busy && (
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="animate-spin" aria-hidden>
-          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-          <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      )}
-      {busy ? 'Working…' : label}
-    </button>
-  );
-}
-
-function BlackButton({
-  busy,
-  onClick,
-  label,
-}: {
-  busy: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={busy}
-      style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
-    >
-      {busy && (
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="animate-spin" aria-hidden>
-          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-          <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      )}
-      {busy ? 'Confirming on Arc…' : label}
-    </button>
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div className="px-6 pt-6 pb-3">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:CIRCLE WALLETS:]
+          </span>
+          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
+            An agent wallet will be created
+            <span style={{ color: 'var(--lp-accent)' }}>.</span>
+          </h2>
+        </div>
+        <div className="px-6 pb-6 space-y-5">
+          <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
+            Accepting provisions a Circle agent wallet pair tied to your wallet. Buyer escrow
+            funds against it. Your seller agent receives payouts. One-time setup.
+          </p>
+          <div className="flex items-center gap-3">
+            <CTAPill onClick={onConfirm} disabled={busy}>
+              {busy ? 'Working…' : 'Proceed & accept'}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
+              Not now
+            </CTAPill>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
 function ExternalIcon() {
   return (
     <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M5.5 4.5h6v6M11 5l-6.5 6.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-/// Renders a backend deal error as a clean Note. Recognises agent-balance
-/// failures and explains them in plain language, with a profile link for the
-/// buyer so they can top the agent up.
 function DealErrorNote({
   info,
   viewerIsBuyer,
@@ -966,35 +1018,48 @@ function DealErrorNote({
   info: { code?: string; message: string };
   viewerIsBuyer: boolean;
 }) {
+  const wrap = (children: ReactNode) => (
+    <div
+      className="px-3.5 py-3 text-[12.5px] leading-snug"
+      style={{
+        background: 'rgba(176, 61, 58, 0.12)',
+        color: '#ff8a7a',
+        border: '1px solid rgba(176, 61, 58, 0.35)',
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      {children}
+    </div>
+  );
+
   if (info.code === 'INSUFFICIENT_AGENT_BALANCE') {
-    return (
-      <Note tone="error">
-        <div className="space-y-1.5">
-          <p className="font-medium">Buyer agent does not have enough USDC on Arc.</p>
-          {viewerIsBuyer ? (
-            <p className="text-[11px] opacity-90">
-              Top up the buyer agent from your profile, then the seller can accept.{' '}
-              <Link href="/profile" className="underline font-medium">
-                Fund agent
-              </Link>
-            </p>
-          ) : (
-            <p className="text-[11px] opacity-90">
-              The buyer has been notified to top it up. Try accepting again once it is funded.
-            </p>
-          )}
-        </div>
-      </Note>
+    return wrap(
+      <div className="space-y-1.5">
+        <p className="font-medium">Buyer agent doesn&apos;t have enough USDC on Arc.</p>
+        {viewerIsBuyer ? (
+          <p className="text-[11px] opacity-90">
+            Top up the buyer agent from your profile, then the seller can accept.{' '}
+            <Link href="/profile" className="underline font-medium">
+              Fund agent
+            </Link>
+          </p>
+        ) : (
+          <p className="text-[11px] opacity-90">
+            The buyer has been notified. Try accepting again once funded.
+          </p>
+        )}
+      </div>,
     );
   }
   if (info.code === 'INSUFFICIENT_AGENT_GAS') {
-    return (
-      <Note tone="error">
-        <p className="font-medium">
-          The buyer agent does not have enough native gas on Arc to send this transaction.
-        </p>
-      </Note>
+    return wrap(
+      <p className="font-medium">
+        The buyer agent doesn&apos;t have enough native gas on Arc to send this transaction.
+      </p>,
     );
   }
-  return <Note tone="error">{info.message}</Note>;
+  return wrap(info.message);
 }

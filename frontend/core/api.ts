@@ -280,13 +280,14 @@ export const api = {
       body: JSON.stringify(body),
     }),
   dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
-  postJob: (body: {
-    posterAddress: string;
-    brief: string;
-    budgetUsdc: number;
-    deadlineDays: number;
-    negotiationMaxIncreasePct?: number;
-  }) =>
+  postJob: (
+    body: {
+      posterAddress: string;
+      brief: string;
+      budgetUsdc: number;
+      negotiationMaxIncreasePct?: number;
+    } & ({ deadlineSeconds: number } | { deadlineDays: number }),
+  ) =>
     json<{ jobId: string; deadlineUnix: number; txHash: string; explorerUrl: string }>(
       '/api/jobs',
       { method: 'POST', body: JSON.stringify(body) },

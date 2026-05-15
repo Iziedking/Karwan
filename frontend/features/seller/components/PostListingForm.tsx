@@ -341,43 +341,6 @@ export function PostListingForm() {
         </div>
       )}
 
-      <style jsx>{`
-        :global(.form-input-dark) {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.10);
-          color: white;
-          padding: 12px 14px;
-          font-size: 14px;
-          transition: border-color 200ms, box-shadow 200ms;
-          border-top-left-radius: 12px;
-          border-top-right-radius: 12px;
-          border-bottom-left-radius: 12px;
-          border-bottom-right-radius: 3px;
-        }
-        :global(.form-input-dark:focus) {
-          outline: none;
-          border-color: var(--lp-accent);
-          box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.20);
-        }
-        :global(.form-input-dark:disabled) {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        :global(.form-input-dark::placeholder) {
-          color: rgba(255, 255, 255, 0.35);
-        }
-        :global(.form-textarea-dark) {
-          resize: none;
-          line-height: 1.5;
-        }
-        :global(.form-input-num-dark) {
-          font-family: var(--font-mono);
-          font-feature-settings: 'tnum';
-          font-size: 20px;
-          font-weight: 700;
-        }
-      `}</style>
     </div>
   );
 }

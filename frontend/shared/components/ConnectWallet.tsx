@@ -1,6 +1,13 @@
 'use client';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
+const CORNERS = {
+  borderTopLeftRadius: 9,
+  borderTopRightRadius: 9,
+  borderBottomLeftRadius: 9,
+  borderBottomRightRadius: 2,
+} as const;
+
 export function ConnectWalletButton() {
   return (
     <ConnectButton.Custom>
@@ -21,11 +28,28 @@ export function ConnectWalletButton() {
                     onClick={openConnectModal}
                     type="button"
                     suppressHydrationWarning
-                    className="px-3.5 py-1.5 rounded-full bg-[var(--lp-accent)] text-[var(--lp-dark)] text-[12px] font-semibold hover:bg-[var(--lp-accent-hover)] transition-colors inline-flex items-center gap-1.5"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0"
+                    style={{
+                      ...CORNERS,
+                      boxShadow: '0 3px 0 rgba(0,0,0,0.22)',
+                    }}
                   >
                     <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-                      <rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                      <path d="M2 7h12M10 10h1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <rect
+                        x="2"
+                        y="4"
+                        width="12"
+                        height="9"
+                        rx="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      />
+                      <path
+                        d="M2 7h12M10 10h1"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
                     </svg>
                     Connect wallet
                   </button>
@@ -37,10 +61,26 @@ export function ConnectWalletButton() {
                     onClick={openChainModal}
                     type="button"
                     suppressHydrationWarning
-                    style={{ backgroundColor: '#e5484d', color: '#ffffff' }}
-                    className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold hover:opacity-90 transition-opacity"
+                    className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.14em] leading-none text-white hover:opacity-95 transition-opacity"
+                    style={{
+                      background: 'var(--color-ink)',
+                      ...CORNERS,
+                      boxShadow: '0 2px 0 rgba(0,0,0,0.22)',
+                    }}
                   >
-                    Wrong network
+                    <span
+                      aria-hidden
+                      className="flex items-center justify-center px-1.5"
+                      style={{ background: '#b03d3a' }}
+                    >
+                      <span
+                        aria-hidden
+                        data-instrument-blink
+                        className="inline-block w-[5px] h-[5px] bg-white"
+                        style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
+                      />
+                    </span>
+                    <span className="px-2 py-[6px]">Wrong network</span>
                   </button>
                 );
               }
@@ -49,10 +89,26 @@ export function ConnectWalletButton() {
                   onClick={openAccountModal}
                   type="button"
                   suppressHydrationWarning
-                  className="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full border border-[var(--color-line-strong)] text-[12px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-2 mono"
+                  className="inline-flex items-stretch overflow-hidden mono text-[11px] tabular-nums leading-none text-white whitespace-nowrap shrink-0 hover:opacity-95 transition-opacity"
+                  style={{
+                    background: 'var(--color-ink)',
+                    ...CORNERS,
+                    boxShadow: '0 2px 0 rgba(0,0,0,0.22)',
+                  }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] shrink-0" />
-                  {account.displayName}
+                  <span
+                    aria-hidden
+                    className="flex items-center justify-center px-1.5"
+                    style={{ background: '#075e42' }}
+                  >
+                    <span
+                      aria-hidden
+                      data-instrument-blink
+                      className="inline-block w-[5px] h-[5px] bg-white"
+                      style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
+                    />
+                  </span>
+                  <span className="px-2.5 py-[7px] font-semibold">{account.displayName}</span>
                 </button>
               );
             })()}

@@ -320,47 +320,6 @@ export function DirectDealForm() {
         <p className="mono text-[12px] text-[#7a1f1a]">Couldn&apos;t open deal: {error}</p>
       )}
 
-      <style jsx>{`
-        :global(.form-input) {
-          width: 100%;
-          background: var(--lp-card);
-          border: 1px solid var(--lp-border-light);
-          color: var(--lp-dark);
-          padding: 12px 14px;
-          font-size: 14px;
-          transition: border-color 200ms, box-shadow 200ms;
-          border-top-left-radius: 12px;
-          border-top-right-radius: 12px;
-          border-bottom-left-radius: 12px;
-          border-bottom-right-radius: 3px;
-        }
-        :global(.form-input:focus) {
-          outline: none;
-          border-color: var(--lp-dark);
-          box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.35);
-        }
-        :global(.form-input:disabled) {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        :global(.form-input::placeholder) {
-          color: var(--lp-text-muted);
-        }
-        :global(.form-textarea) {
-          resize: none;
-          line-height: 1.5;
-        }
-        :global(.form-input-num) {
-          font-family: var(--font-mono);
-          font-feature-settings: 'tnum';
-          font-size: 18px;
-          font-weight: 600;
-        }
-        :global(.form-input-mono) {
-          font-family: var(--font-mono);
-          font-size: 13px;
-        }
-      `}</style>
     </form>
   );
 }

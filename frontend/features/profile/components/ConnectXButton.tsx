@@ -25,11 +25,17 @@ export function ConnectXButton() {
       type="button"
       disabled
       title="X account binding is coming soon"
-      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-[12px] font-semibold tracking-tight border border-white/20 text-white/60 cursor-not-allowed w-fit"
+      className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white/60 cursor-not-allowed w-fit"
+      style={{
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 2,
+      }}
     >
       <XBrandTile />
       Connect X
-      <span className="text-[9px] uppercase tracking-[0.1em] font-bold px-1.5 py-0.5 rounded-full bg-white/[0.08] text-white/55">
+      <span className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 bg-white/[0.08] text-white/55 rounded-sm">
         Soon
       </span>
     </button>

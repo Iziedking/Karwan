@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 export type KarwanEventType =
   | 'job.posted'
   | 'job.tracked'
+  | 'job.expired'
   | 'bid.scored'
   | 'bid.submitted'
   | 'counter.issued'

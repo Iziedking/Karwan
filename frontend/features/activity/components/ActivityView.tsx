@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { EventList } from '@/features/jobs/components/EventList';
-import { Card } from '@/shared/components/Card';
 import { ActivityStats } from './ActivityStats';
 import { ActivityFilters } from './ActivityFilters';
 import {
@@ -64,20 +63,19 @@ export function ActivityView({ explorer }: { explorer: string }) {
         hasAnyFilter={hasAnyFilter}
       />
 
-      <Card noPadding>
-        <div className="px-5 pt-4 pb-3 flex items-baseline justify-between gap-3 border-b border-[var(--color-line)]">
-          <h3 className="display text-[18px]">Event stream</h3>
-          <p className="text-[10px] mono text-[var(--color-ink-faint)]">
-            {filtered.length} {filtered.length === 1 ? 'event' : 'events'}
-            {hasAnyFilter && events.length > filtered.length && (
-              <span> · {events.length - filtered.length} hidden</span>
-            )}
-          </p>
-        </div>
-        <div className="px-5 py-3">
-          <EventList events={filtered} explorer={explorer} showJobId />
-        </div>
-      </Card>
+      <div className="flex items-baseline justify-between gap-3 pt-2">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          [:EVENT STREAM:]
+        </span>
+        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          {filtered.length} {filtered.length === 1 ? 'EVENT' : 'EVENTS'}
+          {hasAnyFilter && events.length > filtered.length && (
+            <span> · {events.length - filtered.length} HIDDEN</span>
+          )}
+        </p>
+      </div>
+
+      <EventList events={filtered} explorer={explorer} showJobId variant="card" />
     </div>
   );
 }

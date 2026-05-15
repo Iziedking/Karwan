@@ -16,7 +16,10 @@ export function PostJobForm() {
   const { profile, loading: profileLoading } = useUserProfile();
   const [brief, setBrief] = useState('');
   const [budget, setBudget] = useState<number | ''>(10);
-  const [days, setDays] = useState<number | ''>(5);
+  // Deadline split: a raw `value` and a `unit`. Submit converts to seconds.
+  // Defaults adapt per unit so switching feels natural (5d → 2h → 15m).
+  const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
+  const [deadlineValue, setDeadlineValue] = useState<number | ''>(5);
   const [tolerance, setTolerance] = useState<number | ''>(15);
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -38,7 +41,13 @@ export function PostJobForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!address || !brief || typeof budget !== 'number' || typeof days !== 'number') return;
+    if (
+      !address ||
+      !brief ||
+      typeof budget !== 'number' ||
+      typeof deadlineValue !== 'number'
+    )
+      return;
     setSubmitting(true);
     setError(null);
     setInsufficientBalance(false);
@@ -47,7 +56,7 @@ export function PostJobForm() {
         posterAddress: address,
         brief,
         budgetUsdc: budget,
-        deadlineDays: days,
+        deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
       });
       sfx.send();
@@ -65,7 +74,7 @@ export function PostJobForm() {
     }
   }
 
-  const disabled = submitting || !brief.trim() || !budget || !days;
+  const disabled = submitting || !brief.trim() || !budget || !deadlineValue;
   const buttonLabel = submitting
     ? elapsed < 8
       ? 'Submitting tx…'
@@ -125,7 +134,9 @@ export function PostJobForm() {
   }
 
   const previewAmount = typeof budget === 'number' ? budget : 0;
-  const previewDays = typeof days === 'number' ? days : 0;
+  const previewDeadline = typeof deadlineValue === 'number' ? deadlineValue : 0;
+  const previewUnitLabel =
+    deadlineUnit === 'min' ? 'MIN' : deadlineUnit === 'hr' ? 'HR' : 'DAYS';
   const previewTol = typeof tolerance === 'number' ? tolerance : 0;
   const ceiling =
     typeof budget === 'number' && typeof tolerance === 'number'
@@ -171,10 +182,10 @@ export function PostJobForm() {
             </span>
             <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-white/20" />
             <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
-              {previewDays}
+              {previewDeadline}
             </span>
             <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
-              days
+              {previewUnitLabel}
             </span>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-white/55">
@@ -239,19 +250,34 @@ export function PostJobForm() {
           </FormLabel>
           <FormLabel
             label="Deadline"
-            unit="days"
-            hint="Sellers won't bid if it falls outside their delivery window."
+            unit={previewUnitLabel.toLowerCase()}
+            hint="Sellers won't bid if it falls outside their delivery window. Choose min, hr, or days."
           >
-            <input
-              type="number"
-              min={1}
-              max={90}
-              step={1}
-              value={days}
-              disabled={submitting}
-              onChange={(e) => setDays(e.target.value === '' ? '' : Number(e.target.value))}
-              className="form-input form-input-num"
-            />
+            <div className="flex items-stretch gap-2">
+              <input
+                type="number"
+                min={1}
+                max={deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90}
+                step={1}
+                value={deadlineValue}
+                disabled={submitting}
+                onChange={(e) =>
+                  setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
+                }
+                className="form-input form-input-num flex-1 min-w-0"
+              />
+              <DeadlineUnitPicker
+                value={deadlineUnit}
+                disabled={submitting}
+                onChange={(next) => {
+                  // Pick a sensible default when the unit changes so the field
+                  // never lands on something nonsensical (90 minutes vs 90 days).
+                  const defaults = { min: 15, hr: 2, d: 5 } as const;
+                  setDeadlineUnit(next);
+                  setDeadlineValue(defaults[next]);
+                }}
+              />
+            </div>
           </FormLabel>
           <FormLabel
             label="Tolerance"
@@ -357,43 +383,6 @@ export function PostJobForm() {
         )
       )}
 
-      <style jsx>{`
-        :global(.form-input) {
-          width: 100%;
-          background: var(--lp-card);
-          border: 1px solid var(--lp-border-light);
-          color: var(--lp-dark);
-          padding: 12px 14px;
-          font-size: 14px;
-          transition: border-color 200ms, box-shadow 200ms, transform 200ms;
-          border-top-left-radius: 12px;
-          border-top-right-radius: 12px;
-          border-bottom-left-radius: 12px;
-          border-bottom-right-radius: 3px;
-        }
-        :global(.form-input:focus) {
-          outline: none;
-          border-color: var(--lp-dark);
-          box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.35);
-        }
-        :global(.form-input:disabled) {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        :global(.form-input::placeholder) {
-          color: var(--lp-text-muted);
-        }
-        :global(.form-textarea) {
-          resize: none;
-          line-height: 1.5;
-        }
-        :global(.form-input-num) {
-          font-family: var(--font-mono);
-          font-feature-settings: 'tnum';
-          font-size: 18px;
-          font-weight: 600;
-        }
-      `}</style>
     </form>
   );
 }
@@ -448,5 +437,67 @@ function FormLabel({
       </span>
       {children}
     </label>
+  );
+}
+
+const UNIT_SECONDS = { min: 60, hr: 3600, d: 86_400 } as const;
+
+function deadlineToSeconds(value: number, unit: 'min' | 'hr' | 'd'): number {
+  return Math.max(60, Math.round(value * UNIT_SECONDS[unit]));
+}
+
+function DeadlineUnitPicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: 'min' | 'hr' | 'd';
+  disabled?: boolean;
+  onChange: (next: 'min' | 'hr' | 'd') => void;
+}) {
+  const options: Array<{ key: 'min' | 'hr' | 'd'; label: string }> = [
+    { key: 'min', label: 'MIN' },
+    { key: 'hr', label: 'HR' },
+    { key: 'd', label: 'DAY' },
+  ];
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Deadline unit"
+      className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
+      style={{
+        background: 'var(--lp-light)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 9,
+        borderTopRightRadius: 9,
+        borderBottomLeftRadius: 9,
+        borderBottomRightRadius: 2,
+      }}
+    >
+      {options.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => onChange(o.key)}
+            className="px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: active ? 'var(--lp-dark)' : 'transparent',
+              color: active ? 'white' : 'var(--lp-text-sub)',
+              borderTopLeftRadius: 7,
+              borderTopRightRadius: 7,
+              borderBottomLeftRadius: 7,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

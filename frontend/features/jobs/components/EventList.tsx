@@ -5,6 +5,7 @@ import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
 
 const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system' | 'error' }> = {
   'job.tracked': { text: 'Job posted on chain', tone: 'system' },
+  'job.expired': { text: 'Brief expired with no match', tone: 'error' },
   'bid.scored': { text: 'Buyer agent scored the bid', tone: 'buyer' },
   'bid.submitted': { text: 'Seller submitted a bid', tone: 'seller' },
   'counter.issued': { text: 'Buyer agent issued a counter', tone: 'buyer' },
@@ -103,16 +104,39 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
   return out;
 }
 
+type Tone = 'buyer' | 'seller' | 'system' | 'error';
+
+const RAIL_COLOR: Record<Tone, string> = {
+  buyer: '#3a4a85',
+  seller: '#0a7553',
+  system: '#9a9a9a',
+  error: '#b03d3a',
+};
+
 export function EventList({
   events,
   explorer,
   showJobId,
+  variant = 'timeline',
 }: {
   events: ChainEvent[];
   explorer: string;
   showJobId?: boolean;
+  variant?: 'timeline' | 'card';
 }) {
   if (events.length === 0) {
+    if (variant === 'card') {
+      return (
+        <div className="py-12 text-center space-y-2">
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            TIMELINE EMPTY
+          </p>
+          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed max-w-[40ch] mx-auto">
+            Awaiting the first on-chain event. Bids and matches will land here.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="py-8 text-center space-y-1.5">
         <p className="eyebrow">Timeline empty</p>
@@ -121,6 +145,93 @@ export function EventList({
           opens.
         </p>
       </div>
+    );
+  }
+
+  if (variant === 'card') {
+    return (
+      <ol className="space-y-2.5">
+        {events.map((e, i) => {
+          const meta = labels[e.type];
+          const text = meta?.text ?? e.type;
+          const tone: Tone = meta?.tone ?? 'system';
+          const rail = RAIL_COLOR[tone];
+          const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
+          const chips = chipsFor(e.payload);
+          return (
+            <li
+              key={`${e.ts}-${i}`}
+              className="slide-in relative overflow-hidden p-4 pl-5 transition-shadow"
+              style={{
+                background: 'var(--lp-card)',
+                border: '1px solid var(--lp-border-light)',
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+                boxShadow: '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
+              }}
+            >
+              <span
+                aria-hidden
+                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                style={{ background: rail }}
+              />
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-sans text-[14px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+                  {text}
+                </span>
+                <span className="mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-[var(--lp-text-muted)] shrink-0">
+                  {relativeTime(e.ts)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                <ActorChip tone={tone} actor={e.actor} />
+                {showJobId && e.jobId && (
+                  <span className="inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                    JOB
+                    <span className="tabular-nums text-[var(--lp-text-sub)] normal-case tracking-normal">
+                      {shortHash(e.jobId, 6, 4)}
+                    </span>
+                  </span>
+                )}
+                {chips.map((c) => (
+                  <DetailChip key={c.key} label={c.label} value={c.value} variant="card" />
+                ))}
+                {txHash && (
+                  <a
+                    href={`${explorer}/tx/${txHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-colors"
+                    style={{ color: 'var(--lp-dark)' }}
+                    title="Open on Arc Testnet explorer"
+                  >
+                    <span className="tabular-nums normal-case tracking-normal">
+                      {shortHash(txHash, 6, 4)}
+                    </span>
+                    <svg
+                      width="9"
+                      height="9"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden
+                      className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    >
+                      <path
+                        d="M5.5 4.5h6v6M11 5l-6.5 6.5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     );
   }
 
@@ -203,7 +314,70 @@ export function EventList({
   );
 }
 
-function DetailChip({ label, value }: { label: string; value: string }) {
+function ActorChip({ tone, actor }: { tone: Tone; actor: string }) {
+  const fg = RAIL_COLOR[tone];
+  const bg =
+    tone === 'buyer'
+      ? 'rgba(60,74,138,0.10)'
+      : tone === 'seller'
+        ? 'rgba(10,117,83,0.10)'
+        : tone === 'error'
+          ? 'rgba(176,61,58,0.10)'
+          : 'var(--lp-light)';
+  return (
+    <span
+      className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
+      style={{
+        background: bg,
+        color: fg,
+        border: `1px solid ${fg}33`,
+        borderTopLeftRadius: 5,
+        borderTopRightRadius: 5,
+        borderBottomLeftRadius: 5,
+        borderBottomRightRadius: 2,
+      }}
+    >
+      <span
+        aria-hidden
+        className="flex items-center justify-center px-1.5"
+        style={{ background: fg }}
+      >
+        <span aria-hidden className="inline-block w-[4px] h-[4px] bg-white" />
+      </span>
+      <span className="px-1.5 py-[5px]">{actor}</span>
+    </span>
+  );
+}
+
+function DetailChip({
+  label,
+  value,
+  variant = 'timeline',
+}: {
+  label: string;
+  value: string;
+  variant?: 'timeline' | 'card';
+}) {
+  if (variant === 'card') {
+    return (
+      <span
+        className="inline-flex items-baseline gap-1 px-2 py-1 text-[11px]"
+        style={{
+          background: 'var(--lp-light)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 5,
+          borderTopRightRadius: 5,
+          borderBottomLeftRadius: 5,
+          borderBottomRightRadius: 2,
+        }}
+      >
+        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          {label}
+        </span>
+        <span className="text-[var(--lp-dark)] mono tabular-nums font-medium">{value}</span>
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-[var(--color-surface-2)] border border-[var(--color-line)] text-[11px]">
       <span className="text-[var(--color-ink-faint)] tracking-tight">{label}</span>

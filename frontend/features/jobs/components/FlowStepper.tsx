@@ -48,9 +48,7 @@ export function FlowStepper({
         className="absolute left-3.5 top-3.5 h-px"
         style={{
           width: `calc((100% - 28px) * ${progress})`,
-          background: declined
-            ? 'var(--color-positive)'
-            : 'linear-gradient(90deg, var(--color-positive) 0%, var(--color-positive) 70%, var(--color-accent) 100%)',
+          background: 'var(--color-positive)',
           transition: 'width 600ms cubic-bezier(0.4, 0.0, 0.2, 1)',
         }}
       />

@@ -15,6 +15,10 @@ export interface Brief {
   negotiationMaxIncreasePct?: number;
   keywords?: string[];
   createdAt: number;
+  /// Set by jobExpiryWatcher when a brief passes its deadline with no
+  /// accepted bid + no approved match proposal. Survives backend restarts so
+  /// the buyer agent doesn't restart bid collection for an expired job.
+  expiredAt?: number;
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');

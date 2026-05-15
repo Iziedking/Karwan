@@ -26,17 +26,34 @@ const inFlight = new Set<string>();
 const USDC_DECIMALS = 6;
 const NATIVE_DECIMALS = arcTestnet.nativeCurrency.decimals;
 
-const postJobSchema = z.object({
-  posterAddress: z
-    .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address'),
-  brief: z.string().min(5).max(500),
-  budgetUsdc: z.number().positive().max(5_000_000),
-  deadlineDays: z.number().int().min(1).max(90),
-  /** Per-brief tolerance: agent may accept seller counters up to budget * (1 + pct/100).
-   * 0 = strict (no negotiation above budget). Capped at 50 to keep agents sane. */
-  negotiationMaxIncreasePct: z.number().min(0).max(50).optional(),
-});
+/// Deadline accepts either legacy `deadlineDays` (int 1-90) or the newer
+/// `deadlineSeconds` (60s to 90d). Frontend's deadline-unit picker sends
+/// `deadlineSeconds`; older clients still send `deadlineDays`. One required.
+const MIN_DEADLINE_SECONDS = 60;
+const MAX_DEADLINE_SECONDS = 90 * 86_400;
+
+const postJobSchema = z
+  .object({
+    posterAddress: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address'),
+    brief: z.string().min(5).max(500),
+    budgetUsdc: z.number().positive().max(5_000_000),
+    deadlineDays: z.number().int().min(1).max(90).optional(),
+    deadlineSeconds: z
+      .number()
+      .int()
+      .min(MIN_DEADLINE_SECONDS)
+      .max(MAX_DEADLINE_SECONDS)
+      .optional(),
+    /** Per-brief tolerance: agent may accept seller counters up to budget * (1 + pct/100).
+     * 0 = strict (no negotiation above budget). Capped at 50 to keep agents sane. */
+    negotiationMaxIncreasePct: z.number().min(0).max(50).optional(),
+  })
+  .refine((b) => b.deadlineDays != null || b.deadlineSeconds != null, {
+    message: 'deadlineDays or deadlineSeconds required',
+    path: ['deadlineSeconds'],
+  });
 
 export const jobsRoutes = new Hono();
 
@@ -94,7 +111,9 @@ jobsRoutes.post('/', async (c) => {
 
   const jobId = keccak256(toBytes(`${body.brief}|${Date.now()}|${Math.random()}`));
   const budgetWei = parseUnits(body.budgetUsdc.toString(), USDC_DECIMALS);
-  const deadlineUnix = Math.floor(Date.now() / 1000) + body.deadlineDays * 86_400;
+  // Prefer the explicit seconds shape when both arrive; otherwise convert days.
+  const deadlineSeconds = body.deadlineSeconds ?? (body.deadlineDays ?? 1) * 86_400;
+  const deadlineUnix = Math.floor(Date.now() / 1000) + deadlineSeconds;
   const termsHash = keccak256(toBytes(body.brief));
 
   // Persist brief metadata BEFORE the on-chain call so agents have it when the

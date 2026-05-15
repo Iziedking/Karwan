@@ -25,7 +25,7 @@ import type { BuyerProfile } from './buyer-profile.js';
 import { resolveBuyerProfile } from './agent-registry.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
-import { getBrief } from '../db/briefs.js';
+import { getBrief, patchBrief } from '../db/briefs.js';
 import { withLlmTimeout } from './llm-utils.js';
 import { classifyAgentError } from '../chain/errors.js';
 
@@ -57,6 +57,10 @@ interface JobState {
   lastCounterPriceBySeller: Map<`0x${string}`, string>;
   finalized: boolean;
   escrowFunded: boolean;
+  /// Set by the jobExpiryWatcher when deadline passes with no accepted bid
+  /// and no approved match proposal. Treated as a terminal state by the
+  /// listings cross-match scanner and bid handlers.
+  expired: boolean;
 }
 
 const jobs = new Map<`0x${string}`, JobState>();
@@ -158,6 +162,13 @@ async function handleJobPosted(log: Log) {
   if (!buyer) return;
 
   const brief = getBrief(args.jobId);
+  // Skip re-tracking a brief that has already expired (e.g. after a restart
+  // replayed a JobPosted event for a job whose deadline already passed).
+  // The expiry watcher's previous expireJob() already cleaned this up.
+  if (brief?.expiredAt) {
+    logger.info({ jobId: args.jobId }, 'skipping tracked job, brief already expired');
+    return;
+  }
   const state: JobState = {
     jobId: args.jobId,
     buyer,
@@ -177,6 +188,7 @@ async function handleJobPosted(log: Log) {
     lastCounterPriceBySeller: new Map(),
     finalized: false,
     escrowFunded: false,
+    expired: false,
   };
   jobs.set(args.jobId, state);
   logger.info(
@@ -930,12 +942,68 @@ export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
   return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
 }
 
-/// Returns the JobContext of every open (not finalized, not escrow-funded) job.
-/// Used by listings cross-matching to scan briefs that a new listing could fill.
+/// Returns the JobContext of every open (not finalized, not escrow-funded,
+/// not expired) job. Used by listings cross-matching to scan briefs that a
+/// new listing could fill.
 export function listOpenJobContexts(): JobContext[] {
   return [...jobs.values()]
-    .filter((s) => !s.finalized && !s.escrowFunded)
+    .filter((s) => !s.finalized && !s.escrowFunded && !s.expired)
     .map((s) => ({ ...s.context }));
+}
+
+export interface ExpirableJob {
+  jobId: `0x${string}`;
+  buyer: `0x${string}`;
+  deadlineUnix: number;
+  bidsCount: number;
+  hasMatchProposal: boolean;
+}
+
+/// Snapshot of jobs that could be expired by the watcher. Excludes anything
+/// already finalized, escrow-funded, or expired. Carries the deadline and a
+/// flag for whether a MatchProposal is awaiting human approval — the watcher
+/// uses that to leave human-gated proposals alone (the human is the decision,
+/// not the deadline).
+export function listExpirableJobs(): ExpirableJob[] {
+  return [...jobs.values()]
+    .filter((s) => !s.finalized && !s.escrowFunded && !s.expired)
+    .map((s) => ({
+      jobId: s.jobId,
+      buyer: s.context.buyer as `0x${string}`,
+      deadlineUnix: s.context.deadlineUnix,
+      bidsCount: s.bids.size,
+      hasMatchProposal: matchProposals.has(s.jobId.toLowerCase()),
+    }));
+}
+
+/// Marks a job expired. Clears its bid-collection timer, flags the JobState,
+/// patches the brief on disk, and emits `job.expired`. Idempotent — a second
+/// call on an already-expired job is a no-op.
+export function expireJob(jobId: `0x${string}`): boolean {
+  const state = jobs.get(jobId);
+  if (!state) return false;
+  if (state.expired || state.finalized || state.escrowFunded) return false;
+  if (state.collectionTimer) {
+    clearTimeout(state.collectionTimer);
+    state.collectionTimer = null;
+  }
+  state.expired = true;
+  patchBrief(jobId, { expiredAt: Date.now() });
+  bus.emitEvent({
+    type: 'job.expired',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: state.context.buyer,
+      deadlineUnix: state.context.deadlineUnix,
+      bidsCount: state.bids.size,
+    },
+  });
+  logger.info(
+    { jobId, deadlineUnix: state.context.deadlineUnix, bidsCount: state.bids.size },
+    'job expired',
+  );
+  return true;
 }
 
 /// Replays recent JobPosted logs through the live handler, so a freshly started
