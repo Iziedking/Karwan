@@ -1,6 +1,15 @@
 import { api } from '@/core/api';
 import { ActivityView } from '@/features/activity/components/ActivityView';
-import { LiveDot } from '@/shared/components/LiveDot';
+import {
+  FullBleed,
+  Band,
+  GridOverlay,
+  SectionTag,
+  HeroHeadline,
+  Punc,
+  Accent,
+  PageCard,
+} from '@/shared/components/Bands';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,24 +18,46 @@ export default async function ActivityPage() {
   const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      <header className="fade-up flex items-end justify-between gap-4 pb-3 border-b border-[var(--color-line)]">
-        <div className="min-w-0">
-          <p className="eyebrow">Stream</p>
-          <h1 className="display text-[44px] leading-[1.02] mt-1">Activity</h1>
-          <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 max-w-md">
-            Live from Arc Testnet. Every bid, counter, settlement, and bridge,
-            as it happens.
+    <FullBleed>
+      {/* HERO */}
+      <Band tone="dark" overlay={<GridOverlay />}>
+        <div className="max-w-[58ch]">
+          <div className="fade-up">
+            <SectionTag tone="dark" dot="live">
+              STREAM
+            </SectionTag>
+          </div>
+          <div className="fade-up fade-up-1">
+            <HeroHeadline>
+              Every event<Punc>.</Punc>
+              <br />
+              <Accent>On chain.</Accent>
+            </HeroHeadline>
+          </div>
+          <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
+            Live from Arc Testnet. Each row deep-links to the explorer.
           </p>
         </div>
-        <div className="shrink-0 pb-1">
-          <LiveDot />
-        </div>
-      </header>
+      </Band>
 
-      <div className="fade-up fade-up-1">
-        <ActivityView explorer={explorer} />
-      </div>
-    </div>
+      {/* STREAM SECTION */}
+      <Band tone="light" compact>
+        <SectionTag>EVENT STREAM</SectionTag>
+        <HeroHeadline size="md">
+          Audit the <Accent>chain</Accent>
+          <Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
+          Full network event log.
+        </p>
+        <div className="mt-10 fade-up fade-up-1">
+          <PageCard>
+            <div className="p-6 md:p-8">
+              <ActivityView explorer={explorer} />
+            </div>
+          </PageCard>
+        </div>
+      </Band>
+    </FullBleed>
   );
 }

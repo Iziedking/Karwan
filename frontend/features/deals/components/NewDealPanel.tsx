@@ -10,12 +10,14 @@ const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
   {
     value: 'managed',
     label: 'Find me a seller',
-    blurb: 'Post a brief. Your agent runs the auction and negotiation, you wake up to a settled deal.',
+    blurb:
+      'Post a brief. Your agent runs the auction. You wake up to a settled deal.',
   },
   {
     value: 'direct',
     label: 'I have a seller',
-    blurb: 'You already agreed with a counterparty. Open an escrow naming their wallet, skip the auction.',
+    blurb:
+      'You already agreed with a counterparty. Open an escrow naming their wallet, skip the auction.',
   },
 ];
 
@@ -24,34 +26,46 @@ export function NewDealPanel() {
   const active = MODES.find((m) => m.value === mode)!;
 
   return (
-    <div>
-      <div className="grid grid-cols-2 rounded-lg p-1 gap-1 bg-[var(--color-surface-2)] border border-[var(--color-line)] mb-4">
-        {MODES.map((m) => {
-          const isActive = mode === m.value;
-          return (
-            <button
-              key={m.value}
-              type="button"
-              onClick={() => setMode(m.value)}
-              className={`rounded-md px-3 py-2 text-left transition-all ${
-                isActive
-                  ? 'bg-[var(--color-surface)] shadow-[var(--shadow-card)]'
-                  : 'hover:bg-[var(--color-surface)]/60'
-              }`}
-            >
-              <span
-                className={`text-[13px] font-semibold tracking-tight ${
-                  isActive ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink-dim)]'
-                }`}
+    <div className="space-y-7">
+      <div>
+        <div
+          className="inline-flex p-1 gap-1"
+          style={{
+            background: 'var(--lp-light)',
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          {MODES.map((m) => {
+            const isActive = mode === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => setMode(m.value)}
+                className="px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
+                style={{
+                  background: isActive ? 'var(--lp-dark)' : 'transparent',
+                  color: isActive ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
+                  borderTopLeftRadius: 9,
+                  borderTopRightRadius: 9,
+                  borderBottomLeftRadius: 9,
+                  borderBottomRightRadius: 2,
+                  boxShadow: isActive ? '0 2px 0 rgba(0,0,0,0.18)' : 'none',
+                }}
               >
                 {m.label}
-              </span>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
+          {active.blurb}
+        </p>
       </div>
-
-      <p className="text-[12px] text-[var(--color-ink-dim)] leading-relaxed mb-5">{active.blurb}</p>
 
       <ActivationGate>
         {mode === 'managed' ? <PostJobForm /> : <DirectDealForm />}

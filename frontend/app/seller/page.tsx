@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { api, type SellerActiveBid } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -9,28 +8,35 @@ import { PostListingForm } from '@/features/seller/components/PostListingForm';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import {
-  AppCanvas,
-  Section,
+  FullBleed,
+  Band,
   GridOverlay,
-  EyebrowChip,
-  AddressChip,
-  Skeleton,
-} from '@/shared/components/AppUI';
+  SectionTag,
+  HeroHeadline,
+  Punc,
+  Accent,
+  AddressPill,
+  PageCard,
+} from '@/shared/components/Bands';
+import { shortAddress } from '@/shared/utils/format';
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 const STEPS = [
   {
-    n: '1. Watches the chain',
-    body: 'Subscribes to JobPosted events from the JobBoard contract.',
+    n: '01',
+    title: 'Watches the chain',
+    body: 'Subscribes to JobPosted events from the JobBoard contract on Arc.',
   },
   {
-    n: '2. Scores the brief',
-    body: "Reads the buyer's brief, checks it against your skills and accepted ranges, then asks an LLM whether to bid.",
+    n: '02',
+    title: 'Scores the brief',
+    body: "Reads the buyer's brief against your skills and ranges, asks an LLM whether to bid.",
   },
   {
-    n: '3. Bids and negotiates',
-    body: 'Submits a bid on chain. Responds to counter-offers within its accepted range.',
+    n: '03',
+    title: 'Bids, negotiates',
+    body: 'Submits a bid on chain. Responds to counters within your accepted range.',
   },
 ];
 
@@ -64,115 +70,302 @@ export default function SellerPage() {
   }, [address, isConnected]);
 
   return (
-    <AppCanvas>
-      {/* HEADER */}
-      <Section tone="dark" className="relative overflow-hidden">
-        <GridOverlay />
-        <div className="relative">
-          <EyebrowChip dot={activated ? 'live' : 'warning'} tone="dark">
-            {activated ? 'Seller agent active' : 'Seller agent not set up'}
-          </EyebrowChip>
-          <h1 className="mt-4 font-sans font-bold tracking-[-0.025em] text-[clamp(2rem,4vw,3rem)]">
-            Seller
-          </h1>
-          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
-            Your seller agent watches the chain and bids on briefs that match your skills, on your
-            behalf.
-          </p>
-          {address && (
-            <div className="mt-4">
-              <AddressChip address={address} tone="dark" />
+    <FullBleed>
+      {/* HERO */}
+      <Band tone="dark" overlay={<GridOverlay />}>
+        <div className="grid lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+          <div className="min-w-0">
+            <div className="fade-up">
+              <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
+                SELLER DESK
+              </SectionTag>
             </div>
-          )}
+            <div className="fade-up fade-up-1">
+              <HeroHeadline>
+                Your agent
+                <br />
+                bids while you <Accent>sleep</Accent>
+                <Punc>.</Punc>
+              </HeroHeadline>
+            </div>
+            <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
+              The seller agent watches the chain and bids on briefs that match your skills, within
+              the ranges you set. You wake up to a matched deal.
+            </p>
+            <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
+              <a
+                href="#post-listing"
+                className="group inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-dark)]"
+                style={{
+                  borderTopLeftRadius: 14,
+                  borderTopRightRadius: 14,
+                  borderBottomLeftRadius: 14,
+                  borderBottomRightRadius: 4,
+                }}
+              >
+                Post a listing ↓
+              </a>
+              {address && (
+                <span className="ml-1">
+                  <AddressPill address={shortAddress(address)} tone="dark" />
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="hidden lg:block fade-up fade-up-4">
+            <SellerAgentVignette activated={activated} bidsCount={activeBids.length} />
+          </div>
         </div>
-      </Section>
+      </Band>
 
-      {/* WHAT THIS AGENT DOES */}
-      <Section>
-        <EyebrowChip>How it works</EyebrowChip>
-        <h2 className="mt-3 mb-6 font-sans font-bold tracking-[-0.02em] text-[clamp(1.4rem,2.2vw,1.9rem)]">
-          What this agent does
-        </h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          {STEPS.map((s) => (
-            <div key={s.n} className="rounded-[20px] bg-[var(--lp-light)] p-6">
-              <h3 className="font-sans text-[15px] font-bold tracking-[-0.01em]">{s.n}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{s.body}</p>
+      {/* HOW IT WORKS */}
+      <Band tone="light" compact>
+        <SectionTag>HOW IT WORKS</SectionTag>
+        <HeroHeadline size="md">
+          Three loops<Punc>.</Punc>
+          <br />
+          <Accent>One agent.</Accent>
+        </HeroHeadline>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          Every activated wallet runs its own seller agent. Set skills and ranges on your profile,
+          then post listings here to broadcast what you offer.
+        </p>
+        <div className="mt-10 grid md:grid-cols-3 gap-5">
+          {STEPS.map((s, i) => (
+            <div key={s.n} className={`fade-up fade-up-${i + 1}`}>
+              <StepCard n={s.n} title={s.title} body={s.body} />
             </div>
           ))}
         </div>
-        <p className="mt-6 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-          Every activated user with a seller profile bids through their own seller agent. Set your
-          skills and ranges on the{' '}
-          <Link href="/profile" className="font-semibold text-[var(--lp-dark)] underline underline-offset-2">
-            profile page
-          </Link>
-          . To trigger a round, post a brief from the{' '}
-          <Link href="/buyer" className="font-semibold text-[var(--lp-dark)] underline underline-offset-2">
-            buyer dashboard
-          </Link>
-          .
+      </Band>
+
+      {/* POST LISTING */}
+      <Band tone="dark" compact>
+        <div id="post-listing" className="scroll-mt-20" />
+        <SectionTag tone="dark">POST WHAT YOU OFFER</SectionTag>
+        <HeroHeadline size="md">
+          Standing offer<Punc>.</Punc>
+          <br />
+          Set the floor.
+        </HeroHeadline>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
+          Publish a listing. Your agent bids it at the asking price and negotiates within your
+          tolerance. Brief matches land in your inbox.
         </p>
-      </Section>
-
-      {/* POST A LISTING */}
-      <Section className="p-0 overflow-hidden">
-        <div className="px-7 md:px-10 pt-7 md:pt-9 pb-6">
-          <EyebrowChip>Sell</EyebrowChip>
-          <h2 className="mt-3 mb-1 font-sans font-bold tracking-[-0.02em] text-[clamp(1.4rem,2.2vw,1.9rem)]">
-            Post what you offer
-          </h2>
-          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed max-w-2xl mb-5">
-            Publish a standing offer. When a buyer brief matches, your agent bids at your asking
-            price and negotiates within your tolerance.
-          </p>
-          <PostListingForm />
-        </div>
-      </Section>
-
-      {/* DIRECT DEALS FOR YOU */}
-      <Section className="p-0 overflow-hidden">
-        <div className="px-7 md:px-10 pt-7 md:pt-9">
-          <EyebrowChip>Direct deals</EyebrowChip>
-          <h2 className="mt-3 font-sans font-bold tracking-[-0.02em] text-[clamp(1.4rem,2.2vw,1.9rem)]">
-            Direct deals for you
-          </h2>
-        </div>
-        <div className="mt-5">
-          <DirectDealList role="seller" />
-        </div>
-      </Section>
-
-      {/* ACTIVE BIDS + BALANCE */}
-      <div className="grid lg:grid-cols-3 gap-4 items-start">
-        <Section className="lg:col-span-2 p-0 overflow-hidden">
-          <div className="px-7 md:px-10 pt-7 md:pt-9">
-            <EyebrowChip>Auctions</EyebrowChip>
-            <h2 className="mt-3 font-sans font-bold tracking-[-0.02em] text-[clamp(1.4rem,2.2vw,1.9rem)]">
-              Active bids{activeBids.length > 0 ? ` · ${activeBids.length}` : ''}
-            </h2>
+        <div className="mt-10 grid lg:grid-cols-3 gap-5 items-start">
+          <div className="lg:col-span-2">
+            <div
+              className="overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
+                borderBottomLeftRadius: 22,
+                borderBottomRightRadius: 5,
+              }}
+            >
+              <div className="p-6 md:p-8">
+                <PostListingForm />
+              </div>
+            </div>
           </div>
-          <div className="mt-5">
+          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
+        </div>
+      </Band>
+
+      {/* DIRECT DEALS */}
+      <Band tone="light" compact>
+        <SectionTag>DIRECT DEALS</SectionTag>
+        <HeroHeadline size="md">
+          Deals <Accent>for you</Accent>
+          <Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          Direct deals where your wallet is the named seller, with their live escrow state.
+        </p>
+        <div className="mt-10">
+          <PageCard>
+            <DirectDealList role="seller" />
+          </PageCard>
+        </div>
+      </Band>
+
+      {/* ACTIVE BIDS */}
+      <Band tone="dark" compact>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-[46ch]">
+            <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
+              ACTIVE BIDS
+            </SectionTag>
+            <HeroHeadline size="md">
+              In the auction
+              {activeBids.length > 0 && (
+                <>
+                  <Punc>.</Punc>
+                  <span className="ml-3 text-white/55 font-sans font-extrabold">
+                    {activeBids.length}
+                  </span>
+                </>
+              )}
+              {activeBids.length === 0 && <Punc>.</Punc>}
+            </HeroHeadline>
+            <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
+              Bids your agent has placed on open briefs. Counters happen automatically inside your
+              accepted range.
+            </p>
+          </div>
+        </div>
+        <div className="mt-10">
+          <div
+            className="overflow-hidden"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderTopLeftRadius: 22,
+              borderTopRightRadius: 22,
+              borderBottomLeftRadius: 22,
+              borderBottomRightRadius: 5,
+            }}
+          >
             {!isConnected ? (
-              <p className="px-7 md:px-10 pb-8 text-[13px] text-[var(--lp-text-sub)]">
-                Connect your wallet to see the bids your seller agent has placed.
+              <p className="p-8 text-center text-[13px] text-white/55">
+                Connect your wallet to see your active bids.
               </p>
             ) : fetchState === 'error' ? (
-              <p className="px-7 md:px-10 pb-8 text-[13px] text-[var(--lp-text-sub)]">
+              <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
                 Couldn&apos;t load your bids.
               </p>
             ) : fetchState === 'loading' || fetchState === 'idle' ? (
-              <div className="px-7 md:px-10 pb-8 space-y-3">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
+              <div className="p-8 space-y-3">
+                <div className="h-14 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
+                <div className="h-14 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
               </div>
+            ) : activeBids.length === 0 ? (
+              <p className="p-8 text-center text-[13px] text-white/55">
+                No active bids. Post a listing and your agent will start scanning briefs.
+              </p>
             ) : (
               <BidsTable bids={activeBids} />
             )}
           </div>
-        </Section>
-        <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
+        </div>
+      </Band>
+    </FullBleed>
+  );
+}
+
+function StepCard({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <div
+      className="group relative overflow-hidden p-6 transition-[transform,box-shadow] duration-300 ease-out card-shimmer hover:-translate-y-1"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 5,
+        boxShadow:
+          '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.10)',
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]/30 leading-none">
+          {n}
+        </span>
+        <span
+          aria-hidden
+          className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--lp-light)] transition-transform duration-200 group-hover:rotate-[20deg] group-hover:translate-x-0.5"
+        >
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M5 11l6-6M5.5 5h5.5v5.5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
       </div>
-    </AppCanvas>
+      <h3 className="mt-5 font-sans text-[19px] font-extrabold uppercase tracking-[-0.02em] leading-[1.05]">
+        {title}
+      </h3>
+      <p className="mt-3 text-pretty text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+        {body}
+      </p>
+    </div>
+  );
+}
+
+function SellerAgentVignette({
+  activated,
+  bidsCount,
+}: {
+  activated: boolean;
+  bidsCount: number;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 4,
+      }}
+    >
+      <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
+        <div className="flex items-center justify-between">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+            Agent control
+          </span>
+          {activated ? (
+            <span
+              aria-hidden
+              data-instrument-blink
+              className="w-[7px] h-[7px]"
+              style={{
+                background: 'var(--lp-accent)',
+                animation: 'instrumentBlink 1.6s ease-in-out infinite',
+              }}
+            />
+          ) : (
+            <span aria-hidden className="w-[7px] h-[7px] rounded-full bg-white/30" />
+          )}
+        </div>
+        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
+          Seller agent{' '}
+          <span style={{ color: activated ? 'var(--lp-accent)' : 'rgba(255,255,255,0.5)' }}>
+            {activated ? 'active' : 'idle'}
+          </span>
+        </p>
+        <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
+          {activated
+            ? 'Watching briefs. Scoring against your skills. Bidding when matched.'
+            : 'Activate your agent on the profile page to start bidding on briefs.'}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
+        <div className="px-4 py-4">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">In auction</p>
+          <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
+            {bidsCount}
+          </p>
+        </div>
+        <div className="px-4 py-4">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Counters</p>
+          <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
+            ∞
+          </p>
+          <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">
+            within range
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

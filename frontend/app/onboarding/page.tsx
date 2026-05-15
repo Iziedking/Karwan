@@ -1,12 +1,22 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type UserRole } from '@/core/api';
-import { Card } from '@/shared/components/Card';
 import { Hint } from '@/shared/components/Hint';
+import {
+  FullBleed,
+  Band,
+  GridOverlay,
+  SectionTag,
+  HeroHeadline,
+  Punc,
+  Accent,
+  CTAPill,
+} from '@/shared/components/Bands';
+import { cn } from '@/shared/utils/cn';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -83,13 +93,9 @@ export default function OnboardingPage() {
       .getProfile(address)
       .then((res) => {
         if (cancelled) return;
-        // Only redirect to /app when we have a confirmed existing profile. On a
-        // fresh signup we expect res.profile === null and stay here.
         if (res.profile) router.replace('/app');
       })
-      .catch(() => {
-        // Backend unreachable: don't redirect either way, leave the user where they are.
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -133,8 +139,6 @@ export default function OnboardingPage() {
           },
         }),
       });
-      // Notify every useUserProfile consumer so banners like ProfileNudge
-      // refresh immediately instead of waiting for a remount.
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('karwan:profile-saved'));
       }
@@ -145,218 +149,593 @@ export default function OnboardingPage() {
     }
   }
 
+  const stepN = step === 'connect' ? 1 : step === 'role' ? 2 : 3;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8 fade-up">
-      <header className="space-y-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-          Sign up · step {stepNumber(step)} of 3
-        </p>
-        <h1 className="text-[32px] tracking-tight font-semibold">{stepTitle(step)}</h1>
-      </header>
-
-      {step === 'connect' && (
-        <Card>
-          <p className="text-sm text-[var(--color-ink-dim)] mb-5 leading-relaxed">
-            Karwan identifies you by wallet. Connect a browser wallet to continue. Your wallet only signs what you approve.
-          </p>
-          <ConnectButton />
-          <p className="text-[12px] text-[var(--color-ink-faint)] mt-4">
-            Circle Passkey sign-in (email and biometrics) ships next.
-          </p>
-        </Card>
-      )}
-
-      {step === 'role' && isConnected && (
-        <div className="space-y-5">
-          <p className="text-[12px] mono text-[var(--color-ink-faint)]">
-            Connected as {address?.slice(0, 6)}…{address?.slice(-4)}
-          </p>
-          <p className="text-sm text-[var(--color-ink-dim)] leading-relaxed">
-            How will you mostly use Karwan? You can change this later.
-          </p>
-          <div className="space-y-3">
-            <RoleOption
-              role="seller"
-              selected={role}
-              onSelect={setRole}
-              title="Take work"
-              body="Your seller agent watches the chain for jobs that match your skills and bids on your behalf."
-              tagline="Best for freelancers and SME service providers."
-              icon={<BriefcaseIcon />}
-            />
-            <RoleOption
-              role="buyer"
-              selected={role}
-              onSelect={setRole}
-              title="Hire someone"
-              body="Post briefs. Your buyer agent ranks bids, negotiates within your terms, and locks the deal in escrow."
-              tagline="Best for founders, agencies, and procurement teams."
-              icon={<ClipboardIcon />}
-            />
-            <RoleOption
-              role="both"
-              selected={role}
-              onSelect={setRole}
-              title="Both"
-              body="Hire and take work from the same account. Reputation compounds across both."
-              tagline="One identity, two roles. Recommended for active SMEs."
-              icon={<SwapIcon />}
-              recommended
-            />
+    <FullBleed>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
+        <div className="max-w-[60ch] mx-auto text-center">
+          <div className="fade-up flex justify-center">
+            <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
+              <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
+              SIGN UP · STEP {stepN} OF 3
+            </span>
           </div>
-          <div className="flex justify-between pt-2">
-            <Link
-              href="/"
-              className="group inline-flex items-center gap-1 text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-            >
-              <span
-                aria-hidden
-                className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
-              >
-                ←
-              </span>
-              <span className="transition-transform duration-200 group-hover:-translate-x-0.5">
-                Back
-              </span>
-            </Link>
-            <button
-              type="button"
-              disabled={!role}
-              onClick={() => setStep('profile')}
-              style={{ backgroundColor: role ? '#0c0e10' : '#cccccc', color: '#ffffff' }}
-              className="px-4 py-2 rounded-md text-[13px] font-semibold disabled:cursor-not-allowed transition-opacity"
-            >
-              Continue →
-            </button>
+          <div className="fade-up fade-up-1">
+            <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)] mt-6">
+              {step === 'connect' && (
+                <>
+                  Connect your <Accent>wallet</Accent>
+                  <Punc>.</Punc>
+                </>
+              )}
+              {step === 'role' && (
+                <>
+                  How will you use <Accent>Karwan</Accent>
+                  <Punc>?</Punc>
+                </>
+              )}
+              {step === 'profile' && (
+                <>
+                  Tell us a bit <Accent>about you</Accent>
+                  <Punc>.</Punc>
+                </>
+              )}
+            </HeroHeadline>
+          </div>
+          <div className="fade-up fade-up-2 mt-7 flex justify-center">
+            <ProgressDots current={stepN} total={3} />
           </div>
         </div>
-      )}
+      </Band>
 
-      {step === 'profile' && role && (
-        <div className="space-y-5">
-          <ProfileSection icon={<UserIcon />} number="01" eyebrow="Identity" title="About you">
-            <Field
-              label="Display name"
-              hint="Shown to counterparties on deals. Example: Alex · Frontend developer."
-              input={
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-ink)]"
-                />
-              }
+      <Band tone="light" compact>
+        <div className="max-w-3xl mx-auto">
+          {step === 'connect' && (
+            <ConnectStep />
+          )}
+
+          {step === 'role' && (
+            <RoleStep
+              address={address}
+              role={role}
+              onSelect={setRole}
+              onContinue={() => setStep('profile')}
             />
-          </ProfileSection>
-
-          {(role === 'seller' || role === 'both') && (
-            <ProfileSection
-              icon={<BriefcaseIcon />}
-              number="02"
-              eyebrow="Take work"
-              title="Seller profile"
-              description="Your seller agent uses these as guardrails when scoring incoming briefs."
-            >
-              <Field
-                label="Skills"
-                hint="Comma-separated list. The agent scores incoming briefs against these. Example: Next.js, React, Tailwind, copywriting."
-                input={
-                  <input
-                    value={skills}
-                    onChange={(e) => setSkills(e.target.value)}
-                    className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-ink)]"
-                  />
-                }
-              />
-              <Field
-                label="Bio"
-                hint="One or two sentences shown to buyers. What you build, who you've worked with."
-                input={
-                  <textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    rows={2}
-                    className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-ink)] resize-none"
-                  />
-                }
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <NumField label="Min budget (USDC)" value={sellerMin} setValue={setSellerMin} />
-                <NumField label="Max budget (USDC)" value={sellerMax} setValue={setSellerMax} />
-                <NumField label="Min deadline (days)" value={sellerMinDays} setValue={setSellerMinDays} />
-                <NumField label="Max deadline (days)" value={sellerMaxDays} setValue={setSellerMaxDays} />
-              </div>
-            </ProfileSection>
           )}
 
-          {(role === 'buyer' || role === 'both') && (
-            <ProfileSection
-              icon={<ClipboardIcon />}
-              number={role === 'both' ? '03' : '02'}
-              eyebrow="Hire someone"
-              title="Buyer profile"
-              description="How your buyer agent should think about budgets, deadlines, and milestones."
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <NumField label="Max budget per job (USDC)" value={buyerMax} setValue={setBuyerMax} />
-                <NumField label="Bid collection window (sec)" value={bidWindow} setValue={setBidWindow} />
-                <NumField label="Min deadline (days)" value={buyerMinDays} setValue={setBuyerMinDays} />
-                <NumField label="Max deadline (days)" value={buyerMaxDays} setValue={setBuyerMaxDays} />
-              </div>
-              <Field
-                label="Milestone split"
-                hint="Comma-separated percentages that total 100. Example: 50,50 splits the budget into two equal tranches. 30,40,30 splits into three."
-                input={
-                  <input
-                    value={milestoneSplit}
-                    onChange={(e) => setMilestoneSplit(e.target.value)}
-                    className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--color-ink)]"
-                  />
-                }
-              />
-            </ProfileSection>
+          {step === 'profile' && role && (
+            <ProfileStep
+              role={role}
+              displayName={displayName}
+              setDisplayName={setDisplayName}
+              skills={skills}
+              setSkills={setSkills}
+              bio={bio}
+              setBio={setBio}
+              sellerMin={sellerMin}
+              setSellerMin={setSellerMin}
+              sellerMax={sellerMax}
+              setSellerMax={setSellerMax}
+              sellerMinDays={sellerMinDays}
+              setSellerMinDays={setSellerMinDays}
+              sellerMaxDays={sellerMaxDays}
+              setSellerMaxDays={setSellerMaxDays}
+              buyerMax={buyerMax}
+              setBuyerMax={setBuyerMax}
+              buyerMinDays={buyerMinDays}
+              setBuyerMinDays={setBuyerMinDays}
+              buyerMaxDays={buyerMaxDays}
+              setBuyerMaxDays={setBuyerMaxDays}
+              bidWindow={bidWindow}
+              setBidWindow={setBidWindow}
+              milestoneSplit={milestoneSplit}
+              setMilestoneSplit={setMilestoneSplit}
+              canSubmit={canSubmit}
+              submitting={submitting}
+              error={error}
+              onBack={() => setStep('role')}
+              onSubmit={submit}
+            />
           )}
+        </div>
+      </Band>
+    </FullBleed>
+  );
+}
 
-          <div className="flex justify-between items-center pt-2 gap-4">
-            <button
-              type="button"
-              onClick={() => setStep('role')}
-              className="group inline-flex items-center gap-1 text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-            >
-              <span
-                aria-hidden
-                className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
-              >
-                ←
-              </span>
-              <span className="transition-transform duration-200 group-hover:-translate-x-0.5">
-                Back
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!canSubmit}
+function ProgressDots({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-white/15 bg-white/[0.04]">
+      {Array.from({ length: total }).map((_, i) => {
+        const n = i + 1;
+        const isActive = n === current;
+        const isDone = n < current;
+        return (
+          <span
+            key={i}
+            aria-hidden
+            className="inline-flex items-center gap-2"
+          >
+            <span
+              className="w-[7px] h-[7px] transition-colors"
               style={{
-                backgroundColor: canSubmit ? '#0c0e10' : 'transparent',
-                color: canSubmit ? '#ffffff' : 'var(--color-ink-faint)',
-                borderColor: 'var(--color-line-strong)',
-                filter: !canSubmit ? 'blur(0.4px) saturate(0.6)' : undefined,
+                background: isActive
+                  ? 'var(--lp-accent)'
+                  : isDone
+                    ? 'rgba(212,255,63,0.5)'
+                    : 'rgba(255,255,255,0.20)',
+                animation: isActive ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
               }}
-              className={`px-4 py-2 rounded-md text-[13px] font-semibold border transition-all ${
-                canSubmit ? 'hover:opacity-90 cursor-pointer' : 'cursor-not-allowed opacity-60'
-              }`}
+              data-instrument-blink={isActive || undefined}
+            />
+            {n < total && (
+              <span className="w-4 h-px bg-white/15" />
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function ConnectStep() {
+  return (
+    <div className="fade-up">
+      <div
+        className="overflow-hidden p-8 md:p-10"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+        }}
+      >
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
+          Karwan identifies you by wallet. Connect a browser wallet to continue. Your wallet only
+          signs what you approve.
+        </p>
+        <div className="mt-6">
+          <ConnectButton />
+        </div>
+        <p className="mt-6 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          Circle Passkey sign-in ships next.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RoleStep({
+  address,
+  role,
+  onSelect,
+  onContinue,
+}: {
+  address: string | undefined;
+  role: UserRole | null;
+  onSelect: (r: UserRole) => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="space-y-8">
+      <div className="fade-up text-center">
+        <p className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          Connected as{' '}
+          <span className="text-[var(--lp-dark)]">
+            {address?.slice(0, 6)}…{address?.slice(-4)}
+          </span>
+        </p>
+        <p className="mt-4 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
+          How will you mostly use Karwan? Pick one. You can change this later.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        <div className="fade-up fade-up-1">
+          <RoleCard
+            role="seller"
+            selected={role}
+            onSelect={onSelect}
+            tone="cream"
+            eyebrow="TAKE WORK"
+            title="Bid as seller"
+            body="Your seller agent watches the chain for jobs that match your skills and bids on your behalf."
+            tagline="Best for freelancers and SME service providers."
+          />
+        </div>
+        <div className="fade-up fade-up-2">
+          <RoleCard
+            role="buyer"
+            selected={role}
+            onSelect={onSelect}
+            tone="dark"
+            eyebrow="HIRE SOMEONE"
+            title="Run the auction"
+            body="Post briefs. Your buyer agent ranks bids, negotiates within your terms, and locks the deal."
+            tagline="Best for founders, agencies, procurement."
+          />
+        </div>
+        <div className="fade-up fade-up-3">
+          <RoleCard
+            role="both"
+            selected={role}
+            onSelect={onSelect}
+            tone="accent"
+            eyebrow="BOTH"
+            title="Hire and bid"
+            body="Hire and take work from one account. Reputation compounds across both."
+            tagline="One identity, two roles. Recommended for SMEs."
+            recommended
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center pt-4">
+        <Link
+          href="/"
+          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+        >
+          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
+            ←
+          </span>
+          Back
+        </Link>
+        <CTAPill onClick={onContinue} disabled={!role} tone="light">
+          Continue →
+        </CTAPill>
+      </div>
+    </div>
+  );
+}
+
+function RoleCard({
+  role,
+  selected,
+  onSelect,
+  tone,
+  eyebrow,
+  title,
+  body,
+  tagline,
+  recommended,
+}: {
+  role: UserRole;
+  selected: UserRole | null;
+  onSelect: (r: UserRole) => void;
+  tone: 'cream' | 'dark' | 'accent';
+  eyebrow: string;
+  title: string;
+  body: string;
+  tagline: string;
+  recommended?: boolean;
+}) {
+  const isSel = selected === role;
+  const surface =
+    tone === 'dark'
+      ? 'bg-[var(--lp-dark)] text-white'
+      : tone === 'accent'
+        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)]'
+        : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
+  const eyebrowColor =
+    tone === 'dark'
+      ? 'text-white/55'
+      : tone === 'accent'
+        ? 'text-[var(--lp-dark)]/65'
+        : 'text-[var(--lp-text-muted)]';
+  const muted =
+    tone === 'dark'
+      ? 'text-white/65'
+      : tone === 'accent'
+        ? 'text-[var(--lp-dark)]/75'
+        : 'text-[var(--lp-text-sub)]';
+  const tagColor =
+    tone === 'dark'
+      ? 'text-white/45'
+      : tone === 'accent'
+        ? 'text-[var(--lp-dark)]/55'
+        : 'text-[var(--lp-text-muted)]';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(role)}
+      className={cn(
+        'group block w-full text-left relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
+        'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
+        isSel && 'ring-2 ring-[var(--lp-accent)] ring-offset-2 ring-offset-[var(--lp-light)]',
+        surface,
+      )}
+      style={{
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 5,
+      }}
+    >
+      <div className="p-6">
+        <div className="flex items-center justify-between">
+          <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
+            {eyebrow}
+          </span>
+          {recommended && (
+            <span
+              className="px-2 py-0.5 mono text-[9px] uppercase tracking-[0.18em] font-semibold"
+              style={{
+                background:
+                  tone === 'accent' ? 'var(--lp-dark)' : 'var(--lp-accent)',
+                color: tone === 'accent' ? 'var(--lp-accent)' : 'var(--lp-dark)',
+                borderRadius: 3,
+              }}
             >
-              {submitting ? 'Saving…' : 'Save profile and activate agent'}
-            </button>
-          </div>
-          {error && (
-            <p className="text-sm text-[var(--color-critical)] mt-2">
-              Couldn't save profile: {error}
-            </p>
+              ★ TOP
+            </span>
           )}
         </div>
+        <h3 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
+          {title}
+        </h3>
+        <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
+        <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>
+          {tagline}
+        </p>
+        <div className="mt-5 flex items-center justify-between">
+          <span
+            className={cn(
+              'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
+              isSel
+                ? tone === 'accent'
+                  ? 'bg-[var(--lp-dark)] border-[var(--lp-dark)]'
+                  : 'bg-[var(--lp-accent)] border-[var(--lp-accent)]'
+                : tone === 'dark'
+                  ? 'border-white/30'
+                  : tone === 'accent'
+                    ? 'border-[var(--lp-dark)]/30'
+                    : 'border-[var(--lp-border-light)]',
+            )}
+          >
+            {isSel && (
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M3 8.5 L6.5 12 L13 5"
+                  stroke={tone === 'accent' ? 'var(--lp-accent)' : '#0e0e0e'}
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </span>
+          <span
+            aria-hidden
+            className={cn(
+              'mono text-[10px] uppercase tracking-[0.12em] transition-opacity',
+              isSel ? 'opacity-100' : 'opacity-0',
+            )}
+          >
+            selected
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ProfileStep(props: {
+  role: UserRole;
+  displayName: string;
+  setDisplayName: (v: string) => void;
+  skills: string;
+  setSkills: (v: string) => void;
+  bio: string;
+  setBio: (v: string) => void;
+  sellerMin: number;
+  setSellerMin: (v: number) => void;
+  sellerMax: number;
+  setSellerMax: (v: number) => void;
+  sellerMinDays: number;
+  setSellerMinDays: (v: number) => void;
+  sellerMaxDays: number;
+  setSellerMaxDays: (v: number) => void;
+  buyerMax: number;
+  setBuyerMax: (v: number) => void;
+  buyerMinDays: number;
+  setBuyerMinDays: (v: number) => void;
+  buyerMaxDays: number;
+  setBuyerMaxDays: (v: number) => void;
+  bidWindow: number;
+  setBidWindow: (v: number) => void;
+  milestoneSplit: string;
+  setMilestoneSplit: (v: string) => void;
+  canSubmit: boolean;
+  submitting: boolean;
+  error: string | null;
+  onBack: () => void;
+  onSubmit: () => void;
+}) {
+  const wantsSeller = props.role === 'seller' || props.role === 'both';
+  const wantsBuyer = props.role === 'buyer' || props.role === 'both';
+
+  return (
+    <div className="space-y-6 fade-up">
+      <ProfileSection number="01" eyebrow="IDENTITY" title="About you">
+        <Field
+          label="Display name"
+          hint="Shown to counterparties on deals. Example: Alex · Frontend developer."
+        >
+          <input
+            value={props.displayName}
+            onChange={(e) => props.setDisplayName(e.target.value)}
+            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+          />
+        </Field>
+      </ProfileSection>
+
+      {wantsSeller && (
+        <ProfileSection number="02" eyebrow="TAKE WORK" title="Seller profile">
+          <Field label="Skills" hint="Comma-separated. Example: Next.js, Tailwind, copywriting.">
+            <input
+              value={props.skills}
+              onChange={(e) => props.setSkills(e.target.value)}
+              className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+            />
+          </Field>
+          <Field label="Bio" hint="One or two sentences shown to buyers.">
+            <textarea
+              value={props.bio}
+              onChange={(e) => props.setBio(e.target.value)}
+              rows={2}
+              className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] resize-none transition-colors"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <NumField label="Min budget (USDC)" value={props.sellerMin} setValue={props.setSellerMin} />
+            <NumField label="Max budget (USDC)" value={props.sellerMax} setValue={props.setSellerMax} />
+            <NumField label="Min deadline (days)" value={props.sellerMinDays} setValue={props.setSellerMinDays} />
+            <NumField label="Max deadline (days)" value={props.sellerMaxDays} setValue={props.setSellerMaxDays} />
+          </div>
+        </ProfileSection>
+      )}
+
+      {wantsBuyer && (
+        <ProfileSection
+          number={props.role === 'both' ? '03' : '02'}
+          eyebrow="HIRE SOMEONE"
+          title="Buyer profile"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <NumField label="Max budget per job (USDC)" value={props.buyerMax} setValue={props.setBuyerMax} />
+            <NumField label="Bid window (sec)" value={props.bidWindow} setValue={props.setBidWindow} />
+            <NumField label="Min deadline (days)" value={props.buyerMinDays} setValue={props.setBuyerMinDays} />
+            <NumField label="Max deadline (days)" value={props.buyerMaxDays} setValue={props.setBuyerMaxDays} />
+          </div>
+          <Field
+            label="Milestone split"
+            hint="Comma-separated percentages that total 100. Example: 50,50 or 30,40,30."
+          >
+            <input
+              value={props.milestoneSplit}
+              onChange={(e) => props.setMilestoneSplit(e.target.value)}
+              className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+            />
+          </Field>
+        </ProfileSection>
+      )}
+
+      <div className="flex justify-between items-center pt-4">
+        <button
+          type="button"
+          onClick={props.onBack}
+          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+        >
+          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
+            ←
+          </span>
+          Back
+        </button>
+        <CTAPill onClick={props.onSubmit} disabled={!props.canSubmit} tone="light">
+          {props.submitting ? 'Saving…' : 'Save & activate ↗'}
+        </CTAPill>
+      </div>
+      {props.error && (
+        <p className="mono text-[12px] text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
+          {props.error}
+        </p>
       )}
     </div>
+  );
+}
+
+function ProfileSection({
+  number,
+  eyebrow,
+  title,
+  children,
+}: {
+  number: string;
+  eyebrow?: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className="overflow-hidden"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 5,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.08)',
+      }}
+    >
+      <header className="px-6 pt-5 pb-4 border-b border-[var(--lp-border-light)]">
+        <div className="flex items-baseline gap-3">
+          <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]/30 leading-none">
+            {number}
+          </span>
+          {eyebrow && (
+            <span className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+              {eyebrow}
+            </span>
+          )}
+        </div>
+        <h2 className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+          {title}
+        </h2>
+      </header>
+      <div className="px-6 py-5 space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        {label}
+        {hint && <Hint>{hint}</Hint>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function NumField({
+  label,
+  value,
+  setValue,
+}: {
+  label: string;
+  value: number;
+  setValue: (n: number) => void;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        {label}
+      </span>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+      />
+    </label>
   );
 }
 
@@ -374,227 +753,4 @@ function prettifyError(err: unknown): string {
   }
   if (typeof raw === 'string') return raw;
   return JSON.stringify(raw);
-}
-
-function stepNumber(step: 'connect' | 'role' | 'profile' | 'review'): number {
-  return step === 'connect' ? 1 : step === 'role' ? 2 : 3;
-}
-
-function stepTitle(step: 'connect' | 'role' | 'profile' | 'review'): string {
-  switch (step) {
-    case 'connect':
-      return 'Connect your wallet';
-    case 'role':
-      return 'How will you use Karwan?';
-    case 'profile':
-      return 'Tell us a bit about you';
-    case 'review':
-      return 'Review';
-  }
-}
-
-function RoleOption({
-  role,
-  selected,
-  onSelect,
-  title,
-  body,
-  tagline,
-  icon,
-  recommended,
-}: {
-  role: UserRole;
-  selected: UserRole | null;
-  onSelect: (r: UserRole) => void;
-  title: string;
-  body: string;
-  tagline: string;
-  icon: React.ReactNode;
-  recommended?: boolean;
-}) {
-  const isSel = selected === role;
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(role)}
-      className={`group relative w-full text-left rounded-xl border p-5 transition-all duration-200
-        ${
-          isSel
-            ? 'border-[var(--color-ink)] bg-[var(--color-surface-2)] shadow-[var(--shadow-card-hover)]'
-            : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]'
-        }`}
-    >
-      {recommended && (
-        <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)] text-[10px] uppercase tracking-[0.08em] font-semibold">
-          Recommended
-        </span>
-      )}
-      <div className="flex items-start gap-4">
-        <span
-          className={`shrink-0 grid place-items-center w-10 h-10 rounded-lg transition-colors
-            ${
-              isSel
-                ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
-                : 'bg-[var(--color-surface-2)] text-[var(--color-ink-dim)] group-hover:text-[var(--color-ink)]'
-            }`}
-        >
-          {icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
-            <h3 className="text-[15px] font-semibold tracking-tight">{title}</h3>
-            <span
-              className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
-                ${
-                  isSel
-                    ? 'bg-[var(--color-ink)] border-[var(--color-ink)]'
-                    : 'border-[var(--color-line-strong)]'
-                }`}
-            >
-              {isSel && (
-                <svg width="9" height="9" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M3 8.5 L6.5 12 L13 5"
-                    stroke="#ffffff"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </span>
-          </div>
-          <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed mt-1.5">{body}</p>
-          <p className="text-[11px] text-[var(--color-ink-faint)] mt-2">{tagline}</p>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function ProfileSection({
-  icon,
-  number,
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  icon: React.ReactNode;
-  number: string;
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
-      <header className="px-5 pt-5 pb-4 flex items-start gap-4 border-b border-[var(--color-line)] rounded-t-xl">
-        <span className="shrink-0 grid place-items-center w-10 h-10 rounded-lg bg-[var(--color-surface-2)] text-[var(--color-ink-dim)]">
-          {icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-3">
-            <span className="text-[11px] mono text-[var(--color-ink-faint)]">{number}</span>
-            {eyebrow && (
-              <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-accent)]">
-                {eyebrow}
-              </span>
-            )}
-          </div>
-          <h2 className="text-[16px] font-semibold tracking-tight mt-1">{title}</h2>
-          {description && (
-            <p className="text-[12px] text-[var(--color-ink-dim)] mt-1 leading-relaxed">
-              {description}
-            </p>
-          )}
-        </div>
-      </header>
-      <div className="px-5 py-5 space-y-4">{children}</div>
-    </section>
-  );
-}
-
-function Field({ label, hint, input }: { label: string; hint?: string; input: React.ReactNode }) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
-        {label}
-        {hint && <Hint>{hint}</Hint>}
-      </span>
-      {input}
-    </label>
-  );
-}
-
-function NumField({
-  label,
-  value,
-  setValue,
-  hint,
-}: {
-  label: string;
-  value: number;
-  setValue: (n: number) => void;
-  hint?: string;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
-        {label}
-        {hint && <Hint>{hint}</Hint>}
-      </span>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-        className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--color-ink)]"
-      />
-    </label>
-  );
-}
-
-/* Icons */
-
-function BriefcaseIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-      <rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M7 6V4.5C7 3.7 7.7 3 8.5 3h3c.8 0 1.5.7 1.5 1.5V6" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3 10h14" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
-
-function ClipboardIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-      <rect x="5" y="4" width="10" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 4V3.5C8 2.95 8.45 2.5 9 2.5h2c.55 0 1 .45 1 1V4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 9h4M8 12h4M8 15h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SwapIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-      <path
-        d="M4 7h11l-2.5-2.5M16 13H5l2.5 2.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3.5 17c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
 }

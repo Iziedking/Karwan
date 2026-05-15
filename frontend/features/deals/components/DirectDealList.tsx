@@ -4,6 +4,7 @@ import { useAccount } from 'wagmi';
 import type { DirectDeal } from '@/core/api';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { cn } from '@/shared/utils/cn';
 
 export type DealStage =
   | 'awaiting-acceptance'
@@ -17,7 +18,6 @@ export type DealStage =
 export function stageOf(deal: DirectDeal): DealStage {
   const state = deal.onChain?.state ?? 1;
   if (state === 2) return 'settled';
-  // Refunded on chain (state 4) or flagged cancelled = buyer reclaimed funds.
   if (deal.cancelledAt || state === 4) return 'cancelled';
   if (deal.disputed || state === 3) return 'disputed';
   const released = deal.onChain?.milestonesReleased ?? 0;
@@ -27,44 +27,54 @@ export function stageOf(deal: DirectDeal): DealStage {
   return 'awaiting-acceptance';
 }
 
-// Fixed status colors. StageBadge renders on fixed white --lp-card surfaces, so
-// it must not borrow the themeable --color-* tokens (they flip to dark values
-// in dark mode and the pill turns black on a white card).
-const STAGE_META: Record<DealStage, { label: string; color: string; bg: string }> = {
+// Curated palette — slight off-axis hues so the badges feel designed, not
+// pulled from default success/error/warning. Each tone has matching bg, fg, and
+// a slightly punchier rail color for the row edge marker.
+const STAGE_META: Record<
+  DealStage,
+  { label: string; rail: string; chipBg: string; chipFg: string }
+> = {
   'awaiting-acceptance': {
-    label: 'Awaiting seller acceptance',
-    color: '#2c5f8f',
-    bg: 'rgba(44,95,143,0.10)',
+    label: 'Pending acceptance',
+    rail: '#4a5aa3',
+    chipBg: 'rgba(60, 74, 138, 0.10)',
+    chipFg: '#3a4a85',
   },
   'awaiting-delivery': {
     label: 'Awaiting delivery',
-    color: '#2c5f8f',
-    bg: 'rgba(44,95,143,0.10)',
+    rail: '#4a5aa3',
+    chipBg: 'rgba(60, 74, 138, 0.10)',
+    chipFg: '#3a4a85',
   },
   'awaiting-first-release': {
-    label: 'Delivered · awaiting release',
-    color: '#b45309',
-    bg: 'rgba(180,83,9,0.12)',
+    label: 'Delivered',
+    rail: '#c96030',
+    chipBg: 'rgba(178, 84, 37, 0.12)',
+    chipFg: '#b25425',
   },
   'awaiting-final-release': {
-    label: 'Awaiting final release',
-    color: '#b45309',
-    bg: 'rgba(180,83,9,0.12)',
+    label: 'Releasing',
+    rail: '#c96030',
+    chipBg: 'rgba(178, 84, 37, 0.12)',
+    chipFg: '#b25425',
   },
   settled: {
     label: 'Settled',
-    color: '#15803d',
-    bg: 'rgba(21,128,61,0.12)',
+    rail: '#0e8c5f',
+    chipBg: 'rgba(10, 117, 83, 0.12)',
+    chipFg: '#0a7553',
   },
   cancelled: {
     label: 'Cancelled',
-    color: '#b91c1c',
-    bg: 'rgba(185,28,28,0.10)',
+    rail: '#b03d3a',
+    chipBg: 'rgba(156, 55, 53, 0.10)',
+    chipFg: '#9c3735',
   },
   disputed: {
     label: 'Disputed',
-    color: '#9a1f3a',
-    bg: 'rgba(154,31,58,0.12)',
+    rail: '#92294a',
+    chipBg: 'rgba(126, 36, 64, 0.10)',
+    chipFg: '#7e2440',
   },
 };
 
@@ -72,18 +82,21 @@ export function StageBadge({ stage }: { stage: DealStage }) {
   const m = STAGE_META[stage];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.08em]"
-      style={{ background: m.bg, color: m.color }}
+      className="inline-flex items-stretch border text-[10px] mono font-semibold uppercase tracking-[0.14em]"
+      style={{ borderColor: m.chipBg, background: m.chipBg, color: m.chipFg, borderRadius: 3 }}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.color }} />
-      {m.label}
+      <span className="flex items-center px-1.5 border-r" style={{ borderColor: m.chipBg }}>
+        <span
+          aria-hidden
+          className="block w-[5px] h-[5px]"
+          style={{ background: m.chipFg }}
+        />
+      </span>
+      <span className="px-2 py-1">{m.label}</span>
     </span>
   );
 }
 
-/// `role` scopes the list to one side of the deal: 'buyer' shows only deals
-/// the connected wallet opened, 'seller' only deals that name it as seller.
-/// Omitting it shows both sides.
 export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
   const { address } = useAccount();
   const { deals, fetchState } = useDirectDeals();
@@ -96,71 +109,117 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
   });
 
   if (fetchState === 'loading' || fetchState === 'idle') {
-    return <p className="px-5 py-8 text-[13px] text-[var(--color-ink-faint)]">Loading deals…</p>;
+    return (
+      <div className="p-8 space-y-3">
+        <div className="h-16 rounded-lg bg-black/[0.05] animate-pulse motion-reduce:animate-none" />
+        <div className="h-16 rounded-lg bg-black/[0.05] animate-pulse motion-reduce:animate-none" />
+        <div className="h-16 rounded-lg bg-black/[0.05] animate-pulse motion-reduce:animate-none" />
+      </div>
+    );
   }
   if (fetchState === 'error') {
     return (
-      <p className="px-5 py-8 text-[13px] text-[var(--color-ink-faint)]">
+      <p className="p-8 text-center mono text-[12px] uppercase tracking-[0.1em] text-[#7a1f1a]">
         Couldn&apos;t load direct deals.
       </p>
     );
   }
   if (scoped.length === 0) {
     return (
-      <div className="px-5 py-10 text-center">
-        <p className="text-[13px] text-[var(--color-ink-dim)]">No direct deals yet.</p>
-        <p className="text-[11px] text-[var(--color-ink-faint)] mt-1">
+      <div className="p-10 text-center space-y-2">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          NO DEALS YET
+        </p>
+        <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
           {role === 'seller'
-            ? 'Deals that name your wallet as the seller show up here.'
+            ? 'Deals naming your wallet land here.'
             : role === 'buyer'
-            ? 'Deals you open show up here.'
-            : 'Deals you open or that name your wallet show up here.'}
+              ? 'Deals you open land here.'
+              : 'Deals you open or that name your wallet land here.'}
         </p>
       </div>
     );
   }
 
   return (
-    <ul className="divide-y divide-[var(--color-line)]">
+    <ul className="divide-y divide-[var(--lp-border-light)]">
       {scoped.map((deal) => {
         const stage = stageOf(deal);
         const isBuyer = address?.toLowerCase() === deal.buyer;
         const counterparty = isBuyer ? deal.seller : deal.buyer;
+        const meta = STAGE_META[stage];
         return (
-          <li key={deal.jobId}>
+          <li key={deal.jobId} className="group relative">
             <Link
               href={`/deals/${deal.jobId}`}
-              className="block px-5 py-4 hover:bg-[var(--color-surface-2)] transition-colors"
+              className={cn(
+                'block px-6 py-5 transition-colors hover:bg-[var(--lp-light)]',
+                'focus-visible:outline-none focus-visible:bg-[var(--lp-light)]',
+              )}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
-                      {isBuyer ? 'You buying' : 'You selling'}
+              <span
+                aria-hidden
+                className="absolute left-0 top-3 bottom-3 w-[3px] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
+                style={{ background: meta.rail }}
+              />
+              <div className="flex items-center justify-between gap-6">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+                      {isBuyer ? 'BUYING' : 'SELLING'}
                     </span>
                     <StageBadge stage={stage} />
                   </div>
-                  <p
-                    className="text-[19px] font-medium tabular-nums tracking-tight mt-1.5"
-                    style={{ fontFamily: 'var(--font-serif)' }}
-                  >
-                    {formatUsdc(deal.dealAmountUsdc)}
-                  </p>
-                  <p className="text-[12px] text-[var(--color-ink-dim)] mt-0.5 line-clamp-1">
+                  <div className="mt-2.5 flex items-baseline gap-2">
+                    <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+                      {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
+                    </span>
+                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                      USDC
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[13px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch]">
                     {deal.terms}
                   </p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
-                    {isBuyer ? 'Seller' : 'Buyer'}
+                <div className="text-right shrink-0 space-y-1.5">
+                  <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+                    {isBuyer ? 'SELLER' : 'BUYER'}
                   </p>
-                  <p className="text-[12px] mono text-[var(--color-ink-dim)] mt-0.5">
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 mono text-[11px] border"
+                    style={{
+                      borderColor: 'var(--lp-border-light)',
+                      background: 'var(--lp-light)',
+                      color: 'var(--lp-dark)',
+                      borderRadius: 2,
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="w-[5px] h-[5px]"
+                      style={{ background: 'var(--lp-accent)' }}
+                    />
                     {shortAddress(counterparty)}
-                  </p>
-                  <p className="text-[10px] mono text-[var(--color-ink-faint)] mt-1.5">
+                  </span>
+                  <p className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
                     {shortHash(deal.jobId, 6, 4)}
                   </p>
                 </div>
+                <span
+                  aria-hidden
+                  className="hidden md:inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--lp-light)] transition-transform duration-200 group-hover:rotate-[20deg] group-hover:translate-x-0.5"
+                >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M5 11l6-6M5.5 5h5.5v5.5"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
               </div>
             </Link>
           </li>

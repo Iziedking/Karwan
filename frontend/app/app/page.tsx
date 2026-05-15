@@ -9,6 +9,17 @@ import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { shortAddress } from '@/shared/utils/format';
+import {
+  FullBleed,
+  Band,
+  GridOverlay,
+  SectionTag,
+  HeroHeadline,
+  Punc,
+  Accent,
+  CTAPill,
+  BigStatTile,
+} from '@/shared/components/Bands';
 
 interface NetStats {
   deals: number;
@@ -114,8 +125,7 @@ export default function AppHome() {
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              Your buyer agent runs the auction. You approve the final terms. Direct deals when
-              the counterparty is already named.
+              Your agent runs the auction. You approve the terms.
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               <CTAPill href="/buyer">Post a brief ↗</CTAPill>
@@ -147,8 +157,7 @@ export default function AppHome() {
           Three doors.
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Same escrow rails, same reputation, three ways in. Pick the door that matches what
-          you&apos;re doing right now.
+          Same escrow. Same reputation. Three entry points.
         </p>
         <div className="mt-12 grid md:grid-cols-3 gap-5">
           <div className="fade-up fade-up-1">
@@ -157,7 +166,7 @@ export default function AppHome() {
               tone="cream"
               eyebrow="BUYER"
               title="Post a brief"
-              body="Your agent posts on chain and runs the negotiation."
+              body="Run the auction from a brief."
               vignette={<BriefVignette />}
             />
           </div>
@@ -167,7 +176,7 @@ export default function AppHome() {
               tone="dark"
               eyebrow="SELLER"
               title="Watch the bids"
-              body="Your seller agent bids on briefs that match your skills."
+              body="Your agent bids on matched briefs."
               vignette={<BidVignette />}
             />
           </div>
@@ -177,7 +186,7 @@ export default function AppHome() {
               tone="accent"
               eyebrow="ACTIVITY"
               title="Audit every event"
-              body="Every on-chain event, newest first. Deep-links to the explorer."
+              body="Full event log with explorer links."
               vignette={<StreamVignette />}
             />
           </div>
@@ -244,7 +253,7 @@ export default function AppHome() {
           What&apos;s <Accent>live</Accent> right now<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Every direct deal on the network, with its live escrow state.
+          Direct deals across the network.
         </p>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
@@ -259,170 +268,6 @@ export default function AppHome() {
         </div>
       </Band>
     </FullBleed>
-  );
-}
-
-/* ============================================================================
-   LANDING-GRADE PRIMITIVES (mirrored locally so /app rhymes with the landing
-   page without depending on app/page.tsx's locals)
-   ============================================================================ */
-
-function FullBleed({ children }: { children: ReactNode }) {
-  return <div className="-mt-10 -mb-10">{children}</div>;
-}
-
-function Band({
-  tone,
-  children,
-  overlay,
-  className,
-}: {
-  tone: 'dark' | 'light';
-  children: ReactNode;
-  overlay?: ReactNode;
-  className?: string;
-}) {
-  const dark = tone === 'dark';
-  return (
-    <section
-      className={cn(
-        'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden',
-        dark ? 'bg-[var(--lp-dark)] text-white' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
-        className,
-      )}
-    >
-      {overlay}
-      <div className="relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-[clamp(64px,9vw,140px)]">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function GridOverlay() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 opacity-50 grid-drift"
-      style={{
-        backgroundImage:
-          'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
-        backgroundSize: '80px 80px',
-        maskImage: 'radial-gradient(ellipse 90% 80% at 100% 0%, black, transparent 70%)',
-        WebkitMaskImage: 'radial-gradient(ellipse 90% 80% at 100% 0%, black, transparent 70%)',
-      }}
-    />
-  );
-}
-
-function SectionTag({
-  children,
-  tone = 'light',
-  dot,
-}: {
-  children: ReactNode;
-  tone?: 'dark' | 'light';
-  dot?: 'live';
-}) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-2 mono text-[12px] font-medium uppercase tracking-[0.16em]',
-        tone === 'dark' ? 'text-white/70' : 'text-[var(--lp-text-sub)]',
-      )}
-    >
-      {dot === 'live' ? (
-        <span aria-hidden className="relative flex w-[7px] h-[7px]">
-          <span
-            className="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping"
-            style={{ background: 'var(--lp-accent)' }}
-          />
-          <span
-            className="relative inline-flex w-[7px] h-[7px] rounded-full"
-            style={{ background: 'var(--lp-accent)' }}
-          />
-        </span>
-      ) : (
-        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
-      )}
-      [:{children}:]
-    </span>
-  );
-}
-
-function HeroHeadline({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <h1
-      className={cn(
-        'mt-7 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,6vw,4.75rem)]',
-        className,
-      )}
-    >
-      {children}
-    </h1>
-  );
-}
-
-function Punc({ children }: { children: ReactNode }) {
-  return <span className="text-[var(--lp-accent)]">{children}</span>;
-}
-
-function Accent({ children }: { children: ReactNode }) {
-  return <span className="text-[var(--lp-accent)]">{children}</span>;
-}
-
-function CTAPill({
-  href,
-  children,
-  variant = 'primary',
-  tone = 'dark',
-}: {
-  href: string;
-  children: ReactNode;
-  variant?: 'primary' | 'secondary';
-  tone?: 'dark' | 'light';
-}) {
-  const base =
-    'inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] ' +
-    'transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 ' +
-    'focus-visible:outline-none focus-visible:ring-2 ' +
-    'focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2';
-  const corners = {
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 4,
-  };
-  if (variant === 'primary') {
-    return (
-      <Link
-        href={href}
-        style={corners}
-        className={cn(
-          base,
-          'bg-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]',
-          tone === 'dark'
-            ? 'focus-visible:ring-offset-[var(--lp-dark)]'
-            : 'focus-visible:ring-offset-[var(--lp-light)]',
-        )}
-      >
-        {children}
-      </Link>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      style={corners}
-      className={cn(
-        base,
-        tone === 'dark'
-          ? 'border border-white/25 text-white hover:border-white/55 focus-visible:ring-offset-[var(--lp-dark)]'
-          : 'border border-black/20 text-[var(--lp-dark)] hover:border-black/45 focus-visible:ring-offset-[var(--lp-light)]',
-      )}
-    >
-      {children}
-    </Link>
   );
 }
 
@@ -887,53 +732,3 @@ function StreamVignette() {
   );
 }
 
-/* ============================================================================
-   BIG STAT TILE for the Live network band
-   ============================================================================ */
-
-function BigStatTile({
-  label,
-  value,
-  unit,
-  hint,
-  loading,
-}: {
-  label: string;
-  value: ReactNode;
-  unit?: string;
-  hint?: string;
-  loading?: boolean;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden p-5"
-      style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/55">{label}</p>
-      {loading ? (
-        <div className="mt-3 h-8 w-20 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-      ) : (
-        <div className="mt-3 flex items-baseline gap-1.5">
-          <span className="font-sans text-[clamp(2rem,3.4vw,2.75rem)] font-extrabold tabular-nums tracking-[-0.02em] text-white leading-none">
-            {value}
-          </span>
-          {unit && (
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/55">
-              {unit}
-            </span>
-          )}
-        </div>
-      )}
-      {hint && (
-        <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">{hint}</p>
-      )}
-    </div>
-  );
-}
