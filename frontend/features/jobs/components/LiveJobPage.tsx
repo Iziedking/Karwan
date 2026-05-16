@@ -306,7 +306,7 @@ function StatusChip({
     <span
       className="inline-flex items-stretch overflow-hidden mono leading-none text-white"
       style={{
-        background: 'var(--lp-dark)',
+        background: 'var(--lp-band-dark)',
         borderTopLeftRadius: 8,
         borderTopRightRadius: 8,
         borderBottomLeftRadius: 8,

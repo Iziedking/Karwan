@@ -134,7 +134,7 @@ export function ListingsBrowse() {
       <SignInGate
         variant="page"
         tag="MARKETPLACE"
-        body="The marketplace shows live offers and briefs matched to your profile. Sign in so your agent can watch both sides for you."
+        body="Live offers and briefs matched to your profile. Sign in to watch both sides."
       />
     );
   }
@@ -156,8 +156,7 @@ export function ListingsBrowse() {
           </HeroHeadline>
         </div>
         <p className="fade-up fade-up-2 mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
-          Live offers and live briefs on Karwan. Your agent watches both sides for you. when
-          something matches your profile, it lands in your bell and your Telegram.
+          Live offers and briefs on Karwan. Matches land in your bell and Telegram.
         </p>
       </Band>
 

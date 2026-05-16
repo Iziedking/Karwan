@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
@@ -30,7 +30,7 @@ export function Band({
     <section
       className={cn(
         'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden',
-        dark ? 'bg-[var(--lp-dark)] text-white' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
+        dark ? 'bg-[var(--lp-band-dark)] text-white' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
         className,
       )}
     >
@@ -303,7 +303,7 @@ export function PageCard({
       className={cn(
         'overflow-hidden',
         isDark
-          ? 'bg-[var(--lp-dark)] text-white border border-white/[0.08]'
+          ? 'bg-[var(--lp-band-dark)] text-white border border-white/[0.08]'
           : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]',
         className,
       )}

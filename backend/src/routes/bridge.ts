@@ -76,6 +76,22 @@ bridgeRoutes.post('/relay', async (c) => {
     return c.json({ accepted: false, reason: 'bridge already in progress' }, 409);
   }
 
+  // Refuse to clobber an existing bridge's burn hash. The frontend retry path
+  // diverts to /recheck when a burn already exists, but a stale tab or a bad
+  // client could still POST a fresh burn for the same bridgeId — that would
+  // overwrite the original sourceTxHash and orphan the user's first burn.
+  const existing = await getBridge(body.bridgeId);
+  if (existing && existing.sourceTxHash.toLowerCase() !== body.sourceTxHash.toLowerCase()) {
+    return c.json(
+      {
+        accepted: false,
+        reason: 'bridge already exists with a different sourceTxHash; use /recheck instead',
+        existingSourceTxHash: existing.sourceTxHash,
+      },
+      409,
+    );
+  }
+
   // Persist before starting the loop, so a backend restart can resume the relay
   // instead of stranding the burn.
   await createBridge({
@@ -137,7 +153,41 @@ export async function resumePendingBridges(): Promise<void> {
 
 /// Marks a bridge minted and emits the event. Used both after a successful
 /// receiveMessage and when a relay finds the message was already received.
-async function markBridgeMinted(input: RelayInput, txHash?: string) {
+///
+/// When called with a txHash we verify the on-chain receipt status is success
+/// before flipping the DB row. Without a verified receipt we'd report "minted"
+/// for a transaction that may have actually reverted, leaving the user's
+/// burned USDC stuck on the source chain with the UI showing success.
+async function markBridgeMinted(input: RelayInput, txHash?: string): Promise<boolean> {
+  if (txHash) {
+    try {
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash as `0x${string}`,
+        timeout: 60_000,
+      });
+      if (receipt.status !== 'success') {
+        const message = `receiveMessage tx ${txHash} reverted on chain (status=${receipt.status})`;
+        logger.error({ bridgeId: input.bridgeId, txHash }, message);
+        await patchBridge(input.bridgeId, { status: 'error', error: message });
+        bus.emitEvent({
+          type: 'bridge.error',
+          actor: 'buyer',
+          payload: { bridgeId: input.bridgeId, scope: 'receiveMessage', message },
+        });
+        return false;
+      }
+    } catch (err) {
+      const message = `Could not verify receiveMessage receipt: ${(err as Error).message}`;
+      logger.error({ bridgeId: input.bridgeId, txHash, err: (err as Error).message }, message);
+      await patchBridge(input.bridgeId, { status: 'error', error: message });
+      bus.emitEvent({
+        type: 'bridge.error',
+        actor: 'buyer',
+        payload: { bridgeId: input.bridgeId, scope: 'receiveMessage', message },
+      });
+      return false;
+    }
+  }
   await patchBridge(input.bridgeId, { status: 'minted', ...(txHash ? { mintTxHash: txHash } : {}) });
   bus.emitEvent({
     type: 'bridge.minted',
@@ -150,6 +200,7 @@ async function markBridgeMinted(input: RelayInput, txHash?: string) {
       ...(txHash ? { txHash } : { alreadyMinted: true }),
     },
   });
+  return true;
 }
 
 async function relayLoop(input: RelayInput) {
@@ -325,7 +376,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
       },
       `cctp.receiveMessage(recheck ${bridgeId})`,
     );
-    await markBridgeMinted(
+    const ok = await markBridgeMinted(
       {
         bridgeId,
         sourceDomain: record.sourceDomain,
@@ -335,6 +386,16 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
       },
       result.txHash,
     );
+    if (!ok) {
+      // markBridgeMinted has already patched the DB to status:error and
+      // emitted bridge.error. Surface the failure to the caller instead of
+      // claiming success.
+      const fresh = await getBridge(bridgeId);
+      return c.json(
+        { status: 'error', error: fresh?.error ?? 'mint tx did not confirm on chain' },
+        502,
+      );
+    }
     return c.json({ status: 'minted', mintTxHash: result.txHash });
   } catch (err) {
     const message = (err as Error).message;

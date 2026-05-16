@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useBalance } from 'wagmi';
+import { useBalance, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
 import { CopyAddress } from '@/shared/components/CopyAddress';
@@ -53,6 +53,13 @@ export function ArcFundCard({
   const address = auth.address as `0x${string}` | undefined;
   const isConnected = auth.isAuthenticated;
   const isCircleUser = auth.method === 'circle';
+  // wagmi-reported chain of the connected EIP-1193 wallet. For Circle-only
+  // users this defaults to whatever wagmi has (often the wagmi default chain
+  // even when no wallet is connected), so we only read it for web3 users.
+  const walletChainId = useChainId();
+  const onWrongChain = !isCircleUser && isConnected && walletChainId !== ARC_CHAIN_ID;
+  // Balance reads target Arc directly via the wagmi public RPC, not the
+  // wallet, so they remain accurate even when the wallet is on another chain.
   const arcBalance = useBalance({ address, chainId: ARC_CHAIN_ID });
   const buyerArcBalance = useBalance({
     address: (buyerAgent as `0x${string}`) || undefined,
@@ -388,7 +395,11 @@ export function ArcFundCard({
             'Transfer in progress…'
           ) : (
             <>
-              <span>Send to {selectedAgent?.label.toLowerCase() ?? 'agent'}</span>
+              <span>
+                {onWrongChain
+                  ? `Switch to Arc & send to ${selectedAgent?.label.toLowerCase() ?? 'agent'}`
+                  : `Send to ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
+              </span>
               <span
                 aria-hidden
                 className="inline-flex transition-transform group-hover:translate-x-0.5"

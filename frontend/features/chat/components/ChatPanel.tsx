@@ -104,7 +104,7 @@ export function ChatPanel({
                 className={cn(
                   'max-w-[78%] px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
                   mine
-                    ? 'bg-[var(--lp-dark)] text-white'
+                    ? 'bg-[var(--lp-band-dark)] text-white'
                     : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]',
                 )}
                 style={{

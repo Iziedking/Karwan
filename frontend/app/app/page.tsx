@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -112,12 +112,12 @@ export default function AppHome() {
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              Your agent runs the auction. You approve the terms.
+              Agents run the auction. You approve the terms.
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/buyer">Post a brief ↗</CTAPill>
+              <CTAPill href="/buyer">Post a brief â†—</CTAPill>
               <CTAPill href="/activity" variant="secondary" tone="dark">
-                View activity →
+                View activity â†’
               </CTAPill>
               <span className="ml-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
@@ -158,7 +158,7 @@ export default function AppHome() {
               tone="cream"
               eyebrow="BUYER"
               title="Post a brief"
-              body="Run the auction from a brief."
+              body="Run an auction from a brief."
               vignette={<BriefVignette />}
             />
           </div>
@@ -168,7 +168,7 @@ export default function AppHome() {
               tone="dark"
               eyebrow="SELLER"
               title="Watch the bids"
-              body="Your agent bids on matched briefs."
+              body="Bids placed on matched briefs."
               vignette={<BidVignette />}
             />
           </div>
@@ -205,7 +205,7 @@ export default function AppHome() {
           >
             Full feed
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
-              →
+              â†’
             </span>
           </Link>
         </div>
@@ -251,7 +251,7 @@ export default function AppHome() {
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              Every open, settle, and cancel across Karwan. Hover to pause.
+              Every open, settle, and cancel on Karwan. Hover to pause.
             </p>
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function AppHome() {
           Your <Accent>book</Accent><Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Every deal where you are the buyer or seller. Direct and agent-matched.
+          Every deal where you are buyer or seller. Direct and agent-matched.
         </p>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
@@ -327,7 +327,7 @@ function HeroAgentCard({
           Buyer agent <span className="text-[var(--lp-accent)]">active</span>
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
-          Scoring briefs, countering once per round, funding on accept.
+          Scoring bids. One counter per round. Funding on accept.
         </p>
       </div>
       <div className="grid grid-cols-3 divide-x divide-white/[0.08]">
@@ -389,7 +389,7 @@ function FeatureCard({
 }) {
   const surface =
     tone === 'dark'
-      ? 'bg-[var(--lp-dark)] text-white'
+      ? 'bg-[var(--lp-band-dark)] text-white'
       : tone === 'accent'
         ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
@@ -505,12 +505,12 @@ function BriefVignette() {
     <div className="px-4 py-4 space-y-3 flex-1 flex flex-col">
       <div className="flex items-center justify-between">
         <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          BRIEF · 0x12ab
+          BRIEF Â· 0x12ab
         </span>
         <span className="mono text-[10px] tabular-nums text-[var(--lp-text-sub)]">2 min</span>
       </div>
       <p className="text-[13px] font-semibold leading-snug text-[var(--lp-dark)]">
-        Spanish → Arabic legal translation. 14 pages.
+        Spanish â†’ Arabic legal translation. 14 pages.
       </p>
       <div className="flex items-baseline gap-1.5">
         <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -520,7 +520,7 @@ function BriefVignette() {
           USDC
         </span>
         <span className="ml-2 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
-          · 5d · {bids} bids
+          Â· 5d Â· {bids} bids
         </span>
       </div>
       <div className="flex gap-[2px] pt-1">
@@ -594,7 +594,7 @@ function BidVignette() {
           <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-accent)]">
             LEAD
           </span>
-          <span className="mono text-[10px] text-white/70">0x1d36…35Ce</span>
+          <span className="mono text-[10px] text-white/70">0x1d36â€¦35Ce</span>
         </span>
         <span className="inline-flex items-center gap-1.5 mono text-[10px] text-white/55">
           <span
@@ -653,13 +653,13 @@ function StreamVignette() {
   const pool = useMemo(
     () =>
       [
-        { label: 'bid.scored', addr: '0x12ab…cd34', tone: 'buyer' as const },
-        { label: 'deal.matched', addr: '0xa045…03c5', tone: 'system' as const },
-        { label: 'escrow.funded', addr: '0xb2ca…f9c9', tone: 'buyer' as const },
-        { label: 'milestone.released', addr: '0x4d61…4f75', tone: 'buyer' as const },
-        { label: 'counter.issued', addr: '0xc469…6cb0', tone: 'buyer' as const },
-        { label: 'listing.posted', addr: '0xf4ea…5c8b', tone: 'seller' as const },
-        { label: 'bid.submitted', addr: '0x17e6…1176', tone: 'seller' as const },
+        { label: 'bid.scored', addr: '0x12abâ€¦cd34', tone: 'buyer' as const },
+        { label: 'deal.matched', addr: '0xa045â€¦03c5', tone: 'system' as const },
+        { label: 'escrow.funded', addr: '0xb2caâ€¦f9c9', tone: 'buyer' as const },
+        { label: 'milestone.released', addr: '0x4d61â€¦4f75', tone: 'buyer' as const },
+        { label: 'counter.issued', addr: '0xc469â€¦6cb0', tone: 'buyer' as const },
+        { label: 'listing.posted', addr: '0xf4eaâ€¦5c8b', tone: 'seller' as const },
+        { label: 'bid.submitted', addr: '0x17e6â€¦1176', tone: 'seller' as const },
       ],
     [],
   );
@@ -694,7 +694,7 @@ function StreamVignette() {
             data-instrument-blink
             className="w-[5px] h-[5px]"
             style={{
-              background: 'var(--lp-dark)',
+              background: 'var(--lp-band-dark)',
               animation: 'instrumentBlink 1.6s ease-in-out infinite',
             }}
           />

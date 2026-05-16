@@ -38,11 +38,21 @@ export interface StartFundInput {
 const STORAGE_KEY_PREFIX = 'karwan:arc-fund:';
 const MAX_HISTORY = 8;
 
-function friendlyFundError(err: unknown): string {
+function friendlyFundError(err: unknown, phase?: FundPhase): string {
   const raw = err instanceof Error ? err.message : String(err ?? '');
   const lower = raw.toLowerCase();
-  if (lower.includes('user rejected') || lower.includes('user denied') || lower.includes('rejected the request')) {
-    return 'Cancelled in wallet';
+  const rejected =
+    lower.includes('user rejected') ||
+    lower.includes('user denied') ||
+    lower.includes('rejected the request');
+  if (rejected) {
+    return phase === 'switching' ? 'Chain switch declined. Approve to switch to Arc.' : 'Cancelled in wallet';
+  }
+  if (phase === 'switching') {
+    if (lower.includes('unrecognized chain') || lower.includes('unknown chain') || lower.includes('chain id') ) {
+      return 'Wallet does not know Arc Testnet. Add the chain, then retry.';
+    }
+    return 'Could not switch wallet to Arc. Retry to try again.';
   }
   if (lower.includes('insufficient funds') || lower.includes('exceeds balance')) {
     return 'Not enough USDC on Arc';
@@ -177,9 +187,19 @@ export function useArcFund() {
         return;
       }
       const amountWei = parseUnits(record.amountUsdc, ARC_NATIVE_DECIMALS);
+      // Track which phase the wallet was in when an error was thrown so the
+      // error message can be phase-specific (eg. "chain switch declined" vs
+      // "transfer cancelled in wallet"). Both originate as user-rejection
+      // errors but mean very different things to the user.
+      let activePhase: FundPhase = 'switching';
 
       try {
         if (chainId !== ARC_CHAIN_ID) {
+          // Make sure the record is in 'switching' before the wallet pops.
+          // If a retry came in from an 'error' state, the record was patched
+          // to 'switching' there too — but if the user is already on Arc the
+          // visible phase needs to advance fast so the row doesn't look stuck.
+          patch(record.id, (r) => ({ ...r, phase: 'switching' }));
           await switchChainAsync({ chainId: ARC_CHAIN_ID });
         }
 
@@ -189,6 +209,7 @@ export function useArcFund() {
           throw new Error('Not enough USDC on Arc');
         }
 
+        activePhase = 'signing';
         patch(record.id, (r) => ({ ...r, phase: 'signing' }));
         // Plain native value transfer. The recipient's native balance is exactly
         // what the app and backend read as the agent's USDC holdings.
@@ -198,6 +219,7 @@ export function useArcFund() {
           chain: walletClient.chain,
           account: address,
         });
+        activePhase = 'confirming';
         patch(record.id, (r) => ({ ...r, phase: 'confirming', txHash: hash }));
         // Cap the wait so a flaky RPC doesn't strand the UI. If we time out,
         // the resume effect will pick this record back up on next page load and
@@ -218,7 +240,7 @@ export function useArcFund() {
           }));
         }
       } catch (err) {
-        patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyFundError(err) }));
+        patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyFundError(err, activePhase) }));
       }
     },
     [address, arcClient, chainId, isConnected, patch, switchChainAsync, walletClient],

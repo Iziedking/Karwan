@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SOURCE_CHAINS, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
@@ -47,10 +47,10 @@ function elapsed(ts: number): string {
   return `${h}h ${m % 60}m`;
 }
 
-function phaseLabel(phase: BridgePhase): string {
+function phaseLabel(phase: BridgePhase, sourceShortName?: string): string {
   switch (phase) {
     case 'switching':
-      return 'Switching chain';
+      return sourceShortName ? `Switching to ${sourceShortName}` : 'Switching chain';
     case 'approving':
       return 'Approving USDC';
     case 'burning':
@@ -105,6 +105,7 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 
 export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` }) {
   const { isConnected } = useAccount();
+  const walletChainId = useChainId();
   const auth = useAuth();
   // Circle-only users have an identity wallet on Arc but no source-chain
   // wallet to sign the CCTP burn. We surface a clear note instead of leaving
@@ -117,6 +118,12 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const source = SOURCE_CHAINS[sourceKey];
+  // The wagmi wallet may be on Arc (the user just funded an agent there) or on
+  // any other chain. The bridge flow will switch it automatically, but the CTA
+  // label tells the user that's about to happen so the wallet pop-up isn't a
+  // surprise. Circle users never reach this branch — they hit the heads-up
+  // note above and the submit stays disabled.
+  const onWrongChain = isConnected && walletChainId !== source.chainId;
   const canSubmit =
     isConnected && typeof amount === 'number' && amount > 0 && !!mintRecipient;
 
@@ -133,7 +140,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
           [:BRIDGE:]
         </span>
         <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">
-          Buyer agent address is not configured.
+          Buyer agent not configured.
         </p>
       </div>
     );
@@ -348,7 +355,11 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
           >
             {isConnected ? (
               <>
-                <span>Bridge from {source.shortName}</span>
+                <span>
+                  {onWrongChain
+                    ? `Switch to ${source.shortName} & bridge`
+                    : `Bridge from ${source.shortName}`}
+                </span>
                 <span
                   aria-hidden
                   className="inline-flex transition-transform group-hover:translate-x-0.5"
@@ -464,7 +475,7 @@ function BridgeRow({
             </span>
           </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <PhaseChip tone={tone} label={phaseLabel(bridge.phase)} />
+            <PhaseChip tone={tone} label={phaseLabel(bridge.phase, source.shortName)} />
             <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none tabular-nums">
               {elapsed(bridge.startedAt)}
             </span>
@@ -585,7 +596,7 @@ function BridgeRow({
                 onClick={onRetry}
                 className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
                 style={{
-                  background: 'var(--lp-dark)',
+                  background: 'var(--lp-band-dark)',
                   color: 'white',
                   borderTopLeftRadius: 8,
                   borderTopRightRadius: 8,

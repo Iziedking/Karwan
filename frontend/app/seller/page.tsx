@@ -28,17 +28,17 @@ const STEPS = [
   {
     n: '01',
     title: 'Watches the chain',
-    body: 'Subscribes to JobPosted events from the JobBoard contract on Arc.',
+    body: 'Listens for new briefs on Arc as they post.',
   },
   {
     n: '02',
     title: 'Scores the brief',
-    body: "Reads the buyer's brief against your skills and ranges, asks an LLM whether to bid.",
+    body: 'Matches each brief against your skills and ranges. Bids or skips.',
   },
   {
     n: '03',
     title: 'Bids, negotiates',
-    body: 'Submits a bid on chain. Responds to counters within your accepted range.',
+    body: 'Submits on chain. Replies to counters inside your range.',
   },
 ];
 
@@ -78,7 +78,7 @@ export default function SellerPage() {
       <SignInGate
         variant="page"
         tag="SELLER DESK"
-        body="Listings and bids are keyed to your wallet. Sign in to set up your seller agent."
+        body="Listings and bids are keyed to your wallet. Sign in to set up the seller agent."
       />
     );
   }
@@ -96,15 +96,14 @@ export default function SellerPage() {
             </div>
             <div className="fade-up fade-up-1">
               <HeroHeadline>
-                Your agent
+                Bids land
                 <br />
-                bids while you <Accent>sleep</Accent>
+                while you <Accent>sleep</Accent>
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              The seller agent watches the chain and bids on briefs that match your skills, within
-              the ranges you set. You wake up to a matched deal.
+              Listens for briefs. Bids inside the ranges you set. Wake up to matched deals.
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               <a
@@ -144,8 +143,7 @@ export default function SellerPage() {
           <Accent>One agent.</Accent>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Every activated wallet runs its own seller agent. Set skills and ranges on your profile,
-          then post listings here to broadcast what you offer.
+          Every activated wallet runs a seller agent. Set skills and ranges on profile, post listings here to broadcast supply.
         </p>
         <div className="mt-10 grid md:grid-cols-3 gap-5">
           {STEPS.map((s, i) => (
@@ -166,8 +164,7 @@ export default function SellerPage() {
           Set the floor.
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          Publish a listing. Your agent bids it at the asking price and negotiates within your
-          tolerance. Brief matches land in your inbox.
+          Publish a listing at your asking price. Matches land in your inbox.
         </p>
         <div className="mt-10 grid lg:grid-cols-3 gap-5 items-start">
           <div className="lg:col-span-2">
@@ -228,8 +225,7 @@ export default function SellerPage() {
               {activeBids.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
             <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Bids your agent has placed on open briefs. Counters happen automatically inside your
-              accepted range.
+              Bids placed on open briefs. Counters reply automatically inside your range.
             </p>
           </div>
         </div>
@@ -260,7 +256,7 @@ export default function SellerPage() {
               </div>
             ) : activeBids.length === 0 ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                No active bids. Post a listing and your agent will start scanning briefs.
+                No active bids. Post a listing to start scanning briefs.
               </p>
             ) : (
               <BidsTable bids={activeBids} />
@@ -362,8 +358,8 @@ function SellerAgentVignette({
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
           {activated
-            ? 'Watching briefs. Scoring against your skills. Bidding when matched.'
-            : 'Activate your agent on the profile page to start bidding on briefs.'}
+            ? 'Watching briefs. Scoring against skills. Bidding on match.'
+            : 'Activate on profile to start bidding.'}
         </p>
       </div>
       <div className="grid grid-cols-2 divide-x divide-white/[0.08]">

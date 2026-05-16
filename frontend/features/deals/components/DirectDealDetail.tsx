@@ -1171,7 +1171,7 @@ function CancelProposalBanner({
         className="flex items-center gap-1.5 px-3 py-1.5"
         style={{ background: 'var(--lp-accent)' }}
       >
-        <span aria-hidden className="inline-block w-[5px] h-[5px] bg-[var(--lp-dark)]" />
+        <span aria-hidden className="inline-block w-[5px] h-[5px] bg-[var(--lp-band-dark)]" />
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
           {kindLabel} PROPOSED
         </span>

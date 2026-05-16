@@ -33,7 +33,7 @@ export function SiteFooter() {
                   aria-hidden
                   className="inline-flex items-center justify-center w-12 h-12 border border-white/10 text-[var(--lp-accent)] transition-transform duration-200 group-hover:-translate-y-0.5"
                   style={{
-                    background: 'var(--lp-dark)',
+                    background: 'var(--lp-band-dark)',
                     borderTopLeftRadius: 12,
                     borderTopRightRadius: 12,
                     borderBottomLeftRadius: 12,
@@ -238,7 +238,7 @@ function FooterSocialLink({
     >
       <span
         aria-hidden
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--lp-light)] border border-[var(--lp-border-light)] text-[var(--lp-dark)] transition-[transform,background-color,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:bg-[var(--lp-dark)] group-hover:text-[var(--lp-accent)] group-hover:border-[var(--lp-dark)]"
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--lp-light)] border border-[var(--lp-border-light)] text-[var(--lp-dark)] transition-[transform,background-color,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:bg-[var(--lp-band-dark)] group-hover:text-[var(--lp-accent)] group-hover:border-[var(--lp-dark)]"
       >
         {glyph}
       </span>

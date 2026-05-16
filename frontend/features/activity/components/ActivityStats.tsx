@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import type { GroupCounts, EventGroup } from '../types';
 import { GROUP_LABELS } from '../types';
 import { cn } from '@/shared/utils/cn';
@@ -35,7 +35,7 @@ export function ActivityStats({
               `fade-up fade-up-${i + 1}`,
             )}
             style={{
-              background: 'var(--lp-dark)',
+              background: 'var(--lp-band-dark)',
               color: 'white',
               border: active ? '1px solid var(--lp-accent)' : '1px solid rgba(255,255,255,0.08)',
               boxShadow: active
@@ -66,7 +66,7 @@ export function ActivityStats({
               {counts[g]}
             </p>
             <p className="mt-2 mono text-[10px] uppercase tracking-[0.16em] text-white/55">
-              {active ? '↳ filtering' : 'events'}
+              {active ? 'â†³ filtering' : 'events'}
             </p>
             {active && (
               <span

@@ -160,7 +160,7 @@ export function PostJobForm() {
       <div
         className="relative overflow-hidden"
         style={{
-          background: 'var(--lp-dark)',
+          background: 'var(--lp-band-dark)',
           color: 'white',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,

@@ -62,7 +62,7 @@ export default function BuyerPage() {
       <SignInGate
         variant="page"
         tag="BUYER DESK"
-        body="Posting briefs and opening direct deals is keyed to your wallet. Sign in to continue."
+        body="Briefs and direct deals are keyed to your wallet. Sign in to continue."
       />
     );
   }
@@ -165,7 +165,7 @@ export default function BuyerPage() {
               MANAGED DEALS
             </SectionTag>
             <HeroHeadline size="md">
-              Your buyer agent
+              Running auctions
               {sortedJobs.length > 0 && (
                 <>
                   <Punc>.</Punc>
@@ -177,8 +177,7 @@ export default function BuyerPage() {
               {sortedJobs.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
             <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Auctions your agent is running for you. Scoring bids, countering once, funding
-              escrow when terms land.
+              Live auctions. Bids scored, one counter per round, escrow funded on accept.
             </p>
           </div>
         </div>
@@ -209,7 +208,7 @@ export default function BuyerPage() {
               </div>
             ) : sortedJobs.length === 0 ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                No managed deals yet. Post a brief above to run your first auction.
+                No managed deals yet. Post a brief to start one.
               </p>
             ) : (
               <JobsTable jobs={sortedJobs} />
@@ -270,8 +269,8 @@ function AgentStatusVignette({
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
           {activated
-            ? 'Scoring briefs. Countering once per round. Funding on accept.'
-            : 'Activate your agent on the profile page to start running auctions.'}
+            ? 'Scoring bids. One counter per round. Funding on accept.'
+            : 'Activate on profile to start running auctions.'}
         </p>
       </div>
       <div className="grid grid-cols-2 divide-x divide-white/[0.08]">

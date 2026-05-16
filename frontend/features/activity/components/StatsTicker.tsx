@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
 
@@ -10,7 +10,7 @@ interface TickerItem {
 // Static brand facts, shown until the live numbers load (and never fabricated).
 const BASE_ITEMS: TickerItem[] = [
   { value: 'ARC TESTNET', label: 'CHAIN 5042002' },
-  { value: 'CIRCLE', label: 'USDC · CCTP · WALLETS' },
+  { value: 'CIRCLE', label: 'USDC Â· CCTP Â· WALLETS' },
   { value: 'ERC-8004', label: 'PORTABLE REPUTATION' },
 ];
 
@@ -47,7 +47,7 @@ export function StatsTicker() {
   const track = [...items, ...items];
 
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b border-[var(--lp-border-subtle)] bg-[var(--lp-dark)]">
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b border-[var(--lp-border-subtle)] bg-[var(--lp-band-dark)]">
       <div
         className="flex w-max items-center"
         style={{ animation: 'marquee 38s linear infinite' }}

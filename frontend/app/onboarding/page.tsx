@@ -467,7 +467,7 @@ function RoleCard({
   const isSel = selected === role;
   const surface =
     tone === 'dark'
-      ? 'bg-[var(--lp-dark)] text-white'
+      ? 'bg-[var(--lp-band-dark)] text-white'
       : tone === 'accent'
         ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
@@ -541,7 +541,7 @@ function RoleCard({
               'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
               isSel
                 ? tone === 'accent'
-                  ? 'bg-[var(--lp-dark)] border-[var(--lp-dark)]'
+                  ? 'bg-[var(--lp-band-dark)] border-[var(--lp-dark)]'
                   : 'bg-[var(--lp-accent)] border-[var(--lp-accent)]'
                 : tone === 'dark'
                   ? 'border-white/30'

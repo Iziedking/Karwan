@@ -49,7 +49,7 @@ export default function ProfilePage() {
       <SignInGate
         variant="page"
         tag="PROFILE"
-        body="Profiles are keyed to your wallet. Sign in to set up your buyer and seller agents."
+        body="Profiles are keyed to your wallet. Sign in to set up buyer and seller agents."
       />
     );
   }
@@ -166,8 +166,8 @@ export default function ProfilePage() {
             </HeroHeadline>
             <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
               {activation.activated
-                ? 'Buyer and seller agent wallets sign every on-chain action. Fund or withdraw below.'
-                : 'Activation provisions a buyer and a seller Circle wallet for this address.'}
+                ? 'Buyer and seller wallets sign every on-chain action. Fund or withdraw below.'
+                : 'Activation provisions buyer and seller Circle wallets for this address.'}
             </p>
           </div>
           {!activation.activated && !activation.loading && (
@@ -186,7 +186,7 @@ export default function ProfilePage() {
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-              Switch any time. You can run both at once.
+              Switch any time. Run both at once.
             </p>
             <div className="mt-8">
               <PageCard>
@@ -201,11 +201,11 @@ export default function ProfilePage() {
             <Band tone="light" compact>
               <SectionTag>AGENT PROFILES</SectionTag>
               <HeroHeadline size="md">
-                What your agents <Accent>do</Accent>
+                Agent <Accent>ranges</Accent>
                 <Punc>.</Punc>
               </HeroHeadline>
               <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                Ranges your agents respect on every brief.
+                Ranges agents respect on every brief.
               </p>
               <div className="mt-10 grid md:grid-cols-2 gap-5">
                 {profile.buyer && (
@@ -260,8 +260,7 @@ export default function ProfilePage() {
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-            A profile gives you a display name and lets agents run managed deals. Direct deals and
-            agent wallets work without one.
+            A profile sets your display name and unlocks managed deals. Direct deals and agent wallets work without one.
           </p>
           <div className="mt-7">
             <CTAPill href="/onboarding">Set up profile</CTAPill>
@@ -277,7 +276,7 @@ export default function ProfilePage() {
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Wallet balances and the Base to Arc bridge.
+          Wallet balances. Base to Arc bridge.
         </p>
         <div className="mt-10 grid lg:grid-cols-2 gap-5">
           <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
@@ -292,7 +291,7 @@ export default function ProfilePage() {
           Fund<Punc>.</Punc> Withdraw<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          Top up the agent wallet that signs your deals, or sweep it back.
+          Top up the wallet that signs your deals. Sweep it back any time.
         </p>
         <div className="mt-10 grid lg:grid-cols-2 gap-5">
           <ArcFundCard
@@ -446,7 +445,7 @@ function AgentStatusVignette({
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
           {activated
-            ? 'Buyer and seller agent wallets are provisioned and signing.'
+            ? 'Buyer and seller wallets provisioned. Signing on chain.'
             : 'Activate below to provision agent wallets.'}
         </p>
       </div>

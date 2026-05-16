@@ -52,18 +52,43 @@ html[data-theme="dark"] {
   --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 40px -18px rgba(0, 0, 0, 0.7);
 }
 
-/* Landing page tokens — fixed and theme-independent. The landing page runs its
-   own high-contrast dark/light system, separate from the app's themed palette. */
+/* Landing-grade tokens used by the in-app routes. Two flavors:
+   - `--lp-band-dark` and `--lp-accent*` are theme-INDEPENDENT. The dark hero
+     band, lime CTA, and ink-colored chips stay the same in both modes — that
+     is the visual signature of the brand.
+   - everything else flips under html[data-theme="dark"] so cream surfaces
+     become near-black, white cards become elevated dark surfaces, and text
+     contrast inverts. */
 :root {
-  --lp-dark: #0e0e0e;
-  --lp-light: #f2f2f2;
-  --lp-card: #ffffff;
+  --lp-dark: #0e0e0e;             /* primary ink + dark surface in light mode */
+  --lp-light: #f2f2f2;            /* page/section background in light mode */
+  --lp-card: #ffffff;             /* card surface (over --lp-light) */
+  --lp-band-dark: #0e0e0e;        /* always-dark surface (dark bands + dark CTAs) */
   --lp-accent: #bde122;
   --lp-accent-hover: #a6c81a;
   --lp-text-muted: #9a9a9a;
   --lp-text-sub: #6b6b6b;
   --lp-border-subtle: rgba(255, 255, 255, 0.08);
   --lp-border-light: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="dark"] {
+  /* "ink" inverts. Every `text-[var(--lp-dark)]` across the app now reads as
+     a soft white on the new dark surfaces. */
+  --lp-dark: #ededed;
+  /* Page-level surface (was cream) becomes a near-black with a hint of warmth
+     so the cream→dark transition keeps the same compositional feel. */
+  --lp-light: #14141a;
+  /* Cards rise one notch above the surface for the same "panel on paper" feel
+     the light theme has with white-on-cream. */
+  --lp-card: #1c1c22;
+  /* Borders invert from ink-on-cream to light-on-black. */
+  --lp-border-light: rgba(255, 255, 255, 0.09);
+  --lp-border-subtle: rgba(0, 0, 0, 0.5);
+  /* Muted/sub text bumps brighter so 11–12px mono labels stay legible. */
+  --lp-text-muted: #8a8a92;
+  --lp-text-sub: #b8b8c0;
+  /* --lp-band-dark, --lp-accent, --lp-accent-hover stay fixed (brand). */
 }
 
 /* Element-level resets live in @layer base so Tailwind utilities (which sit in

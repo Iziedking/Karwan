@@ -196,7 +196,7 @@ function Band({
       className={cn(
         'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden',
         dark
-          ? 'bg-[var(--lp-dark)] text-white'
+          ? 'bg-[var(--lp-band-dark)] text-white'
           : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
       )}
     >

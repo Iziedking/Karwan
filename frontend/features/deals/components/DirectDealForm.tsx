@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -15,7 +15,7 @@ export function DirectDealForm() {
   const router = useRouter();
   // Source of truth covers both wagmi web3 users and Circle passkey/email
   // users. Direct-deal create is backend-signed (the buyer agent DCW opens
-  // escrow), so no actual wallet signature is needed here either way — the
+  // escrow), so no actual wallet signature is needed here either way â€” the
   // form just needs the user's identity address.
   const auth = useAuth();
   const address = auth.address;
@@ -99,7 +99,7 @@ export function DirectDealForm() {
       <div
         className="relative overflow-hidden"
         style={{
-          background: 'var(--lp-dark)',
+          background: 'var(--lp-band-dark)',
           color: 'white',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
@@ -169,7 +169,7 @@ export function DirectDealForm() {
             type="text"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            placeholder="0x…"
+            placeholder="0xâ€¦"
             disabled={submitting}
             className="form-input form-input-mono"
           />
@@ -263,7 +263,7 @@ export function DirectDealForm() {
         >
           <div className="px-5 py-4 border-b border-[var(--lp-border-light)]">
             <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-              FUNDING BREAKDOWN · 1.5% FEE, SPLIT EVENLY
+              FUNDING BREAKDOWN Â· 1.5% FEE, SPLIT EVENLY
             </p>
           </div>
           <div className="px-5 py-4 space-y-2.5">
@@ -272,7 +272,7 @@ export function DirectDealForm() {
             <FeeLine label="Platform fee" value={fee.feeTotal} faint />
           </div>
           <div className="px-5 py-3 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-            ↳ {previewPct}% on delivery · {100 - previewPct}% on verification · funds when seller
+            â†³ {previewPct}% on delivery Â· {100 - previewPct}% on verification Â· funds when seller
             accepts
           </div>
         </div>
@@ -311,19 +311,19 @@ export function DirectDealForm() {
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           )}
-          {submitting ? 'Opening deal…' : 'Open deal'}
+          {submitting ? 'Opening dealâ€¦' : 'Open deal'}
           {!submitting && (
             <span
               aria-hidden
               className="transition-transform duration-200 group-hover:translate-x-0.5"
             >
-              ↗
+              â†—
             </span>
           )}
         </button>
         {!submitting && (
           <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-            ↳ funds when seller accepts
+            â†³ funds when seller accepts
           </p>
         )}
       </div>

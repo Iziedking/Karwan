@@ -214,7 +214,7 @@ export function LoginModal({ open, onClose }: Props) {
           <div
             className="inline-flex p-1 gap-1 w-full"
             style={{
-              background: 'var(--lp-dark)',
+              background: 'var(--lp-band-dark)',
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
               borderBottomLeftRadius: 10,
@@ -285,7 +285,7 @@ export function LoginModal({ open, onClose }: Props) {
               <div
                 className="inline-flex p-1 gap-1 w-full"
                 style={{
-                  background: 'var(--lp-dark)',
+                  background: 'var(--lp-band-dark)',
                   borderTopLeftRadius: 8,
                   borderTopRightRadius: 8,
                   borderBottomLeftRadius: 8,
@@ -339,7 +339,7 @@ export function LoginModal({ open, onClose }: Props) {
                     <div
                       className="inline-flex p-1 gap-1"
                       style={{
-                        background: 'var(--lp-dark)',
+                        background: 'var(--lp-band-dark)',
                         borderTopLeftRadius: 8,
                         borderTopRightRadius: 8,
                         borderBottomLeftRadius: 8,
@@ -462,7 +462,7 @@ export function LoginModal({ open, onClose }: Props) {
                         <span
                           className="mono text-[9px] font-bold uppercase tracking-[0.18em] px-1.5 py-[2px]"
                           style={{
-                            background: 'var(--lp-dark)',
+                            background: 'var(--lp-band-dark)',
                             color: 'var(--lp-accent)',
                             borderTopLeftRadius: 3,
                             borderTopRightRadius: 3,

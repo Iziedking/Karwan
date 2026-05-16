@@ -149,7 +149,7 @@ export function PostListingForm() {
               <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/65">
                 USDC
               </span>
-              <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-[var(--lp-dark)]/20" />
+              <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-[var(--lp-band-dark)]/20" />
               <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                 −{previewTol}%
               </span>
@@ -164,7 +164,7 @@ export function PostListingForm() {
                   data-instrument-blink
                   className="w-[6px] h-[6px]"
                   style={{
-                    background: 'var(--lp-dark)',
+                    background: 'var(--lp-band-dark)',
                     animation: 'instrumentBlink 1.6s ease-in-out infinite',
                   }}
                 />
@@ -172,11 +172,11 @@ export function PostListingForm() {
               </span>
               {floor && (
                 <>
-                  <span aria-hidden className="w-px h-3 bg-[var(--lp-dark)]/20" />
+                  <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
                   <span>floor {floor} USDC</span>
                 </>
               )}
-              <span aria-hidden className="w-px h-3 bg-[var(--lp-dark)]/20" />
+              <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
               <span>matched to buyer briefs</span>
             </div>
           </div>

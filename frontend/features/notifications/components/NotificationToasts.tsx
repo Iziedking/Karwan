@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -79,7 +79,7 @@ export function NotificationToasts() {
             <span
               aria-hidden
               data-instrument-blink
-              className="inline-block w-[5px] h-[5px] bg-[var(--lp-dark)]"
+              className="inline-block w-[5px] h-[5px] bg-[var(--lp-band-dark)]"
               style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
             />
             <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
@@ -89,7 +89,7 @@ export function NotificationToasts() {
               aria-hidden
               className="ml-auto mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/60"
             >
-              {t.jobId.slice(0, 6)}…{t.jobId.slice(-4)}
+              {t.jobId.slice(0, 6)}â€¦{t.jobId.slice(-4)}
             </span>
           </div>
           <div className="px-3.5 py-3 flex items-start justify-between gap-3">
@@ -100,7 +100,7 @@ export function NotificationToasts() {
               aria-hidden
               className="shrink-0 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
             >
-              OPEN →
+              OPEN â†’
             </span>
           </div>
         </button>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -189,7 +189,7 @@ export function BalancesCard({
                   'px-3 py-1 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                   isActive
-                    ? 'bg-[var(--lp-dark)] text-white'
+                    ? 'bg-[var(--lp-band-dark)] text-white'
                     : t.disabled
                       ? 'text-[var(--lp-text-muted)] opacity-50 cursor-not-allowed'
                       : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]',

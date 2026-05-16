@@ -18,11 +18,26 @@ const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
 const MAX_HISTORY = 8;
 
-function friendlyBridgeError(err: unknown, source: SourceChainConfig): string {
+function friendlyBridgeError(err: unknown, source: SourceChainConfig, phase?: BridgePhase): string {
   const raw = err instanceof Error ? err.message : String(err ?? '');
   const lower = raw.toLowerCase();
-  if (lower.includes('user rejected') || lower.includes('user denied') || lower.includes('rejected the request')) {
+  const rejected =
+    lower.includes('user rejected') ||
+    lower.includes('user denied') ||
+    lower.includes('rejected the request');
+  if (rejected) {
+    if (phase === 'switching') {
+      return `Chain switch declined. Approve to switch to ${source.shortName}.`;
+    }
+    if (phase === 'approving') return 'Approve cancelled in wallet';
+    if (phase === 'burning') return 'Burn cancelled in wallet';
     return 'Cancelled in wallet';
+  }
+  if (phase === 'switching') {
+    if (lower.includes('unrecognized chain') || lower.includes('unknown chain') || lower.includes('chain id')) {
+      return `Wallet does not know ${source.name}. Add the chain, then retry.`;
+    }
+    return `Could not switch wallet to ${source.name}. Retry to try again.`;
   }
   if (lower.includes('insufficient funds') && lower.includes('gas')) {
     return `Not enough ETH on ${source.name} for gas`;
@@ -185,13 +200,23 @@ export function useBridges() {
         if (e.type === 'bridge.attested') {
           next = { ...cur, phase: 'minting', updatedAt: Date.now() };
         } else if (e.type === 'bridge.minted') {
-          next = {
-            ...cur,
-            phase: 'done',
-            mintTxHash: e.payload?.txHash as `0x${string}` | undefined,
-            updatedAt: Date.now(),
-          };
-          if (cur.phase !== 'done') sfx.success();
+          const txHash = e.payload?.txHash as `0x${string}` | undefined;
+          // Only flip to 'done' when we have a real on-chain mint tx hash.
+          // Without one we can't prove the USDC actually landed on Arc.
+          if (txHash) {
+            next = {
+              ...cur,
+              phase: 'done',
+              mintTxHash: txHash,
+              updatedAt: Date.now(),
+            };
+            if (cur.phase !== 'done') sfx.success();
+          } else {
+            // Stay in 'minting' so the user keeps the live indicator and the
+            // "Recheck on chain" path remains active. The recheck button is
+            // gated on STUCK_AFTER_MS in the UI; this is intentional.
+            next = { ...cur, phase: 'minting', updatedAt: Date.now() };
+          }
         } else if (e.type === 'bridge.error') {
           next = {
             ...cur,
@@ -232,9 +257,18 @@ export function useBridges() {
 
       const amountWei = parseUnits(record.amountUsdc, USDC_DECIMALS);
       const mintRecipientBytes32 = addressToBytes32(record.mintRecipient);
+      // Track which phase the wallet was in when an error was thrown so the
+      // error message can be phase-specific (eg. a user-rejected chain switch
+      // reads very differently from a user-rejected approve or burn).
+      let activePhase: BridgePhase = 'switching';
 
       try {
         if (chainId !== source.chainId) {
+          // Make sure the record is visibly in 'switching' before the wallet
+          // pops. start() already initialises 'switching', but retry() patches
+          // through 'switching' from any prior state — keep the visible state
+          // honest before awaiting the wallet.
+          patch(record.id, (b) => ({ ...b, phase: 'switching' }));
           await switchChainAsync({ chainId: source.chainId });
         }
 
@@ -256,6 +290,7 @@ export function useBridges() {
         })) as bigint;
 
         if (allowance < amountWei) {
+          activePhase = 'approving';
           patch(record.id, (b) => ({ ...b, phase: 'approving' }));
           const approveHash = await walletClient.writeContract({
             address: source.usdc,
@@ -269,6 +304,7 @@ export function useBridges() {
           patch(record.id, (b) => ({ ...b, approveTxHash: approveHash }));
         }
 
+        activePhase = 'burning';
         patch(record.id, (b) => ({ ...b, phase: 'burning' }));
         const burnHash = await walletClient.writeContract({
           address: source.tokenMessenger,
@@ -288,6 +324,7 @@ export function useBridges() {
         });
         await sourcePublicClient.waitForTransactionReceipt({ hash: burnHash });
         sfx.send();
+        activePhase = 'relaying';
         patch(record.id, (b) => ({ ...b, burnTxHash: burnHash, phase: 'relaying' }));
 
         await api.bridgeRelay({
@@ -303,7 +340,7 @@ export function useBridges() {
         patch(record.id, (b) => ({
           ...b,
           phase: 'error',
-          error: friendlyBridgeError(err, source),
+          error: friendlyBridgeError(err, source, activePhase),
         }));
       }
     },
@@ -331,10 +368,56 @@ export function useBridges() {
     [address, isConnected, runFlow],
   );
 
+  /// Ask the backend to re-query Circle's attestation and try to mint. Covers
+  /// bridges where the SSE update was missed (closed tab) or where the relay
+  /// loop ended before IRIS finally posted the attestation.
+  const recheck = useCallback(
+    async (id: string) => {
+      patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
+      try {
+        const r = await api.bridgeRecheck(id);
+        if (r.status === 'minted') {
+          // Only flip to 'done' when we have a real on-chain mint tx hash.
+          // Without one we can't prove the USDC actually landed on Arc, so
+          // we keep the user in 'attesting' and let them recheck again.
+          // This prevents the "UI shows success but funds never arrive" bug
+          // where the backend's usedNonces shortcut or a stale DB row reports
+          // 'minted' without ever having relayed a real receiveMessage tx.
+          const txHash = (r.mintTxHash as `0x${string}` | undefined) ?? undefined;
+          if (txHash) {
+            patch(id, (b) => ({ ...b, phase: 'done', mintTxHash: txHash }));
+          } else {
+            patch(id, (b) => ({
+              ...b,
+              phase: 'error',
+              error:
+                'Backend reports minted but has no on-chain tx hash. Verify your USDC on Arc explorer before retrying.',
+            }));
+          }
+        } else if (r.status === 'error') {
+          patch(id, (b) => ({ ...b, phase: 'error', error: r.error ?? 'Recheck failed' }));
+        }
+        // 'relaying' = still polling on the backend; leave the row in
+        // 'attesting' so the user sees the live indicator again.
+      } catch (err) {
+        patch(id, (b) => ({ ...b, phase: 'error', error: (err as Error).message }));
+      }
+    },
+    [patch],
+  );
+
   const retry = useCallback(
     async (id: string) => {
       const cur = bridgesRef.current.find((b) => b.id === id);
       if (!cur) return;
+      // If the burn already committed on the source chain, NEVER re-fire the
+      // entire flow — that would double-burn the user's USDC. Divert to the
+      // backend recheck which re-queries IRIS for the existing burn's
+      // attestation and (re-)attempts the mint on Arc.
+      if (cur.burnTxHash) {
+        await recheck(id);
+        return;
+      }
       const now = Date.now();
       const fresh: BridgeRecord = {
         ...cur,
@@ -349,7 +432,7 @@ export function useBridges() {
       patch(id, () => fresh);
       await runFlow(fresh);
     },
-    [patch, runFlow],
+    [patch, recheck, runFlow],
   );
 
   const dismiss = useCallback((id: string) => {
@@ -359,32 +442,6 @@ export function useBridges() {
   const clearCompleted = useCallback(() => {
     setBridges((list) => list.filter((b) => isActive(b.phase)));
   }, []);
-
-  /// Ask the backend to re-query Circle's attestation and try to mint. Covers
-  /// bridges where the SSE update was missed (closed tab) or where the relay
-  /// loop ended before IRIS finally posted the attestation.
-  const recheck = useCallback(
-    async (id: string) => {
-      patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
-      try {
-        const r = await api.bridgeRecheck(id);
-        if (r.status === 'minted') {
-          patch(id, (b) => ({
-            ...b,
-            phase: 'done',
-            mintTxHash: (r.mintTxHash as `0x${string}` | undefined) ?? b.mintTxHash,
-          }));
-        } else if (r.status === 'error') {
-          patch(id, (b) => ({ ...b, phase: 'error', error: r.error ?? 'Recheck failed' }));
-        }
-        // 'relaying' = still polling on the backend; leave the row in
-        // 'attesting' so the user sees the live indicator again.
-      } catch (err) {
-        patch(id, (b) => ({ ...b, phase: 'error', error: (err as Error).message }));
-      }
-    },
-    [patch],
-  );
 
   return { bridges, start, retry, recheck, dismiss, clearCompleted, isActive };
 }
