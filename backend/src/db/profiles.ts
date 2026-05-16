@@ -14,6 +14,17 @@ export interface UserProfile {
   displayName: string;
   createdAt: number;
   updatedAt: number;
+  /// X (formerly Twitter) handle without the `@`. When set, key public events
+  /// for this user (deal opened, settled) get queued for broadcast on the
+  /// Karwan X account tagging this handle. Stored as the handle string only;
+  /// no OAuth tokens persist here.
+  xHandle?: string;
+  /// X user id (stable identifier, doesn't change when the user renames). We
+  /// keep it so a handle change on X is detectable on next reconnect.
+  xUserId?: string;
+  /// The user's X display picture URL. Profile avatars prefer this over the
+  /// generated mark when present. Refreshed each time the user re-OAuths.
+  xProfileImageUrl?: string;
   seller?: {
     skills: string[];
     bio: string;

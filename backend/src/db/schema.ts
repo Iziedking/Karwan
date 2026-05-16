@@ -27,6 +27,9 @@ export const directDeals = pgTable(
   (t) => ({
     buyerIdx: index('direct_deals_buyer_idx').on(t.buyer),
     sellerIdx: index('direct_deals_seller_idx').on(t.seller),
+    // ORDER BY created_at DESC powers /deals/feed and listDealsForAddress;
+    // matching index direction so Postgres can serve them index-only.
+    createdAtIdx: index('direct_deals_created_at_idx').on(t.createdAt),
   }),
 );
 
@@ -51,6 +54,9 @@ export const messages = pgTable(
   },
   (t) => ({
     jobIdx: index('messages_job_idx').on(t.jobId),
+    // Chat replay queries one job's messages newest-first; composite makes the
+    // per-job ORDER BY ts an index scan.
+    jobTsIdx: index('messages_job_ts_idx').on(t.jobId, t.ts),
   }),
 );
 

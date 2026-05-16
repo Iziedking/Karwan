@@ -84,6 +84,8 @@ contract KarwanEscrow {
     error TransferFailed();
     error InvalidTreasury();
     error FeeTooHigh();
+    error InvalidSeller();
+    error InvalidAmount();
 
     constructor(address _usdc, uint16 _feeBps, address _treasury) {
         if (_treasury == address(0)) revert InvalidTreasury();
@@ -104,6 +106,8 @@ contract KarwanEscrow {
         uint8[] calldata milestonePcts
     ) external nonReentrant {
         if (escrows[jobId].state != EscrowState.None) revert AlreadyFunded();
+        if (seller == address(0) || seller == msg.sender) revert InvalidSeller();
+        if (dealAmount == 0) revert InvalidAmount();
         uint256 milestoneCount = milestonePcts.length;
         if (milestoneCount == 0 || milestoneCount > MAX_MILESTONES) revert InvalidMilestones();
 
@@ -216,11 +220,15 @@ contract KarwanEscrow {
 
     /// @notice Return all unreleased funds (seller portion + uncollected fee) to
     ///         the buyer. A refunded deal collects no platform fee.
+    /// @dev Restricted to the buyer of the escrow. The funds flow to the buyer
+    ///      regardless, so opening this to anyone would just let a third party
+    ///      grief by forcing the refund before any off-chain resolution. The
+    ///      buyer's agent wallet (which is `e.buyer` since it funded) is the
+    ///      authorised caller, matching the backend cancel/refund flow.
     function refund(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
-        // v0: caller is a platform admin acting on off-chain dispute resolution.
-        // Access control hardens here in v1 (Ownable / role-based).
+        if (msg.sender != e.buyer) revert NotBuyer();
         uint256 remaining = (e.sellerNet - e.released) + (e.feeTotal - e.feeReleased);
         e.released = e.sellerNet;
         e.feeReleased = e.feeTotal;

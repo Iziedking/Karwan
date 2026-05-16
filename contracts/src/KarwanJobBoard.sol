@@ -71,11 +71,15 @@ contract KarwanJobBoard {
     error NotJobSeller();
     error InvalidBid();
     error NoSuchBid();
+    error InvalidJob();
+    error BidExpired();
 
     function postJob(bytes32 jobId, uint256 budget, uint64 deadline, string calldata termsHash)
         external
     {
         if (jobs[jobId].state != JobState.None) revert JobAlreadyExists();
+        // forge-lint: disable-next-line(block-timestamp)
+        if (budget == 0 || deadline <= block.timestamp) revert InvalidJob();
         jobs[jobId] = Job({
             buyer: msg.sender,
             budget: budget,
@@ -139,6 +143,8 @@ contract KarwanJobBoard {
         if (msg.sender != j.buyer) revert NotJobBuyer();
         Bid storage b = bids[jobId][seller];
         if (!b.exists) revert NoSuchBid();
+        // forge-lint: disable-next-line(block-timestamp)
+        if (b.deadline <= block.timestamp) revert BidExpired();
         j.state = JobState.Accepted;
         j.acceptedSeller = seller;
         j.acceptedPrice = b.price;

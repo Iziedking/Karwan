@@ -12,6 +12,7 @@ import { api, type ChainEvent } from '@/core/api';
 import { ARC_TESTNET, SOURCE_CHAINS, addressToBytes32, FINALITY_THRESHOLD_FAST, type SourceChainConfig } from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { sfx } from '@/shared/utils/sfx';
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
@@ -167,54 +168,45 @@ export function useBridges() {
   // Single SSE subscription routes bridge events to the right record by bridgeId.
   useEffect(() => {
     if (!isConnected) return;
-    const es = new EventSource(api.eventsUrl());
-    const onMsg = (raw: MessageEvent) => {
-      try {
-        const e = JSON.parse(raw.data) as ChainEvent;
-        const bId = (e.payload?.bridgeId as string | undefined) ?? undefined;
-        if (!bId) return;
-        setBridges((list) => {
-          const idx = list.findIndex((b) => b.id === bId);
-          if (idx < 0) return list;
-          const cur = list[idx]!;
-          let next: BridgeRecord = cur;
-          if (e.type === 'bridge.attested') {
-            next = { ...cur, phase: 'minting', updatedAt: Date.now() };
-          } else if (e.type === 'bridge.minted') {
-            next = {
-              ...cur,
-              phase: 'done',
-              mintTxHash: e.payload?.txHash as `0x${string}` | undefined,
-              updatedAt: Date.now(),
-            };
-            if (cur.phase !== 'done') sfx.success();
-          } else if (e.type === 'bridge.error') {
-            next = {
-              ...cur,
-              phase: 'error',
-              error: (e.payload?.message as string | undefined) ?? 'Bridge failed',
-              updatedAt: Date.now(),
-            };
-          } else {
-            return list;
-          }
-          const copy = [...list];
-          copy[idx] = next;
-          return copy;
-        });
-      } catch {
-        /* ignore */
-      }
-    };
-    es.addEventListener('bridge.attested', onMsg);
-    es.addEventListener('bridge.minted', onMsg);
-    es.addEventListener('bridge.error', onMsg);
-    return () => {
-      es.removeEventListener('bridge.attested', onMsg);
-      es.removeEventListener('bridge.minted', onMsg);
-      es.removeEventListener('bridge.error', onMsg);
-      es.close();
-    };
+    return subscribeLiveEvents((e) => {
+      if (
+        e.type !== 'bridge.attested' &&
+        e.type !== 'bridge.minted' &&
+        e.type !== 'bridge.error'
+      )
+        return;
+      const bId = (e.payload?.bridgeId as string | undefined) ?? undefined;
+      if (!bId) return;
+      setBridges((list) => {
+        const idx = list.findIndex((b) => b.id === bId);
+        if (idx < 0) return list;
+        const cur = list[idx]!;
+        let next: BridgeRecord = cur;
+        if (e.type === 'bridge.attested') {
+          next = { ...cur, phase: 'minting', updatedAt: Date.now() };
+        } else if (e.type === 'bridge.minted') {
+          next = {
+            ...cur,
+            phase: 'done',
+            mintTxHash: e.payload?.txHash as `0x${string}` | undefined,
+            updatedAt: Date.now(),
+          };
+          if (cur.phase !== 'done') sfx.success();
+        } else if (e.type === 'bridge.error') {
+          next = {
+            ...cur,
+            phase: 'error',
+            error: (e.payload?.message as string | undefined) ?? 'Bridge failed',
+            updatedAt: Date.now(),
+          };
+        } else {
+          return list;
+        }
+        const copy = [...list];
+        copy[idx] = next;
+        return copy;
+      });
+    });
   }, [isConnected]);
 
   const patch = useCallback((id: string, fn: (b: BridgeRecord) => BridgeRecord) => {

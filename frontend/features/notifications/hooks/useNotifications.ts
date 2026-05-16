@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { api, type ChainEvent } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 export interface AppNotification {
   id: string;
@@ -240,64 +241,50 @@ export function useNotifications() {
   useEffect(() => {
     if (!isConnected || !address) return;
     const me = address.toLowerCase();
-    const es = new EventSource(api.eventsUrl());
 
-    const onMsg = (raw: MessageEvent) => {
-      try {
-        const e = JSON.parse(raw.data) as ChainEvent;
-        if (!NOTIFY_TYPES.has(e.type) || !e.jobId) return;
+    return subscribeLiveEvents((e) => {
+      if (!NOTIFY_TYPES.has(e.type) || !e.jobId) return;
 
-        const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
-        const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
-        const sellerUser = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
-        const knownJob = jobIdsRef.current.has(e.jobId.toLowerCase());
-        const partyMatch = buyer === me || seller === me || sellerUser === me;
-        if (!knownJob && !partyMatch) return;
+      const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+      const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+      const sellerUser = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+      const knownJob = jobIdsRef.current.has(e.jobId.toLowerCase());
+      const partyMatch = buyer === me || seller === me || sellerUser === me;
+      if (!knownJob && !partyMatch) return;
 
-        if (e.type === 'deal.direct.created' && partyMatch) {
-          jobIdsRef.current.add(e.jobId.toLowerCase());
-        }
-        if (e.type === 'deal.matched' && partyMatch) {
-          jobIdsRef.current.add(e.jobId.toLowerCase());
-        }
-
-        const id = `${e.jobId}-${e.type}-${e.ts}`;
-        const toast = TOAST_TYPES.has(e.type);
-        const next: AppNotification = {
-          id,
-          jobId: e.jobId,
-          type: e.type,
-          summary: summaryFor(e.type, e.payload),
-          ts: e.ts,
-          read: false,
-          href: hrefForType(e.type, e.jobId),
-          toast,
-        };
-
-        setNotifications((list) => {
-          if (list.some((n) => n.id === id)) return list;
-          // Only the initial backfill has populated the list — anything past
-          // that is genuinely new, so it's safe to make noise.
-          if (initialHydrateRef.current) {
-            try {
-              sfx.send();
-            } catch {
-              /* ignore */
-            }
-            if (toast) toastListeners.forEach((fn) => fn(next));
-          }
-          return [next, ...list].slice(0, MAX_STORED);
-        });
-      } catch {
-        /* ignore */
+      if (e.type === 'deal.direct.created' && partyMatch) {
+        jobIdsRef.current.add(e.jobId.toLowerCase());
       }
-    };
+      if (e.type === 'deal.matched' && partyMatch) {
+        jobIdsRef.current.add(e.jobId.toLowerCase());
+      }
 
-    for (const t of NOTIFY_TYPES) es.addEventListener(t, onMsg);
-    return () => {
-      for (const t of NOTIFY_TYPES) es.removeEventListener(t, onMsg);
-      es.close();
-    };
+      const id = `${e.jobId}-${e.type}-${e.ts}`;
+      const toast = TOAST_TYPES.has(e.type);
+      const next: AppNotification = {
+        id,
+        jobId: e.jobId,
+        type: e.type,
+        summary: summaryFor(e.type, e.payload),
+        ts: e.ts,
+        read: false,
+        href: hrefForType(e.type, e.jobId),
+        toast,
+      };
+
+      setNotifications((list) => {
+        if (list.some((n) => n.id === id)) return list;
+        if (initialHydrateRef.current) {
+          try {
+            sfx.send();
+          } catch {
+            /* ignore */
+          }
+          if (toast) toastListeners.forEach((fn) => fn(next));
+        }
+        return [next, ...list].slice(0, MAX_STORED);
+      });
+    });
   }, [address, isConnected]);
 
   const markRead = useCallback((id: string) => {

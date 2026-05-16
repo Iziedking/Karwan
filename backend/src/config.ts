@@ -82,6 +82,13 @@ const envSchema = z.object({
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+
+  // X OAuth 2.0 PKCE credentials. When unset, the /api/x routes report "not
+  // configured" and the frontend falls back to a manual handle entry. Set up
+  // an X dev app, allowlist the redirect, and paste the values here to enable.
+  X_CLIENT_ID: optionalString,
+  X_CLIENT_SECRET: optionalString,
+  X_REDIRECT_URI: z.preprocess(blankToUndefined, z.string().url().optional()),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -27,6 +27,12 @@ interface ActiveBid {
   seller: SellerProfile;
   jobContext: JobContext;
   lastBidPrice: string;
+  /** The seller's opening price on this auction. Anchors the counter-evaluation
+   *  floor for profile-driven bids — the agent won't drop the price more than
+   *  PROFILE_MAX_DECREASE_PCT below this. Without it, the LLM would happily
+   *  walk all the way down to the seller's profile-wide minBudgetUsdc on every
+   *  job, even ones where they opened far above that floor. */
+  originalBidPriceUsdc: string;
   counterRounds: number;
   finalized: boolean;
   responding: boolean;
@@ -36,6 +42,11 @@ interface ActiveBid {
   listingFloorUsdc?: number;
   listingAskingPriceUsdc?: number;
 }
+
+/// How far below the original bid the seller agent will steer on a profile-
+/// matched (non-listing) bid. 15% is a reasonable concession band — enough to
+/// move on a real negotiation, not enough to capitulate to a lowball.
+const PROFILE_MAX_DECREASE_PCT = 15;
 
 // Keyed by `${jobId}:${sellerAgentAddress}` since many sellers can bid on one job.
 const activeBids = new Map<string, ActiveBid>();
@@ -80,6 +91,7 @@ export async function submitListingBid(
       seller,
       jobContext: job,
       lastBidPrice: priceUsdc,
+      originalBidPriceUsdc: priceUsdc,
       counterRounds: 0,
       finalized: false,
       responding: false,
@@ -320,6 +332,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     seller,
     jobContext: job,
     lastBidPrice: decision.suggestedPrice,
+    originalBidPriceUsdc: decision.suggestedPrice,
     counterRounds: 0,
     finalized: false,
     responding: false,
@@ -372,9 +385,22 @@ async function runCounterEvaluation(
   const buyerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const buyerCounterDeadlineUnix = Number(args.newDeadline);
 
-  // For listing-driven bids, the floor is the listing's asking price minus the
-  // seller's negotiation tolerance — overrides the profile-wide minBudgetUsdc.
-  const minAcceptable = active.listingFloorUsdc ?? seller.minBudgetUsdc;
+  // Counter steering — pick a floor and ceiling for the LLM's negotiation range:
+  //  * Listing-driven bids: floor = listing's floor, ceiling = listing's asking
+  //    price (set at listing time, overrides profile-wide range).
+  //  * Profile-driven bids: floor = max(profile minimum, original bid * (1 -
+  //    PROFILE_MAX_DECREASE_PCT/100)). This anchors counters to the seller's
+  //    opening on this specific job, so the agent doesn't capitulate to the
+  //    profile-wide minimum just because the buyer pushed hard. Ceiling stays
+  //    at the seller's profile-wide maximum.
+  const originalBid = Number(active.originalBidPriceUsdc);
+  const profileFloor = active.listingFloorUsdc
+    ? active.listingFloorUsdc
+    : Math.max(
+        seller.minBudgetUsdc,
+        Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
+      );
+  const minAcceptable = profileFloor;
   const maxAcceptable = active.listingAskingPriceUsdc ?? seller.maxBudgetUsdc;
 
   let decision;
@@ -419,6 +445,29 @@ async function runCounterEvaluation(
   logger.info({ jobId: args.jobId, seller: seller.address, decision }, 'counter-offer evaluated');
 
   if (decision.decision === 'accept') {
+    // Hard steering guard: even if the LLM said accept, refuse when the buyer's
+    // counter is below the steering floor. Protects against LLM drift that
+    // forgets the floor we passed in the prompt.
+    if (Number(buyerCounterPrice) < minAcceptable) {
+      logger.info(
+        { jobId: args.jobId, buyerCounterPrice, minAcceptable },
+        'LLM accept overridden — buyer counter below steering floor',
+      );
+      active.finalized = true;
+      bus.emitEvent({
+        type: 'agent.declined',
+        jobId: args.jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          reason: 'counter-below-steering-floor',
+          detail: `${buyerCounterPrice} USDC is below the per-job steering floor of ${minAcceptable} USDC`,
+          buyerCounterPrice,
+          minAcceptable,
+        },
+      });
+      return;
+    }
     const result = await executeContractCall(
       {
         walletId: seller.walletId,
@@ -486,10 +535,10 @@ async function runCounterEvaluation(
   }
 
   const counterPriceUsdc = Number(decision.counterPrice);
-  if (counterPriceUsdc < seller.minBudgetUsdc || counterPriceUsdc > seller.maxBudgetUsdc) {
+  if (counterPriceUsdc < minAcceptable || counterPriceUsdc > maxAcceptable) {
     logger.warn(
-      { jobId: args.jobId, counterPriceUsdc },
-      'LLM counter outside seller range, declining',
+      { jobId: args.jobId, counterPriceUsdc, minAcceptable, maxAcceptable },
+      'LLM counter outside steering range, declining',
     );
     active.finalized = true;
     bus.emitEvent({
@@ -499,8 +548,10 @@ async function runCounterEvaluation(
       payload: {
         seller: seller.address,
         reason: 'llm-counter-out-of-range',
-        detail: `${counterPriceUsdc} USDC is outside the seller's ${seller.minBudgetUsdc}-${seller.maxBudgetUsdc} USDC range`,
+        detail: `${counterPriceUsdc} USDC is outside the per-job steering range ${minAcceptable}-${maxAcceptable} USDC`,
         counterPriceUsdc,
+        minAcceptable,
+        maxAcceptable,
       },
     });
     return;

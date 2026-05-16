@@ -1,44 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { api, type ChainEvent } from '@/core/api';
-
-const TRACKED_TYPES = [
-  'job.posted',
-  'job.tracked',
-  'job.expired',
-  'bid.scored',
-  'bid.submitted',
-  'counter.issued',
-  'counter.response.submitted',
-  'bid.accepted',
-  'escrow.approved',
-  'escrow.funded',
-  'escrow.milestone.released',
-  'escrow.settled',
-  'bridge.burned',
-  'bridge.attested',
-  'bridge.minted',
-  'bridge.error',
-  'reputation.recorded',
-  'deal.direct.created',
-  'deal.accepted',
-  'deal.delivered',
-  'deal.review.started',
-  'deal.review.heartbeat',
-  'deal.auto_released',
-  'deal.disputed',
-  'deal.cancelled',
-  'deal.cancel.proposed',
-  'deal.cancel.declined',
-  'agent.skipped',
-  'agent.declined',
-  'agent.error',
-  'deal.matched',
-  'deal.match.approved',
-  'deal.match.declined',
-  'listing.posted',
-  'listing.matched',
-];
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 // Identifying-party keys on the event payload. The client-side filter mirrors
 // the server-side filter in routes/activity.ts so live SSE events for a job
@@ -81,32 +44,20 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
   }, [filterJobId, max, caller, callerLower]);
 
   useEffect(() => {
-    const es = new EventSource(api.eventsUrl());
-
-    const onMsg = (e: MessageEvent) => {
-      try {
-        const parsed = JSON.parse(e.data) as ChainEvent;
-        if (filterJobId && parsed.jobId !== filterJobId) return;
-        if (callerLower) {
-          const tracked = parsed.jobId
-            ? callerJobsRef.current.has(parsed.jobId.toLowerCase())
-            : false;
-          const party = isPartyMatch(parsed, callerLower);
-          if (!tracked && !party) return;
-          if (party && parsed.jobId) {
-            callerJobsRef.current.add(parsed.jobId.toLowerCase());
-          }
+    return subscribeLiveEvents((parsed) => {
+      if (filterJobId && parsed.jobId !== filterJobId) return;
+      if (callerLower) {
+        const tracked = parsed.jobId
+          ? callerJobsRef.current.has(parsed.jobId.toLowerCase())
+          : false;
+        const party = isPartyMatch(parsed, callerLower);
+        if (!tracked && !party) return;
+        if (party && parsed.jobId) {
+          callerJobsRef.current.add(parsed.jobId.toLowerCase());
         }
-        setEvents((prev) => [parsed, ...prev].slice(0, max));
-      } catch {
-        /* ignore */
       }
-    };
-    for (const t of TRACKED_TYPES) es.addEventListener(t, onMsg);
-    return () => {
-      for (const t of TRACKED_TYPES) es.removeEventListener(t, onMsg);
-      es.close();
-    };
+      setEvents((prev) => [parsed, ...prev].slice(0, max));
+    });
   }, [filterJobId, max, callerLower]);
 
   return events;

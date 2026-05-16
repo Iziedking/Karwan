@@ -1,7 +1,11 @@
 'use client';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useAccount } from 'wagmi';
+import { api, type UserProfile } from '@/core/api';
 
-/// The X wordmark glyph centered inside a black brand tile — mirrors the
-/// Telegram pill on the same row so the two affordances read as a pair.
+const HANDLE_RE = /^@?[A-Za-z0-9_]{1,15}$/;
+
 function XBrandTile({ size = 14 }: { size?: number }) {
   return (
     <span
@@ -16,28 +20,248 @@ function XBrandTile({ size = 14 }: { size?: number }) {
   );
 }
 
-/// Visual placeholder for X account binding. The real OAuth/handle flow is
-/// parked; this surfaces the affordance with the proper X mark so the
-/// profile header reflects where it is going. Matches TelegramConnectButton.
 export function ConnectXButton() {
+  const { address, isConnected } = useAccount();
+  const search = useSearchParams();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [oauthConfigured, setOauthConfigured] = useState<boolean | null>(null);
+  const [open, setOpen] = useState(false);
+  const [handle, setHandle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!address || !isConnected) {
+      setProfile(null);
+      return;
+    }
+    api.getProfile(address).then((r) => setProfile(r.profile)).catch(() => {});
+  }, [address, isConnected, search]);
+
+  useEffect(() => {
+    api.xStatus().then((r) => setOauthConfigured(r.configured)).catch(() => setOauthConfigured(false));
+  }, []);
+
+  // Surface the OAuth callback outcome inline so the user sees it without
+  // hunting for it. The callback redirected with ?x=ok|error.
+  const xParam = search.get('x');
+  useEffect(() => {
+    if (xParam === 'error') {
+      const reason = search.get('reason') ?? 'Could not bind your X account.';
+      setError(reason);
+    }
+  }, [xParam, search]);
+
+  const bound = !!profile?.xHandle;
+
+  async function startOAuth() {
+    if (!address) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.xOauthStart(address);
+      window.location.assign(r.url);
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  }
+
+  async function saveHandle() {
+    if (!address) return;
+    const trimmed = handle.trim();
+    if (!HANDLE_RE.test(trimmed)) {
+      setError('Use letters, numbers, or underscores. Up to 15 characters.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.setXHandle(address, trimmed);
+      setProfile(r.profile);
+      setOpen(false);
+      setHandle('');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlink() {
+    if (!address) return;
+    setBusy(true);
+    try {
+      const r = await api.setXHandle(address, null);
+      setProfile(r.profile);
+    } catch {
+      /* keep prior state */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!isConnected || !profile) {
+    return (
+      <button
+        type="button"
+        disabled
+        title="Connect your wallet first"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white/45 cursor-not-allowed w-fit"
+        style={{
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 2,
+        }}
+      >
+        <XBrandTile />
+        Connect X
+      </button>
+    );
+  }
+
+  if (bound) {
+    return (
+      <div className="inline-flex items-center gap-2">
+        <span
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white"
+          style={{
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 2,
+          }}
+        >
+          {profile.xProfileImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.xProfileImageUrl}
+              alt=""
+              className="w-[18px] h-[18px] rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <XBrandTile />
+          )}
+          @{profile.xHandle}
+        </span>
+        <button
+          type="button"
+          onClick={unlink}
+          disabled={busy}
+          className="mono text-[10px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors disabled:opacity-50"
+        >
+          {busy ? 'Working' : 'Unlink'}
+        </button>
+      </div>
+    );
+  }
+
+  // OAuth path — single click bounces to X and back.
+  if (oauthConfigured && !open) {
+    return (
+      <div className="inline-flex flex-col items-start gap-1.5">
+        <button
+          type="button"
+          onClick={startOAuth}
+          disabled={busy}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white hover:bg-white/[0.06] transition-colors w-fit disabled:opacity-50"
+          style={{
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 2,
+          }}
+        >
+          <XBrandTile />
+          {busy ? 'Redirecting' : 'Connect X'}
+        </button>
+        {error && (
+          <p className="mono text-[10px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Handle-entry fallback (OAuth not configured, or user picked manual).
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white hover:bg-white/[0.06] transition-colors w-fit"
+        style={{
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 2,
+        }}
+      >
+        <XBrandTile />
+        Connect X
+      </button>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      disabled
-      title="X account binding is coming soon"
-      className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white/60 cursor-not-allowed w-fit"
+    <div
+      className="inline-flex flex-col gap-2 p-3 border border-white/12 w-fit"
       style={{
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
         borderBottomRightRadius: 2,
+        background: 'rgba(255,255,255,0.04)',
       }}
     >
-      <XBrandTile />
-      Connect X
-      <span className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 bg-white/[0.08] text-white/55 rounded-sm">
-        Soon
-      </span>
-    </button>
+      <label className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+        X handle
+      </label>
+      <div className="inline-flex items-center gap-2">
+        <span className="mono text-[12px] text-white/55">@</span>
+        <input
+          autoFocus
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') saveHandle();
+            if (e.key === 'Escape') {
+              setOpen(false);
+              setHandle('');
+              setError(null);
+            }
+          }}
+          placeholder="karwan"
+          maxLength={15}
+          className="bg-transparent border-b border-white/20 focus:border-white/60 focus:outline-none mono text-[13px] text-white w-44 py-1"
+        />
+        <button
+          type="button"
+          onClick={saveHandle}
+          disabled={busy || !handle.trim()}
+          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-2 py-1 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
+        >
+          {busy ? 'Saving' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setHandle('');
+            setError(null);
+          }}
+          className="mono text-[10px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+      <p className="mono text-[10px] text-white/45 leading-snug max-w-[34ch]">
+        Handle only. Karwan tags it on public milestones. We never post on your behalf without one
+        of those triggers.
+      </p>
+      {error && (
+        <p className="mono text-[10px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
+      )}
+    </div>
   );
 }

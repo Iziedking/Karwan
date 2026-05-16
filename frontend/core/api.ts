@@ -86,6 +86,9 @@ export interface UserProfile {
   displayName: string;
   createdAt: number;
   updatedAt: number;
+  xHandle?: string;
+  xUserId?: string;
+  xProfileImageUrl?: string;
   seller?: {
     skills: string[];
     bio: string;
@@ -320,6 +323,17 @@ export const api = {
     json<{ profile: UserProfile }>('/api/profile', {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+  setXHandle: (address: string, handle: string | null) =>
+    json<{ profile: UserProfile }>('/api/profile/x-handle', {
+      method: 'POST',
+      body: JSON.stringify({ address, handle }),
+    }),
+  xStatus: () => json<{ configured: boolean }>('/api/x/status'),
+  xOauthStart: (address: string, returnTo?: string) =>
+    json<{ url: string }>('/api/x/oauth/start', {
+      method: 'POST',
+      body: JSON.stringify({ address, returnTo }),
     }),
   activity: (limit = 100, jobId?: string, caller?: string) => {
     const q = new URLSearchParams();

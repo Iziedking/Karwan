@@ -4,6 +4,8 @@ import { cors } from 'hono/cors';
 import { logger as appLogger } from './logger.js';
 import { config } from './config.js';
 import { publicClient } from './chain/client.js';
+import { invalidateEscrowCache } from './chain/contracts.js';
+import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
 import { agentsRoutes } from './routes/agents.js';
 import { eventsRoutes } from './routes/events.js';
@@ -19,6 +21,7 @@ import { chatRoutes } from './routes/chat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
 import { listingsRoutes } from './routes/listings.js';
+import { xRoutes } from './routes/x.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
@@ -28,6 +31,7 @@ import { startDealWatcher } from './agents/dealWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
+import { startXBroadcaster } from './notifiers/xBroadcaster.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
 
 const app = new Hono();
@@ -67,6 +71,7 @@ app.route('/api/chat', chatRoutes);
 app.route('/api/telegram', telegramRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/listings', listingsRoutes);
+app.route('/api/x', xRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');
@@ -76,6 +81,23 @@ process.on('uncaughtException', (err) => {
 });
 
 const stopFns: Array<() => void> = [];
+
+// Any event that mutates on-chain escrow state has to bust the readEscrow
+// cache so the next read pulls fresh data instead of serving the stale tuple.
+const ESCROW_MUTATING_EVENTS = new Set<string>([
+  'escrow.funded',
+  'escrow.milestone.released',
+  'escrow.settled',
+  'deal.disputed',
+  'deal.cancelled',
+]);
+stopFns.push(
+  bus.subscribe((e) => {
+    if (ESCROW_MUTATING_EVENTS.has(e.type) && e.jobId) {
+      invalidateEscrowCache(e.jobId);
+    }
+  }),
+);
 
 function bootAgents() {
   if (process.env.SKIP_AGENTS === '1') {
@@ -137,6 +159,14 @@ async function boot() {
     stopFns.push(startTelegramNotifier());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'telegram not started');
+  }
+  // X broadcaster queues posts for users with a bound handle. The actual API
+  // post is a follow-up; this just wires the subscription so the queue is
+  // observable in the activity feed.
+  try {
+    stopFns.push(startXBroadcaster());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'x broadcaster not started');
   }
   // Resume any bridge that burned but never minted, e.g. across a restart.
   resumePendingBridges().catch((err) =>

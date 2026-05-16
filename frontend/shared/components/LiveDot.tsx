@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api } from '@/core/api';
+import { subscribeLiveStatus, type LiveStatus } from '@/shared/utils/liveEventBus';
 
 const TONE = {
   live: { color: '#0a7553', label: 'Live' },
@@ -9,16 +9,9 @@ const TONE = {
 } as const;
 
 export function LiveDot() {
-  const [state, setState] = useState<'connecting' | 'live' | 'offline'>('connecting');
+  const [state, setState] = useState<LiveStatus>('connecting');
 
-  useEffect(() => {
-    const es = new EventSource(api.eventsUrl());
-    const onOpen = () => setState('live');
-    es.addEventListener('open', onOpen);
-    es.onopen = onOpen;
-    es.onerror = () => setState('offline');
-    return () => es.close();
-  }, []);
+  useEffect(() => subscribeLiveStatus(setState), []);
 
   const t = TONE[state];
   const pinging = state === 'live';

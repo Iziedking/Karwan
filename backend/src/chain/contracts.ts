@@ -77,7 +77,33 @@ export function computeFunding(dealAmountWei: bigint, feeBps: number): FundingBr
 }
 
 /// Reads the escrow struct getter, which omits the dynamic milestonePcts array.
+///
+/// Cached with a short TTL because /api/deals/feed enrich()s up to 60 deals
+/// per request, each issuing an `escrows` view call. The RPC cost is small but
+/// real (~30-60ms each over a long-haul connection), and on-chain state only
+/// changes when a write tx mines, which is observable via the bus and clears
+/// the cache. SSE-driven UIs refresh themselves on relevant events, so a 10s
+/// staleness window is invisible in practice.
+const READ_ESCROW_TTL_MS = 10_000;
+interface EscrowCacheEntry {
+  value: EscrowAccount;
+  expiresAt: number;
+}
+const escrowCache = new Map<string, EscrowCacheEntry>();
+
+export function invalidateEscrowCache(jobId?: string) {
+  if (!jobId) {
+    escrowCache.clear();
+    return;
+  }
+  escrowCache.delete(jobId.toLowerCase());
+}
+
 export async function readEscrow(jobId: string): Promise<EscrowAccount> {
+  const key = jobId.toLowerCase();
+  const now = Date.now();
+  const cached = escrowCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.value;
   const tuple = (await escrow.read.escrows([jobId as `0x${string}`])) as readonly [
     `0x${string}`,
     `0x${string}`,
@@ -89,7 +115,7 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     number,
     number,
   ];
-  return {
+  const value: EscrowAccount = {
     buyer: tuple[0],
     seller: tuple[1],
     dealAmount: tuple[2],
@@ -100,4 +126,6 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     milestonesReleased: tuple[7],
     state: tuple[8],
   };
+  escrowCache.set(key, { value, expiresAt: now + READ_ESCROW_TTL_MS });
+  return value;
 }

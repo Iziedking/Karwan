@@ -87,3 +87,37 @@ profileRoutes.post('/', async (c) => {
   const profile = await upsertProfile({ ...body, seller: sellerWithKeywords });
   return c.json({ profile }, 200);
 });
+
+// Bind / unbind an X handle on the profile. Caller is the wallet that owns the
+// profile; the handle is validated lightly (X enforces a stricter shape, but
+// the surface is informational so the regex is forgiving).
+const xHandleSchema = z.object({
+  address: addrSchema,
+  handle: z
+    .string()
+    .trim()
+    .regex(/^@?[A-Za-z0-9_]{1,15}$/, 'expected an X handle like @karwan or karwan')
+    .nullable(),
+});
+
+profileRoutes.post('/x-handle', async (c) => {
+  let body;
+  try {
+    body = xHandleSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const existing = await getProfile(body.address);
+  if (!existing) return c.json({ error: 'profile not found' }, 404);
+  const normalised = body.handle ? body.handle.replace(/^@/, '') : undefined;
+  const profile = await upsertProfile({
+    address: existing.address,
+    role: existing.role,
+    displayName: existing.displayName,
+    seller: existing.seller,
+    buyer: existing.buyer,
+    xHandle: normalised,
+  });
+  logger.info({ address: existing.address, handle: normalised ?? null }, 'x handle updated');
+  return c.json({ profile }, 200);
+});

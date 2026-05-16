@@ -10,7 +10,6 @@ import { FlowStepper } from './FlowStepper';
 import { EventList } from './EventList';
 import { LiveBidsPanel } from './LiveBidsPanel';
 import { MatchBanner } from './MatchBanner';
-import { ReleaseMilestonesButton } from './ReleaseMilestonesButton';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 import {
@@ -352,6 +351,11 @@ function SettleSection({
     return () => clearInterval(id);
   }, [fundingPhase]);
 
+  // After escrow funds, the deal lifecycle lives at /deals/[id]; this page
+  // auto-redirects there via the effect at the top of LiveJobPage. The card
+  // below is the fallback if the redirect hasn't fired yet (slow nav, motion-
+  // reduced, etc.) — it points to the canonical surface instead of duplicating
+  // ReleaseMilestonesButton, so there's exactly one place to act on the deal.
   if (job.escrowFunded) {
     return (
       <SettleCard label="SETTLE" title="Escrow live">
@@ -360,9 +364,21 @@ function SettleSection({
           <span className="font-sans font-extrabold tabular-nums text-[var(--lp-dark)]">
             {formatUsdc(job.budgetUsdc)}
           </span>
-          . Release milestones to stream funds to the seller.
+          . Deal management has moved to its dedicated page.
         </p>
-        <ReleaseMilestonesButton jobId={job.jobId} totalMilestones={2} />
+        <Link
+          href={`/deals/${job.jobId}`}
+          className="inline-flex items-center gap-2 px-[18px] py-[10px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+          style={{
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
+            borderBottomLeftRadius: 10,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          Open deal
+          <span aria-hidden>→</span>
+        </Link>
       </SettleCard>
     );
   }

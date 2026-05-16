@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type ChainEvent, type ChatMessage } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 export interface UseChatResult {
   messages: ChatMessage[];
@@ -53,39 +54,28 @@ export function useChat({
   // Live updates.
   useEffect(() => {
     if (!jobId || !caller) return;
-    const es = new EventSource(api.eventsUrl());
-    const onMsg = (raw: MessageEvent) => {
-      try {
-        const e = JSON.parse(raw.data) as ChainEvent;
-        if (e.type !== 'chat.message' || e.jobId !== jobId) return;
-        const payload = e.payload as
-          | { messageId?: string; sender?: string; body?: string }
-          | undefined;
-        if (!payload?.messageId || !payload.sender || typeof payload.body !== 'string') return;
-        const next: ChatMessage = {
-          id: payload.messageId,
-          jobId,
-          sender: payload.sender,
-          body: payload.body,
-          ts: e.ts,
-        };
-        setMessages((list) => {
-          if (list.some((m) => m.id === next.id)) return list;
-          return [...list, next];
-        });
-        if (payload.sender !== me) {
-          setUnreadCount((n) => n + 1);
-          sfx.tap();
-        }
-      } catch {
-        /* ignore */
+    return subscribeLiveEvents((e) => {
+      if (e.type !== 'chat.message' || e.jobId !== jobId) return;
+      const payload = e.payload as
+        | { messageId?: string; sender?: string; body?: string }
+        | undefined;
+      if (!payload?.messageId || !payload.sender || typeof payload.body !== 'string') return;
+      const next: ChatMessage = {
+        id: payload.messageId,
+        jobId,
+        sender: payload.sender,
+        body: payload.body,
+        ts: e.ts,
+      };
+      setMessages((list) => {
+        if (list.some((m) => m.id === next.id)) return list;
+        return [...list, next];
+      });
+      if (payload.sender !== me) {
+        setUnreadCount((n) => n + 1);
+        sfx.tap();
       }
-    };
-    es.addEventListener('chat.message', onMsg);
-    return () => {
-      es.removeEventListener('chat.message', onMsg);
-      es.close();
-    };
+    });
   }, [jobId, caller, me]);
 
   const send = useCallback(

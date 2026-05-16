@@ -41,6 +41,7 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS direct_deals_buyer_idx ON direct_deals (buyer);
     CREATE INDEX IF NOT EXISTS direct_deals_seller_idx ON direct_deals (seller);
+    CREATE INDEX IF NOT EXISTS direct_deals_created_at_idx ON direct_deals (created_at);
     CREATE TABLE IF NOT EXISTS agent_wallets (
       user_address TEXT PRIMARY KEY,
       data JSONB NOT NULL
@@ -57,6 +58,7 @@ export async function ensureSchema(): Promise<void> {
       data JSONB NOT NULL
     );
     CREATE INDEX IF NOT EXISTS messages_job_idx ON messages (job_id);
+    CREATE INDEX IF NOT EXISTS messages_job_ts_idx ON messages (job_id, ts);
     CREATE TABLE IF NOT EXISTS telegram_links (
       address TEXT PRIMARY KEY,
       data JSONB NOT NULL

@@ -108,10 +108,25 @@ contract KarwanEscrowTest is Test {
         escrow.dispute(JOB_ID, "ipfs://reason");
 
         uint256 buyerBefore = usdc.balanceOf(buyer);
+        vm.prank(buyer);
         escrow.refund(JOB_ID);
         // Escrow drains fully: buyer recovers everything not yet released.
         assertEq(usdc.balanceOf(address(escrow)), 0);
         assertGt(usdc.balanceOf(buyer), buyerBefore);
+    }
+
+    function test_Refund_RevertsForNonBuyer() public {
+        vm.prank(buyer);
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(20, 80));
+        vm.prank(seller);
+        escrow.dispute(JOB_ID, "ipfs://reason");
+
+        // The seller raised the dispute, but they can't refund — only the
+        // buyer can pull funds back to themselves, so a third party can't
+        // grief by pre-empting an off-chain resolution.
+        vm.expectRevert();
+        vm.prank(seller);
+        escrow.refund(JOB_ID);
     }
 
     function test_ZeroFeeDeployment_BehavesLikeNoFee() public {

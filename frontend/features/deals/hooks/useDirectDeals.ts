@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { api, type ChainEvent, type DirectDeal } from '@/core/api';
+import { api, type DirectDeal } from '@/core/api';
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -47,23 +48,12 @@ export function useDirectDeals() {
   // SSE: refetch when a relevant deal event lands.
   useEffect(() => {
     if (!isConnected || !address) return;
-    const es = new EventSource(api.eventsUrl());
-    const onMsg = (raw: MessageEvent) => {
-      try {
-        const e = JSON.parse(raw.data) as ChainEvent;
-        if (REFRESH_TYPES.has(e.type)) {
-          // Small delay so the backend has written its store update.
-          setTimeout(refresh, 400);
-        }
-      } catch {
-        /* ignore */
+    return subscribeLiveEvents((e) => {
+      if (REFRESH_TYPES.has(e.type)) {
+        // Small delay so the backend has written its store update.
+        setTimeout(refresh, 400);
       }
-    };
-    for (const t of REFRESH_TYPES) es.addEventListener(t, onMsg);
-    return () => {
-      for (const t of REFRESH_TYPES) es.removeEventListener(t, onMsg);
-      es.close();
-    };
+    });
   }, [address, isConnected, refresh]);
 
   return { deals, fetchState, refresh };
@@ -89,22 +79,11 @@ export function useDirectDeal(jobId: string) {
   }, [refresh]);
 
   useEffect(() => {
-    const es = new EventSource(api.eventsUrl());
-    const onMsg = (raw: MessageEvent) => {
-      try {
-        const e = JSON.parse(raw.data) as ChainEvent;
-        if (e.jobId === jobId && REFRESH_TYPES.has(e.type)) {
-          setTimeout(refresh, 400);
-        }
-      } catch {
-        /* ignore */
+    return subscribeLiveEvents((e) => {
+      if (e.jobId === jobId && REFRESH_TYPES.has(e.type)) {
+        setTimeout(refresh, 400);
       }
-    };
-    for (const t of REFRESH_TYPES) es.addEventListener(t, onMsg);
-    return () => {
-      for (const t of REFRESH_TYPES) es.removeEventListener(t, onMsg);
-      es.close();
-    };
+    });
   }, [jobId, refresh]);
 
   return { deal, fetchState, refresh };
