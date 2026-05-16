@@ -107,9 +107,9 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
       const link = jobUrl(e.jobId);
       return withLink(
-        role === 'buyer'
-          ? `*Your agent found a match*${price ? ` at ${price} USDC` : ''}. Review and approve to fund escrow.`
-          : `*A buyer's agent matched with you*${price ? ` at ${price} USDC` : ''}. Awaiting their approval. You'll be notified when escrow funds.`,
+        role === 'seller'
+          ? `*A buyer's agent matched with you*${price ? ` at ${price} USDC` : ''}. Open Karwan to accept — escrow funds automatically once you do.`
+          : `*Your agent found a match*${price ? ` at ${price} USDC` : ''}. Awaiting the seller's acceptance. Escrow funds automatically when they accept — no action needed from you.`,
         link,
       );
     }
@@ -117,15 +117,15 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
       return withLink(
         role === 'seller'
-          ? `*You've been chosen.* Escrow funded${price ? ` (${price} USDC)` : ''}. Deliver in Karwan when ready.`
-          : `*Match approved.* Escrow funded${price ? ` (${price} USDC)` : ''}. The seller has been notified.`,
+          ? `*Match accepted.* Escrow is funded${price ? ` (${price} USDC)` : ''}. Deliver in Karwan when ready.`
+          : `*Your match is live.* The seller accepted and escrow funded${price ? ` (${price} USDC)` : ''}. Standby for delivery.`,
         url,
       );
     }
     case 'deal.match.declined':
-      return role === 'buyer'
+      return role === 'seller'
         ? '*You declined the matched proposal.*'
-        : '*The buyer declined this match.* The job is closed; you may bid on others.';
+        : '*The seller declined this match.* Post a fresh brief to re-run the auction.';
     case 'deal.direct.created':
       return withLink(
         role === 'seller'

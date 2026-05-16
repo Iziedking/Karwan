@@ -120,29 +120,13 @@ export function TopNav() {
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {isApp ? (
             <>
-              <div
-                className="hidden lg:inline-flex items-center pl-3 pr-3 py-1.5 border border-[var(--color-line)] bg-[var(--color-surface)] mono"
-                style={{
-                  borderTopLeftRadius: 9,
-                  borderTopRightRadius: 9,
-                  borderBottomLeftRadius: 9,
-                  borderBottomRightRadius: 2,
-                }}
-              >
+              <div className="hidden lg:inline-flex items-center pl-3 pr-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono">
                 <BalanceRail />
               </div>
               <div className="hidden md:inline-flex">
                 <LiveDot />
               </div>
-              <div
-                className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 border border-[var(--color-line)] bg-[var(--color-surface)]"
-                style={{
-                  borderTopLeftRadius: 9,
-                  borderTopRightRadius: 9,
-                  borderBottomLeftRadius: 9,
-                  borderBottomRightRadius: 2,
-                }}
-              >
+              <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
                 <NotificationBell />
                 <SoundToggle />
                 <ThemeToggle />

@@ -27,47 +27,30 @@ export function BalanceRail() {
           onClick={() => switchChain({ chainId: arcTestnet.id })}
           disabled={switching}
           title="Your wallet is not on Arc Testnet"
-          className="group inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.14em] leading-none text-white transition-[transform,box-shadow] duration-150 hover:-translate-y-px active:translate-y-0 disabled:opacity-70 disabled:cursor-wait disabled:translate-y-0"
+          className="group inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(178,84,37,0.06)] disabled:opacity-60 disabled:cursor-wait"
           style={{
-            background: 'var(--color-ink)',
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
-            boxShadow: '0 2px 0 rgba(0,0,0,0.22)',
+            background: 'var(--color-surface)',
+            color: '#b25425',
+            border: '1.5px solid #b25425',
           }}
         >
-          <span
+          <span>{switching ? 'Switching' : 'Switch to Arc'}</span>
+          <svg
+            width="9"
+            height="9"
+            viewBox="0 0 16 16"
+            fill="none"
             aria-hidden
-            className="flex items-center justify-center px-1.5"
-            style={{ background: '#b25425' }}
+            className="transition-transform duration-200 group-hover:translate-x-0.5"
           >
-            <span
-              aria-hidden
-              data-instrument-blink
-              className="inline-block w-[5px] h-[5px] bg-white"
-              style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
+            <path
+              d="M3 8h10M9 4l4 4-4 4"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-[6px]">
-            <span>{switching ? 'Switching' : 'Switch to Arc'}</span>
-            <svg
-              width="9"
-              height="9"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden
-              className="transition-transform group-hover:translate-x-0.5 opacity-90"
-            >
-              <path
-                d="M3 8h10M9 4l4 4-4 4"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
+          </svg>
         </button>
       )}
       <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">

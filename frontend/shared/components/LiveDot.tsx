@@ -2,12 +2,10 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
 
-// Body matches the wallet chip (var(--color-ink)) so all navbar instrument
-// chips read as one family. Status color lives inside the LED cell only.
 const TONE = {
-  live: { cell: '#0a7553', label: 'LIVE' },
-  connecting: { cell: '#6b6b6b', label: 'CONNECTING' },
-  offline: { cell: '#b03d3a', label: 'OFFLINE' },
+  live: { color: '#0a7553', label: 'Live' },
+  connecting: { color: 'var(--color-ink-faint)', label: 'Connecting' },
+  offline: { color: '#b03d3a', label: 'Offline' },
 } as const;
 
 export function LiveDot() {
@@ -23,34 +21,23 @@ export function LiveDot() {
   }, []);
 
   const t = TONE[state];
+  const pinging = state === 'live';
 
   return (
-    <span
-      className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.18em] leading-none text-white"
-      style={{
-        background: 'var(--color-ink)',
-        borderTopLeftRadius: 5,
-        borderTopRightRadius: 5,
-        borderBottomLeftRadius: 5,
-        borderBottomRightRadius: 2,
-        boxShadow: '0 2px 0 rgba(0,0,0,0.22)',
-      }}
-    >
-      <span
-        aria-hidden
-        className="flex items-center justify-center px-1.5"
-        style={{ background: t.cell }}
-      >
+    <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--color-ink-dim)]">
+      <span aria-hidden className="relative inline-flex w-[6px] h-[6px]">
+        {pinging && (
+          <span
+            className="absolute inset-0 rounded-full opacity-55 motion-safe:animate-ping"
+            style={{ background: t.color }}
+          />
+        )}
         <span
-          aria-hidden
-          data-instrument-blink={state === 'live' || undefined}
-          className="inline-block w-[5px] h-[5px] bg-white"
-          style={{
-            animation: state === 'live' ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
-          }}
+          className="relative inline-flex w-[6px] h-[6px] rounded-full"
+          style={{ background: t.color }}
         />
       </span>
-      <span className="px-2 py-[6px]">{t.label}</span>
+      <span>{t.label}</span>
     </span>
   );
 }

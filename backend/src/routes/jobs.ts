@@ -8,6 +8,7 @@ import {
   getBuyerSnapshot,
   getBuyerJob,
   getMatchProposal,
+  listMatchProposalsForUser,
   approveAgentMatch,
   declineAgentMatch,
 } from '../agents/buyer.js';
@@ -159,9 +160,28 @@ jobsRoutes.get('/:jobId/match', (c) => {
   return c.json({ proposal: getMatchProposal(jobId) });
 });
 
-/// Buyer approves the agent's matched proposal. Triggers acceptBid + fundEscrow
-/// via the buyer's agent wallet. From this point the deal follows the standard
-/// direct-deal flow (delivered → release → settled).
+/// All open match proposals where caller is either the buyer (awaiting their
+/// approval) or the seller (waiting for buyer to approve). Seller-side use
+/// case: the `/seller` dashboard polls this to surface "your bid became a
+/// match" so sellers don't have to know jobIds to find their pending matches.
+jobsRoutes.get('/matches/for', (c) => {
+  const caller = c.req.query('caller');
+  if (!caller || !/^0x[a-fA-F0-9]{40}$/.test(caller)) {
+    return c.json({ error: 'caller query param required (0x... address)' }, 400);
+  }
+  const proposals = listMatchProposalsForUser(caller).filter(
+    (p) => !p.approvedAt && !p.declinedAt,
+  );
+  return c.json({ proposals });
+});
+
+/// Seller accepts the agent's matched proposal. The seller is the gate because
+/// the agent negotiated on their behalf at a price that may differ from what
+/// they'd want; the buyer already pre-committed via the brief's budget +
+/// tolerance. Acceptance triggers acceptBid + fundEscrow via the BUYER's agent
+/// wallet automatically (no separate buyer approval — the buyer's spending is
+/// pre-authorized within budget+tolerance). From this point the deal follows
+/// the standard direct-deal flow (delivered → release → settled).
 jobsRoutes.post('/:jobId/approve-match', async (c) => {
   const jobId = c.req.param('jobId');
   let body;
@@ -172,8 +192,8 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   }
   const proposal = getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
-  if (body.caller.toLowerCase() !== proposal.buyerUser) {
-    return c.json({ error: 'only the buyer can approve this match' }, 403);
+  if (body.caller.toLowerCase() !== proposal.sellerUser) {
+    return c.json({ error: 'only the seller can approve this match' }, 403);
   }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this job' }, 409);
@@ -192,8 +212,9 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   }
 });
 
-/// Buyer declines the matched proposal. The job stays finalized in memory; this
-/// just marks the proposal as not-pursued. Re-running the auction is a v2 follow-up.
+/// Seller declines the matched proposal. The job stays finalized in memory;
+/// this just marks the proposal as not-pursued. Re-running the auction is a v2
+/// follow-up. Buyer's pre-committed funds are never touched.
 jobsRoutes.post('/:jobId/decline-match', async (c) => {
   const jobId = c.req.param('jobId');
   let body;
@@ -204,8 +225,8 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   }
   const proposal = getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
-  if (body.caller.toLowerCase() !== proposal.buyerUser) {
-    return c.json({ error: 'only the buyer can decline this match' }, 403);
+  if (body.caller.toLowerCase() !== proposal.sellerUser) {
+    return c.json({ error: 'only the seller can decline this match' }, 403);
   }
   const result = declineAgentMatch(jobId, body.reason);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, 409);

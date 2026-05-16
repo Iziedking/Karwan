@@ -6,6 +6,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { cn } from '@/shared/utils/cn';
 import { api, type ApiStatus } from '@/core/api';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
+import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { shortAddress } from '@/shared/utils/format';
@@ -147,6 +148,11 @@ export default function AppHome() {
           </div>
         </div>
       </Band>
+
+      {/* PENDING MATCHES — surfaces here so users see them from the home page
+          without having to navigate to /seller. Renders nothing when there
+          are none, so the layout stays clean for buyers / fresh users. */}
+      <PendingMatchesBand tone="light" headline="Pending matches" />
 
       {/* THREE DOORS */}
       <Band tone="light">

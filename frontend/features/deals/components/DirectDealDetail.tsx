@@ -51,6 +51,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
+  // Hoisted above the conditional early returns below to satisfy the React
+  // rules of hooks — must be called on every render in the same order.
+  const [proposeOpen, setProposeOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -256,8 +259,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       setBusy(false);
     }
   }
-
-  const [proposeOpen, setProposeOpen] = useState(false);
 
   async function onProposeCancel(reason: string, kind: 'mutual' | 'platform-attributed') {
     if (!address) return;

@@ -14,6 +14,7 @@ import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -147,6 +148,9 @@ export default function ProfilePage() {
           </div>
         </div>
       </Band>
+
+      {/* PENDING MATCHES — high-priority surface; renders nothing when empty. */}
+      <PendingMatchesBand tone="light" headline="Pending matches" />
 
       {/* ACTIVATION */}
       <Band tone="light" compact>

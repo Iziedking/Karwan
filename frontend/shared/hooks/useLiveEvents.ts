@@ -40,22 +40,63 @@ const TRACKED_TYPES = [
   'listing.matched',
 ];
 
-export function useLiveEvents(filterJobId?: string, max = 100) {
+// Identifying-party keys on the event payload. The client-side filter mirrors
+// the server-side filter in routes/activity.ts so live SSE events for a job
+// the caller is a party to also pass through, even if the event's payload
+// itself doesn't restate buyer/seller (e.g. follow-up escrow.* events).
+const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy'];
+
+function isPartyMatch(event: ChainEvent, caller: string): boolean {
+  const payload = event.payload as Record<string, unknown> | undefined;
+  if (!payload) return false;
+  for (const k of PARTY_KEYS) {
+    const v = payload[k];
+    if (typeof v === 'string' && v.toLowerCase() === caller) return true;
+  }
+  return false;
+}
+
+export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) {
   const [events, setEvents] = useState<ChainEvent[]>([]);
-  const esRef = useRef<EventSource | null>(null);
+  // Track jobIds the caller is a party to (learned from backfill + live events),
+  // so follow-up events on those jobs pass the client-side filter.
+  const callerJobsRef = useRef<Set<string>>(new Set());
+  const callerLower = caller?.toLowerCase();
 
   useEffect(() => {
-    api.activity(max, filterJobId).then(({ events }) => setEvents(events)).catch(() => {});
-  }, [filterJobId, max]);
+    callerJobsRef.current = new Set();
+    api
+      .activity(max, filterJobId, caller)
+      .then(({ events }) => {
+        if (callerLower) {
+          for (const e of events) {
+            if (e.jobId && isPartyMatch(e, callerLower)) {
+              callerJobsRef.current.add(e.jobId.toLowerCase());
+            }
+          }
+        }
+        setEvents(events);
+      })
+      .catch(() => {});
+  }, [filterJobId, max, caller, callerLower]);
 
   useEffect(() => {
     const es = new EventSource(api.eventsUrl());
-    esRef.current = es;
 
     const onMsg = (e: MessageEvent) => {
       try {
         const parsed = JSON.parse(e.data) as ChainEvent;
         if (filterJobId && parsed.jobId !== filterJobId) return;
+        if (callerLower) {
+          const tracked = parsed.jobId
+            ? callerJobsRef.current.has(parsed.jobId.toLowerCase())
+            : false;
+          const party = isPartyMatch(parsed, callerLower);
+          if (!tracked && !party) return;
+          if (party && parsed.jobId) {
+            callerJobsRef.current.add(parsed.jobId.toLowerCase());
+          }
+        }
         setEvents((prev) => [parsed, ...prev].slice(0, max));
       } catch {
         /* ignore */
@@ -66,7 +107,7 @@ export function useLiveEvents(filterJobId?: string, max = 100) {
       for (const t of TRACKED_TYPES) es.removeEventListener(t, onMsg);
       es.close();
     };
-  }, [filterJobId, max]);
+  }, [filterJobId, max, callerLower]);
 
   return events;
 }

@@ -313,9 +313,39 @@ async function finalizeBidCollection(state: JobState) {
   }
 
   const top = ranked[0]!;
+
+  // Direct-accept short-circuit: if the top bid is already at or below the
+  // buyer's stated budget, accept it as the match price. The agent has no
+  // business haggling the seller down when the price is already favorable —
+  // this prevents the LLM-vs-LLM "race to the bottom" pattern where both
+  // sides reflexively counter-down regardless of context.
+  const topPrice = Number(top.priceUsdc);
+  const budget = Number(state.context.budgetUsdc);
+  if (topPrice <= budget) {
+    logger.info(
+      {
+        jobId: state.jobId,
+        seller: top.seller,
+        bidPrice: topPrice,
+        budget,
+        bids: ranked.length,
+      },
+      'top bid already at/under budget, accepting directly (no counter)',
+    );
+    await proposeMatch(state, top.seller, top.priceUsdc);
+    return;
+  }
+
   logger.info(
-    { jobId: state.jobId, seller: top.seller, score: top.score, bids: ranked.length },
-    'top bid picked, issuing counter',
+    {
+      jobId: state.jobId,
+      seller: top.seller,
+      score: top.score,
+      bids: ranked.length,
+      bidPrice: topPrice,
+      budget,
+    },
+    'top bid above budget, issuing counter',
   );
 
   await issueCounter(state, top);

@@ -19,6 +19,10 @@ export function MatchBanner({ proposal, onChange }: Props) {
   const [showDeclineReason, setShowDeclineReason] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
 
+  // Seller is the approval gate. Buyer pre-committed via brief budget+tolerance;
+  // their agent funds escrow automatically once the seller accepts.
+  const viewerIsSeller =
+    !!address && address.toLowerCase() === proposal.sellerUser.toLowerCase();
   const viewerIsBuyer =
     !!address && address.toLowerCase() === proposal.buyerUser.toLowerCase();
   const approved = !!proposal.approvedAt;
@@ -63,14 +67,14 @@ export function MatchBanner({ proposal, onChange }: Props) {
   // Terminal states render a compact summary, no actions.
   if (approved) {
     return (
-      <BannerFrame tone="positive" eyebrow="Match approved">
+      <BannerFrame tone="positive" eyebrow="Seller accepted">
         <div className="flex items-baseline justify-between gap-4">
-          <p className="text-[13px] text-[var(--color-ink-dim)]">
-            Escrow is funded. The seller has been notified and is preparing delivery.
+          <p className="text-[13px] text-[var(--color-ink)] font-medium">
+            The seller accepted your deal. Escrow is funded. Opening the live deal.
           </p>
           <a
             href={`/deals/${proposal.jobId}`}
-            className="text-[12px] mono text-[var(--color-ink)] underline-offset-2 hover:underline"
+            className="text-[12px] mono text-[var(--color-ink)] underline-offset-2 hover:underline shrink-0"
           >
             Open deal →
           </a>
@@ -82,7 +86,9 @@ export function MatchBanner({ proposal, onChange }: Props) {
     return (
       <BannerFrame tone="default" eyebrow="Match declined">
         <p className="text-[13px] text-[var(--color-ink-dim)]">
-          You declined this proposal. The job stays closed; re-run the auction by posting again.
+          {viewerIsSeller
+            ? "You declined this match. The job stays closed; the buyer can post a fresh brief."
+            : 'The seller declined this match. Post a fresh brief to re-run the auction.'}
         </p>
       </BannerFrame>
     );
@@ -119,7 +125,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
         </div>
       </div>
 
-      {viewerIsBuyer && !showDeclineReason && (
+      {viewerIsSeller && !showDeclineReason && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -129,7 +135,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
           >
             {busy === 'approve' && <Spinner />}
-            {busy === 'approve' ? 'Funding escrow…' : 'Approve & fund escrow'}
+            {busy === 'approve' ? 'Funding escrow…' : 'Accept match'}
           </button>
           <button
             type="button"
@@ -146,7 +152,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
         </div>
       )}
 
-      {viewerIsBuyer && showDeclineReason && (
+      {viewerIsSeller && showDeclineReason && (
         <div className="mt-4 space-y-2">
           <label className="block space-y-1.5">
             <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
@@ -189,9 +195,15 @@ export function MatchBanner({ proposal, onChange }: Props) {
         </div>
       )}
 
-      {!viewerIsBuyer && (
-        <p className="mt-3 text-[12px] text-[var(--color-ink-faint)]">
-          Waiting for the buyer to approve and fund escrow.
+      {viewerIsBuyer && (
+        <p className="mt-3 text-[13px] text-[var(--color-ink-dim)]">
+          Waiting for the seller to accept. Your agent will fund escrow automatically when they
+          do. No action needed from you.
+        </p>
+      )}
+      {!viewerIsBuyer && !viewerIsSeller && (
+        <p className="mt-3 text-[13px] text-[var(--color-ink-dim)]">
+          Waiting for the seller to accept this match.
         </p>
       )}
 

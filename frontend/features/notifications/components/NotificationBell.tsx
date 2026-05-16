@@ -7,9 +7,10 @@ import { relativeTime } from '@/shared/utils/format';
 
 export function NotificationBell() {
   const { isConnected } = useAccount();
-  const { notifications, unreadCount, markRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -27,23 +28,15 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  const router = useRouter();
-
   if (!isConnected) return null;
-
-  // Opening the bell does not clear anything. A notification is marked read only
-  // when the user clicks it.
-  function toggle() {
-    setOpen((s) => !s);
-  }
 
   return (
     <div ref={wrapRef} className="relative">
       <button
         type="button"
-        onClick={toggle}
+        onClick={() => setOpen((s) => !s)}
         aria-label="Notifications"
-        className="relative inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+        className="relative inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
           <path
@@ -52,12 +45,18 @@ export function NotificationBell() {
             strokeWidth="1.3"
             strokeLinejoin="round"
           />
-          <path d="M6.5 13a1.7 1.7 0 0 0 3 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path
+            d="M6.5 13a1.7 1.7 0 0 0 3 0"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
         </svg>
         {unreadCount > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center"
-            style={{ background: 'var(--color-critical)', color: '#fff' }}
+            aria-hidden
+            className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-1 rounded-full mono text-[9px] font-bold flex items-center justify-center text-[var(--lp-dark)]"
+            style={{ background: 'var(--lp-accent)' }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
@@ -66,30 +65,57 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card-hover)] z-50 fade-up overflow-hidden"
+          className="absolute right-0 mt-2 w-[340px] bg-[var(--lp-card)] z-50 fade-up overflow-hidden"
+          style={{
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 14,
+            borderTopRightRadius: 14,
+            borderBottomLeftRadius: 14,
+            borderBottomRightRadius: 4,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.22)',
+            color: 'var(--lp-dark)',
+          }}
         >
-          <div className="px-4 py-3 flex items-baseline justify-between border-b border-[var(--color-line)]">
-            <p className="eyebrow">Notifications</p>
+          <div
+            className="px-4 py-3 flex items-baseline justify-between"
+            style={{ borderBottom: '1px solid var(--lp-border-light)' }}
+          >
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:NOTIFICATIONS:]
+            </span>
             {notifications.length > 0 && (
-              <button
-                type="button"
-                onClick={clearAll}
-                className="text-[10px] text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] transition-colors"
-              >
-                Clear all
-              </button>
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllRead}
+                    className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  >
+                    Mark read
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
             )}
           </div>
 
           {notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <p className="text-[12px] text-[var(--color-ink-dim)]">Nothing yet.</p>
-              <p className="text-[11px] text-[var(--color-ink-faint)] mt-1">
-                Deal updates land here as they happen.
+            <div className="px-4 py-10 text-center space-y-1.5">
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                NOTHING YET
+              </p>
+              <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug max-w-[28ch] mx-auto">
+                Deal matches, escrow events, and cancellation proposals land here as they happen.
               </p>
             </div>
           ) : (
-            <ul className="max-h-[360px] overflow-y-auto divide-y divide-[var(--color-line)]">
+            <ul className="max-h-[420px] overflow-y-auto divide-y divide-[var(--lp-border-light)]">
               {notifications.map((n) => (
                 <li key={n.id}>
                   <button
@@ -97,39 +123,43 @@ export function NotificationBell() {
                     onClick={() => {
                       markRead(n.id);
                       setOpen(false);
-                      router.push(`/deals/${n.jobId}`);
+                      router.push(n.href);
                     }}
-                    className="w-full text-left px-4 py-3 hover:bg-[var(--color-surface-2)] transition-colors flex items-start gap-2.5"
+                    className="w-full text-left px-4 py-3 hover:bg-[var(--lp-light)] transition-colors flex items-start gap-3"
                   >
                     <span
                       aria-hidden
-                      className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+                      className="mt-[5px] shrink-0 inline-block w-[6px] h-[6px]"
                       style={{
-                        background: n.read ? 'var(--color-line-strong)' : 'var(--color-accent)',
+                        background: n.read ? 'rgba(0,0,0,0.18)' : 'var(--lp-accent)',
                       }}
                     />
                     <span className="min-w-0 flex-1">
                       <span
-                        className={`block text-[12px] leading-snug ${
-                          n.read ? 'text-[var(--color-ink-dim)]' : 'text-[var(--color-ink)] font-medium'
+                        className={`block text-[12.5px] leading-snug ${
+                          n.read
+                            ? 'text-[var(--lp-text-sub)]'
+                            : 'text-[var(--lp-dark)] font-medium'
                         }`}
                       >
                         {n.summary}
                       </span>
-                      <span className="block text-[10px] mono text-[var(--color-ink-faint)] mt-0.5">
-                        {relativeTime(n.ts)}
+                      <span className="mt-1 flex items-center gap-2">
+                        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                          {relativeTime(n.ts)}
+                        </span>
+                        <span aria-hidden className="text-[var(--lp-text-muted)]">·</span>
+                        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+                          {n.jobId.slice(0, 6)}…{n.jobId.slice(-4)}
+                        </span>
                       </span>
                     </span>
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 16 16"
-                      fill="none"
+                    <span
                       aria-hidden
-                      className="text-[var(--color-ink-faint)] mt-1 shrink-0"
+                      className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1 shrink-0"
                     >
-                      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                      OPEN →
+                    </span>
                   </button>
                 </li>
               ))}

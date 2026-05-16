@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { api, type SellerActiveBid } from '@/core/api';
+import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { PostListingForm } from '@/features/seller/components/PostListingForm';
@@ -117,6 +118,9 @@ export default function SellerPage() {
           </div>
         </div>
       </Band>
+
+      {/* PENDING MATCHES — shared component, renders nothing when empty. */}
+      <PendingMatchesBand tone="light" headline="Your bid matched" />
 
       {/* HOW IT WORKS */}
       <Band tone="light" compact>
@@ -369,3 +373,4 @@ function SellerAgentVignette({
     </div>
   );
 }
+

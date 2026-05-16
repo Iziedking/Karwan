@@ -263,6 +263,8 @@ export const api = {
   job: (id: string) => json<BuyerJob>(`/api/jobs/${id}`),
   matchProposal: (jobId: string) =>
     json<{ proposal: MatchProposal | null }>(`/api/jobs/${jobId}/match`),
+  matchesFor: (address: string) =>
+    json<{ proposals: MatchProposal[] }>(`/api/jobs/matches/for?caller=${address}`),
   approveMatch: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string; txHash: string }>(
       `/api/jobs/${jobId}/approve-match`,
@@ -313,10 +315,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     }),
-  activity: (limit = 100, jobId?: string) => {
+  activity: (limit = 100, jobId?: string, caller?: string) => {
     const q = new URLSearchParams();
     q.set('limit', String(limit));
     if (jobId) q.set('jobId', jobId);
+    if (caller) q.set('caller', caller);
     return json<{ events: ChainEvent[] }>(`/api/activity?${q.toString()}`);
   },
   reputation: (address: string) =>

@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAccount } from 'wagmi';
 import type { BuyerJob } from '@/core/api';
 import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
@@ -27,9 +29,32 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const { job } = useJobSnapshot(initial);
   const { events, active, completed, declined } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
+  const { address } = useAccount();
+  const router = useRouter();
+
+  // Once escrow funds, the deal has crossed into the direct-deal lifecycle:
+  // a DirectDeal row exists, the deal watcher takes over, delivery/verification
+  // windows + Release Milestones live on /deals/[id]. Redirect there so the
+  // buyer doesn't see a stale brief deadline + the seller doesn't see Release
+  // Milestones (which is buyer-only post-delivery).
+  useEffect(() => {
+    if (job.escrowFunded) {
+      router.replace(`/deals/${job.jobId}`);
+    }
+  }, [job.escrowFunded, job.jobId, router]);
 
   const acceptedAt = events.find((e) => e.type === 'bid.accepted')?.ts;
   const matchPending = proposal && !proposal.approvedAt && !proposal.declinedAt;
+
+  // Role-aware back-link: a seller landing here from a match notification gets
+  // sent back to /seller; everyone else (including the buyer who posted) goes
+  // to /buyer. Falls back to /buyer when we can't determine.
+  const viewerIsSeller =
+    !!address &&
+    !!proposal &&
+    address.toLowerCase() === proposal.sellerUser.toLowerCase();
+  const backHref = viewerIsSeller ? '/seller' : '/buyer';
+  const backLabel = viewerIsSeller ? 'BACK TO SELLER' : 'BACK TO BUYER';
 
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
     ? { label: `Escrow funded · ${formatUsdc(job.budgetUsdc)}`, tone: 'positive', live: false }
@@ -57,7 +82,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
           <Link
-            href="/buyer"
+            href={backHref}
             className="group inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-white/55 hover:text-white transition-colors mb-6"
           >
             <span
@@ -66,7 +91,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             >
               ←
             </span>
-            BACK TO BUYER
+            {backLabel}
           </Link>
         </div>
         <div className="grid lg:grid-cols-[1.4fr_auto] gap-6 items-start">
@@ -101,7 +126,19 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             unit="USDC"
           />
           <StatTile label="Bids" value={String(job.bids.length)} />
-          <StatTile label="Deadline" value={relativeTime(job.deadlineUnix)} small />
+          {/* Once a match is approved or escrow has funded, the brief deadline
+              is irrelevant — show the auction state instead. The page redirects
+              to /deals/[id] on escrowFunded anyway, but during the brief flash
+              we don't want to mislead. */}
+          {job.escrowFunded ? (
+            <StatTile label="Status" value="Escrow funded" small />
+          ) : proposal?.approvedAt ? (
+            <StatTile label="Status" value="Accepted" small />
+          ) : declined ? (
+            <StatTile label="Status" value="Ended" small />
+          ) : (
+            <StatTile label="Deadline" value={relativeTime(job.deadlineUnix)} small />
+          )}
           <StatTile label="Terms hash" value={shortHash(job.termsHash, 6, 4)} mono />
         </div>
 

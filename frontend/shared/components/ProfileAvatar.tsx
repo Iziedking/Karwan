@@ -20,38 +20,13 @@ export function ProfileAvatar() {
       href="/profile"
       aria-label="Your profile"
       title="Your profile"
-      className="relative inline-flex shrink-0 transition-transform hover:-translate-y-0.5"
-      style={{
-        padding: 2,
-        background: active ? 'var(--lp-accent)' : 'var(--color-line)',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 2,
-      }}
+      className={`inline-flex shrink-0 rounded-full transition-transform hover:scale-105 ${
+        active
+          ? 'ring-2 ring-[var(--lp-accent)] ring-offset-2 ring-offset-[var(--color-surface)]'
+          : ''
+      }`}
     >
-      <span
-        className="inline-flex overflow-hidden"
-        style={{
-          borderTopLeftRadius: 6,
-          borderTopRightRadius: 6,
-          borderBottomLeftRadius: 6,
-          borderBottomRightRadius: 1,
-        }}
-      >
-        <WalletAvatar address={address} size={28} />
-      </span>
-      {active && (
-        <span
-          aria-hidden
-          data-instrument-blink
-          className="absolute -top-0.5 -right-0.5 inline-block w-[5px] h-[5px]"
-          style={{
-            background: 'var(--lp-accent)',
-            animation: 'instrumentBlink 1.6s ease-in-out infinite',
-          }}
-        />
-      )}
+      <WalletAvatar address={address} size={28} />
     </Link>
   );
 }

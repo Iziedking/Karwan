@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { EventList } from '@/features/jobs/components/EventList';
 import { ActivityStats } from './ActivityStats';
@@ -13,7 +14,26 @@ import {
 } from '../types';
 
 export function ActivityView({ explorer }: { explorer: string }) {
-  const events = useLiveEvents(undefined, 200);
+  const { address, isConnected } = useAccount();
+  // Scope to the connected wallet — only events the user is a party to.
+  const events = useLiveEvents(undefined, 200, address);
+
+  // Hard gate: never render the activity stream for a disconnected wallet —
+  // there's nothing to scope it to, and falling back to the global stream
+  // would leak other users' deal events.
+  if (!isConnected || !address) {
+    return (
+      <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          NOT CONNECTED
+        </p>
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          Connect your wallet to see the events your deals have triggered. This stream is scoped
+          to your wallet — you won&apos;t see other users&apos; activity.
+        </p>
+      </div>
+    );
+  }
 
   const [groups, setGroups] = useState<Set<EventGroup>>(new Set());
   const [actors, setActors] = useState<Set<ActorFilter>>(new Set());
