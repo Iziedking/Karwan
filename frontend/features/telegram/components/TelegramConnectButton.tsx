@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, type ReactNode } from 'react';
 import { useTelegramLink } from '../hooks/useTelegramLink';
 
@@ -80,7 +80,7 @@ export function TelegramConnectButton({ address }: { address?: string }) {
           <span
             className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5"
             style={{
-              background: 'rgba(212,255,63,0.18)',
+              background: 'rgba(189, 225, 34,0.18)',
               color: 'var(--lp-accent)',
               borderRadius: 3,
             }}
@@ -112,9 +112,9 @@ function ModalNote({ tone, children }: { tone: 'info' | 'error'; children: React
           border: '1px solid rgba(176,61,58,0.35)',
         }
       : {
-          background: 'rgba(212,255,63,0.10)',
+          background: 'rgba(189, 225, 34,0.10)',
           color: 'var(--lp-dark)',
-          border: '1px solid rgba(212,255,63,0.30)',
+          border: '1px solid rgba(189, 225, 34,0.30)',
         };
   return (
     <div

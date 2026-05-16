@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, wsClient } from '../chain/client.js';
-import { jobBoard, reputation } from '../chain/contracts.js';
+import { jobBoard } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
@@ -17,6 +17,7 @@ import type { SellerProfile } from './seller-profile.js';
 import { resolveAllSellerProfiles, resolveSellerProfile, siblingSellerAddress } from './agent-registry.js';
 import { withLlmTimeout } from './llm-utils.js';
 import { getBrief } from '../db/briefs.js';
+import { actorSignalsFor } from './signals.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -211,19 +212,36 @@ async function handleJobPosted(log: Log) {
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
   };
 
-  // The buyer reputation is the same for every seller, so read it once.
+  // Read the buyer's deterministic signals once and share across every seller
+  // evaluation. Saves N reputation reads and keeps the read window aligned.
   try {
-    baseJob.buyerReputationBps = Number(
-      await reputation.read.getReputationScore([args.buyer as `0x${string}`]),
-    );
+    const buyerSig = await actorSignalsFor(args.buyer);
+    baseJob.buyerReputationBps = buyerSig.reputationBps;
+    baseJob.buyerRepTier = buyerSig.repTier;
+    baseJob.buyerCompletionRate = buyerSig.completionRate;
+    baseJob.buyerVelocity24h = buyerSig.velocity24h;
   } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'reputation lookup failed, using neutral');
+    logger.warn(
+      { err: (err as Error).message },
+      'buyer signals lookup failed, falling back to neutral',
+    );
   }
 
   for (const seller of sellers) {
     if (seller.address.toLowerCase() === excludeSeller) continue;
     if (activeBids.has(bidKey(jobId, seller.address))) continue;
     await evaluateAndBid(seller, { ...baseJob });
+  }
+
+  // After profile-driven evaluation, scan open listings against this fresh
+  // brief so listings posted BEFORE the brief still match. Listings posted
+  // AFTER a brief are handled by the listings route's scanBriefsForListing.
+  // The shared activeBids dedupe prevents a profile-bid + listing-bid race.
+  try {
+    const { scanListingsForBrief } = await import('../routes/listings.js');
+    await scanListingsForBrief({ ...baseJob });
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'scanListingsForBrief failed');
   }
 }
 

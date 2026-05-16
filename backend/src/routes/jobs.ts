@@ -11,6 +11,8 @@ import {
   listMatchProposalsForUser,
   approveAgentMatch,
   declineAgentMatch,
+  getMarketplaceBriefs,
+  type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief } from '../db/briefs.js';
@@ -59,6 +61,21 @@ const postJobSchema = z
 export const jobsRoutes = new Hono();
 
 jobsRoutes.get('/', (c) => c.json(getBuyerSnapshot()));
+
+/// Open buyer briefs packaged for the marketplace surface. Public; we mask
+/// the buyer address in the response so a crawler can't enumerate wallets.
+jobsRoutes.get('/marketplace', (c) => {
+  function mask(addr: string): string {
+    return /^0x[a-fA-F0-9]{40}$/.test(addr)
+      ? `${addr.slice(0, 6)}…${addr.slice(-4)}`
+      : addr;
+  }
+  const briefs = getMarketplaceBriefs().map((b: MarketplaceBrief) => ({
+    ...b,
+    buyer: mask(b.buyer),
+  }));
+  return c.json({ briefs });
+});
 
 jobsRoutes.get('/:jobId', (c) => {
   const jobId = c.req.param('jobId');

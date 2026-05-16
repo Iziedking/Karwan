@@ -36,6 +36,7 @@ const RELEVANT = new Set([
   'deal.disputed',
   'deal.cancelled',
   'deal.fund.insufficient',
+  'listing.matched',
   'chat.message',
   'bridge.minted',
   'bridge.error',
@@ -67,6 +68,14 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     if (buyer) out.push({ address: buyer, role: 'buyer' });
     if (seller) out.push({ address: seller, role: 'seller' });
     return out;
+  }
+  // listing.matched fires the moment a seller agent bids via a matched
+  // listing. The on-chain deal row may not exist yet (acceptance is pending),
+  // so we route purely from the payload. Only the seller is notified here;
+  // the buyer hears about it through the downstream deal.matched event.
+  if (e.type === 'listing.matched') {
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    return seller ? [{ address: seller, role: 'self' }] : [];
   }
   if (e.type === 'chat.message') {
     const jobId = e.jobId;
@@ -103,13 +112,21 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
   const url = dealUrl(e.jobId);
 
   switch (e.type) {
+    case 'listing.matched': {
+      const price = (e.payload?.askingPriceUsdc as number | string | undefined) ?? '';
+      const link = jobUrl(e.jobId);
+      return withLink(
+        `*Karwan matched your listing to an open brief*${price ? ` at ${price} USDC` : ''}. Tap to review and accept the deal.`,
+        link,
+      );
+    }
     case 'deal.matched': {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
       const link = jobUrl(e.jobId);
       return withLink(
         role === 'seller'
-          ? `*A buyer's agent matched with you*${price ? ` at ${price} USDC` : ''}. Open Karwan to accept — escrow funds automatically once you do.`
-          : `*Your agent found a match*${price ? ` at ${price} USDC` : ''}. Awaiting the seller's acceptance. Escrow funds automatically when they accept — no action needed from you.`,
+          ? `*Karwan matched your bid with a buyer*${price ? ` at ${price} USDC` : ''}. Tap to accept; escrow funds the moment you do.`
+          : `*Your agent found you a match*${price ? ` at ${price} USDC` : ''}. Waiting on the seller to accept. Escrow funds automatically once they do.`,
         link,
       );
     }
@@ -129,8 +146,8 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
     case 'deal.direct.created':
       return withLink(
         role === 'seller'
-          ? `*New deal* offered to you. ${amount && `Amount: ${amount} USDC. `}Review it in Karwan to accept or decline.`
-          : `*Deal opened*. Waiting for ${short(e.payload?.seller)} to accept.`,
+          ? `*A buyer opened a deal with you*${amount ? ` at ${amount} USDC` : ''}. Tap to accept; your agent funds escrow on accept.`
+          : `*Deal opened* with ${short(e.payload?.seller)}${amount ? ` at ${amount} USDC` : ''}. Waiting for them to accept.`,
         url,
       );
     case 'deal.accepted':

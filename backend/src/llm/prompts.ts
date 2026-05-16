@@ -15,6 +15,12 @@ export interface JobContext {
    *  for jobs posted before we tracked it, in which case the LLM falls back to
    *  budget/deadline matching only. */
   briefText?: string;
+  /// Optional deterministic signals on the buyer. Passed through so the seller
+  /// agent can see "is this a real buyer or a probable bot/scammer" before it
+  /// commits gas to a bid that will never close.
+  buyerRepTier?: 'new' | 'cold' | 'established' | 'strong';
+  buyerCompletionRate?: number;
+  buyerVelocity24h?: number;
 }
 
 export interface BidContext {
@@ -22,6 +28,15 @@ export interface BidContext {
   priceUsdc: string;
   deadlineUnix: number;
   sellerReputationBps: number;
+  /// Deterministic risk + reliability features computed by `agents/signals.ts`
+  /// and passed in so the LLM can reason about the *pattern* rather than the
+  /// raw numbers. Optional for backward-compat with code paths that haven't
+  /// been threaded yet — the prompt soft-degrades when missing.
+  repTier?: 'new' | 'cold' | 'established' | 'strong';
+  completionRate?: number;
+  velocity24h?: number;
+  priceMultiple?: number;
+  priceAnomaly?: number | null;
 }
 
 const DAY_SECONDS = 86_400;
@@ -50,6 +65,13 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     'Job:',
     briefLine,
     `- Buyer reputation: ${job.buyerReputationBps} / 10000 (5000 = neutral)`,
+    job.buyerRepTier ? `- Buyer rep tier: ${job.buyerRepTier}` : '',
+    job.buyerCompletionRate != null
+      ? `- Buyer completion rate: ${(job.buyerCompletionRate * 100).toFixed(0)}%`
+      : '',
+    job.buyerVelocity24h != null
+      ? `- Buyer 24h activity count: ${job.buyerVelocity24h}`
+      : '',
     `- Buyer-posted budget: ${job.budgetUsdc} USDC`,
     `- Days until buyer's deadline: ${daysToBuyerDeadline}`,
     '',
@@ -96,9 +118,27 @@ export function buildBidRankingPrompt(
     `- Seller reputation: ${bid.sellerReputationBps} / 10000 (5000 = neutral)`,
     `- Bid price: ${bid.priceUsdc} USDC`,
     `- Proposed delivery in ${daysToDelivery} days`,
+    bid.repTier ? `- Seller rep tier: ${bid.repTier}` : '',
+    bid.completionRate != null
+      ? `- Seller completion rate: ${(bid.completionRate * 100).toFixed(0)}%`
+      : '',
+    bid.velocity24h != null ? `- Seller 24h activity count: ${bid.velocity24h}` : '',
+    bid.priceMultiple != null
+      ? `- Price multiple vs budget: ${bid.priceMultiple.toFixed(2)}× (1.0 = at budget)`
+      : '',
+    bid.priceAnomaly != null
+      ? `- Price anomaly: ${bid.priceAnomaly.toFixed(2)}σ vs network median`
+      : '',
+    '',
+    'Pattern guide (use this to read the signals together, not just the price):',
+    '- "windfall": bid price well above budget + established/strong rep → score high; this is a real buyer paying generously.',
+    '- "honey trap": bid price well above budget + new/cold rep → mark medium-low score and lower confidence; could be urgent legit demand or scam bait. The human will judge, not the agent.',
+    '- "reliable deal": bid at or near budget + established/strong rep + completion rate > 80% → score high; this is a normal acceptable deal.',
+    '- "suspicious lowball": bid far below budget + new/cold rep → score low; probable probe pricing.',
+    '- "spammy": 24h activity ≥ 20 → score low regardless of price; likely bot.',
     '',
     'Output rules:',
-    '- score: 0..100 composite (higher is better). Weight reputation, price-vs-budget, delivery timing.',
+    '- score: 0..100 composite (higher is better). Weight reputation, completionRate, price-vs-budget, delivery timing, and the pattern above.',
     `- suggestedCounterPrice: digits only USDC amount. COUNTER RULE: if the bid is at or below the buyer's posted budget (${job.budgetUsdc} USDC), set suggestedCounterPrice EQUAL to the bid price — the bid is already favorable, do NOT counter down. Only when the bid is ABOVE the buyer's posted budget should you counter down toward the budget (suggest at or near ${job.budgetUsdc} USDC). The buyer's hard cap is ${buyer.maxBudgetUsdc} USDC.`,
     `- suggestedCounterDeadlineDays: integer days from now. KEEP this equal to the seller's proposed delivery (${daysToDelivery} days). Do not tighten further. Only push back on price.`,
     '- confidence: 0..1 in this assessment',

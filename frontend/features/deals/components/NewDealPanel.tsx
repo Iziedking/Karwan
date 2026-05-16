@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PostJobForm } from '@/features/buyer/components/PostJobForm';
 import { ActivationGate } from '@/shared/components/ActivationGate';
 import { DirectDealForm } from './DirectDealForm';
@@ -22,7 +23,12 @@ const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
 ];
 
 export function NewDealPanel() {
-  const [mode, setMode] = useState<Mode>('managed');
+  // When the user arrives here via a "Make offer" link from a listing detail
+  // page (/buyer?seller=0x...&amount=...&terms=...), default to the direct
+  // mode so the pre-filled fields are visible without a tab click.
+  const search = useSearchParams();
+  const initialMode: Mode = search.get('seller') ? 'direct' : 'managed';
+  const [mode, setMode] = useState<Mode>(initialMode);
   const active = MODES.find((m) => m.value === mode)!;
 
   return (

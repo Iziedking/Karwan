@@ -24,6 +24,36 @@ export interface ProvisionedAgentWallets {
   sellerAddress: string;
 }
 
+export interface ProvisionedIdentityWallet {
+  walletId: string;
+  address: string;
+}
+
+/// Creates a single Circle wallet that represents a user's on-chain identity.
+/// Used by the email + passkey signup flow so users who never bring a web3
+/// wallet still have a real Arc address. The refId carries the email's hash
+/// so the Circle wallet set can be rebuilt from emails if our DB ever burns.
+export async function provisionUserIdentityWallet(
+  emailHash: string,
+): Promise<ProvisionedIdentityWallet> {
+  if (!config.CIRCLE_WALLET_SET_ID) {
+    throw new Error('CIRCLE_WALLET_SET_ID is not set');
+  }
+  const client = circleWalletsClient();
+  const res = await client.createWallets({
+    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    count: 1,
+    walletSetId: config.CIRCLE_WALLET_SET_ID,
+    accountType: 'SCA',
+    metadata: [{ name: 'karwan-identity', refId: emailHash }],
+  });
+  const wallet = res.data?.wallets?.[0];
+  if (!wallet?.id || !wallet.address) {
+    throw new Error('identity wallet provisioning returned incomplete data');
+  }
+  return { walletId: wallet.id, address: wallet.address };
+}
+
 /// Creates a buyer agent wallet and a seller agent wallet for one user. Both are
 /// SCA wallets on Arc Testnet under the platform wallet set. The user funds them
 /// themselves; the platform never holds their keys beyond the entity secret.

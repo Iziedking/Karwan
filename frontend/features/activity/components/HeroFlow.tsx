@@ -18,7 +18,7 @@ const STAGE_BY_EVENT: Record<string, 0 | 1 | 2 | 3 | 4> = {
 // dark, so it does not read the themeable --color-* tokens.
 const CARD_BG = '#151515';
 const STROKE = 'rgba(255,255,255,0.16)';
-const ACCENT = '#d4ff3f';
+const ACCENT = '#bde122';
 const INK_ACTIVE = '#ededed';
 const INK_IDLE = '#5a5a60';
 const SUB = '#8a8a90';

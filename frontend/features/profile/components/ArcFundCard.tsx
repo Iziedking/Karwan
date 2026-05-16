@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -154,9 +154,9 @@ export function ArcFundCard({
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[10px] font-bold uppercase tracking-[0.14em]"
               style={{
-                background: 'rgba(212,255,63,0.10)',
+                background: 'rgba(189, 225, 34,0.10)',
                 color: 'var(--lp-dark)',
-                border: '1px solid rgba(212,255,63,0.35)',
+                border: '1px solid rgba(189, 225, 34,0.35)',
                 borderTopLeftRadius: 6,
                 borderTopRightRadius: 6,
                 borderBottomLeftRadius: 6,
@@ -229,7 +229,7 @@ export function ArcFundCard({
                   )}
                   style={{
                     background: active
-                      ? 'rgba(212,255,63,0.10)'
+                      ? 'rgba(189, 225, 34,0.10)'
                       : disabled
                         ? 'var(--lp-light)'
                         : 'var(--lp-card)',
@@ -242,7 +242,7 @@ export function ArcFundCard({
                     borderTopRightRadius: 12,
                     borderBottomLeftRadius: 12,
                     borderBottomRightRadius: 3,
-                    boxShadow: active ? '0 1px 0 rgba(212,255,63,0.18)' : 'none',
+                    boxShadow: active ? '0 1px 0 rgba(189, 225, 34,0.18)' : 'none',
                   }}
                 >
                   {active && (
@@ -344,7 +344,7 @@ export function ArcFundCard({
           <style jsx>{`
             .fund-amount:focus-within {
               border-color: var(--lp-dark);
-              box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.25);
+              box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.25);
             }
           `}</style>
         </div>

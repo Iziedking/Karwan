@@ -273,7 +273,7 @@ export function PostListingForm() {
           </button>
           {!submitting && (
             <p className="mono text-[11px] uppercase tracking-[0.12em] text-white/45 leading-snug">
-              ↳ your agent scans briefs and bids when matched
+              ↳ your agent scans open briefs and buyer profiles for a match
             </p>
           )}
         </div>
@@ -306,7 +306,17 @@ export function PostListingForm() {
             {recent.slice(0, 5).map((l) => (
               <li
                 key={l.id}
-                className="py-3 flex items-center justify-between gap-3 hover:bg-white/[0.02] -mx-2 px-2 transition-colors rounded-md"
+                onClick={() => router.push(`/listings/${l.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(`/listings/${l.id}`);
+                  }
+                }}
+                tabIndex={0}
+                role="link"
+                aria-label={`Open listing ${l.title}`}
+                className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-white/[0.04] -mx-2 px-2 transition-colors rounded-md focus:bg-white/[0.04] focus:outline-none"
               >
                 <div className="min-w-0">
                   <p className="text-[14px] font-semibold tracking-tight truncate text-white">
@@ -322,16 +332,30 @@ export function PostListingForm() {
                     </span>
                   </span>
                   {l.matchedAt && l.matchedJobId ? (
-                    <a
-                      href={`/jobs/${l.matchedJobId}`}
-                      className="mono text-[10px] uppercase tracking-[0.12em] font-semibold underline-offset-2 hover:underline"
+                    <span
+                      className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
                       style={{ color: 'var(--lp-accent)' }}
                     >
-                      Matched ↗
-                    </a>
+                      Matched
+                      <span
+                        aria-hidden
+                        className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                      >
+                        ↗
+                      </span>
+                    </span>
                   ) : (
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                    <span
+                      className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
+                      style={{ color: 'var(--lp-accent)' }}
+                    >
                       Open
+                      <span
+                        aria-hidden
+                        className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                      >
+                        →
+                      </span>
                     </span>
                   )}
                 </div>

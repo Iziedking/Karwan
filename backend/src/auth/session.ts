@@ -1,0 +1,120 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { Context } from 'hono';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { config } from '../config.js';
+
+// Stateless session cookies, HMAC-signed with SESSION_SECRET so the backend
+// doesn't have to remember anything between requests. Payload is small on
+// purpose — just enough to identify the user and the auth method.
+
+const COOKIE_NAME = 'karwan_session';
+const DEFAULT_TTL_DAYS = 30;
+
+export interface SessionPayload {
+  /// The user's on-chain address. For web3 users this is their wallet's
+  /// public address; for circle users it is their Circle identity wallet's
+  /// address. Either way it is what the rest of the app reads as `address`.
+  address: string;
+  /// How the user signed in. The app treats both as first-class.
+  method: 'web3' | 'circle';
+  /// Email is present only for circle users; web3 users authenticate by
+  /// wallet signature without ever giving up an email.
+  email?: string;
+  /// Expiry in seconds since epoch. Checked server-side on every read.
+  exp: number;
+}
+
+function secret(): string {
+  if (!config.SESSION_SECRET) {
+    throw new Error(
+      'SESSION_SECRET is not set — required to sign session cookies. Add to .env.',
+    );
+  }
+  return config.SESSION_SECRET;
+}
+
+function b64url(buf: Buffer | string): string {
+  const b = typeof buf === 'string' ? Buffer.from(buf, 'utf8') : buf;
+  return b
+    .toString('base64')
+    .replace(/=+$/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function b64urlDecode(s: string): Buffer {
+  const pad = (4 - (s.length % 4)) % 4;
+  return Buffer.from(
+    s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad),
+    'base64',
+  );
+}
+
+function sign(body: string): string {
+  return b64url(createHmac('sha256', secret()).update(body).digest());
+}
+
+export function signSession(payload: Omit<SessionPayload, 'exp'> & { ttlDays?: number }): string {
+  const exp =
+    Math.floor(Date.now() / 1000) + (payload.ttlDays ?? DEFAULT_TTL_DAYS) * 86_400;
+  const full: SessionPayload = {
+    address: payload.address.toLowerCase(),
+    method: payload.method,
+    email: payload.email,
+    exp,
+  };
+  const body = b64url(JSON.stringify(full));
+  const sig = sign(body);
+  return `${body}.${sig}`;
+}
+
+export function verifySession(token: string): SessionPayload | null {
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  const expected = sign(body);
+  // Constant-time compare guards against signature-leaking timing oracles.
+  const expectedBuf = Buffer.from(expected);
+  const sigBuf = Buffer.from(sig);
+  if (expectedBuf.length !== sigBuf.length) return null;
+  if (!timingSafeEqual(expectedBuf, sigBuf)) return null;
+  let payload: SessionPayload;
+  try {
+    payload = JSON.parse(b64urlDecode(body).toString('utf8')) as SessionPayload;
+  } catch {
+    return null;
+  }
+  if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+  return payload;
+}
+
+// Cookie helpers. We set HttpOnly so JS can't read the token, SameSite=Lax
+// for dev convenience (same effective host: localhost), and bump to None+
+// Secure in production. Path=/ so every route can read it.
+function isProd(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+export function setSessionCookie(c: Context, payload: Omit<SessionPayload, 'exp'>) {
+  const token = signSession(payload);
+  setCookie(c, COOKIE_NAME, token, {
+    path: '/',
+    httpOnly: true,
+    secure: isProd(),
+    sameSite: isProd() ? 'None' : 'Lax',
+    maxAge: DEFAULT_TTL_DAYS * 86_400,
+  });
+}
+
+export function readSession(c: Context): SessionPayload | null {
+  const token = getCookie(c, COOKIE_NAME);
+  if (!token) return null;
+  return verifySession(token);
+}
+
+export function clearSessionCookie(c: Context) {
+  deleteCookie(c, COOKIE_NAME, {
+    path: '/',
+    secure: isProd(),
+    sameSite: isProd() ? 'None' : 'Lax',
+  });
+}

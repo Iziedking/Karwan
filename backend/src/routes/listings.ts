@@ -5,6 +5,7 @@ import { llmModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import {
   createListing,
+  getListing,
   listAllListings,
   listListingsForSeller,
   listOpenListings,
@@ -40,17 +41,44 @@ const matchDecisionSchema = z.object({
 
 export const listingsRoutes = new Hono();
 
-/// All listings, newest first. Used by /seller dashboard and admin views.
+function stripPrivateFields(l: Listing): Omit<Listing, 'negotiationMaxDecreasePct'> {
+  const { negotiationMaxDecreasePct: _drop, ...rest } = l;
+  return rest;
+}
+
+/// All listings, newest first. Public surface — strips private agent steering
+/// (negotiationMaxDecreasePct) so a buyer-side LLM can't enumerate floors.
 listingsRoutes.get('/', (c) => {
-  return c.json({ listings: listAllListings() });
+  return c.json({ listings: listAllListings().map(stripPrivateFields) });
 });
 
+/// Listings owned by the caller, with the private fields intact. The caller's
+/// address must match the seller on each row, so this can safely return all
+/// steering values for display on the owner's own page.
 listingsRoutes.get('/mine', (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
   return c.json({ listings: listListingsForSeller(parsed.data) });
+});
+
+/// Detail of one listing. `floor` and `negotiationMaxDecreasePct` are agent-
+/// private steering values; if the caller isn't the seller, both are stripped
+/// so a buyer-side LLM can't walk straight to the seller's bottom.
+listingsRoutes.get('/:id', (c) => {
+  const id = c.req.param('id');
+  const listing = getListing(id);
+  if (!listing) return c.json({ error: 'listing not found' }, 404);
+  const callerRaw = c.req.query('caller');
+  const caller =
+    callerRaw && /^0x[a-fA-F0-9]{40}$/.test(callerRaw) ? callerRaw.toLowerCase() : null;
+  const isOwner = caller === listing.sellerUser.toLowerCase();
+  if (isOwner) {
+    return c.json({ listing, floor: listingFloor(listing), viewerIsOwner: true });
+  }
+  const { negotiationMaxDecreasePct: _drop, ...publicListing } = listing;
+  return c.json({ listing: publicListing, viewerIsOwner: false });
 });
 
 /// Post a new seller listing and immediately scan in-memory open buyer briefs
@@ -123,106 +151,129 @@ async function scanBriefsForListing(
     'scanning open briefs for topical match',
   );
   for (const job of briefs) {
-    // Skip the user's own briefs — sellers shouldn't bid on themselves.
-    const briefBuyerOwner = await findAgentWalletByAgentAddress(job.buyer);
-    if (briefBuyerOwner?.userAddress === listing.sellerUser) {
-      logger.info(
-        { listingId: listing.id, jobId: job.jobId },
-        'skipping own brief',
-      );
-      continue;
-    }
-
-    let decision;
-    try {
-      const result = await withLlmTimeout(
-        `listingMatch(${listing.id}:${job.jobId})`,
-        generateObject({
-          model: llmModel,
-          schema: matchDecisionSchema,
-          prompt: buildListingMatchPrompt(listing, job),
-        }),
-      );
-      decision = result.object;
-    } catch (err) {
-      logger.warn(
-        { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
-        'match LLM failed',
-      );
-      continue;
-    }
-
-    logger.info(
-      { listingId: listing.id, jobId: job.jobId, decision },
-      'listing-brief match decision',
-    );
-
-    if (!decision.match || decision.confidence < 0.6) continue;
-
-    // Price feasibility: if the seller's floor exceeds the buyer's ceiling there
-    // is no number both sides would accept. Skip without bidding so the listing
-    // stays open for other briefs and we don't waste an on-chain bid that's
-    // guaranteed to be rejected during negotiation.
-    const floor = listingFloor(listing);
-    const buyerPct = (job as { negotiationMaxIncreasePct?: number }).negotiationMaxIncreasePct ?? 0;
-    const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
-    if (floor > buyerCeiling) {
-      logger.info(
-        {
-          listingId: listing.id,
-          jobId: job.jobId,
-          listingFloor: floor,
-          buyerCeiling,
-          listingAsking: listing.askingPriceUsdc,
-          buyerBudget: job.budgetUsdc,
-        },
-        'topical match but price gap uncrossable, skipping',
-      );
-      bus.emitEvent({
-        type: 'agent.skipped',
-        jobId: job.jobId,
-        actor: 'seller',
-        payload: {
-          seller: listing.sellerUser,
-          reason: 'price-gap-uncrossable',
-          listingAskingUsdc: listing.askingPriceUsdc,
-          listingFloorUsdc: floor,
-          buyerBudgetUsdc: job.budgetUsdc,
-          buyerCeilingUsdc: buyerCeiling,
-        },
-      });
-      continue;
-    }
-
-    const result = await submitListingBid(
-      job,
-      seller,
-      {
-        askingPriceUsdc: listing.askingPriceUsdc,
-        floorUsdc: floor,
-        description: listing.description,
-      },
-    );
-    if (result.ok) {
-      markListingMatched(listing.id, job.jobId);
-      bus.emitEvent({
-        type: 'listing.matched',
-        jobId: job.jobId,
-        actor: 'seller',
-        payload: {
-          listingId: listing.id,
-          seller: listing.sellerUser,
-          askingPriceUsdc: listing.askingPriceUsdc,
-          floorUsdc: floor,
-          reasoning: decision.reasoning,
-        },
-      });
-      // Listing consumed by the first feasible match. The seller can post
-      // a new listing if they want to chase other briefs.
-      return;
-    }
+    const matched = await tryMatchListingToJob(listing, job, seller);
+    if (matched) return; // listing consumed by first feasible match
   }
   logger.info({ listingId: listing.id }, 'no matching briefs found');
+}
+
+/// Symmetric scan: a fresh buyer brief just landed; check every open listing
+/// across the network and place listing-driven bids for any that match. The
+/// seller agent's `activeBids` map dedupes per (jobId, seller), so a profile-
+/// driven bid that already exists for this job is left alone.
+export async function scanListingsForBrief(
+  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number },
+) {
+  const listings = listOpenListings();
+  if (listings.length === 0) return;
+  logger.info(
+    { jobId: job.jobId, listingsCount: listings.length },
+    'fresh brief, scanning open listings',
+  );
+  for (const listing of listings) {
+    const seller = await resolveSellerProfile(listing.sellerAgent);
+    if (!seller) continue;
+    await tryMatchListingToJob(listing, job, seller);
+  }
+}
+
+async function tryMatchListingToJob(
+  listing: Listing,
+  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number },
+  seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
+): Promise<boolean> {
+  // Skip the user's own briefs — sellers shouldn't bid on themselves.
+  const briefBuyerOwner = await findAgentWalletByAgentAddress(job.buyer);
+  if (briefBuyerOwner?.userAddress === listing.sellerUser) {
+    logger.info(
+      { listingId: listing.id, jobId: job.jobId },
+      'skipping own brief',
+    );
+    return false;
+  }
+
+  let decision;
+  try {
+    const result = await withLlmTimeout(
+      `listingMatch(${listing.id}:${job.jobId})`,
+      generateObject({
+        model: llmModel,
+        schema: matchDecisionSchema,
+        prompt: buildListingMatchPrompt(listing, job),
+      }),
+    );
+    decision = result.object;
+  } catch (err) {
+    logger.warn(
+      { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
+      'match LLM failed',
+    );
+    return false;
+  }
+
+  logger.info(
+    { listingId: listing.id, jobId: job.jobId, decision },
+    'listing-brief match decision',
+  );
+
+  if (!decision.match || decision.confidence < 0.6) return false;
+
+  const floor = listingFloor(listing);
+  const buyerPct = job.negotiationMaxIncreasePct ?? 0;
+  const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
+  if (floor > buyerCeiling) {
+    logger.info(
+      {
+        listingId: listing.id,
+        jobId: job.jobId,
+        listingFloor: floor,
+        buyerCeiling,
+        listingAsking: listing.askingPriceUsdc,
+        buyerBudget: job.budgetUsdc,
+      },
+      'topical match but price gap uncrossable, skipping',
+    );
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: {
+        seller: listing.sellerUser,
+        reason: 'price-gap-uncrossable',
+        listingAskingUsdc: listing.askingPriceUsdc,
+        listingFloorUsdc: floor,
+        buyerBudgetUsdc: job.budgetUsdc,
+        buyerCeilingUsdc: buyerCeiling,
+      },
+    });
+    return false;
+  }
+
+  const result = await submitListingBid(
+    { ...job, buyerReputationBps: job.buyerReputationBps ?? 5000 },
+    seller,
+    {
+      askingPriceUsdc: listing.askingPriceUsdc,
+      floorUsdc: floor,
+      description: listing.description,
+    },
+  );
+  if (!result.ok) return false;
+
+  markListingMatched(listing.id, job.jobId);
+  bus.emitEvent({
+    type: 'listing.matched',
+    jobId: job.jobId,
+    actor: 'seller',
+    payload: {
+      listingId: listing.id,
+      seller: listing.sellerUser,
+      askingPriceUsdc: listing.askingPriceUsdc,
+      floorUsdc: floor,
+      reasoning: decision.reasoning,
+    },
+  });
+  return true;
 }
 
 function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; budgetUsdc: string; termsHash: string }): string {

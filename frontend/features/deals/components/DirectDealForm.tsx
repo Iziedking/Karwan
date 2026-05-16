@@ -1,6 +1,6 @@
 'use client';
 import { useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError } from '@/core/api';
@@ -15,12 +15,22 @@ const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 export function DirectDealForm() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  // "Make offer" links from a listing detail land here with seller/amount/terms
+  // pre-filled. Read once on mount; further changes come from user input.
+  const search = useSearchParams();
+  const initialSeller = search.get('seller') ?? '';
+  const initialAmountRaw = search.get('amount');
+  const initialAmount =
+    initialAmountRaw != null && Number.isFinite(Number(initialAmountRaw))
+      ? Number(initialAmountRaw)
+      : 100;
+  const initialTerms = search.get('terms') ?? '';
 
-  const [seller, setSeller] = useState('');
-  const [amount, setAmount] = useState<number | ''>(100);
+  const [seller, setSeller] = useState(initialSeller);
+  const [amount, setAmount] = useState<number | ''>(initialAmount);
   const [days, setDays] = useState<number | ''>(7);
   const [firstPct, setFirstPct] = useState<number | ''>(20);
-  const [terms, setTerms] = useState('');
+  const [terms, setTerms] = useState(initialTerms);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

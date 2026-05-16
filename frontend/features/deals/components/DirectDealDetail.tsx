@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
@@ -857,7 +857,7 @@ function ActionPanel({
               onChange={(e) => onDeliveryProofChange(e.target.value)}
               rows={3}
               placeholder="Link to the deliverable, a repo, a file, or a short note."
-              className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(212,255,63,0.25)] resize-none transition-shadow"
+              className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(189, 225, 34,0.25)] resize-none transition-shadow"
               style={{
                 borderTopLeftRadius: 12,
                 borderTopRightRadius: 12,
@@ -1052,9 +1052,9 @@ function WindowNote({
   const style =
     tone === 'warning'
       ? {
-          background: 'rgba(212,255,63,0.10)',
+          background: 'rgba(189, 225, 34,0.10)',
           color: 'var(--lp-accent)',
-          border: '1px solid rgba(212,255,63,0.30)',
+          border: '1px solid rgba(189, 225, 34,0.30)',
         }
       : {
           background: 'rgba(255,255,255,0.04)',
@@ -1162,7 +1162,7 @@ function CancelProposalBanner({
         borderTopRightRadius: 12,
         borderBottomLeftRadius: 12,
         borderBottomRightRadius: 3,
-        boxShadow: '0 1px 0 rgba(212,255,63,0.20)',
+        boxShadow: '0 1px 0 rgba(189, 225, 34,0.20)',
       }}
     >
       <div
@@ -1281,7 +1281,7 @@ function ProposeCancelModal({
                     onClick={() => setKind(opt.key)}
                     className="relative overflow-hidden text-left p-3 transition-colors"
                     style={{
-                      background: active ? 'rgba(212,255,63,0.10)' : 'var(--lp-card)',
+                      background: active ? 'rgba(189, 225, 34,0.10)' : 'var(--lp-card)',
                       color: 'var(--lp-dark)',
                       border: active
                         ? '1px solid var(--lp-accent)'

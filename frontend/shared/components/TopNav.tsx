@@ -109,6 +109,9 @@ export function TopNav() {
             <NavLink href="/seller" active={pathname.startsWith('/seller')}>
               Seller
             </NavLink>
+            <NavLink href="/listings" active={pathname.startsWith('/listings')}>
+              Market
+            </NavLink>
             <NavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity
             </NavLink>
@@ -172,6 +175,9 @@ export function TopNav() {
             </MobileNavLink>
             <MobileNavLink href="/seller" active={pathname.startsWith('/seller')}>
               Seller
+            </MobileNavLink>
+            <MobileNavLink href="/listings" active={pathname.startsWith('/listings')}>
+              Market
             </MobileNavLink>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity

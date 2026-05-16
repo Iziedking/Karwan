@@ -22,6 +22,7 @@ import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
 import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
+import { authRoutes } from './routes/auth.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
@@ -36,7 +37,30 @@ import { ensureSchema, pgEnabled } from './db/client.js';
 
 const app = new Hono();
 
-app.use('*', cors({ origin: (origin) => origin ?? '*', credentials: false }));
+// Session cookies need credentials:true, which forbids origin:*. We echo the
+// request's Origin back when it's in the trusted set — defaults cover local
+// dev; production deploys can extend by setting FRONTEND_BASE_URL.
+const ALLOWED_ORIGINS = new Set<string>(
+  [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    config.FRONTEND_BASE_URL?.replace(/\/$/, ''),
+    config.WEBAUTHN_ORIGIN?.replace(/\/$/, ''),
+  ].filter((x): x is string => !!x),
+);
+
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin) return null;
+      return ALLOWED_ORIGINS.has(origin) ? origin : null;
+    },
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  }),
+);
 
 app.get('/', (c) => c.json({ name: 'karwan', status: 'ok' }));
 
@@ -72,6 +96,7 @@ app.route('/api/telegram', telegramRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/listings', listingsRoutes);
 app.route('/api/x', xRoutes);
+app.route('/api/auth', authRoutes);
 
 process.on('unhandledRejection', (reason) => {
   appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');

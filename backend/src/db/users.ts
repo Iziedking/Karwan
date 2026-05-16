@@ -1,0 +1,168 @@
+// Users authenticated via email + passkey (Circle login). Web3 users are
+// identified solely by their wallet address and don't need a row here — the
+// app reads them straight from wagmi on the client and accepts the address
+// as authoritative on the server (same trust model as today).
+//
+// This store maps email -> identity wallet + WebAuthn credential set, so we
+// can:
+//   * resolve "who is this email" on login
+//   * resolve "who owns this passkey" on assertion verification
+//   * keep multiple passkeys per user (a phone and a laptop, say)
+//
+// Flat-file fallback mirrors the rest of the v0 stores; Postgres migration
+// is a later concern. The file lives under data/users.json.
+
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { logger } from '../logger.js';
+
+export interface PasskeyCredential {
+  /// Base64url-encoded credential ID as returned by the browser. WebAuthn's
+  /// `rawId` projected into URL-safe form.
+  credentialId: string;
+  /// Base64url-encoded public key. Stored as opaque bytes; verifier handles
+  /// the decoding when checking assertions.
+  publicKey: string;
+  /// Signature counter from the authenticator. Verifier increments it on
+  /// each successful assertion to detect cloned authenticators.
+  counter: number;
+  /// Authenticator transports the browser reported (usb, ble, internal, etc).
+  /// Optional and informational.
+  transports?: string[];
+  /// When this credential was registered, epoch ms.
+  createdAt: number;
+}
+
+export interface KarwanUser {
+  /// Lowercased, trimmed email used as the canonical key.
+  email: string;
+  /// The user's on-chain identity address — a Circle DCW provisioned at
+  /// signup. The rest of the app reads this exactly like a wagmi address.
+  address: string;
+  /// Circle wallet id for the identity wallet. Used by the agent registry
+  /// when binding buyer/seller agent wallets back to this user.
+  circleIdentityWalletId: string;
+  /// One or more passkeys. Adding a second device appends here.
+  credentials: PasskeyCredential[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+const STORE_PATH = resolve(process.cwd(), 'data', 'users.json');
+
+interface Store {
+  byEmail: Record<string, KarwanUser>;
+  byAddress: Record<string, string>; // lowercase address -> email
+}
+
+let loaded = false;
+let store: Store = { byEmail: {}, byAddress: {} };
+
+function ensureFile() {
+  const dir = dirname(STORE_PATH);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (!existsSync(STORE_PATH)) {
+    writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
+  }
+}
+
+function load(): void {
+  if (loaded) return;
+  loaded = true;
+  ensureFile();
+  try {
+    const raw = readFileSync(STORE_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as Store;
+    if (parsed?.byEmail && parsed?.byAddress) {
+      store = parsed;
+    }
+    logger.info({ count: Object.keys(store.byEmail).length }, 'users loaded from disk');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'users load failed, starting empty');
+  }
+}
+
+function persist(): void {
+  try {
+    ensureFile();
+    writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'users persist failed');
+  }
+}
+
+function normEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export function getUserByEmail(email: string): KarwanUser | null {
+  load();
+  return store.byEmail[normEmail(email)] ?? null;
+}
+
+export function getUserByAddress(address: string): KarwanUser | null {
+  load();
+  const email = store.byAddress[address.toLowerCase()];
+  if (!email) return null;
+  return store.byEmail[email] ?? null;
+}
+
+export function getUserByCredentialId(credentialId: string): KarwanUser | null {
+  load();
+  for (const user of Object.values(store.byEmail)) {
+    if (user.credentials.some((c) => c.credentialId === credentialId)) return user;
+  }
+  return null;
+}
+
+/// Creates the row for a new email-auth user. Caller has already provisioned
+/// the Circle identity wallet and registered the first passkey.
+export function createUser(input: {
+  email: string;
+  address: string;
+  circleIdentityWalletId: string;
+  credential: PasskeyCredential;
+}): KarwanUser {
+  load();
+  const email = normEmail(input.email);
+  if (store.byEmail[email]) {
+    throw new Error(`user with email ${email} already exists`);
+  }
+  const now = Date.now();
+  const user: KarwanUser = {
+    email,
+    address: input.address.toLowerCase(),
+    circleIdentityWalletId: input.circleIdentityWalletId,
+    credentials: [input.credential],
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.byEmail[email] = user;
+  store.byAddress[user.address] = email;
+  persist();
+  return user;
+}
+
+export function appendCredential(email: string, credential: PasskeyCredential): KarwanUser {
+  load();
+  const e = normEmail(email);
+  const user = store.byEmail[e];
+  if (!user) throw new Error(`no user for ${e}`);
+  user.credentials.push(credential);
+  user.updatedAt = Date.now();
+  persist();
+  return user;
+}
+
+export function bumpCounter(credentialId: string, newCounter: number): void {
+  load();
+  for (const user of Object.values(store.byEmail)) {
+    const cred = user.credentials.find((c) => c.credentialId === credentialId);
+    if (cred) {
+      cred.counter = newCounter;
+      user.updatedAt = Date.now();
+      persist();
+      return;
+    }
+  }
+}

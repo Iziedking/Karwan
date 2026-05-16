@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
   --color-white: #ffffff;
@@ -58,8 +58,8 @@ html[data-theme="dark"] {
   --lp-dark: #0e0e0e;
   --lp-light: #f2f2f2;
   --lp-card: #ffffff;
-  --lp-accent: #d4ff3f;
-  --lp-accent-hover: #c2ee2a;
+  --lp-accent: #bde122;
+  --lp-accent-hover: #a6c81a;
   --lp-text-muted: #9a9a9a;
   --lp-text-sub: #6b6b6b;
   --lp-border-subtle: rgba(255, 255, 255, 0.08);
@@ -213,8 +213,8 @@ html[data-theme="dark"] {
 
 /* Fresh-row lime flash for live event feeds. */
 @keyframes rowFlash {
-  0%   { background: rgba(212,255,63,0.45); }
-  60%  { background: rgba(212,255,63,0.18); }
+  0%   { background: rgba(189, 225, 34,0.45); }
+  60%  { background: rgba(189, 225, 34,0.18); }
   100% { background: transparent; }
 }
 .row-flash { animation: rowFlash 1200ms ease-out both; }
@@ -292,7 +292,7 @@ html[data-theme="dark"] {
 .form-input:focus {
   outline: none;
   border-color: var(--lp-dark);
-  box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.35);
+  box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.35);
 }
 .form-input:disabled {
   opacity: 0.5;
@@ -332,7 +332,7 @@ html[data-theme="dark"] {
 .form-input-dark:focus {
   outline: none;
   border-color: var(--lp-accent);
-  box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.20);
+  box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.20);
 }
 .form-input-dark:disabled {
   opacity: 0.5;

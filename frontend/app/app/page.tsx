@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -552,7 +552,7 @@ function BriefVignette() {
                   : isFilled
                     ? 'var(--lp-dark)'
                     : 'rgba(0,0,0,0.08)',
-                boxShadow: isFresh ? '0 0 10px 1px rgba(212,255,63,0.7)' : 'none',
+                boxShadow: isFresh ? '0 0 10px 1px rgba(189, 225, 34,0.7)' : 'none',
               }}
             />
           );
@@ -738,7 +738,7 @@ function StreamVignette() {
                 background: toneColor(r.tone),
                 outline: i === 0 ? '2px solid var(--lp-accent)' : 'none',
                 outlineOffset: '-1px',
-                boxShadow: i === 0 ? '0 0 0 4px rgba(212,255,63,0.32)' : 'none',
+                boxShadow: i === 0 ? '0 0 0 4px rgba(189, 225, 34,0.32)' : 'none',
               }}
             />
             <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import type { ActorFilter } from '../types';
 import { ACTOR_LABELS } from '../types';
 
@@ -110,7 +110,7 @@ export function ActivityFilters({
         <style jsx>{`
           .activity-search:focus {
             border-color: var(--lp-dark);
-            box-shadow: 0 0 0 3px rgba(212, 255, 63, 0.25);
+            box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.25);
           }
         `}</style>
       </div>

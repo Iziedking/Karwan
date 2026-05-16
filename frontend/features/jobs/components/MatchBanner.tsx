@@ -94,6 +94,12 @@ export function MatchBanner({ proposal, onChange }: Props) {
     );
   }
 
+  const riskLabel: Record<NonNullable<MatchProposal['riskFlag']>, string> = {
+    'honey-trap': 'Risk flag · low rep, generous bid',
+    lowball: 'Risk flag · lowball from unproven actor',
+    spammy: 'Risk flag · counterparty unusually active',
+  };
+
   // Pending — full proposal surface.
   return (
     <BannerFrame tone="accent" eyebrow="Match found · awaiting approval">
@@ -124,6 +130,28 @@ export function MatchBanner({ proposal, onChange }: Props) {
           <ReputationBadge address={proposal.sellerUser} size="sm" />
         </div>
       </div>
+
+      {proposal.riskFlag && proposal.riskNote && (
+        <div
+          className="mt-4 px-4 py-3"
+          style={{
+            background: 'rgba(178, 84, 37, 0.10)',
+            border: '1px solid rgba(178, 84, 37, 0.30)',
+            color: '#b25425',
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
+            borderBottomLeftRadius: 10,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
+            {riskLabel[proposal.riskFlag]}
+          </p>
+          <p className="text-[12.5px] leading-snug" style={{ color: 'var(--color-ink)' }}>
+            {proposal.riskNote}
+          </p>
+        </div>
+      )}
 
       {viewerIsSeller && !showDeclineReason && (
         <div className="mt-4 flex flex-wrap items-center gap-2">

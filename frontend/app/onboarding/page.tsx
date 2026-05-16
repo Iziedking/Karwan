@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -263,7 +263,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
                 background: isActive
                   ? 'var(--lp-accent)'
                   : isDone
-                    ? 'rgba(212,255,63,0.5)'
+                    ? 'rgba(189, 225, 34,0.5)'
                     : 'rgba(255,255,255,0.20)',
                 animation: isActive ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
               }}

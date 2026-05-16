@@ -89,6 +89,15 @@ const envSchema = z.object({
   X_CLIENT_ID: optionalString,
   X_CLIENT_SECRET: optionalString,
   X_REDIRECT_URI: z.preprocess(blankToUndefined, z.string().url().optional()),
+
+  // WebAuthn / passkey login. SESSION_SECRET signs session cookies; rotate to
+  // invalidate every session at once. RP_ID must match the hostname the user
+  // visits (no scheme, no port). ORIGIN is the full https origin allowed to
+  // hold credentials. Localhost-friendly defaults work for dev.
+  SESSION_SECRET: optionalString,
+  WEBAUTHN_RP_ID: optionalString,
+  WEBAUTHN_RP_NAME: optionalString,
+  WEBAUTHN_ORIGIN: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

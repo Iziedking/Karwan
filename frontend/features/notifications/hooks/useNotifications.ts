@@ -70,48 +70,57 @@ function hrefForType(type: string, jobId: string): string {
 
 function summaryFor(type: string, payload: Record<string, unknown> | undefined): string {
   const priceUsdc = (payload?.agreedPriceUsdc as string | undefined) ?? '';
+  const askingPriceUsdc =
+    (payload?.askingPriceUsdc as string | number | undefined) ?? '';
+  const dealAmount = (payload?.dealAmountUsdc as string | undefined) ?? '';
   const reason = (payload?.reason as string | undefined) ?? '';
   switch (type) {
     case 'deal.matched':
       return priceUsdc
-        ? `Match found at ${priceUsdc} USDC. Open to approve.`
-        : 'Match found. Open to approve.';
+        ? `Your agent found a match at ${priceUsdc} USDC. Tap to review.`
+        : 'Your agent found a match. Tap to review.';
     case 'deal.match.approved':
-      return 'Match approved. Escrow funding now.';
+      return priceUsdc
+        ? `Match accepted at ${priceUsdc} USDC. Escrow funded.`
+        : 'Match accepted. Escrow funded.';
     case 'deal.match.declined':
-      return 'Match declined by the buyer.';
+      return 'Match declined. Post a fresh brief to retry.';
     case 'job.expired':
-      return 'A brief expired with no match.';
+      return 'A brief expired with no match. Repost to retry.';
     case 'listing.matched':
-      return 'Your listing matched a brief.';
+      return askingPriceUsdc
+        ? `Karwan matched your listing to a brief at ${askingPriceUsdc} USDC.`
+        : 'Karwan matched your listing to an open brief.';
     case 'agent.declined':
       return reason ? `Agent ended negotiation: ${reason}` : 'Agent ended the negotiation.';
     case 'deal.direct.created':
-      return 'Direct deal opened.';
+      return dealAmount
+        ? `Direct deal opened at ${dealAmount} USDC. Waiting on seller.`
+        : 'Direct deal opened. Waiting on seller.';
     case 'deal.accepted':
-      return 'Seller accepted the deal terms.';
+      return 'Seller accepted. Your agent funded the escrow.';
     case 'deal.delivered':
-      return 'Seller marked the work delivered.';
+      return 'Seller marked the work delivered. Release the first milestone.';
     case 'deal.fund.insufficient':
-      return 'Buyer agent needs USDC to fund escrow.';
+      return 'Buyer agent needs USDC to fund escrow. Top it up from /profile.';
     case 'escrow.milestone.released':
       return 'A milestone was released.';
     case 'deal.review.started':
-      return 'Buyer review window opened.';
+      return 'Review window opened. Release the final milestone when ready.';
     case 'deal.review.heartbeat':
-      return 'Buyer is still reviewing.';
+      return 'Buyer extended the review window.';
     case 'deal.auto_released':
-      return 'Final milestone auto-released.';
+      return 'Review window passed. Final milestone auto-released.';
     case 'escrow.settled':
-      return 'Deal settled in full.';
+      return 'Deal settled in full. Reputation recorded on chain.';
     case 'deal.disputed':
-      return 'Deal moved to dispute.';
+      return 'Deal moved to dispute. Resolution is off-platform.';
     case 'deal.cancelled':
       return 'Deal cancelled and refunded.';
     case 'deal.cancel.proposed':
       return reason
         ? `Cancellation proposed: ${reason.slice(0, 60)}`
-        : 'Cancellation proposed by counterparty.';
+        : 'Cancellation proposed by your counterparty.';
     case 'deal.cancel.declined':
       return 'Cancellation proposal declined.';
     default:

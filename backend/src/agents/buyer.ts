@@ -4,7 +4,6 @@ import { publicClient, wsClient } from '../chain/client.js';
 import {
   jobBoard,
   escrow,
-  reputation,
   usdc as usdcAddress,
   getEscrowFeeBps,
   computeFunding,
@@ -27,6 +26,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
 import { withLlmTimeout } from './llm-utils.js';
+import { actorSignalsFor, priceAnomalyScore, classifyBid, type BidSignals } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
@@ -47,6 +47,9 @@ interface Bid {
   /// at the moment the bid was received. 0–10000 bps; defaults to 5000 (neutral)
   /// if the read failed.
   sellerReputationBps?: number;
+  /// Pattern label from classifyBid(). Carried so finalizeBidCollection (and
+  /// the Phase C risk-escalator) can route on it without re-computing.
+  pattern?: ReturnType<typeof classifyBid>;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -264,13 +267,23 @@ async function handleBidSubmitted(log: Log) {
   const buyer = state.buyer;
 
   let sellerReputationBps = 5000;
+  let sellerRepTier: 'new' | 'cold' | 'established' | 'strong' = 'established';
+  let sellerCompletionRate = 1;
+  let sellerVelocity24h = 0;
   try {
-    sellerReputationBps = Number(await reputation.read.getReputationScore([args.seller]));
+    const sig = await actorSignalsFor(args.seller);
+    sellerReputationBps = sig.reputationBps;
+    sellerRepTier = sig.repTier;
+    sellerCompletionRate = sig.completionRate;
+    sellerVelocity24h = sig.velocity24h;
   } catch {
-    /* keep neutral */
+    /* keep neutral defaults */
   }
 
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
+  const briefBudget = Number(state.context.budgetUsdc);
+  const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
+  const anomaly = priceAnomalyScore(Number(priceUsdc));
   const bid: Bid = {
     seller: args.seller,
     priceUsdc,
@@ -283,8 +296,32 @@ async function handleBidSubmitted(log: Log) {
     seller: args.seller,
     priceUsdc,
     deadlineUnix: bid.deadlineUnix,
+    repTier: sellerRepTier,
+    completionRate: sellerCompletionRate,
+    velocity24h: sellerVelocity24h,
+    priceMultiple,
+    priceAnomaly: anomaly,
     sellerReputationBps,
   };
+
+  // Classify the bid against deterministic patterns BEFORE the LLM call. The
+  // pattern is logged + emitted so the audit trail records *why* the agent
+  // treated this bid the way it did, not just the LLM's score.
+  const signals: BidSignals = {
+    priceMultiple,
+    priceAnomaly: anomaly,
+    actor: {
+      reputationBps: sellerReputationBps,
+      repTier: sellerRepTier,
+      completionRate: sellerCompletionRate,
+      velocity24h: sellerVelocity24h,
+    },
+  };
+  const pattern = classifyBid(signals);
+  logger.info(
+    { jobId: state.jobId, seller: args.seller, pattern, signals },
+    'bid pattern classified',
+  );
 
   try {
     const { object: score } = await withLlmTimeout(
@@ -298,12 +335,13 @@ async function handleBidSubmitted(log: Log) {
     bid.score = score.score;
     bid.suggestedCounterPrice = score.suggestedCounterPrice;
     bid.suggestedCounterDeadlineDays = score.suggestedCounterDeadlineDays;
-    logger.info({ jobId: state.jobId, seller: args.seller, score }, 'bid scored');
+    bid.pattern = pattern;
+    logger.info({ jobId: state.jobId, seller: args.seller, score, pattern }, 'bid scored');
     bus.emitEvent({
       type: 'bid.scored',
       jobId: state.jobId,
       actor: 'buyer',
-      payload: { seller: args.seller, priceUsdc, ...score },
+      payload: { seller: args.seller, priceUsdc, pattern, ...score },
     });
   } catch (err) {
     const message = (err as Error).message;
@@ -413,7 +451,7 @@ async function finalizeBidCollection(state: JobState) {
       },
       'top bid already at/under budget, accepting directly (no counter)',
     );
-    await proposeMatch(state, top.seller, top.priceUsdc);
+    await proposeMatch(state, top.seller, top.priceUsdc, top.pattern);
     return;
   }
 
@@ -524,7 +562,8 @@ async function handleCounterResponse(log: Log) {
 
   if (args.accepted) {
     const agreedPriceUsdc = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
-    await proposeMatch(state, args.seller, agreedPriceUsdc);
+    const originatingBid = state.bids.get(args.seller);
+    await proposeMatch(state, args.seller, agreedPriceUsdc, originatingBid?.pattern);
     return;
   }
 
@@ -589,7 +628,8 @@ async function handleCounterResponse(log: Log) {
   }
 
   if (decision.decision === 'accept') {
-    await proposeMatch(state, args.seller, sellerCounterPrice);
+    const originatingBid = state.bids.get(args.seller);
+    await proposeMatch(state, args.seller, sellerCounterPrice, originatingBid?.pattern);
     return;
   }
 
@@ -653,6 +693,38 @@ async function handleCounterResponse(log: Log) {
 /// balance/gas surfaces as `deal.fund.insufficient` so the buyer sees the same
 /// banner + Telegram alert as the direct-deal flow; everything else falls
 /// through as `agent.error` for the activity feed.
+/// Maps the deterministic pattern from agents/signals.ts to a MatchProposal
+/// risk flag + a one-sentence note the MatchBanner renders for the seller.
+/// Returns null when the pattern is normal/safe — no warning gets attached.
+function riskAnnotationFor(
+  pattern: ReturnType<typeof classifyBid> | undefined,
+  agreedPriceUsdc: string,
+  budgetUsdc: string,
+): { flag: 'honey-trap' | 'lowball' | 'spammy'; note: string } | null {
+  if (!pattern) return null;
+  const price = Number(agreedPriceUsdc);
+  const budget = Number(budgetUsdc);
+  if (pattern === 'honey-trap') {
+    return {
+      flag: 'honey-trap',
+      note: `Buyer is offering ${price} USDC against a brief of ${budget} USDC, but their reputation is new or cold. Could be an urgent legitimate need, could be bait. Your call.`,
+    };
+  }
+  if (pattern === 'lowball') {
+    return {
+      flag: 'lowball',
+      note: `Bid is well below the brief budget and rep is unproven. Likely probe pricing. Decline unless you know the buyer.`,
+    };
+  }
+  if (pattern === 'spammy') {
+    return {
+      flag: 'spammy',
+      note: `Counterparty has placed unusually many actions in the last 24h. Could be a bot. Verify before accepting.`,
+    };
+  }
+  return null;
+}
+
 function emitAgentChainError(
   state: JobState,
   seller: `0x${string}`,
@@ -695,6 +767,13 @@ export interface MatchProposal {
   proposedAt: number;
   approvedAt?: number;
   declinedAt?: number;
+  /// Deterministic risk classification from agents/signals.ts. When set, the
+  /// MatchBanner renders a plain-language warning so the seller can judge
+  /// before accepting. Never causes auto-decline — the human is the gate.
+  riskFlag?: 'honey-trap' | 'lowball' | 'spammy';
+  /// Short human-readable explanation paired with the riskFlag, surfaced in
+  /// the MatchBanner so the user knows WHY the agent flagged it.
+  riskNote?: string;
 }
 
 const matchProposals = new Map<string, MatchProposal>();
@@ -717,10 +796,18 @@ export function listAllMatchProposals(): MatchProposal[] {
 /// The agent has reached agreement with a seller. It does NOT touch the chain
 /// here — it records a match proposal and notifies both parties. The buyer
 /// human approves separately, which triggers acceptBid + fundEscrow.
+///
+/// `pattern` is the risk classification from agents/signals.ts (or undefined
+/// when the path didn't compute one, e.g. listing-driven matches). When it's
+/// "risky" (honey-trap, lowball, spammy) we attach a riskFlag + riskNote so
+/// the MatchBanner shows the seller a warning rather than the agent silently
+/// auto-accepting — the human stays the decision-maker per the karwan-agent-
+/// risk-principle memory note.
 async function proposeMatch(
   state: JobState,
   seller: `0x${string}`,
   agreedPriceUsdc: string,
+  pattern?: ReturnType<typeof classifyBid>,
 ) {
   state.finalized = true;
   try {
@@ -744,6 +831,7 @@ async function proposeMatch(
       return;
     }
 
+    const risk = riskAnnotationFor(pattern, agreedPriceUsdc, state.context.budgetUsdc);
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -754,6 +842,7 @@ async function proposeMatch(
       deadlineUnix: state.context.deadlineUnix,
       termsHash: state.context.termsHash,
       proposedAt: Date.now(),
+      ...(risk ? { riskFlag: risk.flag, riskNote: risk.note } : {}),
     };
     matchProposals.set(state.jobId.toLowerCase(), proposal);
 
@@ -1027,6 +1116,38 @@ export interface BuyerJobSnapshot {
 /// Snapshot of tracked managed jobs. Pass a buyer agent address to scope it to
 /// the jobs that agent posted. Cancelled jobs older than the grace window are
 /// dropped so the Managed Deals table doesn't keep showing terminal rows.
+export interface MarketplaceBrief {
+  jobId: string;
+  buyer: string;
+  budgetUsdc: string;
+  deadlineUnix: number;
+  briefText: string;
+  bidsCount: number;
+  postedAt: number;
+}
+
+/// Open buyer briefs, packaged for the public marketplace surface. Strips
+/// internal state, agent-private fields, and anything past its terminal
+/// stage (escrow-funded, finalized via accept, cancelled, expired). Buyer
+/// address is returned full; consumer masks for display.
+export function getMarketplaceBriefs(): MarketplaceBrief[] {
+  return [...jobs.values()]
+    .filter((s) => !s.finalized && !s.escrowFunded && !s.cancelledAt && !s.expired)
+    .map((s) => {
+      const brief = getBrief(s.jobId);
+      return {
+        jobId: s.jobId,
+        buyer: s.context.buyer,
+        budgetUsdc: s.context.budgetUsdc,
+        deadlineUnix: s.context.deadlineUnix,
+        briefText: brief?.briefText ?? '',
+        bidsCount: s.bids.size,
+        postedAt: brief?.createdAt ?? Date.now(),
+      };
+    })
+    .sort((a, b) => b.postedAt - a.postedAt);
+}
+
 export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobSnapshot[] } {
   const f = filterBuyerAddress?.toLowerCase();
   const now = Date.now();

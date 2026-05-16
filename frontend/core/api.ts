@@ -1,3 +1,10 @@
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/browser';
+
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
 
 export interface ApiStatus {
@@ -152,6 +159,18 @@ export interface DirectDeal {
   onChain: DirectDealOnChain | null;
 }
 
+export interface MarketplaceBrief {
+  jobId: string;
+  /// Pre-masked by the backend (0xabcd…wxyz) so the marketplace surface
+  /// doesn't leak full wallet addresses to anyone who hits the endpoint.
+  buyer: string;
+  budgetUsdc: string;
+  deadlineUnix: number;
+  briefText: string;
+  bidsCount: number;
+  postedAt: number;
+}
+
 export interface Listing {
   id: string;
   sellerUser: string;
@@ -177,6 +196,10 @@ export interface MatchProposal {
   proposedAt: number;
   approvedAt?: number;
   declinedAt?: number;
+  /// Deterministic risk signal computed when the proposal was created.
+  /// Surfaced in MatchBanner so the human sees why the agent flagged it.
+  riskFlag?: 'honey-trap' | 'lowball' | 'spammy';
+  riskNote?: string;
 }
 
 export interface DirectDealFunding {
@@ -231,6 +254,10 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
     cache: 'no-store',
+    // Session cookie travels on every API call so the backend can resolve
+    // the current user without a token header dance. Backend CORS echoes the
+    // Origin and sets Access-Control-Allow-Credentials.
+    credentials: 'include',
     ...init,
   });
   if (!res.ok) {
@@ -287,6 +314,14 @@ export const api = {
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
   listingsForSeller: (address: string) =>
     json<{ listings: Listing[] }>(`/api/listings/mine?address=${address}`),
+  getListing: (id: string, caller?: string) => {
+    const q = caller ? `?caller=${caller}` : '';
+    return json<{ listing: Listing; floor?: number; viewerIsOwner?: boolean }>(
+      `/api/listings/${id}${q}`,
+    );
+  },
+  marketplaceBriefs: () =>
+    json<{ briefs: MarketplaceBrief[] }>(`/api/jobs/marketplace`),
   postListing: (body: {
     sellerUser: string;
     title: string;
@@ -335,6 +370,38 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, returnTo }),
     }),
+
+  // ── Email + passkey (Circle login) ────────────────────────────────────────
+  authStatus: () => json<{ configured: boolean }>('/api/auth/status'),
+  authMe: () =>
+    json<{
+      user: {
+        address: string;
+        method: 'web3' | 'circle';
+        email?: string;
+      } | null;
+    }>('/api/auth/me'),
+  authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  authRegisterOptions: (email: string) =>
+    json<{ options: PublicKeyCredentialCreationOptionsJSON }>(
+      '/api/auth/register/options',
+      { method: 'POST', body: JSON.stringify({ email }) },
+    ),
+  authRegisterVerify: (email: string, response: RegistrationResponseJSON) =>
+    json<{ user: { address: string; email: string; method: 'circle' } }>(
+      '/api/auth/register/verify',
+      { method: 'POST', body: JSON.stringify({ email, response }) },
+    ),
+  authLoginOptions: (email: string) =>
+    json<{ options: PublicKeyCredentialRequestOptionsJSON }>(
+      '/api/auth/login/options',
+      { method: 'POST', body: JSON.stringify({ email }) },
+    ),
+  authLoginVerify: (email: string, response: AuthenticationResponseJSON) =>
+    json<{ user: { address: string; email: string; method: 'circle' } }>(
+      '/api/auth/login/verify',
+      { method: 'POST', body: JSON.stringify({ email, response }) },
+    ),
   activity: (limit = 100, jobId?: string, caller?: string) => {
     const q = new URLSearchParams();
     q.set('limit', String(limit));
