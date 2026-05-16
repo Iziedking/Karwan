@@ -133,11 +133,13 @@ dealsRoutes.post('/direct', async (c) => {
 });
 
 /// Public feed of direct deals across the whole network, newest first, enriched
-/// with on-chain escrow state. Backs the home page deals section.
+/// with on-chain escrow state. Backs the home page deals section. Sanitized so
+/// the public surface doesn't leak full party addresses or party-authored
+/// reason / delivery-proof text.
 dealsRoutes.get('/feed', async (c) => {
   const deals = await listAllDeals();
   const enriched = await Promise.all(deals.slice(0, 60).map((d) => enrich(d)));
-  return c.json({ deals: enriched });
+  return c.json({ deals: enriched.map(redactDeal) });
 });
 
 /// List direct deals where the address is buyer or seller, enriched with the
@@ -838,6 +840,37 @@ dealsRoutes.post('/direct/:jobId/cancel/decline', async (c) => {
   });
   return c.json({ accepted: true, jobId }, 200);
 });
+
+function maskAddress(addr: string | undefined): string | undefined {
+  if (!addr) return addr;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+type EnrichedDeal = Awaited<ReturnType<typeof enrich>>;
+
+/// Strips the public-feed payload of full addresses + party-authored text.
+/// Buyer/seller drop to a short form; cancel reasons + delivery proofs go away
+/// entirely. The feed is still useful as "what's flowing on Karwan" without
+/// telling the world who exactly is doing what.
+function redactDeal(d: EnrichedDeal): EnrichedDeal {
+  const next = { ...d };
+  next.buyer = maskAddress(d.buyer) ?? d.buyer;
+  next.seller = maskAddress(d.seller) ?? d.seller;
+  next.buyerAgentAddress = maskAddress(d.buyerAgentAddress);
+  next.sellerAgentAddress = maskAddress(d.sellerAgentAddress);
+  delete next.cancelReason;
+  delete next.deliveryProof;
+  if (next.cancellationProposal) {
+    next.cancellationProposal = {
+      proposedBy: next.cancellationProposal.proposedBy,
+      kind: next.cancellationProposal.kind,
+      proposedAt: next.cancellationProposal.proposedAt,
+      reason: '',
+    };
+  }
+  return next;
+}
 
 async function enrich(deal: DirectDeal) {
   const base = { ...deal, reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS };

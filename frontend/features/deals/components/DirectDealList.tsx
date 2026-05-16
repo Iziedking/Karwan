@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import type { DirectDeal } from '@/core/api';
 import { useDirectDeals } from '../hooks/useDirectDeals';
+import { useDismissed } from '@/shared/hooks/useDismissed';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 
@@ -109,6 +110,7 @@ export function StageBadge({ stage }: { stage: DealStage }) {
 export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
   const { address } = useAccount();
   const { deals, fetchState } = useDirectDeals();
+  const { dismissed, dismiss } = useDismissed('direct-deals');
 
   const a = address?.toLowerCase();
   const scoped = deals.filter((d) => {
@@ -116,6 +118,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
     if (role === 'seller') return d.seller === a;
     return true;
   });
+  const visible = scoped.filter((d) => !dismissed.has(d.jobId));
 
   if (fetchState === 'loading' || fetchState === 'idle') {
     return (
@@ -133,18 +136,20 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
       </p>
     );
   }
-  if (scoped.length === 0) {
+  if (visible.length === 0) {
     return (
       <div className="p-10 text-center space-y-2">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          NO DEALS YET
+          {scoped.length === 0 ? 'NO DEALS YET' : 'ALL DISMISSED'}
         </p>
         <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
-          {role === 'seller'
-            ? 'Deals naming your wallet land here.'
-            : role === 'buyer'
-              ? 'Deals you open land here.'
-              : 'Deals you open or that name your wallet land here.'}
+          {scoped.length === 0
+            ? role === 'seller'
+              ? 'Deals naming your wallet land here.'
+              : role === 'buyer'
+                ? 'Deals you open land here.'
+                : 'Deals you open or that name your wallet land here.'
+            : 'Every deal in this list has been dismissed.'}
         </p>
       </div>
     );
@@ -152,11 +157,12 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
 
   return (
     <ul className="divide-y divide-[var(--lp-border-light)]">
-      {scoped.map((deal) => {
+      {visible.map((deal) => {
         const stage = stageOf(deal);
         const isBuyer = address?.toLowerCase() === deal.buyer;
         const counterparty = isBuyer ? deal.seller : deal.buyer;
         const meta = STAGE_META[stage];
+        const dismissable = stage === 'cancelled' || stage === 'settled' || stage === 'disputed';
         return (
           <li key={deal.jobId} className="group relative">
             <Link
@@ -231,6 +237,21 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                 </span>
               </div>
             </Link>
+            {dismissable && (
+              <button
+                type="button"
+                title="Dismiss"
+                aria-label="Dismiss this deal from the list"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dismiss(deal.jobId);
+                }}
+                className="absolute top-2.5 right-2.5 inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              >
+                ×
+              </button>
+            )}
           </li>
         );
       })}

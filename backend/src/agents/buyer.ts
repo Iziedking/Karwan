@@ -42,7 +42,17 @@ interface Bid {
   score?: number;
   suggestedCounterPrice?: string;
   suggestedCounterDeadlineDays?: number;
+  /// Cached on the bid so finalizeBidCollection can use it as a soft tiebreaker
+  /// without re-fetching from chain. Source: ReputationRegistry.getReputationScore
+  /// at the moment the bid was received. 0–10000 bps; defaults to 5000 (neutral)
+  /// if the read failed.
+  sellerReputationBps?: number;
 }
+
+/// Score difference under which two bids are "tied" for the purposes of the
+/// reputation tiebreaker. LLM scoring is noisy at the unit level, so 3 points
+/// on a 0-100 scale is well inside the noise floor.
+const REPUTATION_TIEBREAK_EPSILON = 3;
 
 interface JobState {
   jobId: `0x${string}`;
@@ -61,7 +71,21 @@ interface JobState {
   /// and no approved match proposal. Treated as a terminal state by the
   /// listings cross-match scanner and bid handlers.
   expired: boolean;
+  /// When the brief expired (epoch ms). Mirrors brief.expiredAt and is the
+  /// authoritative value the snapshot exposes so the UI can render a read-only
+  /// expired state instead of 404ing.
+  expiredAt?: number;
+  /// Timestamp of when the resulting deal was cancelled (mutual, platform,
+  /// unilateral, or pre-accept). Set by the bus subscription in
+  /// startBuyerAgents() when a `deal.cancelled` event fires. After the grace
+  /// window (MANAGED_CANCELLED_GRACE_MS) the job is filtered out of the
+  /// snapshot so it stops showing as Open in the buyer's Managed Deals table.
+  cancelledAt?: number;
 }
+
+/// How long a cancelled managed job lingers in the buyer's Managed Deals
+/// snapshot so the user can see the terminal state. After this it drops off.
+const MANAGED_CANCELLED_GRACE_MS = 60 * 60 * 1000;
 
 const jobs = new Map<`0x${string}`, JobState>();
 const handledEvents = new Set<string>();
@@ -124,10 +148,22 @@ export function startBuyerAgents() {
     onError: (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
   });
 
+  // Mark tracked jobs as cancelled when their resulting deal is cancelled, so
+  // the Managed Deals table stops surfacing them as "Escrow funded".
+  const unsubBus = bus.subscribe((e) => {
+    if (e.type !== 'deal.cancelled') return;
+    const jobId = e.jobId as `0x${string}` | undefined;
+    if (!jobId) return;
+    const state = jobs.get(jobId);
+    if (!state) return;
+    state.cancelledAt = Date.now();
+  });
+
   return () => {
     unwatchPosted();
     unwatchBid();
     unwatchCounter();
+    unsubBus();
     for (const state of jobs.values()) {
       if (state.collectionTimer) clearTimeout(state.collectionTimer);
     }
@@ -162,13 +198,10 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   if (!buyer) return;
 
   const brief = getBrief(args.jobId);
-  // Skip re-tracking a brief that has already expired (e.g. after a restart
-  // replayed a JobPosted event for a job whose deadline already passed).
-  // The expiry watcher's previous expireJob() already cleaned this up.
-  if (brief?.expiredAt) {
-    logger.info({ jobId: args.jobId }, 'skipping tracked job, brief already expired');
-    return;
-  }
+  // Re-track expired briefs as read-only state so the UI can still load /jobs/[id]
+  // after a restart. The bid handler short-circuits on `state.expired`, so this
+  // never re-opens the auction; it just keeps the snapshot available for view.
+  const isExpired = !!brief?.expiredAt;
   const state: JobState = {
     jobId: args.jobId,
     buyer,
@@ -188,13 +221,25 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     lastCounterPriceBySeller: new Map(),
     finalized: false,
     escrowFunded: false,
-    expired: false,
+    expired: isExpired,
+    expiredAt: brief?.expiredAt,
   };
   jobs.set(args.jobId, state);
   logger.info(
     { jobId: args.jobId, budget: state.context.budgetUsdc, buyer: buyer.displayName, silent: opts?.silent ?? false },
     'tracking job',
   );
+  // Inherit cancelledAt from the persisted deal so a restart doesn't undo the
+  // grace-period filter (otherwise a cancelled deal would re-surface as "Open"
+  // on the Managed Deals table until the bus next fires).
+  try {
+    const existing = await getDeal(args.jobId);
+    if (existing?.cancelledAt) {
+      state.cancelledAt = existing.cancelledAt;
+    }
+  } catch {
+    /* non-fatal — worst case the row lingers until the bus fires again */
+  }
   // Don't broadcast tracked-events during boot backfill — the JobPosted log is
   // historical, and emitting it now would surface every old job in the activity
   // feed as if it had just been posted (timestamp comes from Date.now()).
@@ -231,6 +276,7 @@ async function handleBidSubmitted(log: Log) {
     priceUsdc,
     priceWei: args.price,
     deadlineUnix: Number(args.deadline),
+    sellerReputationBps,
   };
 
   const bidContext: BidContext = {
@@ -292,9 +338,44 @@ async function finalizeBidCollection(state: JobState) {
   state.collectionFired = true;
   state.collectionTimer = null;
 
+  // Primary sort by LLM score; reputation breaks near-ties so a marginally
+  // lower-scored bid from a highly-reputed seller wins over an unproven one.
+  // The agent leans on ERC-8004 reputation as a soft signal, not a hard gate.
   const ranked = [...state.bids.values()]
     .filter((b) => typeof b.score === 'number')
-    .sort((a, b) => b.score! - a.score!);
+    .sort((a, b) => {
+      const scoreDelta = b.score! - a.score!;
+      if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
+        const repA = a.sellerReputationBps ?? 5000;
+        const repB = b.sellerReputationBps ?? 5000;
+        if (repA !== repB) return repB - repA;
+      }
+      return scoreDelta;
+    });
+
+  if (ranked.length > 1 && typeof ranked[0]!.score === 'number' && typeof ranked[1]!.score === 'number') {
+    const top = ranked[0]!;
+    const second = ranked[1]!;
+    const scoreDelta = (second.score ?? 0) - (top.score ?? 0);
+    const repTop = top.sellerReputationBps ?? 5000;
+    const repSecond = second.sellerReputationBps ?? 5000;
+    // Log when reputation overrode the LLM. Useful for tuning the epsilon and
+    // for narrating "we picked the more reputable seller" in audit traces.
+    if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON && repTop > repSecond && (top.score ?? 0) < (second.score ?? 0)) {
+      logger.info(
+        {
+          jobId: state.jobId,
+          chosen: top.seller,
+          chosenScore: top.score,
+          chosenRepBps: repTop,
+          runnerUp: second.seller,
+          runnerUpScore: second.score,
+          runnerUpRepBps: repSecond,
+        },
+        'reputation broke a near-tie in bid ranking',
+      );
+    }
+  }
 
   if (ranked.length === 0) {
     logger.warn({ jobId: state.jobId }, 'no scored bids, nothing to counter');
@@ -929,6 +1010,8 @@ export interface BuyerJobSnapshot {
   termsHash: string;
   finalized: boolean;
   escrowFunded: boolean;
+  cancelledAt?: number;
+  expiredAt?: number;
   bids: Array<{
     seller: string;
     priceUsdc: string;
@@ -942,12 +1025,15 @@ export interface BuyerJobSnapshot {
 }
 
 /// Snapshot of tracked managed jobs. Pass a buyer agent address to scope it to
-/// the jobs that agent posted.
+/// the jobs that agent posted. Cancelled jobs older than the grace window are
+/// dropped so the Managed Deals table doesn't keep showing terminal rows.
 export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobSnapshot[] } {
   const f = filterBuyerAddress?.toLowerCase();
+  const now = Date.now();
   return {
     jobs: [...jobs.values()]
       .filter((s) => !f || s.context.buyer.toLowerCase() === f)
+      .filter((s) => !s.cancelledAt || now - s.cancelledAt < MANAGED_CANCELLED_GRACE_MS)
       .map((s) => ({
       jobId: s.jobId,
       buyer: s.context.buyer,
@@ -956,6 +1042,8 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
       termsHash: s.context.termsHash,
       finalized: s.finalized,
       escrowFunded: s.escrowFunded,
+      cancelledAt: s.cancelledAt,
+      expiredAt: s.expiredAt,
       bids: [...s.bids.values()].map((b) => ({
         seller: b.seller,
         priceUsdc: b.priceUsdc,
@@ -1022,7 +1110,8 @@ export function expireJob(jobId: `0x${string}`): boolean {
     state.collectionTimer = null;
   }
   state.expired = true;
-  patchBrief(jobId, { expiredAt: Date.now() });
+  state.expiredAt = Date.now();
+  patchBrief(jobId, { expiredAt: state.expiredAt });
   bus.emitEvent({
     type: 'job.expired',
     jobId,

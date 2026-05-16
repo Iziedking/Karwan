@@ -198,6 +198,12 @@ html[data-theme="dark"] {
   to { transform: translateX(-50%); }
 }
 
+/* Pause the network ticker so a passing reader can stop on a card. */
+.ticker-track:hover { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none !important; transform: none !important; }
+}
+
 /* Slow ambient drift used to give hero grids a "world is alive" feel. */
 @keyframes gridDrift {
   0%   { background-position: 0 0; }

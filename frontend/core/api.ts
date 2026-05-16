@@ -32,6 +32,12 @@ export interface BuyerJob {
   termsHash: string;
   finalized: boolean;
   escrowFunded: boolean;
+  /// When the resulting deal was cancelled (epoch ms). Surfaced for a brief
+  /// grace window so the user sees the terminal state before the row drops.
+  cancelledAt?: number;
+  /// When the brief passed its deadline without a match (epoch ms). The page
+  /// renders read-only when set — the auction is over.
+  expiredAt?: number;
   bids: BuyerBid[];
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;

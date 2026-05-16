@@ -56,25 +56,28 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const backHref = viewerIsSeller ? '/seller' : '/buyer';
   const backLabel = viewerIsSeller ? 'BACK TO SELLER' : 'BACK TO BUYER';
 
+  const expired = !!job.expiredAt;
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
     ? { label: `Escrow funded · ${formatUsdc(job.budgetUsdc)}`, tone: 'positive', live: false }
-    : declined
-      ? { label: 'Negotiation ended', tone: 'critical', live: false }
-      : matchPending
-        ? {
-            label: `Match · ${proposal!.agreedPriceUsdc} USDC · awaiting approval`,
-            tone: 'warning',
-            live: true,
-          }
-        : job.finalized
-          ? { label: 'Accepted · funding escrow', tone: 'warning', live: true }
-          : job.bids.length > 0
-            ? {
-                label: `${job.bids.length} bid${job.bids.length === 1 ? '' : 's'} · negotiating`,
-                tone: 'accent',
-                live: true,
-              }
-            : { label: 'Waiting on seller agents', tone: 'default', live: true };
+    : expired
+      ? { label: 'Brief expired', tone: 'default', live: false }
+      : declined
+        ? { label: 'Negotiation ended', tone: 'critical', live: false }
+        : matchPending
+          ? {
+              label: `Match · ${proposal!.agreedPriceUsdc} USDC · awaiting approval`,
+              tone: 'warning',
+              live: true,
+            }
+          : job.finalized
+            ? { label: 'Accepted · funding escrow', tone: 'warning', live: true }
+            : job.bids.length > 0
+              ? {
+                  label: `${job.bids.length} bid${job.bids.length === 1 ? '' : 's'} · negotiating`,
+                  tone: 'accent',
+                  live: true,
+                }
+              : { label: 'Waiting on seller agents', tone: 'default', live: true };
 
   return (
     <FullBleed>
@@ -134,6 +137,8 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             <StatTile label="Status" value="Escrow funded" small />
           ) : proposal?.approvedAt ? (
             <StatTile label="Status" value="Accepted" small />
+          ) : expired ? (
+            <StatTile label="Status" value="Expired" small />
           ) : declined ? (
             <StatTile label="Status" value="Ended" small />
           ) : (
@@ -142,8 +147,36 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <StatTile label="Terms hash" value={shortHash(job.termsHash, 6, 4)} mono />
         </div>
 
+        {/* EXPIRED BANNER — replaces the match banner slot when the brief is in
+            its read-only afterlife. No actions; the auction is over. */}
+        {expired && (
+          <div className="mt-8 fade-up fade-up-1">
+            <div
+              className="relative flex items-stretch border bg-[var(--lp-card)]"
+              style={{
+                borderColor: 'var(--lp-border-light)',
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
+            >
+              <span aria-hidden className="w-[3px]" style={{ background: '#6b6b6b' }} />
+              <div className="flex-1 px-5 py-4">
+                <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
+                  Brief expired · read only
+                </p>
+                <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                  Deadline {relativeTime(job.deadlineUnix)}. The agent stopped tracking this
+                  brief, no funds were ever moved. Open a new brief to run another auction.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* MATCH BANNER */}
-        {proposal && (
+        {proposal && !expired && (
           <div className="mt-8 fade-up fade-up-1">
             <MatchBanner proposal={proposal} onChange={refreshProposal} />
           </div>

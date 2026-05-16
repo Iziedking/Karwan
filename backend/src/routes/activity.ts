@@ -19,6 +19,42 @@ function isParty(event: KarwanEvent, caller: string): boolean {
   return false;
 }
 
+// Payload keys that hold wallet addresses; redacted to a short form on the
+// public feed so we don't leak full addresses to crawlers / observers.
+const ADDRESS_KEYS = new Set<string>([
+  'buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy',
+  'buyerAgent', 'sellerAgent', 'user', 'recipient', 'from', 'to',
+]);
+// Payload keys that hold free-form text the parties exchanged. Stripped on the
+// public feed so cancel/decline reasons don't end up indexed.
+const FREEFORM_KEYS = new Set<string>(['reason', 'cancelReason', 'detail', 'deliveryProof']);
+
+function maskAddress(addr: string): string {
+  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function redactPayload(p: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(p)) {
+    if (FREEFORM_KEYS.has(k)) continue;
+    if (ADDRESS_KEYS.has(k) && typeof v === 'string') {
+      out[k] = maskAddress(v);
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
+function redactEvent(e: KarwanEvent): KarwanEvent {
+  return {
+    ...e,
+    jobId: e.jobId,
+    payload: redactPayload(e.payload ?? {}),
+  };
+}
+
 /// Returns events filtered to the caller when ?caller= is set, otherwise the
 /// global stream. The caller-filtered shape powers /activity for the connected
 /// wallet. The unfiltered shape powers the landing-page tickers (HeroFlow,
@@ -35,7 +71,9 @@ activityRoutes.get('/', (c) => {
   const base = bus.recent(500, jobId);
 
   if (!caller) {
-    return c.json({ events: base.slice(0, limit) });
+    // Public form: redact wallet addresses and strip free-form text so the
+    // landing-page tickers don't leak parties or party-authored reasons.
+    return c.json({ events: base.slice(0, limit).map(redactEvent) });
   }
 
   // Two-pass filter so we don't drop follow-up events that lack party fields

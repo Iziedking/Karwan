@@ -109,7 +109,7 @@ export function DealsFeed() {
           })}
         </div>
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          DIRECT DEALS · LIVE ON ARC
+          DIRECT + AGENT-MATCHED · LIVE ON ARC
         </p>
       </div>
 

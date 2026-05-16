@@ -6,6 +6,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { cn } from '@/shared/utils/cn';
 import { api, type ApiStatus } from '@/core/api';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
+import { NetworkTicker } from '@/features/activity/components/NetworkTicker';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
@@ -252,6 +253,26 @@ export default function AppHome() {
         </div>
       </Band>
 
+      {/* NETWORK PULSE — sliding evidence ticker. Pure read-only proof that
+          deals are flowing; never links anywhere, never asks for action. */}
+      <Band tone="dark" compact>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-[44ch]">
+            <SectionTag tone="dark" dot="live">
+              NETWORK PULSE
+            </SectionTag>
+            <HeroHeadline size="md">
+              Trades, as they <Accent>land</Accent>
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
+              Every open, settle, and cancel across Karwan. Hover to pause.
+            </p>
+          </div>
+        </div>
+      </Band>
+      <NetworkTicker />
+
       {/* DEALS ACROSS KARWAN */}
       <Band tone="light">
         <SectionTag>DEALS</SectionTag>
@@ -259,7 +280,7 @@ export default function AppHome() {
           What&apos;s <Accent>live</Accent> right now<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Direct deals across the network.
+          Every deal on Karwan. Direct and agent-matched.
         </p>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
