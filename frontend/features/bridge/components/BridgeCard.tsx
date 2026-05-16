@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useState } from 'react';
-import { useAccount, useChainId } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SOURCE_CHAINS, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
@@ -106,6 +106,7 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` }) {
   const { isConnected } = useAccount();
   const walletChainId = useChainId();
+  const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const auth = useAuth();
   // Circle-only users have an identity wallet on Arc but no source-chain
   // wallet to sign the CCTP burn. We surface a clear note instead of leaving
@@ -124,12 +125,32 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
   // surprise. Circle users never reach this branch — they hit the heads-up
   // note above and the submit stays disabled.
   const onWrongChain = isConnected && walletChainId !== source.chainId;
+  // The submit button is enabled when amount + recipient are valid. On the
+  // wrong chain it ONLY triggers a chain switch — we don't try to fire the
+  // burn tx, because wallet-client state hasn't caught up yet and the burn
+  // would always fail. Once the wallet reports it's on the source chain
+  // (walletChainId updates → onWrongChain flips false), the same button
+  // label turns into "Bridge from Base" and the next click actually bridges.
   const canSubmit =
-    isConnected && typeof amount === 'number' && amount > 0 && !!mintRecipient;
+    isConnected &&
+    typeof amount === 'number' &&
+    amount > 0 &&
+    !!mintRecipient &&
+    !isSwitching;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !mintRecipient) return;
+    if (onWrongChain) {
+      try {
+        await switchChainAsync({ chainId: source.chainId });
+      } catch {
+        // User declined the wallet prompt. Stay on the same button, they
+        // can try again. We surface the rejection through the wallet's own
+        // toast rather than adding a banner here.
+      }
+      return;
+    }
     start({ sourceChainKey: sourceKey, amountUsdc: amount as number, mintRecipient });
   }
 
@@ -356,9 +377,11 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
             {isConnected ? (
               <>
                 <span>
-                  {onWrongChain
-                    ? `Switch to ${source.shortName} & bridge`
-                    : `Bridge from ${source.shortName}`}
+                  {isSwitching
+                    ? `Switching to ${source.shortName}…`
+                    : onWrongChain
+                      ? `Switch to ${source.shortName}`
+                      : `Bridge from ${source.shortName}`}
                 </span>
                 <span
                   aria-hidden

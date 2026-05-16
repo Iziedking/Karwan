@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useBalance, useChainId } from 'wagmi';
+import { useBalance, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
 import { CopyAddress } from '@/shared/components/CopyAddress';
@@ -57,6 +57,7 @@ export function ArcFundCard({
   // users this defaults to whatever wagmi has (often the wagmi default chain
   // even when no wallet is connected), so we only read it for web3 users.
   const walletChainId = useChainId();
+  const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const onWrongChain = !isCircleUser && isConnected && walletChainId !== ARC_CHAIN_ID;
   // Balance reads target Arc directly via the wagmi public RPC, not the
   // wallet, so they remain accurate even when the wallet is on another chain.
@@ -143,11 +144,27 @@ export function ArcFundCard({
     typeof amount === 'number' &&
     amount > 0 &&
     !!selectedAgent?.address &&
-    !hasActiveTransfer;
+    !hasActiveTransfer &&
+    !isSwitching;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !selectedAgent?.address) return;
+    // On wrong chain, switch only — don't try to submit the transfer.
+    // wagmi's wallet client needs the switch to actually commit before any
+    // signing call will be routed to the new chain, otherwise the tx fires
+    // on the old chain and reverts. After the switch lands, walletChainId
+    // updates → onWrongChain flips false → the button label turns into
+    // "Send to buyer agent" and the next click does the actual transfer.
+    if (onWrongChain) {
+      try {
+        await switchChainAsync({ chainId: ARC_CHAIN_ID });
+      } catch {
+        // User declined the wallet prompt. Stay on the same button so they
+        // can try again. No banner — the wallet's own toast surfaces it.
+      }
+      return;
+    }
     start({
       agentKey: selected,
       agentAddress: selectedAgent.address as `0x${string}`,
@@ -391,13 +408,15 @@ export function ArcFundCard({
         >
           {!isConnected ? (
             'Sign in to fund'
+          ) : isSwitching ? (
+            'Switching to Arc…'
           ) : hasActiveTransfer ? (
             'Transfer in progress…'
           ) : (
             <>
               <span>
                 {onWrongChain
-                  ? `Switch to Arc & send to ${selectedAgent?.label.toLowerCase() ?? 'agent'}`
+                  ? 'Switch to Arc'
                   : `Send to ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
               </span>
               <span

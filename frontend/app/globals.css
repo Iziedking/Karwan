@@ -72,6 +72,71 @@ html[data-theme="dark"] {
   --lp-border-light: rgba(0, 0, 0, 0.08);
 }
 
+/* ============================================================================
+   SKILL.md tokens — load-bearing UI law per docs/SKILL.md. These run the new
+   surface-first system: --surface-* for dark pages, --paper-* for light, --ink-*
+   semantic text, --accent lime (used SPARINGLY per skill §1.3), --pos/warn/neg/info
+   reserved for settlement state (never decorative). Hairlines via --rule-*.
+   Co-exists with the legacy --lp-* tokens during the migration to the new system.
+   ========================================================================== */
+:root {
+  /* Surface */
+  --surface-0: #0A0A0B;   /* app shell, hero, dark sections */
+  --surface-1: #111114;   /* raised cards on dark */
+  --surface-2: #1A1A1F;   /* deeper inset, inputs on dark */
+  --paper-0:   #F4F4F1;   /* light section bg */
+  --paper-1:   #FFFFFF;   /* raised cards on light */
+  --paper-2:   #ECECE7;   /* inset on light */
+
+  /* Ink */
+  --ink-0:     #FFFFFF;
+  --ink-1:     #E6E6E3;   /* primary on dark */
+  --ink-2:     #9A9A95;   /* secondary on dark */
+  --ink-3:     #5A5A57;   /* tertiary / mono labels */
+  --ink-inv-0: #0A0A0B;   /* primary on light */
+  --ink-inv-2: #6E6E6A;
+
+  /* Accent — USE SPARINGLY (one focal indicator per screen max) */
+  --accent:      #D8FF3D;
+  --accent-deep: #B8E028;
+  --accent-ink:  #0A0A0B;
+
+  /* Semantic — reserved for settlement state */
+  --pos:  #6BE39A;   /* settled, paid */
+  --warn: #FFC857;   /* awaiting action */
+  --neg:  #FF6A6A;   /* dispute, failed */
+  --info: #7CC2FF;
+
+  /* Hairlines */
+  --rule-dark:  rgba(255, 255, 255, 0.08);
+  --rule-light: rgba(10, 10, 11, 0.10);
+
+  /* Motion tokens. exposed as CSS vars so animations defined in stylesheets
+     match the JS motion module 1:1. JS code should import from
+     @/shared/motion/tokens.ts which carries the same values. */
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:    cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-inout: cubic-bezier(0.83, 0, 0.17, 1);
+  --dur-micro:  180ms;
+  --dur-fast:   240ms;
+  --dur-base:   360ms;
+  --dur-slow:   560ms;
+  --dur-hero:   900ms;
+}
+
+/* SKILL.md §7 — reduce-motion collapses transforms to opacity-only and halves
+   durations. Apply globally so every component honours the user preference
+   without needing per-component opt-in. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-micro: 90ms;
+    --dur-fast:  120ms;
+    --dur-base:  180ms;
+    --dur-slow:  280ms;
+    --dur-hero:  280ms;
+  }
+}
+
 html[data-theme="dark"] {
   /* "ink" inverts. Every `text-[var(--lp-dark)]` across the app now reads as
      a soft white on the new dark surfaces. */
