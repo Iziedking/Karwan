@@ -424,10 +424,13 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ email, response }) },
     ),
   authOtpRequest: (email: string) =>
-    json<{ sent: boolean; devCode?: string }>('/api/auth/otp/request', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
+    json<{ sent: boolean; delivered?: boolean; devCode?: string }>(
+      '/api/auth/otp/request',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      },
+    ),
   authOtpVerify: (email: string, code: string) =>
     json<{ user: { address: string; email: string; method: 'circle' } }>(
       '/api/auth/otp/verify',

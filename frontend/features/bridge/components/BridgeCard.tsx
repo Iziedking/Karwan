@@ -863,6 +863,11 @@ function PhaseChip({
 }
 
 function CircleBridgeNote({ mintRecipient }: { mintRecipient: `0x${string}` }) {
+  // Closed by default. The whole bridge form is the primary action, the note
+  // is supporting context — collapsing it keeps the eye on the form while
+  // still giving a one-click way to read why bridging is the wrong path for
+  // Circle-only users.
+  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   async function copyArcAddress() {
     try {
@@ -890,77 +895,103 @@ function CircleBridgeNote({ mintRecipient }: { mintRecipient: `0x${string}` }) {
         className="absolute left-0 top-0 bottom-0 w-[3px]"
         style={{ background: TONE_HEX.warning }}
       />
-      <div className="px-4 py-3.5 pl-5">
-        <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full text-left px-4 py-3 pl-5 flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      >
+        <span
+          className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
+          style={{
+            background: 'rgba(178,84,37,0.10)',
+            color: TONE_HEX.warning,
+            border: '1px solid rgba(178,84,37,0.32)',
+            borderTopLeftRadius: 4,
+            borderTopRightRadius: 4,
+            borderBottomLeftRadius: 4,
+            borderBottomRightRadius: 2,
+          }}
+        >
           <span
-            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
-            style={{
-              background: 'rgba(178,84,37,0.10)',
-              color: TONE_HEX.warning,
-              border: '1px solid rgba(178,84,37,0.32)',
-              borderTopLeftRadius: 4,
-              borderTopRightRadius: 4,
-              borderBottomLeftRadius: 4,
-              borderBottomRightRadius: 2,
-            }}
-          >
-            <span
-              aria-hidden
-              className="inline-block w-[5px] h-[5px]"
-              style={{ background: TONE_HEX.warning }}
-            />
-            HEADS UP
-          </span>
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Source-chain wallet required
-          </span>
-        </div>
-        <p className="mt-2 text-[12.5px] leading-snug text-[var(--lp-dark)]">
-          CCTP burns the USDC on the source chain. Your Circle login lives on Arc, so it can&apos;t
-          sign that burn.
-        </p>
-        <ul className="mt-3 space-y-1.5">
-          <li className="flex items-baseline gap-2">
-            <span
-              aria-hidden
-              className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
-              style={{ background: 'var(--lp-accent)' }}
-            />
-            <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-              Connect a web3 wallet on Base or Sepolia, then bridge here.
+            aria-hidden
+            className="inline-block w-[5px] h-[5px]"
+            style={{ background: TONE_HEX.warning }}
+          />
+          HEADS UP
+        </span>
+        <span className="flex-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] truncate">
+          Source-chain wallet required
+        </span>
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className={`text-[var(--lp-text-muted)] transition-transform shrink-0 ${
+            open ? 'rotate-180' : ''
+          }`}
+        >
+          <path
+            d="M4 6l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3.5 pl-5 -mt-1 fade-up">
+          <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+            CCTP burns the USDC on the source chain. Your Circle login lives on Arc, so it
+            can&apos;t sign that burn.
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            <li className="flex items-baseline gap-2">
+              <span
+                aria-hidden
+                className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
+                style={{ background: 'var(--lp-accent)' }}
+              />
+              <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+                Connect a web3 wallet on Base or Sepolia, then bridge here.
+              </span>
+            </li>
+            <li className="flex items-baseline gap-2">
+              <span
+                aria-hidden
+                className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
+                style={{ background: 'var(--lp-accent)' }}
+              />
+              <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+                Or send USDC straight to your Arc address from any external bridge or faucet.
+              </span>
+            </li>
+          </ul>
+          <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
+            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              Your Arc address
             </span>
-          </li>
-          <li className="flex items-baseline gap-2">
-            <span
-              aria-hidden
-              className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
-              style={{ background: 'var(--lp-accent)' }}
-            />
-            <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-              Or send USDC straight to your Arc address from any external bridge or faucet.
-            </span>
-          </li>
-        </ul>
-        <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Your Arc address
-          </span>
-          <button
-            type="button"
-            onClick={copyArcAddress}
-            className="mono text-[11px] tabular-nums text-[var(--lp-dark)] hover:opacity-80 transition-opacity inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5"
-            title={copied ? 'Copied' : `Copy ${mintRecipient}`}
-          >
-            {shortAddress(mintRecipient)}
-            <span
-              className="mono text-[9px] uppercase tracking-[0.14em]"
-              style={{ color: copied ? TONE_HEX.positive : 'var(--lp-text-muted)' }}
+            <button
+              type="button"
+              onClick={copyArcAddress}
+              className="mono text-[11px] tabular-nums text-[var(--lp-dark)] hover:opacity-80 transition-opacity inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5"
+              title={copied ? 'Copied' : `Copy ${mintRecipient}`}
             >
-              {copied ? 'COPIED' : 'COPY'}
-            </span>
-          </button>
+              {shortAddress(mintRecipient)}
+              <span
+                className="mono text-[9px] uppercase tracking-[0.14em]"
+                style={{ color: copied ? TONE_HEX.positive : 'var(--lp-text-muted)' }}
+              >
+                {copied ? 'COPIED' : 'COPY'}
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

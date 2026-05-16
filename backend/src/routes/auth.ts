@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { Resend } from 'resend';
 import {
   generateRegistrationOptions,
@@ -80,39 +82,180 @@ function resendClient(): Resend | null {
   return _resend;
 }
 
+interface OtpSendResult {
+  delivered: boolean;
+  /// Surfaced when delivery failed so the modal can show a real message
+  /// instead of a silent fallback to the dev pill. Empty string when the
+  /// log-only path was the intended one (no provider configured).
+  reason?: string;
+}
+
+// Brand mark loaded from disk once at boot. Sent to Resend as a CID inline
+// attachment so the <img cid:karwan-logo> reference in the HTML resolves
+// without needing a public image host. CID inline images render in Gmail
+// (web + mobile), Apple Mail, Outlook, and Hey — the failure modes that hit
+// raw inline SVG and data URIs.
+function loadLogoBuffer(): Buffer | null {
+  const candidates = [
+    resolve(process.cwd(), 'docs/bot-assets/karwan-bot-pic.png'),
+    resolve(process.cwd(), '../docs/bot-assets/karwan-bot-pic.png'),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      try {
+        return readFileSync(p);
+      } catch {
+        // try next candidate
+      }
+    }
+  }
+  return null;
+}
+const LOGO_BUFFER = loadLogoBuffer();
+const LOGO_CID = 'karwan-logo';
+
+/// HTML body for the OTP email. Brand mark referenced via cid: so Resend
+/// attaches the PNG inline. All accents are ink-on-cream — no lime — so the
+/// email reads as a transactional notice, not a marketing piece.
+function otpEmailHtml(code: string): string {
+  // Space the digits so the code is easy to read at a glance even in clients
+  // that crush letter-spacing. Doesn't affect copy-paste — recipients still
+  // type the 6 digits into the modal.
+  const spacedCode = code.split('').join('&nbsp;&nbsp;');
+  // When the brand asset is missing, fall back to a wordmark-only header so
+  // the email still ships with no broken-image icon.
+  const logoCell = LOGO_BUFFER
+    ? `<img src="cid:${LOGO_CID}" width="36" height="36" alt="Karwan" style="display:block;border-radius:6px;" />`
+    : '';
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Karwan sign-in code</title>
+</head>
+<body style="margin:0;padding:0;background:#f3efe6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#0e0e0e;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3efe6;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;background:#ffffff;border:1px solid #e6e2d8;border-radius:18px 18px 18px 5px;overflow:hidden;">
+          <!-- Header: dark band with the Karwan brand mark + wordmark -->
+          <tr>
+            <td style="background:#0e0e0e;padding:24px 28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  ${
+                    LOGO_BUFFER
+                      ? `<td style="vertical-align:middle;padding-right:12px;">${logoCell}</td>`
+                      : ''
+                  }
+                  <td style="vertical-align:middle;">
+                    <div style="font-size:18px;font-weight:800;letter-spacing:0.04em;color:#ffffff;text-transform:uppercase;line-height:1;">Karwan</div>
+                    <div style="margin-top:4px;font-size:10px;letter-spacing:0.18em;color:rgba(255,255,255,0.55);text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">SIGN-IN&nbsp;CODE</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Code block: oversized tabular nums on cream -->
+          <tr>
+            <td style="padding:36px 28px 12px 28px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Your code</div>
+              <div style="display:inline-block;padding:18px 28px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:14px 14px 14px 4px;">
+                <div style="font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:38px;font-weight:800;letter-spacing:0.08em;color:#0e0e0e;line-height:1;">${spacedCode}</div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Expiration + safety -->
+          <tr>
+            <td style="padding:18px 28px 8px 28px;text-align:center;">
+              <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
+                Enter this code in the sign-in modal to access your Karwan account.
+              </p>
+              <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
+                Expires in 10 minutes. Five wrong tries voids it.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer: muted note + brand strip -->
+          <tr>
+            <td style="padding:24px 28px 24px 28px;">
+              <hr style="border:none;border-top:1px solid #e6e2d8;margin:0 0 16px 0;" />
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#8a8478;">
+                Didn't request this? Ignore the email. No account changes happen until a code is entered.
+              </p>
+              <p style="margin:14px 0 0 0;font-size:10px;letter-spacing:0.18em;color:#b8b0a0;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">
+                Karwan&nbsp;&middot;&nbsp;Agentic settlement on Arc
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 /// Sends the 6-digit code to the user. When RESEND_API_KEY is set we POST to
 /// Resend; otherwise we log the code to the backend terminal so dev still
 /// works without any provider configured. Returns whether the code went out
-/// over real email — the dev autofill pill only renders when this is false,
-/// so users never see the code-in-the-modal hack in production.
-async function sendOtpEmail(email: string, code: string): Promise<{ delivered: boolean }> {
+/// over real email — the dev autofill pill only renders when this is false.
+async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult> {
   const client = resendClient();
   if (!client) {
     logger.info({ email, code }, '[OTP] code (no RESEND_API_KEY, log-only)');
     return { delivered: false };
   }
   try {
-    const { error } = await client.emails.send({
+    const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,
       to: email,
       subject: `Karwan sign-in code: ${code}`,
+      html: otpEmailHtml(code),
       text:
         `Your Karwan sign-in code is ${code}\n\n` +
         `It expires in 10 minutes. Five wrong tries voids it.\n\n` +
         `If you didn't request this, ignore the email.`,
+      // CID inline attachment for the brand mark. Falls back gracefully when
+      // the asset isn't on disk (the HTML omits the <img> in that case too).
+      ...(LOGO_BUFFER
+        ? {
+            attachments: [
+              {
+                filename: 'karwan-logo.png',
+                content: LOGO_BUFFER,
+                contentId: LOGO_CID,
+              },
+            ],
+          }
+        : {}),
     });
     if (error) {
-      logger.warn({ err: error.message, email }, 'resend send returned error');
-      // Log the code as a fallback so the user is not stranded if email fails.
-      logger.info({ email, code }, '[OTP] code (resend failed, log fallback)');
-      return { delivered: false };
+      // Resend returns its rejection in `error` with no throw, so we must
+      // inspect it explicitly. Common cases:
+      //   - "You can only send testing emails to your own email address" →
+      //     the sandbox sender `onboarding@resend.dev` only delivers to the
+      //     Resend account owner's email. Verify a domain to send to anyone.
+      //   - "Invalid `from` field" → RESEND_FROM is malformed.
+      //   - "Invalid API key" → key revoked or wrong key.
+      logger.warn(
+        { err: error.message, errName: error.name, email, from: config.RESEND_FROM },
+        'resend rejected send',
+      );
+      logger.info({ email, code }, '[OTP] code (resend rejected, log fallback)');
+      return { delivered: false, reason: error.message };
     }
-    logger.info({ email }, 'OTP code emailed via resend');
+    logger.info({ email, id: data?.id }, 'OTP code emailed via resend');
     return { delivered: true };
   } catch (err) {
-    logger.warn({ err: (err as Error).message, email }, 'resend threw');
+    const message = (err as Error).message ?? 'unknown';
+    logger.warn({ err: message, email }, 'resend threw');
     logger.info({ email, code }, '[OTP] code (resend threw, log fallback)');
-    return { delivered: false };
+    return { delivered: false, reason: message };
   }
 }
 
@@ -465,6 +608,7 @@ authRoutes.post('/otp/request', async (c) => {
   } catch (err) {
     logger.warn({ err: (err as Error).message, email: body.email }, 'otp send failed');
     // Keep going. The user can retry; the code is already stored either way.
+    // Detailed reason stays on the server log; do not leak it to the client.
   }
   return c.json({
     sent: true,

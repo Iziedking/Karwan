@@ -98,7 +98,7 @@ export function PostListingForm() {
   if (!isConnected) {
     return (
       <p className="text-[13px] text-white/55">
-        Connect your wallet to post a listing.
+        Sign in to post a listing. Use the Log in pill in the nav.
       </p>
     );
   }

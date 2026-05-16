@@ -1,8 +1,7 @@
 'use client';
 import { useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
@@ -14,7 +13,13 @@ const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 
 export function DirectDealForm() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  // Source of truth covers both wagmi web3 users and Circle passkey/email
+  // users. Direct-deal create is backend-signed (the buyer agent DCW opens
+  // escrow), so no actual wallet signature is needed here either way — the
+  // form just needs the user's identity address.
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   // "Make offer" links from a listing detail land here with seller/amount/terms
   // pre-filled. Read once on mount; further changes come from user input.
   const search = useSearchParams();
@@ -64,7 +69,7 @@ export function DirectDealForm() {
     setError(null);
     try {
       const r = await api.createDirectDeal({
-        buyerAddress: address,
+        buyerAddress: address!,
         sellerAddress: seller.trim(),
         dealAmountUsdc: amount as number,
         deadlineDays: days as number,
@@ -82,12 +87,9 @@ export function DirectDealForm() {
 
   if (!isConnected) {
     return (
-      <div className="space-y-4">
-        <p className="text-[13px] text-[var(--lp-text-sub)]">
-          Connect your wallet to open a direct deal.
-        </p>
-        <ConnectButton />
-      </div>
+      <p className="text-[13px] text-[var(--lp-text-sub)]">
+        Sign in to open a direct deal. Use the Log in pill in the nav.
+      </p>
     );
   }
 
