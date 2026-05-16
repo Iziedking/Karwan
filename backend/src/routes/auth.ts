@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import { Resend } from 'resend';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -70,12 +71,49 @@ function purgeStaleOtps() {
   }
 }
 
-/// Stub email sender. Logs the code to the backend console with a clear
-/// [OTP] prefix so devs can copy it in dev. Production swaps this for a
-/// transactional sender (Resend / SendGrid) when #58 lands. In dev the code
-/// also rides back on the request response so the modal can pre-fill it.
-async function sendOtpEmail(email: string, code: string): Promise<void> {
-  logger.info({ email, code }, '[OTP] code for login (replace with email sender)');
+// Lazy-init Resend so a misconfigured key only blows up if we actually try to
+// send. Returning null keeps the dev path (log-only) working with zero setup.
+let _resend: Resend | null | undefined;
+function resendClient(): Resend | null {
+  if (_resend !== undefined) return _resend;
+  _resend = config.RESEND_API_KEY ? new Resend(config.RESEND_API_KEY) : null;
+  return _resend;
+}
+
+/// Sends the 6-digit code to the user. When RESEND_API_KEY is set we POST to
+/// Resend; otherwise we log the code to the backend terminal so dev still
+/// works without any provider configured. Returns whether the code went out
+/// over real email — the dev autofill pill only renders when this is false,
+/// so users never see the code-in-the-modal hack in production.
+async function sendOtpEmail(email: string, code: string): Promise<{ delivered: boolean }> {
+  const client = resendClient();
+  if (!client) {
+    logger.info({ email, code }, '[OTP] code (no RESEND_API_KEY, log-only)');
+    return { delivered: false };
+  }
+  try {
+    const { error } = await client.emails.send({
+      from: config.RESEND_FROM,
+      to: email,
+      subject: `Karwan sign-in code: ${code}`,
+      text:
+        `Your Karwan sign-in code is ${code}\n\n` +
+        `It expires in 10 minutes. Five wrong tries voids it.\n\n` +
+        `If you didn't request this, ignore the email.`,
+    });
+    if (error) {
+      logger.warn({ err: error.message, email }, 'resend send returned error');
+      // Log the code as a fallback so the user is not stranded if email fails.
+      logger.info({ email, code }, '[OTP] code (resend failed, log fallback)');
+      return { delivered: false };
+    }
+    logger.info({ email }, 'OTP code emailed via resend');
+    return { delivered: true };
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, email }, 'resend threw');
+    logger.info({ email, code }, '[OTP] code (resend threw, log fallback)');
+    return { delivered: false };
+  }
 }
 
 function isDev(): boolean {
@@ -401,9 +439,10 @@ authRoutes.post('/login/verify', async (c) => {
 
 const otpRequestSchema = z.object({ email: emailSchema });
 
-/// Issues a one-time 6-digit code for the email. Stub sender logs to console
-/// in dev; production wires Resend / SendGrid via #58. Works for both new
-/// and returning users; the verify step decides whether to create or log in.
+/// Issues a one-time 6-digit code for the email. Routes through Resend when
+/// RESEND_API_KEY is set; otherwise logs to the backend terminal as a dev
+/// convenience. Works for both new and returning users — the verify step
+/// decides whether to create the account or log in.
 authRoutes.post('/otp/request', async (c) => {
   let body;
   try {
@@ -419,18 +458,21 @@ authRoutes.post('/otp/request', async (c) => {
     expiresAt: Date.now() + OTP_TTL_MS,
     attempts: 0,
   });
+  let delivered = false;
   try {
-    await sendOtpEmail(body.email, code);
+    const r = await sendOtpEmail(body.email, code);
+    delivered = r.delivered;
   } catch (err) {
     logger.warn({ err: (err as Error).message, email: body.email }, 'otp send failed');
-    // Keep going. dev sender doesn't fail; production sender failures
-    // surface as a generic "couldn't send" so the user can retry.
+    // Keep going. The user can retry; the code is already stored either way.
   }
   return c.json({
     sent: true,
-    // Returned only in dev so the user can autofill from the response panel
-    // when running locally without an email sender. Never enabled in prod.
-    ...(isDev() ? { devCode: code } : {}),
+    delivered,
+    // Surface the code in the response only when (a) we're in dev and (b)
+    // the send path didn't actually deliver email — typically because no
+    // RESEND_API_KEY is configured. Production stays mute regardless.
+    ...(isDev() && !delivered ? { devCode: code } : {}),
   });
 });
 

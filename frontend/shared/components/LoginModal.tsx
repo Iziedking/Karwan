@@ -444,16 +444,42 @@ export function LoginModal({ open, onClose }: Props) {
                     />
                   </label>
                   {otpDevHint && (
-                    <p className="mono text-[10px] text-[var(--lp-text-muted)] leading-snug">
-                      [:DEV:] code is{' '}
-                      <button
-                        type="button"
-                        className="mono text-[var(--lp-dark)] underline"
-                        onClick={() => setOtpCode(otpDevHint)}
-                      >
+                    <button
+                      type="button"
+                      onClick={() => setOtpCode(otpDevHint)}
+                      className="group w-full inline-flex items-center justify-between gap-2 px-3 py-2 text-left transition-colors"
+                      style={{
+                        background: 'rgba(189, 225, 34,0.12)',
+                        border: '1px dashed rgba(189, 225, 34,0.55)',
+                        borderTopLeftRadius: 8,
+                        borderTopRightRadius: 8,
+                        borderBottomLeftRadius: 8,
+                        borderBottomRightRadius: 2,
+                      }}
+                      title="Dev mode only. Hidden in production."
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className="mono text-[9px] font-bold uppercase tracking-[0.18em] px-1.5 py-[2px]"
+                          style={{
+                            background: 'var(--lp-dark)',
+                            color: 'var(--lp-accent)',
+                            borderTopLeftRadius: 3,
+                            borderTopRightRadius: 3,
+                            borderBottomLeftRadius: 3,
+                            borderBottomRightRadius: 1,
+                          }}
+                        >
+                          DEV
+                        </span>
+                        <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+                          Tap to autofill
+                        </span>
+                      </span>
+                      <span className="mono text-[14px] font-bold tabular-nums tracking-[0.18em] text-[var(--lp-dark)] group-hover:opacity-80 transition-opacity">
                         {otpDevHint}
-                      </button>
-                    </p>
+                      </span>
+                    </button>
                   )}
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <button

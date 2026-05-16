@@ -98,6 +98,13 @@ const envSchema = z.object({
   WEBAUTHN_RP_ID: optionalString,
   WEBAUTHN_RP_NAME: optionalString,
   WEBAUTHN_ORIGIN: optionalString,
+
+  // Resend transactional email. When RESEND_API_KEY is unset the OTP route
+  // falls back to logging the code to the server console (dev convenience).
+  // RESEND_FROM is the sender address — use `onboarding@resend.dev` for the
+  // hackathon-grade sandbox path, or a verified-domain address in prod.
+  RESEND_API_KEY: optionalString,
+  RESEND_FROM: z.preprocess(blankToUndefined, z.string().default('Karwan <onboarding@resend.dev>')),
 });
 
 const parsed = envSchema.safeParse(process.env);
