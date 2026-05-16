@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { parseUnits } from 'viem';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { getUserByAddress } from '../db/users.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
@@ -25,9 +26,20 @@ const withdrawSchema = z.object({
   amountUsdc: z.number().positive(),
 });
 
+const fundAgentSchema = z.object({
+  address: addrSchema,
+  agent: z.enum(['buyer', 'seller']),
+  amountUsdc: z.number().positive(),
+});
+
 // One withdrawal at a time per user+agent, so a double-click cannot fire two
 // transfers against the same agent wallet.
 const withdrawInFlight = new Set<string>();
+
+// One fund-agent transfer at a time per user+agent. Same reasoning as the
+// withdrawal guard: Circle DCWs serialize tx nonces, a double-click would
+// either fail the second tx or stall the first.
+const fundInFlight = new Set<string>();
 
 // One activation at a time per address, so a double-click cannot provision two
 // wallet pairs for the same user.
@@ -162,5 +174,90 @@ activationRoutes.post('/withdraw', async (c) => {
     return c.json({ error: 'withdrawal failed', detail: (err as Error).message }, 502);
   } finally {
     withdrawInFlight.delete(key);
+  }
+});
+
+/// Tops up an agent wallet from the user's Circle identity DCW. Only available
+/// to Circle-auth users — web3 users have no server-side wallet for us to sign
+/// from, so they take the existing wagmi path on the frontend.
+///
+/// Both legs are Circle DCWs the backend already controls, so no user signature
+/// is required and gas is sponsored by Circle. A one-click transfer.
+activationRoutes.post('/fund-agent', async (c) => {
+  let body;
+  try {
+    body = fundAgentSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+
+  const user = getUserByAddress(userAddress);
+  if (!user) {
+    // Web3 users don't have a server-side identity wallet. They should be
+    // using the wagmi top-up flow instead.
+    return c.json(
+      {
+        error: 'no Circle identity wallet for this address',
+        detail: 'fund-agent is only available to Circle-auth users. Use the on-chain top-up.',
+      },
+      409,
+    );
+  }
+
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) {
+    return c.json({ error: 'no agent wallets — activate agents first' }, 409);
+  }
+  const agentAddress =
+    body.agent === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+
+  const key = `${userAddress}:${body.agent}`;
+  if (fundInFlight.has(key)) {
+    return c.json({ error: 'a fund transfer is already in progress for this agent' }, 409);
+  }
+
+  fundInFlight.add(key);
+  try {
+    const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+    const result = await executeContractCall(
+      {
+        walletId: user.circleIdentityWalletId,
+        contractAddress: usdcAddress,
+        abiFunctionSignature: 'transfer(address,uint256)',
+        abiParameters: [agentAddress, amountWei.toString()],
+      },
+      `fund-agent(${body.agent} <- identity ${userAddress})`,
+    );
+    bus.emitEvent({
+      type: 'agent.funded',
+      actor: 'platform',
+      payload: {
+        user: userAddress,
+        agent: body.agent,
+        agentAddress: agentAddress.toLowerCase(),
+        amountUsdc: body.amountUsdc.toString(),
+        txHash: result.txHash,
+      },
+    });
+    logger.info(
+      {
+        userAddress,
+        agent: body.agent,
+        agentAddress,
+        amountUsdc: body.amountUsdc,
+        txHash: result.txHash,
+      },
+      'agent wallet funded from identity DCW',
+    );
+    return c.json({ accepted: true, txHash: result.txHash, agentAddress }, 200);
+  } catch (err) {
+    logger.error(
+      { userAddress, agent: body.agent, err: (err as Error).message },
+      'fund-agent failed',
+    );
+    return c.json({ error: 'fund-agent failed', detail: (err as Error).message }, 502);
+  } finally {
+    fundInFlight.delete(key);
   }
 });

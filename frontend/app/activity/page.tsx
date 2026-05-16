@@ -1,4 +1,8 @@
+'use client';
+import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { SignInGate } from '@/shared/components/SignInGate';
 import { ActivityView } from '@/features/activity/components/ActivityView';
 import {
   FullBleed,
@@ -11,11 +15,30 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 
-export const dynamic = 'force-dynamic';
+export default function ActivityPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [explorer, setExplorer] = useState<string>('https://testnet.arcscan.app');
 
-export default async function ActivityPage() {
-  const status = await api.status().catch(() => null);
-  const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
+  useEffect(() => {
+    api
+      .status()
+      .then((s) => setExplorer(s.chain.explorer ?? 'https://testnet.arcscan.app'))
+      .catch(() => {
+        /* keep default */
+      });
+  }, []);
+
+  if (isLoading) return null;
+
+  if (!isAuthenticated) {
+    return (
+      <SignInGate
+        variant="page"
+        tag="STREAM"
+        body="Activity is scoped to your wallet so you only see events from your deals. Sign in to view your stream."
+      />
+    );
+  }
 
   return (
     <FullBleed>

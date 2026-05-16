@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { SignInGate } from '@/shared/components/SignInGate';
 import {
   FullBleed,
   Band,
@@ -37,7 +38,7 @@ interface Card {
 }
 
 export function ListingsBrowse() {
-  const { address } = useAuth();
+  const { address, isAuthenticated, isLoading } = useAuth();
   const [listings, setListings] = useState<Listing[] | null>(null);
   const [briefs, setBriefs] = useState<MarketplaceBrief[] | null>(null);
   const [error, setError] = useState(false);
@@ -125,6 +126,18 @@ export function ListingsBrowse() {
     { key: 'offers', label: 'Offers', count: offersCount },
     { key: 'briefs', label: 'Briefs', count: briefsCount },
   ];
+
+  if (isLoading) return null;
+
+  if (!isAuthenticated) {
+    return (
+      <SignInGate
+        variant="page"
+        tag="MARKETPLACE"
+        body="The marketplace shows live offers and briefs matched to your profile. Sign in so your agent can watch both sides for you."
+      />
+    );
+  }
 
   return (
     <FullBleed>

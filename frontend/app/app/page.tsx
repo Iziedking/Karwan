@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LoginModal } from '@/shared/components/LoginModal';
 import { cn } from '@/shared/utils/cn';
 import { api, type ApiStatus } from '@/core/api';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
@@ -10,6 +9,7 @@ import { NetworkTicker } from '@/features/activity/components/NetworkTicker';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import { SignInGate } from '@/shared/components/SignInGate';
 import { shortAddress } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -34,7 +34,6 @@ export default function AppHome() {
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const [status, setStatus] = useState<ApiStatus | null>(null);
   const [stats, setStats] = useState<NetStats | null>(null);
-  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
     api.status().then(setStatus).catch(() => setStatus(null));
@@ -76,37 +75,7 @@ export default function AppHome() {
   }
 
   if (!isConnected) {
-    return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">SIGN IN</SectionTag>
-          <HeroHeadline>
-            Log in to enter<Punc>.</Punc>
-          </HeroHeadline>
-          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
-            Karwan identifies you by a wallet. Pick one via an EVM connector or have Circle
-            provision one for you. The rest of the app unlocks. Happy trading.
-          </p>
-          <div className="mt-7">
-            <button
-              type="button"
-              onClick={() => setLoginOpen(true)}
-              className="inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]"
-              style={{
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
-              }}
-            >
-              Log in
-              <span aria-hidden>→</span>
-            </button>
-          </div>
-        </Band>
-        <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
-      </FullBleed>
-    );
+    return <SignInGate variant="hero" />;
   }
 
   if (loading || !profile) {
@@ -291,12 +260,12 @@ export default function AppHome() {
 
       {/* DEALS ACROSS KARWAN */}
       <Band tone="light">
-        <SectionTag>DEALS</SectionTag>
+        <SectionTag>YOUR DEALS</SectionTag>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-          What&apos;s <Accent>live</Accent> right now<Punc>.</Punc>
+          Your <Accent>book</Accent><Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Every deal on Karwan. Direct and agent-matched.
+          Every deal where you are the buyer or seller. Direct and agent-matched.
         </p>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div

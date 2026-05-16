@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { SignInGate } from '@/shared/components/SignInGate';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { ActivationModal } from '@/shared/components/ActivationModal';
 import { shortAddress } from '@/shared/utils/format';
@@ -46,23 +46,11 @@ export default function ProfilePage() {
 
   if (!isConnected) {
     return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[44ch]">
-            <SectionTag tone="dark">PROFILE</SectionTag>
-            <HeroHeadline>
-              Connect your wallet
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              Profiles are keyed by wallet address. Connect to set up buyer and seller agents.
-            </p>
-            <div className="mt-7">
-              <ConnectButton />
-            </div>
-          </div>
-        </Band>
-      </FullBleed>
+      <SignInGate
+        variant="page"
+        tag="PROFILE"
+        body="Profiles are keyed to your wallet. Sign in to set up your buyer and seller agents."
+      />
     );
   }
 

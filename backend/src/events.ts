@@ -44,6 +44,7 @@ export type KarwanEventType =
   | 'chat.message'
   | 'telegram.linked'
   | 'agent.activated'
+  | 'agent.funded'
   | 'agent.withdrawal'
   | 'agent.skipped'
   | 'agent.declined'

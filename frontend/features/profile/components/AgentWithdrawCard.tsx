@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useAccount, useBalance } from 'wagmi';
+import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { api, ApiError } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 
@@ -43,7 +44,12 @@ export function AgentWithdrawCard({
   sellerAgent?: string;
   defaultAgent?: 'buyer' | 'seller';
 }) {
-  const { address, isConnected } = useAccount();
+  // useAuth covers both web3 and Circle users. The withdraw flow is already
+  // backend-signed (the agent DCW signs server-side), so swapping the address
+  // source unblocks Circle users with zero behavioral change to the request.
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
 
   const buyerBalance = useBalance({
     address: (buyerAgent as `0x${string}`) || undefined,
@@ -311,7 +317,7 @@ export function AgentWithdrawCard({
           )}
           {destValid && address && dest.trim().toLowerCase() === address.toLowerCase() && (
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              Your connected wallet.
+              Your wallet.
             </span>
           )}
           <style jsx>{`
@@ -353,7 +359,7 @@ export function AgentWithdrawCard({
             </svg>
           )}
           {!isConnected
-            ? 'Connect wallet to withdraw'
+            ? 'Sign in to withdraw'
             : phase === 'sending'
               ? 'Sending on Arc…'
               : `Withdraw from ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}

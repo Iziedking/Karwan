@@ -1,14 +1,18 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { api, type ActivationStatus } from '@/core/api';
+import { useAuth } from './useAuth';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
-/// Tracks whether the connected wallet has provisioned its agent wallets, and
-/// exposes an activate() call. Activation is idempotent on the backend.
+/// Tracks whether the signed-in user (wagmi OR Circle session) has provisioned
+/// agent wallets, and exposes an activate() call. Activation is idempotent on
+/// the backend and works for both auth methods. circle users start without
+/// agents too. they just signed up; activation runs the same flow.
 export function useActivation() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const [status, setStatus] = useState<ActivationStatus | null>(null);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const [activating, setActivating] = useState(false);

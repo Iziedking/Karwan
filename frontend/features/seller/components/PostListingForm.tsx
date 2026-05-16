@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type Listing } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { Hint } from '@/shared/components/Hint';
@@ -11,7 +11,9 @@ import { useDismissed } from '@/shared/hooks/useDismissed';
 
 export function PostListingForm() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number | ''>(30);

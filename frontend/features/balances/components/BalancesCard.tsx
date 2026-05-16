@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useAccount, useBalance } from 'wagmi';
+import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { shortAddress } from '@/shared/utils/format';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
@@ -8,6 +8,7 @@ import { arcTestnet } from '@/core/wagmi';
 import { cn } from '@/shared/utils/cn';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 const CHAIN_META: Record<string, { name: string; sub: string; key: ChainKey }> = {
   arc: { name: 'Arc', sub: 'Testnet', key: 'arc' },
@@ -35,7 +36,12 @@ export function BalancesCard({
   buyerAgent?: string;
   sellerAgent?: string;
 } = {}) {
-  const { address, isConnected } = useAccount();
+  // Source of truth is the unified auth hook. covers both wagmi-connected
+  // web3 users and Circle passkey/email users (their identity DCW address).
+  // wagmi's useBalance() works against any address since it reads chain RPC,
+  // so the rest of the card stays unchanged.
+  const auth = useAuth();
+  const address = auth.address as `0x${string}` | undefined;
   const [view, setView] = useState<View>('you');
 
   const yArc = useBalance({ address, chainId: arcTestnet.id });
@@ -76,14 +82,14 @@ export function BalancesCard({
     token: SOURCE_CHAINS.sepolia.usdc,
   });
 
-  if (!isConnected || !address) {
+  if (!auth.isAuthenticated || !address) {
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           [:HOLDINGS:]
         </span>
         <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">
-          Connect your wallet to see USDC balances.
+          Sign in to see your USDC balances. Use the Log in pill in the nav.
         </p>
       </div>
     );

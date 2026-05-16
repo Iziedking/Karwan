@@ -115,6 +115,9 @@ export function TopNav() {
             <NavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity
             </NavLink>
+            <NavLink href="/profile" active={pathname.startsWith('/profile')}>
+              Profile
+            </NavLink>
             <ExternalNavLink href="https://testnet.arcscan.app">Explorer</ExternalNavLink>
           </nav>
         )}

@@ -8,6 +8,7 @@ import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
+import { SignInGate } from '@/shared/components/SignInGate';
 import {
   FullBleed,
   Band,
@@ -55,6 +56,16 @@ export default function BuyerPage() {
   }, [address, isConnected]);
 
   const sortedJobs = [...jobs].sort((a, b) => b.deadlineUnix - a.deadlineUnix);
+
+  if (!isConnected) {
+    return (
+      <SignInGate
+        variant="page"
+        tag="BUYER DESK"
+        body="Posting briefs and opening direct deals is keyed to your wallet. Sign in to continue."
+      />
+    );
+  }
 
   return (
     <FullBleed>

@@ -193,29 +193,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
       </div>
 
       <div className="px-6 pb-6">
-        {circleOnly && (
-          <div
-            className="mb-4 px-3.5 py-3 text-[12.5px] leading-snug"
-            style={{
-              background: 'rgba(178, 84, 37, 0.10)',
-              border: '1px solid rgba(178, 84, 37, 0.30)',
-              color: '#b25425',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 3,
-            }}
-          >
-            <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1">
-              [:HEADS UP:]
-            </p>
-            <p style={{ color: 'var(--lp-dark)' }}>
-              Bridging USDC into Arc needs a wallet on the source chain to sign the burn. Your
-              Circle login lives on Arc only. Connect a web3 wallet on Base/Sepolia to bridge, or
-              send USDC straight to your Arc address via an external faucet or bridge.
-            </p>
-          </div>
-        )}
+        {circleOnly && <CircleBridgeNote mintRecipient={mintRecipient} />}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
           <div>
@@ -881,6 +859,109 @@ function PhaseChip({
       </span>
       <span className="px-2 py-[6px]">{label}</span>
     </span>
+  );
+}
+
+function CircleBridgeNote({ mintRecipient }: { mintRecipient: `0x${string}` }) {
+  const [copied, setCopied] = useState(false);
+  async function copyArcAddress() {
+    try {
+      await navigator.clipboard.writeText(mintRecipient);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // ignore. clipboard can fail in unfocused tabs.
+    }
+  }
+  return (
+    <div
+      className="relative mb-4 overflow-hidden"
+      style={{
+        background: 'var(--lp-light)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: TONE_HEX.warning }}
+      />
+      <div className="px-4 py-3.5 pl-5">
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
+            style={{
+              background: 'rgba(178,84,37,0.10)',
+              color: TONE_HEX.warning,
+              border: '1px solid rgba(178,84,37,0.32)',
+              borderTopLeftRadius: 4,
+              borderTopRightRadius: 4,
+              borderBottomLeftRadius: 4,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            <span
+              aria-hidden
+              className="inline-block w-[5px] h-[5px]"
+              style={{ background: TONE_HEX.warning }}
+            />
+            HEADS UP
+          </span>
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Source-chain wallet required
+          </span>
+        </div>
+        <p className="mt-2 text-[12.5px] leading-snug text-[var(--lp-dark)]">
+          CCTP burns the USDC on the source chain. Your Circle login lives on Arc, so it can&apos;t
+          sign that burn.
+        </p>
+        <ul className="mt-3 space-y-1.5">
+          <li className="flex items-baseline gap-2">
+            <span
+              aria-hidden
+              className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
+              style={{ background: 'var(--lp-accent)' }}
+            />
+            <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+              Connect a web3 wallet on Base or Sepolia, then bridge here.
+            </span>
+          </li>
+          <li className="flex items-baseline gap-2">
+            <span
+              aria-hidden
+              className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
+              style={{ background: 'var(--lp-accent)' }}
+            />
+            <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+              Or send USDC straight to your Arc address from any external bridge or faucet.
+            </span>
+          </li>
+        </ul>
+        <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Your Arc address
+          </span>
+          <button
+            type="button"
+            onClick={copyArcAddress}
+            className="mono text-[11px] tabular-nums text-[var(--lp-dark)] hover:opacity-80 transition-opacity inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5"
+            title={copied ? 'Copied' : `Copy ${mintRecipient}`}
+          >
+            {shortAddress(mintRecipient)}
+            <span
+              className="mono text-[9px] uppercase tracking-[0.14em]"
+              style={{ color: copied ? TONE_HEX.positive : 'var(--lp-text-muted)' }}
+            >
+              {copied ? 'COPIED' : 'COPY'}
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -8,6 +8,7 @@ import { BidsTable } from '@/features/seller/components/BidsTable';
 import { PostListingForm } from '@/features/seller/components/PostListingForm';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
+import { SignInGate } from '@/shared/components/SignInGate';
 import {
   FullBleed,
   Band,
@@ -71,6 +72,16 @@ export default function SellerPage() {
       cancelled = true;
     };
   }, [address, isConnected]);
+
+  if (!isConnected) {
+    return (
+      <SignInGate
+        variant="page"
+        tag="SELLER DESK"
+        body="Listings and bids are keyed to your wallet. Sign in to set up your seller agent."
+      />
+    );
+  }
 
   return (
     <FullBleed>

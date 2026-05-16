@@ -459,6 +459,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  /// Circle-only: top up an agent wallet directly from the user's Circle
+  /// identity DCW. The backend signs the USDC.transfer on the user's behalf,
+  /// no wallet popup or chain switch needed. Web3 users use the wagmi path.
+  fundAgent: (body: {
+    address: string;
+    agent: 'buyer' | 'seller';
+    amountUsdc: number;
+  }) =>
+    json<{ accepted: boolean; txHash: string; agentAddress: string }>(
+      '/api/activation/fund-agent',
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+    ),
   createDirectDeal: (body: {
     buyerAddress: string;
     sellerAddress: string;

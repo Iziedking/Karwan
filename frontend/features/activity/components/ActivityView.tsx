@@ -19,6 +19,18 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const isAuthed = auth.isAuthenticated;
   // Scope to the signed-in identity. only events the user is a party to.
   const events = useLiveEvents(undefined, 200, address);
+  // All hooks must run unconditionally on every render. they're hoisted above
+  // the not-signed-in early return so the hook order stays stable when the
+  // user signs in.
+  const [groups, setGroups] = useState<Set<EventGroup>>(new Set());
+  const [actors, setActors] = useState<Set<ActorFilter>>(new Set());
+  const [jobIdSearch, setJobIdSearch] = useState('');
+  const filters: Filters = useMemo(
+    () => ({ groups, actors, jobIdSearch }),
+    [groups, actors, jobIdSearch],
+  );
+  const filtered = useMemo(() => applyFilters(events, filters), [events, filters]);
+  const counts = useMemo(() => countByGroup(events), [events]);
 
   // Hard gate: never render the activity stream when not signed in. there is
   // nothing to scope to and the global stream would leak other users' events.
@@ -26,26 +38,15 @@ export function ActivityView({ explorer }: { explorer: string }) {
     return (
       <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          NOT CONNECTED
+          NOT SIGNED IN
         </p>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Connect your wallet to see the events your deals have triggered. This stream is scoped
-          to your wallet. you won&apos;t see other users&apos; activity.
+          Sign in to see the events your deals have triggered. This stream is scoped to your
+          identity. you won&apos;t see other users&apos; activity.
         </p>
       </div>
     );
   }
-
-  const [groups, setGroups] = useState<Set<EventGroup>>(new Set());
-  const [actors, setActors] = useState<Set<ActorFilter>>(new Set());
-  const [jobIdSearch, setJobIdSearch] = useState('');
-
-  const filters: Filters = useMemo(
-    () => ({ groups, actors, jobIdSearch }),
-    [groups, actors, jobIdSearch],
-  );
-  const filtered = useMemo(() => applyFilters(events, filters), [events, filters]);
-  const counts = useMemo(() => countByGroup(events), [events]);
 
   const hasAnyFilter = groups.size > 0 || actors.size > 0 || jobIdSearch.trim().length > 0;
 

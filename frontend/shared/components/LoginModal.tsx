@@ -8,7 +8,7 @@ import {
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
 import { api, ApiError } from '@/core/api';
-import { useAuth } from '@/shared/hooks/useAuth';
+import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
 
 type Tab = 'wallet' | 'passkey';
 type Mode = 'login' | 'register';
@@ -101,6 +101,7 @@ export function LoginModal({ open, onClose }: Props) {
     try {
       await api.authOtpVerify(trimmed, code);
       await refresh();
+      emitAuthChanged();
       onClose();
     } catch (err) {
       const detail =
@@ -135,6 +136,7 @@ export function LoginModal({ open, onClose }: Props) {
         await api.authLoginVerify(trimmed, assertResp);
       }
       await refresh();
+      emitAuthChanged();
       onClose();
     } catch (err) {
       const e = err as Error & { name?: string };

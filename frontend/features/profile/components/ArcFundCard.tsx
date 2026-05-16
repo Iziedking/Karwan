@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useAccount, useBalance } from 'wagmi';
+import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
 import { CopyAddress } from '@/shared/components/CopyAddress';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
+import { useCircleFund, type CircleFundRecord } from '../hooks/useCircleFund';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 
 const CARD_STYLE = {
@@ -47,7 +49,10 @@ export function ArcFundCard({
   sellerAgent?: string;
   defaultAgent?: 'buyer' | 'seller';
 }) {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address as `0x${string}` | undefined;
+  const isConnected = auth.isAuthenticated;
+  const isCircleUser = auth.method === 'circle';
   const arcBalance = useBalance({ address, chainId: ARC_CHAIN_ID });
   const buyerArcBalance = useBalance({
     address: (buyerAgent as `0x${string}`) || undefined,
@@ -57,7 +62,15 @@ export function ArcFundCard({
     address: (sellerAgent as `0x${string}`) || undefined,
     chainId: ARC_CHAIN_ID,
   });
-  const { records, start, retry, dismiss } = useArcFund();
+  // Two completely separate fund flows: wagmi-signed native transfer on Arc
+  // for web3 users, server-side Circle DCW transfer for Circle users. Both
+  // hooks expose the same record shape, so the activity list below is shared.
+  const wagmiFund = useArcFund();
+  const circleFund = useCircleFund(address);
+  const records = isCircleUser ? circleFund.records : wagmiFund.records;
+  const start = isCircleUser ? circleFund.start : wagmiFund.start;
+  const retry = isCircleUser ? circleFund.retry : wagmiFund.retry;
+  const dismiss = isCircleUser ? circleFund.dismiss : wagmiFund.dismiss;
 
   function refetchAll() {
     arcBalance.refetch();
@@ -81,7 +94,11 @@ export function ArcFundCard({
 
   const [, setTick] = useState(0);
   const hasLive = records.some(
-    (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
+    (r) =>
+      r.phase === 'switching' ||
+      r.phase === 'signing' ||
+      r.phase === 'confirming' ||
+      r.phase === 'sending',
   );
   useEffect(() => {
     if (!hasLive) return;
@@ -106,7 +123,11 @@ export function ArcFundCard({
   const selectedAgent = options.find((o) => o.key === selected);
 
   const activeCount = records.filter(
-    (r) => r.phase === 'switching' || r.phase === 'signing' || r.phase === 'confirming',
+    (r) =>
+      r.phase === 'switching' ||
+      r.phase === 'signing' ||
+      r.phase === 'confirming' ||
+      r.phase === 'sending',
   ).length;
   const hasActiveTransfer = activeCount > 0;
 
@@ -146,7 +167,7 @@ export function ArcFundCard({
             Top up on Arc
           </h2>
           <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Single tx · settles in ~3s
+            {isCircleUser ? 'One click · backend signs' : 'Single tx · settles in ~3s'}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -362,7 +383,7 @@ export function ArcFundCard({
           }}
         >
           {!isConnected ? (
-            'Connect wallet to fund'
+            'Sign in to fund'
           ) : hasActiveTransfer ? (
             'Transfer in progress…'
           ) : (
@@ -420,7 +441,9 @@ export function ArcFundCard({
   );
 }
 
-function phaseLabel(phase: FundPhase): string {
+type AnyFundPhase = FundPhase | 'sending';
+
+function phaseLabel(phase: AnyFundPhase): string {
   switch (phase) {
     case 'switching':
       return 'Switching to Arc';
@@ -428,6 +451,8 @@ function phaseLabel(phase: FundPhase): string {
       return 'Sign in wallet';
     case 'confirming':
       return 'Confirming on Arc';
+    case 'sending':
+      return 'Transferring on Arc';
     case 'done':
       return 'Sent';
     case 'error':
@@ -435,7 +460,7 @@ function phaseLabel(phase: FundPhase): string {
   }
 }
 
-function phaseTone(phase: FundPhase): 'live' | 'positive' | 'critical' {
+function phaseTone(phase: AnyFundPhase): 'live' | 'positive' | 'critical' {
   if (phase === 'done') return 'positive';
   if (phase === 'error') return 'critical';
   return 'live';
@@ -457,7 +482,7 @@ function FundRow({
   onRetry,
   onDismiss,
 }: {
-  record: FundRecord;
+  record: FundRecord | CircleFundRecord;
   expanded: boolean;
   onToggle: () => void;
   onRetry: () => void;
@@ -465,8 +490,10 @@ function FundRow({
 }) {
   const tone = phaseTone(record.phase);
   const elapsedSec = Math.max(0, Math.floor((Date.now() - record.startedAt) / 1000));
-  const isSlow = record.phase === 'confirming' && elapsedSec > 15;
-  const isStuck = record.phase === 'confirming' && elapsedSec > 120;
+  const inFlightConfirming =
+    record.phase === 'confirming' || record.phase === 'sending';
+  const isSlow = inFlightConfirming && elapsedSec > 15;
+  const isStuck = inFlightConfirming && elapsedSec > 120;
   const canRetry = record.phase === 'error' || isStuck;
   const canDismiss = record.phase === 'done' || record.phase === 'error' || isStuck;
   const textColor =

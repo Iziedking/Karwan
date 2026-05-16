@@ -2,8 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
@@ -13,7 +12,9 @@ import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
 
 export function PostJobForm() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const { profile, loading: profileLoading } = useUserProfile();
   const [brief, setBrief] = useState('');
   const [budget, setBudget] = useState<number | ''>(10);
@@ -98,9 +99,8 @@ export function PostJobForm() {
     return (
       <div className="space-y-4">
         <p className="text-[13px] text-[var(--lp-text-sub)]">
-          Connect your wallet to post a managed job.
+          Sign in to post a managed job. Use the Log in pill in the nav.
         </p>
-        <ConnectButton />
       </div>
     );
   }

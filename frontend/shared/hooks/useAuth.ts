@@ -21,6 +21,18 @@ interface CircleSession {
   email?: string;
 }
 
+/// Window event fired whenever the auth state changes (sign in or sign out).
+/// Every useAuth() instance subscribes and refetches so the UI stays in sync
+/// across every component that displays auth-derived data. Sign-in dispatches
+/// from LoginModal after authLoginVerify/authOtpVerify lands; sign-out from
+/// useAuth.signOut() after authLogout lands.
+export const AUTH_CHANGED_EVENT = 'karwan:auth-changed';
+
+export function emitAuthChanged() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
 /// Single source of truth for "is the user signed in and who are they?".
 /// Reads BOTH the wagmi wallet connection AND the circle session cookie,
 /// then resolves which one represents the current session.
@@ -60,6 +72,19 @@ export function useAuth(): AuthState & {
     refresh();
   }, [refresh]);
 
+  // Sync this instance's circle slice whenever ANY other useAuth() in the app
+  // changes the session. Without this, signing out from CircleAccountModal
+  // only clears state in that one hook instance — TopNav, BalancesCard, gated
+  // pages, etc. keep showing stale "signed in" UI until the user reloads.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onChange = () => {
+      refresh();
+    };
+    window.addEventListener(AUTH_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, onChange);
+  }, [refresh]);
+
   const signOut = useCallback(async () => {
     if (circle) {
       try {
@@ -76,6 +101,8 @@ export function useAuth(): AuthState & {
         /* ignore */
       }
     }
+    // Broadcast so every other useAuth instance picks up the change.
+    emitAuthChanged();
   }, [circle, wagmiConnected, disconnectAsync]);
 
   const address = circle?.address ?? wagmiAddress ?? null;

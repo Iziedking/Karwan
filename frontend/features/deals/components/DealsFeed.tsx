@@ -4,6 +4,7 @@ import { api, type DirectDeal } from '@/core/api';
 import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealList';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc, shortAddress, shortHash, relativeTime } from '@/shared/utils/format';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 type Filter = 'all' | 'active' | 'completed';
 
@@ -14,17 +15,26 @@ const ACTIVE_STAGES: DealStage[] = [
   'awaiting-final-release',
 ];
 
-/// Public, read-only feed of direct deals across the network. Renders inside a
-/// PageCard, so it carries no card chrome of its own.
+/// Personal deal feed on the home page. Shows only deals where the signed-in
+/// user is the buyer or seller. Public "what's happening on Karwan" content
+/// lives in the NetworkTicker — that one shows masked network-wide activity
+/// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
+  const auth = useAuth();
+  const address = auth.address;
   const [deals, setDeals] = useState<DirectDeal[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [filter, setFilter] = useState<Filter>('all');
 
   useEffect(() => {
+    if (!address) {
+      setDeals([]);
+      setFetchState('ready');
+      return;
+    }
     let cancelled = false;
     api
-      .dealsFeed()
+      .directDeals(address)
       .then((d) => {
         if (cancelled) return;
         setDeals(d.deals);
@@ -36,7 +46,7 @@ export function DealsFeed() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [address]);
 
   const withStage = useMemo(
     () => deals.map((d) => ({ deal: d, stage: stageOf(d) })),
@@ -109,7 +119,7 @@ export function DealsFeed() {
           })}
         </div>
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          DIRECT + AGENT-MATCHED · LIVE ON ARC
+          YOUR DEALS · LIVE ON ARC
         </p>
       </div>
 
@@ -126,12 +136,12 @@ export function DealsFeed() {
       ) : shown.length === 0 ? (
         <div className="px-6 md:px-8 py-12 text-center space-y-2">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {filter === 'all' ? 'EMPTY NETWORK' : 'NO MATCH'}
+            {filter === 'all' ? 'NO DEALS YET' : 'NO MATCH'}
           </p>
           <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
             {filter === 'all'
-              ? 'No deals on the network yet. Open the first one.'
-              : `No ${filter} deals right now.`}
+              ? 'Post a brief or open a direct deal to see it here.'
+              : `No ${filter} deals on your book right now.`}
           </p>
         </div>
       ) : (
