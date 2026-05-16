@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { LoginModal } from '@/shared/components/LoginModal';
 import { cn } from '@/shared/utils/cn';
 import { api, type ApiStatus } from '@/core/api';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
@@ -34,6 +34,7 @@ export default function AppHome() {
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const [status, setStatus] = useState<ApiStatus | null>(null);
   const [stats, setStats] = useState<NetStats | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
     api.status().then(setStatus).catch(() => setStatus(null));
@@ -80,15 +81,30 @@ export default function AppHome() {
         <Band tone="dark" overlay={<GridOverlay />}>
           <SectionTag tone="dark">SIGN IN</SectionTag>
           <HeroHeadline>
-            Connect to enter<Punc>.</Punc>
+            Log in to enter<Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
-            Karwan identifies you by wallet. Connect to access your buyer and seller desks.
+            Karwan identifies you by a wallet. Pick one via an EVM connector or have Circle
+            provision one for you. The rest of the app unlocks. Happy trading.
           </p>
           <div className="mt-7">
-            <ConnectButton />
+            <button
+              type="button"
+              onClick={() => setLoginOpen(true)}
+              className="inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]"
+              style={{
+                borderTopLeftRadius: 14,
+                borderTopRightRadius: 14,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 4,
+              }}
+            >
+              Log in
+              <span aria-hidden>→</span>
+            </button>
           </div>
         </Band>
+        <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       </FullBleed>
     );
   }
@@ -150,7 +166,7 @@ export default function AppHome() {
         </div>
       </Band>
 
-      {/* PENDING MATCHES — surfaces here so users see them from the home page
+      {/* PENDING MATCHES. surfaces here so users see them from the home page
           without having to navigate to /seller. Renders nothing when there
           are none, so the layout stays clean for buyers / fresh users. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
@@ -253,7 +269,7 @@ export default function AppHome() {
         </div>
       </Band>
 
-      {/* NETWORK PULSE — sliding evidence ticker. Pure read-only proof that
+      {/* NETWORK PULSE. sliding evidence ticker. Pure read-only proof that
           deals are flowing; never links anywhere, never asks for action. */}
       <Band tone="dark" compact>
         <div className="flex flex-wrap items-end justify-between gap-6">
@@ -299,7 +315,7 @@ export default function AppHome() {
 }
 
 /* ============================================================================
-   HERO AGENT CARD — small "control panel" vignette on the right of hero
+   HERO AGENT CARD. small "control panel" vignette on the right of hero
    ============================================================================ */
 
 function HeroAgentCard({
@@ -374,7 +390,7 @@ function MiniStat({
     <div className="px-4 py-4">
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{label}</p>
       <p className="mt-1.5 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em]">
-        {value == null ? '—' : <AnimatedNumber value={value} decimals={decimals} />}
+        {value == null ? '-' : <AnimatedNumber value={value} decimals={decimals} />}
       </p>
       {unit && (
         <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">{unit}</p>
@@ -384,7 +400,7 @@ function MiniStat({
 }
 
 /* ============================================================================
-   FEATURE CARD with internal vignette — the Phantom move
+   FEATURE CARD with internal vignette. the Phantom move
    ============================================================================ */
 
 function FeatureCard({
@@ -493,7 +509,7 @@ function FeatureCard({
 }
 
 /* ============================================================================
-   VIGNETTES — tiny mockups of what each door opens onto
+   VIGNETTES. tiny mockups of what each door opens onto
    ============================================================================ */
 
 function BriefVignette() {

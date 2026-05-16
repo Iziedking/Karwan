@@ -11,7 +11,7 @@ type Tier = {
 };
 
 function tierFor(scoreBps: number, totalDeals: number): Tier {
-  // Explicit "no data" treatment — the wallet has settled zero deals, so any
+  // Explicit "no data" treatment. the wallet has settled zero deals, so any
   // displayed score would be misleading. Label and color are deliberately
   // muted so it reads as "unknown" rather than "low".
   if (totalDeals === 0) {
@@ -116,7 +116,7 @@ export function ReputationBadge({
         <span
           className={`mono uppercase tracking-[0.18em] text-[var(--color-ink-faint)] ${cellPad} ${labelSize}`}
         >
-          —
+          , 
         </span>
       </span>
     );
@@ -181,7 +181,7 @@ export function ReputationBadge({
               className="text-[36px] tracking-tight tabular-nums leading-none"
               style={{ fontFamily: 'var(--font-serif)', color: tier.color }}
             >
-              {data.totalDeals === 0 ? '—' : score}
+              {data.totalDeals === 0 ? '-' : score}
             </span>
             <span className="text-[10px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
               {data.totalDeals === 0 ? 'unrated' : '/ 100'}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 
@@ -14,7 +14,7 @@ const STAGE_BY_EVENT: Record<string, 0 | 1 | 2 | 3 | 4> = {
   'escrow.settled': 4,
 };
 
-// Dark-native palette — this lives only on the landing hero, which is always
+// Dark-native palette. this lives only on the landing hero, which is always
 // dark, so it does not read the themeable --color-* tokens.
 const CARD_BG = '#151515';
 const STROKE = 'rgba(255,255,255,0.16)';

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
@@ -6,6 +6,8 @@ import { api, ApiError, type Listing } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { Hint } from '@/shared/components/Hint';
 import { cn } from '@/shared/utils/cn';
+import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
+import { useDismissed } from '@/shared/hooks/useDismissed';
 
 export function PostListingForm() {
   const router = useRouter();
@@ -14,11 +16,22 @@ export function PostListingForm() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number | ''>(30);
   const [tolerance, setTolerance] = useState<number | ''>(15);
+  // Listing window in days. Backend caps at 90; default 30 lines up with
+  // most marketplaces' "your post stays live for a month" convention.
+  const [ttlDays, setTtlDays] = useState<number | ''>(30);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Listing[]>([]);
+  const { dismissed, dismiss } = useDismissed('seller-listings');
   const [watchingForListingId, setWatchingForListingId] = useState<string | null>(null);
   const watchedListingRef = useRef<string | null>(null);
+  // When the user clicks Post Listing on a post that reads as a request
+  // ("Need a backend engineer"), we surface a confirmation BEFORE hitting
+  // the API. Cleared on every text edit so the user has to pass it again
+  // after rewording. Two-state: false = warning not raised yet, true = user
+  // saw the warning and chose to proceed anyway.
+  const [intentWarned, setIntentWarned] = useState(false);
+  const intentCheck = looksLikeWrongSide(title, description, 'offer');
 
   const events = useLiveEvents(undefined, 50);
   useEffect(() => {
@@ -50,6 +63,12 @@ export function PostListingForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!address || !title || !description || typeof price !== 'number') return;
+    // Gate the post if the wording reads as a request, not an offer. The
+    // user can dismiss by clicking again (intentWarned flips true).
+    if (intentCheck.wrong && !intentWarned) {
+      setIntentWarned(true);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -59,6 +78,7 @@ export function PostListingForm() {
         description: description.trim(),
         askingPriceUsdc: price,
         negotiationMaxDecreasePct: typeof tolerance === 'number' ? tolerance : undefined,
+        ttlDays: typeof ttlDays === 'number' ? ttlDays : undefined,
       });
       setRecent((prev) => [r.listing, ...prev]);
       setWatchingForListingId(r.listing.id);
@@ -92,7 +112,7 @@ export function PostListingForm() {
   return (
     <div className="space-y-7">
       <form onSubmit={submit} className="space-y-7">
-        {/* LISTING PREVIEW — big editorial display */}
+        {/* LISTING PREVIEW. big editorial display */}
         <div
           className="relative overflow-hidden"
           style={{
@@ -169,7 +189,10 @@ export function PostListingForm() {
               maxLength={120}
               disabled={submitting}
               placeholder="e.g. Spanish → Arabic legal translation"
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setIntentWarned(false);
+              }}
               className="form-input-dark"
             />
           </FormLabel>
@@ -183,7 +206,10 @@ export function PostListingForm() {
               maxLength={500}
               disabled={submitting}
               placeholder="Describe your offer in detail. The agent uses this to match buyer briefs."
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setIntentWarned(false);
+              }}
               className="form-input-dark form-textarea-dark"
             />
           </FormLabel>
@@ -191,7 +217,7 @@ export function PostListingForm() {
 
         {/* PRICING */}
         <FieldSection eyebrow="PRICING" title="Set your asking and the floor.">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <FormLabel
               label="Asking price"
               unit="USDC"
@@ -225,8 +251,60 @@ export function PostListingForm() {
                 className="form-input-dark form-input-num-dark"
               />
             </FormLabel>
+            <FormLabel
+              label="Window"
+              unit="DAYS"
+              hint="How long the listing stays live before it auto-expires. Up to 90."
+            >
+              <input
+                type="number"
+                min={1}
+                max={90}
+                step={1}
+                value={ttlDays}
+                disabled={submitting}
+                onChange={(e) =>
+                  setTtlDays(e.target.value === '' ? '' : Number(e.target.value))
+                }
+                className="form-input-dark form-input-num-dark"
+              />
+            </FormLabel>
           </div>
         </FieldSection>
+
+        {/* INTENT WARNING. surfaces if the post reads as a buyer request
+            rather than a seller offer. User can click submit again to post
+            anyway, but the form has named the trap. */}
+        {intentCheck.wrong && intentWarned && (
+          <div
+            className="px-4 py-3"
+            style={{
+              background: 'rgba(178, 84, 37, 0.10)',
+              border: '1px solid rgba(178, 84, 37, 0.35)',
+              color: '#e8806b',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
+              [:WAIT. IS THIS A LISTING OR A BRIEF?:]
+            </p>
+            <p className="text-[12.5px] leading-snug text-white/85">
+              This reads like something you <span className="font-bold">need</span>, not something
+              you <span className="font-bold">offer</span>. Listings are for sellers; briefs
+              (posted from the buyer desk) are for buyers. If you meant to find a backend engineer,{' '}
+              <a
+                href="/buyer"
+                className="underline underline-offset-2 hover:text-white"
+              >
+                post a brief instead
+              </a>
+              . Click <span className="font-bold">Post listing</span> again to publish as-is.
+            </p>
+          </div>
+        )}
 
         {/* SUBMIT */}
         <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-white/[0.08]">
@@ -297,73 +375,105 @@ export function PostListingForm() {
         )}
       </form>
 
-      {recent.length > 0 && (
-        <div className="pt-6 border-t border-white/[0.08]">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-4">
-            YOUR LISTINGS
-          </p>
-          <ul className="divide-y divide-white/[0.08]">
-            {recent.slice(0, 5).map((l) => (
-              <li
-                key={l.id}
-                onClick={() => router.push(`/listings/${l.id}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    router.push(`/listings/${l.id}`);
-                  }
-                }}
-                tabIndex={0}
-                role="link"
-                aria-label={`Open listing ${l.title}`}
-                className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-white/[0.04] -mx-2 px-2 transition-colors rounded-md focus:bg-white/[0.04] focus:outline-none"
-              >
-                <div className="min-w-0">
-                  <p className="text-[14px] font-semibold tracking-tight truncate text-white">
-                    {l.title}
-                  </p>
-                  <p className="text-[12px] text-white/55 truncate">{l.description}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-white">
-                    {l.askingPriceUsdc}
-                    <span className="ml-1 mono text-[10px] uppercase tracking-[0.12em] text-white/45">
-                      USDC
-                    </span>
-                  </span>
-                  {l.matchedAt && l.matchedJobId ? (
-                    <span
-                      className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
-                      style={{ color: 'var(--lp-accent)' }}
-                    >
-                      Matched
-                      <span
-                        aria-hidden
-                        className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
-                      >
-                        ↗
+      {recent.length > 0 && (() => {
+        const now = Date.now();
+        const visible = recent.filter((l) => !dismissed.has(l.id));
+        if (visible.length === 0) {
+          return (
+            <div className="pt-6 border-t border-white/[0.08]">
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-3">
+                YOUR LISTINGS
+              </p>
+              <p className="text-[13px] text-white/55">
+                All terminal listings dismissed.
+              </p>
+            </div>
+          );
+        }
+        return (
+          <div className="pt-6 border-t border-white/[0.08]">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-4">
+              YOUR LISTINGS
+            </p>
+            <ul className="divide-y divide-white/[0.08]">
+              {visible.slice(0, 5).map((l) => {
+                const isCancelled = !!l.cancelledAt;
+                const isMatched = !!l.matchedAt && !!l.matchedJobId;
+                const isExpired = !isCancelled && !isMatched && (l.expiresAt ?? Infinity) <= now;
+                const isTerminal = isCancelled || isMatched || isExpired;
+                const label = isCancelled
+                  ? 'Cancelled'
+                  : isExpired
+                    ? 'Expired'
+                    : isMatched
+                      ? 'Matched'
+                      : 'Open';
+                const arrow = isMatched ? '↗' : '→';
+                return (
+                  <li
+                    key={l.id}
+                    onClick={() => router.push(`/listings/${l.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        router.push(`/listings/${l.id}`);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={`Open listing ${l.title}`}
+                    className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-white/[0.04] -mx-2 px-2 transition-colors rounded-md focus:bg-white/[0.04] focus:outline-none"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-semibold tracking-tight truncate text-white">
+                        {l.title}
+                      </p>
+                      <p className="text-[12px] text-white/55 truncate">{l.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-white">
+                        {l.askingPriceUsdc}
+                        <span className="ml-1 mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                          USDC
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    <span
-                      className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
-                      style={{ color: 'var(--lp-accent)' }}
-                    >
-                      Open
+                      {isTerminal && (
+                        <button
+                          type="button"
+                          title="Dismiss"
+                          aria-label={`Dismiss ${label.toLowerCase()} listing`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismiss(l.id);
+                          }}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-white/45 hover:text-white hover:bg-white/[0.08] transition-colors"
+                        >
+                          ×
+                        </button>
+                      )}
                       <span
-                        aria-hidden
-                        className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                        className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
+                        style={{
+                          color: isCancelled || isExpired ? 'rgba(255,255,255,0.55)' : 'var(--lp-accent)',
+                        }}
                       >
-                        →
+                        {label}
+                        <span
+                          aria-hidden
+                          className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                        >
+                          {arrow}
+                        </span>
                       </span>
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })()}
 
     </div>
   );

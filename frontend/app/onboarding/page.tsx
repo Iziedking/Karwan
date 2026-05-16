@@ -1,8 +1,8 @@
 ﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type UserRole } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
@@ -20,7 +20,15 @@ import { cn } from '@/shared/utils/cn';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const search = useSearchParams();
+  // ?edit=1 means the user came from "Edit details" on /profile. In that mode
+  // we don't auto-redirect when a profile exists; we pre-fill the form so they
+  // can change fields. Without the flag, /onboarding is the first-time setup
+  // and a present profile means "you've already onboarded, go home."
+  const editMode = search.get('edit') === '1';
+  const auth = useAuth();
+  const address = auth.address ?? undefined;
+  const isConnected = auth.isAuthenticated;
   const [step, setStep] = useState<'connect' | 'role' | 'profile' | 'review'>('connect');
   const [role, setRole] = useState<UserRole | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -93,13 +101,41 @@ export default function OnboardingPage() {
       .getProfile(address)
       .then((res) => {
         if (cancelled) return;
-        if (res.profile) router.replace('/app');
+        if (!res.profile) return;
+        if (!editMode) {
+          router.replace('/app');
+          return;
+        }
+        // Edit mode: hydrate the form fields from the saved profile so the
+        // user is editing what they have rather than starting from blank.
+        const p = res.profile;
+        setRole(p.role);
+        setDisplayName(p.displayName ?? '');
+        if (p.seller) {
+          setSkills(p.seller.skills.join(', '));
+          setBio(p.seller.bio ?? '');
+          setSellerMin(p.seller.minBudgetUsdc);
+          setSellerMax(p.seller.maxBudgetUsdc);
+          setSellerMinDays(p.seller.minDeadlineDays);
+          setSellerMaxDays(p.seller.maxDeadlineDays);
+        }
+        if (p.buyer) {
+          setBuyerMax(p.buyer.maxBudgetUsdc);
+          setBuyerMinDays(p.buyer.minDeadlineDays);
+          setBuyerMaxDays(p.buyer.maxDeadlineDays);
+          setBidWindow(p.buyer.bidCollectionSeconds);
+          setMilestoneSplit(p.buyer.milestonePcts.join(','));
+        }
+        // Land on the role step so the user can change buyer/seller/both
+        // (e.g. a seller adding buyer capability). The Continue button takes
+        // them into the form with the new role's fields revealed.
+        setStep('role');
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [address, router]);
+  }, [address, router, editMode]);
 
   async function submit() {
     if (!address || !role) return;

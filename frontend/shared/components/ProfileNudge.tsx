@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 
 const DISMISS_PREFIX = 'karwan:profile-nudge-dismissed:';
@@ -12,7 +12,9 @@ const DISMISS_PREFIX = 'karwan:profile-nudge-dismissed:';
 /// route, connection, profile state, and a per-wallet dismissal flag.
 export function ProfileNudge() {
   const pathname = usePathname();
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const { profile, fetchState } = useUserProfile();
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);

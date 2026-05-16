@@ -1,8 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { api, type DirectDeal } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -20,7 +20,9 @@ const REFRESH_TYPES = new Set([
 ]);
 
 export function useDirectDeals() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isAuthed = auth.isAuthenticated;
   const [deals, setDeals] = useState<DirectDeal[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
 
@@ -36,25 +38,25 @@ export function useDirectDeals() {
   }, [address]);
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!isAuthed || !address) {
       setDeals([]);
       setFetchState('idle');
       return;
     }
     setFetchState('loading');
     refresh();
-  }, [address, isConnected, refresh]);
+  }, [address, isAuthed, refresh]);
 
   // SSE: refetch when a relevant deal event lands.
   useEffect(() => {
-    if (!isConnected || !address) return;
+    if (!isAuthed || !address) return;
     return subscribeLiveEvents((e) => {
       if (REFRESH_TYPES.has(e.type)) {
         // Small delay so the backend has written its store update.
         setTimeout(refresh, 400);
       }
     });
-  }, [address, isConnected, refresh]);
+  }, [address, isAuthed, refresh]);
 
   return { deals, fetchState, refresh };
 }

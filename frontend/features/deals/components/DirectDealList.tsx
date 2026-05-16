@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
 import type { DirectDeal } from '@/core/api';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { useDismissed } from '@/shared/hooks/useDismissed';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 
@@ -28,7 +28,7 @@ export function stageOf(deal: DirectDeal): DealStage {
   return 'awaiting-acceptance';
 }
 
-// Curated palette — slight off-axis hues so the badges feel designed, not
+// Curated palette. slight off-axis hues so the badges feel designed, not
 // pulled from default success/error/warning. Each tone has matching bg, fg, and
 // a slightly punchier rail color for the row edge marker.
 export const STAGE_META: Record<
@@ -108,7 +108,8 @@ export function StageBadge({ stage }: { stage: DealStage }) {
 }
 
 export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
-  const { address } = useAccount();
+  const auth = useAuth();
+  const address = auth.address ?? undefined;
   const { deals, fetchState } = useDirectDeals();
   const { dismissed, dismiss } = useDismissed('direct-deals');
 

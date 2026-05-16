@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
@@ -30,7 +30,7 @@ import {
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
-// Curated stage hues — mirror DirectDealList.STAGE_META so the rail accent
+// Curated stage hues. mirror DirectDealList.STAGE_META so the rail accent
 // stays consistent between the list row and the detail view.
 const STAGE_RAIL: Record<DealStage, string> = {
   'awaiting-acceptance': '#4a5aa3',
@@ -43,7 +43,9 @@ const STAGE_RAIL: Record<DealStage, string> = {
 };
 
 export function DirectDealDetail({ jobId }: { jobId: string }) {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const { deal, fetchState, refresh } = useDirectDeal(jobId);
   const { activated } = useActivation();
   const [busy, setBusy] = useState(false);
@@ -52,7 +54,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
   // Hoisted above the conditional early returns below to satisfy the React
-  // rules of hooks — must be called on every render in the same order.
+  // rules of hooks. must be called on every render in the same order.
   const [proposeOpen, setProposeOpen] = useState(false);
 
   useEffect(() => {
@@ -325,7 +327,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   // scope for this slice; a re-propose from the same side overwrites.
   const viewerIsProposer = !!proposal && viewerRole !== null && viewerRole === proposal.proposedBy;
   // Stages where either party may propose a mutual / platform-attributed cancel.
-  // Pre-accept and settled / disputed / already-cancelled are excluded — pre-accept
+  // Pre-accept and settled / disputed / already-cancelled are excluded. pre-accept
   // has its own buyer-only path and the others are terminal.
   const proposableStages: DealStage[] = [
     'awaiting-delivery',
@@ -850,7 +852,7 @@ function ActionPanel({
           </Body>
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-              [:DELIVERY PROOF — OPTIONAL:]
+              [:DELIVERY PROOF. OPTIONAL:]
             </span>
             <textarea
               value={deliveryProof}

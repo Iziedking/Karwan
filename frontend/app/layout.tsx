@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
           }}
         />
-        {/* General Sans — the Phantom-grade display/body grotesk, from Fontshare. */}
+        {/* General Sans. the Phantom-grade display/body grotesk, from Fontshare. */}
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
         <link
           rel="stylesheet"

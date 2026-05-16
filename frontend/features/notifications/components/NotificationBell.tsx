@@ -1,12 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
 import { relativeTime } from '@/shared/utils/format';
 
 export function NotificationBell() {
-  const { isConnected } = useAccount();
+  const { isAuthenticated: isConnected } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);

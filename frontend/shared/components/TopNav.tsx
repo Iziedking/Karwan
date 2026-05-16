@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -39,7 +39,7 @@ export function TopNav() {
       className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
     >
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5">
-        {/* LEFT — mobile toggle + logo */}
+        {/* LEFT. mobile toggle + logo */}
         <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
           {isApp && (
             <button
@@ -88,7 +88,7 @@ export function TopNav() {
           </Link>
         </div>
 
-        {/* CENTER — floating pill nav (app only) */}
+        {/* CENTER. floating pill nav (app only) */}
         {isApp && (
           <nav
             className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
@@ -119,7 +119,7 @@ export function TopNav() {
           </nav>
         )}
 
-        {/* RIGHT — control cluster */}
+        {/* RIGHT. control cluster */}
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {isApp ? (
             <>

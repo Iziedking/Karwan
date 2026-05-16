@@ -1,8 +1,8 @@
-import { cn } from '@/shared/utils/cn';
+﻿import { cn } from '@/shared/utils/cn';
 
 // A deterministic identicon: a mirrored 5x5 grid keyed on the address, in a
 // single brand-adjacent ink color on a faint tint of itself. Reads as an
-// address fingerprint, not a generic gradient orb. This is a placeholder —
+// address fingerprint, not a generic gradient orb. This is a placeholder , 
 // it gives way to the bound X profile picture once X account binding ships.
 
 const PALETTE = ['#0e0e0e', '#2c3e63', '#1f7a3f', '#b45309', '#5b4b8a', '#0b6b6b', '#9a1f3a'];

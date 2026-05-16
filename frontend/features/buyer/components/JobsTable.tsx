@@ -81,11 +81,17 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   <span className="inline-flex items-center gap-2 justify-end">
-                    {(j.cancelledAt || j.expiredAt) && (
+                    {(j.cancelledAt || j.expiredAt || j.escrowFunded) && (
                       <button
                         type="button"
                         title="Dismiss"
-                        aria-label={j.expiredAt ? 'Dismiss this expired brief' : 'Dismiss this cancelled deal'}
+                        aria-label={
+                          j.expiredAt
+                            ? 'Dismiss this expired brief'
+                            : j.cancelledAt
+                              ? 'Dismiss this cancelled deal'
+                              : 'Dismiss this funded brief'
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           dismiss(j.jobId);

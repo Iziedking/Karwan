@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
-import type { BuyerJob } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { api, ApiError, type BuyerJob } from '@/core/api';
 import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
 import { FlowStepper } from './FlowStepper';
@@ -28,7 +28,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const { job } = useJobSnapshot(initial);
   const { events, active, completed, declined } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
-  const { address } = useAccount();
+  const { address } = useAuth();
   const router = useRouter();
 
   // Once escrow funds, the deal has crossed into the direct-deal lifecycle:
@@ -129,7 +129,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           />
           <StatTile label="Bids" value={String(job.bids.length)} />
           {/* Once a match is approved or escrow has funded, the brief deadline
-              is irrelevant — show the auction state instead. The page redirects
+              is irrelevant. show the auction state instead. The page redirects
               to /deals/[id] on escrowFunded anyway, but during the brief flash
               we don't want to mislead. */}
           {job.escrowFunded ? (
@@ -146,7 +146,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <StatTile label="Terms hash" value={shortHash(job.termsHash, 6, 4)} mono />
         </div>
 
-        {/* EXPIRED BANNER — replaces the match banner slot when the brief is in
+        {/* EXPIRED BANNER. replaces the match banner slot when the brief is in
             its read-only afterlife. No actions; the auction is over. */}
         {expired && (
           <div className="mt-8 fade-up fade-up-1">
@@ -203,6 +203,13 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             </PageCard>
 
             <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
+            <CancelBriefSection
+              job={job}
+              declined={declined}
+              matchPending={!!matchPending}
+              viewerIsSeller={viewerIsSeller}
+              callerAddress={address ?? undefined}
+            />
           </div>
 
           <div className="space-y-5">
@@ -279,7 +286,7 @@ function StatusChip({
   tone: StatusTone;
   live: boolean;
 }) {
-  // Instrument-readout chip — same family as navbar LiveDot/wallet button.
+  // Instrument-readout chip. same family as navbar LiveDot/wallet button.
   // Body is white-on-dark; status color lives only in the LED cell.
   const cell: Record<StatusTone, string> = {
     positive: '#0a7553',
@@ -354,7 +361,7 @@ function SettleSection({
   // After escrow funds, the deal lifecycle lives at /deals/[id]; this page
   // auto-redirects there via the effect at the top of LiveJobPage. The card
   // below is the fallback if the redirect hasn't fired yet (slow nav, motion-
-  // reduced, etc.) — it points to the canonical surface instead of duplicating
+  // reduced, etc.). it points to the canonical surface instead of duplicating
   // ReleaseMilestonesButton, so there's exactly one place to act on the deal.
   if (job.escrowFunded) {
     return (
@@ -420,6 +427,129 @@ function SettleSection({
         escrow funds.
       </p>
     </SettleCard>
+  );
+}
+
+/// Buyer-only escape hatch for a brief that hasn't matched yet. Hidden after
+/// the agent finalizes (a match is pending, escrow is funding, or escrow has
+/// funded). Routes through POST /api/jobs/:jobId/cancel which marks the brief
+/// expired in-memory so no further bids land.
+function CancelBriefSection({
+  job,
+  declined,
+  matchPending,
+  viewerIsSeller,
+  callerAddress,
+}: {
+  job: BuyerJob;
+  declined: boolean;
+  matchPending: boolean;
+  viewerIsSeller: boolean;
+  callerAddress: string | undefined;
+}) {
+  const router = useRouter();
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const viewerIsBuyer =
+    !!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase();
+  const cancellable =
+    viewerIsBuyer &&
+    !viewerIsSeller &&
+    !job.finalized &&
+    !job.escrowFunded &&
+    !job.expiredAt &&
+    !job.cancelledAt &&
+    !matchPending &&
+    !declined;
+
+  if (!cancellable || !callerAddress) return null;
+
+  async function handleCancel() {
+    if (!callerAddress) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.cancelBrief(job.jobId, callerAddress);
+      router.push('/buyer');
+    } catch (err) {
+      const detail =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setError(detail);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PageCard>
+      <div className="px-6 pt-6 pb-3">
+        <SectionTag>OR</SectionTag>
+        <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+          Pull this brief
+        </h3>
+      </div>
+      <div className="px-6 pb-6 space-y-3">
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          Posted by mistake or changed your mind? Pull the brief now, before any seller agent
+          locks in a match. Nothing funded yet, so the cancel is free.
+        </p>
+        {!confirm ? (
+          <button
+            type="button"
+            onClick={() => setConfirm(true)}
+            className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
+          >
+            Cancel brief
+          </button>
+        ) : (
+          <div
+            className="px-4 py-3 space-y-3"
+            style={{
+              background: 'rgba(176, 61, 58, 0.08)',
+              border: '1px solid rgba(176, 61, 58, 0.30)',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <p className="text-[13px] text-[var(--lp-dark)] leading-snug">
+              Pull this brief? The agent stops scanning bids on it immediately. You can post a
+              fresh one any time.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={busy}
+                className="mono text-[11px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
+                style={{
+                  background: '#b03d3a',
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                  borderBottomLeftRadius: 8,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                {busy ? 'Cancelling…' : 'Yes, cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirm(false)}
+                disabled={busy}
+                className="mono text-[11px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
+              >
+                Keep brief
+              </button>
+            </div>
+            {error && (
+              <p className="mono text-[11px] text-[#b03d3a]">{error}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </PageCard>
   );
 }
 

@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { SOURCE_CHAINS, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
@@ -11,7 +12,7 @@ const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 const STUCK_AFTER_MS = 30 * 60 * 1000;
 const STEP_ORDER: BridgePhase[] = ['approving', 'burning', 'attesting', 'minting', 'done'];
 
-// Curated tones — match the deal palette so the bridge ties back visually.
+// Curated tones. match the deal palette so the bridge ties back visually.
 const TONE_HEX = {
   live: 'var(--lp-accent)',
   positive: '#0a7553',
@@ -104,6 +105,12 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 
 export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` }) {
   const { isConnected } = useAccount();
+  const auth = useAuth();
+  // Circle-only users have an identity wallet on Arc but no source-chain
+  // wallet to sign the CCTP burn. We surface a clear note instead of leaving
+  // them stuck on the "Connect wallet to bridge" button with no idea why
+  // their session isn't enough.
+  const circleOnly = auth.method === 'circle' && !isConnected;
   const { bridges, start, retry, recheck, dismiss, isActive } = useBridges();
   const [sourceKey, setSourceKey] = useState<SourceChainConfig['key']>('baseSepolia');
   const [amount, setAmount] = useState<number | ''>(5);
@@ -144,15 +151,16 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
             Bridge to Arc
           </h2>
-          <p className="mt-2 inline-flex items-center gap-1.5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <p className="mt-2 inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             <span>CCTP V2</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/circle-logo.png"
               alt="Circle"
-              width={12}
-              height={12}
-              className="inline-block rounded-full shrink-0"
+              width={20}
+              height={20}
+              className="inline-block rounded-full shrink-0 object-cover"
+              style={{ width: 20, height: 20 }}
             />
           </p>
         </div>
@@ -185,6 +193,29 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
       </div>
 
       <div className="px-6 pb-6">
+        {circleOnly && (
+          <div
+            className="mb-4 px-3.5 py-3 text-[12.5px] leading-snug"
+            style={{
+              background: 'rgba(178, 84, 37, 0.10)',
+              border: '1px solid rgba(178, 84, 37, 0.30)',
+              color: '#b25425',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1">
+              [:HEADS UP:]
+            </p>
+            <p style={{ color: 'var(--lp-dark)' }}>
+              Bridging USDC into Arc needs a wallet on the source chain to sign the burn. Your
+              Circle login lives on Arc only. Connect a web3 wallet on Base/Sepolia to bridge, or
+              send USDC straight to your Arc address via an external faucet or bridge.
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
           <div>

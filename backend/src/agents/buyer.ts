@@ -1250,6 +1250,66 @@ export function expireJob(jobId: `0x${string}`): boolean {
   return true;
 }
 
+/// Buyer-initiated cancel of a managed brief BEFORE a match. The on-chain
+/// JobBoard contract doesn't carry a cancel function, so we mark the brief
+/// expired off-chain (same terminal state as the deadline watcher uses) and
+/// stop the agent from accepting any further bid or proposing a match. After
+/// a match is approved + escrow funded the cancel path lives on /deals/[id]
+/// (mutual cancel + refund); this only covers the pre-match window.
+///
+/// Returns ok=true on success; ok=false with a code when the brief is in a
+/// state where cancellation is no longer the user's gate (already finalized,
+/// escrow funded, or expired).
+export function cancelBriefByBuyer(
+  jobId: `0x${string}`,
+  caller: string,
+): { ok: true } | { ok: false; code: string; message: string } {
+  const state = jobs.get(jobId);
+  if (!state) return { ok: false, code: 'NO_JOB', message: 'no tracked brief for this job id' };
+  if (state.context.buyer.toLowerCase() !== caller.toLowerCase()) {
+    return { ok: false, code: 'NOT_BUYER', message: 'only the buyer can cancel this brief' };
+  }
+  if (state.escrowFunded) {
+    return {
+      ok: false,
+      code: 'ESCROW_FUNDED',
+      message: 'this brief already matched and escrow is funded; cancel on the deal page',
+    };
+  }
+  if (state.finalized) {
+    return {
+      ok: false,
+      code: 'ALREADY_MATCHED',
+      message: 'this brief has a pending match; decline it on the deal page instead',
+    };
+  }
+  if (state.expired) {
+    return { ok: false, code: 'ALREADY_TERMINAL', message: 'this brief is already terminal' };
+  }
+  // Re-use the expired terminal state so every scanner that already filters
+  // on `expired` honours this without a new field. The brief metadata gets
+  // the same marker so a restart treats it consistently.
+  if (state.collectionTimer) {
+    clearTimeout(state.collectionTimer);
+    state.collectionTimer = null;
+  }
+  state.expired = true;
+  state.expiredAt = Date.now();
+  patchBrief(jobId, { expiredAt: state.expiredAt });
+  bus.emitEvent({
+    type: 'brief.cancelled',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: state.context.buyer,
+      budgetUsdc: state.context.budgetUsdc,
+      bidsCount: state.bids.size,
+    },
+  });
+  logger.info({ jobId, buyer: state.context.buyer }, 'brief cancelled by buyer');
+  return { ok: true };
+}
+
 /// Replays recent JobPosted logs through the live handler, so a freshly started
 /// agent picks up jobs posted while it was down.
 export async function backfillRecentJobs(fromBlock?: bigint) {

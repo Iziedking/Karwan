@@ -225,7 +225,7 @@ export function BalancesCard({
               </div>
               <div className="text-right">
                 <p className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
-                  {num === null ? '—' : <AnimatedNumber value={num} decimals={2} />}
+                  {num === null ? '-' : <AnimatedNumber value={num} decimals={2} />}
                 </p>
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1">
                   USDC

@@ -4,11 +4,13 @@ import { generateObject } from 'ai';
 import { llmModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import {
+  cancelListing,
   createListing,
   getListing,
   listAllListings,
   listListingsForSeller,
   listOpenListings,
+  listingStatus,
   markListingMatched,
   listingFloor,
   type Listing,
@@ -31,7 +33,12 @@ const createSchema = z.object({
   description: z.string().min(5).max(500),
   askingPriceUsdc: z.number().positive().max(5_000_000),
   negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
+  /// Optional listing window in days. Defaults to 30 in the store. Capped at
+  /// 90 to keep stale listings out of the marketplace.
+  ttlDays: z.number().int().min(1).max(90).optional(),
 });
+
+const cancelSchema = z.object({ caller: addrSchema });
 
 const matchDecisionSchema = z.object({
   match: z.boolean(),
@@ -74,11 +81,56 @@ listingsRoutes.get('/:id', (c) => {
   const caller =
     callerRaw && /^0x[a-fA-F0-9]{40}$/.test(callerRaw) ? callerRaw.toLowerCase() : null;
   const isOwner = caller === listing.sellerUser.toLowerCase();
+  const status = listingStatus(listing);
   if (isOwner) {
-    return c.json({ listing, floor: listingFloor(listing), viewerIsOwner: true });
+    return c.json({
+      listing,
+      floor: listingFloor(listing),
+      viewerIsOwner: true,
+      status,
+    });
   }
   const { negotiationMaxDecreasePct: _drop, ...publicListing } = listing;
-  return c.json({ listing: publicListing, viewerIsOwner: false });
+  return c.json({ listing: publicListing, viewerIsOwner: false, status });
+});
+
+/// Seller cancels their own listing. Allowed only when it hasn't matched yet
+/// (matchedAt unset) and isn't already cancelled. After a match the listing
+/// is consumed by the deal flow; cancellation there would orphan the deal.
+listingsRoutes.post('/:id/cancel', async (c) => {
+  const id = c.req.param('id');
+  let body;
+  try {
+    body = cancelSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const listing = getListing(id);
+  if (!listing) return c.json({ error: 'listing not found' }, 404);
+  if (body.caller.toLowerCase() !== listing.sellerUser) {
+    return c.json({ error: 'only the seller can cancel this listing' }, 403);
+  }
+  if (listing.matchedAt) {
+    return c.json(
+      { error: 'this listing already matched a brief; cancellation lives on the deal page' },
+      409,
+    );
+  }
+  if (listing.cancelledAt) {
+    return c.json({ error: 'this listing is already cancelled' }, 409);
+  }
+  const next = cancelListing(id);
+  bus.emitEvent({
+    type: 'listing.cancelled',
+    actor: 'seller',
+    payload: {
+      listingId: id,
+      seller: listing.sellerUser,
+      title: listing.title,
+    },
+  });
+  logger.info({ listingId: id, seller: listing.sellerUser }, 'listing cancelled by seller');
+  return c.json({ listing: next });
 });
 
 /// Post a new seller listing and immediately scan in-memory open buyer briefs
@@ -114,6 +166,7 @@ listingsRoutes.post('/', async (c) => {
     description: body.description,
     askingPriceUsdc: body.askingPriceUsdc,
     negotiationMaxDecreasePct: body.negotiationMaxDecreasePct,
+    ttlDays: body.ttlDays,
   });
 
   bus.emitEvent({
@@ -290,9 +343,16 @@ function buildListingMatchPrompt(listing: Listing, job: { briefText?: string; bu
     `- Text: ${brief}`,
     `- Budget: ${job.budgetUsdc} USDC`,
     '',
-    'Decide if the brief and the listing describe the SAME service or deliverable.',
-    'Match generously on synonyms and abbreviations (e.g. "WL" ≈ "whitelist", "ES→AR" ≈ "Spanish to Arabic").',
-    'Match=true only if the listing\'s offer can clearly fulfill the brief. Price differences are OK — negotiation handles those.',
+    'Direction check (apply FIRST):',
+    '- A listing must describe a service or deliverable that is BEING SOLD (e.g. "I sell X", "X for sale", "I build Y").',
+    '- A brief must describe something the buyer NEEDS to acquire (e.g. "Need a backend engineer", "Looking for translation").',
+    '- If the listing reads as a request ("I need", "Looking for", "Hiring") rather than an offer, return match=false with confidence 0.9 and reasoning "listing is mis-posted as a request, not an offer". Do NOT match it to a brief even if topics align.',
+    '- If the brief reads as an offer ("I sell", "Available for"), return match=false with confidence 0.9 and reasoning "brief is mis-posted as an offer".',
+    '',
+    'Topical match (apply SECOND, only if direction is correct):',
+    '- Decide if the brief and the listing describe the SAME service or deliverable.',
+    '- Match generously on synonyms and abbreviations (e.g. "WL" ≈ "whitelist", "ES→AR" ≈ "Spanish to Arabic").',
+    "- Match=true only if the listing's offer can clearly fulfill the brief. Price differences are OK — negotiation handles those.",
     '',
     'Output:',
     '- match: true | false',

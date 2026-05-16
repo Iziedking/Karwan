@@ -12,6 +12,7 @@ import {
   approveAgentMatch,
   declineAgentMatch,
   getMarketplaceBriefs,
+  cancelBriefByBuyer,
   type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
@@ -227,6 +228,25 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } finally {
     inFlight.delete(jobId);
   }
+});
+
+/// Buyer cancels their own managed brief BEFORE a match has been approved.
+/// After a match + escrow is funded the cancel lives on /deals/[id] (mutual
+/// cancel + refund flow); this route only covers the pre-match window.
+jobsRoutes.post('/:jobId/cancel', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const result = cancelBriefByBuyer(jobId as `0x${string}`, body.caller);
+  if (!result.ok) {
+    const status = result.code === 'NOT_BUYER' ? 403 : 409;
+    return c.json({ error: result.message, code: result.code }, status);
+  }
+  return c.json({ accepted: true, jobId }, 200);
 });
 
 /// Seller declines the matched proposal. The job stays finalized in memory;

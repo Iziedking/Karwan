@@ -126,7 +126,11 @@ export default function ProfilePage() {
             </div>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {profile ? (
-                <CTAPill variant="secondary" tone="dark" onClick={() => router.push('/onboarding')}>
+                <CTAPill
+                  variant="secondary"
+                  tone="dark"
+                  onClick={() => router.push('/onboarding?edit=1')}
+                >
                   Edit details
                 </CTAPill>
               ) : (
@@ -134,7 +138,7 @@ export default function ProfilePage() {
               )}
               <div className="flex items-center gap-2">
                 <ConnectXButton />
-                <TelegramConnectButton address={address} />
+                <TelegramConnectButton address={address ?? undefined} />
               </div>
             </div>
           </div>
@@ -149,7 +153,7 @@ export default function ProfilePage() {
         </div>
       </Band>
 
-      {/* PENDING MATCHES — high-priority surface; renders nothing when empty. */}
+      {/* PENDING MATCHES. high-priority surface; renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
 
       {/* ACTIVATION */}
@@ -230,7 +234,7 @@ export default function ProfilePage() {
                       { label: 'Bid window', value: `${profile.buyer.bidCollectionSeconds}s`, mono: true },
                       {
                         label: 'Milestones',
-                        value: profile.buyer.milestonePcts.join(' / ') || '—',
+                        value: profile.buyer.milestonePcts.join(' / ') || '-',
                         mono: true,
                       },
                     ]}
@@ -241,8 +245,8 @@ export default function ProfilePage() {
                     role="Seller"
                     agentAddress={agents.seller}
                     rows={[
-                      { label: 'Skills', value: profile.seller.skills.join(', ') || '—' },
-                      { label: 'Bio', value: profile.seller.bio || '—' },
+                      { label: 'Skills', value: profile.seller.skills.join(', ') || '-' },
+                      { label: 'Bio', value: profile.seller.bio || '-' },
                       {
                         label: 'Budget',
                         value: `${profile.seller.minBudgetUsdc}–${profile.seller.maxBudgetUsdc} USDC`,
@@ -462,13 +466,13 @@ function AgentStatusVignette({
         <div className="px-4 py-4 min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Buyer agent</p>
           <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
-            {buyer ? shortAddress(buyer) : '—'}
+            {buyer ? shortAddress(buyer) : '-'}
           </p>
         </div>
         <div className="px-4 py-4 min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Seller agent</p>
           <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
-            {seller ? shortAddress(seller) : '—'}
+            {seller ? shortAddress(seller) : '-'}
           </p>
         </div>
       </div>

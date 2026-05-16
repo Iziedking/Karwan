@@ -1,8 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
 import { api, type UserProfile } from '@/core/api';
+import { useAuth } from './useAuth';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -11,8 +11,11 @@ type FetchState = 'idle' | 'loading' | 'success' | 'error';
 // listens and refetches, so banners like ProfileNudge clear immediately.
 export const PROFILE_SAVED_EVENT = 'karwan:profile-saved';
 
+/// Reads the user's profile by the auth-resolved address (web3 wallet OR
+/// Circle session, whichever the user signed in with). Returns the address
+/// + isConnected shape the rest of the app already consumes.
 export function useUserProfile() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
   const pathname = usePathname();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
@@ -21,7 +24,7 @@ export function useUserProfile() {
   const refresh = useCallback(() => setRefreshCount((n) => n + 1), []);
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!auth.isAuthenticated || !auth.address) {
       setProfile(null);
       setFetchState('idle');
       return;
@@ -29,7 +32,7 @@ export function useUserProfile() {
     let cancelled = false;
     setFetchState('loading');
     api
-      .getProfile(address)
+      .getProfile(auth.address)
       .then((res) => {
         if (cancelled) return;
         setProfile(res.profile);
@@ -43,12 +46,10 @@ export function useUserProfile() {
     return () => {
       cancelled = true;
     };
-    // Refetch when the wallet changes, when the user navigates between routes
-    // (e.g. returning from /onboarding), or when refresh() is called.
-  }, [address, isConnected, pathname, refreshCount]);
+    // Refetch on address change, route change (returning from /onboarding),
+    // or explicit refresh().
+  }, [auth.address, auth.isAuthenticated, pathname, refreshCount]);
 
-  // Cross-component invalidation: any save dispatches a window event and every
-  // hook instance refetches in lockstep.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onSaved = () => refresh();
@@ -58,8 +59,8 @@ export function useUserProfile() {
 
   return {
     profile,
-    address,
-    isConnected,
+    address: auth.address,
+    isConnected: auth.isAuthenticated,
     fetchState,
     loading: fetchState === 'loading' || fetchState === 'idle',
     refresh,

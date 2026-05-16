@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useMemo } from 'react';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import type { BuyerJob, ChainEvent } from '@/core/api';
@@ -51,7 +51,7 @@ export function useJobLiveState(initial: BuyerJob): {
 
     // If the agent declined and we haven't reached escrow, cap progression at
     // the negotiating step. finalized=true alone is NOT enough to advance to
-    // 'accepted' — the agent finalizes on both accept and decline paths.
+    // 'accepted'. the agent finalizes on both accept and decline paths.
     if (declined && order.indexOf(highest) < order.indexOf('escrow')) {
       highest = 'counter';
     }
@@ -66,7 +66,7 @@ export function useJobLiveState(initial: BuyerJob): {
 function computeInitialStage(j: BuyerJob): StepKey {
   if (j.escrowFunded) return 'escrow';
   // finalized without escrowFunded could be either accept-pending-approval or
-  // decline — we stay at 'counter' until events tell us which.
+  // decline. we stay at 'counter' until events tell us which.
   if (j.bids.length > 0) return Object.keys(j.lastCounterPriceBySeller).length > 0 ? 'counter' : 'bidding';
   return 'posted';
 }

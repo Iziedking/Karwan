@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
   startRegistration,
@@ -46,6 +47,7 @@ export function LoginModal({ open, onClose }: Props) {
   }, [open, isAuthenticated, onClose]);
 
   if (!open) return null;
+  if (typeof document === 'undefined') return null;
 
   async function handlePasskey(e: React.FormEvent) {
     e.preventDefault();
@@ -73,19 +75,37 @@ export function LoginModal({ open, onClose }: Props) {
       await refresh();
       onClose();
     } catch (err) {
-      const detail =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message;
-      setError(detail || 'Passkey ceremony failed.');
+      const e = err as Error & { name?: string };
+      // WebAuthn surfaces a NotAllowedError when the user closes the passkey
+      // prompt OR when it times out. The raw browser message links to a W3C
+      // spec page — fine for devtools, hostile in product. Show a human one.
+      if (
+        e.name === 'NotAllowedError' ||
+        /timed out|not allowed/i.test(e.message ?? '')
+      ) {
+        setError(
+          mode === 'register'
+            ? 'Passkey setup cancelled. Try again, or use email code instead.'
+            : 'Passkey prompt cancelled. Try again, or use email code instead.',
+        );
+      } else {
+        const detail =
+          err instanceof ApiError && err.detail
+            ? String(err.detail)
+            : (err as Error).message;
+        setError(detail || 'Passkey ceremony failed.');
+      }
     } finally {
       setBusy(false);
     }
   }
 
-  return (
+  // Portal to document.body so a transformed ancestor (e.g. the sticky top
+  // nav) can't pull `position: fixed` out of viewport coordinates. Without
+  // this the modal occasionally renders glued to the top of the page.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
       onClick={() => !busy && onClose()}
     >
@@ -105,25 +125,32 @@ export function LoginModal({ open, onClose }: Props) {
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
         }}
       >
-        <div className="px-6 pt-6 pb-4 border-b border-[var(--lp-border-light)]">
+        <div className="px-5 pt-5 pb-4 flex items-center justify-between gap-3">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:LOG IN TO KARWAN:]
+            [:LOG IN:]
           </p>
-          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
-            Pick a way in<span style={{ color: 'var(--lp-accent)' }}>.</span>
-          </h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-            Connect a wallet or sign in with a passkey. Both give you an on-chain identity on
-            Arc.
-          </p>
+          <button
+            type="button"
+            onClick={() => !busy && onClose()}
+            aria-label="Close"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path
+                d="M3 3l10 10M13 3L3 13"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
         </div>
 
-        <div className="px-6 pt-4">
+        <div className="px-5">
           <div
             className="inline-flex p-1 gap-1 w-full"
             style={{
-              background: 'var(--lp-light)',
-              border: '1px solid var(--lp-border-light)',
+              background: 'var(--lp-dark)',
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
               borderBottomLeftRadius: 10,
@@ -134,18 +161,50 @@ export function LoginModal({ open, onClose }: Props) {
               Wallet
             </TabPill>
             <TabPill active={tab === 'passkey'} onClick={() => setTab('passkey')}>
-              Email + passkey
+              Email
             </TabPill>
           </div>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-5 py-5 space-y-4">
           {tab === 'wallet' && (
-            <div className="space-y-3">
-              <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                MetaMask, Rabby, WalletConnect — any EVM wallet. Your address is your identity.
-              </p>
-              <ConnectButton />
+            <div>
+              <ConnectButton.Custom>
+                {({ openConnectModal, mounted }) => (
+                  <button
+                    type="button"
+                    disabled={!mounted}
+                    onClick={openConnectModal}
+                    className="w-full inline-flex items-center justify-center gap-2 px-[20px] py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                    style={{
+                      borderTopLeftRadius: 12,
+                      borderTopRightRadius: 12,
+                      borderBottomLeftRadius: 12,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <rect
+                        x="2"
+                        y="4"
+                        width="12"
+                        height="9"
+                        rx="1.5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      />
+                      <path
+                        d="M2 7h12M10 10h1"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Connect wallet
+                    <span aria-hidden>→</span>
+                  </button>
+                )}
+              </ConnectButton.Custom>
             </div>
           )}
           {tab === 'passkey' && (
@@ -176,53 +235,49 @@ export function LoginModal({ open, onClose }: Props) {
                   className="form-input"
                 />
               </label>
-              <div
-                className="inline-flex p-1 gap-1"
-                style={{
-                  background: 'var(--lp-light)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 8,
-                  borderTopRightRadius: 8,
-                  borderBottomLeftRadius: 8,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                <ModePill active={mode === 'login'} onClick={() => setMode('login')}>
-                  Sign in
-                </ModePill>
-                <ModePill active={mode === 'register'} onClick={() => setMode('register')}>
-                  Create
-                </ModePill>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div
+                  className="inline-flex p-1 gap-1"
+                  style={{
+                    background: 'var(--lp-dark)',
+                    borderTopLeftRadius: 8,
+                    borderTopRightRadius: 8,
+                    borderBottomLeftRadius: 8,
+                    borderBottomRightRadius: 2,
+                  }}
+                >
+                  <ModePill active={mode === 'login'} onClick={() => setMode('login')}>
+                    Sign in
+                  </ModePill>
+                  <ModePill active={mode === 'register'} onClick={() => setMode('register')}>
+                    Create
+                  </ModePill>
+                </div>
+                <button
+                  type="submit"
+                  disabled={
+                    busy ||
+                    !email ||
+                    passkeyConfigured === false ||
+                    supportsWebAuthn === false
+                  }
+                  className="inline-flex items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                  style={{
+                    borderTopLeftRadius: 12,
+                    borderTopRightRadius: 12,
+                    borderBottomLeftRadius: 12,
+                    borderBottomRightRadius: 3,
+                  }}
+                >
+                  {busy
+                    ? mode === 'register'
+                      ? 'Creating…'
+                      : 'Verifying…'
+                    : mode === 'register'
+                      ? 'Create →'
+                      : 'Sign in →'}
+                </button>
               </div>
-              <button
-                type="submit"
-                disabled={
-                  busy ||
-                  !email ||
-                  passkeyConfigured === false ||
-                  supportsWebAuthn === false
-                }
-                className="inline-flex items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                style={{
-                  borderTopLeftRadius: 12,
-                  borderTopRightRadius: 12,
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 3,
-                }}
-              >
-                {busy
-                  ? mode === 'register'
-                    ? 'Creating account…'
-                    : 'Verifying passkey…'
-                  : mode === 'register'
-                    ? 'Create with passkey'
-                    : 'Sign in with passkey'}
-              </button>
-              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-                {mode === 'register'
-                  ? 'We create a Circle wallet for you. No private key to manage.'
-                  : 'We never see your passkey. Your device signs the challenge.'}
-              </p>
               {error && (
                 <p className="mono text-[11px] text-[#b25425] leading-snug">{error}</p>
               )}
@@ -230,7 +285,8 @@ export function LoginModal({ open, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -247,16 +303,14 @@ function TabPill({
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 px-3 py-1.5 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors"
+      className="flex-1 px-3 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors"
       style={{
-        background: active ? 'var(--lp-card)' : 'transparent',
-        color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
-        border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
+        background: active ? 'var(--lp-accent)' : 'transparent',
+        color: active ? 'var(--lp-dark)' : 'rgba(255,255,255,0.55)',
         borderTopLeftRadius: 8,
         borderTopRightRadius: 8,
         borderBottomLeftRadius: 8,
         borderBottomRightRadius: 2,
-        boxShadow: active ? '0 1px 0 rgba(0,0,0,0.04)' : 'none',
       }}
     >
       {children}
@@ -277,11 +331,10 @@ function ModePill({
     <button
       type="button"
       onClick={onClick}
-      className="px-3 py-1 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors"
+      className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors"
       style={{
-        background: active ? 'var(--lp-card)' : 'transparent',
-        color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
-        border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
+        background: active ? 'var(--lp-accent)' : 'transparent',
+        color: active ? 'var(--lp-dark)' : 'rgba(255,255,255,0.55)',
         borderTopLeftRadius: 6,
         borderTopRightRadius: 6,
         borderBottomLeftRadius: 6,

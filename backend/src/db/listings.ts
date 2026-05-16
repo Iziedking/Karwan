@@ -15,34 +15,57 @@ export interface Listing {
   /** Floor = askingPriceUsdc * (1 - pct/100). 0 = strict at askingPriceUsdc. */
   negotiationMaxDecreasePct?: number;
   postedAt: number;
+  /// When the listing's window for matching closes. Past this point the
+  /// listing is treated as expired by all match scanners and surfaces. We
+  /// default to 30 days at create time when the caller doesn't override.
+  expiresAt: number;
   /** Set when this listing has triggered a matched bid; prevents re-firing. */
   matchedAt?: number;
   matchedJobId?: string;
+  /// Set when the seller cancels their own listing. Terminal — once set, the
+  /// listing drops out of every scanner and marketplace filter.
+  cancelledAt?: number;
 }
 
 const store = new Map<string, Listing>();
+
+const DEFAULT_TTL_DAYS = 30;
 
 export function getListing(id: string): Listing | null {
   return store.get(id) ?? null;
 }
 
 export function createListing(
-  input: Omit<Listing, 'id' | 'postedAt' | 'matchedAt' | 'matchedJobId'>,
+  input: Omit<
+    Listing,
+    'id' | 'postedAt' | 'matchedAt' | 'matchedJobId' | 'cancelledAt' | 'expiresAt'
+  > & { ttlDays?: number },
 ): Listing {
   const id = `lst_${randomBytes(8).toString('hex')}`;
+  const ttlDays = input.ttlDays ?? DEFAULT_TTL_DAYS;
+  const now = Date.now();
   const listing: Listing = {
-    ...input,
     id,
     sellerUser: input.sellerUser.toLowerCase(),
     sellerAgent: input.sellerAgent.toLowerCase(),
-    postedAt: Date.now(),
+    title: input.title,
+    description: input.description,
+    askingPriceUsdc: input.askingPriceUsdc,
+    negotiationMaxDecreasePct: input.negotiationMaxDecreasePct,
+    postedAt: now,
+    expiresAt: now + ttlDays * 24 * 60 * 60 * 1000,
   };
   store.set(id, listing);
   return listing;
 }
 
+/// Open = not matched, not cancelled, not past expiry. Used by every match
+/// scanner and the marketplace browse — the source of truth for "still live."
 export function listOpenListings(): Listing[] {
-  return [...store.values()].filter((l) => !l.matchedAt);
+  const now = Date.now();
+  return [...store.values()].filter(
+    (l) => !l.matchedAt && !l.cancelledAt && l.expiresAt > now,
+  );
 }
 
 export function listListingsForSeller(sellerUserAddress: string): Listing[] {
@@ -64,8 +87,29 @@ export function markListingMatched(id: string, jobId: string): void {
   store.set(id, l);
 }
 
+/// Seller-initiated cancel. Caller checks ownership BEFORE calling.
+/// Idempotent: cancelling an already-cancelled listing is a no-op.
+export function cancelListing(id: string): Listing | null {
+  const l = store.get(id);
+  if (!l) return null;
+  if (l.cancelledAt) return l;
+  l.cancelledAt = Date.now();
+  store.set(id, l);
+  return l;
+}
+
 /// Listing floor for negotiation: counters below this should be rejected.
 export function listingFloor(listing: Listing): number {
   const pct = listing.negotiationMaxDecreasePct ?? 0;
   return listing.askingPriceUsdc * (1 - pct / 100);
+}
+
+/// Convenience for the marketplace renderer + scanners that want a derived
+/// "what state is this in" without inlining the same logic three places.
+export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
+export function listingStatus(l: Listing): ListingStatus {
+  if (l.cancelledAt) return 'cancelled';
+  if (l.matchedAt) return 'matched';
+  if (Date.now() > l.expiresAt) return 'expired';
+  return 'open';
 }

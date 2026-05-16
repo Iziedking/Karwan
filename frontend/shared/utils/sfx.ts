@@ -1,4 +1,4 @@
-/// Tiny synthesized UI sound kit. No audio files — short, soft sine tones via
+﻿/// Tiny synthesized UI sound kit. No audio files. short, soft sine tones via
 /// the Web Audio API. The context is created lazily and resumed on the first
 /// user gesture (browsers block autoplay until then), so sounds that fire from
 /// a click work, and SSE-driven ones work once the user has interacted.
@@ -75,18 +75,18 @@ export const sfx = {
       listeners.delete(fn);
     };
   },
-  /// Soft tick — a confirm or a small action.
+  /// Soft tick. a confirm or a small action.
   tap() {
     if (muted) return;
     tone(440, 0.11, 0, 'triangle', 0.05);
   },
-  /// Two-note rise — something sent: a deal opened, a tx broadcast.
+  /// Two-note rise. something sent: a deal opened, a tx broadcast.
   send() {
     if (muted) return;
     tone(330, 0.1, 0, 'sine', 0.05);
     tone(495, 0.17, 0.06, 'sine', 0.05);
   },
-  /// Major-chord arpeggio up — completion: settled, bridged, minted.
+  /// Major-chord arpeggio up. completion: settled, bridged, minted.
   success() {
     if (muted) return;
     tone(523.25, 0.14, 0, 'sine', 0.055); // C5

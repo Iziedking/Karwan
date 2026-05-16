@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 import { useMemo, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { EventList } from '@/features/jobs/components/EventList';
 import { ActivityStats } from './ActivityStats';
@@ -14,14 +14,15 @@ import {
 } from '../types';
 
 export function ActivityView({ explorer }: { explorer: string }) {
-  const { address, isConnected } = useAccount();
-  // Scope to the connected wallet — only events the user is a party to.
+  const auth = useAuth();
+  const address = auth.address ?? undefined;
+  const isAuthed = auth.isAuthenticated;
+  // Scope to the signed-in identity. only events the user is a party to.
   const events = useLiveEvents(undefined, 200, address);
 
-  // Hard gate: never render the activity stream for a disconnected wallet —
-  // there's nothing to scope it to, and falling back to the global stream
-  // would leak other users' deal events.
-  if (!isConnected || !address) {
+  // Hard gate: never render the activity stream when not signed in. there is
+  // nothing to scope to and the global stream would leak other users' events.
+  if (!isAuthed || !address) {
     return (
       <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -29,7 +30,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
         </p>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
           Connect your wallet to see the events your deals have triggered. This stream is scoped
-          to your wallet — you won&apos;t see other users&apos; activity.
+          to your wallet. you won&apos;t see other users&apos; activity.
         </p>
       </div>
     );

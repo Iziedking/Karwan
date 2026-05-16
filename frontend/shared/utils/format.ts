@@ -1,11 +1,11 @@
-export function shortHash(h: string, head = 6, tail = 4): string {
-  if (!h) return '—';
+﻿export function shortHash(h: string, head = 6, tail = 4): string {
+  if (!h) return ', ';
   if (h.length <= head + tail + 1) return h;
   return `${h.slice(0, head)}…${h.slice(-tail)}`;
 }
 
 export function shortAddress(h?: string | null): string {
-  if (!h) return '—';
+  if (!h) return ', ';
   return `${h.slice(0, 6)}…${h.slice(-4)}`;
 }
 
@@ -13,9 +13,9 @@ export function formatUsdc(
   value: string | number | null | undefined,
   opts?: { withSuffix?: boolean },
 ): string {
-  if (value == null || value === '') return '—';
+  if (value == null || value === '') return ', ';
   const n = typeof value === 'string' ? Number(value) : value;
-  if (!Number.isFinite(n)) return '—';
+  if (!Number.isFinite(n)) return ', ';
   const fixed = n.toLocaleString('en-US', { maximumFractionDigits: 2 });
   return opts?.withSuffix === false ? fixed : `${fixed} USDC`;
 }

@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type UserProfile } from '@/core/api';
 
 const HANDLE_RE = /^@?[A-Za-z0-9_]{1,15}$/;
@@ -21,7 +21,9 @@ function XBrandTile({ size = 14 }: { size?: number }) {
 }
 
 export function ConnectXButton() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const search = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [oauthConfigured, setOauthConfigured] = useState<boolean | null>(null);
@@ -157,7 +159,7 @@ export function ConnectXButton() {
     );
   }
 
-  // OAuth path — single click bounces to X and back.
+  // OAuth path. single click bounces to X and back.
   if (oauthConfigured && !open) {
     return (
       <div className="inline-flex flex-col items-start gap-1.5">

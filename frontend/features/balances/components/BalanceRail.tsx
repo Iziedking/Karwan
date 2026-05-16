@@ -1,23 +1,37 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useAccount, useBalance, useChainId, useSwitchChain } from 'wagmi';
+import { useBalance, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcTestnet } from '@/core/wagmi';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { useClipboard } from '@/shared/hooks/useClipboard';
 
 export function BalanceRail() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
   const chainId = useChainId();
   const { switchChain, isPending: switching } = useSwitchChain();
-  const { data, isLoading } = useBalance({ address, chainId: arcTestnet.id });
+  const { data, isLoading } = useBalance({
+    address: auth.address as `0x${string}` | undefined,
+    chainId: arcTestnet.id,
+  });
+  const { copied, copy } = useClipboard();
 
-  if (!mounted || !isConnected || !address) return null;
+  if (!mounted || !auth.isAuthenticated || !auth.address) return null;
 
-  const onArc = chainId === arcTestnet.id;
+  // Circle identity wallets live on Arc; they have no concept of a "current
+  // chain" the way a wagmi-connected wallet does. Bridging into Arc from
+  // another chain still works for them: they receive USDC at this address
+  // via the in-app bridge (with a web3 wallet on the source chain) or any
+  // external bridge. The "Switch to Arc" affordance only makes sense for
+  // wagmi users whose connected wallet is on the wrong chain.
+  const isWeb3 = auth.method === 'web3';
+  const onArc = !isWeb3 || chainId === arcTestnet.id;
   const human = data ? formatUnits(data.value, data.decimals) : null;
+  const address = auth.address;
 
   return (
     <div className="flex items-center gap-2 text-[12px]">
@@ -54,14 +68,20 @@ export function BalanceRail() {
         </button>
       )}
       <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">
-        {isLoading || !human ? '—' : formatUsdc(human, { withSuffix: false })}
+        {isLoading || !human ? '-' : formatUsdc(human, { withSuffix: false })}
       </span>
       <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
         USDC
       </span>
-      <span className="mono text-[10px] tabular-nums text-[var(--color-ink-faint)]">
-        {shortAddress(address)}
-      </span>
+      <button
+        type="button"
+        onClick={() => copy(address)}
+        title={copied ? 'Copied' : `Click to copy ${address}`}
+        aria-label={`Copy address ${address}`}
+        className="mono text-[10px] tabular-nums text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors"
+      >
+        {copied ? 'Copied' : shortAddress(address)}
+      </button>
     </div>
   );
 }

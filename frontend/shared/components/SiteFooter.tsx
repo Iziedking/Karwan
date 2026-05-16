@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
@@ -13,7 +13,7 @@ export function SiteFooter() {
   return (
     <footer className="bg-[var(--lp-light)] text-[var(--lp-dark)]">
       <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] pt-[clamp(40px,6vw,80px)] pb-[clamp(28px,4vw,52px)]">
-        {/* Inner card — asymmetric corners like the landing CTA pills, chunky shadow. */}
+        {/* Inner card. asymmetric corners like the landing CTA pills, chunky shadow. */}
         <div
           className="bg-[var(--lp-card)] p-7 md:p-10 lg:p-14"
           style={{
@@ -26,7 +26,7 @@ export function SiteFooter() {
           }}
         >
           <div className="grid lg:grid-cols-[1.1fr_2fr] gap-10 lg:gap-16">
-            {/* LEFT — logo block, editorial */}
+            {/* LEFT. logo block, editorial */}
             <div className="space-y-6">
               <Link href="/" className="inline-flex items-center gap-3 group">
                 <span
@@ -54,7 +54,7 @@ export function SiteFooter() {
               <SectionTag>BUILT FOR THE TRADE LANE</SectionTag>
             </div>
 
-            {/* RIGHT — three columns of links */}
+            {/* RIGHT. three columns of links */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-10">
               <FooterCol title="PRODUCT">
                 <FooterLink href="/buyer">Buyer desk</FooterLink>
@@ -103,7 +103,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Heroic wordmark — closes the page like a Phantom move */}
+        {/* Heroic wordmark. closes the page like a Phantom move */}
         <div className="mt-12 lg:mt-16">
           <p className="text-center mono text-[10px] uppercase tracking-[0.22em] text-[var(--lp-text-muted)]">
             [:settle in real time:]

@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type ChainEvent } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -17,7 +17,7 @@ export interface AppNotification {
   /// /deals/[id].
   href: string;
   /// True for events that warrant a toast popup in addition to the bell entry.
-  /// Reserved for the highest-signal ones — a buyer match landing, a cancel
+  /// Reserved for the highest-signal ones. a buyer match landing, a cancel
   /// proposal arriving, an expired brief. The rest live quietly in the bell.
   toast?: boolean;
 }
@@ -26,7 +26,7 @@ const STORAGE_PREFIX = 'karwan:notifications:';
 const MAX_STORED = 30;
 
 // Events worth bubbling into the bell. Split into agent-deal (route to
-// /jobs/[id]) and direct-deal (route to /deals/[id]) — same data model after
+// /jobs/[id]) and direct-deal (route to /deals/[id]). same data model after
 // match approval, but the URL differs before that.
 const MANAGED_TYPES = new Set([
   'deal.matched',
@@ -164,7 +164,9 @@ export function subscribeToToasts(fn: ToastListener) {
 }
 
 export function useNotifications() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [hydratedFor, setHydratedFor] = useState<string | null>(null);
   // jobIds the user is a party to, tracked across SSE so we don't miss events

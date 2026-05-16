@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { api, type DirectDeal } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -16,7 +16,7 @@ interface TickerCard {
 
 /// Public evidence ticker. Builds one card per deal based on its terminal state
 /// or its last meaningful transition, then loops them horizontally as a Phantom-
-/// style sliding track. The aim is "trades are happening", not action — cards
+/// style sliding track. The aim is "trades are happening", not action. cards
 /// don't link anywhere. Pauses on hover so a passing eye can read a card.
 export function NetworkTicker() {
   const [deals, setDeals] = useState<DirectDeal[] | null>(null);
@@ -79,7 +79,7 @@ export function NetworkTicker() {
     return out.sort((a, b) => b.at - a.at).slice(0, 14);
   }, [deals]);
 
-  // Brand fallback when the feed is empty — keep the rail visible during the
+  // Brand fallback when the feed is empty. keep the rail visible during the
   // quiet hours rather than collapsing the section.
   const fallback: TickerCard[] = [
     { jobId: '0x', kind: 'opened', actor: '0x0000', counterparty: '0x0000', amountUsdc: '50', at: 0 },

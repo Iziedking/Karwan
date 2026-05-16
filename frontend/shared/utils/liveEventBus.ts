@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { api, type ChainEvent } from '@/core/api';
 
 // All named SSE event types the backend may emit. Adding a new type means
@@ -78,7 +78,7 @@ function ensureSource() {
       const parsed = JSON.parse(e.data) as ChainEvent;
       for (const h of subscribers) h(parsed);
     } catch {
-      /* malformed payload — ignore */
+      /* malformed payload. ignore */
     }
   };
   openHandler = onMessage;

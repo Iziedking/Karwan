@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import type { ChainEvent } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
@@ -104,7 +104,7 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
     const code = String(payload.reason);
     out.push({ key: 'reason', label: 'Reason', value: reasonLabel(code) });
   }
-  // Hide raw scope/message chips from end users — they're for debug logs only.
+  // Hide raw scope/message chips from end users. they're for debug logs only.
   if (payload.amountUsdc != null) {
     out.push({ key: 'amount', label: 'Amount', value: `${payload.amountUsdc} USDC` });
   }

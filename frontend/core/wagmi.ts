@@ -1,4 +1,4 @@
-import { defineChain, fallback } from 'viem';
+﻿import { defineChain, fallback } from 'viem';
 import { baseSepolia, sepolia } from 'viem/chains';
 import { http, createConfig } from 'wagmi';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
@@ -28,7 +28,7 @@ const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? 'karwa
 
 // Hardened RPC pools for the source chains. The default viem URLs
 // (sepolia.base.org / rpc.sepolia.org) rate-limit aggressively and 429 under
-// any real load — bridge balance/allowance reads were failing at 2s. Stack
+// any real load. bridge balance/allowance reads were failing at 2s. Stack
 // publicnode + drpc + the canonical default with `fallback` so a single
 // flaky provider doesn't kill the bridge. Override per environment via
 // NEXT_PUBLIC_BASE_SEPOLIA_RPC / NEXT_PUBLIC_SEPOLIA_RPC.

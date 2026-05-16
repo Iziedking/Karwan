@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { HeroFlow } from '@/features/activity/components/HeroFlow';
 import { PartnerLogos } from '@/shared/components/PartnerLogos';
@@ -12,7 +12,7 @@ export default function HomePage() {
     <div className="-mt-10 -mb-10">
       <StatsTicker />
 
-      {/* HERO — dark */}
+      {/* HERO. dark */}
       <Band
         tone="dark"
         overlay={
@@ -57,7 +57,7 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* ECOSYSTEM — light */}
+      {/* ECOSYSTEM. light */}
       <Band tone="light" compact>
         <div className="space-y-6">
           <SectionTag>BUILT ON</SectionTag>
@@ -65,7 +65,7 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* DIRECT DEALS — light */}
+      {/* DIRECT DEALS. light */}
       <Band tone="light">
         <SectionTag>DIRECT DEALS</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
@@ -73,7 +73,7 @@ export default function HomePage() {
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
           You already agreed with someone, on X, Discord, anywhere. Name their wallet, set the
-          amount and a first-release slice, and the escrow is ready. No auction, no waiting.
+          amount and a first-release slice, and the escrow is ready. No auction needed.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
@@ -89,7 +89,7 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* MANAGED DEALS — dark */}
+      {/* MANAGED DEALS. dark */}
       <Band tone="dark">
         <SectionTag tone="dark">MANAGED DEALS</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
@@ -115,7 +115,7 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* THE SPINE — light */}
+      {/* THE SPINE. light */}
       <Band tone="light">
         <SectionTag>THE SETTLEMENT SPINE</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
@@ -149,7 +149,7 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* FINAL CTA — dark */}
+      {/* FINAL CTA. dark */}
       <Band tone="dark" className="text-center">
         <div className="mx-auto max-w-2xl space-y-6">
           <SectionTag tone="dark">

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
@@ -24,7 +24,9 @@ import { shortAddress } from '@/shared/utils/format';
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export default function BuyerPage() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const { agents, activated } = useActivation();
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');

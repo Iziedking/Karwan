@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -42,7 +42,9 @@ const STEPS = [
 ];
 
 export default function SellerPage() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const { activated, agents } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
@@ -119,7 +121,7 @@ export default function SellerPage() {
         </div>
       </Band>
 
-      {/* PENDING MATCHES — shared component, renders nothing when empty. */}
+      {/* PENDING MATCHES. shared component, renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Your bid matched" />
 
       {/* HOW IT WORKS */}

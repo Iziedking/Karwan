@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type TelegramStatus } from '@/core/api';
 
@@ -37,7 +37,7 @@ export function useTelegramLink(address?: string): UseTelegramLinkResult {
         setDeepLink(null);
       }
     } catch {
-      /* ignore — keep last known status */
+      /* ignore. keep last known status */
     }
   }, [address]);
 

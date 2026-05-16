@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -206,7 +206,7 @@ export function AgentWithdrawCard({
                     </span>
                     <span className="inline-flex items-baseline gap-1">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
-                        {o.address ? (human ?? '—') : '—'}
+                        {o.address ? (human ?? '-') : '-'}
                       </span>
                       <span className="mono text-[9px] uppercase tracking-[0.14em] leading-none text-[var(--lp-text-muted)]">
                         USDC
@@ -240,7 +240,7 @@ export function AgentWithdrawCard({
               disabled={!balHuman}
               className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60"
             >
-              {balHuman ? `${formatUsdc(balHuman, { withSuffix: false })} available` : '—'}
+              {balHuman ? `${formatUsdc(balHuman, { withSuffix: false })} available` : '-'}
             </button>
           </div>
           <div className="mt-2 flex items-baseline gap-3">

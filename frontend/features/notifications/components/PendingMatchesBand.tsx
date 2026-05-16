@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
 import { api, type MatchProposal } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
 import {
   Band,
   SectionTag,
@@ -12,7 +12,7 @@ import {
 } from '@/shared/components/Bands';
 
 interface Props {
-  /// Tone of the surrounding band — light for cream pages (/app, /profile),
+  /// Tone of the surrounding band. light for cream pages (/app, /profile),
   /// dark for routes that drop this between dark sections.
   tone?: 'light' | 'dark';
   /// Override headline copy. Defaults to "Your bid matched." for the seller
@@ -25,11 +25,13 @@ interface Props {
 /// pending match from anywhere. Polls every 10s; replaces with the SSE-driven
 /// notifications stream once task #34 lands.
 export function PendingMatchesBand({ tone = 'light', headline }: Props) {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isAuthed = auth.isAuthenticated;
   const [matches, setMatches] = useState<MatchProposal[]>([]);
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!isAuthed || !address) {
       setMatches([]);
       return;
     }
@@ -48,7 +50,7 @@ export function PendingMatchesBand({ tone = 'light', headline }: Props) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [address, isConnected]);
+  }, [address, isAuthed]);
 
   if (matches.length === 0) return null;
 
@@ -203,15 +205,17 @@ function MatchRow({
   );
 }
 
-/// Compact inline variant — no Band wrapper. For embedding in existing layouts
+/// Compact inline variant. no Band wrapper. For embedding in existing layouts
 /// (e.g. inside another section on /profile or /app) where a full Band would
 /// be too heavy.
 export function PendingMatchesInline() {
-  const { address, isConnected } = useAccount();
+  const auth = useAuth();
+  const address = auth.address;
+  const isAuthed = auth.isAuthenticated;
   const [matches, setMatches] = useState<MatchProposal[]>([]);
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!isAuthed || !address) {
       setMatches([]);
       return;
     }
@@ -230,7 +234,7 @@ export function PendingMatchesInline() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [address, isConnected]);
+  }, [address, isAuthed]);
 
   if (matches.length === 0) return null;
 

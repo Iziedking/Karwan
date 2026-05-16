@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type MatchProposal } from '@/core/api';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -13,7 +13,7 @@ interface Props {
 
 export function MatchBanner({ proposal, onChange }: Props) {
   const router = useRouter();
-  const { address } = useAccount();
+  const { address } = useAuth();
   const [busy, setBusy] = useState<'approve' | 'decline' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDeclineReason, setShowDeclineReason] = useState(false);
@@ -100,7 +100,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
     spammy: 'Risk flag · counterparty unusually active',
   };
 
-  // Pending — full proposal surface.
+  // Pending. full proposal surface.
   return (
     <BannerFrame tone="accent" eyebrow="Match found · awaiting approval">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">

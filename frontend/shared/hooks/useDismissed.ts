@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from './useAuth';
 
 /// Per-wallet localStorage dismissal set. Lets users hide terminal-state rows
 /// (cancelled / settled jobs they no longer want surfaced) without touching
@@ -13,7 +13,7 @@ export function useDismissed(namespace: string): {
   dismissed: Set<string>;
   dismiss: (id: string) => void;
 } {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const key = address
     ? `karwan.dismiss.${namespace}.${address.toLowerCase()}`
     : null;

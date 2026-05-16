@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import {
@@ -37,7 +37,7 @@ interface Card {
 }
 
 export function ListingsBrowse() {
-  const { address } = useAccount();
+  const { address } = useAuth();
   const [listings, setListings] = useState<Listing[] | null>(null);
   const [briefs, setBriefs] = useState<MarketplaceBrief[] | null>(null);
   const [error, setError] = useState(false);
@@ -65,20 +65,26 @@ export function ListingsBrowse() {
   const cards = useMemo<Card[]>(() => {
     if (!listings || !briefs) return [];
     const a = address?.toLowerCase();
-    const offerCards: Card[] = listings.map((l) => ({
-      side: 'offer',
-      id: l.id,
-      href: `/listings/${l.id}`,
-      title: l.title,
-      body: l.description,
-      priceUsdc: l.askingPriceUsdc,
-      priceLabel: 'asking',
-      postedAt: l.postedAt,
-      partyShort: shortAddress(l.sellerUser),
-      partyRole: 'SELLER',
-      partyIsYou: !!a && l.sellerUser.toLowerCase() === a,
-      matched: !!l.matchedAt,
-    }));
+    const now = Date.now();
+    // Hide terminal listings from the public marketplace so cancelled or
+    // expired offers don't clutter the discovery surface. Owners still see
+    // them on their own /seller dashboard.
+    const offerCards: Card[] = listings
+      .filter((l) => !l.cancelledAt && (l.expiresAt ?? Infinity) > now)
+      .map((l) => ({
+        side: 'offer',
+        id: l.id,
+        href: `/listings/${l.id}`,
+        title: l.title,
+        body: l.description,
+        priceUsdc: l.askingPriceUsdc,
+        priceLabel: 'asking',
+        postedAt: l.postedAt,
+        partyShort: shortAddress(l.sellerUser),
+        partyRole: 'SELLER',
+        partyIsYou: !!a && l.sellerUser.toLowerCase() === a,
+        matched: !!l.matchedAt,
+      }));
     const briefCards: Card[] = briefs.map((b) => {
       const title =
         (b.briefText.split('\n')[0] || b.briefText).slice(0, 80) ||
@@ -137,7 +143,7 @@ export function ListingsBrowse() {
           </HeroHeadline>
         </div>
         <p className="fade-up fade-up-2 mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
-          Live offers and live briefs on Karwan. Your agent watches both sides for you — when
+          Live offers and live briefs on Karwan. Your agent watches both sides for you. when
           something matches your profile, it lands in your bell and your Telegram.
         </p>
       </Band>

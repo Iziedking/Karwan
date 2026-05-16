@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { cn } from '@/shared/utils/cn';
+import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
 
 export function PostJobForm() {
   const router = useRouter();
@@ -38,6 +39,12 @@ export function PostJobForm() {
   }, [submitting]);
 
   const [insufficientBalance, setInsufficientBalance] = useState(false);
+  // Symmetric check to the seller form. If a buyer brief reads as an offer
+  // ("I sell..."), warn before posting so it doesn't end up on the wrong
+  // surface. Brief has no title field, so we pass the brief itself as both
+  // title + body. the regex set handles either case.
+  const [intentWarned, setIntentWarned] = useState(false);
+  const intentCheck = looksLikeWrongSide(brief, '', 'request');
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +55,10 @@ export function PostJobForm() {
       typeof deadlineValue !== 'number'
     )
       return;
+    if (intentCheck.wrong && !intentWarned) {
+      setIntentWarned(true);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     setInsufficientBalance(false);
@@ -145,7 +156,7 @@ export function PostJobForm() {
 
   return (
     <form onSubmit={submit} className="space-y-7">
-      {/* DEAL PREVIEW — big editorial display */}
+      {/* DEAL PREVIEW. big editorial display */}
       <div
         className="relative overflow-hidden"
         style={{
@@ -221,7 +232,10 @@ export function PostJobForm() {
         >
           <textarea
             value={brief}
-            onChange={(e) => setBrief(e.target.value)}
+            onChange={(e) => {
+              setBrief(e.target.value);
+              setIntentWarned(false);
+            }}
             rows={4}
             disabled={submitting}
             placeholder="e.g. Spanish → Arabic legal translation. 14 pages. Sworn translator preferred."
@@ -297,6 +311,40 @@ export function PostJobForm() {
           </FormLabel>
         </div>
       </FieldSection>
+
+      {/* INTENT WARNING. surfaces if the brief reads as a seller offer
+          ("I sell..."). User can click submit again to post anyway. */}
+      {intentCheck.wrong && intentWarned && (
+        <div
+          className="px-4 py-3"
+          style={{
+            background: 'rgba(178, 84, 37, 0.10)',
+            border: '1px solid rgba(178, 84, 37, 0.35)',
+            color: '#b25425',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
+            [:WAIT. IS THIS A BRIEF OR A LISTING?:]
+          </p>
+          <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
+            This reads like something you <span className="font-bold">offer</span>, not something
+            you <span className="font-bold">need</span>. Briefs are for buyers; listings (posted
+            from the seller desk) are for sellers. If you meant to sell a service,{' '}
+            <Link
+              href="/seller"
+              className="underline underline-offset-2 hover:opacity-80"
+            >
+              post a listing instead
+            </Link>
+            . Click <span className="font-bold">Post on chain</span> again to post the brief
+            as-is.
+          </p>
+        </div>
+      )}
 
       {/* SUBMIT */}
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">

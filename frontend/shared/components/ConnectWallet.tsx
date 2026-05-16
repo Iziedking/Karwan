@@ -1,20 +1,26 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoginModal } from './LoginModal';
+import { CircleAccountModal } from './CircleAccountModal';
 
 /// Top-nav entry for authentication. Three rendered states:
-///   1. Loading (auth status still resolving) — hidden placeholder.
-///   2. Authenticated via Circle (email + passkey) — pill shows email +
+///   1. Loading (auth status still resolving). hidden placeholder.
+///   2. Authenticated via Circle (email + passkey). pill shows email +
 ///      a small "sign out" affordance.
-///   3. Authenticated via web3 — defers to RainbowKit's ConnectButton so
+///   3. Authenticated via web3. defers to RainbowKit's ConnectButton so
 ///      the wallet menu + chain switcher stay intact.
-///   4. Not authenticated — a single "Log in" pill that opens LoginModal
+///   4. Not authenticated. a single "Log in" pill that opens LoginModal
 ///      with both paths visible.
 export function ConnectWalletButton() {
   const auth = useAuth();
-  const [open, setOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  // Backward-compat: old code referenced a single `open` state. Keep one
+  // alias so the logged-out branch reads as before.
+  const open = loginOpen;
+  const setOpen = setLoginOpen;
 
   if (auth.isLoading) {
     return (
@@ -29,13 +35,14 @@ export function ConnectWalletButton() {
   }
 
   // Circle-session users: render our own pill since RainbowKit doesn't know
-  // about them. Includes a sign-out affordance.
+  // about them. Clicking opens our Karwan-styled account modal (copy address,
+  // sign out). RainbowKit's account modal isn't reachable for these users.
   if (auth.method === 'circle' && auth.address) {
     return (
-      <div className="inline-flex items-center gap-2">
+      <>
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => setAccountOpen(true)}
           suppressHydrationWarning
           title={auth.email ?? auth.address}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
@@ -49,20 +56,12 @@ export function ConnectWalletButton() {
             {auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
           </span>
         </button>
-        <button
-          type="button"
-          onClick={() => auth.signOut()}
-          title="Sign out"
-          className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
-        >
-          Sign out
-        </button>
-        <LoginModal open={open} onClose={() => setOpen(false)} />
-      </div>
+        <CircleAccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
+      </>
     );
   }
 
-  // Web3 users: keep RainbowKit's flow — it handles chain mismatch + wallet
+  // Web3 users: keep RainbowKit's flow. it handles chain mismatch + wallet
   // menu out of the box. Only the disconnected slot is overridden to launch
   // our unified login modal instead of RainbowKit's wallet picker, so the
   // email path is visible alongside.

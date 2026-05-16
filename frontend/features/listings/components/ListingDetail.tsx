@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
-import { api, type Listing } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { api, type Listing, type ListingStatus } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -18,29 +19,53 @@ import {
 type FetchState = 'loading' | 'ok' | 'error';
 
 export function ListingDetail({ listingId }: { listingId: string }) {
-  const { address, isConnected } = useAccount();
+  const router = useRouter();
+  const auth = useAuth();
+  const address = auth.address;
+  const isConnected = auth.isAuthenticated;
   const [listing, setListing] = useState<Listing | null>(null);
   const [floor, setFloor] = useState<number | null>(null);
+  const [status, setStatus] = useState<ListingStatus>('open');
   const [fetchState, setFetchState] = useState<FetchState>('loading');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelledFetch = false;
     setFetchState('loading');
     api
-      .getListing(listingId, address)
+      .getListing(listingId, address ?? undefined)
       .then((r) => {
-        if (cancelled) return;
+        if (cancelledFetch) return;
         setListing(r.listing);
         setFloor(r.floor ?? null);
+        setStatus(r.status);
         setFetchState('ok');
       })
       .catch(() => {
-        if (!cancelled) setFetchState('error');
+        if (!cancelledFetch) setFetchState('error');
       });
     return () => {
-      cancelled = true;
+      cancelledFetch = true;
     };
   }, [listingId, address]);
+
+  async function handleCancel() {
+    if (!address || !listing) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const r = await api.cancelListing(listing.id, address);
+      setListing(r.listing);
+      setStatus('cancelled');
+      setConfirmCancel(false);
+    } catch (err) {
+      setCancelError((err as Error).message);
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   if (fetchState === 'loading') {
     return (
@@ -82,13 +107,29 @@ export function ListingDetail({ listingId }: { listingId: string }) {
 
   const viewerIsOwner =
     !!address && address.toLowerCase() === listing.sellerUser.toLowerCase();
-  const matched = !!listing.matchedAt && !!listing.matchedJobId;
+  const matched = status === 'matched';
+  const isCancelled = status === 'cancelled';
+  const isExpired = status === 'expired';
+  const isOpen = status === 'open';
+  const isTerminal = isCancelled || isExpired || matched;
   // Floor is the seller agent's private steering value. Backend strips it
   // for non-owners; we double-check on the client so a misconfigured payload
   // can't leak it.
   const showFloor = viewerIsOwner && floor != null;
-  const statusLabel = matched ? 'Matched' : 'Open';
-  const statusTone = matched ? 'var(--lp-accent)' : '#b0b0b0';
+  const statusLabel = isCancelled
+    ? 'Cancelled'
+    : isExpired
+      ? 'Expired'
+      : matched
+        ? 'Matched'
+        : 'Open';
+  const statusTone = isCancelled
+    ? '#b03d3a'
+    : isExpired
+      ? '#6b6b6b'
+      : matched
+        ? 'var(--lp-accent)'
+        : '#b0b0b0';
   // Buyer-side CTA: pre-fill the new-deal form with this seller + asking price
   // so anyone reading a listing can open a direct deal without copy-paste.
   const buyerOfferHref = isConnected
@@ -202,11 +243,23 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       <Band tone="dark" compact>
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
           <div className="max-w-[42ch]">
-            <SectionTag tone="dark" dot={matched ? undefined : 'live'}>
-              {matched ? 'MATCHED' : viewerIsOwner ? 'SCANNING' : 'OPEN'}
+            <SectionTag tone="dark" dot={isTerminal ? undefined : 'live'}>
+              {isCancelled
+                ? 'CANCELLED'
+                : isExpired
+                  ? 'EXPIRED'
+                  : matched
+                    ? 'MATCHED'
+                    : viewerIsOwner
+                      ? 'SCANNING'
+                      : 'OPEN'}
             </SectionTag>
             <HeroHeadline size="md">
-              {matched ? (
+              {isCancelled ? (
+                <>You called it off<Punc>.</Punc></>
+              ) : isExpired ? (
+                <>Listing window closed<Punc>.</Punc></>
+              ) : matched ? (
                 <>Brief landed<Punc>.</Punc></>
               ) : viewerIsOwner ? (
                 <>Agent is watching<Punc>.</Punc></>
@@ -214,6 +267,11 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 <>Open a deal<Punc>.</Punc></>
               )}
             </HeroHeadline>
+            {isOpen && listing.expiresAt && (
+              <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45">
+                Window closes {relativeTime(listing.expiresAt)}
+              </p>
+            )}
           </div>
           <div
             className="overflow-hidden p-6 md:p-7"
@@ -226,7 +284,17 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               borderBottomRightRadius: 5,
             }}
           >
-            {matched ? (
+            {isCancelled ? (
+              <p className="text-[14px] leading-relaxed text-white/70">
+                You cancelled this listing. It no longer scans for matches and won&apos;t accept
+                bids. Post a new listing if you want to offer again.
+              </p>
+            ) : isExpired ? (
+              <p className="text-[14px] leading-relaxed text-white/70">
+                The matching window has closed. No bid landed in time. Post a new listing to put
+                the offer back in front of buyer agents.
+              </p>
+            ) : matched ? (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
                   Your agent bid on a matching brief. The auction continues on the job page.
@@ -234,11 +302,67 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 <CTAPill href={`/jobs/${listing.matchedJobId}`}>Open matched job</CTAPill>
               </div>
             ) : viewerIsOwner ? (
-              <p className="text-[14px] leading-relaxed text-white/70">
-                The seller agent watches every brief that lands. When one matches this listing
-                and the price gap is crossable, it bids automatically. You will get a
-                notification the moment that happens.
-              </p>
+              <div className="space-y-4">
+                <p className="text-[14px] leading-relaxed text-white/70">
+                  The seller agent watches every brief that lands. When one matches this listing
+                  and the price gap is crossable, it bids automatically. You will get a
+                  notification the moment that happens.
+                </p>
+                {!confirmCancel ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmCancel(true)}
+                    className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-white/55 hover:text-white underline underline-offset-2"
+                  >
+                    Cancel this listing
+                  </button>
+                ) : (
+                  <div
+                    className="px-4 py-3 space-y-3"
+                    style={{
+                      background: 'rgba(176, 61, 58, 0.12)',
+                      border: '1px solid rgba(176, 61, 58, 0.35)',
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    <p className="text-[13px] text-white/85 leading-snug">
+                      Cancel this listing? It drops out of every match scanner immediately.
+                      Cannot be undone. Post fresh if you change your mind.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="mono text-[11px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
+                        style={{
+                          background: '#b03d3a',
+                          borderTopLeftRadius: 8,
+                          borderTopRightRadius: 8,
+                          borderBottomLeftRadius: 8,
+                          borderBottomRightRadius: 2,
+                        }}
+                      >
+                        {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmCancel(false)}
+                        disabled={cancelling}
+                        className="mono text-[11px] uppercase tracking-[0.10em] text-white/70 hover:text-white"
+                      >
+                        Keep listed
+                      </button>
+                    </div>
+                    {cancelError && (
+                      <p className="mono text-[11px] text-[#ff8a7a]">{cancelError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">

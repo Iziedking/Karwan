@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
@@ -43,7 +43,7 @@ export interface BuyerJob {
   /// grace window so the user sees the terminal state before the row drops.
   cancelledAt?: number;
   /// When the brief passed its deadline without a match (epoch ms). The page
-  /// renders read-only when set — the auction is over.
+  /// renders read-only when set. the auction is over.
   expiredAt?: number;
   bids: BuyerBid[];
   lastCounterPriceBySeller: Record<string, string>;
@@ -171,6 +171,8 @@ export interface MarketplaceBrief {
   postedAt: number;
 }
 
+export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
+
 export interface Listing {
   id: string;
   sellerUser: string;
@@ -180,8 +182,13 @@ export interface Listing {
   askingPriceUsdc: number;
   negotiationMaxDecreasePct?: number;
   postedAt: number;
+  /// Unix-ms when the listing window closes. Past this, listingStatus is
+  /// 'expired' and the backend drops it from match scanners.
+  expiresAt: number;
   matchedAt?: number;
   matchedJobId?: string;
+  /// Set when the seller cancels their own listing pre-match.
+  cancelledAt?: number;
 }
 
 export interface MatchProposal {
@@ -311,15 +318,28 @@ export const api = {
       `/api/jobs/${jobId}/decline-match`,
       { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
     ),
+  cancelBrief: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string }>(
+      `/api/jobs/${jobId}/cancel`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
   listingsForSeller: (address: string) =>
     json<{ listings: Listing[] }>(`/api/listings/mine?address=${address}`),
   getListing: (id: string, caller?: string) => {
     const q = caller ? `?caller=${caller}` : '';
-    return json<{ listing: Listing; floor?: number; viewerIsOwner?: boolean }>(
-      `/api/listings/${id}${q}`,
-    );
+    return json<{
+      listing: Listing;
+      floor?: number;
+      viewerIsOwner?: boolean;
+      status: ListingStatus;
+    }>(`/api/listings/${id}${q}`);
   },
+  cancelListing: (id: string, caller: string) =>
+    json<{ listing: Listing }>(`/api/listings/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ caller }),
+    }),
   marketplaceBriefs: () =>
     json<{ briefs: MarketplaceBrief[] }>(`/api/jobs/marketplace`),
   postListing: (body: {
@@ -328,6 +348,7 @@ export const api = {
     description: string;
     askingPriceUsdc: number;
     negotiationMaxDecreasePct?: number;
+    ttlDays?: number;
   }) =>
     json<{ listing: Listing }>('/api/listings', {
       method: 'POST',
@@ -401,6 +422,16 @@ export const api = {
     json<{ user: { address: string; email: string; method: 'circle' } }>(
       '/api/auth/login/verify',
       { method: 'POST', body: JSON.stringify({ email, response }) },
+    ),
+  authOtpRequest: (email: string) =>
+    json<{ sent: boolean; devCode?: string }>('/api/auth/otp/request', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  authOtpVerify: (email: string, code: string) =>
+    json<{ user: { address: string; email: string; method: 'circle' } }>(
+      '/api/auth/otp/verify',
+      { method: 'POST', body: JSON.stringify({ email, code }) },
     ),
   activity: (limit = 100, jobId?: string, caller?: string) => {
     const q = new URLSearchParams();

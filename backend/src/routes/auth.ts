@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { createHash } from 'node:crypto';
+import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -42,6 +42,45 @@ interface PendingChallenge {
 }
 const pending = new Map<string, PendingChallenge>();
 const PENDING_TTL_MS = 5 * 60 * 1000;
+
+// Email OTP fallback for devices without a WebAuthn authenticator. Hashed
+// 6-digit codes keyed by email, with a 10-minute TTL and an attempt counter
+// that blocks brute force after 5 wrong tries. Same pattern as the WebAuthn
+// challenge map; production swaps both to Redis.
+interface PendingOtp {
+  /// sha256(code + email) so memory inspection of the process doesn't leak
+  /// plaintext codes. Kept short-lived anyway.
+  codeHash: string;
+  email: string;
+  expiresAt: number;
+  attempts: number;
+}
+const otps = new Map<string, PendingOtp>();
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+
+function hashCode(code: string, email: string): string {
+  return createHash('sha256').update(`${code}:${email}`).digest('hex');
+}
+
+function purgeStaleOtps() {
+  const now = Date.now();
+  for (const [k, v] of otps.entries()) {
+    if (v.expiresAt < now) otps.delete(k);
+  }
+}
+
+/// Stub email sender. Logs the code to the backend console with a clear
+/// [OTP] prefix so devs can copy it in dev. Production swaps this for a
+/// transactional sender (Resend / SendGrid) when #58 lands. In dev the code
+/// also rides back on the request response so the modal can pre-fill it.
+async function sendOtpEmail(email: string, code: string): Promise<void> {
+  logger.info({ email, code }, '[OTP] code for login (replace with email sender)');
+}
+
+function isDev(): boolean {
+  return process.env.NODE_ENV !== 'production';
+}
 
 function purgeStale() {
   const now = Date.now();
@@ -353,6 +392,127 @@ authRoutes.post('/login/verify', async (c) => {
     email: user.email,
   });
   logger.info({ email: user.email, address: user.address }, 'circle user signed in');
+  return c.json({
+    user: { address: user.address, email: user.email, method: 'circle' as const },
+  });
+});
+
+// ---------- EMAIL OTP (passkey fallback) ----------
+
+const otpRequestSchema = z.object({ email: emailSchema });
+
+/// Issues a one-time 6-digit code for the email. Stub sender logs to console
+/// in dev; production wires Resend / SendGrid via #58. Works for both new
+/// and returning users; the verify step decides whether to create or log in.
+authRoutes.post('/otp/request', async (c) => {
+  let body;
+  try {
+    body = otpRequestSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  purgeStaleOtps();
+  const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+  otps.set(body.email, {
+    codeHash: hashCode(code, body.email),
+    email: body.email,
+    expiresAt: Date.now() + OTP_TTL_MS,
+    attempts: 0,
+  });
+  try {
+    await sendOtpEmail(body.email, code);
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, email: body.email }, 'otp send failed');
+    // Keep going. dev sender doesn't fail; production sender failures
+    // surface as a generic "couldn't send" so the user can retry.
+  }
+  return c.json({
+    sent: true,
+    // Returned only in dev so the user can autofill from the response panel
+    // when running locally without an email sender. Never enabled in prod.
+    ...(isDev() ? { devCode: code } : {}),
+  });
+});
+
+const otpVerifySchema = z.object({
+  email: emailSchema,
+  code: z.string().trim().regex(/^\d{6}$/, 'code must be 6 digits'),
+});
+
+authRoutes.post('/otp/verify', async (c) => {
+  let body;
+  try {
+    body = otpVerifySchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const entry = otps.get(body.email);
+  if (!entry) return c.json({ error: 'no code pending for this email' }, 400);
+  if (entry.expiresAt < Date.now()) {
+    otps.delete(body.email);
+    return c.json({ error: 'code expired, request a fresh one' }, 400);
+  }
+  entry.attempts += 1;
+  if (entry.attempts > OTP_MAX_ATTEMPTS) {
+    otps.delete(body.email);
+    return c.json({ error: 'too many wrong attempts, request a fresh code' }, 429);
+  }
+  const expected = Buffer.from(entry.codeHash, 'hex');
+  const got = Buffer.from(hashCode(body.code, body.email), 'hex');
+  if (expected.length !== got.length || !timingSafeEqual(expected, got)) {
+    return c.json({ error: 'wrong code' }, 400);
+  }
+  otps.delete(body.email);
+
+  // Resolve user. existing email logs in straight away; first-time email
+  // provisions a Circle identity wallet so OTP and passkey share the same
+  // account shape downstream. Without this an OTP-only user couldn't add a
+  // passkey later because the WebAuthn registration path requires the row.
+  let user = getUserByEmail(body.email);
+  if (!user) {
+    let identity;
+    try {
+      identity = await provisionUserIdentityWallet(emailHash(body.email));
+    } catch (err) {
+      logger.error(
+        { err: (err as Error).message, email: body.email },
+        'identity wallet provisioning failed during OTP signup',
+      );
+      return c.json({ error: 'identity wallet provisioning failed' }, 502);
+    }
+    try {
+      user = createUser({
+        email: body.email,
+        address: identity.address,
+        circleIdentityWalletId: identity.walletId,
+        // Zero-credential row. user can register a passkey later; in the
+        // meantime OTP is their only proof method.
+        credential: {
+          credentialId: '__otp_only_placeholder__',
+          publicKey: '',
+          counter: 0,
+          createdAt: Date.now(),
+        },
+      });
+      // The placeholder credential isn't a real passkey, so strip it after
+      // create. The row stays valid (address + email) and a later passkey
+      // registration appends a real credential.
+      user.credentials = [];
+    } catch (err) {
+      logger.error(
+        { err: (err as Error).message, email: body.email },
+        'createUser failed during OTP signup',
+      );
+      return c.json({ error: 'account creation failed; please retry' }, 500);
+    }
+  }
+
+  setSessionCookie(c, {
+    address: user.address,
+    method: 'circle',
+    email: user.email,
+  });
+  logger.info({ email: user.email, address: user.address }, 'circle user signed in via OTP');
   return c.json({
     user: { address: user.address, email: user.email, method: 'circle' as const },
   });

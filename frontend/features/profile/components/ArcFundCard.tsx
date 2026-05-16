@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -28,7 +28,7 @@ const TONE_COLOR = {
 } as const;
 
 function formatBalance(data: { value: bigint; decimals: number } | undefined): string {
-  if (!data) return '—';
+  if (!data) return '-';
   return formatUsdc(formatUnits(data.value, data.decimals), { withSuffix: false });
 }
 
@@ -283,7 +283,7 @@ export function ArcFundCard({
                     </span>
                     <span className="inline-flex items-baseline gap-1">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
-                        {o.address ? (balHuman ?? '—') : '—'}
+                        {o.address ? (balHuman ?? '-') : '-'}
                       </span>
                       <span className="mono text-[9px] uppercase tracking-[0.14em] leading-none text-[var(--lp-text-muted)]">
                         USDC
@@ -314,7 +314,7 @@ export function ArcFundCard({
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               Arc ·{' '}
-              {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '—'}
+              {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '-'}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-3">

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 
 export type ChainKey = 'arc' | 'base' | 'ethereum' | 'baseSepolia' | 'sepolia';
@@ -10,7 +10,7 @@ function normalize(k: ChainKey): 'arc' | 'base' | 'ethereum' {
 }
 
 /// Brand-coloured chain marks on rounded tiles. Ethereum is the real diamond,
-/// Base is its blue ring. Arc is a placeholder arc curve — swap in the real
+/// Base is its blue ring. Arc is a placeholder arc curve. swap in the real
 /// Arc logo here when it lands.
 export function ChainLogo({
   chain,
@@ -60,7 +60,7 @@ export function ChainLogo({
     );
   }
 
-  // Arc — render the literal brand mark from /public so we never drift from
+  // Arc. render the literal brand mark from /public so we never drift from
   // the real logo.
   return (
     // eslint-disable-next-line @next/next/no-img-element
