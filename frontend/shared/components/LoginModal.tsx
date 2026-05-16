@@ -24,6 +24,13 @@ export function LoginModal({ open, onClose }: Props) {
   const { refresh, isAuthenticated } = useAuth();
   const [tab, setTab] = useState<Tab>('wallet');
   const [mode, setMode] = useState<Mode>('login');
+  /// `passkey` is the default proof method when the browser supports it.
+  /// `otp` is the fallback (email code) for devices without WebAuthn or
+  /// users who'd rather paste a 6-digit code than do a biometric prompt.
+  const [proof, setProof] = useState<'passkey' | 'otp'>('passkey');
+  const [otpStage, setOtpStage] = useState<'request' | 'verify'>('request');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpDevHint, setOtpDevHint] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +40,14 @@ export function LoginModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setSupportsWebAuthn(browserSupportsWebAuthn());
+    setOtpStage('request');
+    setOtpCode('');
+    setOtpDevHint(null);
+    const supports = browserSupportsWebAuthn();
+    setSupportsWebAuthn(supports);
+    // Auto-fall-back to the OTP path when the browser has no WebAuthn at all
+    // (older Safari, some embedded webviews). Users can still toggle back.
+    if (!supports) setProof('otp');
     api
       .authStatus()
       .then((r) => setPasskeyConfigured(r.configured))
@@ -48,6 +62,54 @@ export function LoginModal({ open, onClose }: Props) {
 
   if (!open) return null;
   if (typeof document === 'undefined') return null;
+
+  async function handleRequestOtp(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!EMAIL_RE.test(trimmed)) {
+      setError('Enter a valid email.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.authOtpRequest(trimmed);
+      setOtpStage('verify');
+      setOtpCode('');
+      // In dev the backend can return the code so the user can autofill it
+      // without checking the terminal. Production never returns this field.
+      setOtpDevHint(r.devCode ?? null);
+    } catch (err) {
+      const detail =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setError(detail || "Couldn't send a code. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    const code = otpCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setError('Code is 6 digits.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.authOtpVerify(trimmed, code);
+      await refresh();
+      onClose();
+    } catch (err) {
+      const detail =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setError(detail || 'Code rejected.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handlePasskey(e: React.FormEvent) {
     e.preventDefault();
@@ -208,80 +270,223 @@ export function LoginModal({ open, onClose }: Props) {
             </div>
           )}
           {tab === 'passkey' && (
-            <form onSubmit={handlePasskey} className="space-y-4">
+            <div className="space-y-4">
               {passkeyConfigured === false && (
                 <p className="mono text-[11px] text-[#b25425] leading-snug">
-                  Passkey login is not configured on this backend. Use a wallet instead.
+                  Email login is not configured on this backend.
                 </p>
               )}
-              {supportsWebAuthn === false && (
-                <p className="mono text-[11px] text-[#b25425] leading-snug">
-                  This browser doesn&apos;t support passkeys. Try a different browser or use a
-                  wallet.
-                </p>
-              )}
-              <label className="block space-y-1.5">
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  Email
-                </span>
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email webauthn"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={busy}
-                  placeholder="you@example.com"
-                  className="form-input"
-                />
-              </label>
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div
-                  className="inline-flex p-1 gap-1"
-                  style={{
-                    background: 'var(--lp-dark)',
-                    borderTopLeftRadius: 8,
-                    borderTopRightRadius: 8,
-                    borderBottomLeftRadius: 8,
-                    borderBottomRightRadius: 2,
+
+              {/* Proof-method toggle. passkey first, OTP fallback. The active
+                  pill colour matches the lime accent so the two paths read
+                  as a single choice, not two competing CTAs. */}
+              <div
+                className="inline-flex p-1 gap-1 w-full"
+                style={{
+                  background: 'var(--lp-dark)',
+                  borderTopLeftRadius: 8,
+                  borderTopRightRadius: 8,
+                  borderBottomLeftRadius: 8,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                <ModePill
+                  active={proof === 'passkey'}
+                  onClick={() => {
+                    setProof('passkey');
+                    setError(null);
                   }}
                 >
-                  <ModePill active={mode === 'login'} onClick={() => setMode('login')}>
-                    Sign in
-                  </ModePill>
-                  <ModePill active={mode === 'register'} onClick={() => setMode('register')}>
-                    Create
-                  </ModePill>
-                </div>
-                <button
-                  type="submit"
-                  disabled={
-                    busy ||
-                    !email ||
-                    passkeyConfigured === false ||
-                    supportsWebAuthn === false
-                  }
-                  className="inline-flex items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
-                  style={{
-                    borderTopLeftRadius: 12,
-                    borderTopRightRadius: 12,
-                    borderBottomLeftRadius: 12,
-                    borderBottomRightRadius: 3,
+                  Passkey
+                </ModePill>
+                <ModePill
+                  active={proof === 'otp'}
+                  onClick={() => {
+                    setProof('otp');
+                    setOtpStage('request');
+                    setError(null);
                   }}
                 >
-                  {busy
-                    ? mode === 'register'
-                      ? 'Creating…'
-                      : 'Verifying…'
-                    : mode === 'register'
-                      ? 'Create →'
-                      : 'Sign in →'}
-                </button>
+                  Email code
+                </ModePill>
               </div>
+
+              {proof === 'passkey' && (
+                <form onSubmit={handlePasskey} className="space-y-4">
+                  {supportsWebAuthn === false && (
+                    <p className="mono text-[11px] text-[#b25425] leading-snug">
+                      This browser has no passkey support. Switch to Email code above.
+                    </p>
+                  )}
+                  <label className="block space-y-1.5">
+                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email webauthn"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={busy}
+                      placeholder="you@example.com"
+                      className="form-input"
+                    />
+                  </label>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div
+                      className="inline-flex p-1 gap-1"
+                      style={{
+                        background: 'var(--lp-dark)',
+                        borderTopLeftRadius: 8,
+                        borderTopRightRadius: 8,
+                        borderBottomLeftRadius: 8,
+                        borderBottomRightRadius: 2,
+                      }}
+                    >
+                      <ModePill active={mode === 'login'} onClick={() => setMode('login')}>
+                        Sign in
+                      </ModePill>
+                      <ModePill active={mode === 'register'} onClick={() => setMode('register')}>
+                        Create
+                      </ModePill>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={
+                        busy ||
+                        !email ||
+                        passkeyConfigured === false ||
+                        supportsWebAuthn === false
+                      }
+                      className="inline-flex items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                      style={{
+                        borderTopLeftRadius: 12,
+                        borderTopRightRadius: 12,
+                        borderBottomLeftRadius: 12,
+                        borderBottomRightRadius: 3,
+                      }}
+                    >
+                      {busy
+                        ? mode === 'register'
+                          ? 'Creating…'
+                          : 'Verifying…'
+                        : mode === 'register'
+                          ? 'Create →'
+                          : 'Sign in →'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {proof === 'otp' && otpStage === 'request' && (
+                <form onSubmit={handleRequestOtp} className="space-y-4">
+                  <label className="block space-y-1.5">
+                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                      Email
+                    </span>
+                    <input
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={busy}
+                      placeholder="you@example.com"
+                      className="form-input"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={busy || !email || passkeyConfigured === false}
+                    className="w-full inline-flex items-center justify-center gap-2 px-[18px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                    style={{
+                      borderTopLeftRadius: 12,
+                      borderTopRightRadius: 12,
+                      borderBottomLeftRadius: 12,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    {busy ? 'Sending…' : 'Send code →'}
+                  </button>
+                  <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
+                    A 6-digit code lands in your inbox. Works on any device.
+                  </p>
+                </form>
+              )}
+
+              {proof === 'otp' && otpStage === 'verify' && (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <p className="text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                    Code sent to <span className="mono text-[var(--lp-dark)]">{email}</span>.
+                    Check your inbox.
+                  </p>
+                  <label className="block space-y-1.5">
+                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                      6-digit code
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="\d{6}"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                      value={otpCode}
+                      onChange={(e) =>
+                        setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                      }
+                      disabled={busy}
+                      placeholder="000000"
+                      className="form-input mono text-[18px] tabular-nums tracking-[0.4em]"
+                      autoFocus
+                    />
+                  </label>
+                  {otpDevHint && (
+                    <p className="mono text-[10px] text-[var(--lp-text-muted)] leading-snug">
+                      [:DEV:] code is{' '}
+                      <button
+                        type="button"
+                        className="mono text-[var(--lp-dark)] underline"
+                        onClick={() => setOtpCode(otpDevHint)}
+                      >
+                        {otpDevHint}
+                      </button>
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpStage('request');
+                        setOtpCode('');
+                        setError(null);
+                      }}
+                      disabled={busy}
+                      className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
+                    >
+                      Resend
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={busy || otpCode.length !== 6}
+                      className="inline-flex items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                      style={{
+                        borderTopLeftRadius: 12,
+                        borderTopRightRadius: 12,
+                        borderBottomLeftRadius: 12,
+                        borderBottomRightRadius: 3,
+                      }}
+                    >
+                      {busy ? 'Verifying…' : 'Verify →'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
               {error && (
                 <p className="mono text-[11px] text-[#b25425] leading-snug">{error}</p>
               )}
-            </form>
+            </div>
           )}
         </div>
       </div>

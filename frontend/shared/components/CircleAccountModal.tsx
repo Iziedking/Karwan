@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcTestnet } from '@/core/wagmi';
@@ -35,6 +36,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
   }, [open, onClose, busy]);
 
   if (!open || !auth.address) return null;
+  if (typeof document === 'undefined') return null;
 
   const human = data ? formatUnits(data.value, data.decimals) : null;
   const address = auth.address;
@@ -49,9 +51,9 @@ export function CircleAccountModal({ open, onClose }: Props) {
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
       onClick={() => !busy && onClose()}
     >
@@ -193,6 +195,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
           Send testnet USDC to this address to fund your agent.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

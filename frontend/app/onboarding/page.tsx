@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { LoginModal } from '@/shared/components/LoginModal';
 import { api, ApiError, type UserRole } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import {
@@ -29,6 +29,7 @@ export default function OnboardingPage() {
   const auth = useAuth();
   const address = auth.address ?? undefined;
   const isConnected = auth.isAuthenticated;
+  const [loginOpen, setLoginOpen] = useState(false);
   const [step, setStep] = useState<'connect' | 'role' | 'profile' | 'review'>('connect');
   const [role, setRole] = useState<UserRole | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -228,7 +229,7 @@ export default function OnboardingPage() {
       <Band tone="light" compact>
         <div className="max-w-3xl mx-auto">
           {step === 'connect' && (
-            <ConnectStep />
+            <ConnectStep onLogin={() => setLoginOpen(true)} />
           )}
 
           {step === 'role' && (
@@ -276,6 +277,7 @@ export default function OnboardingPage() {
           )}
         </div>
       </Band>
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
     </FullBleed>
   );
 }
@@ -315,7 +317,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
   );
 }
 
-function ConnectStep() {
+function ConnectStep({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="fade-up">
       <div
@@ -331,14 +333,27 @@ function ConnectStep() {
         }}
       >
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Karwan identifies you by wallet. Connect a browser wallet to continue. Your wallet only
-          signs what you approve.
+          Karwan identifies you by a wallet. Connect an EVM wallet, or sign in with email and
+          Circle provisions one for you.
         </p>
         <div className="mt-6">
-          <ConnectButton />
+          <button
+            type="button"
+            onClick={onLogin}
+            className="inline-flex items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+            style={{
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            Log in
+            <span aria-hidden>→</span>
+          </button>
         </div>
         <p className="mt-6 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Circle Passkey sign-in ships next.
+          Wallet or email. Both land you with an Arc address.
         </p>
       </div>
     </div>
