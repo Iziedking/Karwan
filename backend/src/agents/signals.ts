@@ -75,16 +75,31 @@ async function readReputationBps(addr: string): Promise<number> {
   }
 }
 
-function tierFor(bps: number, totalDeals: bigint): RepTier {
-  // A wallet with zero deals reads neutral on `bps` but we still want to call
-  // it New — the registry can't distinguish "trusted but quiet" from "brand
-  // new" purely on the composite score.
+function tierForLegacy(bps: number, totalDeals: bigint): RepTier {
+  // Fallback when the composite engine fails. A wallet with zero deals reads
+  // neutral on `bps` but we still want to call it New: the legacy registry
+  // can't distinguish "trusted but quiet" from "brand new" purely on bps.
   if (totalDeals === 0n) return 'new';
   if (totalDeals < 3n) return bps >= 4500 ? 'cold' : 'new';
   if (bps >= 7500) return 'strong';
   if (bps >= 5000) return 'established';
   if (bps >= 3500) return 'cold';
   return 'new';
+}
+
+function tierToLower(t: Tier): RepTier {
+  switch (t) {
+    case 'NEW':
+      return 'new';
+    case 'COLD':
+      return 'cold';
+    case 'ESTABLISHED':
+      return 'established';
+    case 'STRONG':
+      return 'strong';
+    case 'ELITE':
+      return 'elite';
+  }
 }
 
 export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
@@ -100,9 +115,28 @@ export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
   const completionRate =
     total === 0n ? 1 : Number(counts.successCount) / Number(total);
   const velocity24h = countRecentActorEvents(addr.toLowerCase());
+
+  // Primary tier source: the composite reputation engine. It reads stake,
+  // time, completion, and penalty signals on top of the legacy bps and bins
+  // into NEW/COLD/ESTABLISHED/STRONG/ELITE. If the engine read fails for
+  // any reason (DB transient, vault read transient), fall back to the
+  // legacy bps-based binning so the agent loop never blocks on reputation.
+  let repTier: RepTier;
+  try {
+    const inputs = await loadInputs(addr);
+    const result = compute(inputs);
+    repTier = tierToLower(result.tier);
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message, addr },
+      'composite engine read failed, falling back to bps tier',
+    );
+    repTier = tierForLegacy(reputationBps, total);
+  }
+
   return {
     reputationBps,
-    repTier: tierFor(reputationBps, total),
+    repTier,
     completionRate,
     velocity24h,
   };

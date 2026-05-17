@@ -27,9 +27,28 @@ function TelegramGlyph({ size = 14 }: { size?: number }) {
   );
 }
 
-export function TelegramConnectButton({ address }: { address?: string }) {
+export function TelegramConnectButton({
+  address,
+  tone = 'dark',
+}: {
+  address?: string;
+  tone?: 'dark' | 'light';
+}) {
   const link = useTelegramLink(address);
   const [open, setOpen] = useState(false);
+
+  // Theme-aware tokens. `dark` keeps the original white-on-dark chip; `light`
+  // flips to black-on-white so the chip stays legible inside a `Band tone="light"`.
+  const onLight = tone === 'light';
+  const chipClass = onLight
+    ? 'border-black/15 text-[var(--lp-band-dark)] hover:bg-black/[0.04] hover:border-black/30'
+    : 'border-white/20 text-white hover:bg-white/[0.08] hover:border-white/35';
+  const chipMuted = onLight
+    ? 'border-black/12 text-black/55'
+    : 'border-white/20 text-white/60';
+  const offPillClass = onLight
+    ? 'bg-black/[0.06] text-black/55'
+    : 'bg-white/[0.08] text-white/55';
 
   const linkedLabel = link.status?.linked
     ? link.status.username
@@ -43,7 +62,7 @@ export function TelegramConnectButton({ address }: { address?: string }) {
         type="button"
         disabled
         title="Telegram alerts are not configured on this server"
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white/60 cursor-not-allowed w-fit"
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,
@@ -53,7 +72,7 @@ export function TelegramConnectButton({ address }: { address?: string }) {
       >
         <TelegramGlyph />
         Telegram
-        <span className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 bg-white/[0.08] text-white/55 rounded-sm">
+        <span className={`text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 ${offPillClass} rounded-sm`}>
           Off
         </span>
       </button>
@@ -66,7 +85,7 @@ export function TelegramConnectButton({ address }: { address?: string }) {
         type="button"
         onClick={() => setOpen(true)}
         title={linkedLabel ? `Manage Telegram link (${linkedLabel})` : 'Connect Telegram for alerts'}
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white hover:bg-white/[0.08] hover:border-white/35 transition-colors w-fit"
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit`}
         style={{
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,

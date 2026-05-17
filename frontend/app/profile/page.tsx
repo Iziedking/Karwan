@@ -362,8 +362,8 @@ export default function ProfilePage() {
           Connect Telegram and X so the agent can ping you when a deal needs you.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <TelegramConnectButton address={address ?? undefined} />
-          <ConnectXButton />
+          <TelegramConnectButton address={address ?? undefined} tone="light" />
+          <ConnectXButton tone="light" />
         </div>
       </Band>
 

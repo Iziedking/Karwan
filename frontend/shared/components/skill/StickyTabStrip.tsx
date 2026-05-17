@@ -69,10 +69,13 @@ export function StickyTabStrip({
     >
       <ul
         role="tablist"
-        className="mx-auto max-w-[1320px] grid"
+        // Mobile: horizontal scroll, each tab sized to content so labels never
+        // wrap. Desktop (md+): equal-width grid columns as designed in §4.5.
+        className="mx-auto max-w-[1320px] flex md:grid overflow-x-auto md:overflow-visible no-scrollbar"
         style={{
           gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
-          padding: '0 clamp(20px, 4vw, 56px)',
+          padding: '0 clamp(16px, 4vw, 56px)',
+          scrollSnapType: 'x mandatory',
         }}
       >
         {tabs.map((t, i) => {
@@ -82,10 +85,12 @@ export function StickyTabStrip({
             <li
               key={t.id}
               role="presentation"
+              className="shrink-0 md:shrink"
               style={{
                 borderRight: isLast
                   ? 'none'
                   : `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
+                scrollSnapAlign: 'start',
               }}
             >
               <button
@@ -100,7 +105,7 @@ export function StickyTabStrip({
                   }
                 }}
                 className={cn(
-                  'relative w-full flex items-center justify-between gap-3 py-5 px-4 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors duration-[var(--dur-micro)]',
+                  'relative w-full flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.06em] md:tracking-[0.08em] whitespace-nowrap transition-colors duration-[var(--dur-micro)]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset',
                 )}
                 style={{
@@ -123,10 +128,10 @@ export function StickyTabStrip({
                     transition={{ duration: dur.base, ease: ease.out }}
                   />
                 )}
-                <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 md:gap-2">
                   <span
                     aria-hidden
-                    className="inline-block w-[6px] h-[6px]"
+                    className="inline-block w-[5px] h-[5px] md:w-[6px] md:h-[6px]"
                     style={{
                       background: isActive
                         ? 'var(--accent)'
@@ -140,7 +145,7 @@ export function StickyTabStrip({
                 </span>
                 <span
                   aria-hidden
-                  className="transition-transform duration-[var(--dur-fast)]"
+                  className="hidden md:inline transition-transform duration-[var(--dur-fast)]"
                   style={{
                     color: isActive
                       ? 'var(--lp-dark)'

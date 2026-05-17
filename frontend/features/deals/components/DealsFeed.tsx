@@ -153,7 +153,7 @@ export function DealsFeed() {
               <li key={deal.jobId} className="relative">
                 <Link
                   href={`/deals/${deal.jobId}`}
-                  className="group relative grid grid-cols-[auto_1fr_auto] items-center gap-6 px-6 md:px-8 py-5 transition-colors duration-150 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+                  className="group relative flex flex-col md:grid md:grid-cols-[auto_1fr_auto] items-stretch md:items-center gap-2 md:gap-6 px-5 md:px-8 py-4 md:py-5 transition-colors duration-150 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
                 >
                   <span
                     aria-hidden
@@ -161,16 +161,27 @@ export function DealsFeed() {
                     style={{ background: meta.rail }}
                   />
 
-                  {/* status + age column */}
-                  <div className="shrink-0 min-w-[180px] flex items-center gap-3">
-                    <StageBadge stage={stage} />
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
-                      {relativeTime(deal.createdAt)}
-                    </span>
+                  {/* Mobile row 1 / desktop col 1: status + age (left) + amount (right on mobile) */}
+                  <div className="flex items-center justify-between md:justify-start gap-3 md:gap-3 md:shrink-0 md:min-w-[180px]">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <StageBadge stage={stage} />
+                      <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums truncate">
+                        {relativeTime(deal.createdAt)}
+                      </span>
+                    </div>
+                    {/* Amount appears here on mobile, hidden on desktop (renders below as its own col) */}
+                    <div className="flex md:hidden items-baseline gap-1.5 shrink-0">
+                      <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
+                        {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
+                      </span>
+                      <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                        USDC
+                      </span>
+                    </div>
                   </div>
 
-                  {/* amount column */}
-                  <div className="min-w-0 flex items-baseline gap-2">
+                  {/* Desktop col 2: amount (hidden on mobile, already shown above) */}
+                  <div className="hidden md:flex min-w-0 items-baseline gap-2">
                     <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
                       {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
                     </span>
@@ -179,21 +190,21 @@ export function DealsFeed() {
                     </span>
                   </div>
 
-                  {/* parties + chevron column */}
-                  <div className="shrink-0 flex items-center gap-5">
-                    <div className="text-right">
-                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-none">
+                  {/* Mobile row 2 / desktop col 3: parties (left) + chevron (right) */}
+                  <div className="flex items-center justify-between md:justify-start gap-3 md:gap-5 md:shrink-0">
+                    <div className="text-left md:text-right min-w-0">
+                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-none truncate">
                         {shortAddress(deal.buyer)}
                         <span className="mx-1 text-[var(--lp-text-muted)]">→</span>
                         {shortAddress(deal.seller)}
                       </p>
-                      <p className="mt-1.5 mono text-[10px] tabular-nums uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
+                      <p className="mt-1.5 mono text-[10px] tabular-nums uppercase tracking-[0.08em] text-[var(--lp-text-muted)] truncate">
                         {shortHash(deal.jobId, 6, 4)}
                       </p>
                     </div>
                     <span
                       aria-hidden
-                      className="text-[16px] leading-none transition-transform duration-150 group-hover:translate-x-1"
+                      className="text-[16px] leading-none transition-transform duration-150 group-hover:translate-x-1 shrink-0"
                       style={{ color: 'var(--lp-text-muted)' }}
                     >
                       ›

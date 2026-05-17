@@ -246,7 +246,7 @@ export function PostJobForm() {
 
       {/* TERMS */}
       <FieldSection eyebrow="TERMS" title="Set the auction guardrails.">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <FormLabel
             label="Budget"
             unit="USDC"

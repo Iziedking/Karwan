@@ -444,6 +444,40 @@ html[data-theme="dark"] {
   font-weight: 700;
 }
 
+/* Hide scrollbars but keep scroll behaviour. Used by horizontally scrolling
+   strips (StickyTabStrip, chip rows) so the visual stays clean while still
+   letting the user swipe between items. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* RainbowKit account modal: pulled higher on screen so it sits near the
+   wallet pill instead of dead-centre. Also constrained to a Karwan-sized
+   card on mobile (default behaviour is a full-width bottom sheet that
+   eats too much viewport). Selectors use stable RainbowKit attributes
+   (`data-rk` root, `aria-labelledby` on the account dialog) rather than
+   hashed class names. */
+[data-rk] [aria-labelledby="rk_account_modal_title"] {
+  transform: translateY(-20vh);
+}
+@media (max-width: 600px) {
+  [data-rk] [aria-labelledby="rk_account_modal_title"] {
+    max-width: 320px !important;
+    width: calc(100vw - 32px) !important;
+    margin: auto !important;
+    border-radius: 22px !important;
+    transform: translateY(-18vh);
+  }
+  [data-rk] [aria-labelledby="rk_account_modal_title"] > div:first-child {
+    padding-top: 18px !important;
+    padding-bottom: 14px !important;
+  }
+}
+
 /* Robust reduced-motion guard: collapses every animation and transition,
    including looping decorations (peer-drop, stat-sweep, bridgeShimmer,
    flowPulse) and Tailwind's spin/ping/pulse. */

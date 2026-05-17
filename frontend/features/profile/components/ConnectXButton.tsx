@@ -20,10 +20,22 @@ function XBrandTile({ size = 14 }: { size?: number }) {
   );
 }
 
-export function ConnectXButton() {
+export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = {}) {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
+
+  // Theme-aware chip colors. `dark` keeps white-on-dark; `light` flips to
+  // black-on-white so the chip is readable on a light Band.
+  const onLight = tone === 'light';
+  const chipBase = onLight
+    ? 'border-black/15 text-[var(--lp-band-dark)] hover:bg-black/[0.04] hover:border-black/30'
+    : 'border-white/20 text-white hover:bg-white/[0.06] hover:border-white/35';
+  const chipMuted = onLight
+    ? 'border-black/12 text-black/45'
+    : 'border-white/20 text-white/45';
+  const sublabel = onLight ? 'text-black/55' : 'text-white/55';
+  const errClass = onLight ? 'text-[#a73a37]' : 'text-[#e8806b]';
   const search = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [oauthConfigured, setOauthConfigured] = useState<boolean | null>(null);
@@ -109,7 +121,7 @@ export function ConnectXButton() {
         type="button"
         disabled
         title="Connect your wallet first"
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white/45 cursor-not-allowed w-fit"
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,
@@ -127,7 +139,7 @@ export function ConnectXButton() {
     return (
       <div className="inline-flex items-center gap-2">
         <span
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white"
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase}`}
           style={{
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
@@ -151,7 +163,7 @@ export function ConnectXButton() {
           type="button"
           onClick={unlink}
           disabled={busy}
-          className="mono text-[10px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors disabled:opacity-50"
+          className={`mono text-[10px] uppercase tracking-[0.12em] ${sublabel} hover:${onLight ? 'text-[var(--lp-band-dark)]' : 'text-white'} transition-colors disabled:opacity-50`}
         >
           {busy ? 'Working' : 'Unlink'}
         </button>
@@ -167,7 +179,7 @@ export function ConnectXButton() {
           type="button"
           onClick={startOAuth}
           disabled={busy}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white hover:bg-white/[0.06] transition-colors w-fit disabled:opacity-50"
+          className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit disabled:opacity-50`}
           style={{
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
@@ -179,7 +191,7 @@ export function ConnectXButton() {
           {busy ? 'Redirecting' : 'Connect X'}
         </button>
         {error && (
-          <p className="mono text-[10px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
+          <p className={`mono text-[10px] ${errClass} leading-snug max-w-[34ch]`}>{error}</p>
         )}
       </div>
     );
@@ -191,7 +203,7 @@ export function ConnectXButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border border-white/20 text-white hover:bg-white/[0.06] transition-colors w-fit"
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipBase} transition-colors w-fit`}
         style={{
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,

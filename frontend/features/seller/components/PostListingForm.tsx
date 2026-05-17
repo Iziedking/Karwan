@@ -227,7 +227,7 @@ export function PostListingForm() {
 
         {/* PRICING */}
         <FieldSection eyebrow="PRICING" title="Set your asking and the floor.">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <FormLabel
               label="Asking price"
               unit="USDC"

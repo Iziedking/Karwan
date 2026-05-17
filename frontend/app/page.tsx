@@ -461,7 +461,7 @@ function TradeLanesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}
             transition={{ duration: dur.base, ease: ease.out, delay: i * 0.04 }}
-            className="group grid grid-cols-[150px_1fr_120px_120px] gap-6 items-baseline py-5"
+            className="group flex flex-col md:grid md:grid-cols-[150px_1fr_120px_120px] gap-2 md:gap-6 md:items-baseline py-4 md:py-5"
             style={{
               borderTop: '1px solid var(--lp-border-light)',
               borderBottom:
@@ -469,14 +469,14 @@ function TradeLanesSection() {
             }}
           >
             <span
-              className="mono text-[11px] font-semibold uppercase tracking-[0.08em]"
+              className="mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.08em]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
               [:{l.id}]
             </span>
             <span
-              className="font-sans font-bold uppercase tracking-[-0.02em] leading-none truncate"
-              style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: 'var(--lp-dark)' }}
+              className="font-sans font-bold uppercase tracking-[-0.02em] leading-tight md:leading-none"
+              style={{ fontSize: 'clamp(18px, 2vw, 28px)', color: 'var(--lp-dark)' }}
             >
               {l.from}{' '}
               <span style={{ color: 'var(--lp-text-sub)' }} aria-label="to">
@@ -485,13 +485,13 @@ function TradeLanesSection() {
               {l.to}
             </span>
             <span
-              className="text-right mono text-[12px] tabular-nums uppercase tracking-[0.06em]"
+              className="md:text-right mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
               {l.vol} USDC
             </span>
             <span
-              className="text-right mono text-[12px] tabular-nums uppercase tracking-[0.06em]"
+              className="md:text-right mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
               AVG {l.avg}
