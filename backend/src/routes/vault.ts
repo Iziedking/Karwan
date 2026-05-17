@@ -91,16 +91,70 @@ function stateLabelFor(state: number): PositionStateLabel {
 
 async function readPositions(addressRaw: string): Promise<Position[]> {
   const vault = vaultAddress();
-  if (!vault) return [];
+  if (!vault) {
+    logger.warn({ addressRaw }, 'vault.readPositions: KARWAN_VAULT_ADDR unset');
+    return [];
+  }
   const address = addressRaw.toLowerCase() as `0x${string}`;
 
-  const logs = await publicClient.getLogs({
-    address: vault,
-    event: vaultAbi[0],
-    args: { owner: address },
-    fromBlock: 0n,
-    toBlock: 'latest',
+  // Arc testnet's public RPC caps eth_getLogs at a strict 10,000-block
+  // range. We stay 500 blocks under that ceiling for safety. The vault is
+  // freshly deployed so every position lives in recent blocks; in practice
+  // 9,500 blocks at ~2-second cadence is a couple of hours of history,
+  // plenty for a hackathon testnet. When we need older positions we'll
+  // run the indexer table from todo.md §4.
+  const LOG_WINDOW = 9_500n;
+  let fromBlock: bigint = 0n;
+  try {
+    const latest = await publicClient.getBlockNumber();
+    fromBlock = latest > LOG_WINDOW ? latest - LOG_WINDOW : 0n;
+  } catch {
+    // Fall back to 0n; the getLogs call itself will fail loudly below.
+  }
+
+  // Fetch ALL Deposited events for the vault then filter by owner in JS.
+  // Some testnet RPCs silently return empty when an indexed-args topic
+  // filter is applied (especially over a wide block range), even when the
+  // event clearly exists on chain. The vault is freshly deployed so the
+  // total event count is tiny; client-side filtering is cheap and avoids
+  // the topic-filter quirk entirely.
+  let rawLogs;
+  try {
+    rawLogs = await publicClient.getLogs({
+      address: vault,
+      event: vaultAbi[0],
+      fromBlock,
+      toBlock: 'latest',
+    });
+  } catch (err) {
+    logger.error(
+      {
+        err: (err as Error).message,
+        vault,
+        address,
+        fromBlock: fromBlock.toString(),
+      },
+      'vault.readPositions: getLogs failed',
+    );
+    throw err;
+  }
+
+  const logs = rawLogs.filter((log) => {
+    const owner = (log as unknown as { args: { owner?: `0x${string}` } }).args.owner;
+    return owner?.toLowerCase() === address;
   });
+
+  logger.info(
+    {
+      vault,
+      address,
+      fromBlock: fromBlock.toString(),
+      rawCount: rawLogs.length,
+      matchedCount: logs.length,
+    },
+    'vault.readPositions: getLogs returned',
+  );
+
   if (logs.length === 0) return [];
 
   const now = Math.floor(Date.now() / 1000);

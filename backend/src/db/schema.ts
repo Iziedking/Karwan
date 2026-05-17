@@ -5,6 +5,7 @@ import type { AgentWallets } from './agentWallets.js';
 import type { BridgeRelay } from './bridges.js';
 import type { ChatMessage } from './messages.js';
 import type { TelegramLink } from './telegramLinks.js';
+import type { MatchProposal } from './matchProposals.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -64,3 +65,21 @@ export const telegramLinks = pgTable('telegram_links', {
   address: text('address').primaryKey(),
   data: jsonb('data').$type<TelegramLink>().notNull(),
 });
+
+// Agent-proposed match awaiting human approval. Indexed by buyer + seller
+// user address so the proposal list endpoints stay fast as the table grows.
+export const matchProposals = pgTable(
+  'match_proposals',
+  {
+    jobId: text('job_id').primaryKey(),
+    buyerUser: text('buyer_user').notNull(),
+    sellerUser: text('seller_user').notNull(),
+    proposedAt: bigint('proposed_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<MatchProposal>().notNull(),
+  },
+  (t) => ({
+    buyerUserIdx: index('match_proposals_buyer_user_idx').on(t.buyerUser),
+    sellerUserIdx: index('match_proposals_seller_user_idx').on(t.sellerUser),
+    proposedAtIdx: index('match_proposals_proposed_at_idx').on(t.proposedAt),
+  }),
+);

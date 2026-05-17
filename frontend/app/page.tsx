@@ -9,8 +9,6 @@ import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
 
-export const dynamic = 'force-dynamic';
-
 const TABS: Tab[] = [
   { id: 'overview', label: 'OVERVIEW', hash: 'overview' },
   { id: 'how-it-works', label: 'WORKFLOW SUMMARY', hash: 'how-it-works' },

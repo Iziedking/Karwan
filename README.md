@@ -36,13 +36,22 @@ Users grow reputation by completing deals and by staking USDC in `KarwanVault`.
 A vault deposit can be withdrawn any time. Withdrawals go through a 7-day
 cooling window during which the stake signal pauses and the system runs fraud
 checks. Cancel the request inside the window to resume without losing accrued
-tenure.
+tenure. The full deposit / cool-down / claim loop has a UI at `/profile` under
+the `STAKE` tab.
 
 On mainnet, the same vault deposit routes through Hashnote USYC, so the
 locked principal also earns yield. On Arc Testnet the vault holds plain USDC,
-the reputation signal is unchanged. See
+the reputation signal is unchanged. The platform treasury fees walk the same
+path on mainnet, so platform revenue also compounds in tokenised T-bills
+rather than sitting idle.
+
+The five tiers (`NEW`, `COLD`, `ESTABLISHED`, `STRONG`, `ELITE`) gate the
+agent loop deterministically. `ELITE` sellers skip the auction; `STRONG`
+top bids within 5% of the next-best auto-accept; `COLD` sellers always get
+a forced `-5%` counter; `NEW` buyers pay a `+15%` premium and the seller
+human reviews before approving. See
 [docs/reputation-model.md](./docs/reputation-model.md) for the formula, the
-spam detector, and the agent integration spec.
+spam detector, and the full agent integration spec.
 
 Everything else runs on the same spine: USDC settlement, milestone escrow with
 a 1.5% fee split, review-window timers with auto-release, on-chain reputation
@@ -118,7 +127,7 @@ Live on Arc Testnet (chain 5042002):
 | KarwanJobBoard | `0x6B32f87954483525b8FBBDa27453F6454a745b2F` |
 | KarwanEscrow | `0x9eD65f925baf6B1D794A10CfDdFAe4E56cC4e5F8` |
 | KarwanReputation | `0xB2D80C6d34649873471d836847ca6498eCb072D2` |
-| KarwanVault | _deployed per release_ |
+| KarwanVault | `0x92b1223921944024f6615A604a2bDA6eF1fEe922` |
 | USDC | `0x3600000000000000000000000000000000000000` |
 
 `KarwanVault` is the flexible USDC staking vault that powers the reputation

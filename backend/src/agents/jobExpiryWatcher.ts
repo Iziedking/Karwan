@@ -12,9 +12,10 @@ const TICK_MS = 30_000;
 ///     persists)
 ///
 /// Idempotent: `expireJob` rejects re-expiry. The first hit wins.
-function tick(): void {
+async function tick(): Promise<void> {
   const now = Date.now();
-  for (const job of listExpirableJobs()) {
+  const candidates = await listExpirableJobs();
+  for (const job of candidates) {
     if (job.hasMatchProposal) continue;
     if (now <= job.deadlineUnix * 1000) continue;
     try {
@@ -34,11 +35,12 @@ function tick(): void {
 /// terminal state instead of lingering in `open` forever.
 export function startJobExpiryWatcher(): () => void {
   const id = setInterval(() => {
-    try {
-      tick();
-    } catch (err) {
-      logger.error({ err: (err as Error).message }, 'job expiry watcher tick failed');
-    }
+    tick().catch((err: unknown) => {
+      logger.error(
+        { err: err instanceof Error ? err.message : String(err) },
+        'job expiry watcher tick failed',
+      );
+    });
   }, TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'job expiry watcher started');
   return () => clearInterval(id);

@@ -63,6 +63,16 @@ export async function ensureSchema(): Promise<void> {
       address TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS match_proposals (
+      job_id TEXT PRIMARY KEY,
+      buyer_user TEXT NOT NULL,
+      seller_user TEXT NOT NULL,
+      proposed_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS match_proposals_buyer_user_idx ON match_proposals (buyer_user);
+    CREATE INDEX IF NOT EXISTS match_proposals_seller_user_idx ON match_proposals (seller_user);
+    CREATE INDEX IF NOT EXISTS match_proposals_proposed_at_idx ON match_proposals (proposed_at);
   `);
   logger.info('postgres schema ensured');
 }

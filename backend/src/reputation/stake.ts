@@ -84,16 +84,24 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
   }
 
   try {
-    // Enumerate this address's deposits. Cheap on testnet (few deposits) and
-    // bounded on mainnet by the address's own deposit count. For a hot path
-    // this would move to an indexer table; for now the chain read is fine
-    // because the result is cached for 30s.
-    const logs = await publicClient.getLogs({
+    // Some testnet RPCs silently return empty when indexed-args topic
+    // filters are applied. Fetch all Deposited events on the vault and
+    // filter in JS by owner. The event volume is small (a few per user)
+    // so this stays cheap, and the cache below short-circuits repeated
+    // reads within the 30s window.
+    // Arc testnet's public RPC caps eth_getLogs at a 10,000-block range.
+    // Stay 500 under the ceiling so we never trigger the limit error.
+    const latestBlock = await publicClient.getBlockNumber().catch(() => 0n);
+    const fromBlock = latestBlock > 9_500n ? latestBlock - 9_500n : 0n;
+    const rawLogs = await publicClient.getLogs({
       address: vaultAddr as `0x${string}`,
       event: vaultEventAbi[0],
-      args: { owner: address as `0x${string}` },
-      fromBlock: 0n,
+      fromBlock,
       toBlock: 'latest',
+    });
+    const logs = rawLogs.filter((log) => {
+      const owner = (log as unknown as { args: { owner?: `0x${string}` } }).args.owner;
+      return owner?.toLowerCase() === address;
     });
 
     if (logs.length === 0) {

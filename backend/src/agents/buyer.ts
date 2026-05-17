@@ -25,6 +25,14 @@ import { resolveBuyerProfile } from './agent-registry.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
+import {
+  getMatchProposal as dbGetMatchProposal,
+  upsertMatchProposal as dbUpsertMatchProposal,
+  listMatchProposalsForUser as dbListMatchProposalsForUser,
+  listAllMatchProposals as dbListAllMatchProposals,
+  hasPendingProposal as dbHasPendingProposal,
+  type MatchProposal as DbMatchProposal,
+} from '../db/matchProposals.js';
 import { getSellerBidFlags } from './seller.js';
 import { withLlmTimeout } from './llm-utils.js';
 import {
@@ -861,44 +869,21 @@ function emitAgentChainError(
   });
 }
 
-export interface MatchProposal {
-  jobId: string;
-  buyerUser: string;
-  buyerAgent: string;
-  sellerUser: string;
-  sellerAgent: string;
-  agreedPriceUsdc: string;
-  deadlineUnix: number;
-  termsHash: string;
-  proposedAt: number;
-  approvedAt?: number;
-  declinedAt?: number;
-  /// Deterministic risk classification from agents/signals.ts (honey-trap,
-  /// lowball, spammy) OR a seller-side flag from adjustBidByTier when the
-  /// buyer is NEW-tier (new-buyer). When set, the MatchBanner renders a
-  /// plain-language warning so the seller can judge before accepting.
-  /// Never causes auto-decline. the human is the gate.
-  riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
-  /// Short human-readable explanation paired with the riskFlag, surfaced in
-  /// the MatchBanner so the user knows WHY the agent flagged it.
-  riskNote?: string;
+/// Re-exported from `db/matchProposals.ts`. The type lives there now so the
+/// persistence layer owns the schema; buyer.ts keeps the name for back-compat
+/// with everyone already importing `MatchProposal` from this module.
+export type MatchProposal = DbMatchProposal;
+
+export function getMatchProposal(jobId: string): Promise<MatchProposal | null> {
+  return dbGetMatchProposal(jobId);
 }
 
-const matchProposals = new Map<string, MatchProposal>();
-
-export function getMatchProposal(jobId: string): MatchProposal | null {
-  return matchProposals.get(jobId.toLowerCase()) ?? null;
+export function listMatchProposalsForUser(userAddress: string): Promise<MatchProposal[]> {
+  return dbListMatchProposalsForUser(userAddress);
 }
 
-export function listMatchProposalsForUser(userAddress: string): MatchProposal[] {
-  const a = userAddress.toLowerCase();
-  return [...matchProposals.values()].filter(
-    (p) => p.buyerUser === a || p.sellerUser === a,
-  );
-}
-
-export function listAllMatchProposals(): MatchProposal[] {
-  return [...matchProposals.values()].sort((a, b) => b.proposedAt - a.proposedAt);
+export function listAllMatchProposals(): Promise<MatchProposal[]> {
+  return dbListAllMatchProposals();
 }
 
 /// The agent has reached agreement with a seller. It does NOT touch the chain
@@ -961,7 +946,7 @@ async function proposeMatch(
       proposedAt: Date.now(),
       ...(risk ? { riskFlag: risk.flag, riskNote: risk.note } : {}),
     };
-    matchProposals.set(state.jobId.toLowerCase(), proposal);
+    await dbUpsertMatchProposal(proposal);
 
     logger.info(
       {
@@ -1004,7 +989,7 @@ async function proposeMatch(
 export async function approveAgentMatch(
   jobId: string,
 ): Promise<{ ok: true; txHash: string } | { ok: false; code: string; message: string }> {
-  const proposal = getMatchProposal(jobId);
+  const proposal = await getMatchProposal(jobId);
   if (!proposal) return { ok: false, code: 'NO_PROPOSAL', message: 'no match proposal for this job' };
   if (proposal.approvedAt) {
     return { ok: false, code: 'ALREADY_APPROVED', message: 'match already approved' };
@@ -1049,7 +1034,7 @@ export async function approveAgentMatch(
   await persistApprovedMatch(proposal, state, acceptResult.txHash);
 
   proposal.approvedAt = Date.now();
-  matchProposals.set(jobId.toLowerCase(), proposal);
+  await dbUpsertMatchProposal(proposal);
 
   bus.emitEvent({
     type: 'deal.match.approved',
@@ -1110,17 +1095,17 @@ async function persistApprovedMatch(
 /// Decline the proposal. The job returns to its bidding state with the
 /// previously matched seller skipped (caller intent is "not this seller"). For
 /// v1 we just mark it declined; re-running the auction is a follow-up.
-export function declineAgentMatch(
+export async function declineAgentMatch(
   jobId: string,
   reason?: string,
-): { ok: true } | { ok: false; code: string; message: string } {
-  const proposal = getMatchProposal(jobId);
+): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
+  const proposal = await getMatchProposal(jobId);
   if (!proposal) return { ok: false, code: 'NO_PROPOSAL', message: 'no match proposal for this job' };
   if (proposal.approvedAt) return { ok: false, code: 'ALREADY_APPROVED', message: 'match already approved' };
   if (proposal.declinedAt) return { ok: false, code: 'ALREADY_DECLINED', message: 'match already declined' };
 
   proposal.declinedAt = Date.now();
-  matchProposals.set(jobId.toLowerCase(), proposal);
+  await dbUpsertMatchProposal(proposal);
   bus.emitEvent({
     type: 'deal.match.declined',
     jobId,
@@ -1329,16 +1314,23 @@ export interface ExpirableJob {
 /// flag for whether a MatchProposal is awaiting human approval — the watcher
 /// uses that to leave human-gated proposals alone (the human is the decision,
 /// not the deadline).
-export function listExpirableJobs(): ExpirableJob[] {
-  return [...jobs.values()]
-    .filter((s) => !s.finalized && !s.escrowFunded && !s.expired)
-    .map((s) => ({
-      jobId: s.jobId,
-      buyer: s.context.buyer as `0x${string}`,
-      deadlineUnix: s.context.deadlineUnix,
-      bidsCount: s.bids.size,
-      hasMatchProposal: matchProposals.has(s.jobId.toLowerCase()),
-    }));
+export async function listExpirableJobs(): Promise<ExpirableJob[]> {
+  const candidates = [...jobs.values()].filter(
+    (s) => !s.finalized && !s.escrowFunded && !s.expired,
+  );
+  // Resolve the proposal-presence flag per candidate via the persisted
+  // proposal store. We parallelise the lookups; the candidate set is small
+  // (open managed jobs, typically <100) so the fan-out is cheap.
+  const flags = await Promise.all(
+    candidates.map((s) => dbHasPendingProposal(s.jobId)),
+  );
+  return candidates.map((s, i) => ({
+    jobId: s.jobId,
+    buyer: s.context.buyer as `0x${string}`,
+    deadlineUnix: s.context.deadlineUnix,
+    bidsCount: s.bids.size,
+    hasMatchProposal: flags[i] ?? false,
+  }));
 }
 
 /// Marks a job expired. Clears its bid-collection timer, flags the JobState,

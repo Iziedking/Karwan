@@ -29,9 +29,11 @@ adminRoutes.get('/agents', async (c) => {
   return c.json({ users: out.sort((a, b) => b.activatedAt - a.activatedAt) });
 });
 
-/// All in-memory match proposals across every job, newest first.
-adminRoutes.get('/proposals', (c) => {
-  return c.json({ proposals: listAllMatchProposals() });
+/// All match proposals across every job, newest first. Backed by Postgres
+/// when DATABASE_URL is set, flat-file otherwise — survives restarts so the
+/// admin view is consistent with what users see on the approve banner.
+adminRoutes.get('/proposals', async (c) => {
+  return c.json({ proposals: await listAllMatchProposals() });
 });
 
 /// Tracked agent jobs across all users, with their bids. Mirrors

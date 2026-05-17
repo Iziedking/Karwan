@@ -3,6 +3,11 @@ node_modules/
 .env.*
 !.env.example
 
+# we use npm; ignore lockfiles from other package managers if a contributor
+# accidentally runs them
+pnpm-lock.yaml
+yarn.lock
+
 # build outputs
 dist/
 build/

@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { api } from '@/core/api';
 import { Card } from '@/shared/components/Card';
 
-export const dynamic = 'force-dynamic';
+// Chain identity is a constant; no need to round-trip the backend just to
+// render a one-line mono footer. Keeps the page statically renderable.
+const CHAIN_ID = 5042002;
+const EXPLORER_HOST = 'testnet.arcscan.app';
 
-export default async function HowItWorksPage() {
-  const status = await api.status().catch(() => null);
-
+export default function HowItWorksPage() {
   return (
     <div className="space-y-20">
       {/* HEADER */}
@@ -136,6 +136,40 @@ export default async function HowItWorksPage() {
         </Card>
       </section>
 
+      {/* STAKE + REPUTATION */}
+      <section className="space-y-6">
+        <div className="max-w-2xl">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            Stake to grow reputation
+          </span>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">
+            The reputation engine, end to end
+          </h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
+            Every wallet has a composite score in [0, 1000] derived from completed deals, locked
+            stake, time on the platform, and a spam-detection penalty. The score binds to one of
+            five tiers and gates how aggressively the agent loop negotiates on your behalf.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <DemoStep n="1" title="Deposit USDC">
+            On <span className="mono">/profile · STAKE</span>, deposit any amount into{' '}
+            <span className="mono">KarwanVault</span>. No forced lock, no minimum tenure. The
+            longer it sits, the more weight it carries in the formula.
+          </DemoStep>
+          <DemoStep n="2" title="Climb tiers">
+            <span className="mono">NEW · COLD · ESTABLISHED · STRONG · ELITE</span>. Each tier
+            unlocks specific agent behavior. ELITE sellers skip the auction; NEW buyers pay a
+            premium that surfaces to the seller for human review before approval.
+          </DemoStep>
+          <DemoStep n="3" title="Withdraw anytime">
+            Request a withdrawal, the position enters a 7-day cool-down while fraud checks run.
+            Cancel inside the window to resume without losing tenure. After cool-down, claim
+            returns principal in a single transaction.
+          </DemoStep>
+        </div>
+      </section>
+
       {/* CIRCLE STACK */}
       <section className="space-y-6">
         <div className="max-w-2xl">
@@ -147,11 +181,11 @@ export default async function HowItWorksPage() {
         <div className="grid md:grid-cols-2 gap-3">
           <StackTile
             name="USDC"
-            role="The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, and the platform fee."
+            role="The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee, and KarwanVault staking principal."
           />
           <StackTile
             name="Developer-Controlled Wallets"
-            role="Every agent runs on an SCA wallet on Arc Testnet. The buyer agent funds escrows and releases milestones; the seller agent bids and negotiates."
+            role="Every agent runs on an SCA wallet on Arc Testnet. The buyer agent funds escrows and releases milestones; the seller agent bids and negotiates. Identity DCWs sign vault deposits and withdrawals for Circle-auth users with no wallet popup."
           />
           <StackTile
             name="CCTP V2"
@@ -160,6 +194,14 @@ export default async function HowItWorksPage() {
           <StackTile
             name="Arc Testnet"
             role="Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity registry is already deployed here."
+          />
+          <StackTile
+            name="Resend"
+            role="Transactional email for OTP sign-in and deal alerts. Inline brand logo via CID. Falls back to a dev-only autofill when keys are unset so local builds keep working."
+          />
+          <StackTile
+            name="Hashnote USYC (mainnet)"
+            role="On mainnet KarwanVault routes idle stake through USYC for roughly 5% APY. Reputation signal is unchanged so the same dollars earn yield + tier lift. Testnet holds plain USDC."
           />
         </div>
       </section>
@@ -177,20 +219,20 @@ export default async function HowItWorksPage() {
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
           <RoadmapTile
-            title="Passkey sign-in"
-            body="Sign in with a Circle Passkey. Email plus biometrics, no browser extension needed."
+            title="Bring your own agent"
+            body="Institutional customers register their own agent address per ERC-8004 with a custom policy file. Zero contract changes; the same buyer / seller flow runs against a customer-controlled worker."
           />
           <RoadmapTile
-            title="Self-custodied agent wallets"
-            body="Each agent gets its own wallet under a spend allowance you set once at activation."
+            title="Sharded multi-tenant"
+            body="Per-user partition keys, Redis Streams for chain-event fan-out, N stateless workers behind. Same contracts, same SSE shape, parallel throughput for Circle + LLM rate limits."
           />
           <RoadmapTile
             title="Disputes and appeals"
             body="On-chain dispute resolution, plus a seller appeal path to renegotiate if a buyer stalls on release."
           />
           <RoadmapTile
-            title="Agent micro-payments"
-            body="An x402 rail so agents can pay for verification calls and data while they work a deal."
+            title="Mainnet USYC routing"
+            body="KarwanVault forks with a USYC adapter. Stake compounds in tokenized T-bills while it builds reputation. Treasury fees route the same path so platform revenue earns yield."
           />
         </div>
       </section>
@@ -268,11 +310,9 @@ export default async function HowItWorksPage() {
             <span aria-hidden>→</span>
           </Link>
         </div>
-        {status && (
-          <p className="text-[11px] text-[var(--color-ink-faint)] mono pt-2">
-            chain {status.chain.id} · {status.chain.explorer.replace(/^https?:\/\//, '')}
-          </p>
-        )}
+        <p className="text-[11px] text-[var(--color-ink-faint)] mono pt-2">
+          chain {CHAIN_ID} · {EXPLORER_HOST}
+        </p>
       </section>
     </div>
   );

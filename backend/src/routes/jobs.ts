@@ -173,23 +173,22 @@ jobsRoutes.post('/', async (c) => {
 
 /// The agent has reached agreement with a seller and is awaiting human approval
 /// before touching the chain. Returns the pending match, or null if there is none.
-jobsRoutes.get('/:jobId/match', (c) => {
+jobsRoutes.get('/:jobId/match', async (c) => {
   const jobId = c.req.param('jobId');
-  return c.json({ proposal: getMatchProposal(jobId) });
+  return c.json({ proposal: await getMatchProposal(jobId) });
 });
 
 /// All open match proposals where caller is either the buyer (awaiting their
 /// approval) or the seller (waiting for buyer to approve). Seller-side use
 /// case: the `/seller` dashboard polls this to surface "your bid became a
 /// match" so sellers don't have to know jobIds to find their pending matches.
-jobsRoutes.get('/matches/for', (c) => {
+jobsRoutes.get('/matches/for', async (c) => {
   const caller = c.req.query('caller');
   if (!caller || !/^0x[a-fA-F0-9]{40}$/.test(caller)) {
     return c.json({ error: 'caller query param required (0x... address)' }, 400);
   }
-  const proposals = listMatchProposalsForUser(caller).filter(
-    (p) => !p.approvedAt && !p.declinedAt,
-  );
+  const all = await listMatchProposalsForUser(caller);
+  const proposals = all.filter((p) => !p.approvedAt && !p.declinedAt);
   return c.json({ proposals });
 });
 
@@ -208,7 +207,7 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  const proposal = getMatchProposal(jobId);
+  const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
   if (body.caller.toLowerCase() !== proposal.sellerUser) {
     return c.json({ error: 'only the seller can approve this match' }, 403);
@@ -260,12 +259,12 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  const proposal = getMatchProposal(jobId);
+  const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
   if (body.caller.toLowerCase() !== proposal.sellerUser) {
     return c.json({ error: 'only the seller can decline this match' }, 403);
   }
-  const result = declineAgentMatch(jobId, body.reason);
+  const result = await declineAgentMatch(jobId, body.reason);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, 409);
   return c.json({ accepted: true, jobId }, 200);
 });
