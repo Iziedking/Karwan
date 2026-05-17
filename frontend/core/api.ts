@@ -29,6 +29,9 @@ export interface BuyerBid {
   score: number | null;
   suggestedCounterPrice: string | null;
   suggestedCounterDeadlineDays: number | null;
+  /// Composite-engine tier of the seller at bid time. Null when the bid
+  /// landed before the tier was wired (legacy bids on old jobs).
+  sellerTier: 'new' | 'cold' | 'established' | 'strong' | 'elite' | null;
 }
 
 export interface BuyerJob {
@@ -205,7 +208,9 @@ export interface MatchProposal {
   declinedAt?: number;
   /// Deterministic risk signal computed when the proposal was created.
   /// Surfaced in MatchBanner so the human sees why the agent flagged it.
-  riskFlag?: 'honey-trap' | 'lowball' | 'spammy';
+  /// 'new-buyer' is set by the seller agent's tier adjustment for NEW-tier
+  /// buyers (docs/reputation-model.md §6) and trumps the buyer-side pattern.
+  riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
   riskNote?: string;
 }
 

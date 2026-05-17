@@ -25,6 +25,7 @@ import { resolveBuyerProfile } from './agent-registry.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
+import { getSellerBidFlags } from './seller.js';
 import { withLlmTimeout } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -795,7 +796,17 @@ function riskAnnotationFor(
   pattern: ReturnType<typeof classifyBid> | undefined,
   agreedPriceUsdc: string,
   budgetUsdc: string,
-): { flag: 'honey-trap' | 'lowball' | 'spammy'; note: string } | null {
+  sellerHumanReview: boolean,
+): { flag: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer'; note: string } | null {
+  // Seller-side human-review intent wins over pattern-based flags: the
+  // seller already decided "this buyer is unproven, surface it" via the
+  // tier adjustment in seller.ts:adjustBidByTier (§6 NEW-buyer rule).
+  if (sellerHumanReview) {
+    return {
+      flag: 'new-buyer',
+      note: `Buyer is new to the network. The agent already padded the price for unproven counterparty risk. Take a closer look before approving.`,
+    };
+  }
   if (!pattern) return null;
   const price = Number(agreedPriceUsdc);
   const budget = Number(budgetUsdc);
@@ -862,10 +873,12 @@ export interface MatchProposal {
   proposedAt: number;
   approvedAt?: number;
   declinedAt?: number;
-  /// Deterministic risk classification from agents/signals.ts. When set, the
-  /// MatchBanner renders a plain-language warning so the seller can judge
-  /// before accepting. Never causes auto-decline — the human is the gate.
-  riskFlag?: 'honey-trap' | 'lowball' | 'spammy';
+  /// Deterministic risk classification from agents/signals.ts (honey-trap,
+  /// lowball, spammy) OR a seller-side flag from adjustBidByTier when the
+  /// buyer is NEW-tier (new-buyer). When set, the MatchBanner renders a
+  /// plain-language warning so the seller can judge before accepting.
+  /// Never causes auto-decline. the human is the gate.
+  riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
   /// Short human-readable explanation paired with the riskFlag, surfaced in
   /// the MatchBanner so the user knows WHY the agent flagged it.
   riskNote?: string;
@@ -926,7 +939,16 @@ async function proposeMatch(
       return;
     }
 
-    const risk = riskAnnotationFor(pattern, agreedPriceUsdc, state.context.budgetUsdc);
+    // Pick up the seller-side human-review flag (set by adjustBidByTier when
+    // the buyer is NEW-tier per §6). Null if there's no seller-side bid entry
+    // (e.g. listing-driven path); treated as humanReview=false.
+    const sellerFlags = getSellerBidFlags(state.jobId, seller);
+    const risk = riskAnnotationFor(
+      pattern,
+      agreedPriceUsdc,
+      state.context.budgetUsdc,
+      sellerFlags?.humanReview === true,
+    );
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -1203,6 +1225,10 @@ export interface BuyerJobSnapshot {
     score: number | null;
     suggestedCounterPrice: string | null;
     suggestedCounterDeadlineDays: number | null;
+    /// Composite-engine tier of the seller at bid time. Lets the UI show a
+    /// tier dot on each bid card so the user can read the reputation context
+    /// of every offer at a glance.
+    sellerTier: RepTier | null;
   }>;
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
@@ -1267,6 +1293,7 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
         score: b.score ?? null,
         suggestedCounterPrice: b.suggestedCounterPrice ?? null,
         suggestedCounterDeadlineDays: b.suggestedCounterDeadlineDays ?? null,
+        sellerTier: b.sellerTier ?? null,
       })),
       lastCounterPriceBySeller: Object.fromEntries(s.lastCounterPriceBySeller),
       counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),

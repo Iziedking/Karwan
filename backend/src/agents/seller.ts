@@ -42,6 +42,11 @@ interface ActiveBid {
    *  profile's minBudgetUsdc when undefined. */
   listingFloorUsdc?: number;
   listingAskingPriceUsdc?: number;
+  /** Set true by `adjustBidByTier` when the buyer is NEW-tier (see
+   *  docs/reputation-model.md §6). The buyer agent reads this in
+   *  `proposeMatch` to attach a `new-buyer` riskFlag on the resulting
+   *  MatchProposal so the human gets a heads-up before approving. */
+  humanReview?: boolean;
 }
 
 /// How far below the original bid the seller agent will steer on a profile-
@@ -377,6 +382,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     counterRounds: 0,
     finalized: false,
     responding: false,
+    humanReview: adjusted.humanReview,
   });
 
   logger.info({ jobId: job.jobId, seller: seller.address, ...txResult }, 'bid submitted');
@@ -736,6 +742,21 @@ export interface SellerActiveBidSnapshot {
   lastBidPrice: string;
   counterRounds: number;
   finalized: boolean;
+}
+
+/// Returns the seller-side flags attached to a bid (currently just the
+/// human-review intent set by `adjustBidByTier` when the buyer is NEW-tier).
+/// Read by `buyer.ts:proposeMatch` so the resulting `MatchProposal` can carry
+/// a `new-buyer` riskFlag forward to the MatchBanner. Null when there is no
+/// active bid for this (jobId, sellerAgent) pair (e.g. listing-driven bids
+/// also pass through here and return their own humanReview = undefined).
+export function getSellerBidFlags(
+  jobId: string,
+  sellerAgentAddress: string,
+): { humanReview: boolean } | null {
+  const entry = activeBids.get(bidKey(jobId, sellerAgentAddress));
+  if (!entry) return null;
+  return { humanReview: entry.humanReview === true };
 }
 
 /// Snapshot of active bids. Pass a seller agent address to scope it to the bids

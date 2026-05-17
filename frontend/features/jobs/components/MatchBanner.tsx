@@ -98,6 +98,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
     'honey-trap': 'Risk flag · low rep, generous bid',
     lowball: 'Risk flag · lowball from unproven actor',
     spammy: 'Risk flag · counterparty unusually active',
+    'new-buyer': 'Heads up · buyer is new to the network',
   };
 
   // Pending. full proposal surface.

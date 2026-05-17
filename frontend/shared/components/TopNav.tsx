@@ -112,6 +112,9 @@ export function TopNav() {
             <NavLink href="/listings" active={pathname.startsWith('/listings')}>
               Market
             </NavLink>
+            <NavLinkSoon title="Karwan for large SME trades — bring-your-own-agent settlement on Arc. Shipping after the first institutional pilot.">
+              SME Trades
+            </NavLinkSoon>
             <NavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity
             </NavLink>
@@ -182,6 +185,7 @@ export function TopNav() {
             <MobileNavLink href="/listings" active={pathname.startsWith('/listings')}>
               Market
             </MobileNavLink>
+            <MobileNavLinkSoon>SME Trades</MobileNavLinkSoon>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity
             </MobileNavLink>
@@ -261,6 +265,58 @@ function NavLink({
     >
       {children}
     </Link>
+  );
+}
+
+/// Disabled-looking nav slot with a "soon" pill. No href, no click target, just
+/// a hover-tooltip via `title`. Used for upcoming product surfaces (SME Trades)
+/// so the position is reserved on the rail before the route exists.
+function NavLinkSoon({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <span
+      title={title}
+      aria-disabled="true"
+      className="px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] text-[var(--color-ink-faint)] cursor-not-allowed inline-flex items-center gap-1.5 select-none"
+    >
+      {children}
+      <span
+        className="mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px]"
+        style={{
+          background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
+          color: 'var(--lp-accent)',
+          borderRadius: 3,
+        }}
+      >
+        soon
+      </span>
+    </span>
+  );
+}
+
+function MobileNavLinkSoon({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      aria-disabled="true"
+      className="px-3 py-2.5 rounded-md font-medium text-[var(--color-ink-faint)] cursor-not-allowed inline-flex items-center justify-between select-none"
+    >
+      <span>{children}</span>
+      <span
+        className="mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px]"
+        style={{
+          background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
+          color: 'var(--lp-accent)',
+          borderRadius: 3,
+        }}
+      >
+        soon
+      </span>
+    </span>
   );
 }
 
