@@ -1,28 +1,52 @@
 # Karwan
 
-On-chain settlement for service deals. Money sits in USDC escrow on Arc while
-work gets delivered, and releases as the work lands. Built on Circle's stack.
+On-chain settlement for cross-border service deals. USDC sits in milestone
+escrow on Arc while the work gets done, and releases as it lands. Built on
+Circle's stack.
 
 ## What it is
 
-Two parties agree on a service deal. The buyer's funds go into a milestone
-escrow on Arc. The seller delivers. The buyer releases, in tranches, and the
-escrow settles. A platform fee is split between both sides and collected on
-chain. Past outcomes are written to a reputation registry, so a wallet's track
-record follows it to the next deal.
+Two parties agree on a deal. The buyer's funds go into a milestone escrow on
+Arc. The seller delivers. The buyer releases, in tranches, and the escrow
+settles. A platform fee splits evenly between both sides and collects on chain.
+Every outcome writes to a reputation score that follows the wallet to the next
+deal.
 
 There are two ways to open a deal:
 
-- **Direct deal** — you already have a counterparty. You name their wallet, set
-  the amount and terms, and the escrow funds. They accept the terms, deliver,
-  and you release.
-- **Managed deal** — you need a counterparty. You post a brief and your buyer
-  agent runs a sealed auction against seller agents, negotiates, and funds the
-  escrow on acceptance.
+- **Direct deal.** You already have a counterparty. Name their wallet, set the
+  amount and terms, and the escrow funds. They sign in with that wallet,
+  accept, deliver, and you release.
+- **Agent-matched deal.** You don't have a counterparty yet. Post a brief or a
+  listing, and your agent watches the marketplace on your behalf. When it finds
+  a match, it scores both sides, weighs reputation, and surfaces a proposal.
+  You approve, the escrow funds, the rest auto-settles.
 
-Both run on the same settlement spine: USDC escrow, milestone release with a
-fee split, review-window timers with agent auto-release, on-chain reputation,
-and CCTP for bringing USDC over from other chains.
+The agent is a matchmaker, not a spender. It never opens an escrow without your
+sign-off. New or low-reputation counterparties always route to human review.
+
+## Reputation is the golden ticket
+
+Every wallet has a composite reputation score in [0, 1000] that grows with
+completed deals, locked stake, and time on the platform. It drops with spam,
+cancellations, and lost disputes. The score gates who your agent prefers and
+how aggressively it counters.
+
+Users grow reputation by completing deals and by staking USDC in `KarwanVault`.
+A vault deposit can be withdrawn any time. Withdrawals go through a 7-day
+cooling window during which the stake signal pauses and the system runs fraud
+checks. Cancel the request inside the window to resume without losing accrued
+tenure.
+
+On mainnet, the same vault deposit routes through Hashnote USYC, so the
+locked principal also earns yield. On Arc Testnet the vault holds plain USDC,
+the reputation signal is unchanged. See
+[docs/reputation-model.md](./docs/reputation-model.md) for the formula, the
+spam detector, and the agent integration spec.
+
+Everything else runs on the same spine: USDC settlement, milestone escrow with
+a 1.5% fee split, review-window timers with auto-release, on-chain reputation
+events, CCTP V2 for moving USDC across chains.
 
 ## Repo layout
 
@@ -94,7 +118,13 @@ Live on Arc Testnet (chain 5042002):
 | KarwanJobBoard | `0x6B32f87954483525b8FBBDa27453F6454a745b2F` |
 | KarwanEscrow | `0x9eD65f925baf6B1D794A10CfDdFAe4E56cC4e5F8` |
 | KarwanReputation | `0xB2D80C6d34649873471d836847ca6498eCb072D2` |
+| KarwanVault | _deployed per release_ |
 | USDC | `0x3600000000000000000000000000000000000000` |
+
+`KarwanVault` is the flexible USDC staking vault that powers the reputation
+formula. No forced lock period. Deposits can be withdrawn at any time, gated
+by a 7-day cooling window for fraud checks. The deployed address ships with
+each release; check the latest tag.
 
 `KarwanEscrow` carries a platform fee (default 150 bps) split evenly between
 buyer and seller, collected by a treasury address set at deploy time. Build,
@@ -102,14 +132,17 @@ test, and deploy instructions are in [contracts/README.md](./contracts/README.md
 
 ## Communication
 
-Buyer and seller can chat inside the deal page. Messages are end-to-end between
-the two parties — only the buyer and seller of a deal can read or post to its
-thread. The transcript is persisted, delivered live via SSE, and replayed on
-reload.
+Buyer and seller can chat inside the deal page. Messages stay scoped to the
+two wallets on that deal. Only those two can read or post to the thread. The
+transcript is persisted, streamed live over SSE, and replayed on reload.
 
 Anyone can pair their wallet to Telegram from `/profile`. Once linked, the
 Karwan bot pushes deal updates, chat messages from the other party, and bridge
-state changes to that chat — so you don't have to keep the dashboard open.
+state changes to that chat, so you don't have to keep the dashboard open.
+
+Email is wired too, via Resend, for sign-in codes and key alerts. Set
+`RESEND_API_KEY` and `RESEND_FROM` in `.env` to enable. Without those, the OTP
+backend falls back to a dev-only autofill so local builds keep working.
 
 To enable Telegram on a deployment:
 
@@ -121,13 +154,13 @@ TELEGRAM_BOT_USERNAME=<bot username, no @>
 Without those set, the bot is disabled cleanly and `/profile` shows a "not
 configured" hint instead of the connect flow.
 
-Email notifications for deal alerts are planned for a later release.
-
 ## Docs
 
-- [docs/architecture.md](./docs/architecture.md) — components, the two deal
-  flows, the wallet model
-- [docs/circle-integration.md](./docs/circle-integration.md) — how each Circle
-  product is used
-- [docs/circle-product-feedback.md](./docs/circle-product-feedback.md) — DevX
-  notes from the build
+- [docs/architecture.md](./docs/architecture.md). Components, both deal flows,
+  the wallet model.
+- [docs/circle-integration.md](./docs/circle-integration.md). How each Circle
+  product is used.
+- [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). DevX
+  notes from the build.
+- [docs/reputation-model.md](./docs/reputation-model.md). The composite
+  formula, the spam detector, and the agent integration spec.
