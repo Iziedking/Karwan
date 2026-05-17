@@ -15,6 +15,7 @@ import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { type UserProfile } from '@/core/api';
 import {
@@ -34,6 +35,7 @@ const TABS: Tab[] = [
   { id: 'identity', label: 'IDENTITY', hash: 'identity' },
   { id: 'wallets', label: 'WALLETS', hash: 'wallets' },
   { id: 'agents', label: 'AGENTS', hash: 'agents' },
+  { id: 'stake', label: 'STAKE', hash: 'stake' },
   { id: 'preferences', label: 'PREFERENCES', hash: 'preferences' },
 ];
 
@@ -346,6 +348,24 @@ export default function ProfilePage() {
               defaultAgent={defaultAgent}
             />
           )}
+        </div>
+      </Band>
+
+      {/* STAKING anchor */}
+      <div id="stake" aria-hidden style={{ scrollMarginTop: 80 }} />
+
+      {/* STAKE — vault deposits + cool-down + tier badge. */}
+      <Band tone="light" compact>
+        <SectionTag>STAKE</SectionTag>
+        <HeroHeadline size="md">
+          Earn <Accent>reputation</Accent>
+          <Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 7-day cool-down on withdrawal.
+        </p>
+        <div className="mt-10">
+          <StakeCard />
         </div>
       </Band>
 

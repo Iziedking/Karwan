@@ -228,11 +228,25 @@ export interface ActivationStatus {
 
 export interface Reputation {
   address: string;
+  /// Legacy bps score (0..10000). Kept for backward-compatible badge UI.
   scoreBps: number;
   successCount: number;
   disputedCount: number;
   failedCount: number;
   totalDeals: number;
+  /// New composite engine output (docs/reputation-model.md). Optional so
+  /// older API responses don't break the type.
+  score?: number;
+  tier?: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+  terms?: {
+    activity: number;
+    completion: number;
+    stake: number;
+    time: number;
+    penalty: number;
+    decay: number;
+  };
+  modelVersion?: number;
 }
 
 export interface BalanceRow {
@@ -482,6 +496,47 @@ export const api = {
         body: JSON.stringify(body),
       },
     ),
+  /// KarwanVault: list every staking position for an address with state +
+  /// tenure. Used by /profile StakeCard to render the position list.
+  vaultPositions: (address: string) =>
+    json<{
+      vaultAddress: string | null;
+      positions: Array<{
+        positionId: string;
+        principalUsdc: string;
+        principalWei: string;
+        depositedAt: number;
+        cooldownStartedAt: number;
+        claimableAt: number;
+        state: 'active' | 'cooling' | 'claimed';
+        tenureDays: number;
+      }>;
+      totalActiveUsdc: string;
+      totalCoolingUsdc: string;
+      cooldownDays: number;
+    }>(`/api/vault/positions?address=${address}`),
+  /// Circle-only vault writes. Web3 users sign deposit/withdraw/claim
+  /// directly from the wallet via wagmi `writeContract`.
+  vaultDeposit: (body: { address: string; amountUsdc: number }) =>
+    json<{ ok: true; approveTxHash: string; depositTxHash: string }>(
+      '/api/vault/deposit',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  vaultRequestWithdraw: (body: { address: string; positionId: string }) =>
+    json<{ ok: true; txHash: string }>('/api/vault/request-withdraw', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  vaultCancelWithdraw: (body: { address: string; positionId: string }) =>
+    json<{ ok: true; txHash: string }>('/api/vault/cancel-withdraw', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  vaultClaim: (body: { address: string; positionId: string }) =>
+    json<{ ok: true; txHash: string }>('/api/vault/claim', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   createDirectDeal: (body: {
     buyerAddress: string;
     sellerAddress: string;

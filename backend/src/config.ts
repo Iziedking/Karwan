@@ -38,6 +38,10 @@ const envSchema = z.object({
   KARWAN_JOBBOARD_ADDR: optionalAddr,
   KARWAN_ESCROW_ADDR: optionalAddr,
   KARWAN_REPUTATION_ADDR: optionalAddr,
+  // KarwanVault. Optional because pre-deploy the reputation engine cleanly
+  // degrades stakeTerm to its base value (1.0). Once set, stake.ts indexes
+  // Deposited events for the address to compute tenure-weighted active stake.
+  KARWAN_VAULT_ADDR: optionalAddr,
   // Treasury that collects the platform fee. Must match the address the escrow
   // was deployed with; surfaced here for display and reconciliation.
   KARWAN_TREASURY_ADDR: optionalAddr,

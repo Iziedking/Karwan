@@ -48,7 +48,11 @@ export type KarwanEventType =
   | 'agent.withdrawal'
   | 'agent.skipped'
   | 'agent.declined'
-  | 'agent.error';
+  | 'agent.error'
+  | 'vault.deposit'
+  | 'vault.withdraw.requested'
+  | 'vault.withdraw.cancelled'
+  | 'vault.claimed';
 
 export interface KarwanEvent {
   type: KarwanEventType;
