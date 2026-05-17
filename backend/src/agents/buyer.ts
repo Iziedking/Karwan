@@ -26,7 +26,13 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
 import { withLlmTimeout } from './llm-utils.js';
-import { actorSignalsFor, priceAnomalyScore, classifyBid, type BidSignals } from './signals.js';
+import {
+  actorSignalsFor,
+  priceAnomalyScore,
+  classifyBid,
+  type BidSignals,
+  type RepTier,
+} from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
@@ -47,6 +53,12 @@ interface Bid {
   /// at the moment the bid was received. 0–10000 bps; defaults to 5000 (neutral)
   /// if the read failed.
   sellerReputationBps?: number;
+  /// Composite-engine tier at bid time. Drives the tier-aware adjustments in
+  /// finalizeBidCollection (reputation-model.md §6): ELITE skips auction,
+  /// STRONG short-circuits inside +5% of next-best, COLD gets a forced -5%
+  /// counter even when already in range, NEW gets the full counter cycle and
+  /// can route to human review.
+  sellerTier?: RepTier;
   /// Pattern label from classifyBid(). Carried so finalizeBidCollection (and
   /// the Phase C risk-escalator) can route on it without re-computing.
   pattern?: ReturnType<typeof classifyBid>;
@@ -267,7 +279,7 @@ async function handleBidSubmitted(log: Log) {
   const buyer = state.buyer;
 
   let sellerReputationBps = 5000;
-  let sellerRepTier: 'new' | 'cold' | 'established' | 'strong' = 'established';
+  let sellerRepTier: RepTier = 'established';
   let sellerCompletionRate = 1;
   let sellerVelocity24h = 0;
   try {
@@ -290,6 +302,7 @@ async function handleBidSubmitted(log: Log) {
     priceWei: args.price,
     deadlineUnix: Number(args.deadline),
     sellerReputationBps,
+    sellerTier: sellerRepTier,
   };
 
   const bidContext: BidContext = {
@@ -432,14 +445,94 @@ async function finalizeBidCollection(state: JobState) {
   }
 
   const top = ranked[0]!;
-
-  // Direct-accept short-circuit: if the top bid is already at or below the
-  // buyer's stated budget, accept it as the match price. The agent has no
-  // business haggling the seller down when the price is already favorable —
-  // this prevents the LLM-vs-LLM "race to the bottom" pattern where both
-  // sides reflexively counter-down regardless of context.
   const topPrice = Number(top.priceUsdc);
   const budget = Number(state.context.budgetUsdc);
+  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
+  const topTier = top.sellerTier ?? 'established';
+
+  // Tier-aware bid handling per reputation-model.md §6. Branches BEFORE the
+  // standard budget short-circuit so each tier gets its specific treatment.
+
+  // ELITE: skip the auction window entirely. Accept any price within the
+  // buyer's effective cap (budget × tolerance and the profile maxBudgetUsdc).
+  // Rationale: top-tier sellers have earned discretion. The LLM may still
+  // have countered them in normal flow, but the spec says elite gets first
+  // look, so we honour that.
+  if (topTier === 'elite' && topPrice <= effectiveCap) {
+    logger.info(
+      {
+        jobId: state.jobId,
+        seller: top.seller,
+        bidPrice: topPrice,
+        budget,
+        effectiveCap,
+        bids: ranked.length,
+      },
+      'top bid from elite seller, accepting directly (skip auction per §6)',
+    );
+    await proposeMatch(state, top.seller, top.priceUsdc, top.pattern);
+    return;
+  }
+
+  // STRONG: short-circuit when top bid is within 5% of the next-best bid.
+  // This means the LLM's near-tie ranking is reliable enough that we trust
+  // it without an extra counter round. Falls through to standard logic
+  // when there's no second bid or the gap is wider.
+  if (topTier === 'strong' && ranked.length >= 2 && topPrice <= budget) {
+    const secondPrice = Number(ranked[1]!.priceUsdc);
+    if (secondPrice > 0 && Math.abs(topPrice - secondPrice) / secondPrice <= 0.05) {
+      logger.info(
+        {
+          jobId: state.jobId,
+          seller: top.seller,
+          bidPrice: topPrice,
+          runnerUpPrice: secondPrice,
+          tier: topTier,
+        },
+        'strong-tier top bid within +5% of next-best, accepting directly (§6)',
+      );
+      await proposeMatch(state, top.seller, top.priceUsdc, top.pattern);
+      return;
+    }
+  }
+
+  // COLD: even when the bid is already at/under budget, the spec asks for a
+  // single -5% counter to discourage opportunistic pricing from unproven
+  // sellers. Skip the counter if it would dip below a sensible floor (1 USDC)
+  // so degenerate cases don't ratchet to zero.
+  if (topTier === 'cold' && topPrice <= budget) {
+    const counterPrice = topPrice * 0.95;
+    if (counterPrice >= 1) {
+      const remainingDays = Math.max(
+        state.buyer.minDeadlineDays,
+        Math.min(
+          state.buyer.maxDeadlineDays,
+          Math.floor((top.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+        ),
+      );
+      logger.info(
+        {
+          jobId: state.jobId,
+          seller: top.seller,
+          bidPrice: topPrice,
+          counterPrice: counterPrice.toFixed(2),
+          tier: topTier,
+        },
+        'cold-tier seller, forcing -5% counter even at/under budget (§6)',
+      );
+      await issueCounter(state, {
+        ...top,
+        suggestedCounterPrice: counterPrice.toFixed(2),
+        suggestedCounterDeadlineDays: remainingDays,
+      });
+      return;
+    }
+  }
+
+  // ESTABLISHED + un-handled STRONG + un-handled COLD: standard direct-accept
+  // short-circuit. If the top bid is already at or below the buyer's stated
+  // budget, accept it. Prevents the LLM-vs-LLM race-to-the-bottom counter
+  // pattern where both sides reflexively counter-down regardless of context.
   if (topPrice <= budget) {
     logger.info(
       {
@@ -448,8 +541,9 @@ async function finalizeBidCollection(state: JobState) {
         bidPrice: topPrice,
         budget,
         bids: ranked.length,
+        tier: topTier,
       },
-      'top bid already at/under budget, accepting directly (no counter)',
+      'top bid at/under budget, accepting directly (no counter)',
     );
     await proposeMatch(state, top.seller, top.priceUsdc, top.pattern);
     return;
@@ -463,6 +557,7 @@ async function finalizeBidCollection(state: JobState) {
       bids: ranked.length,
       bidPrice: topPrice,
       budget,
+      tier: topTier,
     },
     'top bid above budget, issuing counter',
   );

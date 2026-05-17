@@ -87,7 +87,7 @@ export default function SellerPage() {
     <FullBleed>
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
@@ -145,7 +145,7 @@ export default function SellerPage() {
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           Every activated wallet runs a seller agent. Set skills and ranges on profile, post listings here to broadcast supply.
         </p>
-        <div className="mt-10 grid md:grid-cols-3 gap-5">
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
           {STEPS.map((s, i) => (
             <div key={s.n} className={`fade-up fade-up-${i + 1}`}>
               <StepCard n={s.n} title={s.title} body={s.body} />
@@ -166,8 +166,8 @@ export default function SellerPage() {
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
           Publish a listing at your asking price. Matches land in your inbox.
         </p>
-        <div className="mt-10 grid lg:grid-cols-3 gap-5 items-start">
-          <div className="lg:col-span-2">
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+          <div className="min-w-0 lg:col-span-2">
             <div
               className="overflow-hidden"
               style={{

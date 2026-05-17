@@ -314,9 +314,9 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     return;
   }
 
-  const priceUsdc = Number(decision.suggestedPrice);
-  if (priceUsdc < seller.minBudgetUsdc || priceUsdc > seller.maxBudgetUsdc) {
-    logger.warn({ jobId: job.jobId, priceUsdc }, 'skipping: LLM price outside seller range');
+  const llmPrice = Number(decision.suggestedPrice);
+  if (llmPrice < seller.minBudgetUsdc || llmPrice > seller.maxBudgetUsdc) {
+    logger.warn({ jobId: job.jobId, priceUsdc: llmPrice }, 'skipping: LLM price outside seller range');
     bus.emitEvent({
       type: 'agent.skipped',
       jobId: job.jobId,
@@ -324,17 +324,40 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       payload: {
         seller: seller.address,
         reason: 'llm-price-out-of-range',
-        detail: `${priceUsdc} USDC is outside the seller's ${seller.minBudgetUsdc}-${seller.maxBudgetUsdc} USDC range`,
-        priceUsdc,
+        detail: `${llmPrice} USDC is outside the seller's ${seller.minBudgetUsdc}-${seller.maxBudgetUsdc} USDC range`,
+        priceUsdc: llmPrice,
       },
     });
     return;
   }
 
+  // Apply tier-aware pricing adjustments per reputation-model.md §6.
+  // ELITE buyers earn first-look discounts; COLD/NEW buyers pay a premium
+  // because they're statistically more likely to abandon or dispute. NEW
+  // also raises a humanReview flag so the seller can eyeball it before any
+  // eventual match is approved.
+  const buyerTier = job.buyerRepTier ?? 'established';
+  const adjusted = adjustBidByTier(llmPrice, buyerTier, seller);
+  const priceUsdc = adjusted.priceUsdc;
+  const finalPrice = priceUsdc.toFixed(2);
+  if (adjusted.adjustment !== 'standard') {
+    logger.info(
+      {
+        jobId: job.jobId,
+        seller: seller.address,
+        llmPrice,
+        finalPrice,
+        buyerTier,
+        adjustment: adjusted.adjustment,
+      },
+      'bid price adjusted for buyer tier (§6)',
+    );
+  }
+
   const proposedDeadline =
     Math.floor(Date.now() / 1000) + decision.suggestedDeadlineDays * 86_400;
   const deadlineUnix = Math.min(proposedDeadline, job.deadlineUnix);
-  const priceWei = parseUnits(decision.suggestedPrice, USDC_DECIMALS);
+  const priceWei = parseUnits(finalPrice, USDC_DECIMALS);
 
   const txResult = await executeContractCall(
     {
@@ -349,8 +372,8 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   activeBids.set(bidKey(job.jobId, seller.address), {
     seller,
     jobContext: job,
-    lastBidPrice: decision.suggestedPrice,
-    originalBidPriceUsdc: decision.suggestedPrice,
+    lastBidPrice: finalPrice,
+    originalBidPriceUsdc: finalPrice,
     counterRounds: 0,
     finalized: false,
     responding: false,
@@ -363,11 +386,56 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     actor: 'seller',
     payload: {
       seller: seller.address,
-      priceUsdc: decision.suggestedPrice,
+      priceUsdc: finalPrice,
       deadlineUnix,
       txHash: txResult.txHash,
+      buyerTier,
+      tierAdjustment: adjusted.adjustment,
+      humanReview: adjusted.humanReview,
     },
   });
+}
+
+/// Adjusts the LLM's suggested price based on the buyer's reputation tier
+/// per docs/reputation-model.md §6. Clamps to the seller's profile range so
+/// the adjusted price never violates the seller's own bounds. `humanReview`
+/// surfaces on the bid.submitted event so the seller's UI can flag NEW
+/// buyers before the human signs off on the eventual match.
+function adjustBidByTier(
+  llmPrice: number,
+  tier: 'new' | 'cold' | 'established' | 'strong' | 'elite',
+  seller: SellerProfile,
+): {
+  priceUsdc: number;
+  adjustment: 'standard' | 'elite-floor' | 'cold-premium' | 'new-premium';
+  humanReview: boolean;
+} {
+  const clamp = (n: number): number =>
+    Math.max(seller.minBudgetUsdc, Math.min(seller.maxBudgetUsdc, n));
+  if (tier === 'elite') {
+    // Top-tier clients earn first-look pricing. Bid at the seller's floor.
+    return {
+      priceUsdc: clamp(seller.minBudgetUsdc),
+      adjustment: 'elite-floor',
+      humanReview: false,
+    };
+  }
+  if (tier === 'cold') {
+    return {
+      priceUsdc: clamp(llmPrice * 1.10),
+      adjustment: 'cold-premium',
+      humanReview: false,
+    };
+  }
+  if (tier === 'new') {
+    return {
+      priceUsdc: clamp(llmPrice * 1.15),
+      adjustment: 'new-premium',
+      humanReview: true,
+    };
+  }
+  // established + strong: LLM price stands.
+  return { priceUsdc: llmPrice, adjustment: 'standard', humanReview: false };
 }
 
 async function handleCounterOffer(log: Log) {

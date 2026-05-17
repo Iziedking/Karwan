@@ -247,7 +247,10 @@ export function classifyBid(s: BidSignals): RiskPattern {
   const windfallish = s.priceMultiple >= 1.5;
   const aroundBudget = s.priceMultiple >= 0.9 && s.priceMultiple <= 1.1;
   const lowballish = s.priceMultiple <= 0.7;
-  const strongRep = tier === 'established' || tier === 'strong';
+  // Treat 'elite' as the strongest signal. It behaves like 'strong'/'established'
+  // for the purpose of pattern classification (a windfall from an elite is real,
+  // not a honey trap).
+  const strongRep = tier === 'established' || tier === 'strong' || tier === 'elite';
   const weakRep = tier === 'new' || tier === 'cold';
 
   if (windfallish && strongRep) return 'windfall';

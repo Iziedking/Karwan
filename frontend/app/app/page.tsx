@@ -96,7 +96,7 @@ export default function AppHome() {
     <FullBleed>
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot="live">

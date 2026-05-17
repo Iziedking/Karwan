@@ -18,7 +18,7 @@ export interface JobContext {
   /// Optional deterministic signals on the buyer. Passed through so the seller
   /// agent can see "is this a real buyer or a probable bot/scammer" before it
   /// commits gas to a bid that will never close.
-  buyerRepTier?: 'new' | 'cold' | 'established' | 'strong';
+  buyerRepTier?: 'new' | 'cold' | 'established' | 'strong' | 'elite';
   buyerCompletionRate?: number;
   buyerVelocity24h?: number;
 }
@@ -32,7 +32,7 @@ export interface BidContext {
   /// and passed in so the LLM can reason about the *pattern* rather than the
   /// raw numbers. Optional for backward-compat with code paths that haven't
   /// been threaded yet — the prompt soft-degrades when missing.
-  repTier?: 'new' | 'cold' | 'established' | 'strong';
+  repTier?: 'new' | 'cold' | 'established' | 'strong' | 'elite';
   completionRate?: number;
   velocity24h?: number;
   priceMultiple?: number;
@@ -87,6 +87,13 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     `- Maximum days to delivery: ${seller.maxDeadlineDays}`,
     `- Pre-computed: budget-in-range=${inBudgetRange}, deadline-in-range=${inDeadlineRange}.`,
     '',
+    'Tier-aware pricing (applied deterministically AFTER your decision per docs/reputation-model.md §6):',
+    '- buyer ELITE  → final price is forced to seller floor (good clients earn discounts).',
+    '- buyer STRONG / ESTABLISHED → your suggestedPrice stands.',
+    '- buyer COLD   → final price is your suggestedPrice × 1.10 (premium for unproven counterparties).',
+    '- buyer NEW    → final price is your suggestedPrice × 1.15 AND the proposal is flagged for human approval.',
+    'Just pick the right STANDARD price below. The system handles the multiplier.',
+    '',
     'Output rules:',
     '- decision: "bid" ONLY if topical match passes AND budget-in-range AND deadline-in-range. Otherwise "skip".',
     "- suggestedPrice: digits only USDC amount. PRICING RULE: when the buyer's posted budget is within the seller's acceptable range, bid AT the buyer's posted budget — DO NOT undercut. The seller is here to earn the asking price, not to win a race-to-the-bottom. Only bid above the buyer's posted budget if seller.minBudgetUsdc forces it (in which case bid at minBudgetUsdc and let the buyer agent counter). Only bid below the buyer's posted budget if the seller's max is below the budget (in which case bid at seller.maxBudgetUsdc).",
@@ -131,11 +138,19 @@ export function buildBidRankingPrompt(
       : '',
     '',
     'Pattern guide (use this to read the signals together, not just the price):',
-    '- "windfall": bid price well above budget + established/strong rep → score high; this is a real buyer paying generously.',
+    '- "windfall": bid price well above budget + established/strong/elite rep → score high; this is a real buyer paying generously.',
     '- "honey trap": bid price well above budget + new/cold rep → mark medium-low score and lower confidence; could be urgent legit demand or scam bait. The human will judge, not the agent.',
-    '- "reliable deal": bid at or near budget + established/strong rep + completion rate > 80% → score high; this is a normal acceptable deal.',
+    '- "reliable deal": bid at or near budget + established/strong/elite rep + completion rate > 80% → score high; this is a normal acceptable deal.',
     '- "suspicious lowball": bid far below budget + new/cold rep → score low; probable probe pricing.',
     '- "spammy": 24h activity ≥ 20 → score low regardless of price; likely bot.',
+    '',
+    'Tier-aware finalization (applied deterministically after your score per docs/reputation-model.md §6):',
+    '- seller ELITE → auction skipped, top bid accepted within profile cap. Score elite bids generously when they fit the brief.',
+    '- seller STRONG → if top bid is within 5% of the next-best, it is accepted without a counter round.',
+    '- seller ESTABLISHED → standard flow.',
+    '- seller COLD → a single -5% counter is forced even when the bid is already at/under budget.',
+    '- seller NEW → full counter cycle, and a bottom-decile price routes the final accept to a human.',
+    'You do not need to apply these yourself. Score the bid honestly and the system will route.',
     '',
     'Output rules:',
     '- score: 0..100 composite (higher is better). Weight reputation, completionRate, price-vs-budget, delivery timing, and the pattern above.',

@@ -71,7 +71,7 @@ export default function BuyerPage() {
     <FullBleed>
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
@@ -125,8 +125,8 @@ export default function BuyerPage() {
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
           One transaction to escrow.
         </p>
-        <div className="mt-10 grid lg:grid-cols-3 gap-5 items-start">
-          <div className="lg:col-span-2">
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+          <div className="min-w-0 lg:col-span-2">
             <PageCard>
               <div className="p-6 md:p-8">
                 <NewDealPanel />

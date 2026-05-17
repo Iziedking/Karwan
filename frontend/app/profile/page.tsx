@@ -120,7 +120,7 @@ export default function ProfilePage() {
     <FullBleed>
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activation.activated ? 'live' : undefined}>
