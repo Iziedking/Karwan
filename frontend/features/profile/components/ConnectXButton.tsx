@@ -213,7 +213,7 @@ export function ConnectXButton() {
         borderTopRightRadius: 10,
         borderBottomLeftRadius: 10,
         borderBottomRightRadius: 2,
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--surface-1)',
       }}
     >
       <label className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">

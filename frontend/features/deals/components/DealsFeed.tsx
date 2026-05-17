@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { api, type DirectDeal } from '@/core/api';
 import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealList';
@@ -149,48 +150,56 @@ export function DealsFeed() {
           {shown.map(({ deal, stage }) => {
             const meta = STAGE_META[stage];
             return (
-              <li key={deal.jobId} className="group relative">
-                <div className="block px-6 md:px-8 py-5 transition-colors hover:bg-[var(--lp-light)]">
+              <li key={deal.jobId} className="relative">
+                <Link
+                  href={`/deals/${deal.jobId}`}
+                  className="group relative grid grid-cols-[auto_1fr_auto] items-center gap-6 px-6 md:px-8 py-5 transition-colors duration-150 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+                >
                   <span
                     aria-hidden
-                    className="absolute left-0 top-3 bottom-3 w-[3px] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
+                    className="absolute left-0 top-2 bottom-2 w-[3px] opacity-60 transition-opacity duration-150 group-hover:opacity-100"
                     style={{ background: meta.rail }}
                   />
-                  <div className="flex items-center justify-between gap-6">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <StageBadge stage={stage} />
-                        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                          {relativeTime(deal.createdAt)}
-                        </span>
-                      </div>
-                      <div className="mt-2.5 flex items-baseline gap-2">
-                        <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-                          {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
-                        </span>
-                        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                          USDC
-                        </span>
-                      </div>
-                      <p className="mt-2 text-[13px] text-[var(--lp-text-sub)] line-clamp-1 max-w-[60ch]">
-                        {deal.terms}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0 space-y-1.5">
-                      <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-                        PARTIES
-                      </p>
-                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)]">
+
+                  {/* status + age column */}
+                  <div className="shrink-0 min-w-[180px] flex items-center gap-3">
+                    <StageBadge stage={stage} />
+                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+                      {relativeTime(deal.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* amount column */}
+                  <div className="min-w-0 flex items-baseline gap-2">
+                    <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
+                      {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
+                    </span>
+                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                      USDC
+                    </span>
+                  </div>
+
+                  {/* parties + chevron column */}
+                  <div className="shrink-0 flex items-center gap-5">
+                    <div className="text-right">
+                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-none">
                         {shortAddress(deal.buyer)}
                         <span className="mx-1 text-[var(--lp-text-muted)]">→</span>
                         {shortAddress(deal.seller)}
                       </p>
-                      <p className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
+                      <p className="mt-1.5 mono text-[10px] tabular-nums uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
                         {shortHash(deal.jobId, 6, 4)}
                       </p>
                     </div>
+                    <span
+                      aria-hidden
+                      className="text-[16px] leading-none transition-transform duration-150 group-hover:translate-x-1"
+                      style={{ color: 'var(--lp-text-muted)' }}
+                    >
+                      ›
+                    </span>
                   </div>
-                </div>
+                </Link>
               </li>
             );
           })}

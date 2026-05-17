@@ -340,7 +340,7 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
           <button
             type="button"
             onClick={onLogin}
-            className="inline-flex items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+            className="inline-flex items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
             style={{
               borderTopLeftRadius: 12,
               borderTopRightRadius: 12,
@@ -469,7 +469,7 @@ function RoleCard({
     tone === 'dark'
       ? 'bg-[var(--lp-band-dark)] text-white'
       : tone === 'accent'
-        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)]'
+        ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
   const eyebrowColor =
     tone === 'dark'

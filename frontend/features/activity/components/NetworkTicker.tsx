@@ -1,7 +1,10 @@
 ﻿'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { api, type DirectDeal } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
+import { dur, ease } from '@/shared/motion/tokens';
 
 type EventKind = 'opened' | 'completed' | 'cancelled';
 
@@ -135,12 +138,15 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
       : card.kind === 'completed'
         ? 'JUST COMPLETED'
         : 'JUST CANCELLED';
-  const eyebrowColor =
+  // Map state to skill BracketTag variant + tone color for the left rail.
+  const variant: BracketTagVariant =
+    card.kind === 'opened' ? 'live' : card.kind === 'completed' ? 'pos' : 'neg';
+  const railColor =
     card.kind === 'opened'
-      ? 'var(--lp-accent)'
+      ? 'var(--accent)'
       : card.kind === 'completed'
-        ? '#7fe0a8'
-        : '#e8806b';
+        ? 'var(--pos)'
+        : 'var(--neg)';
   const verb =
     card.kind === 'opened'
       ? 'opened a'
@@ -149,56 +155,93 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         : 'cancelled a';
 
   return (
-    <div
-      className="relative shrink-0 overflow-hidden flex flex-col justify-between"
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ duration: dur.fast, ease: ease.out }}
+      className="group relative shrink-0 overflow-hidden flex flex-col justify-between"
       style={{
         width: 296,
-        height: 132,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
+        height: 144,
+        background: 'var(--surface-1)',
+        border: '1px solid var(--rule-dark)',
+        borderTopLeftRadius: 14,
+        borderTopRightRadius: 14,
+        borderBottomLeftRadius: 14,
         borderBottomRightRadius: 4,
-        opacity: muted ? 0.55 : 1,
+        opacity: muted ? 0.5 : 1,
+        transition: 'border-color 240ms cubic-bezier(0.16,1,0.3,1)',
       }}
     >
-      <div className="px-5 pt-4 flex items-center justify-between">
-        <span
-          className="inline-flex items-center gap-1.5 mono text-[9px] font-bold uppercase tracking-[0.20em]"
-          style={{ color: eyebrowColor }}
-        >
-          <span
-            aria-hidden
-            className="w-[5px] h-[5px]"
-            style={{ background: eyebrowColor }}
-          />
+      {/* state rail on the left edge per skill grammar */}
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: railColor }}
+      />
+      {/* faint corner grid pattern, brightens on hover */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-30 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-60"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+          maskImage:
+            'radial-gradient(ellipse 70% 70% at 100% 0%, black, transparent 75%)',
+          WebkitMaskImage:
+            'radial-gradient(ellipse 70% 70% at 100% 0%, black, transparent 75%)',
+        }}
+      />
+      {/* hover hairline brighten per skill §3 motion rule 3 */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"
+        style={{
+          borderRadius: 14,
+          border: '1px solid rgba(255,255,255,0.18)',
+        }}
+      />
+
+      <div className="relative px-5 pt-4 pl-6 flex items-center justify-between">
+        <BracketTag variant={variant} onDark>
           {eyebrow}
-        </span>
+        </BracketTag>
         {!muted && card.at > 0 && (
-          <span className="mono text-[9px] uppercase tracking-[0.14em] text-white/45 tabular-nums">
+          <span
+            className="font-mono text-[10px] uppercase tracking-[0.12em] tabular-nums"
+            style={{ color: 'var(--ink-3)' }}
+          >
             {relativeTime(card.at)}
           </span>
         )}
       </div>
 
-      <div className="px-5 pb-4">
-        <p className="mono text-[11px] tabular-nums text-white/65 leading-snug">
-          <span className="text-white">{shortAddress(card.actor)}</span>{' '}
-          <span className="text-white/55">{verb}</span>
+      <div className="relative px-5 pb-5 pl-6">
+        <p
+          className="font-mono text-[11px] tabular-nums leading-snug"
+          style={{ color: 'var(--ink-2)' }}
+        >
+          <span style={{ color: 'var(--ink-0)' }}>{shortAddress(card.actor)}</span>{' '}
+          <span style={{ color: 'var(--ink-3)' }}>{verb}</span>
         </p>
-        <div className="mt-1 flex items-baseline gap-1.5">
+        <div className="mt-2 flex items-baseline gap-2">
           <span
-            className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.02em] leading-none"
-            style={{ color: 'white' }}
+            className="font-sans font-bold tabular-nums tracking-[-0.03em] leading-none"
+            style={{
+              fontSize: 'clamp(32px, 3.6vw, 40px)',
+              color: 'var(--ink-0)',
+            }}
           >
             {formatUsdc(card.amountUsdc, { withSuffix: false })}
           </span>
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
-            USDC deal
+          <span
+            className="font-mono text-[10px] uppercase tracking-[0.14em]"
+            style={{ color: 'var(--ink-3)' }}
+          >
+            USDC DEAL
           </span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

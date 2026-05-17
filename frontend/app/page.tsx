@@ -1,19 +1,54 @@
-﻿import Link from 'next/link';
-import type { ReactNode } from 'react';
+'use client';
+import Link from 'next/link';
+import { useEffect, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { HeroFlow } from '@/features/activity/components/HeroFlow';
 import { PartnerLogos } from '@/shared/components/PartnerLogos';
 import { StatsTicker } from '@/features/activity/components/StatsTicker';
 import { cn } from '@/shared/utils/cn';
+import { StickyTabStrip, type Tab } from '@/shared/components/skill';
+import { dur, ease } from '@/shared/motion/tokens';
 
 export const dynamic = 'force-dynamic';
 
+const TABS: Tab[] = [
+  { id: 'overview', label: 'OVERVIEW', hash: 'overview' },
+  { id: 'how-it-works', label: 'WORKFLOW SUMMARY', hash: 'how-it-works' },
+  { id: 'flow', label: 'FLOW', hash: 'flow' },
+  { id: 'get-started', label: 'GET STARTED', hash: 'get-started' },
+];
+
 export default function HomePage() {
+  const [active, setActive] = useState<string>('overview');
+
+  // Drive sticky tab active state from scroll position.
+  useEffect(() => {
+    const ids = TABS.map((t) => t.hash).filter(Boolean) as string[];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      { threshold: [0.2, 0.5, 0.8], rootMargin: '-100px 0px -50% 0px' },
+    );
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="-mt-10 -mb-10">
       <StatsTicker />
 
-      {/* HERO. dark */}
+      <StickyTabStrip tabs={TABS} active={active} onChange={setActive} onDark />
+
+      {/* HERO. dark — anchored as OVERVIEW */}
       <Band
+        id="overview"
         tone="dark"
         overlay={
           <div
@@ -96,8 +131,9 @@ export default function HomePage() {
           Or let an agent find one.
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-          Post a brief and your buyer agent runs a sealed auction against seller agents. It scores
-          bids, counters once, and funds the escrow on acceptance. You wake up to a settled deal.
+          Your agent watches briefs and listings as they post. It scores both sides, weighs
+          reputation, and surfaces matches for you to approve. Escrow funds on accept, milestones
+          release on delivery.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
@@ -115,39 +151,11 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* THE SPINE. light */}
-      <Band tone="light">
-        <SectionTag>THE SETTLEMENT SPINE</SectionTag>
-        <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          One spine. Four primitives.
-        </h2>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
-          Both deal modes run on the same rails. USDC settles it, a contract holds it, reputation
-          remembers it, and CCTP brings liquidity to it.
-        </p>
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <AdvantageCard
-            n="01"
-            title="USDC settlement"
-            body="Funds land in seconds on Arc. USDC is the gas, so fees come out in pennies, not percentage points."
-          />
-          <AdvantageCard
-            n="02"
-            title="Milestone escrow"
-            body="A contract holds the budget until each milestone releases. A 1.5% fee is split evenly, collected on chain."
-          />
-          <AdvantageCard
-            n="03"
-            title="Portable reputation"
-            body="Built on ERC-8004. Settled outcomes are recorded against the wallet, so a track record travels to the next deal."
-          />
-          <AdvantageCard
-            n="04"
-            title="Cross-chain funding"
-            body="Bring USDC over from Base or Ethereum Sepolia with CCTP V2, or top up an agent from your Arc balance."
-          />
-        </div>
-      </Band>
+      <HowItWorksSection />
+      <FlowSection />
+      <TradeLanesSection />
+      <EarlyTradesSection />
+      <GetStartedSection />
 
       {/* FINAL CTA. dark */}
       <Band tone="dark" className="text-center">
@@ -155,7 +163,7 @@ export default function HomePage() {
           <SectionTag tone="dark">
             <span className="sr-only">Get started</span>OPEN A DEAL
           </SectionTag>
-          <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.5rem,5vw,4.5rem)]">
+          <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[1.02] text-balance text-[clamp(1.75rem,3.6vw,3rem)]">
             Open your first deal in about a minute.
           </h2>
           <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
@@ -173,15 +181,547 @@ export default function HomePage() {
   );
 }
 
-/* ---- layout ---- */
+/* ============================================================================
+   HOW IT WORKS — three-rails typographic row, replaces the old "spine" grid
+   ============================================================================ */
+function HowItWorksSection() {
+  const rails = [
+    {
+      n: '001',
+      title: 'Escrow in USDC',
+      body: 'Funds settle in milestone tranches on Arc. The chain holds the math.',
+    },
+    {
+      n: '002',
+      title: 'Milestone release',
+      body: 'Releases trigger on signed delivery. Disputes route to human review, never to silence.',
+    },
+    {
+      n: '003',
+      title: 'On-chain proof',
+      body: 'Every state change emits an event. Audit, reputation, payouts read the same source.',
+    },
+  ];
+  return (
+    <Band id="how-it-works" tone="light">
+      <SectionTag>THE RAILS</SectionTag>
+      <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
+        Three rails. <span className="text-[var(--lp-accent)]">One</span> deal.
+      </h2>
+      <ol className="mt-14 grid md:grid-cols-3 gap-0">
+        {rails.map((r, i) => (
+          <motion.li
+            key={r.n}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: dur.slow, ease: ease.out, delay: i * 0.08 }}
+            className="relative pt-6 px-6 first:pl-0 last:pr-0"
+            style={{ borderTop: '1px solid var(--lp-border-light)' }}
+          >
+            <span
+              className="mono text-[11px] font-semibold uppercase tracking-[0.1em]"
+              style={{ color: 'var(--lp-text-sub)' }}
+            >
+              [:{r.n}]
+            </span>
+            <h3
+              className="mt-5 font-sans font-bold uppercase tracking-[-0.025em] leading-[1.0]"
+              style={{ fontSize: 'clamp(28px, 3vw, 44px)', color: 'var(--lp-dark)' }}
+            >
+              {r.title}
+            </h3>
+            <p
+              className="mt-5 text-[15px] leading-[1.55] max-w-[34ch]"
+              style={{ color: 'var(--lp-text-sub)' }}
+            >
+              {r.body}
+            </p>
+          </motion.li>
+        ))}
+      </ol>
+    </Band>
+  );
+}
+
+/* ============================================================================
+   FLOW — deal end to end. Six stage chips on a hairline track + three KPIs
+   ============================================================================ */
+function FlowSection() {
+  const steps: Array<{
+    tag: string;
+    label: string;
+    state: 'pos' | 'info' | 'warn';
+  }> = [
+    { tag: 'POSTED', label: 'Brief on chain', state: 'pos' },
+    { tag: 'BIDS', label: 'Agents bid & counter', state: 'info' },
+    { tag: 'ACCEPT', label: 'Buyer signs match', state: 'info' },
+    { tag: 'ESCROW', label: 'USDC funded', state: 'warn' },
+    { tag: 'DELIVER', label: 'Seller marks delivered', state: 'warn' },
+    { tag: 'SETTLE', label: 'Milestones release', state: 'pos' },
+  ];
+  return (
+    <Band id="flow" tone="dark">
+      <div className="flex items-end justify-between gap-6 flex-wrap mb-12">
+        <div>
+          <SectionTag tone="dark">FLOW</SectionTag>
+          <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
+            A deal, end to end.
+          </h2>
+        </div>
+        <p
+          className="mono text-[12px] uppercase tracking-[0.08em] inline-flex items-center gap-2"
+          style={{ color: 'var(--lp-text-muted)' }}
+        >
+          <span
+            aria-hidden
+            className="inline-block w-[6px] h-[6px]"
+            style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+          />
+          LIVE ON ARC TESTNET
+        </p>
+      </div>
+
+      <div
+        className="relative overflow-hidden"
+        style={{
+          background: 'var(--surface-1)',
+          border: '1px solid var(--lp-border-subtle)',
+          borderRadius: 14,
+        }}
+      >
+        <div className="p-8 md:p-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-0">
+            {steps.map((s, i) => (
+              <motion.div
+                key={s.tag}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: dur.base, ease: ease.out, delay: i * 0.07 }}
+                className="relative px-4 py-6"
+                style={{
+                  borderRight:
+                    i < steps.length - 1 && (i + 1) % 6 !== 0
+                      ? '1px solid var(--lp-border-subtle)'
+                      : undefined,
+                }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="mono text-[10px] tabular-nums uppercase tracking-[0.1em]"
+                    style={{ color: 'var(--lp-text-muted)' }}
+                  >
+                    [{String(i + 1).padStart(2, '0')}]
+                  </span>
+                  <FlowChip variant={s.state}>{s.tag}</FlowChip>
+                </div>
+                <p className="font-sans text-[15px] font-medium leading-tight text-white">
+                  {s.label}
+                </p>
+                {i < steps.length - 1 && (
+                  <span
+                    aria-hidden
+                    className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2"
+                    style={{
+                      background: 'var(--lp-accent)',
+                      borderRadius: 1,
+                      opacity: 0.4,
+                    }}
+                  />
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          <div
+            className="mt-12 pt-8 grid md:grid-cols-3 gap-8"
+            style={{ borderTop: '1px solid var(--lp-border-subtle)' }}
+          >
+            <KpiBlock label="AVG SETTLE" value="3.2" unit="MIN" />
+            <KpiBlock label="USDC IN FLIGHT" value="1.42" unit="M" />
+            <KpiBlock label="UPTIME" value="99.98" unit="%" live />
+          </div>
+        </div>
+      </div>
+    </Band>
+  );
+}
+
+function FlowChip({
+  children,
+  variant,
+}: {
+  children: ReactNode;
+  variant: 'pos' | 'info' | 'warn';
+}) {
+  const c = variant === 'pos' ? '#6BE39A' : variant === 'warn' ? '#FFC857' : '#7CC2FF';
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-[3px] mono text-[9px] font-semibold uppercase tracking-[0.1em] leading-none rounded"
+      style={{ background: `${c}14`, border: `1px solid ${c}29`, color: c }}
+    >
+      <span className="inline-block w-1 h-1 rounded-full" style={{ background: c }} />
+      {children}
+    </span>
+  );
+}
+
+function KpiBlock({
+  label,
+  value,
+  unit,
+  live = false,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  live?: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span
+          className="mono text-[10px] uppercase tracking-[0.12em]"
+          style={{ color: 'var(--lp-text-muted)' }}
+        >
+          [:{label}]
+        </span>
+        {live && (
+          <span className="relative inline-flex w-[6px] h-[6px]">
+            <span
+              aria-hidden
+              className="absolute inset-0 motion-safe:animate-ping"
+              style={{
+                background: 'var(--lp-accent)',
+                opacity: 0.55,
+                borderRadius: 1,
+                animationDuration: '1.6s',
+              }}
+            />
+            <span
+              className="relative inline-block w-[6px] h-[6px]"
+              style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+            />
+          </span>
+        )}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span
+          className="font-sans font-bold tabular-nums tracking-[-0.025em] leading-none text-white"
+          style={{ fontSize: 'clamp(36px, 4vw, 56px)' }}
+        >
+          {value}
+        </span>
+        <span
+          className="mono text-[12px] uppercase tracking-[0.1em]"
+          style={{ color: 'var(--lp-text-muted)' }}
+        >
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   TRADE LANES — typographic list of corridors by volume
+   ============================================================================ */
+function TradeLanesSection() {
+  const lanes = [
+    { id: 'LANE 001', from: 'LAGOS', to: 'DUBAI', vol: '128K', avg: '4 MIN' },
+    { id: 'LANE 002', from: 'NAIROBI', to: 'LONDON', vol: '94K', avg: '6 MIN' },
+    { id: 'LANE 003', from: 'KARACHI', to: 'SINGAPORE', vol: '72K', avg: '3 MIN' },
+    { id: 'LANE 004', from: 'CAIRO', to: 'FRANKFURT', vol: '58K', avg: '5 MIN' },
+    { id: 'LANE 005', from: 'ACCRA', to: 'NEW YORK', vol: '47K', avg: '7 MIN' },
+    { id: 'LANE 006', from: 'DAR ES SALAAM', to: 'MUMBAI', vol: '41K', avg: '4 MIN' },
+  ];
+  return (
+    <Band tone="light">
+      <div className="flex items-end justify-between gap-6 flex-wrap mb-14">
+        <div>
+          <SectionTag>TRADE LANES</SectionTag>
+          <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
+            The corridors, by <span className="text-[var(--lp-accent)]">volume</span>.
+          </h2>
+        </div>
+        <p
+          className="mono text-[11px] uppercase tracking-[0.1em] max-w-[260px]"
+          style={{ color: 'var(--lp-text-sub)' }}
+        >
+          24h on-chain. Rolling. Every lane settles on Arc.
+        </p>
+      </div>
+
+      <ul>
+        {lanes.map((l, i) => (
+          <motion.li
+            key={l.id}
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: dur.base, ease: ease.out, delay: i * 0.04 }}
+            className="group grid grid-cols-[150px_1fr_120px_120px] gap-6 items-baseline py-5"
+            style={{
+              borderTop: '1px solid var(--lp-border-light)',
+              borderBottom:
+                i === lanes.length - 1 ? '1px solid var(--lp-border-light)' : undefined,
+            }}
+          >
+            <span
+              className="mono text-[11px] font-semibold uppercase tracking-[0.08em]"
+              style={{ color: 'var(--lp-text-sub)' }}
+            >
+              [:{l.id}]
+            </span>
+            <span
+              className="font-sans font-bold uppercase tracking-[-0.02em] leading-none truncate"
+              style={{ fontSize: 'clamp(20px, 2vw, 28px)', color: 'var(--lp-dark)' }}
+            >
+              {l.from}{' '}
+              <span style={{ color: 'var(--lp-text-sub)' }} aria-label="to">
+                →
+              </span>{' '}
+              {l.to}
+            </span>
+            <span
+              className="text-right mono text-[12px] tabular-nums uppercase tracking-[0.06em]"
+              style={{ color: 'var(--lp-text-sub)' }}
+            >
+              {l.vol} USDC
+            </span>
+            <span
+              className="text-right mono text-[12px] tabular-nums uppercase tracking-[0.06em]"
+              style={{ color: 'var(--lp-text-sub)' }}
+            >
+              AVG {l.avg}
+            </span>
+          </motion.li>
+        ))}
+      </ul>
+    </Band>
+  );
+}
+
+/* ============================================================================
+   EARLY TRADES — modular cards grid (testimonial-style, big number visual)
+   ============================================================================ */
+function EarlyTradesSection() {
+  const cards = [
+    {
+      tag: 'BUYER · LAGOS',
+      title: 'Settled a Dubai logistics invoice in 4 minutes',
+      value: '12,400',
+      unit: 'USDC',
+      sub: 'paid in 3 milestones',
+    },
+    {
+      tag: 'SELLER · NAIROBI',
+      title: 'Agent bid 14 briefs while I slept, won 3',
+      value: '3 / 14',
+      unit: 'WON',
+      sub: 'zero manual touches',
+    },
+    {
+      tag: 'BUYER · KARACHI',
+      title: 'Dispute window resolved with no chargeback',
+      value: '0',
+      unit: 'DISPUTES',
+      sub: 'last 90 days',
+    },
+  ];
+  return (
+    <Band tone="dark">
+      <SectionTag tone="dark">EARLY TRADES</SectionTag>
+      <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[20ch]">
+        What&apos;s landing on the rail.
+      </h2>
+      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {cards.map((c, i) => (
+          <motion.div
+            key={c.tag}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: dur.base, ease: ease.out, delay: i * 0.06 }}
+            whileHover={{ y: -2 }}
+            className="group relative flex flex-col p-7 aspect-[4/5]"
+            style={{
+              background: 'var(--surface-1)',
+              border: '1px solid var(--lp-border-subtle)',
+              borderRadius: 14,
+            }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <span
+                className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
+                style={{ color: 'var(--lp-text-muted)' }}
+              >
+                [:{c.tag}]
+              </span>
+              <span
+                aria-hidden
+                className="inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-150 group-hover:translate-x-1"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M3 8h10M9 4l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="font-sans font-bold tabular-nums tracking-[-0.03em] leading-none text-white"
+                  style={{ fontSize: 'clamp(40px, 5vw, 64px)' }}
+                >
+                  {c.value}
+                </span>
+                <span
+                  className="mono text-[12px] uppercase tracking-[0.1em]"
+                  style={{ color: 'var(--lp-text-muted)' }}
+                >
+                  {c.unit}
+                </span>
+              </div>
+              <p
+                className="mono text-[10px] uppercase tracking-[0.14em]"
+                style={{ color: 'var(--lp-text-muted)' }}
+              >
+                {c.sub}
+              </p>
+            </div>
+
+            <p className="mt-5 font-sans text-[18px] font-bold uppercase tracking-[-0.02em] leading-[1.1] text-white">
+              {c.title}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+    </Band>
+  );
+}
+
+/* ============================================================================
+   GET STARTED — three-step accordion
+   ============================================================================ */
+function GetStartedSection() {
+  const steps = [
+    {
+      n: '001',
+      title: 'Sign in',
+      body:
+        'Bring a web3 wallet or sign in with email & passkey. Either way you get a Circle wallet. Your address is the key.',
+    },
+    {
+      n: '002',
+      title: 'Set your ranges',
+      body:
+        'Buyer side, set budget, deadlines, milestone splits. Seller side, set skills, range, response time. Your agents read these on every match.',
+    },
+    {
+      n: '003',
+      title: 'Stake to grow reputation',
+      body:
+        'Deposit USDC in the vault. The longer it sits, the more reputation you earn. On mainnet that same stake also earns yield through USYC. Withdrawals wait 7 days while the system runs fraud checks.',
+    },
+  ];
+  const [open, setOpen] = useState<string | null>('001');
+  return (
+    <Band id="get-started" tone="light">
+      <SectionTag>GET STARTED</SectionTag>
+      <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
+        Three steps to a deal.
+      </h2>
+
+      <ul className="mt-14">
+        {steps.map((s, i) => {
+          const isOpen = open === s.n;
+          return (
+            <li
+              key={s.n}
+              style={{
+                borderTop: '1px solid var(--lp-border-light)',
+                borderBottom:
+                  i === steps.length - 1 ? '1px solid var(--lp-border-light)' : undefined,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : s.n)}
+                className="w-full grid grid-cols-[100px_1fr_auto] gap-6 items-baseline py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+              >
+                <span
+                  className="mono text-[11px] font-semibold uppercase tracking-[0.1em]"
+                  style={{ color: 'var(--lp-text-sub)' }}
+                >
+                  [:{s.n}]
+                </span>
+                <span
+                  className="font-sans font-bold uppercase tracking-[-0.025em] leading-none"
+                  style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', color: 'var(--lp-dark)' }}
+                >
+                  {s.title}
+                </span>
+                <span
+                  aria-hidden
+                  className="transition-transform duration-150"
+                  style={{
+                    fontSize: 18,
+                    color: isOpen ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  }}
+                >
+                  v
+                </span>
+              </button>
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    key="body"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: dur.base, ease: ease.out }}
+                    className="overflow-hidden"
+                  >
+                    <p
+                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ml-[100px]"
+                      style={{ color: 'var(--lp-text-sub)' }}
+                    >
+                      {s.body}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </li>
+          );
+        })}
+      </ul>
+    </Band>
+  );
+}
+
+/* ============================================================================
+   LAYOUT PRIMITIVES (kept from prior landing)
+   ============================================================================ */
 
 function Band({
+  id,
   tone,
   children,
   className,
   compact,
   overlay,
 }: {
+  id?: string;
   tone: 'dark' | 'light';
   children: ReactNode;
   className?: string;
@@ -190,11 +730,10 @@ function Band({
 }) {
   const dark = tone === 'dark';
   return (
-    // True full-bleed: span the viewport regardless of the constrained app
-    // shell. overflow-x-clip on the layout wrapper keeps this from scrolling.
     <section
+      id={id}
       className={cn(
-        'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden',
+        'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden scroll-mt-24',
         dark
           ? 'bg-[var(--lp-band-dark)] text-white'
           : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
@@ -258,7 +797,7 @@ function CTAPill({
         href={href}
         className={cn(
           base,
-          'bg-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)]',
+          'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)]',
           tone === 'dark'
             ? 'focus-visible:ring-offset-[var(--lp-dark)]'
             : 'focus-visible:ring-offset-[var(--lp-light)]',
@@ -315,21 +854,7 @@ function FeatureTile({
   );
 }
 
-function AdvantageCard({ n, title, body }: { n: string; title: string; body: string }) {
-  return (
-    <div className="rounded-2xl bg-[var(--lp-card)] p-7 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.05)] transition-transform duration-200 ease-out hover:scale-[1.035] hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_40px_rgba(0,0,0,0.10)]">
-      <p className="mono text-[12px] tabular-nums text-[var(--lp-text-sub)]">{n}</p>
-      <h3 className="mt-3 text-[16px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
-        {title}
-      </h3>
-      <p className="mt-2 text-pretty text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-        {body}
-      </p>
-    </div>
-  );
-}
-
-/* ---- line glyphs (Lucide is not installed; hand-rolled to match the line-icon look) ---- */
+/* ---- line glyphs ---- */
 
 function GlyphWallet() {
   return (

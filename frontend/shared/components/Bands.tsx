@@ -174,7 +174,7 @@ export function CTAPill({
   };
   const fill =
     variant === 'primary'
-      ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]'
+      ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]'
       : tone === 'dark'
         ? 'border border-white/25 text-white hover:border-white/55'
         : 'border border-black/20 text-[var(--lp-dark)] hover:border-black/45';

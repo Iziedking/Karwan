@@ -64,8 +64,8 @@ html[data-theme="dark"] {
   --lp-light: #f2f2f2;            /* page/section background in light mode */
   --lp-card: #ffffff;             /* card surface (over --lp-light) */
   --lp-band-dark: #0e0e0e;        /* always-dark surface (dark bands + dark CTAs) */
-  --lp-accent: #bde122;
-  --lp-accent-hover: #a6c81a;
+  --lp-accent: #b4d435;          /* paler lime. less sharp on the eye than #bde122 */
+  --lp-accent-hover: #9fbd2b;     /* dimmed hover */
   --lp-text-muted: #9a9a9a;
   --lp-text-sub: #6b6b6b;
   --lp-border-subtle: rgba(255, 255, 255, 0.08);
@@ -96,9 +96,11 @@ html[data-theme="dark"] {
   --ink-inv-0: #0A0A0B;   /* primary on light */
   --ink-inv-2: #6E6E6A;
 
-  /* Accent — USE SPARINGLY (one focal indicator per screen max) */
-  --accent:      #D8FF3D;
-  --accent-deep: #B8E028;
+  /* Accent — USE SPARINGLY (one focal indicator per screen max). Toned down
+     from the original electric `#D8FF3D` because users flagged eye fatigue;
+     same hue, lower saturation + brightness. */
+  --accent:      #C5DD3F;
+  --accent-deep: #AFC72E;
   --accent-ink:  #0A0A0B;
 
   /* Semantic — reserved for settlement state */

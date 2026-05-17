@@ -461,7 +461,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           <div
             className="overflow-hidden p-6 md:p-7"
             style={{
-              background: 'rgba(255,255,255,0.04)',
+              background: 'var(--surface-1)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderTopLeftRadius: 22,
               borderTopRightRadius: 22,
@@ -1059,7 +1059,7 @@ function WindowNote({
           border: '1px solid rgba(189, 225, 34,0.30)',
         }
       : {
-          background: 'rgba(255,255,255,0.04)',
+          background: 'var(--surface-1)',
           color: 'rgba(255,255,255,0.65)',
           border: '1px solid rgba(255,255,255,0.08)',
         };

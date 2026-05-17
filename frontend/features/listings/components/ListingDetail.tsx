@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -148,7 +148,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               aria-hidden
               className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
             >
-              ←
+              â†
             </span>
             Back to seller
           </Link>
@@ -231,7 +231,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 <p className="mono text-[13px] text-[var(--lp-dark)] tabular-nums">
                   {shortAddress(listing.sellerUser)}
                   {viewerIsOwner && (
-                    <span style={{ color: 'var(--lp-accent)' }}> · you</span>
+                    <span style={{ color: 'var(--lp-accent)' }}> Â· you</span>
                   )}
                 </p>
               </div>
@@ -276,7 +276,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           <div
             className="overflow-hidden p-6 md:p-7"
             style={{
-              background: 'rgba(255,255,255,0.04)',
+              background: 'var(--surface-1)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderTopLeftRadius: 22,
               borderTopRightRadius: 22,
@@ -346,7 +346,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                           borderBottomRightRadius: 2,
                         }}
                       >
-                        {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                        {cancelling ? 'Cancellingâ€¦' : 'Yes, cancel'}
                       </button>
                       <button
                         type="button"

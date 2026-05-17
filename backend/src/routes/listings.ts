@@ -34,8 +34,10 @@ const createSchema = z.object({
   askingPriceUsdc: z.number().positive().max(5_000_000),
   negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
   /// Optional listing window in days. Defaults to 30 in the store. Capped at
-  /// 90 to keep stale listings out of the marketplace.
-  ttlDays: z.number().int().min(1).max(90).optional(),
+  /// 90 to keep stale listings out of the marketplace. Fractional values
+  /// allowed so the seller form can express minutes or hours for demos.
+  /// Floor is roughly one minute so dust windows can't slip in.
+  ttlDays: z.number().min(0.0006).max(90).optional(),
 });
 
 const cancelSchema = z.object({ caller: addrSchema });

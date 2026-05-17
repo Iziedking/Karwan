@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useBalance, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -150,18 +150,18 @@ export function ArcFundCard({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !selectedAgent?.address) return;
-    // On wrong chain, switch only — don't try to submit the transfer.
+    // On wrong chain, switch only â€” don't try to submit the transfer.
     // wagmi's wallet client needs the switch to actually commit before any
     // signing call will be routed to the new chain, otherwise the tx fires
     // on the old chain and reverts. After the switch lands, walletChainId
-    // updates → onWrongChain flips false → the button label turns into
+    // updates â†’ onWrongChain flips false â†’ the button label turns into
     // "Send to buyer agent" and the next click does the actual transfer.
     if (onWrongChain) {
       try {
         await switchChainAsync({ chainId: ARC_CHAIN_ID });
       } catch {
         // User declined the wallet prompt. Stay on the same button so they
-        // can try again. No banner — the wallet's own toast surfaces it.
+        // can try again. No banner â€” the wallet's own toast surfaces it.
       }
       return;
     }
@@ -191,7 +191,7 @@ export function ArcFundCard({
             Top up on Arc
           </h2>
           <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {isCircleUser ? 'One click · backend signs' : 'Single tx · settles in ~3s'}
+            {isCircleUser ? 'One click Â· backend signs' : 'Single tx Â· settles in ~3s'}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -358,7 +358,7 @@ export function ArcFundCard({
               [:AMOUNT:]
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              Arc ·{' '}
+              Arc Â·{' '}
               {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '-'}
             </span>
           </div>
@@ -397,7 +397,7 @@ export function ArcFundCard({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="group mt-auto w-full inline-flex items-center justify-center gap-2 px-5 py-4 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          className="group mt-auto w-full inline-flex items-center justify-center gap-2 px-5 py-4 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
           style={{
             borderTopLeftRadius: 14,
             borderTopRightRadius: 14,
@@ -409,9 +409,9 @@ export function ArcFundCard({
           {!isConnected ? (
             'Sign in to fund'
           ) : isSwitching ? (
-            'Switching to Arc…'
+            'Switching to Arcâ€¦'
           ) : hasActiveTransfer ? (
-            'Transfer in progress…'
+            'Transfer in progressâ€¦'
           ) : (
             <>
               <span>
@@ -570,7 +570,7 @@ function FundRow({
               {formatUsdc(record.amountUsdc, { withSuffix: false })}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
-              → {record.agentKey}
+              â†’ {record.agentKey}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -582,7 +582,7 @@ function FundRow({
               {phaseLabel(record.phase)}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-none">
-              · {elapsed(record.startedAt)}
+              Â· {elapsed(record.startedAt)}
             </span>
             {isSlow && (
               <span
@@ -696,7 +696,7 @@ function FundRow({
                 className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
               >
                 <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  Tx · Arc
+                  Tx Â· Arc
                 </span>
                 <span className="mono inline-flex items-center gap-1 tabular-nums">
                   {shortHash(record.txHash)}
@@ -725,7 +725,7 @@ function FundRow({
               <button
                 type="button"
                 onClick={onRetry}
-                className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
                 style={{
                   borderTopLeftRadius: 8,
                   borderTopRightRadius: 8,

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -129,7 +129,7 @@ export function AgentWithdrawCard({
         Sweep from agent
       </h2>
       <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        Agent signs · settles on Arc
+        Agent signs Â· settles on Arc
       </p>
 
       <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-5">
@@ -289,7 +289,7 @@ export function AgentWithdrawCard({
             type="text"
             value={dest}
             onChange={(e) => setDest(e.target.value)}
-            placeholder="0x…"
+            placeholder="0xâ€¦"
             className="withdraw-dest w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none transition-shadow text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
             style={{
               border: '1px solid var(--lp-border-light)',
@@ -301,17 +301,27 @@ export function AgentWithdrawCard({
           />
           {dest.length > 0 && !destValid && (
             <p
-              className="px-2.5 py-2 text-[11.5px]"
+              className="relative pl-3 pr-2.5 py-2 text-[11.5px] inline-flex items-center gap-2 overflow-hidden"
               style={{
-                background: 'rgba(176,61,58,0.10)',
-                color: TONE_COLOR.critical,
-                border: '1px solid rgba(176,61,58,0.35)',
+                background: 'var(--lp-card)',
+                color: 'var(--lp-dark)',
+                border: '1px solid var(--lp-border-light)',
                 borderTopLeftRadius: 8,
                 borderTopRightRadius: 8,
                 borderBottomLeftRadius: 8,
                 borderBottomRightRadius: 2,
               }}
             >
+              <span
+                aria-hidden
+                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                style={{ background: TONE_COLOR.critical }}
+              />
+              <span
+                aria-hidden
+                className="inline-block w-[5px] h-[5px]"
+                style={{ background: TONE_COLOR.critical, borderRadius: 1 }}
+              />
               Not a valid 20-byte address.
             </p>
           )}
@@ -331,7 +341,7 @@ export function AgentWithdrawCard({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="mt-auto w-full inline-flex items-center justify-center gap-2 px-5 py-4 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          className="mt-auto w-full inline-flex items-center justify-center gap-2 px-5 py-4 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
           style={{
             borderTopLeftRadius: 14,
             borderTopRightRadius: 14,
@@ -361,24 +371,36 @@ export function AgentWithdrawCard({
           {!isConnected
             ? 'Sign in to withdraw'
             : phase === 'sending'
-              ? 'Sending on Arc…'
+              ? 'Sending on Arcâ€¦'
               : `Withdraw from ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
         </button>
 
         {phase === 'done' && txHash && (
           <div
-            className="flex items-center justify-between gap-3 px-3 py-2.5"
+            className="relative flex items-center justify-between gap-3 pl-4 pr-3 py-2.5 overflow-hidden"
             style={{
-              background: 'rgba(10,117,83,0.10)',
-              color: TONE_COLOR.positive,
-              border: '1px solid rgba(10,117,83,0.30)',
+              background: 'var(--lp-card)',
+              color: 'var(--lp-dark)',
+              border: '1px solid var(--lp-border-light)',
               borderTopLeftRadius: 8,
               borderTopRightRadius: 8,
               borderBottomLeftRadius: 8,
               borderBottomRightRadius: 2,
             }}
           >
-            <span className="text-[12.5px] font-semibold">Withdrawal sent.</span>
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 bottom-0 w-[3px]"
+              style={{ background: TONE_COLOR.positive }}
+            />
+            <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold">
+              <span
+                aria-hidden
+                className="inline-block w-[6px] h-[6px]"
+                style={{ background: TONE_COLOR.positive, borderRadius: 1 }}
+              />
+              Withdrawal sent.
+            </span>
             <a
               href={ARC_EXPLORER_TX(txHash)}
               target="_blank"

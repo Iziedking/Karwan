@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { ActivationModal } from '@/shared/components/ActivationModal';
 import { shortAddress } from '@/shared/utils/format';
@@ -29,14 +30,42 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 
+const TABS: Tab[] = [
+  { id: 'identity', label: 'IDENTITY', hash: 'identity' },
+  { id: 'wallets', label: 'WALLETS', hash: 'wallets' },
+  { id: 'agents', label: 'AGENTS', hash: 'agents' },
+  { id: 'preferences', label: 'PREFERENCES', hash: 'preferences' },
+];
+
 export default function ProfilePage() {
   const router = useRouter();
   const { profile: loadedProfile, address, isConnected, fetchState } = useUserProfile();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const activation = useActivation();
   const [activationOpen, setActivationOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('identity');
 
   useEffect(() => setProfile(loadedProfile), [loadedProfile]);
+
+  // Drive tab active state from scroll position.
+  useEffect(() => {
+    if (!isConnected) return;
+    const ids = TABS.map((t) => t.hash).filter(Boolean) as string[];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActiveTab(visible[0].target.id);
+      },
+      { threshold: [0.2, 0.5, 0.8], rootMargin: '-100px 0px -40% 0px' },
+    );
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [isConnected]);
 
   const agents = {
     buyer: activation.agents?.buyer,
@@ -141,8 +170,13 @@ export default function ProfilePage() {
         </div>
       </Band>
 
+      <StickyTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
+
       {/* PENDING MATCHES. high-priority surface; renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
+
+      {/* IDENTITY section anchor â€” also contains ACTIVATION + ROLE blocks below. */}
+      <div id="identity" aria-hidden style={{ scrollMarginTop: 80 }} />
 
       {/* ACTIVATION */}
       <Band tone="light" compact>
@@ -216,7 +250,7 @@ export default function ProfilePage() {
                       { label: 'Max budget', value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
                       {
                         label: 'Deadline',
-                        value: `${profile.buyer.minDeadlineDays}–${profile.buyer.maxDeadlineDays} days`,
+                        value: `${profile.buyer.minDeadlineDays}â€“${profile.buyer.maxDeadlineDays} days`,
                         mono: true,
                       },
                       { label: 'Bid window', value: `${profile.buyer.bidCollectionSeconds}s`, mono: true },
@@ -237,12 +271,12 @@ export default function ProfilePage() {
                       { label: 'Bio', value: profile.seller.bio || '-' },
                       {
                         label: 'Budget',
-                        value: `${profile.seller.minBudgetUsdc}–${profile.seller.maxBudgetUsdc} USDC`,
+                        value: `${profile.seller.minBudgetUsdc}â€“${profile.seller.maxBudgetUsdc} USDC`,
                         mono: true,
                       },
                       {
                         label: 'Delivery',
-                        value: `${profile.seller.minDeadlineDays}–${profile.seller.maxDeadlineDays} days`,
+                        value: `${profile.seller.minDeadlineDays}â€“${profile.seller.maxDeadlineDays} days`,
                         mono: true,
                       },
                     ]}
@@ -268,6 +302,9 @@ export default function ProfilePage() {
         </Band>
       )}
 
+      {/* WALLETS anchor */}
+      <div id="wallets" aria-hidden style={{ scrollMarginTop: 80 }} />
+
       {/* HOLDINGS + BRIDGE */}
       <Band tone="light" compact>
         <SectionTag>HOLDINGS</SectionTag>
@@ -283,6 +320,9 @@ export default function ProfilePage() {
           <BridgeCard mintRecipient={agents.buyer as `0x${string}` | undefined} />
         </div>
       </Band>
+
+      {/* AGENTS anchor */}
+      <div id="agents" aria-hidden style={{ scrollMarginTop: 80 }} />
 
       {/* FUND + WITHDRAW */}
       <Band tone="dark" compact>
@@ -306,6 +346,24 @@ export default function ProfilePage() {
               defaultAgent={defaultAgent}
             />
           )}
+        </div>
+      </Band>
+
+      {/* PREFERENCES anchor */}
+      <div id="preferences" aria-hidden style={{ scrollMarginTop: 80 }} />
+
+      {/* PREFERENCES â€” reach pipes the agent uses to ping you. */}
+      <Band tone="light" compact>
+        <SectionTag>PREFERENCES</SectionTag>
+        <HeroHeadline size="md">
+          Reach pipes<Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          Connect Telegram and X so the agent can ping you when a deal needs you.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <TelegramConnectButton address={address ?? undefined} />
+          <ConnectXButton />
         </div>
       </Band>
 
@@ -404,7 +462,7 @@ function AgentStatusVignette({
     <div
       className="relative overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--surface-1)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
@@ -433,7 +491,7 @@ function AgentStatusVignette({
         </div>
         <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
           {loading ? (
-            'Checking…'
+            'Checkingâ€¦'
           ) : (
             <>
               Wallets{' '}

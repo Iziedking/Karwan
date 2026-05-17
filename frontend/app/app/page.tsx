@@ -250,9 +250,6 @@ export default function AppHome() {
               Trades, as they <Accent>land</Accent>
               <Punc>.</Punc>
             </HeroHeadline>
-            <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              Every open, settle, and cancel on Karwan. Hover to pause.
-            </p>
           </div>
         </div>
       </Band>
@@ -264,9 +261,6 @@ export default function AppHome() {
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           Your <Accent>book</Accent><Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Every deal where you are buyer or seller. Direct and agent-matched.
-        </p>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
             className="bg-[var(--lp-card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_56px_-20px_rgba(0,0,0,0.12)] lg:rounded-tl-[28px] lg:rounded-tr-[28px] lg:rounded-bl-[28px] lg:rounded-br-[6px]"
@@ -300,7 +294,7 @@ function HeroAgentCard({
     <div
       className="relative overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--surface-1)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
@@ -391,7 +385,7 @@ function FeatureCard({
     tone === 'dark'
       ? 'bg-[var(--lp-band-dark)] text-white'
       : tone === 'accent'
-        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)]'
+        ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
   const eyebrowColor =
     tone === 'dark' ? 'text-white/55' : tone === 'accent' ? 'text-[var(--lp-dark)]/65' : 'text-[var(--lp-text-muted)]';

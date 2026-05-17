@@ -20,7 +20,11 @@ export function PostListingForm() {
   const [tolerance, setTolerance] = useState<number | ''>(15);
   // Listing window in days. Backend caps at 90; default 30 lines up with
   // most marketplaces' "your post stays live for a month" convention.
-  const [ttlDays, setTtlDays] = useState<number | ''>(30);
+  // Listing window expressed as { value, unit }. Backend takes ttlDays as a
+  // fractional number so unit toggling on the form maps cleanly. Default is
+  // 30 days; demo flows often pick HR or MIN to drive expiry visibly.
+  const [ttlValue, setTtlValue] = useState<number | ''>(30);
+  const [ttlUnit, setTtlUnit] = useState<'min' | 'hr' | 'day'>('day');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Listing[]>([]);
@@ -80,7 +84,11 @@ export function PostListingForm() {
         description: description.trim(),
         askingPriceUsdc: price,
         negotiationMaxDecreasePct: typeof tolerance === 'number' ? tolerance : undefined,
-        ttlDays: typeof ttlDays === 'number' ? ttlDays : undefined,
+        ttlDays:
+          typeof ttlValue === 'number'
+            ? ttlValue *
+              (ttlUnit === 'min' ? 1 / 1440 : ttlUnit === 'hr' ? 1 / 24 : 1)
+            : undefined,
       });
       setRecent((prev) => [r.listing, ...prev]);
       setWatchingForListingId(r.listing.id);
@@ -119,7 +127,7 @@ export function PostListingForm() {
           className="relative overflow-hidden"
           style={{
             background: 'var(--lp-accent)',
-            color: 'var(--lp-dark)',
+            color: 'var(--lp-band-dark)',
             borderTopLeftRadius: 18,
             borderTopRightRadius: 18,
             borderBottomLeftRadius: 18,
@@ -139,25 +147,25 @@ export function PostListingForm() {
             }}
           />
           <div className="relative px-6 py-6">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-dark)]/65">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-band-dark)]/65">
               LISTING PREVIEW
             </p>
             <div className="mt-3 flex items-baseline gap-2 flex-wrap">
               <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
                 {previewPrice}
               </span>
-              <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/65">
+              <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-band-dark)]/65">
                 USDC
               </span>
               <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-[var(--lp-band-dark)]/20" />
               <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                 −{previewTol}%
               </span>
-              <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/65">
+              <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-band-dark)]/65">
                 accept
               </span>
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-dark)]/65">
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-band-dark)]/65">
               <span className="inline-flex items-center gap-1.5">
                 <span
                   aria-hidden
@@ -255,21 +263,68 @@ export function PostListingForm() {
             </FormLabel>
             <FormLabel
               label="Window"
-              unit="DAYS"
-              hint="How long the listing stays live before it auto-expires. Up to 90."
+              unit={ttlUnit === 'min' ? 'MIN' : ttlUnit === 'hr' ? 'HRS' : 'DAYS'}
+              hint="How long the listing stays live before it auto-expires. Pick a unit for demo timing."
             >
-              <input
-                type="number"
-                min={1}
-                max={90}
-                step={1}
-                value={ttlDays}
-                disabled={submitting}
-                onChange={(e) =>
-                  setTtlDays(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                className="form-input-dark form-input-num-dark"
-              />
+              <div className="flex items-stretch gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={ttlUnit === 'min' ? 1440 : ttlUnit === 'hr' ? 168 : 90}
+                  step={1}
+                  value={ttlValue}
+                  disabled={submitting}
+                  onChange={(e) =>
+                    setTtlValue(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  className="form-input-dark form-input-num-dark flex-1 min-w-0"
+                />
+                <div
+                  role="radiogroup"
+                  aria-label="Window unit"
+                  className="inline-flex items-stretch p-1 shrink-0"
+                  style={{
+                    background: 'var(--lp-band-dark)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    borderTopLeftRadius: 10,
+                    borderTopRightRadius: 10,
+                    borderBottomLeftRadius: 10,
+                    borderBottomRightRadius: 2,
+                  }}
+                >
+                  {(['min', 'hr', 'day'] as const).map((u) => {
+                    const active = ttlUnit === u;
+                    const label = u === 'min' ? 'MIN' : u === 'hr' ? 'HR' : 'DAY';
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        disabled={submitting}
+                        onClick={() => {
+                          setTtlUnit(u);
+                          // Snap defaults so the value is sensible per unit.
+                          if (u === 'min' && (typeof ttlValue !== 'number' || ttlValue > 1440)) setTtlValue(10);
+                          if (u === 'hr' && (typeof ttlValue !== 'number' || ttlValue > 168)) setTtlValue(2);
+                          if (u === 'day' && (typeof ttlValue !== 'number' || ttlValue > 90)) setTtlValue(30);
+                        }}
+                        className="mono text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-[var(--dur-micro)] px-3"
+                        style={{
+                          background: active ? 'var(--lp-accent)' : 'transparent',
+                          color: active ? 'var(--lp-band-dark)' : 'rgba(255,255,255,0.55)',
+                          borderTopLeftRadius: 7,
+                          borderTopRightRadius: 7,
+                          borderBottomLeftRadius: 7,
+                          borderBottomRightRadius: 1,
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </FormLabel>
           </div>
         </FieldSection>
@@ -319,7 +374,7 @@ export function PostListingForm() {
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-dark)]',
               disabled
                 ? 'bg-white/[0.05] text-white/35 cursor-not-allowed border border-white/[0.08]'
-                : 'bg-[var(--lp-accent)] text-[var(--lp-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]',
+                : 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]',
             )}
             style={{
               borderTopLeftRadius: 14,
