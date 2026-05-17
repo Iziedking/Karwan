@@ -2,11 +2,11 @@
 
 > The reputation score is the golden ticket on Karwan. It gates whose bids the agent prefers, whose briefs the agent trusts, who gets premium pricing, and who clears human review. Every other signal on the platform feeds into or out of it.
 
-This document specifies the model. The current `KarwanReputation.sol` keeps three counters per address (`success`, `disputed`, `failed`) and divides them. That gets us a starting point, not a moat. The model below is what we replace it with — a formula that resists farming, rewards stake, penalises spam, and decays cleanly.
+This document specifies the model. The current `KarwanReputation.sol` keeps three counters per address (`success`, `disputed`, `failed`) and divides them. That gets us a starting point, not a moat. The model below is what we replace it with. A formula that resists farming, rewards stake, penalises spam, and decays cleanly.
 
 ## 1. What reputation means
 
-A single integer in `[0, 1000]` per address. It is **earned** through completed deals + locked stake + time on the platform. It is **lost** through cancellations, disputes, and detected spam. The score is the input to every match decision in the agent loop.
+A single integer in `[0, 1000]` per address. It is **earned** through completed deals, locked stake, and time on the platform. It is **lost** through cancellations, disputes, and detected spam. The score is the input to every match decision in the agent loop.
 
 ```
 0 ─── 200 ─── 400 ─── 600 ─── 800 ─── 1000
@@ -14,11 +14,11 @@ A single integer in `[0, 1000]` per address. It is **earned** through completed 
 ```
 
 Tiers map to:
-- **NEW (0–199)** — fresh address. Agents route their bids/briefs to human review. Buyer agents counter aggressively on price.
-- **COLD (200–399)** — some history. Agents accept inside profile bounds without escalation.
-- **ESTABLISHED (400–599)** — earned baseline. Agents grant a small price premium and resolve ties in this user's favour.
-- **STRONG (600–799)** — preferred counterparty. Agents accept marginal overshoots, fast-track matches.
-- **ELITE (800–1000)** — top-tier. Agents accept first-look without auction if the price is within profile.
+- **NEW (0–199).** Fresh address. Agents route their bids and briefs to human review. Buyer agents counter aggressively on price.
+- **COLD (200–399).** Some history. Agents accept inside profile bounds without escalation.
+- **ESTABLISHED (400–599).** Earned baseline. Agents grant a small price premium and resolve ties in this user's favour.
+- **STRONG (600–799).** Preferred counterparty. Agents accept marginal overshoots, fast-track matches.
+- **ELITE (800–1000).** Top tier. Agents accept first-look without auction if the price is within profile.
 
 These thresholds are configurable; the formula is the load-bearing piece.
 
@@ -74,7 +74,7 @@ Laplace-smoothed success rate. The `+1/+2` keeps fresh accounts from being penal
 | 20 | 12 | 0.59 |
 | 20 | 5  | 0.27 |
 
-A 90% completion rate over 20 deals comfortably out-scores a 100% rate over 1 deal — exactly what we want.
+A 90% completion rate over 20 deals comfortably out-scores a 100% rate over 1 deal. Exactly what we want.
 
 ### 2.3 stakeTerm
 
@@ -82,7 +82,7 @@ A 90% completion rate over 20 deals comfortably out-scores a 100% rate over 1 de
 stakeTerm = 1.0 + min(1.0, sqrt(tenureWeightedStakeUsdc / 1000))
 ```
 
-Range: `[1.0, 2.0]`. A 1000 USDC stake held for a year doubles the stake term. The square root kills linear gaming — a 10,000 USDC stake is the same as a 1,000 USDC stake (both capped).
+Range: `[1.0, 2.0]`. A 1000 USDC stake held for a year doubles the stake term. The square root kills linear gaming, so a 10,000 USDC stake is the same as a 1,000 USDC stake (both capped).
 
 | tenure-weighted stake | stakeTerm |
 |----------------------:|----------:|
@@ -122,14 +122,16 @@ penaltyTerm = clamp(0, 1,
 
 Each component is the rolling 90-day rate, normalised in `[0, 1]`. Penalties subtract directly from the score outside the `tanh`, so a clean record makes them inert and a dirty record cuts hard.
 
-- **disputesLostRate** — `disputesLostLast90d / dealsLast90d`. Filing a dispute and losing is a strong negative.
-- **cancelRate** — `cancelsLast90d / startedLast90d`. Match-then-cancel is the canonical churn pattern.
-- **spamScore** — see §4.
-- **counterAbandonRate** — `countersReceivedButNotAcceptedLast90d / countersReceivedLast90d`. A user who haggles forever and never closes burns the system's attention.
+- **disputesLostRate.** `disputesLostLast90d / dealsLast90d`. Filing a dispute and losing is a strong negative.
+- **cancelRate.** `cancelsLast90d / startedLast90d`. Match-then-cancel is the canonical churn pattern.
+- **spamScore.** See §4.
+- **counterAbandonRate.** `countersReceivedButNotAcceptedLast90d / countersReceivedLast90d`. A user who haggles forever and never closes burns the system's attention.
 
-## 3. KarwanVault — staking for reputation
 
-A new contract `KarwanVault.sol` separate from `KarwanEscrow`. It is a **flexible** vault — no forced lock periods. Users deposit any amount and request to withdraw any time. The reputation score they earn is purely a function of how long the deposit has sat continuously. Longer hold = more reputation, with diminishing returns past one year.
+
+## 3. KarwanVault: staking for reputation
+
+A new contract `KarwanVault.sol` separate from `KarwanEscrow`. It is a **flexible** vault. No forced lock periods. Users deposit any amount and request to withdraw any time. The reputation score they earn is a function of how long the deposit has sat continuously. Longer hold means more reputation, with diminishing returns past one year.
 
 ```solidity
 function deposit(uint256 amount) external returns (uint256 positionId);
@@ -149,8 +151,8 @@ A `Position` is `{owner, principal, depositedAt, cooldownStartedAt, claimableAt,
 A withdrawal request transitions the position from `Active` to `Cooling` and freezes a `claimableAt = now + 7 days`. While in Cooling:
 - The position contributes **zero** to the stake signal (`activePrincipal` and `tenureSeconds` return 0).
 - The USDC remains in the vault. The user cannot rug it.
-- The backend has a 7-day window to run fraud detection — burst deposits, suspicious counterparty patterns, match-and-cancel correlation. If a flag fires, the backend can pause the user's score or surface a human review prompt.
-- The user can `cancelWithdraw` to restore `Active`. Their `depositedAt` is preserved, so all accrued tenure carries forward — honest users who change their mind lose nothing.
+- The backend has a 7-day window to run fraud detection over burst deposits, suspicious counterparty patterns, and match-and-cancel correlation. If a flag fires, the backend can pause the user's score or surface a human review prompt.
+- The user can `cancelWithdraw` to restore `Active`. Their `depositedAt` is preserved, so all accrued tenure carries forward. Honest users who change their mind lose nothing.
 
 After 7 days the user calls `claim` and the principal is returned. The position becomes `Withdrawn`.
 
@@ -160,11 +162,11 @@ This is the platform's commitment device. A user cannot deposit, spike their rep
 
 On Arc Testnet, `KarwanVault` simply holds USDC idle. The stake signal works regardless.
 
-On mainnet, `KarwanVault.deposit` instead routes deposits into Hashnote's USYC via the standard mint/redeem interface. The vault holds USYC shares; on withdraw it redeems back to USDC. The yield accrues to the depositor (less a small platform spread that funds the treasury). The reputation signal is unchanged — the only difference is the deposit is also earning ~5% APY for the user.
+On mainnet, `KarwanVault.deposit` instead routes deposits into Hashnote's USYC via the standard mint/redeem interface. The vault holds USYC shares; on withdraw it redeems back to USDC. The yield accrues to the depositor (less a small platform spread that funds the treasury). The reputation signal is unchanged. The only difference is the deposit is also earning ~5% APY for the user.
 
 This is the one paragraph in the README. The vault interface stays the same. On testnet, locked USDC sits idle. On mainnet, locked USDC earns. The reputation model doesn't notice.
 
-### 3.2 Idle escrow + the same path
+### 3.2 Idle escrow takes the same path
 
 The same wiring applies to **escrow** float. On testnet escrow funds sit idle in `KarwanEscrow`. On mainnet, the escrow holds USYC. Yield on the escrowed amount accrues over the deal window; on milestone release, the seller receives USDC (auto-redeemed) and the buyer's earned yield is credited back to them on settlement.
 
@@ -197,7 +199,7 @@ The components are summed and capped at `1.0` before going into `penaltyTerm`. S
 
 ### 4.4 Appeal path
 
-A user whose spam score is non-zero sees a banner on `/profile` explaining which signal tripped and how to reduce it (cool off, diversify counterparties, complete the next match). The score self-heals as the 7-day window rolls forward — there's no permanent ban from a single bad week.
+A user whose spam score is non-zero sees a banner on `/profile` explaining which signal tripped and how to reduce it (cool off, diversify counterparties, complete the next match). The score self-heals as the 7-day window rolls forward. No permanent ban from a single bad week.
 
 ## 5. Decay
 
@@ -208,7 +210,7 @@ decayMultiplier = exp(-daysSinceLastDeal / 180)
 finalScore = floor(R(addr) × decayMultiplier)
 ```
 
-A wallet inactive for 6 months sees its score halve. This prevents a once-strong account from coasting forever. The "completedDeals" and "totalStarted" counts themselves do not decay — only the displayed score does. A returning user re-earns trust by completing one or two deals.
+A wallet inactive for 6 months sees its score halve. This prevents a once-strong account from coasting forever. The "completedDeals" and "totalStarted" counts themselves do not decay, only the displayed score does. A returning user re-earns trust by completing one or two deals.
 
 ## 6. Agent integration
 
@@ -232,7 +234,7 @@ Both sides see the other's score in MatchProposal so a human in the loop can ove
 
 ## 7. Migration from the v0 contract
 
-The existing `KarwanReputation.sol` (`success / disputed / failed` counters) is now a **read-only legacy signal** that feeds `completedDeals` and `disputesLostRate`. We do not replace the contract; we read it as ground truth for on-chain history and add the new components in our DB.
+The existing `KarwanReputation.sol` (`success / disputed / failed` counters) is now a **read-only legacy signal** that feeds `completedDeals` and `disputesLostRate`. We do not replace the contract. We read it as ground truth for on-chain history and add the new components in our DB.
 
 Concretely:
 - `completedDeals = chain.successCount`
@@ -245,9 +247,9 @@ The composite score is computed server-side and published via `GET /api/reputati
 
 ## 8. Surface
 
-- **ReputationBadge** keeps its current dot+number format, now sourced from the composite score.
-- **/profile** gains a new band: **"Reputation"** showing the score, the tier, the four input terms broken out (activity / completion / stake / time), and the penalty bar if any.
-- **Stake card** on `/profile`: 30/60/90 day buttons, USDC amount, "Reputation lift +N" preview. Active locks list with countdowns and an early-withdraw button (with the −25% reputation warning).
+- **ReputationBadge** keeps its current dot-and-number format, now sourced from the composite score.
+- **/profile** gains a new band: **"Reputation"** showing the score, the tier, the four input terms broken out (activity, completion, stake, time), and the penalty bar if any.
+- **Stake card** on `/profile`: deposit amount field, "Reputation lift +N" preview, and a list of open positions. Each position shows tenure, current contribution to the score, and a "Request withdraw" button that opens the 7-day cool-down with a countdown and a "Cancel withdrawal" affordance.
 - **Marketplace cards** show the tier dot next to every party so users can glance at counterparty quality.
 - **Mainnet badge** next to the stake card: small mono `// on mainnet this stake routes to USYC for ~5% APY`. No marketing, just the architectural note.
 
@@ -283,4 +285,4 @@ Tuning happens via env, no redeploy. The formula itself stays version-pinned (`R
 ---
 
 **One-paragraph framing for README / pitch:**
-On Karwan, reputation is the platform's golden ticket. It is a composite score in [0, 1000] across five terms — activity, completion, stake, time, and a negative penalty term for spam, cancellations, abandoned negotiations, and lost disputes. Users grow reputation by completing deals and locking USDC into the KarwanVault for 30 to 90 days. On Arc Testnet the vault holds plain USDC; on mainnet the same vault routes deposits through Hashnote USYC so the same stake also earns ~5% APY. The agent loop reads reputation directly: ELITE counterparties get first-look pricing, NEW counterparties get countered hard and routed to human review. Spam and griefing patterns are detected on rolling windows and shrink the score in days, not months. The score is a number you can grow, lose, and rebuild — which is the only way trust on a marketplace ever works.
+On Karwan, reputation is the platform's golden ticket. It is a composite score in [0, 1000] across five terms: activity, completion, stake, time, and a negative penalty term for spam, cancellations, abandoned negotiations, and lost disputes. Users grow reputation by completing deals and locking USDC in the KarwanVault, with no forced lock period and a 7-day cool-down on withdrawal. On Arc Testnet the vault holds plain USDC. On mainnet the same vault routes deposits through Hashnote USYC so the same stake also earns ~5% APY. The agent loop reads reputation directly. ELITE counterparties get first-look pricing, NEW counterparties get countered hard and routed to human review. Spam and griefing patterns are detected on rolling windows and shrink the score in days, not months. The score is a number you can grow, lose, and rebuild, which is the only way trust on a marketplace ever works.

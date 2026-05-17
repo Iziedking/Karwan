@@ -78,3 +78,11 @@ export function patchBrief(jobId: string, patch: Partial<Brief>): Brief | null {
   persist();
   return next;
 }
+
+/// Read all stored briefs. Used by aggregators (reputation spam detector,
+/// marketplace surface). The in-memory store is small (one entry per posted
+/// brief), so a full scan is cheap.
+export function listAllBriefs(): Brief[] {
+  load();
+  return Array.from(store.values());
+}

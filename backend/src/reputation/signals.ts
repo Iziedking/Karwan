@@ -6,6 +6,7 @@ import { reputation } from '../chain/contracts.js';
 import { listAllDeals } from '../db/deals.js';
 import { logger } from '../logger.js';
 import { tenureWeightedStakeUsdc } from './stake.js';
+import { computeSpamSignals, type SpamBreakdown } from './spam.js';
 
 export interface ReputationInputs {
   /// Lowercased subject address.
@@ -32,11 +33,13 @@ export interface ReputationInputs {
   /// positions, in USDC. Zero when KarwanVault is not yet deployed or the
   /// indexer has no entries for this address.
   tenureWeightedStakeUsdc: number;
-  /// Spam score in [0, 1]. Computed by the spam detector (see #80). 0 here
-  /// until the detector lands. Surfaced in the response so the engine output
-  /// is wired end to end already.
+  /// Spam score in [0, 1]. Sum of the three signal contributions from the
+  /// spam detector (burst, low counterparty diversity, match-and-cancel rate).
   spamScore: number;
-  /// Counter-abandon rate in [0, 1]. Same status as spamScore for now.
+  /// Per-signal breakdown so the UI can show which spam rule tripped and how
+  /// to clear it. Always populated even when the total score is zero.
+  spamBreakdown: SpamBreakdown;
+  /// Counter-abandon rate in [0, 1] over 90 days.
   counterAbandonRate: number;
 }
 
@@ -78,7 +81,14 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   // over the DB count when it's higher (the DB can lag behind the chain).
   completedDeals = Math.max(completedDeals, chain.successCount);
 
-  const stake = await tenureWeightedStakeUsdc(address).catch(() => 0);
+  const [stake, spam] = await Promise.all([
+    tenureWeightedStakeUsdc(address).catch(() => 0),
+    computeSpamSignals(address).catch(() => ({
+      spamScore: 0,
+      breakdown: { burst: 0, diversity: 0, matchAndCancel: 0 },
+      counterAbandonRate: 0,
+    })),
+  ]);
 
   return {
     address,
@@ -91,9 +101,9 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     firstActionAt,
     lastActionAt,
     tenureWeightedStakeUsdc: stake,
-    // The spam detector (#80) writes here once it's live.
-    spamScore: 0,
-    counterAbandonRate: 0,
+    spamScore: spam.spamScore,
+    spamBreakdown: spam.breakdown,
+    counterAbandonRate: spam.counterAbandonRate,
   };
 }
 

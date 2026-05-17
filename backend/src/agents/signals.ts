@@ -3,6 +3,9 @@ import { reputationAbi } from '../chain/abis/reputation.js';
 import { publicClient } from '../chain/client.js';
 import { bus, type KarwanEvent } from '../events.js';
 import { logger } from '../logger.js';
+import { compute } from '../reputation/engine.js';
+import { loadInputs } from '../reputation/signals.js';
+import type { Tier } from '../reputation/config.js';
 
 // Deterministic decision signals computed before the LLM ever sees a bid.
 // Naming the features explicitly lets the LLM reason about the *pattern* (low
@@ -12,7 +15,10 @@ import { logger } from '../logger.js';
 // only one that needs a sample of the marketplace; the rest read on-chain
 // reputation + the local bus history.
 
-export type RepTier = 'new' | 'cold' | 'established' | 'strong';
+// Lowercased mirror of the engine's `Tier` enum. The agent layer uses
+// lowercase for historical reasons (prompts, MatchProposal fields). The
+// composite engine returns uppercase, we normalise here.
+export type RepTier = 'new' | 'cold' | 'established' | 'strong' | 'elite';
 
 export interface ActorSignals {
   /// 0..10000 bps from the ERC-8004-style reputation registry. 5000 = neutral.
