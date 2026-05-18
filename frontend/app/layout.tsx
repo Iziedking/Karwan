@@ -6,6 +6,7 @@ import { ProfileNudge } from '@/shared/components/ProfileNudge';
 import { SiteFooter } from '@/shared/components/SiteFooter';
 import { AppProviders } from '@/shared/components/AppProviders';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const geist = Geist({
   subsets: ['latin'],
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NotificationToasts />
           </div>
         </AppProviders>
+        <SpeedInsights />
       </body>
     </html>
   );
