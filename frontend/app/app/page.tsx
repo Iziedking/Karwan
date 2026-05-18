@@ -33,10 +33,20 @@ export default function AppHome() {
   const router = useRouter();
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const [status, setStatus] = useState<ApiStatus | null>(null);
+  const [statusChecked, setStatusChecked] = useState(false);
   const [stats, setStats] = useState<NetStats | null>(null);
 
   useEffect(() => {
-    api.status().then(setStatus).catch(() => setStatus(null));
+    api
+      .status()
+      .then((s) => {
+        setStatus(s);
+        setStatusChecked(true);
+      })
+      .catch(() => {
+        setStatus(null);
+        setStatusChecked(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -55,6 +65,20 @@ export default function AppHome() {
       router.replace('/onboarding');
     }
   }, [isConnected, fetchState, profile, router]);
+
+  if (!statusChecked) {
+    return (
+      <FullBleed>
+        <Band tone="dark" overlay={<GridOverlay />}>
+          <SectionTag tone="dark">SETTLEMENT DESK</SectionTag>
+          <div className="mt-7 space-y-4">
+            <div className="h-14 w-3/4 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
+            <div className="h-4 w-1/2 rounded-md bg-white/[0.04] animate-pulse motion-reduce:animate-none" />
+          </div>
+        </Band>
+      </FullBleed>
+    );
+  }
 
   if (!status) {
     return (
