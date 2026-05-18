@@ -1,6 +1,10 @@
 'use client';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
+/// Tooltip that renders via portal so parent overflow:hidden / rounded
+/// corners can never clip it. Coordinates are recomputed on every show so
+/// the tooltip stays anchored to the trigger after layout shifts.
 export function Hint({
   children,
   side = 'top',
@@ -10,56 +14,92 @@ export function Hint({
   side?: 'top' | 'bottom';
   align?: 'start' | 'center' | 'end';
 }) {
-  const tipPos = side === 'top' ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]';
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  const alignPos =
-    align === 'start'
-      ? 'left-0'
-      : align === 'end'
-      ? 'right-0'
-      : 'left-1/2 -translate-x-1/2';
+  const PADDING = 8;
+  const TOOLTIP_WIDTH = 256; // matches Tailwind w-64
 
-  const arrowSide =
-    side === 'top'
-      ? 'top-full -mt-px border-t-[var(--color-ink)]'
-      : 'bottom-full -mb-px border-b-[var(--color-ink)]';
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const tip = tooltipRef.current;
+    const tooltipHeight = tip?.getBoundingClientRect().height ?? 60;
+    let left =
+      align === 'start'
+        ? rect.left
+        : align === 'end'
+          ? rect.right - TOOLTIP_WIDTH
+          : rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+    // Auto-flip horizontally so the tooltip never escapes the viewport.
+    const maxLeft = window.innerWidth - TOOLTIP_WIDTH - PADDING;
+    if (left > maxLeft) left = maxLeft;
+    if (left < PADDING) left = PADDING;
+    let top = side === 'top' ? rect.top - tooltipHeight - PADDING : rect.bottom + PADDING;
+    // Auto-flip vertically when the chosen side would go off screen.
+    if (side === 'top' && top < PADDING) top = rect.bottom + PADDING;
+    if (side === 'bottom' && top + tooltipHeight > window.innerHeight - PADDING) {
+      top = rect.top - tooltipHeight - PADDING;
+    }
+    setPos({ top: top + window.scrollY, left: left + window.scrollX });
+  }, [open, align, side, children]);
 
-  const arrowAlign =
-    align === 'start' ? 'left-2' : align === 'end' ? 'right-2' : 'left-1/2 -translate-x-1/2';
+  // Close on outside scroll/resize so the tooltip never drifts off its anchor.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  const trigger = (
+    <span
+      ref={triggerRef}
+      role="button"
+      tabIndex={0}
+      aria-label="Details"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus:outline-none focus-visible:text-[var(--color-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 transition-colors duration-150 cursor-help"
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden className="block">
+        <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.2" />
+        <circle cx="8" cy="5" r="0.85" fill="currentColor" />
+        <path d="M8 7.5v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+
+  const tooltip =
+    open && pos && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            ref={tooltipRef}
+            role="tooltip"
+            className="fixed z-[200] w-64 px-3 py-2 rounded-md bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] leading-snug pointer-events-none shadow-lg normal-case tracking-normal font-normal"
+            style={{
+              top: pos.top - window.scrollY,
+              left: pos.left - window.scrollX,
+            }}
+          >
+            {children}
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
-    <span className="group relative inline-flex items-center align-middle">
-      <span
-        role="button"
-        tabIndex={0}
-        aria-label="Details"
-        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus:outline-none focus-visible:text-[var(--color-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 transition-colors duration-150 cursor-help"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden
-          className="block"
-        >
-          <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.2" />
-          <circle cx="8" cy="5" r="0.85" fill="currentColor" />
-          <path
-            d="M8 7.5v4"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </span>
-      <span
-        role="tooltip"
-        className={`absolute ${tipPos} ${alignPos} w-64 px-3 py-2 rounded-md bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] leading-snug opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-opacity duration-150 pointer-events-none z-50 shadow-lg normal-case tracking-normal font-normal`}
-      >
-        {children}
-        <span className={`absolute ${arrowSide} ${arrowAlign} border-4 border-transparent`} />
-      </span>
+    <span className="relative inline-flex items-center align-middle">
+      {trigger}
+      {tooltip}
     </span>
   );
 }

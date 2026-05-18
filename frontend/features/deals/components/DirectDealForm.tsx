@@ -36,7 +36,8 @@ export function DirectDealForm() {
   // (URL ?amount=). When absent the field starts empty so the placeholder
   // "0" renders, matching the rest of the app's input style.
   const [amount, setAmount] = useState<number | ''>(initialAmount ?? '');
-  const [days, setDays] = useState<number | ''>('');
+  const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
+  const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
   const [firstPct, setFirstPct] = useState<number | ''>('');
   const [terms, setTerms] = useState(initialTerms);
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +47,14 @@ export function DirectDealForm() {
   const sameWallet =
     sellerValid && address && seller.trim().toLowerCase() === address.toLowerCase();
   const amountValid = typeof amount === 'number' && amount > 0;
-  const daysValid = typeof days === 'number' && days >= 1 && days <= 180;
+  // Single-input deadline with a min/hr/day unit toggle. Bounds per unit
+  // mirror the buyer brief form so behaviour is identical across surfaces.
+  const deadlineMax =
+    deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 180;
+  const deadlineValid =
+    typeof deadlineValue === 'number' &&
+    deadlineValue >= 1 &&
+    deadlineValue <= deadlineMax;
   const pctValid = typeof firstPct === 'number' && firstPct >= 1 && firstPct <= 99;
   const termsValid = terms.trim().length > 0;
 
@@ -55,15 +63,30 @@ export function DirectDealForm() {
     sellerValid &&
     !sameWallet &&
     amountValid &&
-    daysValid &&
+    deadlineValid &&
     pctValid &&
     termsValid &&
     !submitting;
 
   const fee = amountValid ? feeBreakdown(amount as number) : null;
   const previewAmount = typeof amount === 'number' ? amount : 0;
-  const previewDays = typeof days === 'number' ? days : 0;
   const previewPct = typeof firstPct === 'number' ? firstPct : 0;
+  const previewDeadlineValue = typeof deadlineValue === 'number' ? deadlineValue : 0;
+  const previewUnitLabel =
+    deadlineUnit === 'min' ? 'min' : deadlineUnit === 'hr' ? 'hr' : 'days';
+  // Convert the (value, unit) pair into the days+hours pair the API accepts.
+  // Minutes round up to the next hour so the on-chain deadlineUnix is never
+  // shorter than what the user picked.
+  const totalSeconds =
+    typeof deadlineValue === 'number'
+      ? deadlineUnit === 'min'
+        ? deadlineValue * 60
+        : deadlineUnit === 'hr'
+          ? deadlineValue * 3600
+          : deadlineValue * 86400
+      : 0;
+  const submitDays = Math.floor(totalSeconds / 86400);
+  const submitHours = Math.ceil((totalSeconds % 86400) / 3600);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +98,8 @@ export function DirectDealForm() {
         buyerAddress: address!,
         sellerAddress: seller.trim(),
         dealAmountUsdc: amount as number,
-        deadlineDays: days as number,
+        deadlineDays: dayNum,
+        deadlineHours: hourNum,
         terms: terms.trim(),
         firstReleasePct: firstPct as number,
       });
@@ -135,10 +159,7 @@ export function DirectDealForm() {
             </span>
             <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-white/20" />
             <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
-              {previewDays}
-            </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
-              days
+              {previewDeadline.label}
             </span>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-white/55">
@@ -205,19 +226,39 @@ export function DirectDealForm() {
               className="form-input form-input-num"
             />
           </FormLabel>
-          <FormLabel label="Deadline" unit="days">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={180}
-              step={1}
-              value={days}
-              disabled={submitting}
-              onChange={(e) => setDays(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="form-input form-input-num"
-            />
+          <FormLabel
+            label="Deadline"
+            unit="days · hours"
+            hint="Total deadline. Use hours for tight-turnaround work. Max 180 days."
+          >
+            <div className="grid grid-cols-2 gap-1.5">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={180}
+                step={1}
+                value={days}
+                disabled={submitting}
+                onChange={(e) => setDays(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
+                aria-label="Days"
+                className="form-input form-input-num"
+              />
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={23}
+                step={1}
+                value={hours}
+                disabled={submitting}
+                onChange={(e) => setHours(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0h"
+                aria-label="Hours"
+                className="form-input form-input-num"
+              />
+            </div>
           </FormLabel>
           <FormLabel
             label="On delivery"

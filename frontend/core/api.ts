@@ -565,6 +565,7 @@ export const api = {
     sellerAddress: string;
     dealAmountUsdc: number;
     deadlineDays: number;
+    deadlineHours?: number;
     terms: string;
     firstReleasePct: number;
   }) =>

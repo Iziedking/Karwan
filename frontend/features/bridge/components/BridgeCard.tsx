@@ -110,7 +110,8 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
-  const { bridges, start, startCircle, retry, recheck, dismiss, isActive } = useBridges();
+  const { bridges, start, startCircle, retry, recheck, dismiss, clearCompleted, isActive } =
+    useBridges();
   const [sourceKey, setSourceKey] = useState<SourceChainConfig['key']>('baseSepolia');
   const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -457,13 +458,25 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
 
         {bridges.length > 0 && (
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
-            <div className="flex items-baseline justify-between mb-3.5">
+            <div className="flex items-baseline justify-between gap-3 mb-3.5">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 [:ACTIVITY:]
               </span>
-              <p className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                {bridges.length} {bridges.length === 1 ? 'BRIDGE' : 'BRIDGES'}
-              </p>
+              <div className="flex items-baseline gap-3">
+                {bridges.some((b) => !isActive(b.phase)) && (
+                  <button
+                    type="button"
+                    onClick={clearCompleted}
+                    className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    title="Remove finished and failed bridges from your local history. Active bridges are kept."
+                  >
+                    Clear history
+                  </button>
+                )}
+                <p className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  {bridges.length} {bridges.length === 1 ? 'BRIDGE' : 'BRIDGES'}
+                </p>
+              </div>
             </div>
             <ul className="space-y-2">
               {bridges.map((b) => (

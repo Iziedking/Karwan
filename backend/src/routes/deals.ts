@@ -41,14 +41,24 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
-const createSchema = z.object({
-  buyerAddress: addrSchema,
-  sellerAddress: addrSchema,
-  dealAmountUsdc: z.number().positive(),
-  deadlineDays: z.number().int().min(1).max(180),
-  terms: z.string().min(1).max(600),
-  firstReleasePct: z.number().int().min(1).max(99),
-});
+const createSchema = z
+  .object({
+    buyerAddress: addrSchema,
+    sellerAddress: addrSchema,
+    dealAmountUsdc: z.number().positive(),
+    // Either deadlineDays alone OR deadlineDays + deadlineHours. Hours add
+    // sub-day granularity for tight deadlines (eg "deliver in 6 hours") and
+    // for verification windows on hour-sized work. Total must land between
+    // 1 hour and 180 days.
+    deadlineDays: z.number().int().min(0).max(180),
+    deadlineHours: z.number().int().min(0).max(23).optional().default(0),
+    terms: z.string().min(1).max(600),
+    firstReleasePct: z.number().int().min(1).max(99),
+  })
+  .refine(
+    (b) => b.deadlineDays * 24 + (b.deadlineHours ?? 0) >= 1,
+    { message: 'deadline must be at least 1 hour', path: ['deadlineHours'] },
+  );
 
 const callerSchema = z.object({ caller: addrSchema });
 const deliveredSchema = z.object({
@@ -90,7 +100,8 @@ dealsRoutes.post('/direct', async (c) => {
   const feeBps = await getEscrowFeeBps();
   const { fundedAmount, sellerNet, feeTotal } = computeFunding(dealAmountWei, feeBps);
 
-  const deadlineUnix = Math.floor(Date.now() / 1000) + body.deadlineDays * 86400;
+  const totalSeconds = body.deadlineDays * 86400 + (body.deadlineHours ?? 0) * 3600;
+  const deadlineUnix = Math.floor(Date.now() / 1000) + totalSeconds;
   const deal = await createDeal({
     jobId,
     buyer: body.buyerAddress,

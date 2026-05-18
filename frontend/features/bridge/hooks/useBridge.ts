@@ -158,6 +158,8 @@ function storageKey(address?: `0x${string}` | null): string | null {
   return `${STORAGE_KEY_PREFIX}${address.toLowerCase()}`;
 }
 
+const PRUNE_AFTER_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 function loadFromStorage(address: `0x${string}` | null | undefined): BridgeRecord[] {
   const key = storageKey(address);
   if (!key || typeof window === 'undefined') return [];
@@ -165,14 +167,29 @@ function loadFromStorage(address: `0x${string}` | null | undefined): BridgeRecor
     const raw = window.localStorage.getItem(key);
     if (!raw) return [];
     const arr = JSON.parse(raw) as BridgeRecord[];
-    // Wallet-local async state is lost on reload. Anything mid-sign becomes 'error'
-    // so the user can retry cleanly. Attesting/minting bridges continue via SSE.
-    return arr.map((b) => {
-      if (b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning' || b.phase === 'relaying') {
-        return { ...b, phase: 'error' as const, error: b.error ?? 'Interrupted on reload. Retry to resume.' };
-      }
-      return b;
-    });
+    const cutoff = Date.now() - PRUNE_AFTER_MS;
+    // Wallet-local async state is lost on reload. Anything mid-sign becomes
+    // 'error' so the user can retry cleanly. Attesting/minting bridges
+    // continue via SSE. Records older than the prune window are dropped
+    // entirely: the backend is the source of truth for active bridges, this
+    // is just a per-device render cache.
+    return arr
+      .filter((b) => (b.updatedAt ?? b.startedAt ?? 0) > cutoff)
+      .map((b) => {
+        if (
+          b.phase === 'switching' ||
+          b.phase === 'approving' ||
+          b.phase === 'burning' ||
+          b.phase === 'relaying'
+        ) {
+          return {
+            ...b,
+            phase: 'error' as const,
+            error: b.error ?? 'Interrupted on reload. Retry to resume.',
+          };
+        }
+        return b;
+      });
   } catch {
     return [];
   }
