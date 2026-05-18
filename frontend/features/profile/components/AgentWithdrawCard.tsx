@@ -289,7 +289,7 @@ export function AgentWithdrawCard({
             type="text"
             value={dest}
             onChange={(e) => setDest(e.target.value)}
-            placeholder="0xâ€¦"
+            placeholder="0x..."
             className="withdraw-dest w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none transition-shadow text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
             style={{
               border: '1px solid var(--lp-border-light)',
@@ -371,7 +371,7 @@ export function AgentWithdrawCard({
           {!isConnected
             ? 'Sign in to withdraw'
             : phase === 'sending'
-              ? 'Sending on Arcâ€¦'
+              ? 'Sending on Arc...'
               : `Withdraw from ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
         </button>
 

@@ -89,7 +89,7 @@ export function NotificationToasts() {
               aria-hidden
               className="ml-auto mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/60"
             >
-              {t.jobId.slice(0, 6)}â€¦{t.jobId.slice(-4)}
+              {t.jobId.slice(0, 6)}...{t.jobId.slice(-4)}
             </span>
           </div>
           <div className="px-3.5 py-3 flex items-start justify-between gap-3">

@@ -19,6 +19,7 @@ const OUTCOME_LABEL: Record<ReputationOutcome, string> = {
 // KarwanEscrow.EscrowState enum: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
 export const ESCROW_FUNDED = 1;
 export const ESCROW_SETTLED = 2;
+export const ESCROW_DISPUTED = 3;
 
 /// Releases a single milestone via the given buyer agent wallet and emits the
 /// event. The wallet must be the escrow's on-chain buyer. Returns the tx hash.

@@ -177,7 +177,7 @@ export default function ProfilePage() {
       {/* PENDING MATCHES. high-priority surface; renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
 
-      {/* IDENTITY section anchor â€” also contains ACTIVATION + ROLE blocks below. */}
+      {/* IDENTITY section anchor. Also contains ACTIVATION + ROLE blocks below. */}
       <div id="identity" aria-hidden style={{ scrollMarginTop: 80 }} />
 
       {/* ACTIVATION */}
@@ -252,7 +252,7 @@ export default function ProfilePage() {
                       { label: 'Max budget', value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
                       {
                         label: 'Deadline',
-                        value: `${profile.buyer.minDeadlineDays}â€“${profile.buyer.maxDeadlineDays} days`,
+                        value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} days`,
                         mono: true,
                       },
                       { label: 'Bid window', value: `${profile.buyer.bidCollectionSeconds}s`, mono: true },
@@ -273,12 +273,12 @@ export default function ProfilePage() {
                       { label: 'Bio', value: profile.seller.bio || '-' },
                       {
                         label: 'Budget',
-                        value: `${profile.seller.minBudgetUsdc}â€“${profile.seller.maxBudgetUsdc} USDC`,
+                        value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
                         mono: true,
                       },
                       {
                         label: 'Delivery',
-                        value: `${profile.seller.minDeadlineDays}â€“${profile.seller.maxDeadlineDays} days`,
+                        value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} days`,
                         mono: true,
                       },
                     ]}
@@ -372,7 +372,7 @@ export default function ProfilePage() {
       {/* PREFERENCES anchor */}
       <div id="preferences" aria-hidden style={{ scrollMarginTop: 80 }} />
 
-      {/* PREFERENCES â€” reach pipes the agent uses to ping you. */}
+      {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
       <Band tone="light" compact>
         <SectionTag>PREFERENCES</SectionTag>
         <HeroHeadline size="md">
@@ -511,7 +511,7 @@ function AgentStatusVignette({
         </div>
         <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
           {loading ? (
-            'Checkingâ€¦'
+            'Checking...'
           ) : (
             <>
               Wallets{' '}

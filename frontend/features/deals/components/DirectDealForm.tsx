@@ -15,7 +15,7 @@ export function DirectDealForm() {
   const router = useRouter();
   // Source of truth covers both wagmi web3 users and Circle passkey/email
   // users. Direct-deal create is backend-signed (the buyer agent DCW opens
-  // escrow), so no actual wallet signature is needed here either way â€” the
+  // escrow), so no actual wallet signature is needed here either way. The
   // form just needs the user's identity address.
   const auth = useAuth();
   const address = auth.address;
@@ -172,7 +172,7 @@ export function DirectDealForm() {
             type="text"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            placeholder="0xâ€¦"
+            placeholder="0x..."
             disabled={submitting}
             className="form-input form-input-mono"
           />
@@ -317,7 +317,7 @@ export function DirectDealForm() {
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           )}
-          {submitting ? 'Opening dealâ€¦' : 'Open deal'}
+          {submitting ? 'Opening deal...' : 'Open deal'}
           {!submitting && (
             <span
               aria-hidden

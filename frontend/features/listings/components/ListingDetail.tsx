@@ -346,7 +346,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                           borderBottomRightRadius: 2,
                         }}
                       >
-                        {cancelling ? 'Cancellingâ€¦' : 'Yes, cancel'}
+                        {cancelling ? 'Cancelling...' : 'Yes, cancel'}
                       </button>
                       <button
                         type="button"

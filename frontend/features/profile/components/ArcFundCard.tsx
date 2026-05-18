@@ -150,18 +150,18 @@ export function ArcFundCard({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !selectedAgent?.address) return;
-    // On wrong chain, switch only â€” don't try to submit the transfer.
+    // On wrong chain, switch only. Don't try to submit the transfer.
     // wagmi's wallet client needs the switch to actually commit before any
     // signing call will be routed to the new chain, otherwise the tx fires
     // on the old chain and reverts. After the switch lands, walletChainId
-    // updates â†’ onWrongChain flips false â†’ the button label turns into
+    // updates -> onWrongChain flips false -> the button label turns into
     // "Send to buyer agent" and the next click does the actual transfer.
     if (onWrongChain) {
       try {
         await switchChainAsync({ chainId: ARC_CHAIN_ID });
       } catch {
         // User declined the wallet prompt. Stay on the same button so they
-        // can try again. No banner â€” the wallet's own toast surfaces it.
+        // can try again. No banner; the wallet's own toast surfaces it.
       }
       return;
     }
@@ -409,9 +409,9 @@ export function ArcFundCard({
           {!isConnected ? (
             'Sign in to fund'
           ) : isSwitching ? (
-            'Switching to Arcâ€¦'
+            'Switching to Arc...'
           ) : hasActiveTransfer ? (
-            'Transfer in progressâ€¦'
+            'Transfer in progress...'
           ) : (
             <>
               <span>

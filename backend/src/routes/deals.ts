@@ -16,6 +16,7 @@ import {
   finalizeIfSettled,
   recordReputation,
   ESCROW_FUNDED,
+  ESCROW_DISPUTED,
   OUTCOME_FAILED,
   OUTCOME_DISPUTE_RESOLVED,
 } from '../chain/settlement.js';
@@ -652,9 +653,12 @@ dealsRoutes.post('/direct/:jobId/cancel/propose', async (c) => {
   if (!callerRole) {
     return c.json({ error: 'caller is not a party to this deal' }, 403);
   }
-  if (deal.cancelledAt || deal.settledAt || deal.disputed) {
+  if (deal.cancelledAt || deal.settledAt) {
     return c.json({ error: 'this deal is no longer in a proposable state' }, 409);
   }
+  // A pending dispute (seller appeal) is NOT terminal. Either party may still
+  // propose a mutual / platform-attributed cancel; if the counterparty accepts,
+  // the escrow refunds and the deal closes with no reputation hit.
 
   const reason = body.reason.trim();
   const proposal = {
@@ -705,9 +709,11 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
   if (callerRole === proposal.proposedBy) {
     return c.json({ error: 'the proposer cannot accept their own proposal' }, 409);
   }
-  if (deal.cancelledAt || deal.settledAt || deal.disputed) {
+  if (deal.cancelledAt || deal.settledAt) {
     return c.json({ error: 'this deal is no longer cancellable' }, 409);
   }
+  // disputed=true is NOT terminal here. If the escrow is in Disputed state,
+  // we skip the redundant on-chain dispute() call and go straight to refund().
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
@@ -736,27 +742,33 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     return c.json({ accepted: true, jobId }, 200);
   }
 
-  // Post-accept: dispute + refund on chain.
+  // Post-accept: dispute + refund on chain. If already disputed, skip dispute.
   if (!deal.buyerAgentWalletId) {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED) {
+  if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_DISPUTED) {
     return c.json({ error: `escrow is not in a cancellable state (${account.state})` }, 409);
   }
 
   inFlight.add(jobId);
   try {
     const chainReason = `${proposal.kind === 'platform-attributed' ? 'platform' : 'mutual'} cancel: ${proposal.reason}`;
-    await executeContractCall(
-      {
-        walletId: deal.buyerAgentWalletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'dispute(bytes32,string)',
-        abiParameters: [jobId, chainReason],
-      },
-      `dispute(${proposal.kind}-cancel ${jobId})`,
-    );
+    // Skip the dispute() call if the escrow is already in Disputed state
+    // (eg. seller previously appealed). The contract reverts InvalidState
+    // when dispute() is called from Disputed, so re-firing would block the
+    // refund path that the parties have now agreed to.
+    if (account.state === ESCROW_FUNDED) {
+      await executeContractCall(
+        {
+          walletId: deal.buyerAgentWalletId,
+          contractAddress: escrow.address,
+          abiFunctionSignature: 'dispute(bytes32,string)',
+          abiParameters: [jobId, chainReason],
+        },
+        `dispute(${proposal.kind}-cancel ${jobId})`,
+      );
+    }
     const refundResult = await executeContractCall(
       {
         walletId: deal.buyerAgentWalletId,

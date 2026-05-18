@@ -327,12 +327,19 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   // scope for this slice; a re-propose from the same side overwrites.
   const viewerIsProposer = !!proposal && viewerRole !== null && viewerRole === proposal.proposedBy;
   // Stages where either party may propose a mutual / platform-attributed cancel.
-  // Pre-accept and settled / disputed / already-cancelled are excluded. pre-accept
-  // has its own buyer-only path and the others are terminal.
+  // Pre-accept and settled / already-cancelled are excluded. pre-accept has its
+  // own buyer-only path and settled / cancelled are terminal.
+  //
+  // Disputed is included: a seller appeal freezes funds on chain but neither
+  // party loses the ability to reach consensus. If the counterparty accepts a
+  // mutual cancel proposed while disputed, the escrow refunds the buyer in
+  // full and the deal closes with no reputation hit, exactly as if the dispute
+  // never happened.
   const proposableStages: DealStage[] = [
     'awaiting-delivery',
     'awaiting-first-release',
     'awaiting-final-release',
+    'disputed',
   ];
   const canPropose =
     !proposal && proposableStages.includes(stage) && viewerRole !== null && !deal.cancelledAt;
@@ -809,8 +816,10 @@ function ActionPanel({
   if (stage === 'disputed') {
     return (
       <Body tone="critical">
-        This deal is in dispute. The escrow is frozen on chain. Resolution is handled
-        off-platform for now.
+        This deal is in dispute. The escrow is frozen on chain so neither party can
+        move funds unilaterally. Either side can still propose a mutual cancel
+        below. If the counterparty accepts, the escrow refunds the buyer in full
+        and the deal closes with no reputation hit.
       </Body>
     );
   }

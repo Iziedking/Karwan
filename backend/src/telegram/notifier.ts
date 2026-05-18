@@ -32,10 +32,15 @@ const RELEVANT = new Set([
   'deal.delivered',
   'deal.review.started',
   'deal.auto_released',
+  'escrow.milestone.released',
   'escrow.settled',
   'deal.disputed',
   'deal.cancelled',
+  'deal.cancel.proposed',
+  'deal.cancel.declined',
   'deal.fund.insufficient',
+  'bid.accepted',
+  'reputation.recorded',
   'listing.matched',
   'chat.message',
   'bridge.minted',
@@ -177,6 +182,74 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       );
     case 'deal.cancelled':
       return withLink('*Deal cancelled*.', url);
+    case 'deal.cancel.proposed': {
+      const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
+      const kind = (e.payload?.kind as string | undefined) ?? 'mutual';
+      const reason = (e.payload?.reason as string | undefined) ?? '';
+      const reasonLine = reason ? `\nReason: ${reason}` : '';
+      const proposerSelf = proposedBy && proposedBy === role;
+      if (proposerSelf) {
+        return withLink(
+          `*Cancellation proposed*. Waiting on the other party to accept or decline.${reasonLine}`,
+          url,
+        );
+      }
+      const proposerLabel = proposedBy === 'buyer' ? 'The buyer' : 'The seller';
+      return withLink(
+        `*${proposerLabel} is proposing to cancel this deal* (${kind}). Open the deal to accept or decline.${reasonLine}`,
+        url,
+      );
+    }
+    case 'deal.cancel.declined': {
+      const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
+      const proposerSelf = proposedBy && proposedBy === role;
+      if (proposerSelf) {
+        return withLink(
+          '*Your cancellation proposal was declined*. The deal continues as normal.',
+          url,
+        );
+      }
+      return withLink(
+        '*You declined the cancellation proposal*. The deal continues as normal.',
+        url,
+      );
+    }
+    case 'escrow.milestone.released': {
+      const idx = e.payload?.milestoneIndex as number | undefined;
+      const ordinal = idx === 0 ? 'First' : idx === 1 ? 'Final' : `Milestone ${idx ?? '?'}`;
+      return withLink(
+        role === 'seller'
+          ? `*${ordinal} milestone released*. Funds are on their way to your agent wallet.`
+          : `*${ordinal} milestone released* to the seller.`,
+        url,
+      );
+    }
+    case 'bid.accepted': {
+      const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
+      return withLink(
+        role === 'seller'
+          ? `*Your bid was accepted*${price ? ` at ${price} USDC` : ''}. Escrow funds next; you'll get another note when it lands.`
+          : `*Bid accepted*${price ? ` at ${price} USDC` : ''}. Escrow is being funded.`,
+        url,
+      );
+    }
+    case 'reputation.recorded': {
+      const outcome = (e.payload?.outcome as string | undefined) ?? '';
+      const friendly =
+        outcome === 'Success'
+          ? 'a successful settlement'
+          : outcome === 'DisputeResolved'
+            ? 'a resolved dispute'
+            : outcome === 'Failed'
+              ? 'a failed deal'
+              : 'an outcome';
+      return withLink(
+        role === 'seller'
+          ? `*Reputation updated on chain* for ${friendly}. View your passport for the new score.`
+          : `*Reputation recorded on chain* for ${friendly}.`,
+        url,
+      );
+    }
     case 'deal.fund.insufficient':
       return withLink(
         role === 'buyer'

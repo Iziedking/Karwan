@@ -17,6 +17,11 @@ const REFRESH_TYPES = new Set([
   'deal.auto_released',
   'deal.disputed',
   'deal.cancelled',
+  // Cancellation proposal lifecycle. Without these, the seller's deal page
+  // does not react to a buyer-side propose/decline until manual refresh,
+  // even though notifications fire.
+  'deal.cancel.proposed',
+  'deal.cancel.declined',
 ]);
 
 export function useDirectDeals() {

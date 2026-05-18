@@ -173,3 +173,45 @@ configured" hint instead of the connect flow.
   notes from the build.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite
   formula, the spam detector, and the agent integration spec.
+
+## Roadmap
+
+The current build covers the launch surface above. v2 continues along these
+tracks:
+
+- **Security and verification agent.** Independent engines vote on every
+  deliverable URL before the buyer sees it. Confirmed malicious deliveries
+  slash reputation and tag the seller. Off-platform deliveries are recorded as
+  at-your-own-risk.
+- **Reputation rules doc.** `docs/reputation-rules.md` becomes the source of
+  truth for the composite-score math, tier breakpoints, slash multipliers, and
+  a new speed-bonus term that pays sellers who deliver early and never
+  penalises slow-but-on-time delivery.
+- **Terms and Conditions.** Versioned, professional consent surface gating
+  signup. Public `/terms` page and a first-signup modal that records the
+  accepted version against the wallet.
+- **Hardened staking as deal insurance.** A portion of a seller's active stake
+  reserves against deals they accept. Confirmed disputes against the seller
+  transfer the reservation to the buyer, so the stake is a real deliverable
+  backstop and not only a reputation signal.
+- **Agent intelligence upgrade.** Buyer and seller agents read trending-skill
+  signals from real platform activity. Counter-bids carry a reasoning trace
+  citing market medians and scarcity. Buyers who post under-market briefs see
+  a non-blocking nudge before submit.
+- **File delivery and storage.** Cloudflare R2 with TTL for the default flow,
+  IPFS content-addressed delivery as an opt-in for trade-document workflows
+  where tamper evidence matters. Files run through a hash-first scan pipeline.
+- **Settings and multi-language.** A consolidated Settings card on `/profile`
+  for timezone, currency display, notifications, theme, sound, and privacy.
+  Onboarding gains a language picker. Five locales at launch: English (default),
+  Arabic with RTL, French, Hindi, Swahili. The user's locale follows them into
+  Telegram and email notifications.
+- **Credit Passport, invoice factoring, USYC treasury routing.** The Track 2
+  surface. A public Credit Passport page for any wallet, an invoice factoring
+  micro-flow for STRONG and ELITE sellers, and idle treasury USDC routed
+  through Hashnote USYC on mainnet.
+
+A full project handbook on **GitBook** ships after production stabilises:
+overview, architecture, on-chain reference, role walkthroughs for buyer,
+seller, and financier, and an agent operator guide. The handbook will host
+the user-facing how-to alongside everything currently in `docs/`.

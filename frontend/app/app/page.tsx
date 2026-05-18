@@ -588,7 +588,7 @@ function BidVignette() {
           <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-accent)]">
             LEAD
           </span>
-          <span className="mono text-[10px] text-white/70">0x1d36â€¦35Ce</span>
+          <span className="mono text-[10px] text-white/70">0x1d36...35Ce</span>
         </span>
         <span className="inline-flex items-center gap-1.5 mono text-[10px] text-white/55">
           <span
@@ -647,13 +647,13 @@ function StreamVignette() {
   const pool = useMemo(
     () =>
       [
-        { label: 'bid.scored', addr: '0x12abâ€¦cd34', tone: 'buyer' as const },
-        { label: 'deal.matched', addr: '0xa045â€¦03c5', tone: 'system' as const },
-        { label: 'escrow.funded', addr: '0xb2caâ€¦f9c9', tone: 'buyer' as const },
-        { label: 'milestone.released', addr: '0x4d61â€¦4f75', tone: 'buyer' as const },
-        { label: 'counter.issued', addr: '0xc469â€¦6cb0', tone: 'buyer' as const },
-        { label: 'listing.posted', addr: '0xf4eaâ€¦5c8b', tone: 'seller' as const },
-        { label: 'bid.submitted', addr: '0x17e6â€¦1176', tone: 'seller' as const },
+        { label: 'bid.scored', addr: '0x12ab...cd34', tone: 'buyer' as const },
+        { label: 'deal.matched', addr: '0xa045...03c5', tone: 'system' as const },
+        { label: 'escrow.funded', addr: '0xb2ca...f9c9', tone: 'buyer' as const },
+        { label: 'milestone.released', addr: '0x4d61...4f75', tone: 'buyer' as const },
+        { label: 'counter.issued', addr: '0xc469...6cb0', tone: 'buyer' as const },
+        { label: 'listing.posted', addr: '0xf4ea...5c8b', tone: 'seller' as const },
+        { label: 'bid.submitted', addr: '0x17e6...1176', tone: 'seller' as const },
       ],
     [],
   );
