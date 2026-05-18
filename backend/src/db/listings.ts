@@ -79,6 +79,22 @@ export function listAllListings(): Listing[] {
   return [...store.values()].sort((x, y) => y.postedAt - x.postedAt);
 }
 
+/// Removes every listing owned by `addressLower`. Used by the admin
+/// reset-history endpoint to drop test-pollution from a single wallet
+/// without wiping every other seller's data. Listings are in-memory only
+/// so no persist call is needed.
+export function deleteListingsBySeller(addressLower: string): number {
+  const target = addressLower.toLowerCase();
+  let removed = 0;
+  for (const [k, v] of store.entries()) {
+    if (v.sellerUser === target) {
+      store.delete(k);
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
 export function markListingMatched(id: string, jobId: string): void {
   const l = store.get(id);
   if (!l) return;

@@ -1,0 +1,42 @@
+# Karwan backend reverse proxy.
+#
+# Place this file at ~/karwan/Caddyfile on the VPS. The docker-compose
+# mounts it read-only into the caddy container at /etc/caddy/Caddyfile.
+# Caddy auto-issues + auto-renews Let's Encrypt certs for api.karwan.app
+# the first time the DNS record points to this host.
+#
+# Reload after edits:
+#   docker compose restart caddy
+
+api.karwan.app {
+    # Compression + standard security headers
+    encode zstd gzip
+    header {
+        # HSTS for 1 year, include subdomains, eligible for preload
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Remove the Server header Caddy adds by default
+        -Server
+    }
+
+    # Block obvious junk methods before they hit the app.
+    @bad-method method TRACE CONNECT
+    respond @bad-method 405
+
+    reverse_proxy karwan-api:8787 {
+        # Streaming for SSE — no buffering, no per-line flush delay.
+        flush_interval -1
+        # Match the backend's 15 min HTTP server timeouts (Circle DCW path
+        # can hold a request open for ~60s during approve + burn).
+        transport http {
+            response_header_timeout 15m
+            dial_timeout 5s
+            read_timeout 15m
+        }
+        # Forward the real client IP + protocol so backend logs stay useful.
+        header_up X-Real-IP {http.request.remote.host}
+        header_up X-Forwarded-Proto {http.request.scheme}
+    }
+}

@@ -118,6 +118,44 @@ export async function hasPendingProposal(jobId: string): Promise<boolean> {
   return !proposal.approvedAt && !proposal.declinedAt;
 }
 
+/// Removes every match proposal where the address is on either side. Used by
+/// the admin reset-history endpoint for test cleanup.
+export async function deleteMatchProposalsInvolvingAddress(
+  addressLower: string,
+): Promise<number> {
+  const target = addressLower.toLowerCase();
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(matchProposalsTable)
+      .where(
+        or(
+          eq(matchProposalsTable.buyerUser, target),
+          eq(matchProposalsTable.sellerUser, target),
+        ),
+      );
+    for (const r of rows) {
+      await db()
+        .delete(matchProposalsTable)
+        .where(eq(matchProposalsTable.jobId, r.jobId));
+    }
+    return rows.length;
+  }
+  const store = loadFile();
+  let removed = 0;
+  for (const [k, v] of Object.entries(store)) {
+    if (
+      v.buyerUser.toLowerCase() === target ||
+      v.sellerUser.toLowerCase() === target
+    ) {
+      delete store[k];
+      removed += 1;
+    }
+  }
+  if (removed > 0) saveFile(store);
+  return removed;
+}
+
 // --- flat-file fallback ---
 
 function ensureFile() {

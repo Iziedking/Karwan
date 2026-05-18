@@ -4,6 +4,22 @@ import { bus, type KarwanEvent } from '../events.js';
 
 export const eventsRoutes = new Hono();
 
+/// One-shot JSON snapshot of recent events from the in-memory history. Use
+/// this from curl/jq during testing — the root `/api/events` is an SSE
+/// stream that never closes, which is hostile to `curl ... | jq`.
+eventsRoutes.get('/recent', (c) => {
+  const limitParam = c.req.query('limit');
+  const limit = Math.min(500, Math.max(1, Number(limitParam ?? 100) || 100));
+  const jobId = c.req.query('jobId') ?? undefined;
+  const type = c.req.query('type') ?? undefined;
+  let events = bus.recent(limit, jobId);
+  if (type) {
+    const types = new Set(type.split(',').map((s) => s.trim()).filter(Boolean));
+    events = events.filter((e) => types.has(e.type));
+  }
+  return c.json({ events });
+});
+
 eventsRoutes.get('/', (c) =>
   streamSSE(c, async (stream) => {
     let id = 0;

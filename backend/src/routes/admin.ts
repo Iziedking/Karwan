@@ -1,10 +1,70 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { getProfile } from '../db/profiles.js';
-import { listAllMatchProposals, getBuyerSnapshot } from '../agents/buyer.js';
+import {
+  listAllMatchProposals,
+  getBuyerSnapshot,
+  deleteBuyerJobsForBuyer,
+} from '../agents/buyer.js';
+import { deleteBriefsByPoster } from '../db/briefs.js';
+import { deleteListingsBySeller } from '../db/listings.js';
+import { deleteDealsInvolvingAddress } from '../db/deals.js';
+import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { recentErrors } from '../errorTracker.js';
+import { logger } from '../logger.js';
 
 export const adminRoutes = new Hono();
+
+const addrSchema = z
+  .string()
+  .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+/// Wipes a single test wallet's off-chain pollution. Removes:
+///   - Briefs they posted
+///   - Listings they own
+///   - DirectDeals where they're buyer or seller
+///   - Match proposals on either side
+///   - In-memory buyer-agent job states owned by them
+///
+/// On-chain reputation history (recordCompletion events on KarwanReputation)
+/// is permanent and is NOT touched. The reputation engine's spam/cancel
+/// rates feed off the records we just removed, so a fresh read after this
+/// returns a clean composite score.
+adminRoutes.post('/reset-history', async (c) => {
+  let body;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const address =
+    typeof body?.address === 'string'
+      ? body.address
+      : (c.req.query('address') ?? '');
+  const parsed = addrSchema.safeParse(address);
+  if (!parsed.success) {
+    return c.json(
+      { error: 'address required (body.address or ?address=)', detail: parsed.error.message },
+      400,
+    );
+  }
+  const target = parsed.data.toLowerCase();
+  const briefs = deleteBriefsByPoster(target);
+  const listings = deleteListingsBySeller(target);
+  const deals = await deleteDealsInvolvingAddress(target);
+  const proposals = await deleteMatchProposalsInvolvingAddress(target);
+  const buyerJobs = deleteBuyerJobsForBuyer(target);
+  logger.info(
+    { target, briefs, listings, deals, proposals, buyerJobs },
+    'admin: reset-history executed',
+  );
+  return c.json({
+    ok: true,
+    address: target,
+    removed: { briefs, listings, deals, proposals, buyerJobs },
+  });
+});
 
 /// Backend runtime errors captured by the process-wide tracker. Returns up
 /// to 100 entries from the in-memory ring buffer, newest first. Used by

@@ -1,0 +1,35 @@
+# Exclude everything by default; copy only the files the Dockerfile names.
+**
+
+# ---- Re-include files the builder stage actually needs ----
+!package.json
+!package-lock.json
+!backend/package.json
+!backend/tsconfig.json
+!backend/src/**
+
+# ---- Never include secrets or local-only state ----
+.env
+.env.*
+backend/.env
+backend/.env.*
+backend/data/**
+backend/dist/**
+*.log
+.git/**
+.github/**
+.vscode/**
+.idea/**
+.DS_Store
+
+# ---- Never ship the frontend or contracts in the API image ----
+frontend/**
+contracts/**
+docs/**
+
+# ---- Never ship dependency trees from the host build ----
+**/node_modules/**
+**/.next/**
+**/coverage/**
+**/.turbo/**
+**/.cache/**

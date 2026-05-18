@@ -28,13 +28,14 @@ export function DirectDealForm() {
   const initialAmount =
     initialAmountRaw != null && Number.isFinite(Number(initialAmountRaw))
       ? Number(initialAmountRaw)
-      : 100;
+      : undefined;
   const initialTerms = search.get('terms') ?? '';
 
   const [seller, setSeller] = useState(initialSeller);
-  // initialAmount is supplied by the listing-detail "Make offer" deep link
-  // (URL ?amount=). When absent the field starts empty so the placeholder
-  // "0" renders, matching the rest of the app's input style.
+  // Numeric fields always start empty; the placeholder "0" renders instead
+  // of any autofilled number. The only exception is when the user arrives
+  // from a listing's "Make offer" deep link with ?amount= in the URL, which
+  // pre-fills from the listing's asking price; otherwise it stays blank.
   const [amount, setAmount] = useState<number | ''>(initialAmount ?? '');
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
@@ -98,8 +99,8 @@ export function DirectDealForm() {
         buyerAddress: address!,
         sellerAddress: seller.trim(),
         dealAmountUsdc: amount as number,
-        deadlineDays: dayNum,
-        deadlineHours: hourNum,
+        deadlineDays: submitDays,
+        deadlineHours: submitHours,
         terms: terms.trim(),
         firstReleasePct: firstPct as number,
       });
@@ -159,7 +160,10 @@ export function DirectDealForm() {
             </span>
             <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-white/20" />
             <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
-              {previewDeadline.label}
+              {previewDeadlineValue}
+            </span>
+            <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
+              {previewUnitLabel}
             </span>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-white/55">
@@ -228,35 +232,35 @@ export function DirectDealForm() {
           </FormLabel>
           <FormLabel
             label="Deadline"
-            unit="days · hours"
-            hint="Total deadline. Use hours for tight-turnaround work. Max 180 days."
+            unit={previewUnitLabel}
+            hint="When the seller must deliver by. Pick min, hr, or days. Max 180 days."
           >
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex items-stretch gap-2">
               <input
                 type="number"
                 inputMode="numeric"
-                min={0}
-                max={180}
+                min={1}
+                max={deadlineMax}
                 step={1}
-                value={days}
+                value={deadlineValue}
                 disabled={submitting}
-                onChange={(e) => setDays(e.target.value === '' ? '' : Number(e.target.value))}
+                onChange={(e) =>
+                  setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
+                }
                 placeholder="0"
-                aria-label="Days"
-                className="form-input form-input-num"
+                className="form-input form-input-num flex-1 min-w-0"
               />
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={23}
-                step={1}
-                value={hours}
+              <DeadlineUnitPicker
+                value={deadlineUnit}
                 disabled={submitting}
-                onChange={(e) => setHours(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="0h"
-                aria-label="Hours"
-                className="form-input form-input-num"
+                onChange={(next) => {
+                  // When switching units, reset to empty so the user picks a
+                  // sensible number for the new unit. The buyer form seeds
+                  // sample values; the direct-deal form stays empty per the
+                  // "no autofills" rule.
+                  setDeadlineUnit(next);
+                  setDeadlineValue('');
+                }}
               />
             </div>
           </FormLabel>
@@ -433,6 +437,62 @@ function FormLabel({
       </span>
       {children}
     </label>
+  );
+}
+
+function DeadlineUnitPicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: 'min' | 'hr' | 'd';
+  disabled?: boolean;
+  onChange: (next: 'min' | 'hr' | 'd') => void;
+}) {
+  const options: Array<{ key: 'min' | 'hr' | 'd'; label: string }> = [
+    { key: 'min', label: 'MIN' },
+    { key: 'hr', label: 'HR' },
+    { key: 'd', label: 'DAY' },
+  ];
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Deadline unit"
+      className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
+      style={{
+        background: 'var(--lp-light)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 9,
+        borderTopRightRadius: 9,
+        borderBottomLeftRadius: 9,
+        borderBottomRightRadius: 2,
+      }}
+    >
+      {options.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => onChange(o.key)}
+            className="px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: active ? 'var(--lp-dark)' : 'transparent',
+              color: active ? 'white' : 'var(--lp-text-sub)',
+              borderTopLeftRadius: 7,
+              borderTopRightRadius: 7,
+              borderBottomLeftRadius: 7,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

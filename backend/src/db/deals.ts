@@ -162,6 +162,35 @@ export async function listAllDeals(): Promise<DirectDeal[]> {
   return Object.values(loadFile()).sort((x, y) => y.createdAt - x.createdAt);
 }
 
+/// Removes every deal where the address is on either side of the deal. Used
+/// by the admin reset-history endpoint for test cleanup. Returns the number
+/// of rows removed.
+export async function deleteDealsInvolvingAddress(addressLower: string): Promise<number> {
+  const target = addressLower.toLowerCase();
+  if (pgEnabled) {
+    const rows = await db().select().from(directDeals);
+    let removed = 0;
+    for (const r of rows) {
+      const d = r.data;
+      if (d.buyer.toLowerCase() === target || d.seller.toLowerCase() === target) {
+        await db().delete(directDeals).where(eq(directDeals.jobId, d.jobId));
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+  const store = loadFile();
+  let removed = 0;
+  for (const [k, v] of Object.entries(store)) {
+    if (v.buyer.toLowerCase() === target || v.seller.toLowerCase() === target) {
+      delete store[k];
+      removed += 1;
+    }
+  }
+  if (removed > 0) saveFile(store);
+  return removed;
+}
+
 // --- flat-file fallback ---
 
 function ensureFile() {

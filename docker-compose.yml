@@ -1,0 +1,79 @@
+# Karwan backend on a VPS, behind Caddy for TLS + reverse proxy.
+#
+# Files on the VPS:
+#   ~/karwan/
+#     ├── docker-compose.yml   (this file)
+#     ├── .env                 (filled from .env.example; NEVER commit real values)
+#     ├── Caddyfile            (see commands below; auto-managed certs)
+#     └── data/                (host-side mount for the backend's flat-file fallback)
+#
+# First-time setup on the VPS:
+#   docker compose pull
+#   docker compose up -d
+#   docker compose logs -f karwan-api
+#
+# Roll a new image:
+#   docker compose pull && docker compose up -d --remove-orphans
+#
+# DNS: point api.karwan.app at the VPS IP. Caddy negotiates TLS automatically
+# via Let's Encrypt the first time the domain resolves.
+
+services:
+  karwan-api:
+    # Two ways to source the image:
+    #   1. Build locally on the VPS from the repo:
+    #      build: { context: ., dockerfile: Dockerfile }
+    #   2. Pull from GHCR (recommended once CI publishes images):
+    #      image: ghcr.io/<your-gh-user>/karwan-api:latest
+    image: ghcr.io/kingizie/karwan/karwan-api:latest
+    container_name: karwan-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Belt-and-braces: production mode + bind on the container's port.
+      NODE_ENV: production
+      PORT: 8787
+    volumes:
+      # Persist the flat-file fallback store across container rebuilds.
+      # When DATABASE_URL is set, most of these files stay empty; the dir is
+      # still needed for bridge state + briefs that haven't migrated.
+      - ./data:/app/backend/data
+    # The container listens on 8787 internally. We DON'T publish to host —
+    # only Caddy talks to it over the internal network.
+    expose:
+      - "8787"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: karwan-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - karwan-api
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  caddy_data:
+  caddy_config:

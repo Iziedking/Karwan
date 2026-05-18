@@ -515,7 +515,7 @@ export function useBridges() {
           ...b,
           phase: 'error',
           error: isOrphan
-            ? 'This bridge record was lost on the backend. Dismiss and start a fresh one.'
+            ? 'Bridge record not found. Dismiss and start a fresh one.'
             : 'Recheck failed. Try again in a moment.',
         }));
       }

@@ -86,3 +86,20 @@ export function listAllBriefs(): Brief[] {
   load();
   return Array.from(store.values());
 }
+
+/// Removes every brief posted by `addressLower`. Used by the admin
+/// reset-history endpoint so an operator can clear test pollution for a
+/// single wallet without wiping the whole flat-file store.
+export function deleteBriefsByPoster(addressLower: string): number {
+  load();
+  const target = addressLower.toLowerCase();
+  let removed = 0;
+  for (const [k, v] of store.entries()) {
+    if (v.postedBy.toLowerCase() === target) {
+      store.delete(k);
+      removed += 1;
+    }
+  }
+  if (removed > 0) persist();
+  return removed;
+}

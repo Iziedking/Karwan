@@ -19,6 +19,7 @@ import {
   type JobContext,
 } from '../llm/prompts.js';
 import { logger } from '../logger.js';
+import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import { resolveBuyerProfile } from './agent-registry.js';
@@ -371,6 +372,10 @@ async function handleBidSubmitted(log: Log) {
       { jobId: state.jobId, seller: args.seller, err: message },
       'bid scoring failed',
     );
+    reportError('agents.buyer.bidScore', err, {
+      jobId: state.jobId,
+      seller: args.seller,
+    });
     bus.emitEvent({
       type: 'agent.error',
       jobId: state.jobId,
@@ -1284,6 +1289,22 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
       counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),
     })),
   };
+}
+
+/// Drops every in-memory job state where `buyerAddressLower` owns the brief.
+/// Used by the admin reset-history endpoint to clear test pollution from the
+/// agent loop's working set without rebooting the backend. Returns the
+/// number of states removed.
+export function deleteBuyerJobsForBuyer(buyerAddressLower: string): number {
+  const target = buyerAddressLower.toLowerCase();
+  let removed = 0;
+  for (const [k, v] of jobs.entries()) {
+    if (v.context.buyer.toLowerCase() === target) {
+      jobs.delete(k);
+      removed += 1;
+    }
+  }
+  return removed;
 }
 
 export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {

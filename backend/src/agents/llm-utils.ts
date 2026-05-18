@@ -2,8 +2,14 @@
 /// per-(jobId, seller) mutex and stall the whole auction. The agent loops
 /// treat a thrown timeout the same as any other LLM failure — log, emit
 /// agent.error, move on.
+///
+/// Default 45s. Gemini Flash Lite usually responds in ~3-5s; Kimi K2.5 and
+/// other heavier models can take 20-30s for structured output. Tunable via
+/// LLM_TIMEOUT_MS so operators can dial it per model.
 
-export const LLM_TIMEOUT_MS = 15_000;
+const envValue = Number(process.env.LLM_TIMEOUT_MS ?? '');
+export const LLM_TIMEOUT_MS =
+  Number.isFinite(envValue) && envValue > 0 ? envValue : 45_000;
 
 export class LlmTimeoutError extends Error {
   constructor(label: string, ms: number) {
