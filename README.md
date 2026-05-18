@@ -185,15 +185,6 @@ configured" hint instead of the connect flow.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite
   formula, the spam detector, and the agent integration spec.
 
-## Known limitations
-
-The current testnet build has known gaps the team has documented and is
-fixing in v2. The most important is that a buyer can call dispute + refund
-after the seller delivers, and the seller has no on-chain recourse beyond
-the reputation slash that follows. See
-[/known-limitations](https://karwan.app/known-limitations) for the full list
-and the planned mitigations. **Real-USDC mainnet deploy requires v2.D plus a
-professional external audit.** Testnet runs use no real money.
 
 ## Roadmap
 

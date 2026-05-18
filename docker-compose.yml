@@ -25,7 +25,7 @@ services:
     #      build: { context: ., dockerfile: Dockerfile }
     #   2. Pull from GHCR (recommended once CI publishes images):
     #      image: ghcr.io/<your-gh-user>/karwan-api:latest
-    image: ghcr.io/kingizie/karwan/karwan-api:latest
+    image: ghcr.io/iziedking/karwan/karwan-api:latest
     container_name: karwan-api
     restart: unless-stopped
     env_file:
