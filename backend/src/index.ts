@@ -52,12 +52,19 @@ const ALLOWED_ORIGINS = new Set<string>(
   ].filter((x): x is string => !!x),
 );
 
+// Also accept any *.vercel.app preview/production URL for this project so
+// we can test from the Vercel-issued domain when the custom domain isn't
+// reachable from the operator's network.
+const VERCEL_ORIGIN = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+
 app.use(
   '*',
   cors({
     origin: (origin) => {
       if (!origin) return null;
-      return ALLOWED_ORIGINS.has(origin) ? origin : null;
+      if (ALLOWED_ORIGINS.has(origin)) return origin;
+      if (VERCEL_ORIGIN.test(origin)) return origin;
+      return null;
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
