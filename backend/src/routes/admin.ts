@@ -2,8 +2,18 @@ import { Hono } from 'hono';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { getProfile } from '../db/profiles.js';
 import { listAllMatchProposals, getBuyerSnapshot } from '../agents/buyer.js';
+import { recentErrors } from '../errorTracker.js';
 
 export const adminRoutes = new Hono();
+
+/// Backend runtime errors captured by the process-wide tracker. Returns up
+/// to 100 entries from the in-memory ring buffer, newest first. Used by
+/// the operator to triage runtime health without grepping pino logs.
+adminRoutes.get('/errors', (c) => {
+  const limitParam = c.req.query('limit');
+  const limit = Math.min(100, Math.max(1, Number(limitParam ?? 50) || 50));
+  return c.json({ errors: recentErrors(limit) });
+});
 
 /// Read-only marketplace view: every activated user, their agent addresses, and
 /// the profile they registered (buyer side, seller side, or both). Powers the

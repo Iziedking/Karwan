@@ -42,6 +42,15 @@ const envSchema = z.object({
   // degrades stakeTerm to its base value (1.0). Once set, stake.ts indexes
   // Deposited events for the address to compute tenure-weighted active stake.
   KARWAN_VAULT_ADDR: optionalAddr,
+  // Block at which KarwanVault was deployed. When set, the paginated event
+  // reader starts here instead of `latest - 9500` (which only covered ~5h of
+  // Arc testnet history at 2s blocks and made older positions disappear).
+  // Unset is acceptable for fresh testnet sessions; the reader walks back a
+  // larger default window in that case.
+  KARWAN_VAULT_DEPLOY_BLOCK: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^\d+$/).transform(BigInt).optional(),
+  ),
   // Treasury that collects the platform fee. Must match the address the escrow
   // was deployed with; surfaced here for display and reconciliation.
   KARWAN_TREASURY_ADDR: optionalAddr,

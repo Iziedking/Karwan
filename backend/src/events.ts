@@ -52,7 +52,8 @@ export type KarwanEventType =
   | 'vault.deposit'
   | 'vault.withdraw.requested'
   | 'vault.withdraw.cancelled'
-  | 'vault.claimed';
+  | 'vault.claimed'
+  | 'system.error';
 
 export interface KarwanEvent {
   type: KarwanEventType;

@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
+import { fetchDepositedLogsForOwner } from '../chain/vaultLogs.js';
 import { getUserByAddress } from '../db/users.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -104,79 +105,23 @@ async function readPositions(addressRaw: string): Promise<Position[]> {
   }
   const address = addressRaw.toLowerCase() as `0x${string}`;
 
-  // Arc testnet's public RPC caps eth_getLogs at a strict 10,000-block
-  // range. We stay 500 blocks under that ceiling for safety. The vault is
-  // freshly deployed so every position lives in recent blocks; in practice
-  // 9,500 blocks at ~2-second cadence is a couple of hours of history,
-  // plenty for a hackathon testnet. When we need older positions we'll
-  // run the indexer table from todo.md §4.
-  const LOG_WINDOW = 9_500n;
-  let fromBlock: bigint = 0n;
-  try {
-    const latest = await publicClient.getBlockNumber();
-    fromBlock = latest > LOG_WINDOW ? latest - LOG_WINDOW : 0n;
-  } catch {
-    // Fall back to 0n; the getLogs call itself will fail loudly below.
-  }
-
-  // Fetch ALL Deposited events for the vault then filter by owner in JS.
-  // Some testnet RPCs silently return empty when an indexed-args topic
-  // filter is applied (especially over a wide block range), even when the
-  // event clearly exists on chain. The vault is freshly deployed so the
-  // total event count is tiny; client-side filtering is cheap and avoids
-  // the topic-filter quirk entirely.
-  let rawLogs;
-  try {
-    rawLogs = await publicClient.getLogs({
-      address: vault,
-      event: vaultAbi[0],
-      fromBlock,
-      toBlock: 'latest',
-    });
-  } catch (err) {
-    logger.error(
-      {
-        err: (err as Error).message,
-        vault,
-        address,
-        fromBlock: fromBlock.toString(),
-      },
-      'vault.readPositions: getLogs failed',
-    );
-    throw err;
-  }
-
-  const logs = rawLogs.filter((log) => {
-    const owner = (log as unknown as { args: { owner?: `0x${string}` } }).args.owner;
-    return owner?.toLowerCase() === address;
-  });
-
-  logger.info(
-    {
-      vault,
-      address,
-      fromBlock: fromBlock.toString(),
-      rawCount: rawLogs.length,
-      matchedCount: logs.length,
-    },
-    'vault.readPositions: getLogs returned',
-  );
-
+  // Paginated read covers the vault's full deployed history, so positions
+  // older than the previous ~5h window no longer drop off after a refresh.
+  const logs = await fetchDepositedLogsForOwner(vault, address);
   if (logs.length === 0) return [];
 
   const now = Math.floor(Date.now() / 1000);
   const out: Position[] = [];
   for (const log of logs) {
-    const positionId = (log as unknown as { args: { positionId: bigint } }).args.positionId;
     const p = (await publicClient.readContract({
       address: vault,
       abi: vaultAbi,
       functionName: 'positions',
-      args: [positionId],
+      args: [log.positionId],
     })) as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
     const [, principal, depositedAt, cooldownStartedAt, claimableAt, state] = p;
     out.push({
-      positionId: positionId.toString(),
+      positionId: log.positionId.toString(),
       principalUsdc: formatUnits(principal, USDC_DECIMALS),
       principalWei: principal.toString(),
       depositedAt: Number(depositedAt),

@@ -174,6 +174,10 @@ export function useNotifications() {
   // only carry jobId).
   const jobIdsRef = useRef<Set<string>>(new Set());
   const initialHydrateRef = useRef(false);
+  // Tracks notification ids we've already routed to listeners + sound this
+  // session. Lets the SSE handler dedupe BEFORE calling setState, so the
+  // toast-listener fan-out can happen safely outside any state updater.
+  const seenNotificationIdsRef = useRef<Set<string>>(new Set());
 
   const refreshJobIds = useCallback(() => {
     if (!address) return;
@@ -233,10 +237,16 @@ export function useNotifications() {
       setHydratedFor(null);
       jobIdsRef.current = new Set();
       initialHydrateRef.current = false;
+      seenNotificationIdsRef.current = new Set();
       return;
     }
     initialHydrateRef.current = false;
-    setNotifications(load(address));
+    const stored = load(address);
+    setNotifications(stored);
+    // Seed the seen-set with persisted notification ids so the first SSE
+    // event after reload doesn't re-fire toasts/sound for items already
+    // shown in a previous session.
+    seenNotificationIdsRef.current = new Set(stored.map((n) => n.id));
     setHydratedFor(address.toLowerCase());
     refreshJobIds();
     void backfill(address.toLowerCase());
@@ -283,18 +293,29 @@ export function useNotifications() {
         toast,
       };
 
+      // Dedupe outside the state updater. Running the toast-listener
+      // fan-out inside `setNotifications` triggered React's "Cannot update
+      // a component while rendering a different component" warning,
+      // because each listener calls setState on its own subscriber and
+      // updaters can run during another component's render phase.
+      if (seenNotificationIdsRef.current.has(id)) return;
+      seenNotificationIdsRef.current.add(id);
+
       setNotifications((list) => {
         if (list.some((n) => n.id === id)) return list;
-        if (initialHydrateRef.current) {
-          try {
-            sfx.send();
-          } catch {
-            /* ignore */
-          }
-          if (toast) toastListeners.forEach((fn) => fn(next));
-        }
         return [next, ...list].slice(0, MAX_STORED);
       });
+
+      if (initialHydrateRef.current) {
+        try {
+          sfx.send();
+        } catch {
+          /* ignore */
+        }
+        if (toast) {
+          toastListeners.forEach((fn) => fn(next));
+        }
+      }
     });
   }, [address, isConnected]);
 

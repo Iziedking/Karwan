@@ -76,6 +76,24 @@ function reasonLabel(code: string): string {
   return REASON_LABELS[code] ?? code;
 }
 
+/// Maps internal agent.error scope codes to a short, user-readable label.
+/// Falls back to the raw code so a new scope still shows something.
+const SCOPE_LABELS: Record<string, string> = {
+  counterEvaluation: 'LLM counter-eval failed',
+  bidEvaluation: 'LLM bid-eval failed',
+  submitBid: 'On-chain submitBid failed',
+  respondToCounter: 'On-chain counter-response failed',
+  acceptBid: 'On-chain acceptBid failed',
+  fundEscrow: 'On-chain fundEscrow failed',
+  recordCompletion: 'Reputation record failed',
+  JobPosted: 'JobPosted handler crashed',
+  CounterOfferIssued: 'CounterOfferIssued handler crashed',
+  BidSubmitted: 'BidSubmitted handler crashed',
+};
+function scopeLabel(code: string): string {
+  return SCOPE_LABELS[code] ?? code;
+}
+
 function chipsFor(payload: Record<string, unknown>): Chip[] {
   const out: Chip[] = [];
   const price = payload.priceUsdc ?? payload.agreedPriceUsdc;
@@ -104,7 +122,16 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
     const code = String(payload.reason);
     out.push({ key: 'reason', label: 'Reason', value: reasonLabel(code) });
   }
-  // Hide raw scope/message chips from end users. they're for debug logs only.
+  // Surface scope on agent.error events so the user can tell which step
+  // failed (LLM eval, on-chain tx, etc.) without digging through backend
+  // logs. The full message renders as a subtitle below the headline.
+  if (payload.scope != null) {
+    out.push({
+      key: 'scope',
+      label: 'Where',
+      value: scopeLabel(String(payload.scope)),
+    });
+  }
   if (payload.amountUsdc != null) {
     out.push({ key: 'amount', label: 'Amount', value: `${payload.amountUsdc} USDC` });
   }
@@ -175,7 +202,9 @@ export function EventList({
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
           const chips = chipsFor(e.payload);
           const href = hrefForEvent(e);
-
+          // Full message stays in backend logs. The [:WHERE:] scope chip
+          // (added by chipsFor) gives users enough context to ask for
+          // support without leaking stack traces or internal paths.
           const body = (
             <>
               <span

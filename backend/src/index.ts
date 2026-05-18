@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger as appLogger } from './logger.js';
+import { installProcessErrorHandlers } from './errorTracker.js';
 import { config } from './config.js';
 import { publicClient } from './chain/client.js';
 import { invalidateEscrowCache } from './chain/contracts.js';
@@ -102,12 +103,12 @@ app.route('/api/listings', listingsRoutes);
 app.route('/api/x', xRoutes);
 app.route('/api/auth', authRoutes);
 
-process.on('unhandledRejection', (reason) => {
-  appLogger.error({ reason: reason instanceof Error ? reason.message : String(reason) }, 'unhandled rejection');
-});
-process.on('uncaughtException', (err) => {
-  appLogger.error({ err: err instanceof Error ? err.message : String(err) }, 'uncaught exception');
-});
+// Process-wide error capture. Routes unhandled rejections + uncaught
+// exceptions through `errorTracker` so they land in the ring buffer and
+// emit a `system.error` event the activity feed picks up. We do NOT
+// exit; watchers and SSE keep running so one bad task can't take the
+// whole server down.
+installProcessErrorHandlers();
 
 const stopFns: Array<() => void> = [];
 
@@ -206,9 +207,30 @@ async function boot() {
 void boot();
 
 const port = config.PORT;
-serve({ fetch: app.fetch, port }, (info) => {
+const server = serve({ fetch: app.fetch, port }, (info) => {
   appLogger.info({ port: info.port, env: config.NODE_ENV }, 'karwan backend listening');
 });
+
+// Bump Node's HTTP timeouts well above the worst-case Circle DCW path.
+// The Circle bridge endpoint signs two on-chain calls back-to-back
+// (approve + depositForBurn). Each takes 10-30s through Circle's API
+// + RPC, so the combined response can comfortably exceed Node 20's
+// default `headersTimeout` of 60s. Without these overrides, the socket
+// closes before we send a response and the browser reports
+// "Failed to fetch", even though the on-chain work actually completed.
+//
+// @hono/node-server's ServerType union includes HTTP/2 servers, which
+// lack these properties. We're always on HTTP/1 (no http2 config), so
+// narrow via a structural cast and set the overrides defensively.
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+const httpServer = server as unknown as {
+  headersTimeout?: number;
+  requestTimeout?: number;
+  timeout?: number;
+};
+if ('headersTimeout' in httpServer) httpServer.headersTimeout = FIFTEEN_MINUTES_MS;
+if ('requestTimeout' in httpServer) httpServer.requestTimeout = FIFTEEN_MINUTES_MS;
+if ('timeout' in httpServer) httpServer.timeout = FIFTEEN_MINUTES_MS;
 
 for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   process.on(sig, () => {

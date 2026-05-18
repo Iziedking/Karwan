@@ -18,6 +18,7 @@
 import { formatUnits } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
+import { fetchDepositedLogsForOwner } from '../chain/vaultLogs.js';
 import { logger } from '../logger.js';
 
 interface CacheEntry {
@@ -37,21 +38,10 @@ const warned = new Set<string>();
 /// to Active positions; cooling principal is paused for fraud-check window.
 const POSITION_STATE_ACTIVE = 1;
 
-/// Minimal vault ABI: just `Deposited(uint256 indexed positionId, address indexed owner, uint256 principal)`
-/// and `positions(uint256)` so we can enumerate + read state without dragging
-/// the whole contract ABI into the backend.
-const vaultEventAbi = [
-  {
-    type: 'event',
-    name: 'Deposited',
-    inputs: [
-      { name: 'positionId', type: 'uint256', indexed: true },
-      { name: 'owner', type: 'address', indexed: true },
-      { name: 'principal', type: 'uint256', indexed: false },
-    ],
-  },
-] as const;
-
+/// Minimal vault ABI: `positions(uint256)` so we can read state without
+/// dragging the whole contract ABI into the backend. The Deposited event
+/// enumeration is owned by `chain/vaultLogs.ts` so the same paginated reader
+/// powers both the positions endpoint and the reputation stake term.
 const vaultPositionsAbi = [
   {
     type: 'function',
@@ -87,25 +77,9 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
   }
 
   try {
-    // Some testnet RPCs silently return empty when indexed-args topic
-    // filters are applied. Fetch all Deposited events on the vault and
-    // filter in JS by owner. The event volume is small (a few per user)
-    // so this stays cheap, and the cache below short-circuits repeated
-    // reads within the 30s window.
-    // Arc testnet's public RPC caps eth_getLogs at a 10,000-block range.
-    // Stay 500 under the ceiling so we never trigger the limit error.
-    const latestBlock = await publicClient.getBlockNumber().catch(() => 0n);
-    const fromBlock = latestBlock > 9_500n ? latestBlock - 9_500n : 0n;
-    const rawLogs = await publicClient.getLogs({
-      address: vaultAddr as `0x${string}`,
-      event: vaultEventAbi[0],
-      fromBlock,
-      toBlock: 'latest',
-    });
-    const logs = rawLogs.filter((log) => {
-      const owner = (log as unknown as { args: { owner?: `0x${string}` } }).args.owner;
-      return owner?.toLowerCase() === address;
-    });
+    // Paginated read covers the vault's full deployed history rather than
+    // only the last ~5h that the previous `latest - 9500` anchor surfaced.
+    const logs = await fetchDepositedLogsForOwner(vaultAddr as `0x${string}`, address);
 
     if (logs.length === 0) {
       cache.set(address, { value: 0, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -116,12 +90,11 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
     let totalWeighted = 0;
 
     for (const log of logs) {
-      const positionId = (log as unknown as { args: { positionId: bigint } }).args.positionId;
       const position = (await publicClient.readContract({
         address: vaultAddr as `0x${string}`,
         abi: vaultPositionsAbi,
         functionName: 'positions',
-        args: [positionId],
+        args: [log.positionId],
       })) as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
       const [, principal, depositedAt, , , state] = position;
       if (state !== POSITION_STATE_ACTIVE) continue;

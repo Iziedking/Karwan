@@ -19,8 +19,39 @@ const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
 const MAX_HISTORY = 8;
 
+/// Pulls a usable string out of anything that might be thrown or passed as an
+/// error payload (Error instances, viem ContractFunctionError objects, raw
+/// `{ message, ... }` shapes, plain strings). The previous version used
+/// `String(err)` which renders objects as `[object Object]` and hides the
+/// underlying cause.
+function errorToString(err: unknown): string {
+  if (err == null) return '';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message || err.name || 'Error';
+  if (typeof err === 'object') {
+    const o = err as Record<string, unknown>;
+    const candidates = [
+      o.shortMessage,
+      o.message,
+      o.error,
+      o.reason,
+      o.detail,
+      o.details,
+    ];
+    for (const c of candidates) {
+      if (typeof c === 'string' && c.trim()) return c;
+    }
+    try {
+      return JSON.stringify(o);
+    } catch {
+      return '[unserialisable error]';
+    }
+  }
+  return String(err);
+}
+
 function friendlyBridgeError(err: unknown, source: SourceChainConfig, phase?: BridgePhase): string {
-  const raw = err instanceof Error ? err.message : String(err ?? '');
+  const raw = errorToString(err);
   const lower = raw.toLowerCase();
   const rejected =
     lower.includes('user rejected') ||
@@ -64,8 +95,18 @@ function friendlyBridgeError(err: unknown, source: SourceChainConfig, phase?: Br
   if (lower.includes('timeout')) {
     return 'Request timed out. Try again.';
   }
-  const firstLine = raw.split('\n')[0]?.trim() ?? 'Bridge failed';
-  return firstLine.length > 140 ? firstLine.slice(0, 137) + '…' : firstLine;
+  // Generic fallback. We log the raw error to the console for debugging,
+  // but the UI string stays clean so users don't see stack traces or
+  // viem internals. Tighten the friendly mapping above when you spot a
+  // new common error to handle.
+  if (typeof console !== 'undefined' && err) {
+    // eslint-disable-next-line no-console
+    console.warn('[bridge]', err);
+  }
+  if (phase === 'approving') return 'Approval did not go through. Retry to try again.';
+  if (phase === 'burning') return 'Burn did not go through. Retry to try again.';
+  if (phase === 'switching') return `Could not switch to ${source.shortName}. Retry to try again.`;
+  return 'Bridge failed. Retry from start, or recheck on chain if your burn already landed.';
 }
 
 export type BridgePhase =
@@ -184,6 +225,14 @@ export function useBridges() {
     setHydratedFor(identityAddress.toLowerCase());
   }, [identityAddress]);
 
+  // Auto-recheck any in-flight bridge once per hydrate. SSE has no replay
+  // buffer, so if the backend's `bridge.attested` / `bridge.minted` event
+  // fired while the page was closed (e.g. user navigated away between burn
+  // and attestation), the bridge sits forever in attesting/minting from
+  // localStorage and the user has to click retry. This fixes that by
+  // resyncing each in-flight bridge against the backend on mount.
+  const autoRecheckedFor = useRef<string | null>(null);
+
   // Persist only after hydrate has completed for this address, otherwise we'd
   // overwrite saved bridges with the empty initial state on the first commit.
   useEffect(() => {
@@ -233,10 +282,17 @@ export function useBridges() {
             next = { ...cur, phase: 'minting', updatedAt: Date.now() };
           }
         } else if (e.type === 'bridge.error') {
+          // Backend log already has the raw error. Surface a clean line on
+          // the UI; the user clicks recheck or retry from there.
+          const raw = errorToString(e.payload?.message);
+          if (typeof console !== 'undefined' && raw) {
+            // eslint-disable-next-line no-console
+            console.warn('[bridge.error]', raw);
+          }
           next = {
             ...cur,
             phase: 'error',
-            error: (e.payload?.message as string | undefined) ?? 'Bridge failed',
+            error: 'Mint did not land on Arc. Recheck on chain to retry.',
             updatedAt: Date.now(),
           };
         } else {
@@ -410,16 +466,51 @@ export function useBridges() {
             }));
           }
         } else if (r.status === 'error') {
-          patch(id, (b) => ({ ...b, phase: 'error', error: r.error ?? 'Recheck failed' }));
+          if (typeof console !== 'undefined' && r.error) {
+            // eslint-disable-next-line no-console
+            console.warn('[bridge.recheck]', r.error);
+          }
+          patch(id, (b) => ({
+            ...b,
+            phase: 'error',
+            error: 'Recheck did not complete. Try again in a moment.',
+          }));
         }
         // 'relaying' = still polling on the backend; leave the row in
         // 'attesting' so the user sees the live indicator again.
       } catch (err) {
-        patch(id, (b) => ({ ...b, phase: 'error', error: (err as Error).message }));
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[bridge.recheck]', errorToString(err));
+        }
+        patch(id, (b) => ({
+          ...b,
+          phase: 'error',
+          error: 'Recheck failed. Try again in a moment.',
+        }));
       }
     },
     [patch],
   );
+
+  // One-shot auto-recheck on hydrate: any bridge persisted as in-flight gets
+  // a single backend recheck so missed SSE events (page closed between burn
+  // and attestation) don't leave the row stuck on "attesting" forever.
+  useEffect(() => {
+    if (!identityAddress) return;
+    const key = identityAddress.toLowerCase();
+    if (hydratedFor !== key) return;
+    if (autoRecheckedFor.current === key) return;
+    autoRecheckedFor.current = key;
+    const inFlight = bridgesRef.current.filter(
+      (b) => b.phase === 'attesting' || b.phase === 'minting' || b.phase === 'relaying',
+    );
+    inFlight.forEach((b) => {
+      recheck(b.id).catch(() => {
+        /* recheck logs; UI keeps the previous state */
+      });
+    });
+  }, [identityAddress, hydratedFor, recheck]);
 
   const retry = useCallback(
     async (id: string) => {
@@ -460,10 +551,14 @@ export function useBridges() {
             burnTxHash: r.burnTxHash as `0x${string}`,
           }));
         } catch (err) {
+          if (typeof console !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.warn('[bridge.retry.circle]', errorToString(err));
+          }
           patch(id, (b) => ({
             ...b,
             phase: 'error',
-            error: (err as Error).message,
+            error: 'Retry failed. Check your source-chain funding and try again.',
           }));
         }
         return;
@@ -527,10 +622,20 @@ export function useBridges() {
           burnTxHash: r.burnTxHash as `0x${string}`,
         }));
       } catch (err) {
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[bridge.startCircle]', errorToString(err));
+        }
+        const raw = errorToString(err).toLowerCase();
+        const friendly = raw.includes('failed to fetch')
+          ? 'Could not reach the bridge service. Check your connection and try again.'
+          : raw.includes('insufficient')
+            ? 'Source-chain wallet is short on funds. Top it up and try again.'
+            : 'Bridge could not start. Try again in a moment.';
         patch(id, (b) => ({
           ...b,
           phase: 'error',
-          error: (err as Error).message,
+          error: friendly,
         }));
       }
     },
