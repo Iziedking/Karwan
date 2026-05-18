@@ -53,7 +53,7 @@ jobs:
         # NEXT_PUBLIC_* references. CI only checks the build succeeds; the
         # real values are injected by Vercel at deploy time.
         env:
-          NEXT_PUBLIC_BACKEND_URL: https://api.karwan.app
+          NEXT_PUBLIC_BACKEND_URL: https://api.karwan.site
           NEXT_PUBLIC_BASE_SEPOLIA_RPC: ''
           NEXT_PUBLIC_SEPOLIA_RPC: ''
         run: npm --prefix frontend run build

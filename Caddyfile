@@ -2,13 +2,13 @@
 #
 # Place this file at ~/karwan/Caddyfile on the VPS. The docker-compose
 # mounts it read-only into the caddy container at /etc/caddy/Caddyfile.
-# Caddy auto-issues + auto-renews Let's Encrypt certs for api.karwan.app
+# Caddy auto-issues + auto-renews Let's Encrypt certs for api.karwan.site
 # the first time the DNS record points to this host.
 #
 # Reload after edits:
 #   docker compose restart caddy
 
-api.karwan.app {
+api.karwan.site {
     # Compression + standard security headers
     encode zstd gzip
     header {

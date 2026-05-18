@@ -15,7 +15,7 @@
 # Roll a new image:
 #   docker compose pull && docker compose up -d --remove-orphans
 #
-# DNS: point api.karwan.app at the VPS IP. Caddy negotiates TLS automatically
+# DNS: point api.karwan.site at the VPS IP. Caddy negotiates TLS automatically
 # via Let's Encrypt the first time the domain resolves.
 
 services:
