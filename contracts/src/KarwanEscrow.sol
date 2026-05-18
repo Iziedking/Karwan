@@ -83,11 +83,16 @@ contract KarwanEscrow {
     error TooManyReleases();
     error TransferFailed();
     error InvalidTreasury();
+    error InvalidUSDC();
     error FeeTooHigh();
     error InvalidSeller();
     error InvalidAmount();
 
     constructor(address _usdc, uint16 _feeBps, address _treasury) {
+        // Audit finding D.5 (2026-05-18). Without this, a deploy that passes
+        // the zero address compiles but every transferFrom would silently
+        // revert with no useful error. Cheap one-line guard.
+        if (_usdc == address(0)) revert InvalidUSDC();
         if (_treasury == address(0)) revert InvalidTreasury();
         // Cap the fee at 10% so a misconfigured deploy can't drain deals.
         if (_feeBps > 1000) revert FeeTooHigh();

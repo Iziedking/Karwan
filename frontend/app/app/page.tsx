@@ -135,6 +135,32 @@ export default function AppHome() {
                 {shortAddress(profile.address)}
               </span>
             </div>
+            {/* Pre-launch audit banner. Required disclosure of the known
+                buyer-side dispute path until v2.D ships. Removable once the
+                staking-insurance contract is live on the deployed chain. */}
+            <div className="fade-up fade-up-4 mt-6">
+              <a
+                href="/known-limitations"
+                className="inline-flex items-start gap-3 max-w-[44ch] px-4 py-3 border border-white/15 hover:border-white/35 transition-colors group"
+                style={{ borderRadius: 4 }}
+              >
+                <span
+                  aria-hidden
+                  className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
+                  style={{ background: '#c96030' }}
+                />
+                <span>
+                  <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 block">
+                    Testnet release · know before you ship
+                  </span>
+                  <span className="block mt-1 text-[13px] leading-snug text-white/80 group-hover:text-white">
+                    Buyers can refund post-delivery on the current contracts.
+                    Mitigation lands in v2.D (staking as insurance).{' '}
+                    <span className="underline underline-offset-2">Read the limitations</span>
+                  </span>
+                </span>
+              </a>
+            </div>
           </div>
           <div className="hidden lg:block fade-up fade-up-4">
             <HeroAgentCard

@@ -131,11 +131,15 @@ Live on Arc Testnet (chain 5042002):
 
 | Contract | Address |
 |---|---|
-| KarwanJobBoard | `0x6B32f87954483525b8FBBDa27453F6454a745b2F` |
-| KarwanEscrow | `0x9eD65f925baf6B1D794A10CfDdFAe4E56cC4e5F8` |
-| KarwanReputation | `0xB2D80C6d34649873471d836847ca6498eCb072D2` |
+| KarwanJobBoard | `0xB5C863322C174801610e6e19C25688232De27558` |
+| KarwanEscrow | `0xb81d9093607E460e2E4Fa971c75d9322E756b838` |
+| KarwanReputation | `0x622b2AA60A29Be1F5F98A64FdC0Fc4ba8c109723` |
 | KarwanVault | `0x92b1223921944024f6615A604a2bDA6eF1fEe922` |
 | USDC | `0x3600000000000000000000000000000000000000` |
+
+Redeployed 2026-05-18 to apply audit finding D.5 (zero-address constructor
+check on KarwanEscrow). Previous addresses are orphaned on chain; nothing
+references them after this point.
 
 `KarwanVault` is the flexible USDC staking vault that powers the reputation
 formula. No forced lock period. Deposits can be withdrawn at any time, gated
@@ -181,6 +185,16 @@ configured" hint instead of the connect flow.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite
   formula, the spam detector, and the agent integration spec.
 
+## Known limitations
+
+The current testnet build has known gaps the team has documented and is
+fixing in v2. The most important is that a buyer can call dispute + refund
+after the seller delivers, and the seller has no on-chain recourse beyond
+the reputation slash that follows. See
+[/known-limitations](https://karwan.app/known-limitations) for the full list
+and the planned mitigations. **Real-USDC mainnet deploy requires v2.D plus a
+professional external audit.** Testnet runs use no real money.
+
 ## Roadmap
 
 The current build covers the launch surface above. v2 continues along these
@@ -200,7 +214,10 @@ tracks:
 - **Hardened staking as deal insurance.** A portion of a seller's active stake
   reserves against deals they accept. Confirmed disputes against the seller
   transfer the reservation to the buyer, so the stake is a real deliverable
-  backstop and not only a reputation signal.
+  backstop and not only a reputation signal. **Also bundled into this contract
+  redeploy**: B.2 (`releaseFromDispute` so Disputed can resolve in favour of
+  the seller), C.1 (OpenZeppelin `ReentrancyGuard`), C.4 (gate
+  `recordCompletion` to escrow-only). All audit-driven, all in one redeploy.
 - **Agent intelligence upgrade.** Buyer and seller agents read trending-skill
   signals from real platform activity. Counter-bids carry a reasoning trace
   citing market medians and scarcity. Buyers who post under-market briefs see
