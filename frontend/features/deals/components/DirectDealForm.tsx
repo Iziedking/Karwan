@@ -32,9 +32,12 @@ export function DirectDealForm() {
   const initialTerms = search.get('terms') ?? '';
 
   const [seller, setSeller] = useState(initialSeller);
-  const [amount, setAmount] = useState<number | ''>(initialAmount);
-  const [days, setDays] = useState<number | ''>(7);
-  const [firstPct, setFirstPct] = useState<number | ''>(20);
+  // initialAmount is supplied by the listing-detail "Make offer" deep link
+  // (URL ?amount=). When absent the field starts empty so the placeholder
+  // "0" renders, matching the rest of the app's input style.
+  const [amount, setAmount] = useState<number | ''>(initialAmount ?? '');
+  const [days, setDays] = useState<number | ''>('');
+  const [firstPct, setFirstPct] = useState<number | ''>('');
   const [terms, setTerms] = useState(initialTerms);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -198,6 +201,7 @@ export function DirectDealForm() {
               value={amount}
               disabled={submitting}
               onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
               className="form-input form-input-num"
             />
           </FormLabel>
@@ -211,6 +215,7 @@ export function DirectDealForm() {
               value={days}
               disabled={submitting}
               onChange={(e) => setDays(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
               className="form-input form-input-num"
             />
           </FormLabel>
@@ -228,6 +233,7 @@ export function DirectDealForm() {
               value={firstPct}
               disabled={submitting}
               onChange={(e) => setFirstPct(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
               className="form-input form-input-num"
             />
           </FormLabel>

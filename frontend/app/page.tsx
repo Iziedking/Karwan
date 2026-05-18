@@ -71,8 +71,7 @@ export default function HomePage() {
               <span className="text-[var(--lp-accent)]">Settle.</span>
             </h1>
             <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
-              Karwan is an on-chain settlement network for cross-border service deals. USDC sits
-              in milestone escrow on Arc while the work gets done, and releases as it lands.
+              On-chain settlement rails for cross-border SME trade. USDC sits in milestone escrow on Arc. Releases as the work lands.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <CTAPill href="/app">Launch app ↓</CTAPill>
@@ -105,8 +104,7 @@ export default function HomePage() {
           Bring your own counterparty.
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
-          You already agreed with someone, on X, Discord, anywhere. Name their wallet, set the
-          amount and a first-release slice, and the escrow is ready. No auction needed.
+          You already agreed off-platform. Name the wallet, set the amount, fund the escrow. No auction.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
@@ -129,9 +127,7 @@ export default function HomePage() {
           Or let an agent find one.
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-          Your agent watches briefs and listings as they post. It scores both sides, weighs
-          reputation, and surfaces matches for you to approve. Escrow funds on accept, milestones
-          release on delivery.
+          Post the brief. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile

@@ -84,8 +84,15 @@ function vaultAddress(): `0x${string}` | null {
 }
 
 function stateLabelFor(state: number): PositionStateLabel {
-  if (state === 0) return 'active';
-  if (state === 1) return 'cooling';
+  // KarwanVault.sol PositionState enum: { None=0, Active=1, Cooling=2, Withdrawn=3 }.
+  // We surface 'claimed' rather than 'withdrawn' as the UI label because the
+  // user-facing noun maps better to user intent ("you got your money back").
+  if (state === 1) return 'active';
+  if (state === 2) return 'cooling';
+  if (state === 3) return 'claimed';
+  // state === 0 is None (empty slot). The positions endpoint enumerates from
+  // Deposited events so it shouldn't appear, but if it does, hide by mapping
+  // to a terminal label so the row falls off the UI filter.
   return 'claimed';
 }
 

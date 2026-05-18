@@ -38,7 +38,7 @@ export function TopNav() {
       style={isApp ? undefined : DARK_NAV_VARS}
       className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
     >
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
         {/* LEFT. mobile toggle + logo */}
         <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
           {isApp && (
@@ -112,11 +112,14 @@ export function TopNav() {
             <NavLink href="/listings" active={pathname.startsWith('/listings')}>
               Market
             </NavLink>
-            <NavLinkSoon title="Karwan for large SME trades — bring-your-own-agent settlement on Arc. Shipping after the first institutional pilot.">
+            <NavLinkSoon title="Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.">
               SME Trades
             </NavLinkSoon>
             <NavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity
+            </NavLink>
+            <NavLink href="/stake" active={pathname.startsWith('/stake')}>
+              Stake
             </NavLink>
             <NavLink href="/profile" active={pathname.startsWith('/profile')}>
               Profile
@@ -129,7 +132,7 @@ export function TopNav() {
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {isApp ? (
             <>
-              <div className="hidden lg:inline-flex items-center pl-3 pr-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono">
+              <div className="hidden lg:inline-flex items-center pl-3 pr-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono shrink-0 whitespace-nowrap">
                 <BalanceRail />
               </div>
               <div className="hidden md:inline-flex">
@@ -188,6 +191,9 @@ export function TopNav() {
             <MobileNavLinkSoon>SME Trades</MobileNavLinkSoon>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
               Activity
+            </MobileNavLink>
+            <MobileNavLink href="/stake" active={pathname.startsWith('/stake')}>
+              Stake
             </MobileNavLink>
             <MobileNavLink href="/profile" active={pathname.startsWith('/profile')}>
               Profile
@@ -282,11 +288,11 @@ function NavLinkSoon({
     <span
       title={title}
       aria-disabled="true"
-      className="px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] text-[var(--color-ink-faint)] cursor-not-allowed inline-flex items-center gap-1.5 select-none"
+      className="px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] text-[var(--color-ink-faint)] cursor-not-allowed inline-flex items-center gap-1.5 whitespace-nowrap select-none"
     >
-      {children}
+      <span className="whitespace-nowrap">{children}</span>
       <span
-        className="mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px]"
+        className="mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px] whitespace-nowrap"
         style={{
           background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
           color: 'var(--lp-accent)',

@@ -71,7 +71,7 @@ export function AgentWithdrawCard({
     else if (buyerAgent && !sellerAgent) setSelected('buyer');
   }, [buyerAgent, sellerAgent]);
 
-  const [amount, setAmount] = useState<number | ''>(1);
+  const [amount, setAmount] = useState<number | ''>('');
   const [dest, setDest] = useState('');
   useEffect(() => {
     if (address && dest === '') setDest(address);

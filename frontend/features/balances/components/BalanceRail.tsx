@@ -34,7 +34,7 @@ export function BalanceRail() {
   const address = auth.address;
 
   return (
-    <div className="flex items-center gap-2 text-[12px]">
+    <div className="flex items-center gap-2 text-[12px] whitespace-nowrap">
       {!onArc && (
         <button
           type="button"
@@ -78,7 +78,7 @@ export function BalanceRail() {
         onClick={() => copy(address)}
         title={copied ? 'Copied' : `Click to copy ${address}`}
         aria-label={`Copy address ${address}`}
-        className="mono text-[10px] tabular-nums text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors"
+        className="mono text-[10px] tabular-nums whitespace-nowrap text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors"
       >
         {copied ? 'Copied' : shortAddress(address)}
       </button>

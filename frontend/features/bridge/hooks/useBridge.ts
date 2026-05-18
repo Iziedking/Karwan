@@ -13,6 +13,7 @@ import { ARC_TESTNET, SOURCE_CHAINS, addressToBytes32, FINALITY_THRESHOLD_FAST, 
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
@@ -146,12 +147,23 @@ function saveToStorage(address: `0x${string}` | null | undefined, bridges: Bridg
 }
 
 export function useBridges() {
-  const { address, isConnected } = useAccount();
+  const { address: wagmiAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
   const baseSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.baseSepolia.chainId });
   const sepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.sepolia.chainId });
+  const auth = useAuth();
+  const isCircleUser = auth.method === 'circle';
+  // Identity used for storage scoping and SSE subscription. For web3 users
+  // it's the wagmi address; for Circle users it's the Circle DCW identity
+  // address. Without this, Circle bridges don't persist on reload and never
+  // receive attestation/mint events (SSE was previously gated on wagmi
+  // isConnected, which is always false for Circle users).
+  const identityAddress = (auth.address ?? wagmiAddress ?? null) as
+    | `0x${string}`
+    | null;
+  const address = wagmiAddress;
 
   const [bridges, setBridges] = useState<BridgeRecord[]>([]);
   // Tracks whether we've already loaded localStorage for the current address.
@@ -161,28 +173,31 @@ export function useBridges() {
   const bridgesRef = useRef(bridges);
   bridgesRef.current = bridges;
 
-  // Hydrate from localStorage once the wallet address is known.
+  // Hydrate from localStorage once the user's identity address is known.
   useEffect(() => {
-    if (!address) {
+    if (!identityAddress) {
       setBridges([]);
       setHydratedFor(null);
       return;
     }
-    setBridges(loadFromStorage(address));
-    setHydratedFor(address.toLowerCase());
-  }, [address]);
+    setBridges(loadFromStorage(identityAddress));
+    setHydratedFor(identityAddress.toLowerCase());
+  }, [identityAddress]);
 
   // Persist only after hydrate has completed for this address, otherwise we'd
   // overwrite saved bridges with the empty initial state on the first commit.
   useEffect(() => {
-    if (!address) return;
-    if (hydratedFor !== address.toLowerCase()) return;
-    saveToStorage(address, bridges);
-  }, [address, bridges, hydratedFor]);
+    if (!identityAddress) return;
+    if (hydratedFor !== identityAddress.toLowerCase()) return;
+    saveToStorage(identityAddress, bridges);
+  }, [identityAddress, bridges, hydratedFor]);
 
-  // Single SSE subscription routes bridge events to the right record by bridgeId.
+  // Single SSE subscription routes bridge events to the right record by
+  // bridgeId. Gated on identity (auth.address OR wagmi address), not wagmi
+  // isConnected — Circle users have a Circle session but no wagmi connection,
+  // and they need to see attestation+mint events the same as web3 users.
   useEffect(() => {
-    if (!isConnected) return;
+    if (!identityAddress) return;
     return subscribeLiveEvents((e) => {
       if (
         e.type !== 'bridge.attested' &&
@@ -232,7 +247,7 @@ export function useBridges() {
         return copy;
       });
     });
-  }, [isConnected]);
+  }, [identityAddress]);
 
   const patch = useCallback((id: string, fn: (b: BridgeRecord) => BridgeRecord) => {
     setBridges((list) => {
@@ -418,6 +433,41 @@ export function useBridges() {
         await recheck(id);
         return;
       }
+      // Circle user retry: re-fire the backend bridge call. runFlow requires
+      // a wagmi walletClient which Circle users never have, so it would
+      // error out with "Connect your wallet first".
+      if (isCircleUser && auth.address) {
+        patch(id, (b) => ({
+          ...b,
+          phase: 'approving',
+          error: undefined,
+          approveTxHash: undefined,
+          burnTxHash: undefined,
+          mintTxHash: undefined,
+        }));
+        try {
+          const r = await api.bridgeCircle({
+            bridgeId: id,
+            address: auth.address,
+            sourceChainKey: cur.sourceChainKey,
+            amountUsdc: Number(cur.amountUsdc),
+            mintRecipient: cur.mintRecipient,
+          });
+          patch(id, (b) => ({
+            ...b,
+            phase: 'attesting',
+            approveTxHash: r.approveTxHash as `0x${string}`,
+            burnTxHash: r.burnTxHash as `0x${string}`,
+          }));
+        } catch (err) {
+          patch(id, (b) => ({
+            ...b,
+            phase: 'error',
+            error: (err as Error).message,
+          }));
+        }
+        return;
+      }
       const now = Date.now();
       const fresh: BridgeRecord = {
         ...cur,
@@ -432,7 +482,7 @@ export function useBridges() {
       patch(id, () => fresh);
       await runFlow(fresh);
     },
-    [patch, recheck, runFlow],
+    [auth.address, isCircleUser, patch, recheck, runFlow],
   );
 
   const dismiss = useCallback((id: string) => {
@@ -443,5 +493,49 @@ export function useBridges() {
     setBridges((list) => list.filter((b) => isActive(b.phase)));
   }, []);
 
-  return { bridges, start, retry, recheck, dismiss, clearCompleted, isActive };
+  /// Circle-only path. Skips the wagmi chain switch + burn signing entirely
+  /// because the backend signs both from the user's source-chain Circle DCW.
+  /// Frontend just records the bridge locally and patches in the burn tx hash
+  /// returned by the API. The existing SSE handlers take it from there
+  /// (attested → minted) so the row animates the same way as a web3 bridge.
+  const startCircle = useCallback(
+    async (input: StartBridgeInput & { userAddress: string }) => {
+      const id = `${input.sourceChainKey}-circle-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'approving',
+        sourceChainKey: input.sourceChainKey,
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.mintRecipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      try {
+        const r = await api.bridgeCircle({
+          bridgeId: id,
+          address: input.userAddress,
+          sourceChainKey: input.sourceChainKey,
+          amountUsdc: input.amountUsdc,
+          mintRecipient: input.mintRecipient,
+        });
+        patch(id, (b) => ({
+          ...b,
+          phase: 'attesting',
+          approveTxHash: r.approveTxHash as `0x${string}`,
+          burnTxHash: r.burnTxHash as `0x${string}`,
+        }));
+      } catch (err) {
+        patch(id, (b) => ({
+          ...b,
+          phase: 'error',
+          error: (err as Error).message,
+        }));
+      }
+    },
+    [patch],
+  );
+
+  return { bridges, start, startCircle, retry, recheck, dismiss, clearCompleted, isActive };
 }

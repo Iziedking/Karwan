@@ -16,6 +16,16 @@ export function circleWalletsClient() {
 }
 
 export const ARC_TESTNET_BLOCKCHAIN = 'ARC-TESTNET' as const;
+/// Source chains Circle users can bridge USDC INTO Arc from. Provisioned per
+/// user so the backend can sign the CCTP burn on the source side without the
+/// user needing to bring a web3 wallet. The exact strings here must match
+/// Circle's DCW createWallets blockchain enum (verified against the API ref
+/// at https://developers.circle.com/api-reference/wallets/developer-controlled-wallets/create-wallet).
+export const BASE_SEPOLIA_BLOCKCHAIN = 'BASE-SEPOLIA' as const;
+export const ETH_SEPOLIA_BLOCKCHAIN = 'ETH-SEPOLIA' as const;
+export type BridgeBlockchain =
+  | typeof BASE_SEPOLIA_BLOCKCHAIN
+  | typeof ETH_SEPOLIA_BLOCKCHAIN;
 
 export interface ProvisionedAgentWallets {
   buyerWalletId: string;
@@ -27,6 +37,12 @@ export interface ProvisionedAgentWallets {
 export interface ProvisionedIdentityWallet {
   walletId: string;
   address: string;
+}
+
+export interface ProvisionedBridgeWallet {
+  walletId: string;
+  address: string;
+  blockchain: BridgeBlockchain;
 }
 
 /// Creates a single Circle wallet that represents a user's on-chain identity.
@@ -94,4 +110,38 @@ export async function provisionUserAgentWallets(
     sellerWalletId: seller.id,
     sellerAddress: seller.address,
   };
+}
+
+/// Creates a single Circle wallet on a CCTP source chain (Base Sepolia,
+/// Ethereum Sepolia, etc.) for the user. Used by the bridge flow so a
+/// Circle-auth user can have the backend sign their CCTP burn from a DCW
+/// the platform controls. The user funds this DCW via faucet or external
+/// transfer before bridging.
+///
+/// Lazy provisioning: this is called both at activation (Base Sepolia by
+/// default) and on-demand the first time a user bridges from a chain we
+/// haven't already provisioned. The metadata `refId` carries the user
+/// address so the same wallet can be rebuilt from Circle's wallet set
+/// listing if our DB is ever lost.
+export async function provisionUserBridgeWallet(
+  userAddress: string,
+  blockchain: BridgeBlockchain,
+): Promise<ProvisionedBridgeWallet> {
+  if (!config.CIRCLE_WALLET_SET_ID) {
+    throw new Error('CIRCLE_WALLET_SET_ID is not set');
+  }
+  const refId = userAddress.toLowerCase();
+  const client = circleWalletsClient();
+  const res = await client.createWallets({
+    blockchains: [blockchain],
+    count: 1,
+    walletSetId: config.CIRCLE_WALLET_SET_ID,
+    accountType: 'SCA',
+    metadata: [{ name: `karwan-bridge-${blockchain.toLowerCase()}`, refId }],
+  });
+  const wallet = res.data?.wallets?.[0];
+  if (!wallet?.id || !wallet.address) {
+    throw new Error(`bridge wallet provisioning on ${blockchain} returned incomplete data`);
+  }
+  return { walletId: wallet.id, address: wallet.address, blockchain };
 }

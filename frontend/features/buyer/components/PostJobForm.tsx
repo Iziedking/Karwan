@@ -17,12 +17,12 @@ export function PostJobForm() {
   const isConnected = auth.isAuthenticated;
   const { profile, loading: profileLoading } = useUserProfile();
   const [brief, setBrief] = useState('');
-  const [budget, setBudget] = useState<number | ''>(10);
+  const [budget, setBudget] = useState<number | ''>('');
   // Deadline split: a raw `value` and a `unit`. Submit converts to seconds.
   // Defaults adapt per unit so switching feels natural (5d → 2h → 15m).
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
-  const [deadlineValue, setDeadlineValue] = useState<number | ''>(5);
-  const [tolerance, setTolerance] = useState<number | ''>(15);
+  const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
+  const [tolerance, setTolerance] = useState<number | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export function PostJobForm() {
     return (
       <div className="space-y-4">
         <p className="text-[13px] text-[var(--lp-text-sub)]">
-          Sign in to post a managed job. Use the Log in pill in the nav.
+          Sign in to post a deal. Log in pill is in the nav.
         </p>
       </div>
     );
@@ -125,8 +125,7 @@ export function PostJobForm() {
           Set up a buyer profile.
         </h3>
         <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
-          Managed jobs run on your own buyer agent, using your budget, deadline range, and
-          milestone split.
+          Your agent uses it to score and counter bids inside your ranges.
         </p>
         <Link
           href="/onboarding"
@@ -259,6 +258,7 @@ export function PostJobForm() {
               value={budget}
               disabled={submitting}
               onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
               className="form-input form-input-num"
             />
           </FormLabel>
@@ -278,6 +278,7 @@ export function PostJobForm() {
                 onChange={(e) =>
                   setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
                 }
+                placeholder="0"
                 className="form-input form-input-num flex-1 min-w-0"
               />
               <DeadlineUnitPicker
@@ -306,6 +307,7 @@ export function PostJobForm() {
               value={tolerance}
               disabled={submitting}
               onChange={(e) => setTolerance(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="0"
               className="form-input form-input-num"
             />
           </FormLabel>

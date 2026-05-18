@@ -1,11 +1,55 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { parseUnits } from 'viem';
 import { config } from '../config.js';
 import { executeContractCall } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
 import { createBridge, getBridge, patchBridge, listPendingBridges } from '../db/bridges.js';
+import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { getUserByAddress } from '../db/users.js';
+import {
+  provisionUserBridgeWallet,
+  BASE_SEPOLIA_BLOCKCHAIN,
+  ETH_SEPOLIA_BLOCKCHAIN,
+  type BridgeBlockchain,
+} from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+
+/// Per CCTP V2 source-chain config. Verified addresses live in the frontend
+/// at `frontend/features/bridge/config.ts` (the canonical source on both
+/// sides). TokenMessengerV2 is the same address across all V2 testnets per
+/// Circle's deployment: 0x8FE6B999...2542DAA.
+const TOKEN_MESSENGER_V2 = '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA';
+const FINALITY_THRESHOLD_FAST = 2000;
+const ARC_DOMAIN = 26;
+
+interface CircleSourceChain {
+  blockchain: BridgeBlockchain;
+  usdc: string;
+  domain: number;
+}
+
+const CIRCLE_SOURCE_CHAINS: Record<'baseSepolia' | 'sepolia', CircleSourceChain> = {
+  baseSepolia: {
+    blockchain: BASE_SEPOLIA_BLOCKCHAIN,
+    usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    domain: 6,
+  },
+  sepolia: {
+    blockchain: ETH_SEPOLIA_BLOCKCHAIN,
+    usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+    domain: 0,
+  },
+};
+
+const USDC_DECIMALS = 6;
+
+/// CCTP V2 wraps the address recipient in a 32-byte field. The high 12 bytes
+/// stay zero; the low 20 are the address.
+function addressToBytes32(address: string): `0x${string}` {
+  return `0x${'0'.repeat(24)}${address.slice(2).toLowerCase()}` as `0x${string}`;
+}
 
 const SOURCE_DOMAINS = new Set([0, 6]);
 
@@ -413,5 +457,249 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
     return c.json({ status: 'error', error: message }, 502);
   } finally {
     inFlight.delete(bridgeId);
+  }
+});
+
+/* ============================================================================
+   CIRCLE-USER BRIDGE.
+   For users authed via Circle email + passkey, the source-chain burn can't be
+   signed by their Arc Circle wallet. This route signs the burn from a
+   per-user Circle DCW provisioned on the source chain (Base Sepolia or
+   Ethereum Sepolia), then funnels into the same relay loop that mints on Arc.
+
+   Flow:
+     1) User funds their source-chain Circle DCW (faucet / external transfer).
+     2) Frontend POSTs here with the source chain key + amount + bridge id.
+     3) Backend lazy-provisions the source-chain DCW if missing, then signs
+        usdc.approve(tokenMessenger, amount) and tokenMessenger.depositForBurn(...)
+        from that DCW. Mint recipient is the user's Arc identity address.
+     4) Backend records the burn and starts the existing relay loop (poll
+        IRIS, sign receiveMessage on Arc via the platform buyer agent).
+   ========================================================================== */
+
+const circleBridgeSchema = z.object({
+  bridgeId: z.string().min(1),
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
+  sourceChainKey: z.enum(['baseSepolia', 'sepolia']),
+  amountUsdc: z.number().positive(),
+  /// Where the minted USDC arrives on Arc. Usually the user's Arc identity
+  /// wallet address (same as `address`), but accepted as a separate field
+  /// so the user can route a bridge into their buyer agent in one step.
+  mintRecipient: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
+});
+
+bridgeRoutes.post('/circle-bridge', async (c) => {
+  let body;
+  try {
+    body = circleBridgeSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  const userAddress = body.address.toLowerCase();
+
+  const user = getUserByAddress(userAddress);
+  if (!user) {
+    return c.json(
+      {
+        error: 'no Circle identity wallet for this address',
+        detail: 'circle-bridge is for Circle email/passkey users. Web3 users sign the burn from their own wallet via the existing relay flow.',
+      },
+      409,
+    );
+  }
+
+  if (inFlight.has(body.bridgeId)) {
+    return c.json({ accepted: false, reason: 'bridge already in progress' }, 409);
+  }
+
+  const existing = await getBridge(body.bridgeId);
+  if (existing) {
+    return c.json({
+      accepted: false,
+      reason: 'bridge id already exists; pass a fresh bridgeId per attempt',
+      existing,
+    }, 409);
+  }
+
+  // Lazy-provision the source-chain DCW. Base Sepolia ships at activation, so
+  // this is mostly a fallback for Ethereum Sepolia and for accounts that
+  // activated before #102 landed.
+  const chainCfg = CIRCLE_SOURCE_CHAINS[body.sourceChainKey];
+  let agentWallets = await getAgentWallets(userAddress);
+  if (!agentWallets) {
+    return c.json({ error: 'user has no agent wallet record; activate first' }, 409);
+  }
+  const existingBridge = agentWallets.bridgeWallets?.[chainCfg.blockchain];
+  let bridgeWalletId: string;
+  let bridgeWalletAddress: string;
+  if (existingBridge) {
+    bridgeWalletId = existingBridge.walletId;
+    bridgeWalletAddress = existingBridge.address;
+  } else {
+    logger.info(
+      { userAddress, blockchain: chainCfg.blockchain },
+      'lazy-provisioning bridge wallet',
+    );
+    try {
+      const created = await provisionUserBridgeWallet(userAddress, chainCfg.blockchain);
+      bridgeWalletId = created.walletId;
+      bridgeWalletAddress = created.address;
+      // Persist into the agentWallets row.
+      const next = {
+        ...agentWallets,
+        bridgeWallets: {
+          ...(agentWallets.bridgeWallets ?? {}),
+          [chainCfg.blockchain]: { walletId: bridgeWalletId, address: bridgeWalletAddress },
+        },
+      };
+      await saveAgentWallets(next);
+      agentWallets = next;
+    } catch (err) {
+      logger.error(
+        { userAddress, blockchain: chainCfg.blockchain, err: (err as Error).message },
+        'lazy bridge-wallet provisioning failed',
+      );
+      return c.json(
+        { error: 'could not provision bridge wallet', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+
+  inFlight.add(body.bridgeId);
+  try {
+    const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+    const amountStr = amountWei.toString();
+
+    // Step A: approve the TokenMessenger to pull USDC for the burn. Circle
+    // wallets are SCAs; approve survives across calls so we set it for this
+    // exact amount each time (cheaper than max-allowance and avoids any
+    // stale-allowance suspicion).
+    const approveResult = await executeContractCall(
+      {
+        walletId: bridgeWalletId,
+        contractAddress: chainCfg.usdc,
+        abiFunctionSignature: 'approve(address,uint256)',
+        abiParameters: [TOKEN_MESSENGER_V2, amountStr],
+      },
+      `circle-bridge.approve(${body.sourceChainKey}, ${body.bridgeId})`,
+    );
+
+    // Step B: depositForBurn. Fast finality threshold (~13s on Base/Eth testnets).
+    // maxFee = 0 means we don't tip Circle's fast attestation lane; standard
+    // is fine for our flow.
+    const burnResult = await executeContractCall(
+      {
+        walletId: bridgeWalletId,
+        contractAddress: TOKEN_MESSENGER_V2,
+        abiFunctionSignature:
+          'depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)',
+        abiParameters: [
+          amountStr,
+          ARC_DOMAIN.toString(),
+          addressToBytes32(body.mintRecipient),
+          chainCfg.usdc,
+          // destinationCaller = zero address (anyone can call receiveMessage,
+          // including our platform buyer agent which already does so).
+          `0x${'0'.repeat(64)}`,
+          '0',
+          FINALITY_THRESHOLD_FAST.toString(),
+        ],
+      },
+      `circle-bridge.depositForBurn(${body.sourceChainKey}, ${body.bridgeId})`,
+    );
+
+    // Record the bridge so the standard relay loop can take over the mint.
+    await createBridge({
+      bridgeId: body.bridgeId,
+      sourceDomain: chainCfg.domain,
+      sourceTxHash: burnResult.txHash,
+      amountUsdc: body.amountUsdc.toString(),
+      mintRecipient: body.mintRecipient,
+    });
+
+    bus.emitEvent({
+      type: 'bridge.burned',
+      actor: 'buyer',
+      payload: {
+        bridgeId: body.bridgeId,
+        sourceDomain: chainCfg.domain,
+        sourceTxHash: burnResult.txHash,
+        amountUsdc: body.amountUsdc.toString(),
+        mintRecipient: body.mintRecipient,
+        circle: true,
+      },
+    });
+
+    startRelay({
+      bridgeId: body.bridgeId,
+      sourceDomain: chainCfg.domain,
+      sourceTxHash: burnResult.txHash,
+      amountUsdc: body.amountUsdc.toString(),
+      mintRecipient: body.mintRecipient,
+    });
+
+    return c.json(
+      {
+        accepted: true,
+        bridgeId: body.bridgeId,
+        approveTxHash: approveResult.txHash,
+        burnTxHash: burnResult.txHash,
+        sourceAddress: bridgeWalletAddress,
+        sourceDomain: chainCfg.domain,
+      },
+      202,
+    );
+  } catch (err) {
+    logger.error(
+      { bridgeId: body.bridgeId, err: (err as Error).message },
+      'circle-bridge failed',
+    );
+    return c.json({ error: 'circle-bridge failed', detail: (err as Error).message }, 502);
+  } finally {
+    inFlight.delete(body.bridgeId);
+  }
+});
+
+/// Returns or lazy-provisions the user's source-chain bridge wallet address
+/// so the frontend can display it (faucet target, "send USDC here" copy).
+bridgeRoutes.get('/circle-source-address', async (c) => {
+  const address = c.req.query('address');
+  const sourceChainKey = c.req.query('sourceChainKey');
+  if (!address || !sourceChainKey) {
+    return c.json({ error: 'address and sourceChainKey are required' }, 400);
+  }
+  if (sourceChainKey !== 'baseSepolia' && sourceChainKey !== 'sepolia') {
+    return c.json({ error: 'sourceChainKey must be baseSepolia or sepolia' }, 400);
+  }
+  const userAddress = address.toLowerCase();
+  const user = getUserByAddress(userAddress);
+  if (!user) {
+    return c.json({ error: 'not a Circle user' }, 409);
+  }
+  const chainCfg = CIRCLE_SOURCE_CHAINS[sourceChainKey];
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) return c.json({ error: 'activate first' }, 409);
+
+  const existing = wallets.bridgeWallets?.[chainCfg.blockchain];
+  if (existing) return c.json({ address: existing.address, blockchain: chainCfg.blockchain });
+
+  try {
+    const created = await provisionUserBridgeWallet(userAddress, chainCfg.blockchain);
+    const next = {
+      ...wallets,
+      bridgeWallets: {
+        ...(wallets.bridgeWallets ?? {}),
+        [chainCfg.blockchain]: { walletId: created.walletId, address: created.address },
+      },
+    };
+    await saveAgentWallets(next);
+    return c.json({ address: created.address, blockchain: chainCfg.blockchain });
+  } catch (err) {
+    return c.json(
+      { error: 'lazy provisioning failed', detail: (err as Error).message },
+      502,
+    );
   }
 });

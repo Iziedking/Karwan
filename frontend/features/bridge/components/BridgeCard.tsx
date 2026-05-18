@@ -1,7 +1,8 @@
 ﻿'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { api } from '@/core/api';
 import { SOURCE_CHAINS, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
@@ -108,49 +109,92 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const auth = useAuth();
-  // Circle-only users have an identity wallet on Arc but no source-chain
-  // wallet to sign the CCTP burn. We surface a clear note instead of leaving
-  // them stuck on the "Connect wallet to bridge" button with no idea why
-  // their session isn't enough.
-  const circleOnly = auth.method === 'circle' && !isConnected;
-  const { bridges, start, retry, recheck, dismiss, isActive } = useBridges();
+  const isCircleUser = auth.method === 'circle';
+  const { bridges, start, startCircle, retry, recheck, dismiss, isActive } = useBridges();
   const [sourceKey, setSourceKey] = useState<SourceChainConfig['key']>('baseSepolia');
-  const [amount, setAmount] = useState<number | ''>(5);
+  const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // For Circle users we surface the source-chain DCW address the backend
+  // provisioned (or will lazy-provision on first use) so the user knows
+  // where to send their testnet USDC before bridging. Refetches when the
+  // selected source chain changes.
+  const [circleSourceAddress, setCircleSourceAddress] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isCircleUser || !auth.address) {
+      setCircleSourceAddress(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .bridgeCircleSourceAddress(auth.address, sourceKey)
+      .then((r) => {
+        if (!cancelled) setCircleSourceAddress(r.address);
+      })
+      .catch(() => {
+        if (!cancelled) setCircleSourceAddress(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isCircleUser, auth.address, sourceKey]);
 
   const source = SOURCE_CHAINS[sourceKey];
   // The wagmi wallet may be on Arc (the user just funded an agent there) or on
   // any other chain. The bridge flow will switch it automatically, but the CTA
   // label tells the user that's about to happen so the wallet pop-up isn't a
-  // surprise. Circle users never reach this branch — they hit the heads-up
-  // note above and the submit stays disabled.
+  // surprise.
   const onWrongChain = isConnected && walletChainId !== source.chainId;
-  // The submit button is enabled when amount + recipient are valid. On the
-  // wrong chain it ONLY triggers a chain switch — we don't try to fire the
-  // burn tx, because wallet-client state hasn't caught up yet and the burn
-  // would always fail. Once the wallet reports it's on the source chain
-  // (walletChainId updates → onWrongChain flips false), the same button
-  // label turns into "Bridge from Base" and the next click actually bridges.
-  const canSubmit =
+
+  // Split the button gate from "submit burn".
+  //   - canSwitch: web3 user on wrong chain just needs an active wallet to
+  //     trigger the chain switch. Amount + recipient don't matter for this.
+  //   - canBurn:   web3 user on the correct chain, with amount + recipient.
+  //   - canBridgeCircle: Circle user, amount + recipient (backend signs).
+  // The button is enabled if any of these holds. Without this split, removing
+  // the default amount left web3 users unable to click "Switch to Base"
+  // until they typed an amount first, which makes no sense.
+  const canSwitch = isConnected && onWrongChain && !isSwitching;
+  const canBurn =
     isConnected &&
+    !onWrongChain &&
     typeof amount === 'number' &&
     amount > 0 &&
     !!mintRecipient &&
     !isSwitching;
+  const canBridgeCircle =
+    isCircleUser &&
+    !!auth.address &&
+    typeof amount === 'number' &&
+    amount > 0 &&
+    !!mintRecipient;
+  const canSubmit = canBridgeCircle || canSwitch || canBurn;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit || !mintRecipient) return;
+    if (isCircleUser && auth.address) {
+      if (!canBridgeCircle) return;
+      // Backend signs both legs from the per-user source-chain DCW. No chain
+      // switch, no wallet prompt. The record appears in the bridge list and
+      // animates the same way once burnTxHash + attestation land.
+      startCircle({
+        sourceChainKey: sourceKey,
+        amountUsdc: amount as number,
+        mintRecipient: mintRecipient as `0x${string}`,
+        userAddress: auth.address,
+      });
+      return;
+    }
     if (onWrongChain) {
+      if (!canSwitch) return;
       try {
         await switchChainAsync({ chainId: source.chainId });
       } catch {
-        // User declined the wallet prompt. Stay on the same button, they
-        // can try again. We surface the rejection through the wallet's own
-        // toast rather than adding a banner here.
+        // User declined the wallet prompt. Stay on the same button.
       }
       return;
     }
+    if (!canBurn || !mintRecipient) return;
     start({ sourceChainKey: sourceKey, amountUsdc: amount as number, mintRecipient });
   }
 
@@ -221,7 +265,12 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
       </div>
 
       <div className="px-6 pb-6">
-        {circleOnly && <CircleBridgeNote mintRecipient={mintRecipient} />}
+        {isCircleUser && (
+          <CircleSourceFundBanner
+            sourceChainKey={sourceKey}
+            sourceAddress={circleSourceAddress}
+          />
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
           <div>
@@ -374,14 +423,16 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
               boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
             }}
           >
-            {isConnected ? (
+            {isCircleUser || isConnected ? (
               <>
                 <span>
-                  {isSwitching
-                    ? `Switching to ${source.shortName}…`
-                    : onWrongChain
-                      ? `Switch to ${source.shortName}`
-                      : `Bridge from ${source.shortName}`}
+                  {isCircleUser
+                    ? `Bridge from ${source.shortName}`
+                    : isSwitching
+                      ? `Switching to ${source.shortName}…`
+                      : onWrongChain
+                        ? `Switch to ${source.shortName}`
+                        : `Bridge from ${source.shortName}`}
                 </span>
                 <span
                   aria-hidden
@@ -896,136 +947,123 @@ function PhaseChip({
   );
 }
 
-function CircleBridgeNote({ mintRecipient }: { mintRecipient: `0x${string}` }) {
-  // Closed by default. The whole bridge form is the primary action, the note
-  // is supporting context — collapsing it keeps the eye on the form while
-  // still giving a one-click way to read why bridging is the wrong path for
-  // Circle-only users.
-  const [open, setOpen] = useState(false);
+/// Source-chain DCW funding panel for Circle users. Replaces the old
+/// "source-chain wallet required" doom note. The user has a Circle DCW on
+/// the selected source chain (provisioned at activation for Base Sepolia,
+/// lazy-provisioned the first time the GET endpoint runs for any other
+/// chain). They send USDC to it once — from a faucet or any external
+/// wallet — and from then on the backend signs burns directly.
+function CircleSourceFundBanner({
+  sourceChainKey,
+  sourceAddress,
+}: {
+  sourceChainKey: SourceChainConfig['key'];
+  sourceAddress: string | null;
+}) {
   const [copied, setCopied] = useState(false);
-  async function copyArcAddress() {
+  async function copyAddress() {
+    if (!sourceAddress) return;
     try {
-      await navigator.clipboard.writeText(mintRecipient);
+      await navigator.clipboard.writeText(sourceAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 1400);
     } catch {
       // ignore. clipboard can fail in unfocused tabs.
     }
   }
+  const faucet =
+    sourceChainKey === 'baseSepolia'
+      ? { label: 'Base Sepolia USDC faucet', href: 'https://faucet.circle.com/' }
+      : { label: 'Ethereum Sepolia USDC faucet', href: 'https://faucet.circle.com/' };
   return (
     <div
       className="relative mb-4 overflow-hidden"
       style={{
-        background: 'var(--lp-light)',
+        background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
         borderTopLeftRadius: 12,
         borderTopRightRadius: 12,
         borderBottomLeftRadius: 12,
         borderBottomRightRadius: 3,
+        boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
       }}
     >
       <span
         aria-hidden
         className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: TONE_HEX.warning }}
+        style={{ background: 'var(--lp-accent)' }}
       />
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="w-full text-left px-4 py-3 pl-5 flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-      >
-        <span
-          className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
-          style={{
-            background: 'rgba(178,84,37,0.10)',
-            color: TONE_HEX.warning,
-            border: '1px solid rgba(178,84,37,0.32)',
-            borderTopLeftRadius: 4,
-            borderTopRightRadius: 4,
-            borderBottomLeftRadius: 4,
-            borderBottomRightRadius: 2,
-          }}
-        >
+      <div className="px-4 py-3 pl-5">
+        <div className="flex items-center gap-3">
           <span
-            aria-hidden
-            className="inline-block w-[5px] h-[5px]"
-            style={{ background: TONE_HEX.warning }}
-          />
-          HEADS UP
-        </span>
-        <span className="flex-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] truncate">
-          Source-chain wallet required
-        </span>
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden
-          className={`text-[var(--lp-text-muted)] transition-transform shrink-0 ${
-            open ? 'rotate-180' : ''
-          }`}
-        >
-          <path
-            d="M4 6l4 4 4-4"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="px-4 pb-3.5 pl-5 -mt-1 fade-up">
-          <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-            CCTP burns the USDC on the source chain. Your Circle login lives on Arc, so it
-            can&apos;t sign that burn.
-          </p>
-          <ul className="mt-3 space-y-1.5">
-            <li className="flex items-baseline gap-2">
-              <span
-                aria-hidden
-                className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
-                style={{ background: 'var(--lp-accent)' }}
-              />
-              <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-                Connect a web3 wallet on Base or Sepolia, then bridge here.
-              </span>
-            </li>
-            <li className="flex items-baseline gap-2">
-              <span
-                aria-hidden
-                className="mt-1 inline-block w-[6px] h-[6px] shrink-0"
-                style={{ background: 'var(--lp-accent)' }}
-              />
-              <span className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-                Or send USDC straight to your Arc address from any external bridge or faucet.
-              </span>
-            </li>
-          </ul>
-          <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              Your Arc address
-            </span>
+            className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
+            style={{
+              background: 'rgba(189, 225, 34, 0.18)',
+              color: 'var(--lp-band-dark)',
+              border: '1px solid var(--lp-accent)',
+              borderTopLeftRadius: 4,
+              borderTopRightRadius: 4,
+              borderBottomLeftRadius: 4,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            <span
+              aria-hidden
+              className="inline-block w-[5px] h-[5px]"
+              style={{ background: 'var(--lp-accent)' }}
+            />
+            FUND TO BRIDGE
+          </span>
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Send USDC to this address first, then bridge.
+          </span>
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              Your source-chain Circle address
+            </p>
+            <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
+              {sourceAddress ?? 'provisioning…'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={copyArcAddress}
-              className="mono text-[11px] tabular-nums text-[var(--lp-dark)] hover:opacity-80 transition-opacity inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5"
-              title={copied ? 'Copied' : `Copy ${mintRecipient}`}
+              onClick={copyAddress}
+              disabled={!sourceAddress}
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
+              style={{
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+                color: copied ? TONE_HEX.positive : undefined,
+              }}
             >
-              {shortAddress(mintRecipient)}
-              <span
-                className="mono text-[9px] uppercase tracking-[0.14em]"
-                style={{ color: copied ? TONE_HEX.positive : 'var(--lp-text-muted)' }}
-              >
-                {copied ? 'COPIED' : 'COPY'}
-              </span>
+              {copied ? 'COPIED' : 'COPY'}
             </button>
+            <a
+              href={faucet.href}
+              target="_blank"
+              rel="noreferrer"
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2 py-1"
+              style={{
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-band-dark)',
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+              title={faucet.label}
+            >
+              Faucet
+              <ExternalIcon />
+            </a>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

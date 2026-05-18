@@ -32,7 +32,10 @@ const TENURE_CAP_DAYS = 365;
 const cache = new Map<string, CacheEntry>();
 const warned = new Set<string>();
 
-const POSITION_STATE_ACTIVE = 0;
+/// KarwanVault.sol declares the position enum as
+/// `{ None=0, Active=1, Cooling=2, Withdrawn=3 }`. Stake credit only applies
+/// to Active positions; cooling principal is paused for fraud-check window.
+const POSITION_STATE_ACTIVE = 1;
 
 /// Minimal vault ABI: just `Deposited(uint256 indexed positionId, address indexed owner, uint256 principal)`
 /// and `positions(uint256)` so we can enumerate + read state without dragging

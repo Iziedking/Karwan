@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type MatchProposal } from '@/core/api';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { ProfilePeekModal } from './ProfilePeekModal';
 
 interface Props {
   proposal: MatchProposal;
@@ -18,6 +19,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [showDeclineReason, setShowDeclineReason] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
+  const [peekOpen, setPeekOpen] = useState(false);
 
   // Seller is the approval gate. Buyer pre-committed via brief budget+tolerance;
   // their agent funds escrow automatically once the seller accepts.
@@ -121,18 +123,54 @@ export function MatchBanner({ proposal, onChange }: Props) {
             proposed {relativeTime(proposal.proposedAt)}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-            Seller
-          </span>
-          <span className="mono text-[12px] text-[var(--color-ink-dim)]">
-            {shortAddress(proposal.sellerUser)}
-          </span>
-          <ReputationBadge address={proposal.sellerUser} size="sm" />
-        </div>
+        {(() => {
+          // Always show the counterparty so the viewer sees who they're
+          // dealing with: seller looks at buyer, buyer looks at seller.
+          const counterpartyAddress = viewerIsSeller
+            ? proposal.buyerUser
+            : proposal.sellerUser;
+          const counterpartyRole: 'buyer' | 'seller' = viewerIsSeller ? 'buyer' : 'seller';
+          const counterpartyLabel = viewerIsSeller ? 'Buyer' : 'Seller';
+          const canPeek = viewerIsSeller || viewerIsBuyer;
+          return (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+                {counterpartyLabel}
+              </span>
+              <span className="mono text-[12px] text-[var(--color-ink-dim)]">
+                {shortAddress(counterpartyAddress)}
+              </span>
+              <ReputationBadge address={counterpartyAddress} size="sm" />
+              {canPeek && (
+                <button
+                  type="button"
+                  onClick={() => setPeekOpen(true)}
+                  className="mono text-[10px] uppercase tracking-[0.14em] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
+                  style={{
+                    color: 'var(--color-ink-dim)',
+                    borderColor: 'var(--color-line-strong)',
+                    borderRadius: 2,
+                  }}
+                >
+                  View profile
+                </button>
+              )}
+              <ProfilePeekModal
+                open={peekOpen}
+                onClose={() => setPeekOpen(false)}
+                address={counterpartyAddress}
+                role={counterpartyRole}
+              />
+            </div>
+          );
+        })()}
       </div>
 
-      {proposal.riskFlag && proposal.riskNote && (
+      {/* Risk flags are all seller-facing warnings (honey-trap, lowball,
+          spammy, new-buyer) — they describe the BUYER, for the SELLER to
+          judge before accepting. Render only when the viewer is the seller
+          so the buyer doesn't see warnings written about themselves. */}
+      {proposal.riskFlag && proposal.riskNote && viewerIsSeller && (
         <div
           className="mt-4 px-4 py-3"
           style={{

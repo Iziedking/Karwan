@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useWalletClient, usePublicClient } from 'wagmi';
-import { parseUnits } from 'viem';
+import { useBalance, useWalletClient, usePublicClient } from 'wagmi';
+import { formatUnits, parseUnits } from 'viem';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '../hooks/useReputation';
@@ -153,10 +153,33 @@ export function StakeCard() {
   const [vaultDeployed, setVaultDeployed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [depositAmount, setDepositAmount] = useState<number | ''>(5);
+  const [depositAmount, setDepositAmount] = useState<number | ''>('');
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
   const [log, setLog] = useState<ActionLog[]>([]);
   const [busyKind, setBusyKind] = useState<{ kind: ActionKind; positionId?: string } | null>(null);
+
+  // Pending-withdrawal confirmation. We never call the native `window.confirm`
+  // here; the dialog is rendered in-card as a state-driven banner so users
+  // stay inside the product surface. When set, the form shows the "Cool X USDC?
+  // Confirm / Cancel" pair; on confirm we execute, on cancel we clear.
+  const [pendingWithdraw, setPendingWithdraw] = useState<{
+    requested: number;
+    coolingTotal: number;
+    toCool: Array<{ positionId: string; principalUsdc: string }>;
+  } | null>(null);
+
+  // Wallet USDC balance, shown as MAX on the deposit input. Arc Testnet uses
+  // USDC as the native gas asset (18 decimals), so a native balance read is
+  // the dollar value. Used purely for display and the MAX click; the actual
+  // deposit call still parses to 6-decimal ERC-20 units inside `submitDeposit`.
+  const walletBalance = useBalance({
+    address: address as `0x${string}` | undefined,
+    chainId: ARC_CHAIN_ID,
+  });
+  const walletUsdc = useMemo(() => {
+    if (!walletBalance.data) return null;
+    return Number(formatUnits(walletBalance.data.value, walletBalance.data.decimals));
+  }, [walletBalance.data]);
 
   const refetchPositions = useCallback(async () => {
     if (!address) return;
@@ -263,31 +286,64 @@ export function StakeCard() {
   /// at or above the user's request. The confirm dialog states the exact
   /// figure before the chain calls fire. Mainnet partial withdrawal lives in
   /// todo.md §3 (USYC routing) and removes this rounding.
-  const submitWithdraw = useCallback(async () => {
+  const submitWithdraw = useCallback(() => {
     if (!address) return;
     if (typeof withdrawAmount !== 'number' || withdrawAmount <= 0) return;
     const active = positions.filter((p) => p.state === 'active');
     if (active.length === 0) return;
 
-    const sortedNewestFirst = [...active].sort(
-      (a, b) => Number(b.positionId) - Number(a.positionId),
+    // Position-selection algorithm. The contract cools whole positions, so
+    // we pick the set that gives the user what they typed with the least
+    // over-cooling:
+    //   1. exact single-position match → cool just that one
+    //   2. smallest single position that covers the request → minimises overshoot
+    //   3. only if no single position is big enough, sum newest-first
+    const EPS = 0.000_001;
+    let toCool: typeof active;
+
+    const exact = active.find(
+      (p) => Math.abs(Number(p.principalUsdc) - withdrawAmount) < EPS,
     );
-    const toCool: typeof active = [];
-    let coolingTotal = 0;
-    for (const p of sortedNewestFirst) {
-      if (coolingTotal >= withdrawAmount) break;
-      toCool.push(p);
-      coolingTotal += Number(p.principalUsdc);
+    if (exact) {
+      toCool = [exact];
+    } else {
+      const covering = active
+        .filter((p) => Number(p.principalUsdc) >= withdrawAmount - EPS)
+        .sort((a, b) => Number(a.principalUsdc) - Number(b.principalUsdc));
+      if (covering.length > 0) {
+        toCool = [covering[0]];
+      } else {
+        // Need to combine positions. Sort newest-first so we sacrifice the
+        // youngest tenure first.
+        const sortedNewestFirst = [...active].sort(
+          (a, b) => Number(b.positionId) - Number(a.positionId),
+        );
+        toCool = [];
+        let sum = 0;
+        for (const p of sortedNewestFirst) {
+          if (sum >= withdrawAmount - EPS) break;
+          toCool.push(p);
+          sum += Number(p.principalUsdc);
+        }
+      }
     }
+
+    const coolingTotal = toCool.reduce((acc, p) => acc + Number(p.principalUsdc), 0);
     if (toCool.length === 0) return;
 
-    const exactMatch = Math.abs(coolingTotal - withdrawAmount) < 0.000_001;
-    const message = exactMatch
-      ? `Start a ${cooldownDays}-day cool-down on ${coolingTotal} USDC? Stake stops earning reputation until you claim.`
-      : `Cool ${coolingTotal} USDC (you requested ${withdrawAmount}; testnet rounds up to position size). Start the ${cooldownDays}-day cool-down?`;
-    const ok = window.confirm(message);
-    if (!ok) return;
+    // Park the selection in state; the inline banner renders confirm + cancel
+    // buttons below the form. No native confirm() so the UI stays editorial.
+    setPendingWithdraw({
+      requested: withdrawAmount,
+      coolingTotal,
+      toCool: toCool.map((p) => ({ positionId: p.positionId, principalUsdc: p.principalUsdc })),
+    });
+  }, [address, withdrawAmount, positions]);
 
+  const confirmWithdraw = useCallback(async () => {
+    if (!pendingWithdraw || !address) return;
+    const { toCool } = pendingWithdraw;
+    setPendingWithdraw(null);
     setBusyKind({ kind: 'request' });
     for (const p of toCool) {
       const logId = pushLog({
@@ -326,9 +382,7 @@ export function StakeCard() {
     await refetchRep();
   }, [
     address,
-    withdrawAmount,
-    positions,
-    cooldownDays,
+    pendingWithdraw,
     isCircleUser,
     walletClient,
     arcClient,
@@ -337,6 +391,8 @@ export function StakeCard() {
     pushLog,
     patchLog,
   ]);
+
+  const cancelPendingWithdraw = useCallback(() => setPendingWithdraw(null), []);
 
   // -------------------- position actions --------------------
 
@@ -491,11 +547,15 @@ export function StakeCard() {
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               DEPOSIT
             </span>
-            {stakeBoost != null && (
-              <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                CURRENT BOOST +{(stakeBoost * 100).toFixed(0)}%
-              </span>
-            )}
+            <button
+              type="button"
+              onClick={() => walletUsdc != null && setDepositAmount(Math.floor(walletUsdc * 100) / 100)}
+              disabled={walletUsdc == null || walletUsdc <= 0}
+              title={walletUsdc != null ? `Wallet balance: ${walletUsdc.toFixed(2)} USDC. Click to fill.` : 'Loading wallet balance…'}
+              className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+            >
+              MAX {walletUsdc != null ? walletUsdc.toFixed(2) : '-'}
+            </button>
           </div>
           <div className="flex items-stretch gap-2">
             <input
@@ -507,6 +567,7 @@ export function StakeCard() {
                 setDepositAmount(e.target.value === '' ? '' : Number(e.target.value))
               }
               disabled={busyKind?.kind === 'deposit'}
+              placeholder="0"
               className="form-input form-input-num flex-1 min-w-0"
               aria-label="Deposit amount in USDC"
             />
@@ -541,9 +602,19 @@ export function StakeCard() {
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               WITHDRAW
             </span>
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+            <button
+              type="button"
+              onClick={() => Number(totalActive) > 0 && setWithdrawAmount(Number(totalActive))}
+              disabled={Number(totalActive) <= 0}
+              title={
+                Number(totalActive) > 0
+                  ? `Active stake: ${formatUsdc(totalActive, { withSuffix: false })} USDC. Click to fill.`
+                  : 'No active stake to withdraw'
+              }
+              className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+            >
               MAX {formatUsdc(totalActive, { withSuffix: false })}
-            </span>
+            </button>
           </div>
           <div className="flex items-stretch gap-2">
             <input
@@ -556,7 +627,7 @@ export function StakeCard() {
                 setWithdrawAmount(e.target.value === '' ? '' : Number(e.target.value))
               }
               disabled={busyKind?.kind === 'request' || Number(totalActive) <= 0}
-              placeholder={Number(totalActive) > 0 ? String(totalActive) : '0'}
+              placeholder="0"
               className="form-input form-input-num flex-1 min-w-0"
               aria-label="Withdraw amount in USDC"
             />
@@ -588,6 +659,66 @@ export function StakeCard() {
         </div>
       </div>
 
+      {/* IN-UI WITHDRAWAL CONFIRMATION.
+          Rendered when submitWithdraw has parked a pending request in state.
+          Replaces the previous native window.confirm(). Lime-tinted card with
+          the precise amount about to be cooled, the rounding caveat if any,
+          and confirm/cancel buttons that stay inside the product surface. */}
+      {pendingWithdraw && (
+        <div
+          className="-mt-2 px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+          style={{
+            background:
+              'linear-gradient(120deg, color-mix(in oklab, var(--lp-accent) 14%, transparent), color-mix(in oklab, var(--lp-accent) 4%, transparent))',
+            border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
+              [:CONFIRM WITHDRAWAL:]
+            </p>
+            <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
+              Cool <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> for <span className="font-bold">{cooldownDays} days</span>.
+            </p>
+            <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+              This stake stops earning reputation during the cool-down. Cancel anytime in the {cooldownDays}-day window to resume earning with tenure intact.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={cancelPendingWithdraw}
+              className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-black/[0.04] transition-colors"
+              style={{
+                borderTopLeftRadius: 8,
+                borderTopRightRadius: 8,
+                borderBottomLeftRadius: 8,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmWithdraw}
+              className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+              style={{
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      )}
+
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed -mt-2">
         Withdrawal starts a {cooldownDays}-day cool-down. After that the stake is claimable to your wallet.
       </p>
@@ -603,6 +734,7 @@ export function StakeCard() {
         vaultDeployed={vaultDeployed === false}
         busyKind={busyKind}
         onClaim={(positionId) => positionAction('claim', positionId)}
+        onCancel={(positionId) => positionAction('cancel', positionId)}
       />
 
       {/* RECENT ACTIVITY */}
@@ -713,6 +845,7 @@ function CoolingList({
   vaultDeployed,
   busyKind,
   onClaim,
+  onCancel,
 }: {
   positions: Array<{
     positionId: string;
@@ -724,6 +857,10 @@ function CoolingList({
   vaultDeployed: boolean;
   busyKind: { kind: ActionKind; positionId?: string } | null;
   onClaim: (positionId: string) => void;
+  /// Quiet escape hatch for accidental withdrawal clicks. Rendered as a
+  /// small mono text-link on cooling rows, not a primary button — keeps the
+  /// "one-way withdrawal flow" intent while letting users undo a mistake.
+  onCancel: (positionId: string) => void;
 }) {
   const cooling = positions.filter((p) => p.state === 'cooling');
 
@@ -777,11 +914,25 @@ function CoolingList({
                     USDC COOLING
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                <div className="flex items-center gap-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {p.claimableAt > 0 ? (
                     <CountdownLabel claimableAt={p.claimableAt} />
                   ) : (
                     <span>preparing cool-down</span>
+                  )}
+                  {!claimableNow && (
+                    <>
+                      <span aria-hidden>·</span>
+                      <button
+                        type="button"
+                        onClick={() => onCancel(p.positionId)}
+                        disabled={busy || vaultDeployed}
+                        title="Cancel this withdrawal and put the stake back to Active. Tenure stays intact."
+                        className="mono text-[10px] uppercase tracking-[0.12em] underline-offset-2 hover:underline hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm transition-colors disabled:opacity-50"
+                      >
+                        {busy ? 'cancelling' : '↶ cancel'}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

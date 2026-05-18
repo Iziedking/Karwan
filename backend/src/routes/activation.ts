@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { parseUnits } from 'viem';
-import { provisionUserAgentWallets } from '../circle/wallets.js';
+import {
+  provisionUserAgentWallets,
+  provisionUserBridgeWallet,
+  BASE_SEPOLIA_BLOCKCHAIN,
+} from '../circle/wallets.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
@@ -62,6 +66,7 @@ activationRoutes.get('/status', async (c) => {
       buyer: wallets.buyerAddress,
       seller: wallets.sellerAddress,
     },
+    bridgeWallets: wallets.bridgeWallets ?? {},
   });
 });
 
@@ -91,7 +96,28 @@ activationRoutes.post('/activate', async (c) => {
   inFlight.add(userAddress);
   try {
     const provisioned = await provisionUserAgentWallets(userAddress);
-    const record = await saveAgentWallets({ userAddress, ...provisioned });
+
+    // Provision the common testnet bridge wallet (Base Sepolia) alongside the
+    // agents. Lets Circle-auth users bridge USDC into Arc without bringing a
+    // web3 wallet. Ethereum Sepolia is lazy-provisioned the first time the
+    // user picks it as a bridge source (most users never will).
+    let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
+    try {
+      const baseBridge = await provisionUserBridgeWallet(userAddress, BASE_SEPOLIA_BLOCKCHAIN);
+      bridgeWallets = {
+        [BASE_SEPOLIA_BLOCKCHAIN]: { walletId: baseBridge.walletId, address: baseBridge.address },
+      };
+    } catch (err) {
+      // Bridge-wallet provisioning is not load-bearing for activation; if
+      // Circle rejects (rate limit, transient), agents still ship. Bridge
+      // wallets lazy-provision on first /circle-bridge call.
+      logger.warn(
+        { userAddress, err: (err as Error).message },
+        'base-sepolia bridge wallet provisioning failed during activation; will lazy-provision later',
+      );
+    }
+
+    const record = await saveAgentWallets({ userAddress, ...provisioned, bridgeWallets });
     bus.emitEvent({
       type: 'agent.activated',
       actor: 'platform',
@@ -102,12 +128,18 @@ activationRoutes.post('/activate', async (c) => {
       },
     });
     logger.info(
-      { userAddress, buyer: record.buyerAddress, seller: record.sellerAddress },
+      {
+        userAddress,
+        buyer: record.buyerAddress,
+        seller: record.sellerAddress,
+        bridgeChains: Object.keys(record.bridgeWallets ?? {}),
+      },
       'user agent wallets provisioned',
     );
     return c.json({
       activated: true,
       agents: { buyer: record.buyerAddress, seller: record.sellerAddress },
+      bridgeWallets: record.bridgeWallets ?? {},
     });
   } catch (err) {
     logger.error({ userAddress, err: (err as Error).message }, 'activation failed');

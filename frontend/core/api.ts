@@ -631,6 +631,33 @@ export const api = {
       `/api/bridge/${bridgeId}/recheck`,
       { method: 'POST', body: JSON.stringify({}) },
     ),
+  /// Circle-only: backend signs the CCTP burn from the user's source-chain
+  /// DCW (lazy-provisioning if missing), then queues the standard relay loop
+  /// for the Arc mint. Web3 users still use the wagmi-signed path in useBridge.
+  bridgeCircle: (input: {
+    bridgeId: string;
+    address: string;
+    sourceChainKey: 'baseSepolia' | 'sepolia';
+    amountUsdc: number;
+    mintRecipient: string;
+  }) =>
+    json<{
+      accepted: true;
+      bridgeId: string;
+      approveTxHash: string;
+      burnTxHash: string;
+      sourceAddress: string;
+      sourceDomain: number;
+    }>('/api/bridge/circle-bridge', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  /// Returns or lazy-provisions the user's source-chain DCW address so the
+  /// frontend can show "send USDC here" + a faucet link for Circle users.
+  bridgeCircleSourceAddress: (address: string, sourceChainKey: 'baseSepolia' | 'sepolia') =>
+    json<{ address: string; blockchain: string }>(
+      `/api/bridge/circle-source-address?address=${address}&sourceChainKey=${sourceChainKey}`,
+    ),
   listMessages: (jobId: string, caller: string) =>
     json<{ messages: ChatMessage[] }>(`/api/chat/${jobId}?caller=${caller}`),
   sendMessage: (jobId: string, caller: string, body: string) =>

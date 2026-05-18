@@ -14,6 +14,13 @@ export interface AgentWallets {
   sellerWalletId: string;
   sellerAddress: string;
   createdAt: number;
+  /// Optional per-chain bridge DCWs (one per CCTP source chain). Keyed by
+  /// the Circle blockchain enum string (e.g. 'BASE-SEPOLIA', 'ETH-SEPOLIA').
+  /// Provisioned at activation for the common testnet source (Base Sepolia)
+  /// and lazy-added the first time a user bridges from a different chain.
+  /// Lets the backend sign the CCTP burn from the source-chain DCW so
+  /// Circle-auth users can bridge end-to-end without a web3 wallet.
+  bridgeWallets?: Record<string, { walletId: string; address: string }>;
 }
 
 export async function getAgentWallets(userAddress: string): Promise<AgentWallets | null> {

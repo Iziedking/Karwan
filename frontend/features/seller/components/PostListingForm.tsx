@@ -16,14 +16,14 @@ export function PostListingForm() {
   const isConnected = auth.isAuthenticated;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState<number | ''>(30);
-  const [tolerance, setTolerance] = useState<number | ''>(15);
+  const [price, setPrice] = useState<number | ''>('');
+  const [tolerance, setTolerance] = useState<number | ''>('');
   // Listing window in days. Backend caps at 90; default 30 lines up with
   // most marketplaces' "your post stays live for a month" convention.
   // Listing window expressed as { value, unit }. Backend takes ttlDays as a
   // fractional number so unit toggling on the form maps cleanly. Default is
   // 30 days; demo flows often pick HR or MIN to drive expiry visibly.
-  const [ttlValue, setTtlValue] = useState<number | ''>(30);
+  const [ttlValue, setTtlValue] = useState<number | ''>('');
   const [ttlUnit, setTtlUnit] = useState<'min' | 'hr' | 'day'>('day');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -240,6 +240,7 @@ export function PostListingForm() {
                 value={price}
                 disabled={submitting}
                 onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0"
                 className="form-input-dark form-input-num-dark"
               />
             </FormLabel>
@@ -258,6 +259,7 @@ export function PostListingForm() {
                 onChange={(e) =>
                   setTolerance(e.target.value === '' ? '' : Number(e.target.value))
                 }
+                placeholder="0"
                 className="form-input-dark form-input-num-dark"
               />
             </FormLabel>
@@ -277,6 +279,7 @@ export function PostListingForm() {
                   onChange={(e) =>
                     setTtlValue(e.target.value === '' ? '' : Number(e.target.value))
                   }
+                  placeholder="0"
                   className="form-input-dark form-input-num-dark flex-1 min-w-0"
                 />
                 <div

@@ -125,7 +125,7 @@ export function ArcFundCard({
     else if (buyerAgent && !sellerAgent) setSelected('buyer');
   }, [buyerAgent, sellerAgent]);
 
-  const [amount, setAmount] = useState<number | ''>(5);
+  const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const selectedAgent = options.find((o) => o.key === selected);
