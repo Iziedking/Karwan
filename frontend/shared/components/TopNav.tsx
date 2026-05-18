@@ -111,7 +111,10 @@ export function TopNav() {
             <NavLink href="/seller" active={pathname.startsWith('/seller')}>
               {t.nav.seller}
             </NavLink>
-            <NavLink href="/listings" active={pathname.startsWith('/listings')}>
+            <NavLink
+              href="/market"
+              active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
+            >
               Market
             </NavLink>
             <NavLinkSoon title="Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.">
@@ -189,7 +192,10 @@ export function TopNav() {
             <MobileNavLink href="/seller" active={pathname.startsWith('/seller')}>
               {t.nav.seller}
             </MobileNavLink>
-            <MobileNavLink href="/listings" active={pathname.startsWith('/listings')}>
+            <MobileNavLink
+              href="/market"
+              active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
+            >
               Market
             </MobileNavLink>
             <MobileNavLinkSoon>SME Trades</MobileNavLinkSoon>

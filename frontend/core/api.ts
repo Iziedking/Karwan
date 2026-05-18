@@ -48,6 +48,11 @@ export interface BuyerJob {
   /// When the brief passed its deadline without a match (epoch ms). The page
   /// renders read-only when set. the auction is over.
   expiredAt?: number;
+  /// Human-readable brief text from the off-chain store. Null when the brief
+  /// record was lost (eg flat-file wiped) but the on-chain job still exists.
+  briefText?: string | null;
+  keywords?: string[] | null;
+  negotiationMaxIncreasePct?: number | null;
   bids: BuyerBid[];
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;

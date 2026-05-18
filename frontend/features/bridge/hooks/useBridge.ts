@@ -103,9 +103,10 @@ function friendlyBridgeError(err: unknown, source: SourceChainConfig, phase?: Br
     // eslint-disable-next-line no-console
     console.warn('[bridge]', err);
   }
+  // Switching phase already returned earlier in the function with a more
+  // specific message. Cover the remaining mid-flow phases here.
   if (phase === 'approving') return 'Approval did not go through. Retry to try again.';
   if (phase === 'burning') return 'Burn did not go through. Retry to try again.';
-  if (phase === 'switching') return `Could not switch to ${source.shortName}. Retry to try again.`;
   return 'Bridge failed. Retry from start, or recheck on chain if your burn already landed.';
 }
 
@@ -479,14 +480,26 @@ export function useBridges() {
         // 'relaying' = still polling on the backend; leave the row in
         // 'attesting' so the user sees the live indicator again.
       } catch (err) {
+        const raw = errorToString(err).toLowerCase();
         if (typeof console !== 'undefined') {
           // eslint-disable-next-line no-console
           console.warn('[bridge.recheck]', errorToString(err));
         }
+        // Treat "bridge not found" specially. This happens when the backend
+        // record was wiped (flat-file reset, DB migration, fresh deploy) but
+        // the frontend still has the bridgeId in localStorage. Retrying the
+        // recheck endlessly will never succeed; the user needs to dismiss
+        // the orphaned row and start a fresh bridge.
+        const isOrphan =
+          raw.includes('not found') ||
+          raw.includes('bridge not found') ||
+          raw.includes('404');
         patch(id, (b) => ({
           ...b,
           phase: 'error',
-          error: 'Recheck failed. Try again in a moment.',
+          error: isOrphan
+            ? 'This bridge record was lost on the backend. Dismiss and start a fresh one.'
+            : 'Recheck failed. Try again in a moment.',
         }));
       }
     },

@@ -146,6 +146,52 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <StatTile label="Terms hash" value={shortHash(job.termsHash, 6, 4)} mono />
         </div>
 
+        {/* BRIEF BAND. Renders the human-readable brief text the buyer
+            posted. The on-chain layer only stores the keccak hash, so this
+            comes from the backend's brief store. Hidden when the store
+            doesn't have it (eg flat-file wiped). */}
+        {job.briefText && (
+          <div className="mt-8 fade-up fade-up-1">
+            <div
+              className="relative flex items-stretch border bg-[var(--lp-card)]"
+              style={{
+                borderColor: 'var(--lp-border-light)',
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
+            >
+              <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-accent)' }} />
+              <div className="flex-1 px-5 py-4">
+                <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
+                  [:BRIEF:]
+                </p>
+                <p className="text-[14.5px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap break-words">
+                  {job.briefText}
+                </p>
+                {job.keywords && job.keywords.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {job.keywords.map((k) => (
+                      <span
+                        key={k}
+                        className="inline-flex items-center px-2 py-0.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]"
+                        style={{
+                          background: 'var(--lp-light)',
+                          border: '1px solid var(--lp-border-light)',
+                          borderRadius: 2,
+                        }}
+                      >
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* EXPIRED BANNER. replaces the match banner slot when the brief is in
             its read-only afterlife. No actions; the auction is over. */}
         {expired && (

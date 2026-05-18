@@ -16,7 +16,7 @@ import {
   type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
-import { createBrief, patchBrief } from '../db/briefs.js';
+import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { logger } from '../logger.js';
 
@@ -82,7 +82,16 @@ jobsRoutes.get('/:jobId', (c) => {
   const jobId = c.req.param('jobId');
   const job = getBuyerJob(jobId);
   if (!job) return c.json({ error: 'not found' }, 404);
-  return c.json(job);
+  // Merge the off-chain brief metadata (human-readable text, negotiation
+  // ceiling) into the response so the job page can render it inline. The
+  // on-chain snapshot only carries the termsHash for integrity.
+  const brief = getBrief(jobId);
+  return c.json({
+    ...job,
+    briefText: brief?.briefText ?? null,
+    keywords: brief?.keywords ?? null,
+    negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct ?? null,
+  });
 });
 
 jobsRoutes.post('/', async (c) => {

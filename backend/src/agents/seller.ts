@@ -12,6 +12,7 @@ import {
   type JobContext,
 } from '../llm/prompts.js';
 import { logger } from '../logger.js';
+import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import type { SellerProfile } from './seller-profile.js';
 import { resolveAllSellerProfiles, resolveSellerProfile, siblingSellerAddress } from './agent-registry.js';
@@ -179,8 +180,12 @@ function safe(label: string, fn: () => Promise<unknown>) {
   Promise.resolve()
     .then(fn)
     .catch((err) => {
+      // reportError handles logger + errorTracker ring buffer + system.error
+      // emit. Also keep the legacy agent.error bus event so the timeline UI
+      // continues to render the "Agent hit an error · seller" row with the
+      // scope chip; that surface is separate from the operator dashboard.
+      reportError(`agents.seller.${label}`, err);
       const message = err instanceof Error ? err.message : String(err);
-      logger.error({ scope: label, err: message }, 'agent handler error');
       bus.emitEvent({
         type: 'agent.error',
         actor: 'seller',
@@ -297,6 +302,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   } catch (err) {
     const message = (err as Error).message;
     logger.warn({ jobId: job.jobId, err: message }, 'bid LLM call failed');
+    reportError('agents.seller.bidDecision', err, { jobId: job.jobId, seller: seller.address });
     bus.emitEvent({
       type: 'agent.error',
       jobId: job.jobId,
@@ -525,6 +531,10 @@ async function runCounterEvaluation(
       'counter evaluation failed, declining via no-op',
     );
     active.finalized = true;
+    reportError('agents.seller.counterEvaluation', err, {
+      jobId: args.jobId,
+      seller: seller.address,
+    });
     bus.emitEvent({
       type: 'agent.error',
       jobId: args.jobId,
