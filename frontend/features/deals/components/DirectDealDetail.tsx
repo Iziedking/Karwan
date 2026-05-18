@@ -483,6 +483,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   viewerIsCounterparty={viewerIsCounterparty}
                   viewerIsProposer={viewerIsProposer}
                   busy={busy}
+                  firstReleased={!!deal.reviewWindowStartedAt}
+                  firstReleasePct={deal.firstReleasePct}
                   onAccept={onAcceptCancel}
                   onDecline={onDeclineCancel}
                 />
@@ -587,6 +589,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {proposeOpen && (
         <ProposeCancelModal
           busy={busy}
+          firstReleased={!!deal.reviewWindowStartedAt}
+          firstReleasePct={deal.firstReleasePct}
           onConfirm={onProposeCancel}
           onClose={() => setProposeOpen(false)}
         />
@@ -785,18 +789,39 @@ function ActionPanel({
     );
   }
   if (stage === 'cancelled') {
-    const body =
-      deal.cancelKind === 'mutual'
-        ? 'Cancelled by mutual agreement. The escrow was refunded in full. Reputation unaffected on either side.'
-        : deal.cancelKind === 'platform-attributed'
-          ? 'Cancelled as a platform misroute. The escrow was refunded in full. Reputation unaffected on either side.'
-          : deal.cancelKind === 'unilateral'
-            ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
-            : deal.cancelKind === 'pre-accept'
-              ? 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.'
-              : deal.fundTxHash
-                ? 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.'
-                : 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.';
+    // Detect whether any portion was already paid to the seller before the
+    // cancel. `reviewWindowStartedAt` is set when the first milestone
+    // releases (manual or auto), so its presence means the seller has
+    // already received `firstReleasePct`% of the deal. The on-chain refund()
+    // only returns the UNRELEASED remainder, so the copy needs to be
+    // state-aware — "refunded in full" is a lie post-first-release.
+    const firstReleased = !!deal.reviewWindowStartedAt;
+    const firstPct = deal.firstReleasePct;
+    const remainPct = 100 - firstPct;
+
+    const body = (() => {
+      // pre-accept / no funding ever happened
+      if (deal.cancelKind === 'pre-accept' || (!deal.fundTxHash && !deal.cancelKind)) {
+        return 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.';
+      }
+
+      // unilateral buyer cancel after deadline (no milestone was ever released
+      // since the seller never delivered).
+      if (deal.cancelKind === 'unilateral') {
+        return 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.';
+      }
+
+      // Mutual / platform-attributed branches. Two cases based on prior release.
+      const wording =
+        deal.cancelKind === 'platform-attributed'
+          ? 'Closed as a platform misroute by mutual agreement.'
+          : 'Closed by mutual agreement after an appeal.';
+
+      if (firstReleased) {
+        return `${wording} The first ${firstPct}% had already been released to the seller, so the remaining ${remainPct}% was refunded to the buyer. Reputation unaffected on either side.`;
+      }
+      return `${wording} No milestones had been released yet, so the full escrow was refunded to the buyer. Reputation unaffected on either side.`;
+    })();
     return (
       <div className="space-y-2">
         <Body>{body}</Body>
@@ -1159,6 +1184,8 @@ function CancelProposalBanner({
   viewerIsCounterparty,
   viewerIsProposer,
   busy,
+  firstReleased,
+  firstReleasePct,
   onAccept,
   onDecline,
 }: {
@@ -1166,9 +1193,12 @@ function CancelProposalBanner({
   viewerIsCounterparty: boolean;
   viewerIsProposer: boolean;
   busy: boolean;
+  firstReleased: boolean;
+  firstReleasePct: number;
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const remainPct = 100 - firstReleasePct;
   const kindLabel =
     proposal.kind === 'platform-attributed' ? 'PLATFORM MISROUTE' : 'MUTUAL CANCEL';
   return (
@@ -1204,18 +1234,25 @@ function CancelProposalBanner({
           {proposal.reason}
         </p>
         <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
-          {proposal.kind === 'platform-attributed'
-            ? "Both sides agree the agent misrouted. Accepting refunds the escrow with no reputation hit on either side."
-            : 'No reputation hit on either side if accepted. Escrow refunds in full.'}
+          {(() => {
+            const prefix =
+              proposal.kind === 'platform-attributed'
+                ? 'Both sides agree the agent misrouted.'
+                : 'No reputation hit on either side if accepted.';
+            const outcome = firstReleased
+              ? `The first ${firstReleasePct}% has already been released to the seller; accepting refunds the remaining ${remainPct}% to the buyer.`
+              : 'Accepting refunds the full escrow to the buyer.';
+            return `${prefix} ${outcome}`;
+          })()}
         </p>
         {viewerIsCounterparty && (
           <div className="pt-2 flex flex-wrap items-center gap-2">
             <CTAPill onClick={onAccept} disabled={busy}>
-              {busy
-                ? 'Confirming…'
-                : proposal.proposedBy === 'buyer'
-                  ? 'Accept & refund'
-                  : 'Accept & release'}
+              {/* Both buttons trigger the SAME on-chain action — refund() —
+                  because v1's escrow has no Disputed-to-Settled transition.
+                  v2.D (B.2) adds releaseFromDispute() and then we can
+                  distinguish the two outcomes. Until then, label honestly. */}
+              {busy ? 'Confirming…' : 'Accept & refund'}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onDecline} disabled={busy}>
               Decline · keep the deal
@@ -1234,16 +1271,21 @@ function CancelProposalBanner({
 
 function ProposeCancelModal({
   busy,
+  firstReleased,
+  firstReleasePct,
   onConfirm,
   onClose,
 }: {
   busy: boolean;
+  firstReleased: boolean;
+  firstReleasePct: number;
   onConfirm: (reason: string, kind: 'mutual' | 'platform-attributed') => void;
   onClose: () => void;
 }) {
   const [reason, setReason] = useState('');
   const [kind, setKind] = useState<'mutual' | 'platform-attributed'>('mutual');
   const valid = reason.trim().length >= 3;
+  const remainPct = 100 - firstReleasePct;
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1277,8 +1319,11 @@ function ProposeCancelModal({
         </div>
         <div className="px-6 pb-6 space-y-5">
           <p className="text-[13.5px] text-[var(--lp-text-sub)] leading-relaxed">
-            Your counterparty has to agree. If they accept, escrow refunds in full with no
-            reputation hit on either side. If they decline, the deal continues normally.
+            Your counterparty has to agree. If they accept,{' '}
+            {firstReleased
+              ? `the first ${firstReleasePct}% already paid stays with the seller and the remaining ${remainPct}% refunds to the buyer`
+              : 'the full escrow refunds to the buyer'}
+            , with no reputation hit on either side. If they decline, the deal continues normally.
           </p>
 
           <div className="space-y-2">
