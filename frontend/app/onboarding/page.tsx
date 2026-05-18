@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -20,7 +20,34 @@ import {
 } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
 
+// Next.js 15 requires useSearchParams() to live inside a Suspense boundary
+// when the page is statically prerendered. Wrapping the inner component
+// satisfies that. The fallback is the same dark band we'd render once the
+// search params resolve, so the transition is invisible.
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<OnboardingShell />}>
+      <OnboardingInner />
+    </Suspense>
+  );
+}
+
+function OnboardingShell() {
+  return (
+    <FullBleed>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
+        <div className="max-w-[60ch] mx-auto text-center">
+          <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
+            <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
+            SIGN UP
+          </span>
+        </div>
+      </Band>
+    </FullBleed>
+  );
+}
+
+function OnboardingInner() {
   const router = useRouter();
   const search = useSearchParams();
   // ?edit=1 means the user came from "Edit details" on /profile. In that mode
