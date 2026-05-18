@@ -191,8 +191,7 @@ export default function OnboardingPage() {
     }
   }
 
-  const stepN =
-    step === 'language' ? 1 : step === 'connect' ? 2 : step === 'role' ? 3 : 4;
+  const stepN = step === 'connect' ? 1 : step === 'role' ? 2 : 3;
 
   return (
     <FullBleed>
@@ -201,17 +200,11 @@ export default function OnboardingPage() {
           <div className="fade-up flex justify-center">
             <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
               <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
-              SIGN UP · STEP {stepN} OF 4
+              SIGN UP · STEP {stepN} OF 3
             </span>
           </div>
           <div className="fade-up fade-up-1">
             <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)] mt-6">
-              {step === 'language' && (
-                <>
-                  {t.onboarding.languageStep.title}
-                  <Punc>.</Punc>
-                </>
-              )}
               {step === 'connect' && (
                 <>
                   Connect your <Accent>wallet</Accent>
@@ -233,30 +226,13 @@ export default function OnboardingPage() {
             </HeroHeadline>
           </div>
           <div className="fade-up fade-up-2 mt-7 flex justify-center">
-            <ProgressDots current={stepN} total={4} />
+            <ProgressDots current={stepN} total={3} />
           </div>
         </div>
       </Band>
 
       <Band tone="light" compact>
         <div className="max-w-3xl mx-auto">
-          {step === 'language' && (
-            <div className="space-y-6">
-              <p className="text-[15px] text-[var(--lp-text-sub)] max-w-[52ch]">
-                {t.onboarding.languageStep.description}
-              </p>
-              <LanguagePicker
-                onChange={() => {
-                  // Persist post-sign-in via Settings. For now the cookie holds
-                  // the choice so the rest of the onboarding renders in it.
-                }}
-              />
-              <div className="pt-2">
-                <CTAPill onClick={() => setStep('connect')}>{t.common.continue}</CTAPill>
-              </div>
-            </div>
-          )}
-
           {step === 'connect' && (
             <ConnectStep onLogin={() => setLoginOpen(true)} />
           )}

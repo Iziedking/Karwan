@@ -44,17 +44,41 @@ export function generateLinkToken(address: string): { token: string; deepLink: s
   return { token, deepLink };
 }
 
-export async function sendTelegramMessage(chatId: number, text: string): Promise<void> {
+interface InlineButton {
+  text: string;
+  url: string;
+}
+
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+  buttons?: InlineButton[],
+): Promise<void> {
   if (!config.TELEGRAM_BOT_TOKEN) return;
   try {
+    const body: Record<string, unknown> = {
+      chat_id: chatId,
+      text,
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+    };
+    if (buttons && buttons.length > 0) {
+      // Inline keyboards render as tappable buttons below the message and work
+      // reliably across mobile + desktop clients, where embedded markdown
+      // links are sometimes stripped. The URL must still be reachable from
+      // the recipient's device. localhost won't open on a phone.
+      body.reply_markup = {
+        inline_keyboard: [buttons.map((b) => ({ text: b.text, url: b.url }))],
+      };
+    }
     const res = await fetch(`${API}/bot${config.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', disable_web_page_preview: true }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const body = await res.text();
-      logger.warn({ status: res.status, body }, 'telegram sendMessage failed');
+      const respBody = await res.text();
+      logger.warn({ status: res.status, body: respBody }, 'telegram sendMessage failed');
     }
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'telegram sendMessage error');

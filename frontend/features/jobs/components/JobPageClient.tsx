@@ -18,31 +18,70 @@ import {
 /// skeleton covers the route transition and the job data fetches on mount.
 /// Without this, every click had to wait for the backend to return before
 /// the page even appeared.
+// Retry schedule for the first job-fetch. The buyer agent populates its in-
+// memory jobs Map from the on-chain `JobPosted` event, which takes a few
+// seconds to land after the user posts a brief and lands here. Without
+// retries, the page would briefly show a "not tracked" error and the user
+// would assume the brief was lost. Total wait is ~15.5s before we give up.
+const NOT_FOUND_RETRY_DELAYS_MS = [500, 1_000, 2_000, 4_000, 8_000];
+
+function isNotFoundError(message: string): boolean {
+  return /not found/i.test(message);
+}
+
 export function JobPageClient({ jobId }: { jobId: string }) {
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'ready'; job: BuyerJob; explorer: string }
-    | { kind: 'error'; message: string; isExpired: boolean }
+    | { kind: 'error'; message: string; isNotFound: boolean }
   >({ kind: 'loading' });
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      api.job(jobId).catch((err: unknown) => {
-        if (err instanceof ApiError) return { __error: err.message } as const;
-        return { __error: err instanceof Error ? err.message : String(err) } as const;
-      }),
-      api.status().catch(() => null),
-    ]).then(([jobOrError, status]) => {
-      if (cancelled) return;
-      if (jobOrError && '__error' in jobOrError) {
-        const isExpired = /not found/i.test(jobOrError.__error);
-        setState({ kind: 'error', message: jobOrError.__error, isExpired });
-        return;
+    setState({ kind: 'loading' });
+
+    async function fetchJobWithRetry(): Promise<BuyerJob | { __error: string }> {
+      let lastError = '';
+      for (let attempt = 0; attempt <= NOT_FOUND_RETRY_DELAYS_MS.length; attempt += 1) {
+        if (cancelled) return { __error: 'cancelled' };
+        try {
+          return (await api.job(jobId)) as BuyerJob;
+        } catch (err) {
+          const message =
+            err instanceof ApiError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : String(err);
+          lastError = message;
+          // Only retry on 404-style "not found"; other errors are reported
+          // immediately. The buyer agent typically picks up the new brief
+          // within 2-3 seconds; we have headroom up to ~15s.
+          if (!isNotFoundError(message)) {
+            return { __error: message };
+          }
+          if (attempt === NOT_FOUND_RETRY_DELAYS_MS.length) break;
+          await new Promise((resolve) =>
+            setTimeout(resolve, NOT_FOUND_RETRY_DELAYS_MS[attempt]),
+          );
+        }
       }
-      const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
-      setState({ kind: 'ready', job: jobOrError as BuyerJob, explorer });
-    });
+      return { __error: lastError };
+    }
+
+    Promise.all([fetchJobWithRetry(), api.status().catch(() => null)]).then(
+      ([jobOrError, status]) => {
+        if (cancelled) return;
+        if (jobOrError && '__error' in jobOrError) {
+          const notFound = isNotFoundError(jobOrError.__error);
+          setState({ kind: 'error', message: jobOrError.__error, isNotFound: notFound });
+          return;
+        }
+        const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
+        setState({ kind: 'ready', job: jobOrError as BuyerJob, explorer });
+      },
+    );
+
     return () => {
       cancelled = true;
     };
@@ -76,15 +115,15 @@ export function JobPageClient({ jobId }: { jobId: string }) {
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch] fade-up">
             <SectionTag tone="dark">
-              {state.isExpired ? 'BRIEF NO LONGER TRACKED' : 'JOB ERROR'}
+              {state.isNotFound ? 'BRIEF NOT TRACKED YET' : 'JOB ERROR'}
             </SectionTag>
             <HeroHeadline size="md">
-              {state.isExpired ? 'This brief expired' : 'Could not load this job'}
+              {state.isNotFound ? 'We could not find this brief' : 'Could not load this job'}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {state.isExpired
-                ? "It passed its deadline without a feasible match, so the agent stopped tracking it. The chain still holds the original brief; nothing was funded."
+              {state.isNotFound
+                ? 'The backend has no record of this jobId. If you just posted it, give the buyer agent a few more seconds to pick up the on-chain event and try refreshing. If it stays missing, the id may be wrong.'
                 : 'The job id may be wrong, or the backend has not seen it.'}
             </p>
             <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-white/45 break-all">

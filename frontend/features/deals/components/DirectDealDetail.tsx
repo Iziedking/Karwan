@@ -932,9 +932,14 @@ function ActionPanel({
               you act now.
             </WindowNote>
           )}
-          <CTAPill disabled={busy} onClick={onRelease}>
-            {busy ? 'Confirming on Arc…' : `Release first ${firstPct}%`}
-          </CTAPill>
+          <div className="flex flex-wrap gap-2">
+            <CTAPill disabled={busy} onClick={onRelease}>
+              {busy ? 'Confirming on Arc…' : `Release first ${firstPct}%`}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
+              Appeal this deal
+            </CTAPill>
+          </div>
         </div>
       );
     }
@@ -1005,6 +1010,9 @@ function ActionPanel({
               Still reviewing (+{extensionMins} min)
             </CTAPill>
           )}
+          <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
+            Appeal this deal
+          </CTAPill>
         </div>
       </div>
     );
@@ -1203,7 +1211,11 @@ function CancelProposalBanner({
         {viewerIsCounterparty && (
           <div className="pt-2 flex flex-wrap items-center gap-2">
             <CTAPill onClick={onAccept} disabled={busy}>
-              {busy ? 'Confirming…' : 'Accept & refund'}
+              {busy
+                ? 'Confirming…'
+                : proposal.proposedBy === 'buyer'
+                  ? 'Accept & refund'
+                  : 'Accept & release'}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onDecline} disabled={busy}>
               Decline · keep the deal

@@ -100,7 +100,7 @@ export function NotificationToasts() {
               aria-hidden
               className="shrink-0 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
             >
-              OPEN â†’
+              OPEN →
             </span>
           </div>
         </button>

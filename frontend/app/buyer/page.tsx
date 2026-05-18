@@ -100,7 +100,7 @@ export default function BuyerPage() {
                   borderBottomRightRadius: 4,
                 }}
               >
-                Open a deal â†“
+                Open a deal ↓
               </a>
               {address && (
                 <span className="ml-1">

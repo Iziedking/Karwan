@@ -439,9 +439,15 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   return c.json({ accepted: true, jobId, reviewExtensionMs }, 200);
 });
 
-/// Seller appeals: the buyer has not released the final milestone and the
-/// review window has passed with the buyer still reviewing. Moves the escrow to
-/// Disputed on chain via the buyer agent as relayer.
+/// Either party appeals: moves the on-chain escrow to Disputed and freezes
+/// movement until both sides reach consensus (via the mutual-cancel propose
+/// flow). The contract's dispute() accepts either buyer or seller as caller,
+/// so we sign with the appealing party's agent wallet.
+///
+/// Both sides should be able to appeal because both have legitimate scenarios:
+/// - Seller: buyer is stalling on the final release after the window passed.
+/// - Buyer: seller marked delivered with substandard work and buyer wants to
+///   formally freeze the escrow before being pushed into auto-release.
 dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
@@ -453,19 +459,17 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (body.caller.toLowerCase() !== deal.seller) {
-    return c.json({ error: 'only the named seller can appeal this deal' }, 403);
+  const caller = body.caller.toLowerCase();
+  const callerRole: 'buyer' | 'seller' | null =
+    caller === deal.buyer ? 'buyer' : caller === deal.seller ? 'seller' : null;
+  if (!callerRole) {
+    return c.json({ error: 'only the buyer or seller of this deal can appeal' }, 403);
   }
   if (deal.disputed) {
     return c.json({ error: 'deal is already in dispute' }, 409);
   }
-  if (!deal.reviewWindowStartedAt) {
-    return c.json({ error: 'the buyer has not started releasing yet' }, 409);
-  }
-  const windowPassed =
-    Date.now() - deal.reviewWindowStartedAt > config.DEAL_REVIEW_WINDOW_MS;
-  if (!windowPassed) {
-    return c.json({ error: 'the buyer review window is still open' }, 409);
+  if (!deal.acceptedAt) {
+    return c.json({ error: 'cannot appeal before the seller accepts' }, 409);
   }
   if (!deal.sellerAgentWalletId || !deal.buyerAgentWalletId) {
     return c.json({ error: 'this deal has no agent wallets on record' }, 409);
@@ -481,11 +485,19 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
 
   inFlight.add(jobId);
   try {
-    const reasonHash = body.reason ?? 'seller appeal: final release overdue';
-    // The seller agent is a party to the escrow, so it signs the dispute.
+    const defaultReason =
+      callerRole === 'seller'
+        ? 'seller appeal: final release overdue'
+        : 'buyer appeal: delivery disputed';
+    const reasonHash = body.reason ?? defaultReason;
+    // Sign with the appealing party's own agent wallet. The contract requires
+    // msg.sender to be either e.buyer or e.seller, and our agent wallets are
+    // the on-chain parties to the escrow.
+    const signerWalletId =
+      callerRole === 'seller' ? deal.sellerAgentWalletId : deal.buyerAgentWalletId;
     const result = await executeContractCall(
       {
-        walletId: deal.sellerAgentWalletId,
+        walletId: signerWalletId,
         contractAddress: escrow.address,
         abiFunctionSignature: 'dispute(bytes32,string)',
         abiParameters: [jobId, reasonHash],
@@ -496,7 +508,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     bus.emitEvent({
       type: 'deal.disputed',
       jobId,
-      actor: 'seller',
+      actor: callerRole,
       payload: { seller: deal.seller, buyer: deal.buyer, reason: reasonHash, txHash: result.txHash },
     });
     // A dispute is a neutral marker on the record until it is resolved.

@@ -1,9 +1,11 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
 import { getDeal } from '../db/deals.js';
+import { getProfile, type UserLocale } from '../db/profiles.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
 import { sendTelegramMessage, telegramEnabled } from './bot.js';
 import { logger } from '../logger.js';
+import { tg } from '../i18n/telegram.js';
 
 function dealUrl(jobId: string | undefined): string | null {
   if (!jobId || !config.FRONTEND_BASE_URL) return null;
@@ -15,8 +17,17 @@ function jobUrl(jobId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/jobs/${jobId}`;
 }
 
-function withLink(text: string, url: string | null): string {
-  return url ? `${text}\n[Open in Karwan](${url})` : text;
+interface NotifySummary {
+  text: string;
+  url: string | null;
+}
+
+/// Pairs the summary body with the tappable URL. The URL is rendered as a
+/// Telegram inline_keyboard button alongside the message, not embedded as
+/// inline markdown. Inline links are sometimes stripped or rendered as plain
+/// text by Telegram clients (especially mobile). Buttons always render.
+function withLink(text: string, url: string | null): NotifySummary {
+  return { text, url };
 }
 
 // Maps deal/bridge/chat events to friendly Telegram messages, then routes each
@@ -108,7 +119,7 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   return [];
 }
 
-function summaryFor(e: KarwanEvent, role: string): string | null {
+function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): NotifySummary | null {
   const short = (a: unknown) => {
     const s = typeof a === 'string' ? a : '';
     return s ? `\`${s.slice(0, 6)}…${s.slice(-4)}\`` : '';
@@ -145,9 +156,12 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       );
     }
     case 'deal.match.declined':
-      return role === 'seller'
-        ? '*You declined the matched proposal.*'
-        : '*The seller declined this match.* Post a fresh brief to re-run the auction.';
+      return withLink(
+        role === 'seller'
+          ? '*You declined the matched proposal.*'
+          : '*The seller declined this match.* Post a fresh brief to re-run the auction.',
+        null,
+      );
     case 'deal.direct.created':
       return withLink(
         role === 'seller'
@@ -177,72 +191,78 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       return withLink('*Deal settled* in full. Reputation recorded on chain.', url);
     case 'deal.disputed':
       return withLink(
-        '*Deal moved to dispute*. Resolution is handled off-platform for now.',
+        '*Deal moved to dispute*. Either party can still propose a mutual cancel for a full refund.',
         url,
       );
     case 'deal.cancelled':
-      return withLink('*Deal cancelled*.', url);
+      return withLink(tg('dealCancelled', locale), url);
     case 'deal.cancel.proposed': {
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       const kind = (e.payload?.kind as string | undefined) ?? 'mutual';
       const reason = (e.payload?.reason as string | undefined) ?? '';
-      const reasonLine = reason ? `\nReason: ${reason}` : '';
+      const reasonLine = reason ? `\n${reason}` : '';
       const proposerSelf = proposedBy && proposedBy === role;
       if (proposerSelf) {
         return withLink(
-          `*Cancellation proposed*. Waiting on the other party to accept or decline.${reasonLine}`,
+          `${tg('cancelProposedFromSelf', locale)}${reasonLine}`,
           url,
         );
       }
-      const proposerLabel = proposedBy === 'buyer' ? 'The buyer' : 'The seller';
+      const key =
+        kind === 'platform-attributed'
+          ? 'cancelProposedFromOther.platform'
+          : 'cancelProposedFromOther.mutual';
+      const roleLabel = proposedBy === 'buyer' ? 'buyer' : 'seller';
       return withLink(
-        `*${proposerLabel} is proposing to cancel this deal* (${kind}). Open the deal to accept or decline.${reasonLine}`,
+        `${tg(key, locale, { role: roleLabel })}${reasonLine}`,
         url,
       );
     }
     case 'deal.cancel.declined': {
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       const proposerSelf = proposedBy && proposedBy === role;
-      if (proposerSelf) {
-        return withLink(
-          '*Your cancellation proposal was declined*. The deal continues as normal.',
-          url,
-        );
-      }
       return withLink(
-        '*You declined the cancellation proposal*. The deal continues as normal.',
+        proposerSelf
+          ? tg('cancelDeclinedToProposer', locale)
+          : tg('cancelDeclinedBySelf', locale),
         url,
       );
     }
     case 'escrow.milestone.released': {
       const idx = e.payload?.milestoneIndex as number | undefined;
-      const ordinal = idx === 0 ? 'First' : idx === 1 ? 'Final' : `Milestone ${idx ?? '?'}`;
-      return withLink(
+      const which: 'first' | 'final' = idx === 0 ? 'first' : 'final';
+      const key =
         role === 'seller'
-          ? `*${ordinal} milestone released*. Funds are on their way to your agent wallet.`
-          : `*${ordinal} milestone released* to the seller.`,
-        url,
-      );
+          ? (`milestoneReleasedToSeller.${which}` as const)
+          : (`milestoneReleasedToBuyer.${which}` as const);
+      return withLink(tg(key, locale), url);
     }
     case 'bid.accepted': {
       const price = (e.payload?.agreedPriceUsdc as string | undefined) ?? '';
+      const priceSuffix = price ? ` (${price} USDC)` : '';
       return withLink(
-        role === 'seller'
-          ? `*Your bid was accepted*${price ? ` at ${price} USDC` : ''}. Escrow funds next; you'll get another note when it lands.`
-          : `*Bid accepted*${price ? ` at ${price} USDC` : ''}. Escrow is being funded.`,
+        (role === 'seller'
+          ? tg('bidAcceptedToSeller', locale)
+          : tg('bidAcceptedToBuyer', locale)) + priceSuffix,
         url,
       );
     }
     case 'reputation.recorded': {
       const outcome = (e.payload?.outcome as string | undefined) ?? '';
+      if (outcome === 'Success') {
+        return withLink(
+          role === 'seller'
+            ? tg('reputationRecordedSuccessSeller', locale)
+            : tg('reputationRecordedSuccessBuyer', locale),
+          url,
+        );
+      }
       const friendly =
-        outcome === 'Success'
-          ? 'a successful settlement'
-          : outcome === 'DisputeResolved'
-            ? 'a resolved dispute'
-            : outcome === 'Failed'
-              ? 'a failed deal'
-              : 'an outcome';
+        outcome === 'DisputeResolved'
+          ? 'a resolved dispute'
+          : outcome === 'Failed'
+            ? 'a failed deal'
+            : 'an outcome';
       return withLink(
         role === 'seller'
           ? `*Reputation updated on chain* for ${friendly}. View your passport for the new score.`
@@ -265,9 +285,9 @@ function summaryFor(e: KarwanEvent, role: string): string | null {
       return withLink(`${header}\n${trimmed}`, url);
     }
     case 'bridge.minted':
-      return '*Bridge complete*. USDC minted on Arc.';
+      return withLink('*Bridge complete*. USDC minted on Arc.', null);
     case 'bridge.error':
-      return '*Bridge failed*. Check the activity feed.';
+      return withLink('*Bridge failed*. Check the activity feed.', null);
     default:
       return null;
   }
@@ -282,9 +302,17 @@ export function startTelegramNotifier(): () => void {
       for (const r of recipients) {
         const link = await getTelegramLink(r.address);
         if (!link) continue;
-        const text = summaryFor(e, r.role);
-        if (!text) continue;
-        await sendTelegramMessage(link.chatId, text);
+        // Respect the user's notification mute toggle from Settings. The link
+        // existing means they connected Telegram; the mute is a soft pause.
+        const profile = await getProfile(r.address);
+        if (profile?.settings?.notificationsMuted) continue;
+        const locale = (profile?.settings?.locale ?? 'en') as UserLocale;
+        const summary = summaryFor(e, r.role, locale);
+        if (!summary) continue;
+        const buttons = summary.url
+          ? [{ text: tg('openInKarwan', locale), url: summary.url }]
+          : undefined;
+        await sendTelegramMessage(link.chatId, summary.text, buttons);
       }
     } catch (err) {
       logger.warn({ err: (err as Error).message, type: e.type }, 'telegram notifier error');

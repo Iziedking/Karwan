@@ -387,6 +387,7 @@ export default function ProfilePage() {
         </div>
       </Band>
 
+
       <ActivationModal
         open={activationOpen}
         onClose={() => setActivationOpen(false)}

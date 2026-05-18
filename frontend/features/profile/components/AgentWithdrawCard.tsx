@@ -129,7 +129,7 @@ export function AgentWithdrawCard({
         Sweep from agent
       </h2>
       <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        Agent signs Â· settles on Arc
+        Agent signs · settles on Arc
       </p>
 
       <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-5">

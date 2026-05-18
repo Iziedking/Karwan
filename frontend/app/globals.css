@@ -180,6 +180,13 @@ html[data-theme="dark"] {
     color-scheme: dark;
   }
 
+  /* RTL (Arabic) layout is a v2 task. For now the document stays LTR even
+     when the locale is Arabic; browsers still render Arabic text segments
+     right-to-left via the unicode bidirectional algorithm, but the page
+     chrome (header, bands, cards) preserves its authored direction. Full
+     RTL requires migrating directional utilities to logical properties
+     across ~80 components. */
+
   ::selection {
     background: var(--color-ink);
     color: var(--color-bg);

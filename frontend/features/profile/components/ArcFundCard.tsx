@@ -191,7 +191,7 @@ export function ArcFundCard({
             Top up on Arc
           </h2>
           <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {isCircleUser ? 'One click Â· backend signs' : 'Single tx Â· settles in ~3s'}
+            {isCircleUser ? 'One click · backend signs' : 'Single tx · settles in ~3s'}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -358,7 +358,7 @@ export function ArcFundCard({
               [:AMOUNT:]
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              Arc Â·{' '}
+              Arc ·{' '}
               {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '-'}
             </span>
           </div>
@@ -570,7 +570,7 @@ function FundRow({
               {formatUsdc(record.amountUsdc, { withSuffix: false })}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
-              â†’ {record.agentKey}
+              → {record.agentKey}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -582,7 +582,7 @@ function FundRow({
               {phaseLabel(record.phase)}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-none">
-              Â· {elapsed(record.startedAt)}
+              · {elapsed(record.startedAt)}
             </span>
             {isSlow && (
               <span
@@ -696,7 +696,7 @@ function FundRow({
                 className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
               >
                 <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  Tx Â· Arc
+                  Tx · Arc
                 </span>
                 <span className="mono inline-flex items-center gap-1 tabular-nums">
                   {shortHash(record.txHash)}

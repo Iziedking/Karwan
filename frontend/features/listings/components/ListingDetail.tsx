@@ -148,7 +148,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               aria-hidden
               className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
             >
-              â†
+              ←
             </span>
             Back to seller
           </Link>
@@ -231,7 +231,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 <p className="mono text-[13px] text-[var(--lp-dark)] tabular-nums">
                   {shortAddress(listing.sellerUser)}
                   {viewerIsOwner && (
-                    <span style={{ color: 'var(--lp-accent)' }}> Â· you</span>
+                    <span style={{ color: 'var(--lp-accent)' }}> · you</span>
                   )}
                 </p>
               </div>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, lightTheme, darkTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { wagmiConfig } from '@/core/wagmi';
+import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 
 type Mode = 'light' | 'dark';
 
@@ -37,12 +38,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
         });
 
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
-          {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <LocaleProvider>
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
+            {children}
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </LocaleProvider>
   );
 }

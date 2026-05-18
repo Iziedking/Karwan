@@ -8,6 +8,17 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'profiles.json');
 
 export type Role = 'buyer' | 'seller' | 'both';
 
+export type UserLocale = 'en' | 'ar' | 'fr' | 'hi' | 'sw';
+export type ThemePreference = 'light' | 'dark' | 'system';
+
+export interface UserSettings {
+  locale?: UserLocale;
+  theme?: ThemePreference;
+  soundEnabled?: boolean;
+  notificationsMuted?: boolean;
+  publicPassport?: boolean;
+}
+
 export interface UserProfile {
   address: string;
   role: Role;
@@ -25,6 +36,9 @@ export interface UserProfile {
   /// The user's X display picture URL. Profile avatars prefer this over the
   /// generated mark when present. Refreshed each time the user re-OAuths.
   xProfileImageUrl?: string;
+  /// User preferences. Includes locale (used to localise Telegram + email
+  /// notifications backend-side) and other app-wide toggles.
+  settings?: UserSettings;
   seller?: {
     skills: string[];
     bio: string;

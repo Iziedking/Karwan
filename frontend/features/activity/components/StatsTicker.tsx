@@ -10,7 +10,7 @@ interface TickerItem {
 // Static brand facts, shown until the live numbers load (and never fabricated).
 const BASE_ITEMS: TickerItem[] = [
   { value: 'ARC TESTNET', label: 'CHAIN 5042002' },
-  { value: 'CIRCLE', label: 'USDC Â· CCTP Â· WALLETS' },
+  { value: 'CIRCLE', label: 'USDC · CCTP · WALLETS' },
   { value: 'ERC-8004', label: 'PORTABLE REPUTATION' },
 ];
 

@@ -10,6 +10,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { ProfileAvatar } from './ProfileAvatar';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 // Landing routes are forced dark via these var overrides, so every embedded
 // child (BalanceRail, bell, toggles, ConnectWalletButton) picks up dark mode
@@ -28,6 +29,7 @@ export function TopNav() {
   const pathname = usePathname();
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
   const [menuOpen, setMenuOpen] = useState(false);
+  const t = useTranslations();
 
   useEffect(() => {
     setMenuOpen(false);
@@ -94,7 +96,7 @@ export function TopNav() {
             className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
           >
             <NavLink href="/app" active={pathname === '/app'}>
-              Home
+              {t.nav.home}
             </NavLink>
             <NavLink
               href="/buyer"
@@ -104,10 +106,10 @@ export function TopNav() {
                 pathname.startsWith('/deals')
               }
             >
-              Buyer
+              {t.nav.buyer}
             </NavLink>
             <NavLink href="/seller" active={pathname.startsWith('/seller')}>
-              Seller
+              {t.nav.seller}
             </NavLink>
             <NavLink href="/listings" active={pathname.startsWith('/listings')}>
               Market
@@ -116,13 +118,13 @@ export function TopNav() {
               SME Trades
             </NavLinkSoon>
             <NavLink href="/activity" active={pathname.startsWith('/activity')}>
-              Activity
+              {t.nav.activity}
             </NavLink>
             <NavLink href="/stake" active={pathname.startsWith('/stake')}>
-              Stake
+              {t.nav.stake}
             </NavLink>
             <NavLink href="/profile" active={pathname.startsWith('/profile')}>
-              Profile
+              {t.nav.profile}
             </NavLink>
             <ExternalNavLink href="https://testnet.arcscan.app">Explorer</ExternalNavLink>
           </nav>
@@ -142,9 +144,11 @@ export function TopNav() {
                 <NotificationBell />
                 <SoundToggle />
                 <ThemeToggle />
+                <SettingsIconLink active={pathname.startsWith('/settings')} />
               </div>
-              <div className="md:hidden inline-flex">
+              <div className="md:hidden inline-flex items-center gap-0.5">
                 <NotificationBell />
+                <SettingsIconLink active={pathname.startsWith('/settings')} />
               </div>
               <ConnectWalletButton />
               <ProfileAvatar />
@@ -170,7 +174,7 @@ export function TopNav() {
         >
           <nav className="px-4 py-3 flex flex-col text-[14px]">
             <MobileNavLink href="/app" active={pathname === '/app'}>
-              Home
+              {t.nav.home}
             </MobileNavLink>
             <MobileNavLink
               href="/buyer"
@@ -180,23 +184,23 @@ export function TopNav() {
                 pathname.startsWith('/deals')
               }
             >
-              Buyer
+              {t.nav.buyer}
             </MobileNavLink>
             <MobileNavLink href="/seller" active={pathname.startsWith('/seller')}>
-              Seller
+              {t.nav.seller}
             </MobileNavLink>
             <MobileNavLink href="/listings" active={pathname.startsWith('/listings')}>
               Market
             </MobileNavLink>
             <MobileNavLinkSoon>SME Trades</MobileNavLinkSoon>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
-              Activity
+              {t.nav.activity}
             </MobileNavLink>
             <MobileNavLink href="/stake" active={pathname.startsWith('/stake')}>
-              Stake
+              {t.nav.stake}
             </MobileNavLink>
             <MobileNavLink href="/profile" active={pathname.startsWith('/profile')}>
-              Profile
+              {t.nav.profile}
             </MobileNavLink>
             <a
               href="https://testnet.arcscan.app"
@@ -351,6 +355,33 @@ function ExternalNavLink({ href, children }: { href: string; children: React.Rea
         />
       </svg>
     </a>
+  );
+}
+
+function SettingsIconLink({ active }: { active: boolean }) {
+  return (
+    <Link
+      href="/settings"
+      aria-label="Settings"
+      title="Settings"
+      className={cn(
+        'inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
+        active
+          ? 'bg-[var(--color-surface-2)] text-[var(--color-ink)]'
+          : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
+      )}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </Link>
   );
 }
 

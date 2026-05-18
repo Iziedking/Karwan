@@ -90,7 +90,7 @@ export function SignInGate({
               }}
             >
               {buttonLabel}
-              <span aria-hidden>â†’</span>
+              <span aria-hidden>→</span>
             </button>
           </div>
         </div>

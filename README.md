@@ -57,6 +57,13 @@ Everything else runs on the same spine: USDC settlement, milestone escrow with
 a 1.5% fee split, review-window timers with auto-release, on-chain reputation
 events, CCTP V2 for moving USDC across chains.
 
+The app ships with a five-language framework: English (default), Arabic,
+French, Hindi, and Swahili. Pick yours during onboarding or switch any time
+from the Settings page (gear icon, top right). At launch, the Settings page,
+the top navigation, the onboarding language step, and Telegram notifications
+are fully localised; the rest of the product is being extracted progressively
+and will land in v2 alongside an Arabic RTL layout audit.
+
 ## Repo layout
 
 ```
@@ -201,11 +208,11 @@ tracks:
 - **File delivery and storage.** Cloudflare R2 with TTL for the default flow,
   IPFS content-addressed delivery as an opt-in for trade-document workflows
   where tamper evidence matters. Files run through a hash-first scan pipeline.
-- **Settings and multi-language.** A consolidated Settings card on `/profile`
-  for timezone, currency display, notifications, theme, sound, and privacy.
-  Onboarding gains a language picker. Five locales at launch: English (default),
-  Arabic with RTL, French, Hindi, Swahili. The user's locale follows them into
-  Telegram and email notifications.
+- **Full localisation + RTL audit.** The framework + critical surfaces ship
+  at launch (Settings page, top nav, Telegram notifications, onboarding step
+  1). v2 completes the work: extracting every literal string across the
+  product and migrating directional CSS so Arabic renders right-to-left
+  without breaking layout. All five locales reach full coverage together.
 - **Credit Passport, invoice factoring, USYC treasury routing.** The Track 2
   surface. A public Credit Passport page for any wallet, an invoice factoring
   micro-flow for STRONG and ELITE sellers, and idle treasury USDC routed

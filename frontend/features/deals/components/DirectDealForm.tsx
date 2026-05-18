@@ -269,7 +269,7 @@ export function DirectDealForm() {
         >
           <div className="px-5 py-4 border-b border-[var(--lp-border-light)]">
             <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-              FUNDING BREAKDOWN Â· 1.5% FEE, SPLIT EVENLY
+              FUNDING BREAKDOWN · 1.5% FEE, SPLIT EVENLY
             </p>
           </div>
           <div className="px-5 py-4 space-y-2.5">
@@ -278,7 +278,7 @@ export function DirectDealForm() {
             <FeeLine label="Platform fee" value={fee.feeTotal} faint />
           </div>
           <div className="px-5 py-3 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-            â†³ {previewPct}% on delivery Â· {100 - previewPct}% on verification Â· funds when seller
+            ↳ {previewPct}% on delivery · {100 - previewPct}% on verification · funds when seller
             accepts
           </div>
         </div>
@@ -323,13 +323,13 @@ export function DirectDealForm() {
               aria-hidden
               className="transition-transform duration-200 group-hover:translate-x-0.5"
             >
-              â†—
+              ↗
             </span>
           )}
         </button>
         {!submitting && (
           <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-            â†³ funds when seller accepts
+            ↳ funds when seller accepts
           </p>
         )}
       </div>

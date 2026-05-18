@@ -115,9 +115,20 @@ export default function AppHome() {
               Agents run the auction. You approve the terms.
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/buyer">Post a brief â†—</CTAPill>
+              {(profile.role === 'buyer' || profile.role === 'both') && (
+                <CTAPill href="/buyer">Post a brief →</CTAPill>
+              )}
+              {(profile.role === 'seller' || profile.role === 'both') && (
+                <CTAPill
+                  href="/seller"
+                  variant={profile.role === 'seller' ? 'primary' : 'secondary'}
+                  tone="dark"
+                >
+                  Post a listing →
+                </CTAPill>
+              )}
               <CTAPill href="/activity" variant="secondary" tone="dark">
-                View activity â†’
+                View activity →
               </CTAPill>
               <span className="ml-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
@@ -205,7 +216,7 @@ export default function AppHome() {
           >
             Full feed
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
-              â†’
+              →
             </span>
           </Link>
         </div>
@@ -499,12 +510,12 @@ function BriefVignette() {
     <div className="px-4 py-4 space-y-3 flex-1 flex flex-col">
       <div className="flex items-center justify-between">
         <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          BRIEF Â· 0x12ab
+          BRIEF · 0x12ab
         </span>
         <span className="mono text-[10px] tabular-nums text-[var(--lp-text-sub)]">2 min</span>
       </div>
       <p className="text-[13px] font-semibold leading-snug text-[var(--lp-dark)]">
-        Spanish â†’ Arabic legal translation. 14 pages.
+        Spanish → Arabic legal translation. 14 pages.
       </p>
       <div className="flex items-baseline gap-1.5">
         <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -514,7 +525,7 @@ function BriefVignette() {
           USDC
         </span>
         <span className="ml-2 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
-          Â· 5d Â· {bids} bids
+          · 5d · {bids} bids
         </span>
       </div>
       <div className="flex gap-[2px] pt-1">

@@ -89,6 +89,16 @@ export interface SellerActiveBid {
 }
 
 export type UserRole = 'buyer' | 'seller' | 'both';
+export type UserLocale = 'en' | 'ar' | 'fr' | 'hi' | 'sw';
+export type ThemePreference = 'light' | 'dark' | 'system';
+
+export interface UserSettings {
+  locale?: UserLocale;
+  theme?: ThemePreference;
+  soundEnabled?: boolean;
+  notificationsMuted?: boolean;
+  publicPassport?: boolean;
+}
 
 export interface UserProfile {
   address: string;
@@ -99,6 +109,7 @@ export interface UserProfile {
   xHandle?: string;
   xUserId?: string;
   xProfileImageUrl?: string;
+  settings?: UserSettings;
   seller?: {
     skills: string[];
     bio: string;
@@ -403,6 +414,13 @@ export const api = {
     json<{ profile: UserProfile }>('/api/profile/x-handle', {
       method: 'POST',
       body: JSON.stringify({ address, handle }),
+    }),
+  getSettings: (address: string) =>
+    json<{ settings: UserSettings }>(`/api/settings?address=${address}`),
+  saveSettings: (address: string, settings: UserSettings) =>
+    json<{ settings: UserSettings }>('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({ address, settings }),
     }),
   xStatus: () => json<{ configured: boolean }>('/api/x/status'),
   xOauthStart: (address: string, returnTo?: string) =>

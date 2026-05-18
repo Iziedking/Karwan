@@ -66,7 +66,7 @@ export function ActivityStats({
               {counts[g]}
             </p>
             <p className="mt-2 mono text-[10px] uppercase tracking-[0.16em] text-white/55">
-              {active ? 'â†³ filtering' : 'events'}
+              {active ? '↳ filtering' : 'events'}
             </p>
             {active && (
               <span
