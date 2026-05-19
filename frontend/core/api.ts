@@ -442,6 +442,7 @@ export const api = {
         address: string;
         method: 'web3' | 'circle';
         email?: string;
+        hasPasskey?: boolean;
       } | null;
     }>('/api/auth/me'),
   authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
@@ -450,6 +451,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
+  authPasskeyAddOptions: () =>
+    json<{ options: PublicKeyCredentialCreationOptionsJSON }>(
+      '/api/auth/passkey/add/options',
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  authPasskeyAddVerify: (email: string, response: RegistrationResponseJSON) =>
+    json<{ ok: boolean }>(
+      '/api/auth/passkey/add/verify',
+      { method: 'POST', body: JSON.stringify({ email, response }) },
+    ),
   authRegisterOptions: (email: string) =>
     json<{ options: PublicKeyCredentialCreationOptionsJSON }>(
       '/api/auth/register/options',

@@ -1,6 +1,10 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { api, type UserSettings, type ThemePreference } from '@/core/api';
+import {
+  startRegistration,
+  browserSupportsWebAuthn,
+} from '@simplewebauthn/browser';
+import { api, ApiError, type UserSettings, type ThemePreference } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Locale } from '@/shared/i18n/locales';
@@ -16,7 +20,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export function SettingsBand() {
-  const { address, isAuthenticated } = useAuth();
+  const { address, isAuthenticated, method, email, hasPasskey, refresh } = useAuth();
   const t = useTranslations();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
@@ -145,6 +149,14 @@ export function SettingsBand() {
         />
       </Row>
 
+      {method === 'circle' && email && (
+        <PasskeyRow
+          hasPasskey={hasPasskey}
+          email={email}
+          onAdded={() => refresh()}
+        />
+      )}
+
       <div
         className="mt-6 pt-5 border-t"
         style={{ borderColor: 'var(--color-line)' }}
@@ -203,6 +215,82 @@ export function SettingsBand() {
         </p>
       )}
     </section>
+  );
+}
+
+function PasskeyRow({
+  hasPasskey,
+  email,
+  onAdded,
+}: {
+  hasPasskey: boolean;
+  email: string;
+  onAdded: () => void | Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [justAdded, setJustAdded] = useState(false);
+  const supports = typeof window !== 'undefined' ? browserSupportsWebAuthn() : true;
+
+  async function addPasskey() {
+    setBusy(true);
+    setError(null);
+    try {
+      const optsRes = await api.authPasskeyAddOptions();
+      const attResp = await startRegistration({ optionsJSON: optsRes.options });
+      await api.authPasskeyAddVerify(email, attResp);
+      setJustAdded(true);
+      await onAdded();
+    } catch (err) {
+      const e = err as Error & { name?: string };
+      if (e.name === 'NotAllowedError' || /timed out|not allowed/i.test(e.message ?? '')) {
+        setError('Passkey setup cancelled. Try again any time.');
+      } else {
+        const detail =
+          err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+        setError(detail || 'Could not add a passkey.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Row label="Sign-in" hint="A passkey is faster than a code on every login and works offline.">
+      {hasPasskey || justAdded ? (
+        <div className="inline-flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ background: 'var(--color-accent, #b25425)' }}
+          />
+          <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-ink-dim)]">
+            Passkey active
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={addPasskey}
+            disabled={busy || !supports}
+            className="inline-flex items-center gap-2 px-4 py-2 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--color-ink)] text-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            style={{ borderRadius: 3 }}
+          >
+            {busy ? 'Setting up…' : 'Add a passkey'}
+            <span aria-hidden>→</span>
+          </button>
+          {!supports && (
+            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+              This browser has no passkey support.
+            </p>
+          )}
+          {error && (
+            <p className="mono text-[11px] text-[var(--color-critical)]">{error}</p>
+          )}
+        </div>
+      )}
+    </Row>
   );
 }
 

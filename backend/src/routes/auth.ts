@@ -17,6 +17,7 @@ import type {
 } from '@simplewebauthn/server';
 import { config } from '../config.js';
 import {
+  appendCredential,
   bumpCounter,
   createUser,
   getUserByCredentialId,
@@ -321,11 +322,20 @@ authRoutes.get('/status', (c) => {
 authRoutes.get('/me', (c) => {
   const session = readSession(c);
   if (!session) return c.json({ user: null });
+  // Surface hasPasskey so the frontend can decide whether to offer an "Add
+  // a passkey" CTA in Settings. Only meaningful for Circle users; wallet
+  // users don't have a credentials row.
+  let hasPasskey = false;
+  if (session.method === 'circle' && session.email) {
+    const user = getUserByEmail(session.email);
+    hasPasskey = !!user && user.credentials.length > 0;
+  }
   return c.json({
     user: {
       address: session.address,
       method: session.method,
       email: session.email,
+      hasPasskey,
     },
   });
 });
@@ -356,6 +366,134 @@ authRoutes.post('/lookup', async (c) => {
     exists: !!user,
     hasPasskey: !!user && user.credentials.length > 0,
   });
+});
+
+// ---------- ADD PASSKEY (authenticated, existing account) ----------
+
+/// For users who signed up via OTP and want to add a passkey to their account
+/// later. Mirrors the /register/options flow but requires an active session
+/// instead of taking an email argument, so the user can only add a passkey
+/// to their OWN account. Reuses the same WebAuthn helpers and stores the
+/// new credential via appendCredential().
+authRoutes.post('/passkey/add/options', async (c) => {
+  const session = readSession(c);
+  if (!session || session.method !== 'circle' || !session.email) {
+    return c.json({ error: 'not signed in' }, 401);
+  }
+  purgeStale();
+  const user = getUserByEmail(session.email);
+  if (!user) return c.json({ error: 'no account row for this session' }, 404);
+  const { id: rpID, name: rpName } = rp();
+  const options = await generateRegistrationOptions({
+    rpName,
+    rpID,
+    userID: userIdBytes(session.email),
+    userName: session.email,
+    userDisplayName: session.email,
+    attestationType: 'none',
+    authenticatorSelection: {
+      residentKey: 'preferred',
+      userVerification: 'preferred',
+    },
+    // Exclude credentials the user already has so the platform offers fresh
+    // authenticators rather than asking them to overwrite an existing key.
+    excludeCredentials: user.credentials.map((c) => ({
+      id: c.credentialId,
+      transports: c.transports as AuthenticatorTransportFuture[] | undefined,
+    })),
+  });
+  pending.set(session.email, {
+    challenge: options.challenge,
+    email: session.email,
+    kind: 'register',
+    expiresAt: Date.now() + PENDING_TTL_MS,
+  });
+  return c.json({ options });
+});
+
+const passkeyAddVerifySchema = z.object({
+  email: emailSchema,
+  response: z.any(),
+});
+
+authRoutes.post('/passkey/add/verify', async (c) => {
+  const session = readSession(c);
+  if (!session || session.method !== 'circle' || !session.email) {
+    return c.json({ error: 'not signed in' }, 401);
+  }
+  let body;
+  try {
+    body = passkeyAddVerifySchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Guard against the body email diverging from the session email. A user
+  // can only add a passkey to their own account.
+  if (body.email !== session.email) {
+    return c.json({ error: 'email mismatch' }, 403);
+  }
+  const challenge = pending.get(session.email);
+  if (!challenge || challenge.kind !== 'register') {
+    return c.json({ error: 'no pending passkey add for this session' }, 400);
+  }
+  pending.delete(session.email);
+
+  const { id: rpID, origin } = rp();
+  let verification;
+  try {
+    verification = await verifyRegistrationResponse({
+      response: body.response as RegistrationResponseJSON,
+      expectedChallenge: challenge.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      requireUserVerification: false,
+    });
+  } catch (err) {
+    logger.warn(
+      {
+        err: (err as Error).message,
+        email: session.email,
+        expectedRPID: rpID,
+        expectedOrigins: origin,
+        clientDataJSON: (body.response as RegistrationResponseJSON)?.response?.clientDataJSON,
+      },
+      'passkey add verify failed',
+    );
+    return c.json({ error: 'attestation verification failed' }, 400);
+  }
+  if (!verification.verified || !verification.registrationInfo) {
+    return c.json({ error: 'attestation invalid' }, 400);
+  }
+
+  const info = verification.registrationInfo as unknown as {
+    credentialID?: Uint8Array | Buffer | string;
+    credentialPublicKey?: Uint8Array | Buffer;
+    counter?: number;
+    credential?: {
+      id: string | Uint8Array | Buffer;
+      publicKey: Uint8Array | Buffer;
+      counter: number;
+    };
+  };
+
+  function toB64Url(x: Uint8Array | Buffer | string): string {
+    if (typeof x === 'string') return x;
+    const buf = Buffer.isBuffer(x) ? x : Buffer.from(x);
+    return buf.toString('base64url');
+  }
+
+  const credentialId = toB64Url(info.credential?.id ?? info.credentialID!);
+  const publicKeyBytes = info.credential?.publicKey ?? info.credentialPublicKey!;
+  const counter = info.credential?.counter ?? info.counter ?? 0;
+
+  appendCredential(session.email, {
+    credentialId,
+    publicKey: toB64Url(publicKeyBytes),
+    counter,
+    createdAt: Date.now(),
+  });
+  logger.info({ email: session.email }, 'passkey added to existing account');
+  return c.json({ ok: true });
 });
 
 // ---------- REGISTER (new user) ----------

@@ -11,6 +11,9 @@ export interface AuthState {
   address: string | null;
   method: AuthMethod | null;
   email?: string;
+  /// True when a Circle user has at least one passkey credential on their
+  /// account. Always false for web3 wallet users.
+  hasPasskey: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -19,6 +22,7 @@ interface CircleSession {
   address: string;
   method: 'circle';
   email?: string;
+  hasPasskey: boolean;
 }
 
 /// Window event fired whenever the auth state changes (sign in or sign out).
@@ -57,7 +61,12 @@ export function useAuth(): AuthState & {
     try {
       const r = await api.authMe();
       if (r.user?.method === 'circle') {
-        setCircle({ address: r.user.address, method: 'circle', email: r.user.email });
+        setCircle({
+          address: r.user.address,
+          method: 'circle',
+          email: r.user.email,
+          hasPasskey: !!r.user.hasPasskey,
+        });
       } else {
         setCircle(null);
       }
@@ -112,6 +121,7 @@ export function useAuth(): AuthState & {
     address,
     method,
     email: circle?.email,
+    hasPasskey: !!circle?.hasPasskey,
     isAuthenticated: !!address,
     isLoading: !loaded,
     signOut,
