@@ -49,6 +49,7 @@ export type KarwanEventType =
   | 'agent.skipped'
   | 'agent.declined'
   | 'agent.error'
+  | 'agent.fallback'
   | 'vault.deposit'
   | 'vault.withdraw.requested'
   | 'vault.withdraw.cancelled'
