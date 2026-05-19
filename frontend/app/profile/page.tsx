@@ -145,11 +145,7 @@ export default function ProfilePage() {
             </div>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {profile ? (
-                <CTAPill
-                  variant="secondary"
-                  tone="dark"
-                  onClick={() => router.push('/onboarding?edit=1')}
-                >
+                <CTAPill href="/onboarding?edit=1" variant="secondary" tone="dark">
                   Edit details
                 </CTAPill>
               ) : (
