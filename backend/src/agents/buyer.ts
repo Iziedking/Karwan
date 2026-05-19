@@ -1518,31 +1518,42 @@ export async function backfillRecentJobs(fromBlock?: bigint) {
   for (const log of logs) await handleJobPosted(log as unknown as Log, { silent: true });
 }
 
-/// Replays a single JobPosted log for the given jobId, scanning a wide
-/// history window. Lets the API route recover a job state that was lost from
-/// the in-memory map (e.g. after a backend restart whose default backfill
-/// window did not reach the original JobPosted block). Returns true when the
-/// in-memory state was successfully restored.
+/// Restores a single job's in-memory state by reading it directly from the
+/// JobBoard contract. Cheap O(1) call, no log scanning. Used by the API
+/// route to recover from a backend restart that wiped the in-memory `jobs`
+/// map. Returns true when the state was successfully restored.
 export async function reseedJobFromChain(jobId: string): Promise<boolean> {
   if (jobs.has(jobId as `0x${string}`)) return true;
   try {
-    const latest = await publicClient.getBlockNumber();
-    // Scan up to ~6 months on Arc Testnet (2s blocks ≈ 15.5M blocks). Capped
-    // to keep the RPC call bounded.
-    const from = latest > 2_500_000n ? latest - 2_500_000n : 0n;
-    const logs = await publicClient.getLogs({
+    const result = (await publicClient.readContract({
       address: jobBoard.address,
-      event: jobBoardAbi.find((x) => x.type === 'event' && x.name === 'JobPosted')! as never,
-      fromBlock: from,
-      toBlock: latest,
-    });
-    const target = jobId.toLowerCase();
-    const match = logs.find((l) => {
-      const args = (l as unknown as { args?: { jobId?: string } }).args;
-      return args?.jobId?.toLowerCase() === target;
-    });
-    if (!match) return false;
-    await handleJobPosted(match as unknown as Log, { silent: true });
+      abi: jobBoardAbi,
+      functionName: 'jobs',
+      args: [jobId as `0x${string}`],
+    })) as readonly [
+      `0x${string}`, // buyer
+      bigint, // budget
+      bigint, // deadline (uint64)
+      string, // termsHash
+      number, // state (uint8 enum)
+      `0x${string}`, // acceptedSeller
+      bigint, // acceptedPrice
+      bigint, // acceptedDeadline (uint64)
+    ];
+    const buyerAddr = result[0];
+    if (buyerAddr === '0x0000000000000000000000000000000000000000') return false;
+    const syntheticLog = {
+      transactionHash: `0x${jobId.slice(2)}` as `0x${string}`,
+      logIndex: 0,
+      args: {
+        jobId: jobId as `0x${string}`,
+        buyer: buyerAddr,
+        budget: result[1],
+        deadline: result[2],
+        termsHash: result[3],
+      },
+    } as unknown as Log;
+    await handleJobPosted(syntheticLog, { silent: true });
     return jobs.has(jobId as `0x${string}`);
   } catch (err) {
     logger.warn({ err: (err as Error).message, jobId }, 'reseedJobFromChain failed');
