@@ -47,14 +47,24 @@ export function Hint({
   }, [open, align, side, children]);
 
   // Close on outside scroll/resize so the tooltip never drifts off its anchor.
+  // Also close on outside tap so touch users can dismiss without finding the
+  // trigger again.
   useEffect(() => {
     if (!open) return;
     const close = () => setOpen(false);
+    const closeOnOutsideTap = (e: PointerEvent) => {
+      if (!triggerRef.current) return;
+      if (triggerRef.current.contains(e.target as Node)) return;
+      if (tooltipRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
     window.addEventListener('scroll', close, true);
     window.addEventListener('resize', close);
+    window.addEventListener('pointerdown', closeOnOutsideTap, true);
     return () => {
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('resize', close);
+      window.removeEventListener('pointerdown', closeOnOutsideTap, true);
     };
   }, [open]);
 
@@ -64,10 +74,28 @@ export function Hint({
       role="button"
       tabIndex={0}
       aria-label="Details"
+      aria-expanded={open}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onBlur={(e) => {
+        // Don't close if focus moves into the tooltip itself.
+        if (tooltipRef.current?.contains(e.relatedTarget as Node)) return;
+        setOpen(false);
+      }}
+      onClick={(e) => {
+        // Touch devices don't fire hover events. Tap toggles.
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen((v) => !v);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setOpen((v) => !v);
+        }
+        if (e.key === 'Escape') setOpen(false);
+      }}
       className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus:outline-none focus-visible:text-[var(--color-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 transition-colors duration-150 cursor-help"
     >
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden className="block">

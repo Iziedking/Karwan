@@ -270,11 +270,23 @@ function purgeStale() {
   }
 }
 
-function rp(): { id: string; name: string; origin: string } {
+function rp(): { id: string; name: string; origin: string[] } {
+  const id = config.WEBAUTHN_RP_ID ?? 'localhost';
+  const baseOrigin = config.WEBAUTHN_ORIGIN ?? 'http://localhost:3000';
+  // Accept the apex + www variant + localhost dev origins. Mobile browsers
+  // sometimes land on www.<domain> via autocomplete, and a passkey registered
+  // on the apex must still validate from www and back.
+  const origins = new Set<string>([baseOrigin, baseOrigin.replace(/\/$/, '')]);
+  if (id !== 'localhost') {
+    origins.add(`https://${id}`);
+    origins.add(`https://www.${id}`);
+  }
+  origins.add('http://localhost:3000');
+  origins.add('http://127.0.0.1:3000');
   return {
-    id: config.WEBAUTHN_RP_ID ?? 'localhost',
+    id,
     name: config.WEBAUTHN_RP_NAME ?? 'Karwan',
-    origin: config.WEBAUTHN_ORIGIN ?? 'http://localhost:3000',
+    origin: Array.from(origins),
   };
 }
 
@@ -396,7 +408,16 @@ authRoutes.post('/register/verify', async (c) => {
       requireUserVerification: false,
     });
   } catch (err) {
-    logger.warn({ err: (err as Error).message, email: body.email }, 'register verify failed');
+    logger.warn(
+      {
+        err: (err as Error).message,
+        email: body.email,
+        expectedRPID: rpID,
+        expectedOrigins: origin,
+        clientDataJSON: (body.response as RegistrationResponseJSON)?.response?.clientDataJSON,
+      },
+      'register verify failed',
+    );
     return c.json({ error: 'attestation verification failed' }, 400);
   }
   if (!verification.verified || !verification.registrationInfo) {
@@ -553,7 +574,16 @@ authRoutes.post('/login/verify', async (c) => {
       },
     } as Parameters<typeof verifyAuthenticationResponse>[0]);
   } catch (err) {
-    logger.warn({ err: (err as Error).message, email: body.email }, 'login verify failed');
+    logger.warn(
+      {
+        err: (err as Error).message,
+        email: body.email,
+        expectedRPID: rpID,
+        expectedOrigins: origin,
+        clientDataJSON: response?.response?.clientDataJSON,
+      },
+      'login verify failed',
+    );
     return c.json({ error: 'assertion verification failed' }, 400);
   }
   if (!verification.verified) {
