@@ -9,7 +9,7 @@ import {
 } from '../agents/buyer.js';
 import { deleteBriefsByPoster } from '../db/briefs.js';
 import { deleteListingsBySeller } from '../db/listings.js';
-import { deleteDealsInvolvingAddress } from '../db/deals.js';
+import { deleteDealsInvolvingAddress, getDeal, patchDeal } from '../db/deals.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
@@ -64,6 +64,24 @@ adminRoutes.post('/reset-history', async (c) => {
     address: target,
     removed: { briefs, listings, deals, proposals, buyerJobs },
   });
+});
+
+/// Surgical force-cancel for a single deal that's stuck off-chain (e.g.
+/// orphaned by a contract redeploy, where the recorded acceptedAt no longer
+/// maps to a Funded escrow on the current contract). Sets cancelledAt on the
+/// off-chain record so the UI moves the deal into a terminal state. Does
+/// NOT touch the chain — the deal was never actually funded on the live
+/// contract anyway. Use sparingly; the on-chain path is always preferred.
+adminRoutes.post('/deals/:jobId/force-cancel', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  if (deal.cancelledAt) {
+    return c.json({ ok: true, jobId, alreadyCancelled: true });
+  }
+  await patchDeal(jobId, { cancelledAt: Date.now() });
+  logger.warn({ jobId, buyer: deal.buyer, seller: deal.seller }, 'admin: force-cancelled deal');
+  return c.json({ ok: true, jobId, forced: true });
 });
 
 /// Backend runtime errors captured by the process-wide tracker. Returns up
