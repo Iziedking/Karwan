@@ -7,6 +7,7 @@ import { executeContractCall } from '../chain/txs.js';
 import {
   getBuyerSnapshot,
   getBuyerJob,
+  reseedJobFromChain,
   getMatchProposal,
   listMatchProposalsForUser,
   approveAgentMatch,
@@ -78,9 +79,16 @@ jobsRoutes.get('/marketplace', (c) => {
   return c.json({ briefs });
 });
 
-jobsRoutes.get('/:jobId', (c) => {
+jobsRoutes.get('/:jobId', async (c) => {
   const jobId = c.req.param('jobId');
-  const job = getBuyerJob(jobId);
+  let job = getBuyerJob(jobId);
+  // Backend restarts wipe the in-memory jobs Map. If the boot backfill window
+  // didn't reach this job's JobPosted block, the route would 404 even when a
+  // match proposal exists. Try an on-demand reseed before giving up.
+  if (!job) {
+    const ok = await reseedJobFromChain(jobId);
+    if (ok) job = getBuyerJob(jobId);
+  }
   if (!job) return c.json({ error: 'not found' }, 404);
   // Merge the off-chain brief metadata (human-readable text, negotiation
   // ceiling) into the response so the job page can render it inline. The

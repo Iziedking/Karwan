@@ -1460,6 +1460,38 @@ export async function backfillRecentJobs(fromBlock?: bigint) {
   for (const log of logs) await handleJobPosted(log as unknown as Log, { silent: true });
 }
 
+/// Replays a single JobPosted log for the given jobId, scanning a wide
+/// history window. Lets the API route recover a job state that was lost from
+/// the in-memory map (e.g. after a backend restart whose default backfill
+/// window did not reach the original JobPosted block). Returns true when the
+/// in-memory state was successfully restored.
+export async function reseedJobFromChain(jobId: string): Promise<boolean> {
+  if (jobs.has(jobId as `0x${string}`)) return true;
+  try {
+    const latest = await publicClient.getBlockNumber();
+    // Scan up to ~6 months on Arc Testnet (2s blocks ≈ 15.5M blocks). Capped
+    // to keep the RPC call bounded.
+    const from = latest > 2_500_000n ? latest - 2_500_000n : 0n;
+    const logs = await publicClient.getLogs({
+      address: jobBoard.address,
+      event: jobBoardAbi.find((x) => x.type === 'event' && x.name === 'JobPosted')! as never,
+      fromBlock: from,
+      toBlock: latest,
+    });
+    const target = jobId.toLowerCase();
+    const match = logs.find((l) => {
+      const args = (l as unknown as { args?: { jobId?: string } }).args;
+      return args?.jobId?.toLowerCase() === target;
+    });
+    if (!match) return false;
+    await handleJobPosted(match as unknown as Log, { silent: true });
+    return jobs.has(jobId as `0x${string}`);
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, jobId }, 'reseedJobFromChain failed');
+    return false;
+  }
+}
+
 interface JobPostedArgs {
   jobId: `0x${string}`;
   buyer: `0x${string}`;
