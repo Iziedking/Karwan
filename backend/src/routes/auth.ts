@@ -335,6 +335,29 @@ authRoutes.post('/logout', (c) => {
   return c.json({ ok: true });
 });
 
+// ---------- LOOKUP (unified login surface) ----------
+
+/// One round-trip the frontend makes after the user enters their email.
+/// Tells the UI which path to drive: register vs sign-in, passkey vs OTP.
+/// Never reveals whether passkey *credentials* exist for security; only
+/// whether any account row exists, and whether that row has at least one
+/// passkey credential attached.
+const lookupSchema = z.object({ email: emailSchema });
+
+authRoutes.post('/lookup', async (c) => {
+  let body;
+  try {
+    body = lookupSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const user = getUserByEmail(body.email);
+  return c.json({
+    exists: !!user,
+    hasPasskey: !!user && user.credentials.length > 0,
+  });
+});
+
 // ---------- REGISTER (new user) ----------
 
 const startSchema = z.object({ email: emailSchema });

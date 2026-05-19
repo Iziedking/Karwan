@@ -445,6 +445,11 @@ export const api = {
       } | null;
     }>('/api/auth/me'),
   authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  authLookup: (email: string) =>
+    json<{ exists: boolean; hasPasskey: boolean }>('/api/auth/lookup', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
   authRegisterOptions: (email: string) =>
     json<{ options: PublicKeyCredentialCreationOptionsJSON }>(
       '/api/auth/register/options',
