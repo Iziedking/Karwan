@@ -100,6 +100,10 @@ function MatchRow({
   const counterparty = isSeller ? proposal.buyerUser : proposal.sellerUser;
   const role = isSeller ? 'SELLER' : 'BUYER';
   const counterRole = isSeller ? 'BUYER' : 'SELLER';
+  // Normalize the price display so a backend that stores 50.000000 reads as
+  // 50, and a true 50.49 stays at 50.49. Drops trailing zeros and keeps a
+  // 2-decimal floor when fractional.
+  const priceDisplay = formatUsdcDisplay(proposal.agreedPriceUsdc);
   // Sellers get the action chip; buyers get the read-only awaiting chip.
   const chipLabel = isSeller ? 'ACCEPT TO FUND' : 'AWAITING SELLER';
   const chipFg = isSeller ? '#0a7553' : '#b25425';
@@ -149,7 +153,7 @@ function MatchRow({
                 className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none"
                 style={{ color: dark ? 'white' : 'var(--lp-dark)' }}
               >
-                {proposal.agreedPriceUsdc}
+                {priceDisplay}
               </span>
               <span
                 className="mono text-[10px] uppercase tracking-[0.14em]"
@@ -203,6 +207,14 @@ function MatchRow({
       </Link>
     </li>
   );
+}
+
+function formatUsdcDisplay(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  if (Number.isInteger(n)) return n.toString();
+  // Strip trailing zeros, keep up to 2 decimals.
+  return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
 /// Compact inline variant. no Band wrapper. For embedding in existing layouts

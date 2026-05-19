@@ -11,7 +11,14 @@ import type { SellerProfile } from './seller-profile.js';
 // Managed deals run on each user's own agents. A user joins the auction only if
 // they have activated (agent wallets) and filled the matching role profile.
 // These two values are not part of the onboarding profile, so they default.
-const DEFAULT_MAX_COUNTER_ROUNDS = 2;
+//
+// MAX_COUNTER_ROUNDS is the hard cap on counter exchanges per side. Two means
+// each agent can issue up to two counters before walking away. The constant is
+// exported so the buyer and seller agents agree on the cap (previously they
+// drifted: buyer used `>= n`, seller used `> n` with a hardcoded 2, which
+// effectively let the seller run an extra round).
+export const MAX_COUNTER_ROUNDS = 2;
+const DEFAULT_MAX_COUNTER_ROUNDS = MAX_COUNTER_ROUNDS;
 const DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
 
 function toBuyerProfile(agents: AgentWallets, profile: UserProfile): BuyerProfile | null {

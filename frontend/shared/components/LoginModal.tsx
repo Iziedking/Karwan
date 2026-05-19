@@ -268,7 +268,7 @@ export function LoginModal({ open, onClose }: Props) {
             {stage === 'auth' && !plan?.exists && (otpSent ? 'Check your inbox' : 'Create your account')}
           </h2>
           <p className="mt-2 text-[13px] leading-snug text-[var(--lp-text-sub)] max-w-[36ch]">
-            {stage === 'pick-method' && 'Karwan identifies you by a wallet. Pick a path — we provision the rest.'}
+            {stage === 'pick-method' && 'Karwan identifies you by a wallet. Pick a path. We provision the rest.'}
             {stage === 'enter-email' && "We'll check if you already have an account and pick the right sign-in path."}
             {stage === 'auth' && plan?.exists && !otpSent && (
               <>Signing in as <span className="mono text-[var(--lp-dark)]">{email}</span>.</>
