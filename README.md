@@ -48,7 +48,12 @@ Live on Arc Testnet (chain 5042002):
 | KarwanVault | `0x92b1223921944024f6615A604a2bDA6eF1fEe922` |
 | USDC | `0x3600000000000000000000000000000000000000` |
 
+## Docs
 
+- [docs/architecture.md](./docs/architecture.md). The components, both deal flows, the wallet model.
+- [docs/reputation-model.md](./docs/reputation-model.md). The composite score formula, the spam detector, and the agent integration spec.
+- [docs/circle-integration.md](./docs/circle-integration.md). How each Circle product is wired.
+- [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). DevX notes from the build.
 
 ## Roadmap
 
