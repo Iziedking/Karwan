@@ -11,6 +11,7 @@ import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { ProfileAvatar } from './ProfileAvatar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 // Landing routes are forced dark via these var overrides, so every embedded
 // child (BalanceRail, bell, toggles, ConnectWalletButton) picks up dark mode
@@ -30,6 +31,7 @@ export function TopNav() {
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslations();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setMenuOpen(false);
@@ -147,11 +149,15 @@ export function TopNav() {
                 <NotificationBell />
                 <SoundToggle />
                 <ThemeToggle />
-                <SettingsIconLink active={pathname.startsWith('/settings')} />
+                {isAuthenticated && (
+                  <SettingsIconLink active={pathname.startsWith('/settings')} />
+                )}
               </div>
               <div className="md:hidden inline-flex items-center gap-0.5">
                 <NotificationBell />
-                <SettingsIconLink active={pathname.startsWith('/settings')} />
+                {isAuthenticated && (
+                  <SettingsIconLink active={pathname.startsWith('/settings')} />
+                )}
               </div>
               <ConnectWalletButton />
               <ProfileAvatar />
