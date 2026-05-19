@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { parseUnits } from 'viem';
+import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
+import { baseSepolia, sepolia } from 'viem/chains';
 import { config } from '../config.js';
 import { executeContractCall } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
@@ -15,6 +16,25 @@ import {
 } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+
+/// Lightweight public clients used for source-chain balance reads. Created
+/// once and reused. We avoid spinning these up for every request because
+/// viem's HTTP client allocates a fetch pool. Source-chain reads only need
+/// `balanceOf` and `getBalance`, so the default public RPC is fine.
+const sourceClients = {
+  baseSepolia: createPublicClient({ chain: baseSepolia, transport: http() }),
+  sepolia: createPublicClient({ chain: sepolia, transport: http() }),
+};
+
+const erc20BalanceOfAbi = [
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
 
 /// Per CCTP V2 source-chain config. Verified addresses live in the frontend
 /// at `frontend/features/bridge/config.ts` (the canonical source on both
@@ -567,6 +587,46 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     }
   }
 
+  // Pre-flight balance check. The most common failure mode for fresh Circle
+  // users is that the bridge DCW is provisioned but never funded — there's
+  // no USDC for the burn, so depositForBurn reverts on chain. Reading the
+  // balance up front and returning an actionable error is cheaper than
+  // burning a tx slot to discover it.
+  try {
+    const sourceClient = sourceClients[body.sourceChainKey];
+    const [usdcBalance, gasBalance] = await Promise.all([
+      sourceClient.readContract({
+        address: chainCfg.usdc as `0x${string}`,
+        abi: erc20BalanceOfAbi,
+        functionName: 'balanceOf',
+        args: [bridgeWalletAddress as `0x${string}`],
+      }) as Promise<bigint>,
+      sourceClient.getBalance({ address: bridgeWalletAddress as `0x${string}` }),
+    ]);
+    const neededUsdc = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+    if (usdcBalance < neededUsdc) {
+      return c.json(
+        {
+          error: 'bridge wallet under-funded',
+          detail: `Bridge wallet has ${formatUnits(usdcBalance, USDC_DECIMALS)} USDC on ${body.sourceChainKey} but needs ${body.amountUsdc}. Send USDC to this address and retry.`,
+          bridgeWalletAddress,
+          sourceChainKey: body.sourceChainKey,
+          usdcBalance: formatUnits(usdcBalance, USDC_DECIMALS),
+          usdcNeeded: body.amountUsdc.toString(),
+          gasBalance: formatUnits(gasBalance, 18),
+        },
+        409,
+      );
+    }
+  } catch (err) {
+    logger.warn(
+      { bridgeId: body.bridgeId, err: (err as Error).message },
+      'preflight balance read failed; proceeding to depositForBurn anyway',
+    );
+    // Don't block the flow on a balance-read failure; the on-chain call
+    // will surface the real error if there's no USDC.
+  }
+
   inFlight.add(body.bridgeId);
   try {
     const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
@@ -659,6 +719,89 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     return c.json({ error: 'circle-bridge failed', detail: (err as Error).message }, 502);
   } finally {
     inFlight.delete(body.bridgeId);
+  }
+});
+
+const walletStatusQuery = z.object({
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  sourceChainKey: z.enum(['baseSepolia', 'sepolia']),
+});
+
+/// Returns the user's bridge DCW address and balances on the requested
+/// source chain. Lazy-provisions the wallet if missing so the frontend can
+/// show "send USDC to this address" before the user even attempts a bridge.
+/// Saves users from the "click bridge → on-chain revert → no actionable
+/// error" failure mode.
+bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
+  const parsed = walletStatusQuery.safeParse({
+    address: c.req.query('address') ?? '',
+    sourceChainKey: c.req.query('sourceChainKey') ?? '',
+  });
+  if (!parsed.success) {
+    return c.json({ error: 'invalid query', detail: parsed.error.message }, 400);
+  }
+  const userAddress = parsed.data.address.toLowerCase();
+  const user = getUserByAddress(userAddress);
+  if (!user) {
+    return c.json({ error: 'no Circle account for this address' }, 404);
+  }
+  let agentWallets = await getAgentWallets(userAddress);
+  if (!agentWallets) {
+    return c.json({ error: 'user has no agent wallet record' }, 409);
+  }
+  const chainCfg = CIRCLE_SOURCE_CHAINS[parsed.data.sourceChainKey];
+  const existing = agentWallets.bridgeWallets?.[chainCfg.blockchain];
+  let bridgeWalletAddress: string;
+  if (existing) {
+    bridgeWalletAddress = existing.address;
+  } else {
+    try {
+      const created = await provisionUserBridgeWallet(userAddress, chainCfg.blockchain);
+      bridgeWalletAddress = created.address;
+      const next = {
+        ...agentWallets,
+        bridgeWallets: {
+          ...(agentWallets.bridgeWallets ?? {}),
+          [chainCfg.blockchain]: { walletId: created.walletId, address: created.address },
+        },
+      };
+      await saveAgentWallets(next);
+    } catch (err) {
+      return c.json(
+        { error: 'could not provision bridge wallet', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+  try {
+    const sourceClient = sourceClients[parsed.data.sourceChainKey];
+    const [usdcBalance, gasBalance] = await Promise.all([
+      sourceClient.readContract({
+        address: chainCfg.usdc as `0x${string}`,
+        abi: erc20BalanceOfAbi,
+        functionName: 'balanceOf',
+        args: [bridgeWalletAddress as `0x${string}`],
+      }) as Promise<bigint>,
+      sourceClient.getBalance({ address: bridgeWalletAddress as `0x${string}` }),
+    ]);
+    return c.json({
+      bridgeWalletAddress,
+      sourceChainKey: parsed.data.sourceChainKey,
+      usdcBalance: formatUnits(usdcBalance, USDC_DECIMALS),
+      gasBalance: formatUnits(gasBalance, 18),
+    });
+  } catch (err) {
+    return c.json(
+      {
+        bridgeWalletAddress,
+        sourceChainKey: parsed.data.sourceChainKey,
+        usdcBalance: null,
+        gasBalance: null,
+        error: 'balance read failed',
+        detail: (err as Error).message,
+      },
+      200,
+    );
   }
 });
 
