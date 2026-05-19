@@ -65,7 +65,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-[340px] bg-[var(--lp-card)] z-50 fade-up overflow-hidden"
+          className="fixed sm:absolute inset-x-2 sm:inset-x-auto top-[60px] sm:top-auto sm:right-0 sm:mt-2 sm:w-[340px] max-w-[calc(100vw-1rem)] bg-[var(--lp-card)] z-50 fade-up overflow-hidden"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 14,
