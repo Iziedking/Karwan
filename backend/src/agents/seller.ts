@@ -5,7 +5,11 @@ import { jobBoard } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
-import { bidDecisionSchema, counterEvaluationSchema } from '../llm/schemas.js';
+import {
+  bidDecisionSchema,
+  counterEvaluationSchema,
+  type CounterEvaluation,
+} from '../llm/schemas.js';
 import {
   buildBidEvaluationPrompt,
   buildCounterEvaluationPrompt,
@@ -15,10 +19,20 @@ import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import type { SellerProfile } from './seller-profile.js';
-import { resolveAllSellerProfiles, resolveSellerProfile, siblingSellerAddress } from './agent-registry.js';
+import {
+  MAX_COUNTER_ROUNDS,
+  resolveAllSellerProfiles,
+  resolveSellerProfile,
+  siblingSellerAddress,
+} from './agent-registry.js';
 import { withLlmTimeout } from './llm-utils.js';
+import {
+  heuristicCounterDecision,
+  nextCounterPrice,
+  type Tier,
+} from './strategy.js';
 import { getBrief } from '../db/briefs.js';
-import { actorSignalsFor } from './signals.js';
+import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -501,7 +515,28 @@ async function runCounterEvaluation(
   const minAcceptable = profileFloor;
   const maxAcceptable = active.listingAskingPriceUsdc ?? seller.maxBudgetUsdc;
 
-  let decision;
+  // Strategy module computes a deterministic counter price for this round.
+  // Tier elasticity + urgency lean the move in the right direction; the LLM
+  // ratifies (and writes the reasoning trace).
+  const buyerTier = (active.jobContext.buyerRepTier ?? 'established') as Tier;
+  const sellerDaysToDeadline = Math.max(
+    1,
+    Math.floor(
+      (active.jobContext.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400,
+    ),
+  );
+  const suggestedCounter = nextCounterPrice({
+    role: 'seller',
+    mine: Number(active.lastBidPrice),
+    theirs: Number(buyerCounterPrice),
+    round: active.counterRounds,
+    floor: minAcceptable,
+    ceiling: maxAcceptable,
+    tier: buyerTier,
+    daysToDeadline: sellerDaysToDeadline,
+  });
+
+  let decision: CounterEvaluation;
   try {
     const result = await withLlmTimeout(
       `counterEvaluation(${args.jobId})`,
@@ -520,6 +555,14 @@ async function runCounterEvaluation(
           active.lastBidPrice,
           buyerCounterPrice,
           buyerCounterDeadlineUnix,
+          {
+            round: active.counterRounds,
+            maxRounds: MAX_COUNTER_ROUNDS,
+            counterpartyTier: buyerTier,
+            suggestedCounterPrice: suggestedCounter,
+            marketMedianPrice: priceHistorySnapshot()?.median,
+            marketSampleCount: priceHistorySnapshot()?.sampleCount,
+          },
         ),
       }),
     );
@@ -528,20 +571,40 @@ async function runCounterEvaluation(
     const message = (err as Error).message;
     logger.warn(
       { jobId: args.jobId, err: message },
-      'counter evaluation failed, declining via no-op',
+      'counter evaluation LLM failed, falling back to heuristic',
     );
-    active.finalized = true;
     reportError('agents.seller.counterEvaluation', err, {
       jobId: args.jobId,
       seller: seller.address,
     });
+    // Don't strand the job. Use the deterministic strategy module to
+    // accept-or-decline based on the buyer's counter vs the seller's floor.
+    // The agent.fallback event tells the timeline that the LLM was bypassed.
+    const fallback = heuristicCounterDecision({
+      role: 'seller',
+      theirOffer: Number(buyerCounterPrice),
+      floor: minAcceptable,
+      ceiling: maxAcceptable,
+    });
     bus.emitEvent({
-      type: 'agent.error',
+      type: 'agent.fallback',
       jobId: args.jobId,
       actor: 'seller',
-      payload: { seller: seller.address, scope: 'counterEvaluation', message },
+      payload: {
+        seller: seller.address,
+        scope: 'counterEvaluation',
+        message,
+        decision: fallback.decision,
+        reasoning: fallback.reasoning,
+      },
     });
-    return;
+    // confidence 0.95: the heuristic is deterministic and bypasses the
+    // LLM-confidence threshold so the fallback decision is honoured.
+    decision = {
+      decision: fallback.decision,
+      confidence: 0.95,
+      reasoning: fallback.reasoning,
+    };
   }
 
   logger.info({ jobId: args.jobId, seller: seller.address, decision }, 'counter-offer evaluated');
@@ -602,8 +665,11 @@ async function runCounterEvaluation(
     return;
   }
 
-  active.counterRounds += 1;
-  if (active.counterRounds > 2) {
+  // Validate the LLM's counter BEFORE burning a round. Previously we
+  // incremented `counterRounds` first, so a malformed counter (missing
+  // price/deadline OR price outside the steering range) would waste a round
+  // and trip the cap one offer early.
+  if (active.counterRounds >= MAX_COUNTER_ROUNDS) {
     logger.info({ jobId: args.jobId }, 'too many counter rounds, declining');
     active.finalized = true;
     bus.emitEvent({
@@ -613,7 +679,7 @@ async function runCounterEvaluation(
       payload: {
         seller: seller.address,
         reason: 'max-counter-rounds',
-        detail: `seller hit the 2-round counter cap on this auction`,
+        detail: `seller hit the ${MAX_COUNTER_ROUNDS}-round counter cap on this auction`,
         rounds: active.counterRounds,
       },
     });
@@ -663,6 +729,9 @@ async function runCounterEvaluation(
     Math.floor(Date.now() / 1000) + decision.counterDeadlineDays * 86_400;
   const counterPriceWei = parseUnits(decision.counterPrice, USDC_DECIMALS);
 
+  // Commit to the round count only now that we know we have a valid counter
+  // to submit on chain.
+  active.counterRounds += 1;
   const result = await executeContractCall(
     {
       walletId: seller.walletId,

@@ -169,14 +169,40 @@ export interface CounterPartyConstraints {
   maxDeadlineDays: number;
 }
 
+/// State that lets the prompt write tier-aware, urgency-aware,
+/// concession-aware reasoning. All fields are optional so callers can ramp
+/// up incrementally without breaking the existing flow.
+export interface NegotiationContext {
+  /// 0 on first counter response, 1 on the next, etc. Used to set
+  /// expectations about how much more room to give.
+  round: number;
+  /// Hard cap; once `round >= maxRounds` the agent walks away.
+  maxRounds: number;
+  /// Counterparty's reputation tier. Drives elasticity: a STRONG seller
+  /// earns a slightly faster concession than a NEW one.
+  counterpartyTier?: 'new' | 'cold' | 'established' | 'strong' | 'elite';
+  /// Deterministic next-counter price the strategy module computed for us,
+  /// using concession decay + tier elasticity + urgency. The LLM should
+  /// either echo this price (preferred) or override with a small deviation
+  /// when it can justify the deviation in the reasoning.
+  suggestedCounterPrice?: number;
+  /// Median price of recent settlements in the brief's skill area. Helps the
+  /// LLM ground its reasoning in market context rather than the bare numbers.
+  marketMedianPrice?: number;
+  /// Sample size behind the median so the LLM weighs it appropriately.
+  marketSampleCount?: number;
+}
+
 export function buildCounterEvaluationPrompt(
   job: JobContext,
   party: CounterPartyConstraints,
   ourLastPriceUsdc: string,
   theirCounterPriceUsdc: string,
   theirCounterDeadlineUnix: number,
+  ctx?: NegotiationContext,
 ): string {
   const daysToTheirDeadline = daysFromNow(theirCounterDeadlineUnix);
+  const daysToJobDeadline = daysFromNow(job.deadlineUnix);
   const role = party.side;
   const other = role === 'buyer' ? 'seller' : 'buyer';
   const theirPriceN = Number(theirCounterPriceUsdc);
@@ -184,31 +210,65 @@ export function buildCounterEvaluationPrompt(
     theirPriceN >= party.minAcceptablePriceUsdc && theirPriceN <= party.maxAcceptablePriceUsdc;
   const deadlineInRange =
     daysToTheirDeadline >= party.minDeadlineDays && daysToTheirDeadline <= party.maxDeadlineDays;
+
+  // Role-specific persona. Buyer and seller agents each have their own
+  // posture; same hard constraints, different default mindset.
+  const persona =
+    role === 'buyer'
+      ? [
+          `You are the BUYER's agent. Your principal posted a brief at ${job.budgetUsdc} USDC. The ${other}'s counter is ${theirCounterPriceUsdc} USDC.`,
+          'Posture: hold the budget. Move up only when the seller has credible reputation OR the market median justifies it. Never exceed the principal\'s acceptable cap.',
+        ]
+      : [
+          `You are the SELLER's agent. Your principal bid ${ourLastPriceUsdc} USDC. The ${other}'s counter is ${theirCounterPriceUsdc} USDC.`,
+          'Posture: defend the asking price. Concede only when the buyer has shown credible reputation OR the deal is urgent. Never drop below the seller\'s acceptable floor.',
+        ];
+
+  const concessionGuide = ctx
+    ? [
+        '',
+        'Concession curve (you are on round ' + ctx.round + ' of up to ' + ctx.maxRounds + '):',
+        '- Round 0: concede up to 50% of the remaining gap.',
+        '- Round 1: concede up to 25%.',
+        '- Round 2: concede up to 10%. After this round the agent walks.',
+        '- Tighter deadlines tilt the curve slightly more generous.',
+        ctx.counterpartyTier
+          ? `- Counterparty tier: ${ctx.counterpartyTier.toUpperCase()}. ELITE/STRONG earn a small concession boost; NEW/COLD get less.`
+          : '',
+        ctx.suggestedCounterPrice != null
+          ? `- Strategy module suggests counter at ${ctx.suggestedCounterPrice} USDC. Echo this unless you can justify a small deviation.`
+          : '',
+        ctx.marketMedianPrice != null
+          ? `- Recent settlement median for this skill: ${ctx.marketMedianPrice} USDC (n=${ctx.marketSampleCount ?? '?'}).`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : '';
+
   return [
-    `You are the ${role} agent. The ${other} has sent a counter-offer.`,
-    'Decide whether to accept, counter again, or decline.',
+    ...persona,
+    'Decide whether to accept, counter again, or decline. Cite at most one public fact (reputation, market median, urgency) in the reasoning — do not reference the other side\'s tolerance.',
     '',
-    `Hard constraints, apply mechanically:`,
+    'Hard constraints, apply mechanically:',
     `- Minimum acceptable price: ${party.minAcceptablePriceUsdc} USDC`,
     `- Maximum acceptable price: ${party.maxAcceptablePriceUsdc} USDC`,
     `- Minimum acceptable days to delivery: ${party.minDeadlineDays}`,
     `- Maximum acceptable days to delivery: ${party.maxDeadlineDays}`,
     `- Pre-computed: their-price-in-range=${priceInRange}, their-deadline-in-range=${deadlineInRange}.`,
-    '',
-    'Job:',
-    `- Original budget posted: ${job.budgetUsdc} USDC`,
-    `- Days until original deadline: ${daysFromNow(job.deadlineUnix)}`,
+    `- Days until original deadline: ${daysToJobDeadline}.`,
     '',
     'Negotiation state:',
     `- Our last price on the table: ${ourLastPriceUsdc} USDC`,
     `- Their counter price: ${theirCounterPriceUsdc} USDC`,
     `- Their counter deadline: ${daysToTheirDeadline} days from now`,
+    concessionGuide,
     '',
     'Output rules:',
-    '- If their-price-in-range AND their-deadline-in-range, accept unless you have strong reason to counter further.',
+    '- If their-price-in-range AND their-deadline-in-range, accept unless you can justify a small further counter from the concession curve.',
     '- decision: "accept" | "counter" | "decline"',
     `- If counter: counterPrice must be in [${party.minAcceptablePriceUsdc}, ${party.maxAcceptablePriceUsdc}] and counterDeadlineDays must be in [${party.minDeadlineDays}, ${party.maxDeadlineDays}].`,
     '- confidence: 0..1',
-    '- reasoning: one or two sentences',
+    '- reasoning: one or two sentences citing reputation, market median, or urgency. Never quote the counterparty\'s tolerance or floor.',
   ].join('\n');
 }

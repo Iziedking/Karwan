@@ -11,7 +11,11 @@ import {
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
-import { bidScoreSchema, counterEvaluationSchema } from '../llm/schemas.js';
+import {
+  bidScoreSchema,
+  counterEvaluationSchema,
+  type CounterEvaluation,
+} from '../llm/schemas.js';
 import {
   buildBidRankingPrompt,
   buildCounterEvaluationPrompt,
@@ -23,6 +27,7 @@ import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import { resolveBuyerProfile } from './agent-registry.js';
+import { heuristicCounterDecision, nextCounterPrice, type Tier } from './strategy.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
@@ -39,6 +44,7 @@ import { withLlmTimeout } from './llm-utils.js';
 import {
   actorSignalsFor,
   priceAnomalyScore,
+  priceHistorySnapshot,
   classifyBid,
   type BidSignals,
   type RepTier,
@@ -681,7 +687,28 @@ async function handleCounterResponse(log: Log) {
   const buyerLastCounter = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
   const effectiveMaxAcceptable = computeBuyerEffectiveCap(state.context, buyer);
 
-  let decision;
+  // Strategy module computes a deterministic next-counter price for the
+  // prompt. Concession decay + tier elasticity + urgency, all deterministic
+  // so the LLM has a defensible target to ratify or refine.
+  const currentRound = state.counterRoundsBySeller.get(args.seller) ?? 0;
+  const sellerTier = (state.bids.get(args.seller)?.sellerTier ?? 'established') as Tier;
+  const daysToDeadline = Math.max(
+    1,
+    Math.floor((state.context.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+  );
+  const buyerLastNumeric = Number(buyerLastCounter || state.context.budgetUsdc);
+  const suggestedCounter = nextCounterPrice({
+    role: 'buyer',
+    mine: buyerLastNumeric,
+    theirs: Number(sellerCounterPrice),
+    round: currentRound,
+    floor: 0,
+    ceiling: effectiveMaxAcceptable,
+    tier: sellerTier,
+    daysToDeadline,
+  });
+
+  let decision: CounterEvaluation;
   try {
     const result = await withLlmTimeout(
       `counterEvaluation(${state.jobId})`,
@@ -700,21 +727,52 @@ async function handleCounterResponse(log: Log) {
           buyerLastCounter,
           sellerCounterPrice,
           sellerCounterDeadlineUnix,
+          {
+            round: currentRound,
+            maxRounds: buyer.maxCounterRounds,
+            counterpartyTier: sellerTier,
+            suggestedCounterPrice: suggestedCounter,
+            marketMedianPrice: priceHistorySnapshot()?.median,
+            marketSampleCount: priceHistorySnapshot()?.sampleCount,
+          },
         ),
       }),
     );
     decision = result.object;
   } catch (err) {
     const message = (err as Error).message;
-    logger.warn({ jobId: state.jobId, err: message }, 'counter eval failed');
-    state.finalized = true;
+    logger.warn(
+      { jobId: state.jobId, err: message },
+      'counter eval LLM failed, falling back to heuristic',
+    );
+    // Don't strand the deal in a finalized-without-decision state. Use the
+    // deterministic strategy module: accept the seller's counter if it's at
+    // or under the buyer's effective cap, otherwise decline.
+    const fallback = heuristicCounterDecision({
+      role: 'buyer',
+      theirOffer: Number(sellerCounterPrice),
+      floor: 0,
+      ceiling: effectiveMaxAcceptable,
+    });
     bus.emitEvent({
-      type: 'agent.error',
+      type: 'agent.fallback',
       jobId: state.jobId,
       actor: 'buyer',
-      payload: { seller: args.seller, scope: 'counterEvaluation', message },
+      payload: {
+        seller: args.seller,
+        scope: 'counterEvaluation',
+        message,
+        decision: fallback.decision,
+        reasoning: fallback.reasoning,
+      },
     });
-    return;
+    // confidence 0.95: the heuristic is deterministic and bypasses the
+    // LLM-confidence threshold so the fallback decision is honoured.
+    decision = {
+      decision: fallback.decision,
+      confidence: 0.95,
+      reasoning: fallback.reasoning,
+    };
   }
 
   logger.info({ jobId: state.jobId, seller: args.seller, decision }, 'counter-response evaluated');
