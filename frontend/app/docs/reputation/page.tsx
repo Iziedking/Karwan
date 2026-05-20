@@ -75,8 +75,6 @@ export default function DocsReputationPage() {
         tokenized T-bills instead of sitting idle.
       </DocsCallout>
 
-      {/* TODO(screenshot): capture the stake card with deposit/cooldown UI.
-          Save as frontend/public/docs/images/stake-card.png */}
       <DocsFigure
         src="/docs/images/stake-card.png"
         alt="The staking card showing deposit amount and cooldown state"

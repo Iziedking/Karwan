@@ -49,8 +49,6 @@ export default function DocsBridgePage() {
         </DocsListItem>
       </DocsList>
 
-      {/* TODO(screenshot): capture the bridge card with the four-step progress
-          tracker. Save as frontend/public/docs/images/bridge-steps.png */}
       <DocsFigure
         src="/docs/images/bridge-steps.png"
         alt="Bridge card showing the approve, burn, attestation, and mint steps"

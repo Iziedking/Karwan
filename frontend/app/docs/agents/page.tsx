@@ -43,10 +43,6 @@ export default function DocsAgentsPage() {
         agent moves to the next candidate in the queue instead of giving up.
       </DocsP>
 
-      {/* TODO(screenshot): record the activity timeline of a live negotiation
-          showing the counter rounds, then save it as
-          frontend/public/docs/images/negotiation-timeline.png and the figure
-          below will render it. */}
       <DocsFigure
         src="/docs/images/negotiation-timeline.png"
         alt="Activity timeline showing counter rounds between buyer and seller agents"
@@ -90,9 +86,6 @@ export default function DocsAgentsPage() {
         agent respects them on every deal.
       </DocsP>
 
-      {/* TODO(screenshot): capture the buyer profile / brief form with the
-          budget, deadline, and tolerance fields. Save as
-          frontend/public/docs/images/agent-guardrails.png */}
       <DocsFigure
         src="/docs/images/agent-guardrails.png"
         alt="The brief form showing budget, deadline, and tolerance guardrails"
