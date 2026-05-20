@@ -4,6 +4,11 @@ On-chain settlement for cross-border service deals. USDC sits in milestone
 escrow on Arc while the work gets done, and releases as it lands. Built on
 Circle's stack.
 
+> **For the full technical brief — agent reasoning loop, reputation system,
+> two-contract architecture, cross-chain ingress — read
+> [docs/why-karwan.md](./docs/why-karwan.md).** Five minutes, no jargon, no
+> code spelunking required.
+
 ## What it is
 
 Two parties agree on a deal. The buyer's funds go into a milestone escrow on
@@ -50,6 +55,7 @@ Live on Arc Testnet (chain 5042002):
 
 ## Docs
 
+- [docs/why-karwan.md](./docs/why-karwan.md). The technical brief. What makes Karwan an SME trade platform rather than an escrow form.
 - [docs/architecture.md](./docs/architecture.md). The components, both deal flows, the wallet model.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite score formula, the spam detector, and the agent integration spec.
 - [docs/circle-integration.md](./docs/circle-integration.md). How each Circle product is wired.
