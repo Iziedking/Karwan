@@ -135,7 +135,7 @@ export default function BuyerPage() {
           </div>
           <div className="space-y-4" id="bridge-section">
             <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
-            <BridgeCard mintRecipient={agents?.buyer as `0x${string}` | undefined} />
+            <BridgeCard mintRecipient={agents?.buyer as `0x${string}` | undefined} tour={false} />
           </div>
         </div>
       </Band>

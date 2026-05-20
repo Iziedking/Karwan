@@ -128,22 +128,42 @@ export const DEAL_STEPS: TourStep[] = [
   },
 ];
 
-/// Profile tour.
+/// Profile tour. Spotlights each part of the profile, and the bridge step is
+/// role-aware because funding works differently for Circle vs web3 wallets.
 export const PROFILE_TOUR_ID = 'profile-v1';
-export const PROFILE_STEPS: TourStep[] = [
-  {
-    title: 'Your profile',
-    body: 'Set up how you trade. Turn on a buyer side to hire, a seller side to offer work, or both.',
-  },
-  {
-    title: 'Wallets and alerts',
-    body: 'Manage your wallets, top up your agent with USDC, and connect Telegram or X to get notified the moment something happens.',
-  },
-  {
-    title: 'Build your standing',
-    body: 'Stake USDC to lift your reputation tier. A higher tier gets you better deals, and on mainnet your stake also earns yield.',
-  },
-];
+export function buildProfileSteps(isCircle: boolean): TourStep[] {
+  return [
+    {
+      target: 'profile-nav',
+      title: 'Your profile, in parts',
+      body: 'These tabs jump to each part: identity, wallets, agents, stake, and preferences.',
+    },
+    {
+      target: 'profile-identity',
+      title: 'Identity and agents',
+      body: 'Your name, and the buyer and seller wallets that sign your deals on chain. Activate here if you have not yet.',
+    },
+    {
+      target: 'profile-wallets',
+      title: 'Bring USDC to Arc',
+      body: isCircle
+        ? 'Deals settle in USDC on Arc. To add funds, send USDC to the source-chain wallet shown in the bridge and Karwan moves it to Arc for you. Its address and balance are right there.'
+        : 'Deals settle in USDC on Arc. The bridge moves your USDC from Base or Ethereum: you approve and burn it from your own wallet, and it mints on Arc. No wrapped tokens.',
+    },
+    {
+      target: 'profile-agents',
+      title: 'Fund or withdraw your agent',
+      body: isCircle
+        ? 'Top up the wallet that signs your deals so it can fund escrow. Sweep it back to yourself any time. Circle handles the signing for you.'
+        : 'Top up the wallet that signs your deals so it can fund escrow, and sweep it back to your own wallet any time.',
+    },
+    {
+      target: 'profile-stake',
+      title: 'Build your reputation',
+      body: 'Stake USDC to lift your tier. A higher tier gets you better deals, and on mainnet your stake also earns yield.',
+    },
+  ];
+}
 
 /// Activity stream tour.
 export const ACTIVITY_TOUR_ID = 'activity-v1';

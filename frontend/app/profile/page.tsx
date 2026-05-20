@@ -18,7 +18,8 @@ import { ReputationBadge } from '@/features/reputation/components/ReputationBadg
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PageTour } from '@/shared/guide/PageTour';
-import { PROFILE_TOUR_ID, PROFILE_STEPS } from '@/shared/guide/tours';
+import { PROFILE_TOUR_ID, buildProfileSteps } from '@/shared/guide/tours';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -44,6 +45,8 @@ const TABS: Tab[] = [
 export default function ProfilePage() {
   const router = useRouter();
   const { profile: loadedProfile, address, isConnected, fetchState } = useUserProfile();
+  const { method } = useAuth();
+  const isCircleUser = method === 'circle';
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const activation = useActivation();
   const [activationOpen, setActivationOpen] = useState(false);
@@ -122,7 +125,7 @@ export default function ProfilePage() {
 
   return (
     <FullBleed>
-      <PageTour id={PROFILE_TOUR_ID} steps={PROFILE_STEPS} />
+      <PageTour id={PROFILE_TOUR_ID} steps={buildProfileSteps(isCircleUser)} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
@@ -171,7 +174,9 @@ export default function ProfilePage() {
         </div>
       </Band>
 
-      <StickyTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
+      <div data-guide="profile-nav">
+        <StickyTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
+      </div>
 
       {/* PENDING MATCHES. high-priority surface; renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
@@ -181,7 +186,7 @@ export default function ProfilePage() {
 
       {/* ACTIVATION */}
       <Band tone="light" compact>
-        <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end">
+        <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end" data-guide="profile-identity">
           <div className="max-w-[52ch]">
             <SectionTag dot={activation.activated ? 'live' : undefined}>
               {activation.activated ? 'AGENT WALLETS' : 'NOT ACTIVATED'}
@@ -316,9 +321,9 @@ export default function ProfilePage() {
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           Wallet balances. Base to Arc bridge.
         </p>
-        <div className="mt-10 grid lg:grid-cols-2 gap-5">
+        <div className="mt-10 grid lg:grid-cols-2 gap-5" data-guide="profile-wallets">
           <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
-          <BridgeCard mintRecipient={agents.buyer as `0x${string}` | undefined} />
+          <BridgeCard mintRecipient={agents.buyer as `0x${string}` | undefined} tour={false} />
         </div>
       </Band>
 
@@ -334,7 +339,7 @@ export default function ProfilePage() {
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
           Top up the wallet that signs your deals. Sweep it back any time.
         </p>
-        <div className="mt-10 grid lg:grid-cols-2 gap-5">
+        <div className="mt-10 grid lg:grid-cols-2 gap-5" data-guide="profile-agents">
           <ArcFundCard
             buyerAgent={agents.buyer}
             sellerAgent={agents.seller}
@@ -363,7 +368,7 @@ export default function ProfilePage() {
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 7-day cool-down on withdrawal.
         </p>
-        <div className="mt-10">
+        <div className="mt-10" data-guide="profile-stake">
           <StakeCard tour={false} />
         </div>
       </Band>

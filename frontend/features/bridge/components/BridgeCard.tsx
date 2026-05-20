@@ -106,7 +106,15 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
   );
 }
 
-export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` }) {
+export function BridgeCard({
+  mintRecipient,
+  tour = true,
+}: {
+  mintRecipient?: `0x${string}`;
+  /// Off when embedded in /profile so the Profile tour owns that page and the
+  /// bridge tour doesn't fire there too. On for the standalone bridge surface.
+  tour?: boolean;
+}) {
   const { isConnected } = useAccount();
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
@@ -234,7 +242,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
 
   return (
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
-      <PageTour id={BRIDGE_TOUR_ID} steps={BRIDGE_STEPS} />
+      {tour && <PageTour id={BRIDGE_TOUR_ID} steps={BRIDGE_STEPS} />}
       <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
