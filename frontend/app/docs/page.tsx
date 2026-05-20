@@ -94,7 +94,7 @@ export default function DocsOverviewPage() {
         />
         <DocsCardLink
           href="/docs/faq"
-          title="FAQ"
+          title="FAQs"
           blurb="Quick answers to the questions new users ask first."
         />
       </div>

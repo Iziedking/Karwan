@@ -5,14 +5,14 @@ import {
 } from '@/features/docs/components/Prose';
 
 export const metadata = {
-  title: 'FAQ · Karwan Docs',
+  title: 'FAQs · Karwan Docs',
   description: 'Quick answers for first-time users.',
 };
 
 export default function DocsFaqPage() {
   return (
     <article>
-      <DocsEyebrow>FAQ</DocsEyebrow>
+      <DocsEyebrow>FAQs</DocsEyebrow>
       <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-[var(--lp-dark)]">
         Quick answers
         <span style={{ color: 'var(--lp-accent)' }}>.</span>

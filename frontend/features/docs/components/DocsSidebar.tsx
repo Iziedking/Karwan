@@ -16,7 +16,7 @@ const SECTIONS: DocsSection[] = [
   { label: 'Reputation & Stake', href: '/docs/reputation', blurb: 'The composite score and the vault.' },
   { label: 'Bridge', href: '/docs/bridge', blurb: 'Cross-chain USDC with CCTP V2.' },
   { label: 'Roadmap', href: '/docs/roadmap', blurb: 'Strong functionality shipping next.' },
-  { label: 'FAQ', href: '/docs/faq', blurb: 'Quick answers for first-time users.' },
+  { label: 'FAQs', href: '/docs/faq', blurb: 'Quick answers for first-time users.' },
 ];
 
 export function DocsSidebar() {
