@@ -719,7 +719,7 @@ export const api = {
     json<{
       accepted: true;
       bridgeId: string;
-      approveTxHash: string;
+      approveTxHash: string | null;
       burnTxHash: string;
       sourceAddress: string;
       sourceDomain: number;

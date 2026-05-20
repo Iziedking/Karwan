@@ -8,6 +8,11 @@ export interface ContractCallInput {
   abiFunctionSignature: string;
   abiParameters: unknown[];
   feeLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
+  /// How many 2s poll iterations to wait for the tx to settle. Default 45
+  /// (~90s). Raise for chains/paths where Circle DCW confirmation runs slow
+  /// (e.g. the CCTP bridge approve+burn on Base Sepolia, which can exceed 90s
+  /// and otherwise throws "did not settle" even though the tx confirms).
+  pollAttempts?: number;
 }
 
 export interface ContractCallResult {
@@ -34,8 +39,10 @@ export async function executeContractCall(
   const txId = created.data?.id;
   if (!txId) throw new Error(`${label}: createContractExecutionTransaction returned no id`);
 
-  // Circle typically settles testnet txs in < 20s. We poll up to 90s.
-  for (let i = 0; i < 45; i++) {
+  // Circle typically settles testnet txs in < 20s. We poll every 2s up to the
+  // configured attempt cap (default 45 = ~90s).
+  const attempts = input.pollAttempts ?? 45;
+  for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const { data } = await client.getTransaction({ id: txId });
     const state = data?.transaction?.state;
@@ -50,5 +57,5 @@ export async function executeContractCall(
       throw new Error(`${label}: tx ${state}: ${JSON.stringify(data?.transaction)}`);
     }
   }
-  throw new Error(`${label}: tx did not settle within 90s`);
+  throw new Error(`${label}: tx did not settle within ${attempts * 2}s`);
 }

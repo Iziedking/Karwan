@@ -35,7 +35,24 @@ const erc20BalanceOfAbi = [
     inputs: [{ name: 'owner', type: 'address' }],
     outputs: [{ name: '', type: 'uint256' }],
   },
+  {
+    type: 'function',
+    name: 'allowance',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
 ] as const;
+
+/// Circle DCW txs on testnet source chains (esp. Base Sepolia) sometimes
+/// confirm slower than the default 90s settle window, which made the bridge
+/// approve throw "did not settle" even though it landed on chain. Give the
+/// bridge approve + burn a longer window and a higher fee level so they
+/// actually settle inside the call.
+const BRIDGE_POLL_ATTEMPTS = 120; // ~240s
 
 /// Per CCTP V2 source-chain config. Verified addresses live in the frontend
 /// at `frontend/features/bridge/config.ts` (the canonical source on both
@@ -638,19 +655,43 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
     const amountStr = amountWei.toString();
 
-    // Step A: approve the TokenMessenger to pull USDC for the burn. Circle
-    // wallets are SCAs; approve survives across calls so we set it for this
-    // exact amount each time (cheaper than max-allowance and avoids any
-    // stale-allowance suspicion).
-    const approveResult = await executeContractCall(
-      {
-        walletId: bridgeWalletId,
-        contractAddress: chainCfg.usdc,
-        abiFunctionSignature: 'approve(address,uint256)',
-        abiParameters: [TOKEN_MESSENGER_V2, amountStr],
-      },
-      `circle-bridge.approve(${body.sourceChainKey}, ${body.bridgeId})`,
-    );
+    // Step A: approve the TokenMessenger to pull USDC for the burn. Skip it when
+    // the bridge wallet already has enough allowance. A prior attempt's approve
+    // often lands on chain even after the backend's settle window threw, so
+    // re-approving every retry just re-times-out and never reaches the burn.
+    // Reading the live allowance lets a funded, already-approved wallet jump
+    // straight to depositForBurn.
+    let allowanceOk = false;
+    try {
+      const allowance = (await sourceClients[body.sourceChainKey].readContract({
+        address: chainCfg.usdc as `0x${string}`,
+        abi: erc20BalanceOfAbi,
+        functionName: 'allowance',
+        args: [bridgeWalletAddress as `0x${string}`, TOKEN_MESSENGER_V2 as `0x${string}`],
+      })) as bigint;
+      allowanceOk = allowance >= amountWei;
+    } catch (err) {
+      logger.warn(
+        { bridgeId: body.bridgeId, err: (err as Error).message },
+        'allowance read failed; will run approve to be safe',
+      );
+    }
+
+    let approveTxHash: string | undefined;
+    if (!allowanceOk) {
+      const approveResult = await executeContractCall(
+        {
+          walletId: bridgeWalletId,
+          contractAddress: chainCfg.usdc,
+          abiFunctionSignature: 'approve(address,uint256)',
+          abiParameters: [TOKEN_MESSENGER_V2, amountStr],
+          feeLevel: 'HIGH',
+          pollAttempts: BRIDGE_POLL_ATTEMPTS,
+        },
+        `circle-bridge.approve(${body.sourceChainKey}, ${body.bridgeId})`,
+      );
+      approveTxHash = approveResult.txHash;
+    }
 
     // Step B: depositForBurn. Fast finality threshold (~13s on Base/Eth testnets).
     // maxFee = 0 means we don't tip Circle's fast attestation lane; standard
@@ -672,6 +713,8 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
           '0',
           FINALITY_THRESHOLD_FAST.toString(),
         ],
+        feeLevel: 'HIGH',
+        pollAttempts: BRIDGE_POLL_ATTEMPTS,
       },
       `circle-bridge.depositForBurn(${body.sourceChainKey}, ${body.bridgeId})`,
     );
@@ -710,7 +753,9 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       {
         accepted: true,
         bridgeId: body.bridgeId,
-        approveTxHash: approveResult.txHash,
+        // null when the approve was skipped because allowance already covered
+        // the amount (a prior attempt's approve had landed on chain).
+        approveTxHash: approveTxHash ?? null,
         burnTxHash: burnResult.txHash,
         sourceAddress: bridgeWalletAddress,
         sourceDomain: chainCfg.domain,

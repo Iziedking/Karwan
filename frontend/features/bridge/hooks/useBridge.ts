@@ -582,7 +582,7 @@ export function useBridges() {
           patch(id, (b) => ({
             ...b,
             phase: 'attesting',
-            approveTxHash: r.approveTxHash as `0x${string}`,
+            approveTxHash: (r.approveTxHash ?? undefined) as `0x${string}` | undefined,
             burnTxHash: r.burnTxHash as `0x${string}`,
           }));
         } catch (err) {
