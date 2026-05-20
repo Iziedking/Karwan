@@ -85,6 +85,35 @@ export async function sendTelegramMessage(
   }
 }
 
+/// Sends a photo by URL. Telegram fetches the URL itself, so it must be
+/// publicly reachable (PUBLIC_API_BASE_URL, not localhost). Caption is
+/// optional and rendered as Markdown. No-ops without a token.
+export async function sendTelegramPhoto(
+  chatId: number,
+  photoUrl: string,
+  caption?: string,
+): Promise<void> {
+  if (!config.TELEGRAM_BOT_TOKEN) return;
+  try {
+    const body: Record<string, unknown> = { chat_id: chatId, photo: photoUrl };
+    if (caption) {
+      body.caption = caption;
+      body.parse_mode = 'Markdown';
+    }
+    const res = await fetch(`${API}/bot${config.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const respBody = await res.text();
+      logger.warn({ status: res.status, body: respBody }, 'telegram sendPhoto failed');
+    }
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'telegram sendPhoto error');
+  }
+}
+
 /// Start the long-polling loop. Returns a stop function. Safe to call even
 /// without a token configured: just no-ops.
 export function startTelegramBot(): () => void {

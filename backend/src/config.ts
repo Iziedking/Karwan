@@ -118,6 +118,21 @@ const envSchema = z.object({
   // hackathon-grade sandbox path, or a verified-domain address in prod.
   RESEND_API_KEY: optionalString,
   RESEND_FROM: z.preprocess(blankToUndefined, z.string().default('Karwan <onboarding@resend.dev>')),
+
+  // Tester feedback delivery. When set, POST /api/feedback forwards each
+  // submission (text plus any screenshots) to this Telegram chat so the
+  // operator sees it immediately. Find the id by messaging @userinfobot, or by
+  // reading the chatId the bot logs when you link your wallet. Unset = store
+  // only; read it back via GET /api/feedback.
+  FEEDBACK_TELEGRAM_CHAT_ID: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().optional(),
+  ),
+  // This backend's own public origin, e.g. https://api.karwan.site. Used to
+  // build absolute screenshot URLs so Telegram can fetch them and the feedback
+  // viewer can link them. Unset = screenshots are stored but not pushed to
+  // Telegram (the alert still names how many were attached).
+  PUBLIC_API_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
 });
 
 const parsed = envSchema.safeParse(process.env);

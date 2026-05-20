@@ -281,6 +281,23 @@ export interface ChainEvent {
   payload: Record<string, unknown>;
 }
 
+export type FeedbackCategory = 'bug' | 'improvement' | 'other' | 'praise';
+export type FeedbackStatus = 'new' | 'triaged' | 'resolved';
+
+export interface FeedbackItem {
+  id: string;
+  category: FeedbackCategory;
+  title: string;
+  message: string;
+  contact: string | null;
+  context: { url?: string; wallet?: string; userAgent?: string } | null;
+  status: FeedbackStatus;
+  createdAt: number;
+  /// Absolute when PUBLIC_API_BASE_URL is set on the backend, otherwise a
+  /// path relative to the API origin. The viewer prefixes with api.baseUrl.
+  screenshotUrls: string[];
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -390,6 +407,24 @@ export const api = {
       body: JSON.stringify(body),
     }),
   dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
+  submitFeedback: (body: {
+    category: 'bug' | 'improvement' | 'other' | 'praise';
+    title: string;
+    message: string;
+    contact?: string;
+    context?: { url?: string; wallet?: string; userAgent?: string };
+    screenshots?: { dataUrl: string }[];
+  }) =>
+    json<{ ok: true; id: string }>('/api/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listFeedback: () => json<{ feedback: FeedbackItem[] }>('/api/feedback'),
+  setFeedbackStatus: (id: string, status: FeedbackStatus) =>
+    json<{ ok: true; status: FeedbackStatus }>(`/api/feedback/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
   postJob: (
     body: {
       posterAddress: string;

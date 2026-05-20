@@ -26,6 +26,7 @@ import { adminRoutes } from './routes/admin.js';
 import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
+import { feedbackRoutes } from './routes/feedback.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
@@ -109,6 +110,7 @@ app.route('/api/admin', adminRoutes);
 app.route('/api/listings', listingsRoutes);
 app.route('/api/x', xRoutes);
 app.route('/api/auth', authRoutes);
+app.route('/api/feedback', feedbackRoutes);
 
 // Process-wide error capture. Routes unhandled rejections + uncaught
 // exceptions through `errorTracker` so they land in the ring buffer and
