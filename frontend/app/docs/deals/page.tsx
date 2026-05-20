@@ -47,12 +47,41 @@ export default function DocsDealsPage() {
         </DocsListItem>
       </DocsList>
 
-      {/* TODO(screenshot): capture a deal detail page mid-lifecycle showing the
-          progress track. Save as frontend/public/docs/images/deal-lifecycle.png */}
+      <DocsP>
+        Here is the deal page at each stage. The progress track on top and the
+        next-move panel below it always tell you exactly where the deal is and
+        what you can do.
+      </DocsP>
+
       <DocsFigure
-        src="/docs/images/deal-lifecycle.png"
-        alt="Deal detail page showing the milestone progress track"
-        caption="A deal moving through its milestones"
+        src="/docs/images/deal-lifecycle1.png"
+        alt="Deal page after escrow funding, with the seller's mark-delivered action"
+        caption="Escrow funded. The seller marks the work delivered."
+      />
+      <DocsFigure
+        src="/docs/images/deal-lifecycle2.png"
+        alt="Deal page from the buyer's side while waiting for delivery"
+        caption="The buyer waits for delivery, with cancel as a fallback."
+      />
+      <DocsFigure
+        src="/docs/images/deal-lifecycle3.png"
+        alt="Deal page after delivery, the first milestone awaiting release"
+        caption="Delivered. The first 50% is up for release."
+      />
+      <DocsFigure
+        src="/docs/images/deal-lifecycle4.png"
+        alt="Deal page with the buyer's release-first-milestone action"
+        caption="The buyer releases the first 50%, or appeals."
+      />
+      <DocsFigure
+        src="/docs/images/deal-lifecycle5.png"
+        alt="Deal page after the first release, the final milestone awaiting verification"
+        caption="First half released. The buyer verifies and releases the rest."
+      />
+      <DocsFigure
+        src="/docs/images/deal-lifecycle6.png"
+        alt="Deal page in the settled state, fully paid"
+        caption="Settled. The seller is paid in full and reputation is recorded on chain."
       />
 
       <DocsH2>The fee</DocsH2>
