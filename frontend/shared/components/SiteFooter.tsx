@@ -61,6 +61,7 @@ export function SiteFooter() {
                 <FooterLink href="/seller">Seller desk</FooterLink>
                 <FooterLink href="/activity">Activity feed</FooterLink>
                 <FooterLink href="/how-it-works">How it works</FooterLink>
+                <FooterLink href="/docs">Documentation</FooterLink>
               </FooterCol>
               <FooterCol title="NETWORK">
                 <FooterLink href="https://docs.arc.network" external>
