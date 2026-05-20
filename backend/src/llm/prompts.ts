@@ -265,10 +265,11 @@ export function buildCounterEvaluationPrompt(
     concessionGuide,
     '',
     'Output rules:',
-    '- If their-price-in-range AND their-deadline-in-range, accept unless you can justify a small further counter from the concession curve.',
+    '- DEFAULT TO ACCEPT when their-price-in-range AND their-deadline-in-range. Each counter round costs the user time and trust. Don\'t haggle over single-digit USDC.',
+    '- Counter ONLY if ALL three are true: (a) counterparty tier is NEW or COLD, (b) the saving you can extract is at least 10% of their-price, (c) at least one counter round remains after this one.',
     '- decision: "accept" | "counter" | "decline"',
     `- If counter: counterPrice must be in [${party.minAcceptablePriceUsdc}, ${party.maxAcceptablePriceUsdc}] and counterDeadlineDays must be in [${party.minDeadlineDays}, ${party.maxDeadlineDays}].`,
-    '- confidence: 0..1',
+    '- confidence: 0..1. Use 0.8+ when accepting an in-range offer.',
     '- reasoning: one or two sentences citing reputation, market median, or urgency. Never quote the counterparty\'s tolerance or floor.',
   ].join('\n');
 }

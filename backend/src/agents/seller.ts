@@ -29,6 +29,7 @@ import { withLlmTimeout } from './llm-utils.js';
 import {
   heuristicCounterDecision,
   nextCounterPrice,
+  sellerPremiumByBuyerTier,
   type Tier,
 } from './strategy.js';
 import { getBrief } from '../db/briefs.js';
@@ -422,46 +423,45 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   });
 }
 
-/// Adjusts the LLM's suggested price based on the buyer's reputation tier
-/// per docs/reputation-model.md §6. Clamps to the seller's profile range so
-/// the adjusted price never violates the seller's own bounds. `humanReview`
-/// surfaces on the bid.submitted event so the seller's UI can flag NEW
-/// buyers before the human signs off on the eventual match.
+/// Adjusts the LLM's suggested price based on the buyer's reputation tier.
+/// Uses the tier-aware premium ladder from strategy.ts: ELITE pays no
+/// premium, STRONG pays a thin 7% cushion, ESTABLISHED stays at +15%,
+/// COLD/NEW pay +20%. Clamps to the seller's profile range. `humanReview`
+/// stays true only for NEW buyers so the seller's UI can eyeball a fresh
+/// counterparty before the human signs off.
 function adjustBidByTier(
   llmPrice: number,
   tier: 'new' | 'cold' | 'established' | 'strong' | 'elite',
   seller: SellerProfile,
 ): {
   priceUsdc: number;
-  adjustment: 'standard' | 'elite-floor' | 'cold-premium' | 'new-premium';
+  adjustment: 'standard' | 'elite-floor' | 'strong-thin' | 'established-cushion' | 'cold-premium' | 'new-premium';
   humanReview: boolean;
 } {
   const clamp = (n: number): number =>
     Math.max(seller.minBudgetUsdc, Math.min(seller.maxBudgetUsdc, n));
   if (tier === 'elite') {
-    // Top-tier clients earn first-look pricing. Bid at the seller's floor.
+    // Trusted regulars earn first-look pricing. Bid at the seller's floor.
     return {
       priceUsdc: clamp(seller.minBudgetUsdc),
       adjustment: 'elite-floor',
       humanReview: false,
     };
   }
-  if (tier === 'cold') {
-    return {
-      priceUsdc: clamp(llmPrice * 1.10),
-      adjustment: 'cold-premium',
-      humanReview: false,
-    };
-  }
-  if (tier === 'new') {
-    return {
-      priceUsdc: clamp(llmPrice * 1.15),
-      adjustment: 'new-premium',
-      humanReview: true,
-    };
-  }
-  // established + strong: LLM price stands.
-  return { priceUsdc: llmPrice, adjustment: 'standard', humanReview: false };
+  const multiplier = sellerPremiumByBuyerTier(tier);
+  const adjustment: 'strong-thin' | 'established-cushion' | 'cold-premium' | 'new-premium' =
+    tier === 'strong'
+      ? 'strong-thin'
+      : tier === 'established'
+        ? 'established-cushion'
+        : tier === 'cold'
+          ? 'cold-premium'
+          : 'new-premium';
+  return {
+    priceUsdc: clamp(llmPrice * multiplier),
+    adjustment,
+    humanReview: tier === 'new',
+  };
 }
 
 async function handleCounterOffer(log: Log) {

@@ -27,7 +27,20 @@ import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import { resolveBuyerProfile } from './agent-registry.js';
-import { heuristicCounterDecision, nextCounterPrice, type Tier } from './strategy.js';
+import {
+  heuristicCounterDecision,
+  nextCounterPrice,
+  scoreBidDeterministic,
+  shouldAcceptOnFinalRound,
+  type Tier,
+} from './strategy.js';
+
+/// Hard cap on how many seller candidates the buyer agent will attempt
+/// sequentially on a single brief. Without this, a 10-bid auction could
+/// spawn 10 sequential negotiations. Three is the sweet spot for
+/// community testing: enough to recover from a stubborn top seller,
+/// few enough to keep total negotiation time bounded.
+const MAX_CANDIDATES = 3;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
@@ -78,6 +91,11 @@ interface Bid {
   /// Pattern label from classifyBid(). Carried so finalizeBidCollection (and
   /// the Phase C risk-escalator) can route on it without re-computing.
   pattern?: ReturnType<typeof classifyBid>;
+  /// Cached actor signals so the deterministic bid score can compute without
+  /// re-fetching reputation data. completionRate in [0, 1]; velocity24h is
+  /// the rolling 24-hour bid+listing+cancel count for the seller.
+  completionRate?: number;
+  velocity24h?: number;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -96,6 +114,13 @@ interface JobState {
   collectionFired: boolean;
   counterRoundsBySeller: Map<`0x${string}`, number>;
   lastCounterPriceBySeller: Map<`0x${string}`, string>;
+  /// Cascading negotiation queue. After finalizeBidCollection ranks bids by
+  /// the deterministic score, the top N are queued here. When a negotiation
+  /// with the head candidate fails (LLM decline, max-counter-rounds, etc.),
+  /// the buyer pops the next candidate and runs a fresh negotiation. Bounded
+  /// at MAX_CANDIDATES so a 10-bid auction can't spawn 10 sequential rounds.
+  candidateQueue: Bid[];
+  triedSellers: Set<`0x${string}`>;
   finalized: boolean;
   escrowFunded: boolean;
   /// Set by the jobExpiryWatcher when deadline passes with no accepted bid
@@ -250,6 +275,8 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     collectionFired: false,
     counterRoundsBySeller: new Map(),
     lastCounterPriceBySeller: new Map(),
+    candidateQueue: [],
+    triedSellers: new Set(),
     finalized: false,
     escrowFunded: false,
     expired: isExpired,
@@ -319,6 +346,8 @@ async function handleBidSubmitted(log: Log) {
     deadlineUnix: Number(args.deadline),
     sellerReputationBps,
     sellerTier: sellerRepTier,
+    completionRate: sellerCompletionRate,
+    velocity24h: sellerVelocity24h,
   };
 
   const bidContext: BidContext = {
@@ -409,20 +438,37 @@ async function finalizeBidCollection(state: JobState) {
   state.collectionFired = true;
   state.collectionTimer = null;
 
-  // Primary sort by LLM score; reputation breaks near-ties so a marginally
-  // lower-scored bid from a highly-reputed seller wins over an unproven one.
-  // The agent leans on ERC-8004 reputation as a soft signal, not a hard gate.
-  const ranked = [...state.bids.values()]
+  // Primary sort uses the deterministic bid score (price + reputation +
+  // completion + age + velocity), keyed off the same signals the LLM had.
+  // The LLM's score still gets recorded on the bid for narrative, but
+  // ranking comes from the deterministic function so two evaluations of
+  // the same bid pool can't disagree. Reputation breaks near-ties.
+  const budget = Number(state.context.budgetUsdc);
+  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
+  const scoredBids = [...state.bids.values()]
     .filter((b) => typeof b.score === 'number')
+    .map((b) => {
+      const det = scoreBidDeterministic({
+        bidPriceUsdc: Number(b.priceUsdc),
+        briefBudgetUsdc: budget,
+        effectiveCapUsdc: effectiveCap,
+        sellerTier: (b.sellerTier ?? 'established') as Tier,
+        sellerCompletionRate: b.completionRate,
+        sellerVelocity24h: b.velocity24h,
+      });
+      return { bid: b, deterministicScore: det.score, breakdown: det.breakdown };
+    });
+  const ranked = scoredBids
     .sort((a, b) => {
-      const scoreDelta = b.score! - a.score!;
+      const scoreDelta = b.deterministicScore - a.deterministicScore;
       if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
-        const repA = a.sellerReputationBps ?? 5000;
-        const repB = b.sellerReputationBps ?? 5000;
+        const repA = a.bid.sellerReputationBps ?? 5000;
+        const repB = b.bid.sellerReputationBps ?? 5000;
         if (repA !== repB) return repB - repA;
       }
       return scoreDelta;
-    });
+    })
+    .map((entry) => entry.bid);
 
   if (ranked.length > 1 && typeof ranked[0]!.score === 'number' && typeof ranked[1]!.score === 'number') {
     const top = ranked[0]!;
@@ -464,10 +510,27 @@ async function finalizeBidCollection(state: JobState) {
     return;
   }
 
+  // Build the candidate queue: top-MAX_CANDIDATES bids by deterministic
+  // score. When the head's negotiation fails, the buyer agent moves to the
+  // next candidate instead of finalizing. This turns the bid pool into a
+  // funnel the agent works through, mirroring how a human would line up
+  // alternatives before committing.
+  state.candidateQueue = ranked.slice(0, MAX_CANDIDATES);
+  logger.info(
+    {
+      jobId: state.jobId,
+      queueDepth: state.candidateQueue.length,
+      candidates: state.candidateQueue.map((c) => ({
+        seller: c.seller,
+        priceUsdc: c.priceUsdc,
+        tier: c.sellerTier,
+      })),
+    },
+    'candidate queue built',
+  );
+
   const top = ranked[0]!;
   const topPrice = Number(top.priceUsdc);
-  const budget = Number(state.context.budgetUsdc);
-  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
   const topTier = top.sellerTier ?? 'established';
 
   // Tier-aware bid handling per reputation-model.md §6. Branches BEFORE the
@@ -585,6 +648,114 @@ async function finalizeBidCollection(state: JobState) {
   await issueCounter(state, top);
 }
 
+/// Pop the next candidate off the queue and start a fresh negotiation with
+/// them. Called from any terminal-failure path on the current candidate
+/// (LLM decline, counter-out-of-range, max-counter-rounds). Marks the
+/// previous seller as tried so we don't loop. When the queue is empty,
+/// emits `negotiation.exhausted` and finalizes the job.
+///
+/// The new candidate gets a fresh negotiation: their bid is re-evaluated
+/// against the buyer's budget and tier rules. If their bid is in budget
+/// the buyer proposes a match (fast path). If above budget but inside the
+/// effective cap, the buyer issues a counter (full round budget). Anything
+/// further out is skipped, and we recurse to the next candidate.
+async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, reason: string) {
+  if (state.finalized) return;
+  state.triedSellers.add(failedSeller);
+  bus.emitEvent({
+    type: 'negotiation.attempt-ended',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { seller: failedSeller, reason, triedCount: state.triedSellers.size },
+  });
+
+  // Find the next not-tried bid in the queue.
+  const next = state.candidateQueue.find((b) => !state.triedSellers.has(b.seller));
+  if (!next) {
+    logger.info(
+      {
+        jobId: state.jobId,
+        triedSellers: state.triedSellers.size,
+        queueDepth: state.candidateQueue.length,
+      },
+      'candidate queue exhausted, finalizing as declined',
+    );
+    state.finalized = true;
+    bus.emitEvent({
+      type: 'negotiation.exhausted',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        triedCount: state.triedSellers.size,
+        queueDepth: state.candidateQueue.length,
+      },
+    });
+    bus.emitEvent({
+      type: 'agent.declined',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        reason: 'all-candidates-exhausted',
+        detail: `Attempted ${state.triedSellers.size} of ${state.candidateQueue.length} candidates; none converged.`,
+        triedCount: state.triedSellers.size,
+      },
+    });
+    return;
+  }
+
+  bus.emitEvent({
+    type: 'negotiation.next-candidate',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: {
+      seller: next.seller,
+      priceUsdc: next.priceUsdc,
+      tier: next.sellerTier,
+      remainingInQueue: state.candidateQueue.filter((b) => !state.triedSellers.has(b.seller)).length - 1,
+    },
+  });
+
+  const nextPrice = Number(next.priceUsdc);
+  const budget = Number(state.context.budgetUsdc);
+  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
+  const nextTier = next.sellerTier ?? 'established';
+
+  // Apply the same accept-or-counter logic as finalizeBidCollection. ELITE
+  // and at/under budget land directly; above budget but in cap issues a
+  // fresh counter (round budget resets for this seller since the
+  // counterRoundsBySeller map is keyed by seller address).
+  if (nextTier === 'elite' && nextPrice <= effectiveCap) {
+    logger.info(
+      { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice },
+      'next candidate is elite, accepting directly',
+    );
+    await proposeMatch(state, next.seller, next.priceUsdc, next.pattern);
+    return;
+  }
+  if (nextPrice <= budget) {
+    logger.info(
+      { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, budget },
+      'next candidate at/under budget, accepting directly',
+    );
+    await proposeMatch(state, next.seller, next.priceUsdc, next.pattern);
+    return;
+  }
+  if (nextPrice <= effectiveCap) {
+    logger.info(
+      { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, effectiveCap },
+      'next candidate above budget but in cap, issuing fresh counter',
+    );
+    await issueCounter(state, next);
+    return;
+  }
+  // Their bid is outside the effective cap. Skip and try the next.
+  logger.info(
+    { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, effectiveCap },
+    'next candidate priced above effective cap, skipping to next',
+  );
+  await tryNextCandidate(state, next.seller, 'price-above-cap');
+}
+
 async function issueCounter(state: JobState, bid: Bid) {
   const buyer = state.buyer;
   if (!bid.suggestedCounterPrice || !bid.suggestedCounterDeadlineDays) {
@@ -608,21 +779,9 @@ async function issueCounter(state: JobState, bid: Bid) {
   if (counterPrice > effectiveCap) {
     logger.warn(
       { jobId: state.jobId, counterPrice, effectiveCap },
-      'LLM counter exceeds brief effective cap, skipping',
+      'LLM counter exceeds brief effective cap, trying next candidate',
     );
-    state.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: state.jobId,
-      actor: 'buyer',
-      payload: {
-        seller: bid.seller,
-        reason: 'llm-counter-over-budget',
-        detail: `${counterPrice} USDC exceeds the brief's ${effectiveCap} USDC effective cap`,
-        counterPrice,
-        effectiveCap,
-      },
-    });
+    await tryNextCandidate(state, bid.seller, 'llm-counter-over-budget');
     return;
   }
 
@@ -778,19 +937,8 @@ async function handleCounterResponse(log: Log) {
   logger.info({ jobId: state.jobId, seller: args.seller, decision }, 'counter-response evaluated');
 
   if (decision.confidence < buyer.confidenceThreshold) {
-    logger.info({ jobId: state.jobId }, 'low confidence, declining');
-    state.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: state.jobId,
-      actor: 'buyer',
-      payload: {
-        seller: args.seller,
-        reason: 'low-confidence',
-        detail: `confidence ${decision.confidence} is below the buyer's ${buyer.confidenceThreshold} threshold`,
-        decision,
-      },
-    });
+    logger.info({ jobId: state.jobId }, 'low confidence, trying next candidate');
+    await tryNextCandidate(state, args.seller, 'low-confidence');
     return;
   }
 
@@ -801,32 +949,40 @@ async function handleCounterResponse(log: Log) {
   }
 
   if (decision.decision === 'decline') {
-    logger.info({ jobId: state.jobId }, 'declined seller counter');
-    state.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: state.jobId,
-      actor: 'buyer',
-      payload: { seller: args.seller, reason: 'llm-decline', decision },
-    });
+    logger.info({ jobId: state.jobId }, 'declined seller counter, trying next candidate');
+    await tryNextCandidate(state, args.seller, 'llm-decline');
     return;
   }
 
   const rounds = state.counterRoundsBySeller.get(args.seller) ?? 0;
+  // Final-round acceptance: if the buyer is about to hit the round cap AND
+  // the seller's offer is inside the effective ceiling, accept rather than
+  // walk away over a single round. Mirrors how a human in the last seat at
+  // the negotiating table would close instead of restart.
+  if (rounds >= buyer.maxCounterRounds - 1) {
+    const sellerOfferN = Number(sellerCounterPrice);
+    if (
+      shouldAcceptOnFinalRound({
+        role: 'buyer',
+        currentRound: rounds,
+        maxRounds: buyer.maxCounterRounds,
+        theirOffer: sellerOfferN,
+        myCeiling: effectiveMaxAcceptable,
+        myFloor: 0,
+      })
+    ) {
+      logger.info(
+        { jobId: state.jobId, rounds, sellerOffer: sellerOfferN, ceiling: effectiveMaxAcceptable },
+        'final round, seller offer inside cap, accepting instead of declining',
+      );
+      const originatingBid = state.bids.get(args.seller);
+      await proposeMatch(state, args.seller, sellerCounterPrice, originatingBid?.pattern);
+      return;
+    }
+  }
   if (rounds >= buyer.maxCounterRounds) {
-    logger.info({ jobId: state.jobId, rounds }, 'max counter rounds reached, declining');
-    state.finalized = true;
-    bus.emitEvent({
-      type: 'agent.declined',
-      jobId: state.jobId,
-      actor: 'buyer',
-      payload: {
-        seller: args.seller,
-        reason: 'max-counter-rounds',
-        detail: `buyer hit the ${buyer.maxCounterRounds}-round counter cap`,
-        rounds,
-      },
-    });
+    logger.info({ jobId: state.jobId, rounds }, 'max counter rounds reached, trying next candidate');
+    await tryNextCandidate(state, args.seller, 'max-counter-rounds');
     return;
   }
 

@@ -118,6 +118,157 @@ export function heuristicCounterDecision(args: {
   };
 }
 
+/// Tier-aware seller premium applied at bid time. Scales the cushion a
+/// seller adds on top of its target price based on how trustworthy the
+/// buyer is, instead of the old flat +15% NEW penalty. Mirrors how a
+/// human seller prices known repeat clients vs cold strangers.
+///
+/// Returns the multiplier you apply to the base price.
+///
+///   elite        -> 1.00 (no premium; treat ELITE as known regular)
+///   strong       -> 1.07 (thin cushion)
+///   established  -> 1.15 (standard cushion)
+///   cold         -> 1.20 (extra cushion for weak history)
+///   new          -> 1.20 (same as cold; both flag for human review)
+export function sellerPremiumByBuyerTier(buyerTier: Tier): number {
+  switch (buyerTier) {
+    case 'elite':
+      return 1.0;
+    case 'strong':
+      return 1.07;
+    case 'established':
+      return 1.15;
+    case 'cold':
+    case 'new':
+      return 1.2;
+  }
+}
+
+/// Deterministic 0-100 bid score used to rank multiple bids on the same
+/// brief. The LLM still writes per-bid reasoning, but the ranking comes
+/// from this function so two scoring calls on the same bid can't disagree.
+///
+/// Weights: 40% price / 25% tier / 15% completion / 10% deals
+///        + 5% age / 5% velocity.
+///
+/// Each sub-score is itself bounded to [0, 100]:
+///   priceScore       100 at-or-below budget, drops linearly to 30 at the
+///                    buyer's effective cap, 0 above the cap.
+///   tierScore        elite 100, strong 85, established 65, cold 40, new 20
+///   completionScore  completion rate * 100 (default 50 if unknown)
+///   dealsScore       log10(deals+1) * 40, capped at 100
+///   ageScore         log10(days+1) * 50, capped at 100
+///   velocityScore    inverted-U: 2-10 deals/day rewarded, 0 or >15 punished
+export interface BidScoreInputs {
+  bidPriceUsdc: number;
+  briefBudgetUsdc: number;
+  effectiveCapUsdc: number;
+  sellerTier: Tier;
+  sellerCompletionRate?: number;
+  sellerDealsCompleted?: number;
+  sellerAccountAgeDays?: number;
+  sellerVelocity24h?: number;
+}
+export interface BidScore {
+  score: number;
+  breakdown: {
+    price: number;
+    tier: number;
+    completion: number;
+    deals: number;
+    age: number;
+    velocity: number;
+  };
+}
+
+const TIER_SCORE: Record<Tier, number> = {
+  elite: 100,
+  strong: 85,
+  established: 65,
+  cold: 40,
+  new: 20,
+};
+
+export function scoreBidDeterministic(args: BidScoreInputs): BidScore {
+  // priceScore: 100 at-or-below the buyer's posted budget, drops linearly
+  // to 30 at the effective cap (budget * tolerance), 0 above the cap.
+  const budget = Math.max(1, args.briefBudgetUsdc);
+  const cap = Math.max(budget, args.effectiveCapUsdc);
+  let priceScore: number;
+  if (args.bidPriceUsdc <= budget) {
+    priceScore = 100;
+  } else if (args.bidPriceUsdc >= cap) {
+    priceScore = 0;
+  } else {
+    // Linear from 100 (at budget) -> 30 (at cap)
+    const overBudget = (args.bidPriceUsdc - budget) / (cap - budget);
+    priceScore = 100 - overBudget * 70;
+  }
+
+  const tierScore = TIER_SCORE[args.sellerTier];
+
+  const completion = args.sellerCompletionRate ?? 0.5;
+  const completionScore = Math.max(0, Math.min(100, completion * 100));
+
+  const deals = Math.max(0, args.sellerDealsCompleted ?? 0);
+  const dealsScore = Math.min(100, Math.log10(deals + 1) * 40);
+
+  const ageDays = Math.max(0, args.sellerAccountAgeDays ?? 0);
+  const ageScore = Math.min(100, Math.log10(ageDays + 1) * 50);
+
+  // Velocity: aim for a sweet spot. Below 2/day reads dormant; above 15/day
+  // reads botty. Reward 2-10, taper outside.
+  const vel = Math.max(0, args.sellerVelocity24h ?? 0);
+  let velocityScore: number;
+  if (vel < 2) velocityScore = 30 + vel * 15;
+  else if (vel <= 10) velocityScore = 60 + (vel - 2) * 5;
+  else if (vel <= 15) velocityScore = 100 - (vel - 10) * 10;
+  else velocityScore = Math.max(10, 50 - (vel - 15) * 4);
+
+  const weighted =
+    priceScore * 0.4 +
+    tierScore * 0.25 +
+    completionScore * 0.15 +
+    dealsScore * 0.1 +
+    ageScore * 0.05 +
+    velocityScore * 0.05;
+
+  return {
+    score: Math.round(weighted),
+    breakdown: {
+      price: Math.round(priceScore),
+      tier: Math.round(tierScore),
+      completion: Math.round(completionScore),
+      deals: Math.round(dealsScore),
+      age: Math.round(ageScore),
+      velocity: Math.round(velocityScore),
+    },
+  };
+}
+
+/// Final-round acceptance hook. At the buyer's last allowed counter round,
+/// any seller offer inside the effective cap should be accepted rather
+/// than declined "max-counter-rounds." Humans close at the boundary;
+/// agents that decline because they ran out of rounds feel like bots.
+///
+/// Returns true when the agent should accept the standing offer instead
+/// of letting the round-cap path fire `agent.declined`.
+export function shouldAcceptOnFinalRound(args: {
+  role: Role;
+  currentRound: number;
+  maxRounds: number;
+  theirOffer: number;
+  myCeiling: number;
+  myFloor: number;
+}): boolean {
+  const isLastRound = args.currentRound >= args.maxRounds - 1;
+  if (!isLastRound) return false;
+  if (args.role === 'buyer') {
+    return args.theirOffer <= args.myCeiling;
+  }
+  return args.theirOffer >= args.myFloor;
+}
+
 /// Suggests an opening anchor for a new bid. Sellers anchor at the higher
 /// end of their acceptable band; buyers reveal slightly below their cap.
 /// This signals room to move without giving away the reservation price.
