@@ -33,40 +33,48 @@ export function BalanceRail() {
   const human = data ? formatUnits(data.value, data.decimals) : null;
   const address = auth.address;
 
+  // Off Arc, the call to action is the only thing that matters, so it REPLACES
+  // the balance + address rather than sitting beside them. That keeps the rail
+  // the same width in both states. the bar can't grow and clip the controls to
+  // its right when a web3 wallet lands on the wrong chain.
+  if (!onArc) {
+    return (
+      <button
+        type="button"
+        onClick={() => switchChain({ chainId: arcTestnet.id })}
+        disabled={switching}
+        title="Your wallet is on the wrong network. Switch to Arc Testnet."
+        className="group inline-flex items-center gap-1.5 mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors disabled:opacity-60 disabled:cursor-wait"
+        style={{ color: '#b25425' }}
+      >
+        <span
+          aria-hidden
+          className="w-[6px] h-[6px] rounded-full shrink-0"
+          style={{ background: '#b25425' }}
+        />
+        <span>{switching ? 'Switching to Arc' : 'Switch to Arc'}</span>
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className="transition-transform duration-200 group-hover:translate-x-0.5"
+        >
+          <path
+            d="M3 8h10M9 4l4 4-4 4"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2 text-[12px] whitespace-nowrap">
-      {!onArc && (
-        <button
-          type="button"
-          onClick={() => switchChain({ chainId: arcTestnet.id })}
-          disabled={switching}
-          title="Your wallet is not on Arc Testnet"
-          className="group inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(178,84,37,0.06)] disabled:opacity-60 disabled:cursor-wait"
-          style={{
-            background: 'var(--color-surface)',
-            color: '#b25425',
-            border: '1.5px solid #b25425',
-          }}
-        >
-          <span>{switching ? 'Switching' : 'Switch to Arc'}</span>
-          <svg
-            width="9"
-            height="9"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden
-            className="transition-transform duration-200 group-hover:translate-x-0.5"
-          >
-            <path
-              d="M3 8h10M9 4l4 4-4 4"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      )}
       <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">
         {isLoading || !human ? '-' : formatUsdc(human, { withSuffix: false })}
       </span>
