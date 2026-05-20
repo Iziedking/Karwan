@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -42,6 +43,32 @@ interface GuideContextValue {
   prev: () => void;
   close: (markSeen?: boolean) => void;
   active: ActiveTour | null;
+  /// Quality-weighted experience. Using DIFFERENT tools advances it; repeating
+  /// the same action plateaus. Tips fade as it climbs and stop past
+  /// GUIDE_MASTERY_XP. Record real actions via `recordAction(type)`.
+  experience: number;
+  recordAction: (type: string) => void;
+  mastered: boolean;
+}
+
+/// Transactions after which a user is treated as having "mastered" the app:
+/// auto-tips stop (the replay pill stays for on-demand). Picked in the 10-20
+/// band the product owner asked for.
+export const GUIDE_MASTERY_XP = 15;
+
+/// Decides whether a page tour should auto-open on mount. New users see unseen
+/// tours every time and seen ones at random; the re-show chance decays with
+/// experience and hits zero at mastery. After mastery nothing auto-opens.
+export function shouldAutoOpenTour(args: {
+  disabled: boolean;
+  experience: number;
+  seen: boolean;
+}): boolean {
+  if (args.disabled) return false;
+  if (args.experience >= GUIDE_MASTERY_XP) return false;
+  if (!args.seen) return true;
+  const reshowChance = (1 - args.experience / GUIDE_MASTERY_XP) * 0.5;
+  return Math.random() < reshowChance;
 }
 
 const GuideContext = createContext<GuideContextValue | null>(null);
@@ -74,16 +101,80 @@ function loadDisabled(): boolean {
   }
 }
 
+const ACTIONS_KEY = 'karwan:guide:actions';
+const SKIPS_KEY = 'karwan:guide:skips';
+
+/// Skip a tour (bail out before finishing) this many times in a row and we
+/// take the hint: tours stop auto-opening for this account.
+const MAX_CONSECUTIVE_SKIPS = 5;
+
+function loadActions(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(ACTIONS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function loadSkips(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    return Number(localStorage.getItem(SKIPS_KEY) ?? '0') || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/// Experience is quality-weighted, not a raw transaction count: spamming the
+/// same action plateaus fast, while using DIFFERENT tools keeps advancing it.
+/// Each distinct action type is worth PER_DISTINCT; repeats add a little, hard
+/// capped, so a user can't grind one button to mute the tips early.
+function computeExperience(actions: Record<string, number>): number {
+  const PER_DISTINCT = 3;
+  const PER_REPEAT = 0.5;
+  const REPEAT_CAP = 10; // repeats beyond this add nothing
+  let distinct = 0;
+  let repeats = 0;
+  for (const count of Object.values(actions)) {
+    if (count <= 0) continue;
+    distinct += 1;
+    repeats += count - 1;
+  }
+  return distinct * PER_DISTINCT + Math.min(repeats, REPEAT_CAP) * PER_REPEAT;
+}
+
 export function GuideProvider({ children }: { children: ReactNode }) {
   const [disabled, setDisabled] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [active, setActive] = useState<ActiveTour | null>(null);
+  const [actions, setActions] = useState<Record<string, number>>({});
+  // Consecutive bail-outs. A ref because no UI depends on the live value; it is
+  // persisted so the "5 skips and stop" rule survives reloads.
+  const skipsRef = useRef(0);
 
   // Hydrate persisted state on the client (avoids SSR localStorage access).
   useEffect(() => {
     setDisabled(loadDisabled());
     setSeen(loadSeen());
+    setActions(loadActions());
+    skipsRef.current = loadSkips();
   }, []);
+
+  const recordAction = useCallback((type: string) => {
+    setActions((prev) => {
+      const nextMap = { ...prev, [type]: (prev[type] ?? 0) + 1 };
+      try {
+        localStorage.setItem(ACTIONS_KEY, JSON.stringify(nextMap));
+      } catch {
+        /* ignore */
+      }
+      return nextMap;
+    });
+  }, []);
+
+  const experience = useMemo(() => computeExperience(actions), [actions]);
 
   const persistSeen = useCallback((s: Set<string>) => {
     try {
@@ -111,7 +202,25 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const close = useCallback(
     (doMarkSeen = true) => {
       setActive((cur) => {
-        if (cur && doMarkSeen) markSeen(cur.id);
+        if (cur) {
+          if (doMarkSeen) markSeen(cur.id);
+          // Closing a tour before finishing it counts as a skip. Five in a row
+          // and we stop auto-opening tours for this account.
+          skipsRef.current += 1;
+          try {
+            localStorage.setItem(SKIPS_KEY, String(skipsRef.current));
+          } catch {
+            /* ignore */
+          }
+          if (skipsRef.current >= MAX_CONSECUTIVE_SKIPS) {
+            try {
+              localStorage.setItem(DISABLED_KEY, '1');
+            } catch {
+              /* ignore */
+            }
+            setDisabled(true);
+          }
+        }
         return null;
       });
     },
@@ -132,6 +241,14 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       if (!cur) return cur;
       if (cur.index >= cur.steps.length - 1) {
         markSeen(cur.id);
+        // Finishing a tour is engagement: reset the consecutive-skip counter so
+        // a later bail-out starts the "5 in a row" count fresh.
+        skipsRef.current = 0;
+        try {
+          localStorage.setItem(SKIPS_KEY, '0');
+        } catch {
+          /* ignore */
+        }
         return null;
       }
       return { ...cur, index: cur.index + 1 };
@@ -153,11 +270,15 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const enableTips = useCallback(() => {
+    // Re-enabling gives a clean slate so the skip counter doesn't immediately
+    // re-trip the "5 in a row" rule.
     try {
       localStorage.removeItem(DISABLED_KEY);
+      localStorage.setItem(SKIPS_KEY, '0');
     } catch {
       /* ignore */
     }
+    skipsRef.current = 0;
     setDisabled(false);
   }, []);
 
@@ -173,8 +294,11 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       prev,
       close,
       active,
+      experience,
+      recordAction,
+      mastered: experience >= GUIDE_MASTERY_XP,
     }),
-    [disabled, dismissAll, enableTips, isSeen, active, startTour, next, prev, close],
+    [disabled, dismissAll, enableTips, isSeen, active, startTour, next, prev, close, experience, recordAction],
   );
 
   return (

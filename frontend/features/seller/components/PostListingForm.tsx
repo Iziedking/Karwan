@@ -8,12 +8,16 @@ import { Hint } from '@/shared/components/Hint';
 import { cn } from '@/shared/utils/cn';
 import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
 import { useDismissed } from '@/shared/hooks/useDismissed';
+import { PageTour } from '@/shared/guide/PageTour';
+import { useGuide } from '@/shared/guide/GuideProvider';
+import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
 
 export function PostListingForm() {
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
+  const { recordAction } = useGuide();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number | ''>('');
@@ -92,6 +96,7 @@ export function PostListingForm() {
       });
       setRecent((prev) => [r.listing, ...prev]);
       setWatchingForListingId(r.listing.id);
+      recordAction('post-listing');
       setTitle('');
       setDescription('');
     } catch (err) {
@@ -121,6 +126,7 @@ export function PostListingForm() {
 
   return (
     <div className="space-y-7">
+      <PageTour id={SELLER_TOUR_ID} steps={SELLER_STEPS} />
       <form onSubmit={submit} className="space-y-7">
         {/* LISTING PREVIEW. big editorial display */}
         <div
@@ -191,7 +197,7 @@ export function PostListingForm() {
         </div>
 
         {/* WHAT YOU OFFER */}
-        <FieldSection eyebrow="WHAT YOU OFFER" title="Describe the offer.">
+        <FieldSection eyebrow="WHAT YOU OFFER" title="Describe the offer." dataGuide="seller-listing">
           <FormLabel label="Title" hint="A short headline buyers see first.">
             <input
               type="text"
@@ -232,6 +238,7 @@ export function PostListingForm() {
               label="Asking price"
               unit="USDC"
               hint="Your headline price. Your agent bids this on matched briefs."
+              dataGuide="seller-price"
             >
               <input
                 type="number"
@@ -370,6 +377,7 @@ export function PostListingForm() {
         <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-white/[0.08]">
           <button
             type="submit"
+            data-guide="seller-submit"
             disabled={disabled}
             className={cn(
               'group inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em]',
@@ -543,13 +551,15 @@ function FieldSection({
   eyebrow,
   title,
   children,
+  dataGuide,
 }: {
   eyebrow: string;
   title: string;
   children: ReactNode;
+  dataGuide?: string;
 }) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" data-guide={dataGuide}>
       <div className="space-y-1.5">
         <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-white/55">
           {eyebrow}
@@ -568,14 +578,16 @@ function FormLabel({
   unit,
   hint,
   children,
+  dataGuide,
 }: {
   label: string;
   unit?: string;
   hint?: string;
   children: ReactNode;
+  dataGuide?: string;
 }) {
   return (
-    <label className="block space-y-2">
+    <label className="block space-y-2" data-guide={dataGuide}>
       <span className="flex items-center gap-2 justify-between">
         <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-white/55">
           {label}

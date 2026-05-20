@@ -7,6 +7,9 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '../hooks/useReputation';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc } from '@/shared/utils/format';
+import { PageTour } from '@/shared/guide/PageTour';
+import { useGuide } from '@/shared/guide/GuideProvider';
+import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -137,6 +140,7 @@ export function StakeCard() {
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const { recordAction } = useGuide();
   // Web3 users sign vault txs from their own wallet. If that wallet is on the
   // wrong network (e.g. Base), the deposit/withdraw/claim would broadcast on
   // the wrong chain. Detect it and make the user switch to Arc first. Circle
@@ -289,6 +293,7 @@ export function StakeCard() {
         await arcClient.waitForTransactionReceipt({ hash: depositHash });
         patchLog(logId, { status: 'done', txHash: depositHash });
       }
+      recordAction('stake-deposit');
       await refetchPositions();
       await refetchRep();
     } catch (err) {
@@ -296,7 +301,7 @@ export function StakeCard() {
     } finally {
       setBusyKind(null);
     }
-  }, [address, depositAmount, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
+  }, [address, depositAmount, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
 
   // -------------------- withdraw --------------------
 
@@ -506,9 +511,10 @@ export function StakeCard() {
 
   return (
     <div style={CARD_STYLE} className="px-6 py-7 space-y-7">
+      <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
       {/* HEADER */}
       <div className="flex items-start justify-between gap-6 flex-wrap">
-        <div className="space-y-2 min-w-0">
+        <div className="space-y-2 min-w-0" data-guide="stake-total">
           <SectionEyebrow>STAKE</SectionEyebrow>
           <div className="flex items-baseline gap-3 flex-wrap">
             <span
@@ -614,7 +620,7 @@ export function StakeCard() {
           stake. */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* DEPOSIT */}
-        <div className="space-y-3">
+        <div className="space-y-3" data-guide="stake-deposit">
           <div className="flex items-baseline justify-between gap-2">
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               DEPOSIT
@@ -669,7 +675,7 @@ export function StakeCard() {
         </div>
 
         {/* WITHDRAW */}
-        <div className="space-y-3">
+        <div className="space-y-3" data-guide="stake-withdraw">
           <div className="flex items-baseline justify-between gap-2">
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               WITHDRAW

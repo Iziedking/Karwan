@@ -48,3 +48,63 @@ export const BUYER_STEPS: TourStep[] = [
     target: 'buyer-submit',
   },
 ];
+
+/// Seller desk tour (post a listing).
+export const SELLER_TOUR_ID = 'seller-v1';
+export const SELLER_STEPS: TourStep[] = [
+  {
+    title: 'Offer your work',
+    body: 'Describe what you do in plain words. Your assistant matches it to buyers who need it and bids on your behalf.',
+    target: 'seller-listing',
+  },
+  {
+    title: 'Set your asking price',
+    body: 'What you want for the work, in USDC (digital dollars, about 1 USDC to 1 US dollar). Add a little flexibility so your assistant can close a deal.',
+    target: 'seller-price',
+  },
+  {
+    title: 'Publish it',
+    body: 'Post the listing and your assistant watches for matching requests, negotiates, and brings you a deal to accept. You approve before anything is binding.',
+    target: 'seller-submit',
+  },
+];
+
+/// Stake tour.
+export const STAKE_TOUR_ID = 'stake-v1';
+export const STAKE_STEPS: TourStep[] = [
+  {
+    title: 'What staking does',
+    body: 'Lock USDC to build your reputation. A higher tier makes your assistant negotiate better deals for you, and on mainnet the same stake earns yield.',
+    target: 'stake-total',
+  },
+  {
+    title: 'Add to your stake',
+    body: 'Enter an amount and deposit. Your USDC stays yours; it is locked, not spent.',
+    target: 'stake-deposit',
+  },
+  {
+    title: 'Taking it back',
+    body: 'Withdrawing starts a 7-day cool-down. After that you claim it back to your wallet. Cancel any time during the wait to keep earning.',
+    target: 'stake-withdraw',
+  },
+];
+
+/// Bridge tour (add funds to Arc).
+export const BRIDGE_TOUR_ID = 'bridge-v1';
+export const BRIDGE_STEPS: TourStep[] = [
+  {
+    title: 'Where your USDC is now',
+    body: 'Pick the chain your USDC sits on today. Karwan moves it to Arc, where every deal settles.',
+    target: 'bridge-source',
+  },
+  {
+    title: 'How much to move',
+    body: 'Enter the amount. It is burned on the source chain and minted fresh on Arc. No wrapped tokens, no third party holding it.',
+    target: 'bridge-amount',
+  },
+  {
+    title: 'Bring it over',
+    body: 'Start the transfer. It usually lands on Arc in 10 to 19 minutes; you can leave the page and come back.',
+    target: 'bridge-submit',
+  },
+];

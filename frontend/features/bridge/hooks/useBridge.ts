@@ -14,6 +14,7 @@ import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useGuide } from '@/shared/guide/GuideProvider';
 
 const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
@@ -214,6 +215,7 @@ export function useBridges() {
   const sepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.sepolia.chainId });
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
+  const { recordAction } = useGuide();
   // Identity used for storage scoping and SSE subscription. For web3 users
   // it's the wagmi address; for Circle users it's the Circle DCW identity
   // address. Without this, Circle bridges don't persist on reload and never
@@ -297,7 +299,10 @@ export function useBridges() {
               error: undefined,
               updatedAt: Date.now(),
             };
-            if (cur.phase !== 'done') sfx.success();
+            if (cur.phase !== 'done') {
+              sfx.success();
+              recordAction('bridge');
+            }
           } else {
             // Stay in 'minting' so the user keeps the live indicator and the
             // "Recheck on chain" path remains active. The recheck button is
@@ -326,7 +331,7 @@ export function useBridges() {
         return copy;
       });
     });
-  }, [identityAddress]);
+  }, [identityAddress, recordAction]);
 
   const patch = useCallback((id: string, fn: (b: BridgeRecord) => BridgeRecord) => {
     setBridges((list) => {

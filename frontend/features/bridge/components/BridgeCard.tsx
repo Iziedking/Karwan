@@ -8,6 +8,8 @@ import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBri
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
+import { PageTour } from '@/shared/guide/PageTour';
+import { BRIDGE_TOUR_ID, BRIDGE_STEPS } from '@/shared/guide/tours';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 const STUCK_AFTER_MS = 30 * 60 * 1000;
@@ -232,6 +234,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
 
   return (
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
+      <PageTour id={BRIDGE_TOUR_ID} steps={BRIDGE_STEPS} />
       <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -290,7 +293,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
-          <div>
+          <div data-guide="bridge-source">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               [:SOURCE CHAIN:]
             </span>
@@ -357,6 +360,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
 
           {/* AMOUNT INPUT */}
           <div
+            data-guide="bridge-amount"
             className="bridge-amount transition-shadow"
             style={{
               background: 'var(--lp-card)',
@@ -428,6 +432,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
           {/* SUBMIT */}
           <button
             type="submit"
+            data-guide="bridge-submit"
             disabled={!canSubmit}
             className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
             style={{

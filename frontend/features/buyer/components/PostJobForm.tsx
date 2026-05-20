@@ -10,6 +10,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { cn } from '@/shared/utils/cn';
 import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
 import { PageTour } from '@/shared/guide/PageTour';
+import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 
 export function PostJobForm() {
@@ -18,6 +19,7 @@ export function PostJobForm() {
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
   const { profile, loading: profileLoading } = useUserProfile();
+  const { recordAction } = useGuide();
   const [brief, setBrief] = useState('');
   const [budget, setBudget] = useState<number | ''>('');
   // Deadline split: a raw `value` and a `unit`. Submit converts to seconds.
@@ -74,6 +76,7 @@ export function PostJobForm() {
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
       });
       sfx.send();
+      recordAction('post-job');
       router.push(`/jobs/${r.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.message === 'insufficient buyer balance') {

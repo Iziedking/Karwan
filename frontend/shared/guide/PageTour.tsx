@@ -1,6 +1,11 @@
 'use client';
 import { useEffect } from 'react';
-import { useGuide, type TourStep } from './GuideProvider';
+import {
+  useGuide,
+  shouldAutoOpenTour,
+  GUIDE_MASTERY_XP,
+  type TourStep,
+} from './GuideProvider';
 
 /// Drop this on any page to give it a guided tour. It auto-opens once on a
 /// newcomer's first visit, remembers it per `id`, and afterwards offers a
@@ -21,19 +26,25 @@ export function PageTour({
   autoStartDelayMs?: number;
   replayLabel?: string;
 }) {
-  const { startTour, disabled, isSeen, hasActive } = useGuide();
+  const { startTour, disabled, isSeen, hasActive, experience } = useGuide();
 
   useEffect(() => {
-    if (disabled || isSeen(id)) return;
-    const t = setTimeout(() => startTour(id, steps), autoStartDelayMs);
+    // Weighted auto-open: unseen tours teach on first visit, seen ones re-open
+    // at random while learning, nothing auto-opens after mastery. force:true so
+    // the re-show isn't blocked by the "already seen" guard inside startTour.
+    if (!shouldAutoOpenTour({ disabled, experience, seen: isSeen(id) })) return;
+    const t = setTimeout(() => startTour(id, steps, { force: true }), autoStartDelayMs);
     return () => clearTimeout(t);
-    // Re-run only when the page identity changes; steps are static per page.
+    // Evaluate once per page mount; steps are static per page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // While a tour is running, or for users who turned tips off entirely, show
-  // nothing. Once this page's tour has been seen, a quiet replay pill remains.
-  if (hasActive || disabled || !isSeen(id)) return null;
+  // No pill while a tour runs or for users who turned tips off entirely. Show
+  // the replay pill once they've seen this tour, or once they've mastered the
+  // app (auto-tips stopped, but they can still opt back in per page).
+  if (hasActive || disabled) return null;
+  const showPill = isSeen(id) || experience >= GUIDE_MASTERY_XP;
+  if (!showPill) return null;
 
   return (
     <button
