@@ -4,10 +4,9 @@ On-chain settlement for cross-border service deals. USDC sits in milestone
 escrow on Arc while the work gets done, and releases as it lands. Built on
 Circle's stack.
 
-> **For the full technical brief — agent reasoning loop, reputation system,
-> two-contract architecture, cross-chain ingress — read
-> [docs/why-karwan.md](./docs/why-karwan.md).** Five minutes, no jargon, no
-> code spelunking required.
+> **For the full technical brief: agent reasoning loop, reputation system,
+> two-contract architecture, cross-chain ingress, read
+> [docs/why-karwan.md](./docs/why-karwan.md).** 
 
 ## What it is
 
