@@ -6,6 +6,7 @@ import { ProfileNudge } from '@/shared/components/ProfileNudge';
 import { SiteFooter } from '@/shared/components/SiteFooter';
 import { AppProviders } from '@/shared/components/AppProviders';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
+import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const geist = Geist({
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>
             <SiteFooter />
             <NotificationToasts />
+            <GuideWelcome />
           </div>
         </AppProviders>
         <SpeedInsights />

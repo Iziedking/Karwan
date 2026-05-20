@@ -9,6 +9,8 @@ import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { cn } from '@/shared/utils/cn';
 import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
+import { PageTour } from '@/shared/guide/PageTour';
+import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 
 export function PostJobForm() {
   const router = useRouter();
@@ -154,6 +156,8 @@ export function PostJobForm() {
       : null;
 
   return (
+    <>
+    <PageTour id={BUYER_TOUR_ID} steps={BUYER_STEPS} />
     <form onSubmit={submit} className="space-y-7">
       {/* DEAL PREVIEW. big editorial display */}
       <div
@@ -224,7 +228,7 @@ export function PostJobForm() {
       </div>
 
       {/* THE WORK */}
-      <FieldSection eyebrow="THE WORK" title="Describe what you need built.">
+      <FieldSection eyebrow="THE WORK" title="Describe what you need built." dataGuide="buyer-brief">
         <FormLabel
           label="Brief"
           hint="Outline scope, deliverables, must-haves. The seller agent reads this to decide whether to bid."
@@ -250,6 +254,7 @@ export function PostJobForm() {
             label="Budget"
             unit="USDC"
             hint="Target price. The agent negotiates from here within the tolerance."
+            dataGuide="buyer-budget"
           >
             <input
               type="number"
@@ -266,6 +271,7 @@ export function PostJobForm() {
             label="Deadline"
             unit={previewUnitLabel.toLowerCase()}
             hint="Sellers won't bid if it falls outside their delivery window. Choose min, hr, or days."
+            dataGuide="buyer-deadline"
           >
             <div className="flex items-stretch gap-2">
               <input
@@ -352,6 +358,7 @@ export function PostJobForm() {
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
         <button
           type="submit"
+          data-guide="buyer-submit"
           disabled={disabled}
           className={cn(
             'group inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em]',
@@ -434,6 +441,7 @@ export function PostJobForm() {
       )}
 
     </form>
+    </>
   );
 }
 
@@ -441,13 +449,15 @@ function FieldSection({
   eyebrow,
   title,
   children,
+  dataGuide,
 }: {
   eyebrow: string;
   title: string;
   children: ReactNode;
+  dataGuide?: string;
 }) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" data-guide={dataGuide}>
       <div className="space-y-1.5">
         <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
           {eyebrow}
@@ -466,14 +476,16 @@ function FormLabel({
   unit,
   hint,
   children,
+  dataGuide,
 }: {
   label: string;
   unit?: string;
   hint?: string;
   children: ReactNode;
+  dataGuide?: string;
 }) {
   return (
-    <label className="block space-y-2">
+    <label className="block space-y-2" data-guide={dataGuide}>
       <span className="flex items-center gap-2 justify-between">
         <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
           {label}
