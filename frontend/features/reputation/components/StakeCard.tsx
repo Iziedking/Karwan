@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useBalance, useWalletClient, usePublicClient } from 'wagmi';
+import { useBalance, useWalletClient, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -135,7 +135,22 @@ export function StakeCard() {
   const isCircleUser = auth.method === 'circle';
   const { data: walletClient } = useWalletClient();
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  // Web3 users sign vault txs from their own wallet. If that wallet is on the
+  // wrong network (e.g. Base), the deposit/withdraw/claim would broadcast on
+  // the wrong chain. Detect it and make the user switch to Arc first. Circle
+  // users sign through the backend DCW, so the wallet chain is irrelevant.
+  const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
   const { data: rep, refetch: refetchRep } = useReputation(address);
+
+  const switchToArc = useCallback(async () => {
+    try {
+      await switchChainAsync({ chainId: ARC_CHAIN_ID });
+    } catch {
+      // user declined the wallet prompt; the banner stays so they can retry
+    }
+  }, [switchChainAsync]);
 
   const [positions, setPositions] = useState<
     Array<{
@@ -223,6 +238,12 @@ export function StakeCard() {
   const submitDeposit = useCallback(async () => {
     if (!address) return;
     if (typeof depositAmount !== 'number' || depositAmount <= 0) return;
+    // Wrong network: prompt the switch and stop. The user re-clicks once their
+    // wallet is on Arc, so we never sign against the wrong chain.
+    if (!isCircleUser && chainId !== ARC_CHAIN_ID) {
+      await switchToArc();
+      return;
+    }
     const amountUsdc = depositAmount;
     const amountWei = parseUnits(amountUsdc.toString(), ARC_USDC_DECIMALS);
 
@@ -275,7 +296,7 @@ export function StakeCard() {
     } finally {
       setBusyKind(null);
     }
-  }, [address, depositAmount, isCircleUser, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
+  }, [address, depositAmount, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
 
   // -------------------- withdraw --------------------
 
@@ -342,6 +363,10 @@ export function StakeCard() {
 
   const confirmWithdraw = useCallback(async () => {
     if (!pendingWithdraw || !address) return;
+    if (!isCircleUser && chainId !== ARC_CHAIN_ID) {
+      await switchToArc();
+      return;
+    }
     const { toCool } = pendingWithdraw;
     setPendingWithdraw(null);
     setBusyKind({ kind: 'request' });
@@ -384,6 +409,8 @@ export function StakeCard() {
     address,
     pendingWithdraw,
     isCircleUser,
+    chainId,
+    switchToArc,
     walletClient,
     arcClient,
     refetchPositions,
@@ -399,6 +426,10 @@ export function StakeCard() {
   const positionAction = useCallback(
     async (kind: 'request' | 'cancel' | 'claim', positionId: string) => {
       if (!address) return;
+      if (!isCircleUser && chainId !== ARC_CHAIN_ID) {
+        await switchToArc();
+        return;
+      }
       // Withdrawal is the only destructive action on a position. Guard it
       // behind an explicit confirm so an accidental click doesn't kick off
       // the 7-day cool-down. cancel + claim are reversible / terminal, no
@@ -445,7 +476,7 @@ export function StakeCard() {
         setBusyKind(null);
       }
     },
-    [address, isCircleUser, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog],
+    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog],
   );
 
   // -------------------- derived --------------------
@@ -519,6 +550,47 @@ export function StakeCard() {
         )}
       </div>
 
+      {/* WRONG NETWORK. Web3 users only: prompt to switch before any signing
+          so a stake never broadcasts on the wallet's current (wrong) chain. */}
+      {onWrongChain && (
+        <div
+          className="px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+          style={{
+            background: 'rgba(178, 84, 37, 0.10)',
+            border: '1px solid rgba(178, 84, 37, 0.35)',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          <div className="min-w-0">
+            <p
+              className="mono text-[9px] font-bold uppercase tracking-[0.18em]"
+              style={{ color: '#b25425' }}
+            >
+              [:WRONG NETWORK:]
+            </p>
+            <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
+              Your wallet is on another network. Switch to Arc Testnet to stake.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={switchToArc}
+            className="shrink-0 mono text-[11px] font-bold uppercase tracking-[0.08em] px-4 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+            style={{
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            Switch to Arc
+          </button>
+        </div>
+      )}
+
       {/* VAULT NOT DEPLOYED STATE */}
       {vaultDeployed === false && (
         <Note tone="info">
@@ -575,7 +647,7 @@ export function StakeCard() {
               type="button"
               onClick={submitDeposit}
               disabled={
-                busyKind?.kind === 'deposit' || !depositAmount || vaultDeployed === false
+                busyKind?.kind === 'deposit' || !depositAmount || vaultDeployed === false || onWrongChain
               }
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] shrink-0 transition-[transform,box-shadow] duration-150',
@@ -638,7 +710,8 @@ export function StakeCard() {
                 busyKind?.kind === 'request' ||
                 !withdrawAmount ||
                 Number(totalActive) <= 0 ||
-                vaultDeployed === false
+                vaultDeployed === false ||
+                onWrongChain
               }
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] shrink-0 transition-colors',
