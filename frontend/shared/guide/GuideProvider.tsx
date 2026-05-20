@@ -409,13 +409,17 @@ function GuideOverlay() {
 
       {/* Step card, pinned bottom-center (bottom sheet feel on mobile). The
           spotlight points; the card explains. */}
+      {/* Centered via left/right insets + auto margin, NOT transform: the
+          fade-up animation animates transform and would clobber a translateX,
+          which pushed the card off-screen on mobile. */}
       <div
         style={{
           position: 'fixed',
-          left: '50%',
-          bottom: 'max(20px, env(safe-area-inset-bottom))',
-          transform: 'translateX(-50%)',
-          width: 'min(440px, calc(100vw - 24px))',
+          left: 12,
+          right: 12,
+          bottom: 'max(16px, env(safe-area-inset-bottom))',
+          marginInline: 'auto',
+          maxWidth: 420,
           zIndex: 1002,
         }}
         className={reduced ? undefined : 'fade-up'}

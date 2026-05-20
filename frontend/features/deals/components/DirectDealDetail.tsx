@@ -5,6 +5,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
+import { PageTour } from '@/shared/guide/PageTour';
+import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
@@ -346,6 +348,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
   return (
     <FullBleed>
+      <PageTour id={DEAL_TOUR_ID} steps={DEAL_STEPS} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
@@ -446,7 +449,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           Where this deal <span style={{ color: 'var(--lp-accent)' }}>stands</span>
           <Punc>.</Punc>
         </HeroHeadline>
-        <div className="mt-8">
+        <div className="mt-8" data-guide="deal-flow">
           <PageCard>
             <ProgressTrack deal={deal} stage={stage} rail={rail} />
           </PageCard>
@@ -466,6 +469,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </HeroHeadline>
           </div>
           <div
+            data-guide="deal-actions"
             className="overflow-hidden p-6 md:p-7"
             style={{
               background: 'var(--surface-1)',

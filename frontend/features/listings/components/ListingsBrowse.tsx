@@ -15,6 +15,8 @@ import {
   Accent,
   PageCard,
 } from '@/shared/components/Bands';
+import { PageTour } from '@/shared/guide/PageTour';
+import { MARKET_TOUR_ID, MARKET_STEPS } from '@/shared/guide/tours';
 
 type Side = 'all' | 'offers' | 'briefs';
 
@@ -141,6 +143,7 @@ export function ListingsBrowse() {
 
   return (
     <FullBleed>
+      <PageTour id={MARKET_TOUR_ID} steps={MARKET_STEPS} />
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
           <SectionTag tone="dark" dot="live">

@@ -4,6 +4,8 @@ import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { ActivityView } from '@/features/activity/components/ActivityView';
+import { PageTour } from '@/shared/guide/PageTour';
+import { ACTIVITY_TOUR_ID, ACTIVITY_STEPS } from '@/shared/guide/tours';
 import {
   FullBleed,
   Band,
@@ -42,6 +44,7 @@ export default function ActivityPage() {
 
   return (
     <FullBleed>
+      <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="max-w-[58ch]">
@@ -73,7 +76,7 @@ export default function ActivityPage() {
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
           Full network event log.
         </p>
-        <div className="mt-10 fade-up fade-up-1">
+        <div className="mt-10 fade-up fade-up-1" data-guide="activity-stream">
           <PageCard>
             <div className="p-6 md:p-8">
               <ActivityView explorer={explorer} />

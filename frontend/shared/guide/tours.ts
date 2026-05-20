@@ -108,3 +108,66 @@ export const BRIDGE_STEPS: TourStep[] = [
     target: 'bridge-submit',
   },
 ];
+
+/// Deal page tour (/deals/[id]).
+export const DEAL_TOUR_ID = 'deal-v1';
+export const DEAL_STEPS: TourStep[] = [
+  {
+    title: 'Where your deal stands',
+    body: 'This tracker shows each stage from accepted to settled. Your money sits safely in escrow and is released as milestones are met.',
+    target: 'deal-flow',
+  },
+  {
+    title: 'Your next move',
+    body: 'The seller marks the work delivered; the buyer reviews and releases each milestone. Either side can propose a cancel for a full refund.',
+    target: 'deal-actions',
+  },
+  {
+    title: 'Talk it through',
+    body: 'Message your counterparty right on this page and keep delivery links and notes together, so the whole deal lives in one place.',
+  },
+];
+
+/// Profile tour.
+export const PROFILE_TOUR_ID = 'profile-v1';
+export const PROFILE_STEPS: TourStep[] = [
+  {
+    title: 'Your profile',
+    body: 'Set up how you trade. Turn on a buyer side to hire, a seller side to offer work, or both.',
+  },
+  {
+    title: 'Wallets and alerts',
+    body: 'Manage your wallets, top up your agent with USDC, and connect Telegram or X to get notified the moment something happens.',
+  },
+  {
+    title: 'Build your standing',
+    body: 'Stake USDC to lift your reputation tier. A higher tier gets you better deals, and on mainnet your stake also earns yield.',
+  },
+];
+
+/// Activity stream tour.
+export const ACTIVITY_TOUR_ID = 'activity-v1';
+export const ACTIVITY_STEPS: TourStep[] = [
+  {
+    title: 'Your live feed',
+    body: 'Everything that happens on your deals shows here as it happens: posts, bids, escrow moves, settlements.',
+    target: 'activity-stream',
+  },
+  {
+    title: 'Verify on chain',
+    body: 'Each row deep-links to the Arc explorer, so you can check any event yourself. Nothing is hidden.',
+  },
+];
+
+/// Marketplace tour.
+export const MARKET_TOUR_ID = 'market-v1';
+export const MARKET_STEPS: TourStep[] = [
+  {
+    title: 'The marketplace',
+    body: 'Live offers from sellers and open requests from buyers, side by side. Browse for what you need.',
+  },
+  {
+    title: 'Start from any card',
+    body: 'Open a listing to start a deal with that seller, or pick up a request as a seller. Your assistant handles the negotiation from there.',
+  },
+];

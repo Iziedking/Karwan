@@ -17,6 +17,8 @@ import { TelegramConnectButton } from '@/features/telegram/components/TelegramCo
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
+import { PageTour } from '@/shared/guide/PageTour';
+import { PROFILE_TOUR_ID, PROFILE_STEPS } from '@/shared/guide/tours';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -120,6 +122,7 @@ export default function ProfilePage() {
 
   return (
     <FullBleed>
+      <PageTour id={PROFILE_TOUR_ID} steps={PROFILE_STEPS} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
