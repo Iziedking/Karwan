@@ -1,6 +1,14 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, type FeedbackItem, type FeedbackStatus, type FeedbackCategory } from '@/core/api';
+import {
+  api,
+  ApiError,
+  getAdminToken,
+  setAdminToken,
+  type FeedbackItem,
+  type FeedbackStatus,
+  type FeedbackCategory,
+} from '@/core/api';
 
 type Filter = 'all' | FeedbackStatus;
 
@@ -32,16 +40,50 @@ export default function AdminFeedbackPage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Prompts for the X-Admin-Token if we don't have one yet. Returns false when
+  // the operator dismisses the prompt, so callers can stop instead of firing a
+  // request that's guaranteed to 401.
+  const ensureToken = useCallback((): boolean => {
+    if (getAdminToken()) return true;
+    const t = window.prompt('Admin token (sent as X-Admin-Token):');
+    if (t && t.trim()) {
+      setAdminToken(t.trim());
+      return true;
+    }
+    return false;
+  }, []);
+
   const load = useCallback(async () => {
     setError(null);
+    if (!ensureToken()) {
+      setError('Admin token required. Click "Set token" to enter it.');
+      setItems([]);
+      return;
+    }
     try {
       const res = await api.listFeedback();
       setItems(res.feedback);
     } catch (err) {
-      setError((err as Error).message);
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setAdminToken(null);
+        setError('Token rejected. Click "Set token" and re-enter it.');
+      } else if (err instanceof ApiError && err.status === 503) {
+        setError('Admin gate is not configured on the server (set ADMIN_API_TOKEN).');
+      } else {
+        setError((err as Error).message);
+      }
       setItems([]);
     }
-  }, []);
+  }, [ensureToken]);
+
+  // Lets the operator overwrite the stored token by hand, then reloads.
+  const promptForToken = useCallback(() => {
+    const t = window.prompt('Admin token (sent as X-Admin-Token):', getAdminToken() ?? '');
+    if (t !== null) {
+      setAdminToken(t.trim() || null);
+      void load();
+    }
+  }, [load]);
 
   useEffect(() => {
     void load();
@@ -69,7 +111,12 @@ export default function AdminFeedbackPage() {
         (prev ?? []).map((it) => (it.id === id ? { ...it, status } : it)),
       );
     } catch (err) {
-      setError((err as Error).message);
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setAdminToken(null);
+        setError('Token rejected. Click "Set token" and re-enter it.');
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setBusyId(null);
     }
@@ -88,14 +135,24 @@ export default function AdminFeedbackPage() {
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
-            style={{ borderRadius: 8 }}
-          >
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={promptForToken}
+              className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
+              style={{ borderRadius: 8 }}
+            >
+              Set token
+            </button>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
+              style={{ borderRadius: 8 }}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* FILTERS */}

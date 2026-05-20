@@ -133,6 +133,12 @@ const envSchema = z.object({
   // viewer can link them. Unset = screenshots are stored but not pushed to
   // Telegram (the alert still names how many were attached).
   PUBLIC_API_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+
+  // Shared secret gating the admin surface (/api/admin/* and the feedback
+  // list/status endpoints). Callers send it as the `X-Admin-Token` header.
+  // Fail-closed: when unset, the admin surface is DISABLED, not open. Set a
+  // long random value in production.
+  ADMIN_API_TOKEN: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

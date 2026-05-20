@@ -4,6 +4,7 @@ import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Resend } from 'resend';
+import { rateLimit } from '../middleware/rateLimit.js';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -777,7 +778,7 @@ const otpRequestSchema = z.object({ email: emailSchema });
 /// RESEND_API_KEY is set; otherwise logs to the backend terminal as a dev
 /// convenience. Works for both new and returning users — the verify step
 /// decides whether to create the account or log in.
-authRoutes.post('/otp/request', async (c) => {
+authRoutes.post('/otp/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, name: 'otp-request' }), async (c) => {
   let body;
   try {
     body = otpRequestSchema.parse(await c.req.json());

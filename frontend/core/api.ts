@@ -343,6 +343,28 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Operator-only admin token for the feedback viewer. Held in sessionStorage so
+// it survives navigation within the tab but never persists to disk, and sent as
+// the X-Admin-Token header on admin-gated calls. The backend fail-closes when
+// ADMIN_API_TOKEN is unset (503) and 401s on a mismatch.
+const ADMIN_TOKEN_KEY = 'karwan.adminToken';
+
+export function getAdminToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.sessionStorage.getItem(ADMIN_TOKEN_KEY);
+}
+
+export function setAdminToken(token: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (token) window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+  else window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+}
+
+function adminHeaders(): Record<string, string> {
+  const t = getAdminToken();
+  return t ? { 'x-admin-token': t } : {};
+}
+
 export const api = {
   baseUrl: BASE,
   eventsUrl: () => `${BASE}/api/events`,
@@ -419,10 +441,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  listFeedback: () => json<{ feedback: FeedbackItem[] }>('/api/feedback'),
+  listFeedback: () =>
+    json<{ feedback: FeedbackItem[] }>('/api/feedback', { headers: adminHeaders() }),
   setFeedbackStatus: (id: string, status: FeedbackStatus) =>
     json<{ ok: true; status: FeedbackStatus }>(`/api/feedback/${id}/status`, {
       method: 'POST',
+      headers: adminHeaders(),
       body: JSON.stringify({ status }),
     }),
   postJob: (

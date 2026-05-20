@@ -13,8 +13,13 @@ import { deleteDealsInvolvingAddress, getDeal, patchDeal } from '../db/deals.js'
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
 
 export const adminRoutes = new Hono();
+
+// Gate the entire admin surface behind the shared-secret token. Fail-closed:
+// disabled until ADMIN_API_TOKEN is set.
+adminRoutes.use('*', requireAdmin);
 
 const addrSchema = z
   .string()

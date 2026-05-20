@@ -4,6 +4,8 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { telegramEnabled, sendTelegramMessage, sendTelegramPhoto } from '../telegram/bot.js';
+import { requireAdmin } from '../middleware/adminAuth.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import {
   createFeedback,
   listAllFeedback,
@@ -67,7 +69,9 @@ function decodeDataUrl(dataUrl: string): DecodedScreenshot | null {
   }
 }
 
-feedbackRoutes.post('/', async (c) => {
+// Public submit, but throttled so an open endpoint can't be spammed (each
+// submission can carry up to 12MB of images).
+feedbackRoutes.post('/', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, name: 'feedback' }), async (c) => {
   let raw: unknown;
   try {
     raw = await c.req.json();
@@ -135,10 +139,9 @@ feedbackRoutes.post('/', async (c) => {
   return c.json({ ok: true, id: fb.id });
 });
 
-/// Operator viewer: newest-first list. Screenshot bytes are not inlined; each
-/// item carries asset URLs the client can render. No auth gate yet (matches the
-/// rest of /api/admin on testnet); see todo.md admin-auth item.
-feedbackRoutes.get('/', (c) => {
+/// Operator viewer: newest-first list. Admin-gated because items carry tester
+/// contact info. Screenshot bytes are not inlined; each item carries asset URLs.
+feedbackRoutes.get('/', requireAdmin, (c) => {
   const items = listAllFeedback().map((fb) => ({
     id: fb.id,
     category: fb.category,
@@ -153,8 +156,9 @@ feedbackRoutes.get('/', (c) => {
   return c.json({ feedback: items });
 });
 
-feedbackRoutes.post('/:id/status', async (c) => {
+feedbackRoutes.post('/:id/status', requireAdmin, async (c) => {
   const id = c.req.param('id');
+  if (!id) return c.json({ error: 'id required' }, 400);
   let raw: unknown;
   try {
     raw = await c.req.json();

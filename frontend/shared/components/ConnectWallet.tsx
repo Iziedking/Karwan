@@ -4,6 +4,27 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoginModal } from './LoginModal';
 import { CircleAccountModal } from './CircleAccountModal';
+import { ChainLogo, type ChainKey } from './ChainLogo';
+
+/// Maps a wallet's current chain id to our branded ChainLogo key. Returns null
+/// for chains we don't have a mark for (the pill then just omits the logo).
+/// Arc testnet is 5042002.
+function chainKeyFromId(id: number): ChainKey | null {
+  switch (id) {
+    case 5042002:
+      return 'arc';
+    case 84532:
+      return 'baseSepolia';
+    case 11155111:
+      return 'sepolia';
+    case 8453:
+      return 'base';
+    case 1:
+      return 'ethereum';
+    default:
+      return null;
+  }
+}
 
 /// Top-nav entry for authentication. Three rendered states:
 ///   1. Loading (auth status still resolving). hidden placeholder.
@@ -47,6 +68,8 @@ export function ConnectWalletButton() {
           title={auth.email ?? auth.address}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
         >
+          {/* Circle wallets operate on Arc, so the chain mark is always Arc. */}
+          <ChainLogo chain="arc" size={16} />
           <span
             aria-hidden
             className="w-[6px] h-[6px] rounded-full"
@@ -131,18 +154,26 @@ export function ConnectWalletButton() {
                     </button>
                   );
                 }
+                const chainKey = chainKeyFromId(chain.id);
                 return (
                   <button
                     onClick={openAccountModal}
                     type="button"
                     suppressHydrationWarning
+                    title={`On ${chain.name ?? 'unknown network'}. Tap to switch or manage.`}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
                   >
-                    <span
-                      aria-hidden
-                      className="w-[6px] h-[6px] rounded-full"
-                      style={{ background: '#0a7553' }}
-                    />
+                    {/* Current chain mark; updates the moment the wallet switches
+                        because RainbowKit re-renders this with the new chain. */}
+                    {chainKey ? (
+                      <ChainLogo chain={chainKey} size={16} />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="w-[6px] h-[6px] rounded-full"
+                        style={{ background: '#0a7553' }}
+                      />
+                    )}
                     <span className="font-medium">{account.displayName}</span>
                   </button>
                 );

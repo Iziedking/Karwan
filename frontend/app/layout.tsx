@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
 import { ProfileNudge } from '@/shared/components/ProfileNudge';
@@ -27,6 +28,23 @@ const instrumentSerif = Instrument_Serif({
   display: 'swap',
 });
 
+// General Sans, self-hosted. Previously pulled from Fontshare via a
+// render-blocking third-party stylesheet with no metric-matched fallback, which
+// reflowed every headline + paragraph on swap (the dominant CLS source).
+// next/font/local serves it same-origin and generates a size-adjusted Arial
+// fallback so the swap is near-shift-free.
+const generalSans = localFont({
+  src: [
+    { path: './fonts/GeneralSans-Regular.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/GeneralSans-Medium.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/GeneralSans-Semibold.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/GeneralSans-Bold.woff2', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-general-sans',
+  display: 'swap',
+  adjustFontFallback: 'Arial',
+});
+
 export const metadata: Metadata = {
   title: 'Karwan · cross-border SME settlement',
   description:
@@ -35,18 +53,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
           }}
-        />
-        {/* General Sans. the Phantom-grade display/body grotesk, from Fontshare. */}
-        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap"
         />
       </head>
       <body>

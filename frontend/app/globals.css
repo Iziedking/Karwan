@@ -21,7 +21,7 @@
   --color-critical: #7a1f1a;
   --color-critical-soft: rgba(122, 31, 26, 0.08);
 
-  --font-sans: "General Sans", var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-serif: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
 
