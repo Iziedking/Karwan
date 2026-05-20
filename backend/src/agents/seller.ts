@@ -686,23 +686,40 @@ async function runCounterEvaluation(
     return;
   }
 
+  // The LLM picked "counter" but Gemini Flash Lite intermittently drops the
+  // price/deadline. Fall back to the deterministic suggestion (already inside
+  // the seller's [min,max] steering range) instead of stranding the job, keeping
+  // the buyer's proposed timing clamped to the seller's window.
+  const finalCounterPrice = decision.counterPrice ?? suggestedCounter.toFixed(2);
+  const finalCounterDeadlineDays =
+    decision.counterDeadlineDays ??
+    Math.max(
+      seller.minDeadlineDays,
+      Math.min(
+        seller.maxDeadlineDays,
+        Math.ceil((buyerCounterDeadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+      ),
+    );
   if (!decision.counterPrice || !decision.counterDeadlineDays) {
-    logger.warn({ jobId: args.jobId }, 'counter requested without price/deadline');
-    active.finalized = true;
+    logger.warn(
+      { jobId: args.jobId, finalCounterPrice, finalCounterDeadlineDays },
+      'LLM counter missing price/deadline, using deterministic suggestion',
+    );
     bus.emitEvent({
-      type: 'agent.error',
+      type: 'agent.fallback',
       jobId: args.jobId,
       actor: 'seller',
       payload: {
         seller: seller.address,
         scope: 'counterEvaluation',
-        message: 'LLM asked for a counter but produced no counterPrice/counterDeadlineDays',
+        message: 'LLM omitted the counter price or deadline; used the deterministic suggestion',
+        counterPrice: finalCounterPrice,
+        counterDeadlineDays: finalCounterDeadlineDays,
       },
     });
-    return;
   }
 
-  const counterPriceUsdc = Number(decision.counterPrice);
+  const counterPriceUsdc = Number(finalCounterPrice);
   if (counterPriceUsdc < minAcceptable || counterPriceUsdc > maxAcceptable) {
     logger.warn(
       { jobId: args.jobId, counterPriceUsdc, minAcceptable, maxAcceptable },
@@ -726,8 +743,8 @@ async function runCounterEvaluation(
   }
 
   const counterDeadlineUnix =
-    Math.floor(Date.now() / 1000) + decision.counterDeadlineDays * 86_400;
-  const counterPriceWei = parseUnits(decision.counterPrice, USDC_DECIMALS);
+    Math.floor(Date.now() / 1000) + finalCounterDeadlineDays * 86_400;
+  const counterPriceWei = parseUnits(finalCounterPrice, USDC_DECIMALS);
 
   // Commit to the round count only now that we know we have a valid counter
   // to submit on chain.
@@ -746,7 +763,7 @@ async function runCounterEvaluation(
     },
     `respondToCounter.counter(${args.jobId})`,
   );
-  active.lastBidPrice = decision.counterPrice;
+  active.lastBidPrice = finalCounterPrice;
   logger.info({ jobId: args.jobId, ...result }, 'counter back submitted');
   bus.emitEvent({
     type: 'counter.response.submitted',
@@ -754,8 +771,8 @@ async function runCounterEvaluation(
     actor: 'seller',
     payload: {
       accepted: false,
-      counterPrice: decision.counterPrice,
-      counterDeadlineDays: decision.counterDeadlineDays,
+      counterPrice: finalCounterPrice,
+      counterDeadlineDays: finalCounterDeadlineDays,
       txHash: result.txHash,
     },
   });

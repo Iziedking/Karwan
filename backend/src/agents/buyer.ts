@@ -1092,20 +1092,38 @@ async function handleCounterResponse(log: Log) {
     return;
   }
 
+  // The LLM picked "counter" but Gemini Flash Lite intermittently drops the
+  // price/deadline fields. Don't strand the deal: fall back to the deterministic
+  // suggestion the strategy module already produced above, keeping the seller's
+  // proposed timing clamped to the buyer's window. issueCounter still enforces
+  // the effective cap, so this can never counter above budget.
+  const finalCounterPrice = decision.counterPrice ?? suggestedCounter.toFixed(2);
+  const finalCounterDeadlineDays =
+    decision.counterDeadlineDays ??
+    Math.max(
+      1,
+      Math.min(
+        buyer.maxDeadlineDays,
+        Math.ceil((sellerCounterDeadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+      ),
+    );
   if (!decision.counterPrice || !decision.counterDeadlineDays) {
-    logger.warn({ jobId: state.jobId }, 'counter requested without price/deadline');
-    state.finalized = true;
+    logger.warn(
+      { jobId: state.jobId, finalCounterPrice, finalCounterDeadlineDays },
+      'LLM counter missing price/deadline, using deterministic suggestion',
+    );
     bus.emitEvent({
-      type: 'agent.error',
+      type: 'agent.fallback',
       jobId: state.jobId,
       actor: 'buyer',
       payload: {
         seller: args.seller,
         scope: 'counterEvaluation',
-        message: 'LLM asked for a counter but produced no counterPrice/counterDeadlineDays',
+        message: 'LLM omitted the counter price or deadline; used the deterministic suggestion',
+        counterPrice: finalCounterPrice,
+        counterDeadlineDays: finalCounterDeadlineDays,
       },
     });
-    return;
   }
 
   await issueCounter(state, {
@@ -1113,8 +1131,8 @@ async function handleCounterResponse(log: Log) {
     priceUsdc: sellerCounterPrice,
     priceWei: args.newPrice,
     deadlineUnix: sellerCounterDeadlineUnix,
-    suggestedCounterPrice: decision.counterPrice,
-    suggestedCounterDeadlineDays: decision.counterDeadlineDays,
+    suggestedCounterPrice: finalCounterPrice,
+    suggestedCounterDeadlineDays: finalCounterDeadlineDays,
   });
 }
 

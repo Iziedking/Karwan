@@ -32,6 +32,7 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'agent.skipped': { text: 'Seller skipped this brief', tone: 'seller' },
   'agent.declined': { text: 'Agent ended negotiation', tone: 'error' },
   'agent.error': { text: 'Agent hit an error', tone: 'error' },
+  'agent.fallback': { text: 'Agent used a backup decision', tone: 'system' },
   'deal.matched': { text: 'Match found · awaiting approval', tone: 'buyer' },
   'deal.match.approved': { text: 'Match approved · escrow funded', tone: 'buyer' },
   'deal.match.declined': { text: 'Match declined', tone: 'error' },
