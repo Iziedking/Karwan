@@ -88,6 +88,11 @@ export default function DocsOverviewPage() {
           blurb="Bringing USDC to Arc from other chains with CCTP."
         />
         <DocsCardLink
+          href="/docs/roadmap"
+          title="Roadmap"
+          blurb="The strong functionality shipping next, by theme."
+        />
+        <DocsCardLink
           href="/docs/faq"
           title="FAQ"
           blurb="Quick answers to the questions new users ask first."

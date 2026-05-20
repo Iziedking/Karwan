@@ -26,7 +26,7 @@ type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const { job } = useJobSnapshot(initial);
-  const { events, active, completed, declined } = useJobLiveState(job);
+  const { events, active, completed, declined, ended } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
   const { address } = useAuth();
   const router = useRouter();
@@ -234,7 +234,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <div className="p-6">
                 <SectionTag>FLOW</SectionTag>
                 <div className="mt-6">
-                  <FlowStepper active={active} completed={completed} declined={declined} />
+                  <FlowStepper active={active} completed={completed} ended={ended} />
                 </div>
               </div>
             </PageCard>

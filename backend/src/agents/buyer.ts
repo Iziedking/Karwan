@@ -137,14 +137,57 @@ interface JobState {
   /// window (MANAGED_CANCELLED_GRACE_MS) the job is filtered out of the
   /// snapshot so it stops showing as Open in the buyer's Managed Deals table.
   cancelledAt?: number;
+  /// Armed when the buyer issues a counter, cleared when the seller's on-chain
+  /// CounterResponse lands. If it fires first, the negotiation is treated as
+  /// stalled (seller declined off-chain, dropped event, or a seller-side crash)
+  /// and the buyer cascades to the next candidate. See COUNTER_RESPONSE_TIMEOUT_MS.
+  counterWatchdog?: NodeJS.Timeout | null;
 }
 
 /// How long a cancelled managed job lingers in the buyer's Managed Deals
 /// snapshot so the user can see the terminal state. After this it drops off.
 const MANAGED_CANCELLED_GRACE_MS = 60 * 60 * 1000;
 
+/// How long the buyer waits for a seller's on-chain CounterResponse before
+/// treating the negotiation as stalled and cascading to the next candidate.
+/// A seller reply costs an LLM call (up to LLM_TIMEOUT_MS, 45s default) plus a
+/// Circle contract call (polled up to ~90s), so the default clears that worst
+/// case with margin. This is the only recovery for the gaps the on-chain path
+/// can't signal: a seller that declined off-chain (no respondToCounter tx is
+/// broadcast), a dropped WebSocket event, or a seller-side crash mid-round.
+/// Tunable via NEGOTIATION_RESPONSE_TIMEOUT_MS.
+const envCounterTimeout = Number(process.env.NEGOTIATION_RESPONSE_TIMEOUT_MS ?? '');
+const COUNTER_RESPONSE_TIMEOUT_MS =
+  Number.isFinite(envCounterTimeout) && envCounterTimeout > 0 ? envCounterTimeout : 180_000;
+
 const jobs = new Map<`0x${string}`, JobState>();
 const handledEvents = new Set<string>();
+
+/// Cancels a pending counter-response watchdog. Safe to call when none is
+/// armed. Called whenever the negotiation leaves the "waiting for the seller"
+/// state: a response landed, the buyer cascaded, or the job reached a terminal
+/// state (match proposed, expired).
+function clearCounterWatchdog(state: JobState) {
+  if (state.counterWatchdog) {
+    clearTimeout(state.counterWatchdog);
+    state.counterWatchdog = null;
+  }
+}
+
+/// Pushes the job's working deadline out to a later proposed counter deadline,
+/// so the jobExpiryWatcher (which checks context.deadlineUnix) does not reap a
+/// negotiation that is still actively exchanging counters. Extend only; a
+/// proposal carrying an earlier or equal deadline leaves the clock untouched.
+/// A stalled negotiation is handled by the counter watchdog, not the deadline,
+/// so this never keeps a dead job alive.
+function extendWorkingDeadline(state: JobState, proposedDeadlineUnix: number) {
+  if (
+    Number.isFinite(proposedDeadlineUnix) &&
+    proposedDeadlineUnix > state.context.deadlineUnix
+  ) {
+    state.context.deadlineUnix = proposedDeadlineUnix;
+  }
+}
 
 /// The cap the buyer agent will accept counters up to. Per-brief tolerance
 /// raises the cap above the budget; the user's profile maxBudgetUsdc remains
@@ -204,15 +247,41 @@ export function startBuyerAgents() {
     onError: (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
   });
 
-  // Mark tracked jobs as cancelled when their resulting deal is cancelled, so
-  // the Managed Deals table stops surfacing them as "Escrow funded".
   const unsubBus = bus.subscribe((e) => {
-    if (e.type !== 'deal.cancelled') return;
-    const jobId = e.jobId as `0x${string}` | undefined;
-    if (!jobId) return;
-    const state = jobs.get(jobId);
-    if (!state) return;
-    state.cancelledAt = Date.now();
+    // Mark tracked jobs as cancelled when their resulting deal is cancelled, so
+    // the Managed Deals table stops surfacing them as "Escrow funded".
+    if (e.type === 'deal.cancelled') {
+      const jobId = e.jobId as `0x${string}` | undefined;
+      if (!jobId) return;
+      const state = jobs.get(jobId);
+      if (!state) return;
+      state.cancelledAt = Date.now();
+      return;
+    }
+
+    // A seller agent that declines a counter (price below its floor, round cap,
+    // out-of-range) only emits this in-process event; it does NOT broadcast an
+    // on-chain CounterResponse. handleCounterResponse would therefore never fire
+    // and the buyer would wait on the watchdog timeout. Cascade immediately the
+    // moment we hear the seller walked away. Guarded to a seller we are actively
+    // countering (has a counterRounds entry, not already tried) so a seller's
+    // initial decline-to-bid can't finalize the job before bid collection runs.
+    if (e.type === 'agent.declined' && e.actor === 'seller') {
+      const jobId = e.jobId as `0x${string}` | undefined;
+      const seller = e.payload?.seller as `0x${string}` | undefined;
+      if (!jobId || !seller) return;
+      const state = jobs.get(jobId);
+      if (!state || state.finalized || state.expired) return;
+      if (!state.counterRoundsBySeller.has(seller)) return;
+      if (state.triedSellers.has(seller)) return;
+      logger.info(
+        { jobId, seller, reason: e.payload?.reason },
+        'seller declined off-chain, cascading to next candidate',
+      );
+      safe('sellerDeclinedCascade', () =>
+        tryNextCandidate(state, seller, 'seller-declined'),
+      );
+    }
   });
 
   return () => {
@@ -222,6 +291,7 @@ export function startBuyerAgents() {
     unsubBus();
     for (const state of jobs.values()) {
       if (state.collectionTimer) clearTimeout(state.collectionTimer);
+      clearCounterWatchdog(state);
     }
     logger.info('buyer agent stopped');
   };
@@ -661,6 +731,9 @@ async function finalizeBidCollection(state: JobState) {
 /// further out is skipped, and we recurse to the next candidate.
 async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, reason: string) {
   if (state.finalized) return;
+  // Leaving the "waiting on this seller" state: cancel any pending watchdog so
+  // it can't double-fire after we've already moved on.
+  clearCounterWatchdog(state);
   state.triedSellers.add(failedSeller);
   bus.emitEvent({
     type: 'negotiation.attempt-ended',
@@ -789,6 +862,12 @@ async function issueCounter(state: JobState, bid: Bid) {
     Math.floor(Date.now() / 1000) + bid.suggestedCounterDeadlineDays * 86_400;
   const counterPriceWei = parseUnits(bid.suggestedCounterPrice, USDC_DECIMALS);
 
+  // Keep the brief's working deadline in step with the negotiation. A counter
+  // routinely proposes a later delivery date than the original (often short)
+  // brief deadline; without this the jobExpiryWatcher reaps an in-flight
+  // negotiation at the original clock. Extend only, never shorten.
+  extendWorkingDeadline(state, counterDeadlineUnix);
+
   state.lastCounterPriceBySeller.set(bid.seller, bid.suggestedCounterPrice);
   state.counterRoundsBySeller.set(
     bid.seller,
@@ -822,6 +901,25 @@ async function issueCounter(state: JobState, bid: Bid) {
       txHash: result.txHash,
     },
   });
+
+  // Arm the stall watchdog. The seller now owes us an on-chain CounterResponse;
+  // if none lands before the timeout (it declined off-chain, the WS event was
+  // dropped, or the seller crashed mid-round) we cascade to the next candidate
+  // instead of waiting forever. handleCounterResponse clears this on a reply.
+  clearCounterWatchdog(state);
+  const watchedSeller = bid.seller;
+  state.counterWatchdog = setTimeout(() => {
+    state.counterWatchdog = null;
+    if (state.finalized || state.expired) return;
+    if (state.triedSellers.has(watchedSeller)) return;
+    logger.warn(
+      { jobId: state.jobId, seller: watchedSeller, timeoutMs: COUNTER_RESPONSE_TIMEOUT_MS },
+      'no counter response within watchdog window, cascading to next candidate',
+    );
+    safe('counterWatchdog', () =>
+      tryNextCandidate(state, watchedSeller, 'no-response-timeout'),
+    );
+  }, COUNTER_RESPONSE_TIMEOUT_MS);
 }
 
 async function handleCounterResponse(log: Log) {
@@ -831,7 +929,12 @@ async function handleCounterResponse(log: Log) {
 
   const args = (log as unknown as { args: CounterResponseArgs }).args;
   const state = jobs.get(args.jobId);
-  if (!state || state.finalized) return;
+  if (!state || state.finalized || state.expired) return;
+  // A late response from a seller we already cascaded past (watchdog fired or
+  // they declined off-chain first) must not reopen a closed negotiation.
+  if (state.triedSellers.has(args.seller)) return;
+  // The seller replied in time; cancel the stall watchdog.
+  clearCounterWatchdog(state);
   const buyer = state.buyer;
 
   if (args.accepted) {
@@ -843,6 +946,9 @@ async function handleCounterResponse(log: Log) {
 
   const sellerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const sellerCounterDeadlineUnix = Number(args.newDeadline);
+  // The seller's counter can carry a later delivery date too; keep the working
+  // deadline aligned so the expiry watcher doesn't cut the round short.
+  extendWorkingDeadline(state, sellerCounterDeadlineUnix);
   const buyerLastCounter = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
   const effectiveMaxAcceptable = computeBuyerEffectiveCap(state.context, buyer);
 
@@ -1122,6 +1228,7 @@ async function proposeMatch(
   pattern?: ReturnType<typeof classifyBid>,
 ) {
   state.finalized = true;
+  clearCounterWatchdog(state);
   try {
     const buyerWallets = await findAgentWalletByAgentAddress(state.buyer.address);
     const sellerWallets = await findAgentWalletByAgentAddress(seller);
@@ -1579,6 +1686,7 @@ export function expireJob(jobId: `0x${string}`): boolean {
     clearTimeout(state.collectionTimer);
     state.collectionTimer = null;
   }
+  clearCounterWatchdog(state);
   state.expired = true;
   state.expiredAt = Date.now();
   patchBrief(jobId, { expiredAt: state.expiredAt });

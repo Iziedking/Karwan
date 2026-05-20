@@ -19,52 +19,58 @@ const steps: Array<{ key: StepKey; label: string }> = [
 
 const POSITIVE = '#0a7553';
 const CRITICAL = '#b03d3a';
+const NEUTRAL = '#6b6b6b';
 
 export function FlowStepper({
   active,
   completed,
-  declined = false,
+  ended = null,
 }: {
   active: StepKey;
   completed: StepKey[];
-  declined?: boolean;
+  /// 'declined' = negotiation ended without agreement (red "ENDED HERE").
+  /// 'expired' = brief deadline lapsed with no match (neutral "EXPIRED").
+  /// null = live; the active step blinks. Replaces the old `declined` boolean.
+  ended?: 'declined' | 'expired' | null;
 }) {
   const activeIndex = Math.max(
     steps.findIndex((s) => s.key === active),
     0,
   );
   const completedSet = new Set(completed);
+  const terminalColor = ended === 'expired' ? NEUTRAL : CRITICAL;
+  const terminalLabel = ended === 'expired' ? 'EXPIRED' : 'ENDED HERE';
 
   return (
     <ol className="relative">
       {steps.map((s, i) => {
         const done = completedSet.has(s.key) || i < activeIndex;
         const isActive = i === activeIndex;
-        const isTerminalDeclined = declined && isActive;
+        const isTerminal = ended != null && isActive;
         const isLast = i === steps.length - 1;
 
-        const tileBg = isTerminalDeclined
-          ? CRITICAL
+        const tileBg = isTerminal
+          ? terminalColor
           : done
             ? POSITIVE
             : isActive
               ? 'rgba(189, 225, 34,0.12)'
               : 'var(--lp-card)';
-        const tileBorder = isTerminalDeclined
-          ? CRITICAL
+        const tileBorder = isTerminal
+          ? terminalColor
           : done
             ? POSITIVE
             : isActive
               ? 'var(--lp-accent)'
               : 'var(--lp-border-light)';
         const tileColor =
-          done || isTerminalDeclined
+          done || isTerminal
             ? 'white'
             : isActive
               ? 'var(--lp-dark)'
               : 'var(--lp-text-muted)';
-        const ledColor = isTerminalDeclined
-          ? CRITICAL
+        const ledColor = isTerminal
+          ? terminalColor
           : done
             ? POSITIVE
             : isActive
@@ -100,26 +106,26 @@ export function FlowStepper({
             <div className="flex-1 min-w-0 pt-1 flex items-center justify-between gap-3 flex-wrap">
               <span
                 className={`mono text-[11px] uppercase tracking-[0.14em] ${
-                  isTerminalDeclined
+                  isTerminal
                     ? 'font-bold'
                     : done || isActive
                       ? 'text-[var(--lp-dark)] font-bold'
                       : 'text-[var(--lp-text-muted)] font-semibold'
                 }`}
                 style={
-                  isTerminalDeclined ? { color: CRITICAL } : undefined
+                  isTerminal ? { color: terminalColor } : undefined
                 }
               >
-                {isTerminalDeclined ? 'ENDED HERE' : s.label}
+                {isTerminal ? terminalLabel : s.label}
               </span>
               <span
                 aria-hidden
-                data-instrument-blink={isActive && !declined ? true : undefined}
+                data-instrument-blink={isActive && ended == null ? true : undefined}
                 className="shrink-0 inline-block w-[6px] h-[6px]"
                 style={{
                   background: ledColor,
                   animation:
-                    isActive && !declined
+                    isActive && ended == null
                       ? 'instrumentBlink 1.6s ease-in-out infinite'
                       : undefined,
                 }}
