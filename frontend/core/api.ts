@@ -733,6 +733,19 @@ export const api = {
     json<{ address: string; blockchain: string }>(
       `/api/bridge/circle-source-address?address=${address}&sourceChainKey=${sourceChainKey}`,
     ),
+  /// Richer than bridgeCircleSourceAddress: returns the source-chain DCW
+  /// address plus its live USDC and native-gas balances so the bridge card can
+  /// show a funded/empty state. usdcBalance/gasBalance are null when the
+  /// on-chain balance read failed (transient RPC); the address still returns.
+  bridgeWalletStatus: (address: string, sourceChainKey: 'baseSepolia' | 'sepolia') =>
+    json<{
+      bridgeWalletAddress: string;
+      sourceChainKey: 'baseSepolia' | 'sepolia';
+      usdcBalance: string | null;
+      gasBalance: string | null;
+    }>(
+      `/api/bridge/circle-bridge/wallet?address=${address}&sourceChainKey=${sourceChainKey}`,
+    ),
   listMessages: (jobId: string, caller: string) =>
     json<{ messages: ChatMessage[] }>(`/api/chat/${jobId}?caller=${caller}`),
   sendMessage: (jobId: string, caller: string, body: string) =>

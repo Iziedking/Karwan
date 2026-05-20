@@ -16,6 +16,7 @@ import {
 } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { reportError } from '../errorTracker.js';
 
 /// Lightweight public clients used for source-chain balance reads. Created
 /// once and reused. We avoid spinning these up for every request because
@@ -301,7 +302,10 @@ async function relayLoop(input: RelayInput) {
 
   if (!attestation) {
     const message = 'Attestation did not arrive within poll window';
-    logger.error({ bridgeId: input.bridgeId, sourceTxHash: input.sourceTxHash }, message);
+    reportError('bridge.relay.attestation', new Error(message), {
+      bridgeId: input.bridgeId,
+      sourceTxHash: input.sourceTxHash,
+    });
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
@@ -348,7 +352,7 @@ async function relayLoop(input: RelayInput) {
       await markBridgeMinted(input);
       return;
     }
-    logger.error({ bridgeId: input.bridgeId, err: message }, 'receiveMessage failed');
+    reportError('bridge.relay.receiveMessage', err, { bridgeId: input.bridgeId });
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
@@ -399,6 +403,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
       }
     }
   } catch (err) {
+    reportError('bridge.recheck.iris', err, { bridgeId });
     return c.json({ error: 'iris lookup failed', detail: (err as Error).message }, 502);
   }
 
@@ -473,6 +478,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
       });
       return c.json({ status: 'minted', detail: 'message was already received on chain' });
     }
+    reportError('bridge.recheck.receiveMessage', err, { bridgeId });
     await patchBridge(bridgeId, { status: 'error', error: message });
     return c.json({ status: 'error', error: message }, 502);
   } finally {
@@ -712,10 +718,12 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       202,
     );
   } catch (err) {
-    logger.error(
-      { bridgeId: body.bridgeId, err: (err as Error).message },
-      'circle-bridge failed',
-    );
+    reportError('bridge.circle', err, {
+      bridgeId: body.bridgeId,
+      address: userAddress,
+      sourceChainKey: body.sourceChainKey,
+      amountUsdc: body.amountUsdc,
+    });
     return c.json({ error: 'circle-bridge failed', detail: (err as Error).message }, 502);
   } finally {
     inFlight.delete(body.bridgeId);

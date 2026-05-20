@@ -280,7 +280,9 @@ export function useBridges() {
         const cur = list[idx]!;
         let next: BridgeRecord = cur;
         if (e.type === 'bridge.attested') {
-          next = { ...cur, phase: 'minting', updatedAt: Date.now() };
+          // Progressing again: clear any stale error from a prior failed
+          // recheck so the row doesn't show "attesting" alongside an old error.
+          next = { ...cur, phase: 'minting', error: undefined, updatedAt: Date.now() };
         } else if (e.type === 'bridge.minted') {
           const txHash = e.payload?.txHash as `0x${string}` | undefined;
           // Only flip to 'done' when we have a real on-chain mint tx hash.
@@ -290,6 +292,9 @@ export function useBridges() {
               ...cur,
               phase: 'done',
               mintTxHash: txHash,
+              // The mint landed; drop any leftover error from an earlier
+              // recheck attempt so we don't show BRIDGED + a stale error banner.
+              error: undefined,
               updatedAt: Date.now(),
             };
             if (cur.phase !== 'done') sfx.success();
@@ -474,7 +479,7 @@ export function useBridges() {
           // 'minted' without ever having relayed a real receiveMessage tx.
           const txHash = (r.mintTxHash as `0x${string}` | undefined) ?? undefined;
           if (txHash) {
-            patch(id, (b) => ({ ...b, phase: 'done', mintTxHash: txHash }));
+            patch(id, (b) => ({ ...b, phase: 'done', mintTxHash: txHash, error: undefined }));
           } else {
             patch(id, (b) => ({
               ...b,

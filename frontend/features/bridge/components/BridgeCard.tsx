@@ -117,26 +117,42 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // For Circle users we surface the source-chain DCW address the backend
-  // provisioned (or will lazy-provision on first use) so the user knows
-  // where to send their testnet USDC before bridging. Refetches when the
-  // selected source chain changes.
-  const [circleSourceAddress, setCircleSourceAddress] = useState<string | null>(null);
+  // provisioned (or lazy-provisions on first read) PLUS its live USDC + gas
+  // balances, so the user can confirm their funds actually landed before
+  // bridging. Resets + refetches when the source chain changes, and polls
+  // every 15s so a freshly-sent deposit shows up without a manual refresh.
+  const [circleWallet, setCircleWallet] = useState<{
+    address: string;
+    usdcBalance: string | null;
+    gasBalance: string | null;
+  } | null>(null);
   useEffect(() => {
     if (!isCircleUser || !auth.address) {
-      setCircleSourceAddress(null);
+      setCircleWallet(null);
       return;
     }
     let cancelled = false;
-    api
-      .bridgeCircleSourceAddress(auth.address, sourceKey)
-      .then((r) => {
-        if (!cancelled) setCircleSourceAddress(r.address);
-      })
-      .catch(() => {
-        if (!cancelled) setCircleSourceAddress(null);
-      });
+    setCircleWallet(null);
+    const load = () => {
+      api
+        .bridgeWalletStatus(auth.address as string, sourceKey)
+        .then((r) => {
+          if (!cancelled)
+            setCircleWallet({
+              address: r.bridgeWalletAddress,
+              usdcBalance: r.usdcBalance,
+              gasBalance: r.gasBalance,
+            });
+        })
+        .catch(() => {
+          /* keep the prior value; the banner shows "checking" until first hit */
+        });
+    };
+    load();
+    const id = setInterval(load, 15_000);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, [isCircleUser, auth.address, sourceKey]);
 
@@ -269,7 +285,7 @@ export function BridgeCard({ mintRecipient }: { mintRecipient?: `0x${string}` })
         {isCircleUser && (
           <CircleSourceFundBanner
             sourceChainKey={sourceKey}
-            sourceAddress={circleSourceAddress}
+            wallet={circleWallet}
           />
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -960,24 +976,25 @@ function PhaseChip({
   );
 }
 
-/// Source-chain DCW funding panel for Circle users. Replaces the old
-/// "source-chain wallet required" doom note. The user has a Circle DCW on
-/// the selected source chain (provisioned at activation for Base Sepolia,
-/// lazy-provisioned the first time the GET endpoint runs for any other
-/// chain). They send USDC to it once — from a faucet or any external
-/// wallet — and from then on the backend signs burns directly.
+/// Source-chain DCW funding panel for Circle users. The user has a Circle DCW
+/// on the selected source chain (provisioned at activation for Base Sepolia,
+/// lazy-provisioned on first read for any other chain). They send USDC to it
+/// once — from a faucet or any external wallet — and the backend signs burns
+/// from it. We poll the live balance so the user can confirm their deposit
+/// landed; an empty wallet is the #1 cause of "circle bridge doesn't work".
 function CircleSourceFundBanner({
   sourceChainKey,
-  sourceAddress,
+  wallet,
 }: {
   sourceChainKey: SourceChainConfig['key'];
-  sourceAddress: string | null;
+  wallet: { address: string; usdcBalance: string | null; gasBalance: string | null } | null;
 }) {
   const [copied, setCopied] = useState(false);
+  const address = wallet?.address ?? null;
   async function copyAddress() {
-    if (!sourceAddress) return;
+    if (!address) return;
     try {
-      await navigator.clipboard.writeText(sourceAddress);
+      await navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 1400);
     } catch {
@@ -988,6 +1005,22 @@ function CircleSourceFundBanner({
     sourceChainKey === 'baseSepolia'
       ? { label: 'Base Sepolia USDC faucet', href: 'https://faucet.circle.com/' }
       : { label: 'Ethereum Sepolia USDC faucet', href: 'https://faucet.circle.com/' };
+
+  // Funded state drives the banner accent + status line. usdcBalance null means
+  // the balance read hasn't returned yet (or failed) — stay neutral.
+  const usdc = wallet?.usdcBalance != null ? Number(wallet.usdcBalance) : null;
+  const funded = usdc != null && usdc > 0;
+  const empty = usdc != null && usdc <= 0;
+  const accent = empty ? TONE_HEX.warning : 'var(--lp-accent)';
+
+  const statusLine = !wallet
+    ? 'Checking your source-chain wallet…'
+    : empty
+      ? 'This wallet is empty. Send testnet USDC here, then bridge.'
+      : funded
+        ? 'Funded. You can bridge now.'
+        : 'Send USDC to this address first, then bridge.';
+
   return (
     <div
       className="relative mb-4 overflow-hidden"
@@ -1004,47 +1037,70 @@ function CircleSourceFundBanner({
       <span
         aria-hidden
         className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: 'var(--lp-accent)' }}
+        style={{ background: accent }}
       />
       <div className="px-4 py-3 pl-5">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span
             className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
             style={{
-              background: 'rgba(189, 225, 34, 0.18)',
-              color: 'var(--lp-band-dark)',
-              border: '1px solid var(--lp-accent)',
+              background: funded ? 'rgba(10,117,83,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(189, 225, 34, 0.18)',
+              color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
+              border: `1px solid ${funded ? 'rgba(10,117,83,0.35)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--lp-accent)'}`,
               borderTopLeftRadius: 4,
               borderTopRightRadius: 4,
               borderBottomLeftRadius: 4,
               borderBottomRightRadius: 2,
             }}
           >
-            <span
-              aria-hidden
-              className="inline-block w-[5px] h-[5px]"
-              style={{ background: 'var(--lp-accent)' }}
-            />
-            FUND TO BRIDGE
+            <span aria-hidden className="inline-block w-[5px] h-[5px]" style={{ background: accent }} />
+            {funded ? 'FUNDED' : 'FUND TO BRIDGE'}
           </span>
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Send USDC to this address first, then bridge.
+            {statusLine}
           </span>
         </div>
+
+        {/* LIVE BALANCE READOUT */}
+        <div className="mt-3 flex items-baseline gap-4">
+          <div>
+            <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+              Balance here
+            </p>
+            <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+              {wallet?.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
+              <span className="ml-1 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                USDC
+              </span>
+            </p>
+          </div>
+          {wallet?.gasBalance != null && Number(wallet.gasBalance) <= 0 && (
+            <div>
+              <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                Gas
+              </p>
+              <p className="mt-0.5 mono text-[11px] tabular-nums leading-none" style={{ color: TONE_HEX.warning }}>
+                0 ETH
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ADDRESS + ACTIONS */}
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               Your source-chain Circle address
             </p>
             <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
-              {sourceAddress ?? 'provisioning…'}
+              {address ?? 'provisioning…'}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={copyAddress}
-              disabled={!sourceAddress}
+              disabled={!address}
               className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
               style={{
                 borderTopLeftRadius: 6,
