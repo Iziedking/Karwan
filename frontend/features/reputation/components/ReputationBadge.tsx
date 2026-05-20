@@ -10,6 +10,46 @@ type Tier = {
   border: string;
 };
 
+type CompositeTier = NonNullable<Reputation['tier']>;
+
+// The one true tier vocabulary, shared by every surface (bid cards, MatchBanner,
+// profile, deal detail, peek modal). Mirrors the composite engine + docs:
+// NEW < COLD < ESTABLISHED < STRONG < ELITE. Labels render uppercase via CSS.
+const TIER_STYLES: Record<CompositeTier, Tier> = {
+  NEW: {
+    label: 'New',
+    color: 'var(--color-ink-faint)',
+    bg: 'var(--color-surface-2)',
+    border: 'var(--color-line)',
+  },
+  COLD: {
+    label: 'Cold',
+    color: 'var(--color-warning)',
+    bg: 'var(--color-warning-soft)',
+    border: 'color-mix(in oklab, var(--color-warning) 28%, transparent)',
+  },
+  ESTABLISHED: {
+    label: 'Established',
+    color: 'var(--color-accent)',
+    bg: 'var(--color-accent-soft)',
+    border: 'color-mix(in oklab, var(--color-accent) 28%, transparent)',
+  },
+  STRONG: {
+    label: 'Strong',
+    color: 'var(--color-positive)',
+    bg: 'var(--color-positive-soft)',
+    border: 'color-mix(in oklab, var(--color-positive) 28%, transparent)',
+  },
+  ELITE: {
+    label: 'Elite',
+    color: '#0E5E3E',
+    bg: 'color-mix(in oklab, #0E5E3E 8%, transparent)',
+    border: 'color-mix(in oklab, #0E5E3E 30%, transparent)',
+  },
+};
+
+// Legacy bps badge, kept only as a fallback for API responses that predate the
+// composite engine (no `tier`/`score`). New responses always carry both.
 function tierFor(scoreBps: number, totalDeals: number): Tier {
   // Explicit "no data" treatment. the wallet has settled zero deals, so any
   // displayed score would be misleading. Label and color are deliberately
@@ -122,9 +162,15 @@ export function ReputationBadge({
     );
   }
 
-  const tier = tierFor(data.scoreBps, data.totalDeals);
-  const score = Math.round(data.scoreBps / 100);
-  const showScore = data.totalDeals > 0;
+  // Prefer the composite engine (NEW..ELITE, 0..1000). Fall back to the legacy
+  // bps badge only when an older API response omits tier/score.
+  const useComposite = data.tier != null && data.score != null;
+  const tier = useComposite ? TIER_STYLES[data.tier!] : tierFor(data.scoreBps, data.totalDeals);
+  const scoreMax = useComposite ? 1000 : 100;
+  const score = useComposite ? Math.round(data.score!) : Math.round(data.scoreBps / 100);
+  // Composite score is meaningful from day one (stake + time terms), so show it
+  // whenever we have it; legacy bps only made sense with settled deals.
+  const showScore = useComposite ? true : data.totalDeals > 0;
 
   return (
     <span ref={wrapRef} className="relative inline-block">
@@ -181,10 +227,10 @@ export function ReputationBadge({
               className="text-[36px] tracking-tight tabular-nums leading-none"
               style={{ fontFamily: 'var(--font-serif)', color: tier.color }}
             >
-              {data.totalDeals === 0 ? '-' : score}
+              {showScore ? score : '-'}
             </span>
             <span className="text-[10px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
-              {data.totalDeals === 0 ? 'unrated' : '/ 100'}
+              {showScore ? `/ ${scoreMax}` : 'unrated'}
             </span>
           </div>
           <div className="space-y-1.5 pt-2">
@@ -193,7 +239,7 @@ export function ReputationBadge({
             <StatRow label="Failed" value={data.failedCount} tone="critical" />
           </div>
           <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[10px] text-[var(--color-ink-faint)] leading-snug">
-            Recorded on-chain per ERC-8004. The counterparty rates after a deal settles.
+            Composite of deal history, stake, and tenure. Recorded on-chain.
           </p>
         </div>
       )}
