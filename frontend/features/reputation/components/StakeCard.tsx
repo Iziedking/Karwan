@@ -132,7 +132,10 @@ const TIER_TONE: Record<
   },
 };
 
-export function StakeCard() {
+/// `tour` controls whether this card runs its own guided tour. The standalone
+/// /stake page leaves it on; when embedded in /profile it's turned off so the
+/// Profile tour (which already mentions staking) doesn't collide with it.
+export function StakeCard({ tour = true }: { tour?: boolean }) {
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
@@ -511,7 +514,7 @@ export function StakeCard() {
 
   return (
     <div style={CARD_STYLE} className="px-6 py-7 space-y-7">
-      <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
+      {tour && <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />}
       {/* HEADER */}
       <div className="flex items-start justify-between gap-6 flex-wrap">
         <div className="space-y-2 min-w-0" data-guide="stake-total">

@@ -364,7 +364,7 @@ export default function ProfilePage() {
           Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 7-day cool-down on withdrawal.
         </p>
         <div className="mt-10">
-          <StakeCard />
+          <StakeCard tour={false} />
         </div>
       </Band>
 

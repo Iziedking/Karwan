@@ -2,6 +2,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SettingsBand } from '@/features/settings/components/SettingsBand';
+import { PageTour } from '@/shared/guide/PageTour';
+import { SETTINGS_TOUR_ID, SETTINGS_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
@@ -41,6 +43,7 @@ export default function SettingsPage() {
 
   return (
     <FullBleed>
+      <PageTour id={SETTINGS_TOUR_ID} steps={SETTINGS_STEPS} />
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <SectionTag>{t.settings.eyebrow}</SectionTag>
         <HeroHeadline>

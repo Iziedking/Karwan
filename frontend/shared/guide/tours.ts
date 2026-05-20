@@ -159,6 +159,23 @@ export const ACTIVITY_STEPS: TourStep[] = [
   },
 ];
 
+/// Settings tour.
+export const SETTINGS_TOUR_ID = 'settings-v1';
+export const SETTINGS_STEPS: TourStep[] = [
+  {
+    title: 'Make it yours',
+    body: 'Set your language, timezone, and theme so the app reads and feels the way you want.',
+  },
+  {
+    title: 'Stay in the loop',
+    body: 'Choose how you get notified. Connect Telegram or email to hear about your deals the moment they move.',
+  },
+  {
+    title: 'Privacy and account',
+    body: 'Control what shows on your public profile and manage your account from here.',
+  },
+];
+
 /// Marketplace tour.
 export const MARKET_TOUR_ID = 'market-v1';
 export const MARKET_STEPS: TourStep[] = [
