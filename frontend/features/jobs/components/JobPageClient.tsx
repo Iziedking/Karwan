@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError, type BuyerJob } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { LiveJobPage } from './LiveJobPage';
 import {
   FullBleed,
@@ -30,6 +31,7 @@ function isNotFoundError(message: string): boolean {
 }
 
 export function JobPageClient({ jobId }: { jobId: string }) {
+  const auth = useAuth();
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'ready'; job: BuyerJob; explorer: string }
@@ -38,6 +40,10 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   >({ kind: 'loading' });
 
   useEffect(() => {
+    // Wait until we know who the viewer is. the gated read passes the address as
+    // a caller hint (web3 users have no session), so fetching before auth
+    // resolves would read as a non-party and wrongly show the private view.
+    if (auth.isLoading) return;
     let cancelled = false;
     setState({ kind: 'loading' });
 
@@ -46,7 +52,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
       for (let attempt = 0; attempt <= NOT_FOUND_RETRY_DELAYS_MS.length; attempt += 1) {
         if (cancelled) return { __error: 'cancelled' };
         try {
-          return (await api.job(jobId)) as BuyerJob;
+          return (await api.job(jobId, auth.address)) as BuyerJob;
         } catch (err) {
           const message =
             err instanceof ApiError
@@ -93,7 +99,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, auth.address, auth.isLoading]);
 
   if (state.kind === 'loading') {
     // Match the loading.tsx feel: render the route shell so the transition

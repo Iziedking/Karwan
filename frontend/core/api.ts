@@ -15,9 +15,10 @@ let currentCaller: string | null = null;
 export function setApiCaller(addr: string | null): void {
   currentCaller = addr ? addr.toLowerCase() : null;
 }
-function withCaller(path: string): string {
-  if (!currentCaller) return path;
-  return `${path}${path.includes('?') ? '&' : '?'}caller=${currentCaller}`;
+function withCaller(path: string, caller?: string | null): string {
+  const c = caller ?? currentCaller;
+  if (!c) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}caller=${c.toLowerCase()}`;
 }
 
 export interface ApiStatus {
@@ -404,9 +405,10 @@ export const api = {
     json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
-  job: (id: string) => json<BuyerJob>(withCaller(`/api/jobs/${id}`)),
-  matchProposal: (jobId: string) =>
-    json<{ proposal: MatchProposal | null }>(withCaller(`/api/jobs/${jobId}/match`)),
+  job: (id: string, caller?: string | null) =>
+    json<BuyerJob>(withCaller(`/api/jobs/${id}`, caller)),
+  matchProposal: (jobId: string, caller?: string | null) =>
+    json<{ proposal: MatchProposal | null }>(withCaller(`/api/jobs/${jobId}/match`, caller)),
   matchesFor: (address: string) =>
     json<{ proposals: MatchProposal[] }>(`/api/jobs/matches/for?caller=${address}`),
   approveMatch: (jobId: string, caller: string) =>
@@ -681,8 +683,8 @@ export const api = {
     }),
   directDeals: (address: string) =>
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
-  directDeal: (jobId: string) =>
-    json<{ deal: DirectDeal }>(withCaller(`/api/deals/direct/${jobId}`)),
+  directDeal: (jobId: string, caller?: string | null) =>
+    json<{ deal: DirectDeal }>(withCaller(`/api/deals/direct/${jobId}`, caller)),
   acceptDirectDeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/accept`,

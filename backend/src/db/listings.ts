@@ -4,6 +4,9 @@
 // the seller's existing submitBid call.
 
 import { randomBytes } from 'node:crypto';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { logger } from '../logger.js';
 
 export interface Listing {
   id: string;
@@ -27,7 +30,40 @@ export interface Listing {
   cancelledAt?: number;
 }
 
-const store = new Map<string, Listing>();
+// Listings are off-chain and have no chain event to reseed from, so without
+// disk persistence every backend restart/deploy wipes the whole market. Persist
+// to a flat file under data/ (the VPS mounts ./data, so it survives deploys).
+// In-memory Map stays the hot read path; we just hydrate it on boot and write
+// through on every mutation.
+const STORE_PATH = resolve(process.cwd(), 'data', 'listings.json');
+
+function ensureFile() {
+  const dir = dirname(STORE_PATH);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (!existsSync(STORE_PATH)) writeFileSync(STORE_PATH, '{}', 'utf8');
+}
+
+function hydrate(): Map<string, Listing> {
+  try {
+    ensureFile();
+    const obj = JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, Listing>;
+    return new Map(Object.entries(obj));
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'listings hydrate failed, starting empty');
+    return new Map();
+  }
+}
+
+function persist() {
+  try {
+    ensureFile();
+    writeFileSync(STORE_PATH, JSON.stringify(Object.fromEntries(store), null, 2), 'utf8');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'listings persist failed');
+  }
+}
+
+const store = hydrate();
 
 const DEFAULT_TTL_DAYS = 30;
 
@@ -56,6 +92,7 @@ export function createListing(
     expiresAt: now + ttlDays * 24 * 60 * 60 * 1000,
   };
   store.set(id, listing);
+  persist();
   return listing;
 }
 
@@ -84,8 +121,7 @@ export function listAllListings(): Listing[] {
 
 /// Removes every listing owned by `addressLower`. Used by the admin
 /// reset-history endpoint to drop test-pollution from a single wallet
-/// without wiping every other seller's data. Listings are in-memory only
-/// so no persist call is needed.
+/// without wiping every other seller's data.
 export function deleteListingsBySeller(addressLower: string): number {
   const target = addressLower.toLowerCase();
   let removed = 0;
@@ -95,6 +131,7 @@ export function deleteListingsBySeller(addressLower: string): number {
       removed += 1;
     }
   }
+  if (removed > 0) persist();
   return removed;
 }
 
@@ -104,6 +141,7 @@ export function markListingMatched(id: string, jobId: string): void {
   l.matchedAt = Date.now();
   l.matchedJobId = jobId;
   store.set(id, l);
+  persist();
 }
 
 /// Seller-initiated cancel. Caller checks ownership BEFORE calling.
@@ -114,6 +152,7 @@ export function cancelListing(id: string): Listing | null {
   if (l.cancelledAt) return l;
   l.cancelledAt = Date.now();
   store.set(id, l);
+  persist();
   return l;
 }
 
