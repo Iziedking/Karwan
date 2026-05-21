@@ -22,6 +22,19 @@ export async function getTelegramLink(address: string): Promise<TelegramLink | n
   return loadFile()[key] ?? null;
 }
 
+/// Reverse lookup: which wallet, if any, this Telegram chat is already linked
+/// to. Enforces one-chat-to-one-wallet at pair time. Scans the store; the link
+/// set is small so a scan is fine.
+export async function findAddressByChatId(chatId: number): Promise<string | null> {
+  if (pgEnabled) {
+    const rows = await db().select().from(telegramLinks);
+    const hit = rows.find((r) => r.data?.chatId === chatId);
+    return hit?.data?.address ?? null;
+  }
+  const hit = Object.values(loadFile()).find((l) => l.chatId === chatId);
+  return hit?.address ?? null;
+}
+
 export async function saveTelegramLink(link: TelegramLink): Promise<TelegramLink> {
   const key = link.address.toLowerCase();
   const record: TelegramLink = { ...link, address: key };

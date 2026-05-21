@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getProfile, upsertProfile } from '../db/profiles.js';
+import { getProfile, upsertProfile, findProfileByXHandle } from '../db/profiles.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { logger } from '../logger.js';
 
@@ -110,6 +110,19 @@ profileRoutes.post('/x-handle', async (c) => {
   const existing = await getProfile(body.address);
   if (!existing) return c.json({ error: 'profile not found' }, 404);
   const normalised = body.handle ? body.handle.replace(/^@/, '') : undefined;
+  // One X handle binds to one wallet. Block if another account already owns it.
+  if (normalised) {
+    const owner = await findProfileByXHandle(normalised);
+    if (owner && owner.address.toLowerCase() !== existing.address.toLowerCase()) {
+      return c.json(
+        {
+          error: 'x handle already linked',
+          detail: `@${normalised} is already connected to another Karwan account.`,
+        },
+        409,
+      );
+    }
+  }
   const profile = await upsertProfile({
     address: existing.address,
     role: existing.role,

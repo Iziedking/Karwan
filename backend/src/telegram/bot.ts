@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { saveTelegramLink, getTelegramLink, type TelegramLink } from '../db/telegramLinks.js';
+import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/telegramLinks.js';
 import { bus, type KarwanEvent } from '../events.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
@@ -184,6 +184,17 @@ async function handleMessage(message: {
       return;
     }
     pending.delete(token);
+    // One Telegram chat maps to exactly one wallet. If this chat is already
+    // paired to a different wallet, refuse rather than silently linking it to a
+    // second account. Re-linking the same wallet is allowed (idempotent).
+    const ownerAddr = await findAddressByChatId(chatId);
+    if (ownerAddr && ownerAddr !== link.address) {
+      await sendTelegramMessage(
+        chatId,
+        `*Karwan*: this Telegram is already linked to \`${short(ownerAddr)}\`. Unlink it from that account first, then connect this wallet.`,
+      );
+      return;
+    }
     const saved: TelegramLink = {
       address: link.address,
       chatId,
@@ -191,7 +202,6 @@ async function handleMessage(message: {
       linkedAt: Date.now(),
     };
     await saveTelegramLink(saved);
-    chatIdReverse.set(chatId, link.address);
     bus.emitEvent({
       type: 'telegram.linked',
       actor: 'platform',
@@ -227,14 +237,8 @@ async function handleMessage(message: {
   }
 }
 
-// In-memory chatId → address index, populated when we save a link in this
-// process. The persisted store is keyed by address, so reverse lookups would
-// otherwise need a scan; this covers the /status command for the happy path.
-const chatIdReverse = new Map<number, string>();
-
 async function findLinkedAddressForChat(chatId: number): Promise<string | null> {
-  void getTelegramLink;
-  return chatIdReverse.get(chatId) ?? null;
+  return findAddressByChatId(chatId);
 }
 
 function pruneExpired() {

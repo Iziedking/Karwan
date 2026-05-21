@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type UserProfile } from '@/core/api';
+import { api, ApiError, type UserProfile } from '@/core/api';
 
 const HANDLE_RE = /^@?[A-Za-z0-9_]{1,15}$/;
 
@@ -63,6 +63,13 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
     if (xParam === 'error') {
       const reason = search.get('reason') ?? 'Could not bind your X account.';
       setError(reason);
+    } else if (xParam === 'taken') {
+      const h = search.get('handle');
+      setError(
+        h
+          ? `@${h} is already connected to another Karwan account.`
+          : 'That X account is already connected to another Karwan account.',
+      );
     }
   }, [xParam, search]);
 
@@ -96,7 +103,10 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
       setOpen(false);
       setHandle('');
     } catch (err) {
-      setError((err as Error).message);
+      // Prefer the server's friendly detail (e.g. the "already connected"
+      // message) over the terse error code.
+      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+      setError(detail ?? (err as Error).message);
     } finally {
       setBusy(false);
     }

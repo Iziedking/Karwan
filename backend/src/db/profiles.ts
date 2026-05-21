@@ -96,6 +96,23 @@ export async function upsertProfile(
   return next;
 }
 
+/// The profile that currently owns an X handle (case-insensitive), if any.
+/// Used to keep one X handle bound to a single wallet.
+export async function findProfileByXHandle(handle: string): Promise<UserProfile | null> {
+  const h = handle.replace(/^@/, '').toLowerCase();
+  if (!h) return null;
+  const all = await listProfiles();
+  return all.find((p) => p.xHandle?.toLowerCase() === h) ?? null;
+}
+
+/// The profile bound to a stable X user id, if any. Preferred over handle
+/// matching since the id survives an X rename.
+export async function findProfileByXUserId(id: string): Promise<UserProfile | null> {
+  if (!id) return null;
+  const all = await listProfiles();
+  return all.find((p) => p.xUserId === id) ?? null;
+}
+
 export async function listProfiles(): Promise<UserProfile[]> {
   if (pgEnabled) {
     const rows = await db().select().from(profiles);

@@ -2,7 +2,12 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomBytes, createHash } from 'node:crypto';
 import { config } from '../config.js';
-import { getProfile, upsertProfile } from '../db/profiles.js';
+import {
+  getProfile,
+  upsertProfile,
+  findProfileByXHandle,
+  findProfileByXUserId,
+} from '../db/profiles.js';
 import { logger } from '../logger.js';
 
 export const xRoutes = new Hono();
@@ -167,6 +172,18 @@ xRoutes.get('/oauth/callback', async (c) => {
     // profile pill renders crisp on retina. The URL pattern is stable.
     const rawImage = me.data.profile_image_url;
     const profileImage = rawImage?.replace('_normal', '_400x400');
+
+    // One X account binds to one wallet. Block if this X user id (stable across
+    // renames) or handle already belongs to a different wallet.
+    const xOwner =
+      (await findProfileByXUserId(me.data.id)) ?? (await findProfileByXHandle(me.data.username));
+    if (xOwner && xOwner.address.toLowerCase() !== entry.address.toLowerCase()) {
+      logger.warn(
+        { address: entry.address, handle: me.data.username, owner: xOwner.address },
+        'x account already linked to another wallet',
+      );
+      return c.redirect(`${entry.returnTo}?x=taken&handle=${me.data.username}`);
+    }
 
     const existing = await getProfile(entry.address);
     if (!existing) {

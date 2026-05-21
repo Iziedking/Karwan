@@ -14,7 +14,7 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
-const CELEBRATE_MS = 48 * 60 * 60 * 1000;
+const CELEBRATE_MS = 12 * 60 * 60 * 1000;
 
 const TIER_BLURB: Record<Tier, string> = {
   NEW: 'Welcome aboard.',
@@ -25,7 +25,7 @@ const TIER_BLURB: Record<Tier, string> = {
 };
 
 /// Detect a tier-up on a reputation read and fire the one-shot celebration:
-/// persist the new tier, set a 48h profile-card window, emit an event, and
+/// persist the new tier, set a 12h profile-card window, emit an event, and
 /// Telegram the user if linked. First-ever read just records a baseline (we
 /// don't congratulate a fresh NEW account). Returns the active celebration, if
 /// any, for the response so the profile can render the congrats card.
@@ -92,7 +92,7 @@ reputationRoutes.get('/', async (c) => {
     const inputs = await loadInputs(parsed.data);
     const result = compute(inputs);
 
-    // Detect a tier-up and surface the 48h congrats window for the profile card.
+    // Detect a tier-up and surface the 12h congrats window for the profile card.
     const tierCelebration = await maybeCelebrateTierUp(result.address, result.tier);
 
     // Legacy basis-points score read straight off chain. Kept in the response
@@ -114,7 +114,7 @@ reputationRoutes.get('/', async (c) => {
       terms: result.terms,
       inputs: result.inputs,
       modelVersion: result.modelVersion,
-      /// Present + within the 48h window when the user just crossed into a higher
+      /// Present + within the 12h window when the user just crossed into a higher
       /// tier. Drives the profile congrats card. null otherwise.
       tierCelebration,
 

@@ -57,7 +57,7 @@ function hueFor(role: Role, tierHue: string): string {
 
 /// Full-viewport, pointer-safe celebration layer. Brand rails drop from the top,
 /// square confetti tumbles after. Decorative, aria-hidden, auto-removed by the
-/// parent after ~2.6s. Suppressed entirely under prefers-reduced-motion.
+/// parent after ~9s. Suppressed entirely under prefers-reduced-motion.
 function TierBurst({ tierHue }: { tierHue: string }) {
   return (
     <div
@@ -124,9 +124,17 @@ export function TierCelebration({ address }: { address?: string | null }) {
   }, []);
 
   const celebration = data?.tierCelebration;
-  const active = !!celebration && !dismissed && celebration.until > now;
   const tier = (celebration?.tier ?? 'NEW') as Tier;
   const until = celebration?.until ?? 0;
+  // A dismissal sticks for this exact window (tier + until) so closing the card
+  // keeps it closed across refreshes. A later tier-up carries a new `until`, so
+  // it still celebrates. Read synchronously to avoid a flash of the card before
+  // an effect could hide it.
+  const dismissKey =
+    celebration && address ? `karwan:tierdismiss:${address.toLowerCase()}:${tier}:${until}` : null;
+  const storedDismissed =
+    !!dismissKey && typeof window !== 'undefined' && !!window.localStorage.getItem(dismissKey);
+  const active = !!celebration && !dismissed && !storedDismissed && celebration.until > now;
 
   // Big sky-drop plays once per celebration window per wallet.
   useEffect(() => {
@@ -135,11 +143,22 @@ export function TierCelebration({ address }: { address?: string | null }) {
     if (window.localStorage.getItem(key)) return;
     window.localStorage.setItem(key, String(Date.now()));
     setShowBurst(true);
-    const t = setTimeout(() => setShowBurst(false), 2600);
+    const t = setTimeout(() => setShowBurst(false), 9000);
     return () => clearTimeout(t);
   }, [active, address, tier, until]);
 
   if (!active) return null;
+
+  const dismiss = () => {
+    setDismissed(true);
+    if (dismissKey && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(dismissKey, String(Date.now()));
+      } catch {
+        /* storage disabled; the dismissal still holds for this session */
+      }
+    }
+  };
 
   const hue = TIER_HUE[tier];
   const rank = ORDER.indexOf(tier);
@@ -222,7 +241,7 @@ export function TierCelebration({ address }: { address?: string | null }) {
 
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={dismiss}
             aria-label="Dismiss"
             className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink-faint)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
           >

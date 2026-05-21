@@ -12,7 +12,7 @@ export interface TierState {
   /// The highest tier we've already acknowledged for this address.
   tier: Tier;
   /// Epoch ms until which the profile shows the congrats card. 0 when not
-  /// celebrating. Set to now + 48h on a tier-up.
+  /// celebrating. Set to now + 12h on a tier-up.
   celebrateUntil: number;
   /// Last time we recorded a change, for debugging.
   updatedAt: number;

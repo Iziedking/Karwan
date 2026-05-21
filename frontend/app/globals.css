@@ -390,7 +390,9 @@ html[data-theme="dark"] {
   72%  { opacity: 0.9; }
   100% { transform: translate3d(0, var(--rail-dy, 60vh), 0); opacity: 0; }
 }
-.tier-rail { animation: tierRailDrop var(--rail-dur, 1900ms) cubic-bezier(0.3, 0.1, 0.2, 1) var(--rail-delay, 0ms) both; }
+/* Loops so the rain keeps coming for the full ~9s burst window (the parent
+   unmounts the layer to stop it) rather than falling once and leaving dead air. */
+.tier-rail { animation: tierRailDrop var(--rail-dur, 1900ms) cubic-bezier(0.3, 0.1, 0.2, 1) var(--rail-delay, 0ms) infinite both; }
 
 /* Square confetti chips, falling with a tumble. */
 @keyframes tierChipFall {
@@ -399,7 +401,7 @@ html[data-theme="dark"] {
   86%  { opacity: 1; }
   100% { transform: translate3d(var(--chip-dx, 0), var(--chip-dy, 82vh), 0) rotate(var(--chip-rot, 200deg)); opacity: 0; }
 }
-.tier-chip { animation: tierChipFall var(--chip-dur, 2200ms) cubic-bezier(0.4, 0.05, 0.25, 1) var(--chip-delay, 0ms) both; }
+.tier-chip { animation: tierChipFall var(--chip-dur, 2200ms) cubic-bezier(0.4, 0.05, 0.25, 1) var(--chip-delay, 0ms) infinite both; }
 
 @media (prefers-reduced-motion: reduce) {
   .tier-burst { display: none !important; }
