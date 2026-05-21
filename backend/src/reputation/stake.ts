@@ -118,3 +118,67 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
     return 0;
   }
 }
+
+export interface ActiveStakeSummary {
+  /// Sum of active position principals, in USDC (raw, not tenure-divided).
+  stakeUsdc: number;
+  /// Longest-held active position's age in days. "how long you've been staking"
+  /// for the reputation duration envelope. 0 when nothing is staked.
+  stakeDays: number;
+}
+
+const summaryCache = new Map<string, { value: ActiveStakeSummary; expiresAt: number }>();
+
+/// Raw active stake + staking duration for the reputation engine v2. Unlike
+/// tenureWeightedStakeUsdc (which divides by 365 and makes days-old stake worth
+/// ~1%), this returns the real staked amount and the duration separately so the
+/// engine can credit staking immediately and ramp it over a short window.
+export async function activeStakeSummary(addressRaw: string): Promise<ActiveStakeSummary> {
+  const address = addressRaw.toLowerCase();
+  const cached = summaryCache.get(address);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const empty: ActiveStakeSummary = { stakeUsdc: 0, stakeDays: 0 };
+  const vaultAddr = (config as unknown as Record<string, string | undefined>)
+    .KARWAN_VAULT_ADDR;
+  if (!vaultAddr) {
+    summaryCache.set(address, { value: empty, expiresAt: Date.now() + CACHE_TTL_MS });
+    return empty;
+  }
+
+  try {
+    const logs = await fetchDepositedLogsForOwner(vaultAddr as `0x${string}`, address);
+    if (logs.length === 0) {
+      summaryCache.set(address, { value: empty, expiresAt: Date.now() + CACHE_TTL_MS });
+      return empty;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    let stakeUsdc = 0;
+    let stakeDays = 0;
+    for (const log of logs) {
+      const position = (await publicClient.readContract({
+        address: vaultAddr as `0x${string}`,
+        abi: vaultPositionsAbi,
+        functionName: 'positions',
+        args: [log.positionId],
+      })) as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
+      const [, principal, depositedAt, , , state] = position;
+      if (state !== POSITION_STATE_ACTIVE || principal === 0n) continue;
+      stakeUsdc += Number(formatUnits(principal, USDC_DECIMALS));
+      const days = Math.max(0, (now - Number(depositedAt)) / SECONDS_PER_DAY);
+      if (days > stakeDays) stakeDays = days;
+    }
+    const value: ActiveStakeSummary = { stakeUsdc, stakeDays };
+    summaryCache.set(address, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    return value;
+  } catch (err) {
+    if (!warned.has(vaultAddr)) {
+      warned.add(vaultAddr);
+      logger.warn(
+        { err: (err as Error).message, vault: vaultAddr, address },
+        'vault stake summary read failed, defaulting to zero (logged once per vault)',
+      );
+    }
+    return empty;
+  }
+}

@@ -3,10 +3,79 @@ import { z } from 'zod';
 import { reputation } from '../chain/contracts.js';
 import { compute } from '../reputation/engine.js';
 import { loadInputs } from '../reputation/signals.js';
+import { tierRank, type Tier } from '../reputation/config.js';
+import { getTierState, saveTierState } from '../db/tierState.js';
+import { bus } from '../events.js';
+import { getTelegramLink } from '../db/telegramLinks.js';
+import { sendTelegramMessage, telegramEnabled } from '../telegram/bot.js';
+import { logger } from '../logger.js';
 
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+const CELEBRATE_MS = 48 * 60 * 60 * 1000;
+
+const TIER_BLURB: Record<Tier, string> = {
+  NEW: 'Welcome aboard.',
+  COLD: 'Your track record is taking shape.',
+  ESTABLISHED: 'A solid, trusted profile.',
+  STRONG: 'A preferred counterparty. agents move faster for you.',
+  ELITE: 'Top tier. agents accept first-look within range, no auction.',
+};
+
+/// Detect a tier-up on a reputation read and fire the one-shot celebration:
+/// persist the new tier, set a 48h profile-card window, emit an event, and
+/// Telegram the user if linked. First-ever read just records a baseline (we
+/// don't congratulate a fresh NEW account). Returns the active celebration, if
+/// any, for the response so the profile can render the congrats card.
+async function maybeCelebrateTierUp(
+  address: string,
+  tier: Tier,
+): Promise<{ tier: Tier; until: number } | null> {
+  const now = Date.now();
+  const prev = getTierState(address);
+
+  if (!prev) {
+    saveTierState(address, { tier, celebrateUntil: 0, updatedAt: now });
+    return null;
+  }
+
+  if (tierRank(tier) > tierRank(prev.tier)) {
+    const celebrateUntil = now + CELEBRATE_MS;
+    saveTierState(address, { tier, celebrateUntil, updatedAt: now });
+    bus.emitEvent({
+      type: 'reputation.tier-up',
+      actor: 'platform',
+      payload: { address, fromTier: prev.tier, toTier: tier },
+    });
+    if (telegramEnabled()) {
+      void getTelegramLink(address)
+        .then((link) => {
+          if (!link) return;
+          return sendTelegramMessage(
+            link.chatId,
+            `*Tier up. you reached ${tier} on Karwan.*\n${TIER_BLURB[tier]}`,
+          );
+        })
+        .catch((err) =>
+          logger.warn({ err: (err as Error).message, address }, 'tier-up telegram failed'),
+        );
+    }
+    return { tier, until: celebrateUntil };
+  }
+
+  // No promotion. Keep the stored tier in sync (it may have dropped) but never
+  // celebrate a demotion. Preserve any still-active celebration window.
+  if (tier !== prev.tier || (prev.celebrateUntil && prev.celebrateUntil <= now)) {
+    saveTierState(address, {
+      tier,
+      celebrateUntil: prev.celebrateUntil > now ? prev.celebrateUntil : 0,
+      updatedAt: now,
+    });
+  }
+  return prev.celebrateUntil > now ? { tier: prev.tier, until: prev.celebrateUntil } : null;
+}
 
 export const reputationRoutes = new Hono();
 
@@ -22,6 +91,9 @@ reputationRoutes.get('/', async (c) => {
   try {
     const inputs = await loadInputs(parsed.data);
     const result = compute(inputs);
+
+    // Detect a tier-up and surface the 48h congrats window for the profile card.
+    const tierCelebration = await maybeCelebrateTierUp(result.address, result.tier);
 
     // Legacy basis-points score read straight off chain. Kept in the response
     // until the frontend reputation badge fully migrates to `score`/`tier`.
@@ -42,6 +114,9 @@ reputationRoutes.get('/', async (c) => {
       terms: result.terms,
       inputs: result.inputs,
       modelVersion: result.modelVersion,
+      /// Present + within the 48h window when the user just crossed into a higher
+      /// tier. Drives the profile congrats card. null otherwise.
+      tierCelebration,
 
       // Legacy fields. Mirrors the v1 response shape so old callers don't break.
       scoreBps,

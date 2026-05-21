@@ -4,8 +4,10 @@
 
 import { reputation } from '../chain/contracts.js';
 import { listAllDeals } from '../db/deals.js';
+import { getProfile } from '../db/profiles.js';
+import { getAgentWallets } from '../db/agentWallets.js';
 import { logger } from '../logger.js';
-import { tenureWeightedStakeUsdc } from './stake.js';
+import { activeStakeSummary } from './stake.js';
 import { computeSpamSignals, type SpamBreakdown } from './spam.js';
 
 export interface ReputationInputs {
@@ -29,10 +31,22 @@ export interface ReputationInputs {
   firstActionAt: number;
   /// Last on-chain action timestamp. Used for the decay multiplier.
   lastActionAt: number;
-  /// Sum of (principal × min(1, tenureDays / 365)) over Active vault
-  /// positions, in USDC. Zero when KarwanVault is not yet deployed or the
-  /// indexer has no entries for this address.
-  tenureWeightedStakeUsdc: number;
+  /// Raw active staked principal in USDC (not tenure-divided). Drives the stake
+  /// factor's magnitude. Zero when nothing is staked or the vault isn't set.
+  stakeUsdc: number;
+  /// Longest-held active position's age in days. Drives the stake duration ramp.
+  stakeDays: number;
+  /// Registration timestamp (epoch ms): profile creation, else agent activation,
+  /// else first on-chain action. Drives the tenure factor.
+  registeredAt: number;
+  /// Distinct calendar days (UTC) the wallet took a deal action. Drives the
+  /// active-days factor. Proxy from deal timestamps until a precise tracker ships.
+  activeDays: number;
+  /// Lifetime USDC settled through escrow on this wallet's deals. Drives volume.
+  lifetimeVolumeUsdc: number;
+  /// Count of wallets that registered via a direct deal with this user. Drives
+  /// the referral factor. 0 until referral attribution is built (see todo.md).
+  referredCount: number;
   /// Spam score in [0, 1]. Sum of the three signal contributions from the
   /// spam detector (burst, low counterparty diversity, match-and-cancel rate).
   spamScore: number;
@@ -64,31 +78,50 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   let cancelsLast90d = 0;
   let firstActionAt = 0;
   let lastActionAt = 0;
+  let lifetimeVolumeUsdc = 0;
+  // Distinct UTC day buckets the wallet touched a deal. Proxy for "active days"
+  // until a dedicated action tracker lands (see todo.md).
+  const activeDayBuckets = new Set<number>();
+  const bucket = (ts: number) => Math.floor(ts / MS_PER_DAY);
   for (const d of deals) {
     const buyer = d.buyer?.toLowerCase();
     const seller = d.seller?.toLowerCase();
     if (buyer !== address && seller !== address) continue;
     totalStarted += 1;
-    if (d.settledAt) completedDeals += 1;
+    if (d.settledAt) {
+      completedDeals += 1;
+      lifetimeVolumeUsdc += Number(d.dealAmountUsdc) || 0;
+    }
     if (d.cancelledAt && d.cancelledAt > now - NINETY_DAYS_MS) cancelsLast90d += 1;
     const created = d.createdAt ?? 0;
-    if (created > 0 && (firstActionAt === 0 || created < firstActionAt)) firstActionAt = created;
+    if (created > 0) {
+      if (firstActionAt === 0 || created < firstActionAt) firstActionAt = created;
+      activeDayBuckets.add(bucket(created));
+    }
     const last = d.updatedAt ?? d.settledAt ?? d.cancelledAt ?? created;
     if (last > lastActionAt) lastActionAt = last;
+    if (last > 0) activeDayBuckets.add(bucket(last));
   }
 
   // The on-chain success count is the canonical settlement signal. Prefer it
   // over the DB count when it's higher (the DB can lag behind the chain).
   completedDeals = Math.max(completedDeals, chain.successCount);
 
-  const [stake, spam] = await Promise.all([
-    tenureWeightedStakeUsdc(address).catch(() => 0),
+  const [stake, spam, profile, wallets] = await Promise.all([
+    activeStakeSummary(address).catch(() => ({ stakeUsdc: 0, stakeDays: 0 })),
     computeSpamSignals(address).catch(() => ({
       spamScore: 0,
       breakdown: { burst: 0, diversity: 0, matchAndCancel: 0 },
       counterAbandonRate: 0,
     })),
+    getProfile(address).catch(() => null),
+    getAgentWallets(address).catch(() => null),
   ]);
+
+  // Registration age: profile creation is the truest "joined" signal; fall back
+  // to agent activation, then to the first deal so an account with neither still
+  // accrues tenure.
+  const registeredAt = profile?.createdAt ?? wallets?.createdAt ?? firstActionAt;
 
   return {
     address,
@@ -100,7 +133,12 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     cancelsLast90d,
     firstActionAt,
     lastActionAt,
-    tenureWeightedStakeUsdc: stake,
+    stakeUsdc: stake.stakeUsdc,
+    stakeDays: stake.stakeDays,
+    registeredAt,
+    activeDays: activeDayBuckets.size,
+    lifetimeVolumeUsdc,
+    referredCount: 0,
     spamScore: spam.spamScore,
     spamBreakdown: spam.breakdown,
     counterAbandonRate: spam.counterAbandonRate,

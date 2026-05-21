@@ -1,6 +1,17 @@
-/// Composite reputation per docs/reputation-model.md §2. The math is
-/// dimension-light on purpose so it's reviewable and tunable from env. Every
-/// term clamps before composition so a bad input can't blow up the score.
+/// Composite reputation, model v2 (docs/reputation-model.md).
+///
+///   score = round( 1000 × base × (1 − penalty) × decay )
+///
+/// `base` is an ADDITIVE weighted sum of six concave factor sub-scores, each in
+/// [0,1]. Additive (not multiplicative) so every factor earns points on its own.
+/// staking, tenure, and activity move the score even with zero completed deals.
+/// Concave (log / sqrt) so the first stake / deal / day is worth far more than
+/// the hundredth: gains are fast in NEW and progressively harder toward ELITE,
+/// and climbing the last tiers needs several factors high at once, not one maxed.
+///
+/// `penalty` is a capped MULTIPLIER (1 − penalty), never a subtraction that can
+/// drive the score negative, so a penalised wallet drops but always has a path
+/// back. `decay` fades the visible score for idle wallets.
 
 import { repConfig, tierFor, type Tier } from './config.js';
 import type { ReputationInputs } from './signals.js';
@@ -8,23 +19,26 @@ import type { ReputationInputs } from './signals.js';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface ReputationTerms {
-  activity: number;
-  completion: number;
-  /// Range [1, 2]. Above 1 because stake is purely additive value.
+  /// All in [0,1]. The six additive factors.
   stake: number;
-  time: number;
-  /// In [0, 1]. Subtracted from the score after the tanh envelope.
+  completion: number;
+  volume: number;
+  tenure: number;
+  activity: number;
+  referral: number;
+  /// Weighted sum of the six factors, [0,1].
+  base: number;
+  /// In [0, penaltyCap]. Applied as (1 - penalty).
   penalty: number;
-  /// 90-day rolling rates used inside the penalty. Surfaced for diagnostics.
+  /// Inactivity decay multiplier, [0,1].
+  decay: number;
+  /// Rolling rates feeding the penalty. Surfaced for diagnostics.
   rates: {
     disputesLost: number;
     cancel: number;
     spam: number;
     counterAbandon: number;
   };
-  /// Decay multiplier in [0, 1]. Recently active users get 1.0; idle wallets
-  /// see their visible score halved after `decayHalflifeDays` of silence.
-  decay: number;
 }
 
 export interface ReputationResult {
@@ -32,103 +46,127 @@ export interface ReputationResult {
   score: number;
   tier: Tier;
   terms: ReputationTerms;
-  /// Inputs echoed for debugging + UI display.
   inputs: ReputationInputs;
-  /// Engine + formula version. Pinned in config.
   modelVersion: number;
 }
 
 /// Apply the formula. Pure function for testability.
 export function compute(inputs: ReputationInputs): ReputationResult {
-  const activity = activityTerm(inputs.completedDeals);
-  const completion = completionTerm(inputs.completedDeals, inputs.totalStarted);
-  const stake = stakeTerm(inputs.tenureWeightedStakeUsdc);
-  const time = timeTerm(inputs.firstActionAt);
+  const stake = stakeScore(inputs);
+  const completion = completionScore(inputs);
+  const volume = volumeScore(inputs);
+  const tenure = tenureScore(inputs);
+  const activity = activityScore(inputs);
+  const referral = referralScore(inputs);
+
+  const base = clamp01(
+    repConfig.wStake * stake +
+      repConfig.wCompletion * completion +
+      repConfig.wVolume * volume +
+      repConfig.wTenure * tenure +
+      repConfig.wActivity * activity +
+      repConfig.wReferral * referral,
+  );
 
   const rates = {
-    disputesLost: rate90d(inputs.failedCount, inputs.totalStarted),
-    cancel: rate90d(inputs.cancelsLast90d, inputs.totalStarted),
+    disputesLost: ratio(inputs.failedCount, inputs.totalStarted),
+    cancel: ratio(inputs.cancelsLast90d, inputs.totalStarted),
     spam: clamp01(inputs.spamScore),
     counterAbandon: clamp01(inputs.counterAbandonRate),
   };
-  const penalty = clamp01(
-    repConfig.penaltyDispute * rates.disputesLost +
-      repConfig.penaltyCancel * rates.cancel +
-      repConfig.penaltySpam * rates.spam +
-      repConfig.penaltyAbandon * rates.counterAbandon,
+  const penalty = Math.min(
+    repConfig.penaltyCap,
+    clamp01(
+      repConfig.penaltyDispute * rates.disputesLost +
+        repConfig.penaltyCancel * rates.cancel +
+        repConfig.penaltySpam * rates.spam +
+        repConfig.penaltyAbandon * rates.counterAbandon,
+    ),
   );
 
-  // tanh envelope keeps early gains feeling fast and caps the upside.
-  // 0.85 scaling so the saturation point lands near the ELITE boundary.
-  const positive = Math.tanh(0.85 * activity * completion * stake * time);
-  const raw = Math.round(1000 * positive - 1000 * penalty);
-
-  // Decay only the visible score, not the underlying inputs.
   const decay = decayMultiplier(inputs.lastActionAt);
-  const score = clamp(0, 1000, Math.floor(raw * decay));
+  const score = clamp(0, 1000, Math.round(1000 * base * (1 - penalty) * decay));
 
   return {
     address: inputs.address,
     score,
     tier: tierFor(score),
-    terms: { activity, completion, stake, time, penalty, rates, decay },
+    terms: { stake, completion, volume, tenure, activity, referral, base, penalty, decay, rates },
     inputs,
     modelVersion: repConfig.modelVersion,
   };
 }
 
 /* ============================================================================
-   Individual terms. Kept exported so the spam detector and UI can call them
-   in isolation when previewing the impact of a single signal change.
+   Factor sub-scores. Each returns [0,1]. Exported for unit tests + UI preview.
    ========================================================================== */
 
-export function activityTerm(completedDeals: number): number {
-  // log10(1 + n) / log10(1 + half) — saturates at half.
-  if (completedDeals <= 0) return 0;
-  const half = Math.max(1, repConfig.activityHalf);
-  const out = Math.log10(1 + completedDeals) / Math.log10(1 + half);
-  // Allow values above 1 to flow through; the tanh outside the multiplication
-  // pulls everything back into a saturating curve so super-active wallets
-  // still cap near the ELITE boundary.
-  return Math.max(0, out);
+/// Staking. amount (sqrt-saturating toward stakeCapUsdc) times a duration
+/// envelope that starts at stakeFloorCredit on day one and ramps to full over
+/// stakeFullDays. The strongest single lever (highest weight).
+export function stakeScore(i: ReputationInputs): number {
+  const amount = satSqrt(i.stakeUsdc, repConfig.stakeCapUsdc);
+  const duration = clamp01(i.stakeDays / Math.max(1, repConfig.stakeFullDays));
+  const envelope = repConfig.stakeFloorCredit + (1 - repConfig.stakeFloorCredit) * duration;
+  return clamp01(amount * envelope);
 }
 
-export function completionTerm(completedDeals: number, totalStarted: number): number {
-  // Laplace smoothing keeps fresh accounts at a neutral 0.5 instead of zero
-  // and stops a single bad outcome from sinking a 0/0 wallet.
-  return clamp01((completedDeals + 1) / (totalStarted + 2));
+/// Completed deals weighted by success rate. Count gives the magnitude
+/// (log-saturating toward dealsCap), success rate (Laplace-smoothed) scales it
+/// between 0.5x and 1x so a clean record is worth double a disputed one.
+export function completionScore(i: ReputationInputs): number {
+  const successRate = clamp01((i.completedDeals + 1) / (i.totalStarted + 2));
+  return clamp01(satLog(i.completedDeals, repConfig.dealsCap) * (0.5 + 0.5 * successRate));
 }
 
-export function stakeTerm(tenureWeightedStakeUsdc: number): number {
-  const cap = Math.max(1, repConfig.stakeCapUsdc);
-  const sq = Math.sqrt(Math.max(0, tenureWeightedStakeUsdc) / cap);
-  return 1 + Math.min(1, sq);
+/// Lifetime USDC settled through escrow. sqrt-saturating toward volumeCapUsdc.
+export function volumeScore(i: ReputationInputs): number {
+  return satSqrt(i.lifetimeVolumeUsdc, repConfig.volumeCapUsdc);
 }
 
-export function timeTerm(firstActionAt: number): number {
-  if (!firstActionAt) return 0;
-  const days = (Date.now() - firstActionAt) / MS_PER_DAY;
-  return clamp01(days / Math.max(1, repConfig.timeRampDays));
+/// Days since registration. Linear ramp to full over tenureFullDays.
+export function tenureScore(i: ReputationInputs): number {
+  if (!i.registeredAt) return 0;
+  const days = (Date.now() - i.registeredAt) / MS_PER_DAY;
+  return clamp01(days / Math.max(1, repConfig.tenureFullDays));
+}
+
+/// Distinct days the wallet was active. log-saturating toward activeDaysCap.
+export function activityScore(i: ReputationInputs): number {
+  return satLog(i.activeDays, repConfig.activeDaysCap);
+}
+
+/// Wallets that registered via a direct deal with this user. log-saturating.
+export function referralScore(i: ReputationInputs): number {
+  return satLog(i.referredCount, repConfig.referralCap);
 }
 
 export function decayMultiplier(lastActionAt: number): number {
   if (!lastActionAt) return 1;
   const days = (Date.now() - lastActionAt) / MS_PER_DAY;
   if (days <= 0) return 1;
-  const halflife = Math.max(1, repConfig.decayHalflifeDays);
-  return Math.exp(-(days / halflife));
+  return Math.exp(-(days / Math.max(1, repConfig.decayHalflifeDays)));
 }
 
 /* ============================================================================
    helpers
    ========================================================================== */
 
-function rate90d(count: number, total: number): number {
+/// log10(1+n) / log10(1+cap), clamped. Concave: fast early, saturates at cap.
+function satLog(n: number, cap: number): number {
+  if (n <= 0) return 0;
+  const c = Math.max(1, cap);
+  return clamp01(Math.log10(1 + n) / Math.log10(1 + c));
+}
+
+/// sqrt(x/cap), clamped. Concave: fast early, full at the cap.
+function satSqrt(x: number, cap: number): number {
+  const c = Math.max(1e-9, cap);
+  return clamp01(Math.sqrt(Math.max(0, x) / c));
+}
+
+function ratio(count: number, total: number): number {
   if (total <= 0) return 0;
-  // We don't yet distinguish 90-day totals from all-time totals at the engine
-  // layer. Signals.ts feeds the rolling count, the denominator uses total
-  // started which is conservative (slightly under-counts the rate). When the
-  // DB grows a proper 90-day window this becomes exact.
   return clamp01(count / total);
 }
 

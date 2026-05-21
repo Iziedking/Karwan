@@ -15,6 +15,7 @@ import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -186,6 +187,8 @@ export default function ProfilePage() {
 
       {/* ACTIVATION */}
       <Band tone="light" compact>
+        {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
+        <TierCelebration address={address} />
         <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end" data-guide="profile-identity">
           <div className="max-w-[52ch]">
             <SectionTag dot={activation.activated ? 'live' : undefined}>

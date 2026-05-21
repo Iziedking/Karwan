@@ -54,6 +54,7 @@ export type KarwanEventType =
   | 'negotiation.next-candidate'
   | 'negotiation.exhausted'
   | 'market.scanned'
+  | 'reputation.tier-up'
   | 'feedback.submitted'
   | 'vault.deposit'
   | 'vault.withdraw.requested'

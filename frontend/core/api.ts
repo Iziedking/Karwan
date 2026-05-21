@@ -261,14 +261,21 @@ export interface Reputation {
   /// older API responses don't break the type.
   score?: number;
   tier?: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+  /// Composite engine v2 factor breakdown (docs/reputation-model.md). All [0,1].
   terms?: {
-    activity: number;
-    completion: number;
-    stake: number;
-    time: number;
-    penalty: number;
-    decay: number;
+    stake?: number;
+    completion?: number;
+    volume?: number;
+    tenure?: number;
+    activity?: number;
+    referral?: number;
+    base?: number;
+    penalty?: number;
+    decay?: number;
   };
+  /// Present + within the 48h window when the user just crossed into a higher
+  /// tier. Drives the profile congrats card.
+  tierCelebration?: { tier: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE'; until: number } | null;
   modelVersion?: number;
 }
 

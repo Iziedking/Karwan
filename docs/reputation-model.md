@@ -20,9 +20,66 @@ Tiers map to:
 - **STRONG (600–799).** Preferred counterparty. Agents accept marginal overshoots, fast-track matches.
 - **ELITE (800–1000).** Top tier. Agents accept first-look without auction if the price is within profile.
 
-These thresholds are configurable; the formula is the load-bearing piece.
+Tier breakpoints are **fixed** at 200 / 400 / 600 / 800 (not env-tuned). The
+*score* is the lever; a tier label means the same on testnet and mainnet.
 
-## 2. The formula
+## 2. The formula — model v2 (shipped)
+
+> v2 (2026-05-21) replaced the multiplicative v1 below. v1 multiplied its terms,
+> so any zero factor (e.g. zero completed deals) zeroed the whole score. staking
+> and time could not move a fresh account. v2 is **additive**: every factor earns
+> points on its own. Implementation: `backend/src/reputation/{engine,config,signals,stake}.ts`.
+
+```
+score = round( 1000 · base · (1 − penalty) · decay )
+
+base  = wStake·stake + wCompletion·completion + wVolume·volume
+      + wTenure·tenure + wActivity·activity + wReferral·referral      // each ∈ [0,1]
+```
+
+Default weights (env `REP_W_*`, sum to 1) — **stake-forward**, because staking grows
+TVL and buys trust regardless of tier:
+
+| Factor | Weight | Sub-score (concave → diminishing returns) |
+|---|---|---|
+| `stake` | 0.30 | `√(min(1, stakeUsdc / STAKE_CAP)) · (FLOOR + (1−FLOOR)·min(1, stakeDays / STAKE_FULL_DAYS))` |
+| `completion` | 0.25 | `satLog(completedDeals, DEALS_CAP) · (0.5 + 0.5·successRate)` |
+| `volume` | 0.13 | `√(min(1, lifetimeVolumeUsdc / VOLUME_CAP))` |
+| `tenure` | 0.12 | `min(1, daysRegistered / TENURE_FULL_DAYS)` |
+| `activity` | 0.12 | `satLog(activeDays, ACTIVE_CAP)` |
+| `referral` | 0.08 | `satLog(referredUsers, REFERRAL_CAP)` |
+
+where `satLog(n, cap) = log10(1+n) / log10(1+cap)`, `successRate = (completed+1)/(started+2)`,
+and `FLOOR = REP_STAKE_FLOOR_CREDIT` (default 0.4 — staking is worth 40% the day you
+deposit, ramping to full over `STAKE_FULL_DAYS`).
+
+**Penalty is a capped multiplier**, never a subtraction that can drive the score
+negative: `penalty = min(REP_PENALTY_CAP, wDispute·disputeRate + wCancel·cancelRate
++ wSpam·spam + wAbandon·abandon)`, cap 0.6. A penalised wallet drops hard but always
+keeps a path back. `decay = exp(−idleDays / REP_DECAY_HALFLIFE_DAYS)`.
+
+**Diminishing returns as tier rises** are intrinsic: every sub-score is concave (your
+first stake / deal / day is worth far more than your hundredth), and the additive
+structure means climbing STRONG→ELITE needs *several* factors high at once, not one
+maxed. So early points come fast in NEW and the last 200 are the hardest.
+
+**Earning factors (how points grow):** lock more USDC and keep it staked longer
+(`stake`); settle more deals cleanly (`completion`); move more value through escrow
+(`volume`); stay registered (`tenure`); show up on more distinct days (`activity`);
+bring in users who register via a deal with you (`referral`). Each is concave and
+weighted as above.
+
+**Testnet vs mainnet = the caps, not the breakpoints.** Testnet defaults reach tiers
+in days (`DEALS_CAP=10, STAKE_CAP=100, *_FULL_DAYS=14`). Mainnet raises them so tiers
+are earned over months (see `todo.md` → "Reputation: mainnet-strict calibration").
+
+**Tier-up** crossing emits `reputation.tier-up`, opens a 48h congrats card on the
+profile (`TierCelebration`), and Telegrams the user if linked. Tracked once per
+crossing via `db/tierState.ts`.
+
+### v1 (superseded) — kept for historical reference
+
+## 2b. The v1 formula
 
 ```
 R(addr) = clamp(0, 1000, round(
