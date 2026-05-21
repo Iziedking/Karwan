@@ -100,6 +100,21 @@ export async function listPendingBridges(): Promise<BridgeRelay[]> {
   return Object.values(loadFile()).filter(isPending);
 }
 
+/// Bridge records whose source-chain DCW is one of the given wallet addresses.
+/// Powers the per-user bridge list so a user (or operator) can see the status of
+/// every Circle bridge they've started. Newest first.
+export async function listBridgesForWallets(
+  walletAddresses: string[],
+): Promise<BridgeRelay[]> {
+  const set = new Set(walletAddresses.map((a) => a.toLowerCase()));
+  const all = pgEnabled
+    ? (await db().select().from(bridges)).map((r) => r.data)
+    : Object.values(loadFile());
+  return all
+    .filter((b) => b.bridgeWalletAddress && set.has(b.bridgeWalletAddress.toLowerCase()))
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
 // --- flat-file fallback ---
 
 function ensureFile() {

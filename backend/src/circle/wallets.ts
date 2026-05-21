@@ -149,19 +149,32 @@ export async function provisionUserBridgeWallet(
 
 const FAUCET_URL = 'https://api.circle.com/v1/faucet/drips';
 
-/// Best-effort testnet USDC drip from Circle's public faucet to a wallet, so a
-/// new user's wallet is spendable immediately without hunting for a faucet
-/// (Circle drips 20 USDC per address per 2h, Arc Testnet supported). Non-fatal
-/// by design: faucet rate limits and outages must NEVER block signup or
+export interface DripOptions {
+  /// Target chain. Defaults to Arc Testnet. Use BASE-SEPOLIA / ETH-SEPOLIA to
+  /// fund a bridge wallet on its source chain.
+  blockchain?: string;
+  /// Request native gas (e.g. Sepolia ETH) too. Needed for bridge wallets,
+  /// which pay CCTP approve+burn gas in the source chain's native token. On Arc
+  /// USDC is the gas token, so native is unnecessary there.
+  native?: boolean;
+  /// Request USDC. Defaults true.
+  usdc?: boolean;
+}
+
+/// Best-effort testnet drip from Circle's public faucet to a wallet, so a new
+/// user's wallet is usable immediately without hunting for a faucet (Circle
+/// drips ~20 USDC and a little native gas per address per 2h). Non-fatal by
+/// design: faucet rate limits and outages must NEVER block signup or
 /// activation, so this swallows all errors and is meant to be fire-and-forget.
 /// Auto-skips unless the Circle key is a testnet key, so it's a no-op on
 /// mainnet without any extra config.
-export async function dripTestnetUsdc(
-  address: string,
-  blockchain: string = ARC_TESTNET_BLOCKCHAIN,
-): Promise<void> {
+export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): Promise<void> {
   const key = config.CIRCLE_API_KEY;
   if (!key || !key.startsWith('TEST_API_KEY')) return; // live key: no faucet
+  const blockchain = opts.blockchain ?? ARC_TESTNET_BLOCKCHAIN;
+  const wantUsdc = opts.usdc ?? true;
+  const wantNative = opts.native ?? false;
+  if (!wantUsdc && !wantNative) return;
   try {
     const res = await fetch(FAUCET_URL, {
       method: 'POST',
@@ -170,21 +183,21 @@ export async function dripTestnetUsdc(
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({ address, blockchain, usdc: true }),
+      body: JSON.stringify({ address, blockchain, native: wantNative, usdc: wantUsdc }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
       logger.warn(
-        { address, blockchain, status: res.status, detail: detail.slice(0, 200) },
-        'testnet USDC drip non-2xx (often a per-address rate limit; non-fatal)',
+        { address, blockchain, native: wantNative, status: res.status, detail: detail.slice(0, 200) },
+        'testnet drip non-2xx (often a per-address rate limit; non-fatal)',
       );
       return;
     }
-    logger.info({ address, blockchain }, 'testnet USDC drip requested');
+    logger.info({ address, blockchain, native: wantNative, usdc: wantUsdc }, 'testnet drip requested');
   } catch (err) {
     logger.warn(
       { address, blockchain, err: (err as Error).message },
-      'testnet USDC drip failed (non-fatal)',
+      'testnet drip failed (non-fatal)',
     );
   }
 }

@@ -5,7 +5,13 @@ import { baseSepolia, sepolia } from 'viem/chains';
 import { config } from '../config.js';
 import { executeContractCall, submitContractCall, getTxState } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
-import { createBridge, getBridge, patchBridge, listPendingBridges } from '../db/bridges.js';
+import {
+  createBridge,
+  getBridge,
+  patchBridge,
+  listPendingBridges,
+  listBridgesForWallets,
+} from '../db/bridges.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import {
@@ -134,6 +140,34 @@ const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export const bridgeRoutes = new Hono();
+
+/// Every Circle bridge this user has started, newest first, with its current
+/// status and tx ids. Lets a user (or operator) see whether a bridge is
+/// approving / burning / relaying / minted / errored instead of guessing. Keyed
+/// off the user's source-chain DCW(s), resolved from their agent-wallet record.
+bridgeRoutes.get('/list', async (c) => {
+  const address = c.req.query('address');
+  if (!address) return c.json({ error: 'address query param required' }, 400);
+  const wallets = await getAgentWallets(address.toLowerCase());
+  const bridgeAddrs = Object.values(wallets?.bridgeWallets ?? {}).map((w) => w.address);
+  if (bridgeAddrs.length === 0) return c.json({ bridges: [] });
+  const records = await listBridgesForWallets(bridgeAddrs);
+  return c.json({
+    bridges: records.map((b) => ({
+      bridgeId: b.bridgeId,
+      status: b.status,
+      amountUsdc: b.amountUsdc,
+      sourceChainKey: b.sourceChainKey ?? null,
+      sourceTxHash: b.sourceTxHash || null,
+      mintTxHash: b.mintTxHash ?? null,
+      approveTxId: b.approveTxId ?? null,
+      burnTxId: b.burnTxId ?? null,
+      error: b.error ?? null,
+      createdAt: b.createdAt,
+      updatedAt: b.updatedAt,
+    })),
+  });
+});
 
 bridgeRoutes.post('/relay', async (c) => {
   if (!config.BUYER_AGENT_WALLET_ID) {
@@ -412,7 +446,16 @@ function sleep(ms: number): Promise<void> {
 const SOURCE_POLL_INTERVAL_MS = 5_000;
 // Per source stage. Generous because testnet bundler latency runs in minutes.
 const SOURCE_POLL_TIMEOUT_MS = 60 * 60 * 1000; // 1h
+// Hard cap on how long a Circle source bridge may sit pending before it's marked
+// errored, so a transfer that will never settle (e.g. a gas-starved wallet)
+// surfaces a failure instead of pending forever. Generous: testnet settles in
+// minutes, so this only ever trips on genuinely stuck transfers.
+const MAX_SOURCE_AGE_MS = 2 * 60 * 60 * 1000; // 2h
 const sourceInFlight = new Set<string>();
+
+function sourceTimedOut(record: { createdAt: number }): boolean {
+  return Date.now() - record.createdAt > MAX_SOURCE_AGE_MS;
+}
 
 interface SourcePipelineInput {
   bridgeId: string;
@@ -535,6 +578,12 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
       const ar = await waitForCircleTx(approveTxId, `circle-bridge.approve(${input.bridgeId})`);
       if (!ar.ok) {
         if (ar.failed) await failSource(input.bridgeId, 'approve', ar.reason ?? 'approve failed');
+        else if (sourceTimedOut(record))
+          await failSource(
+            input.bridgeId,
+            'approve',
+            'Approve did not settle in time. Check the bridge wallet has Base/Ethereum gas, then start a new bridge.',
+          );
         else logger.warn({ bridgeId: input.bridgeId }, 'approve pending past window; resumable');
         return;
       }
@@ -576,6 +625,12 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
     const br = await waitForCircleTx(burnTxId, `circle-bridge.burn(${input.bridgeId})`);
     if (!br.ok) {
       if (br.failed) await failSource(input.bridgeId, 'depositForBurn', br.reason ?? 'burn failed');
+      else if (sourceTimedOut(record))
+        await failSource(
+          input.bridgeId,
+          'depositForBurn',
+          'Burn did not settle in time. Check the bridge wallet gas, then start a new bridge.',
+        );
       else logger.warn({ bridgeId: input.bridgeId }, 'burn pending past window; resumable');
       return;
     }
@@ -872,13 +927,44 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
         409,
       );
     }
+    // Gas precheck. The bridge runs on the source chain, where the CCTP
+    // approve + burn are paid in native ETH, not Arc USDC. Without this a
+    // gas-starved wallet passes the USDC check, starts the pipeline, and the
+    // approve never settles, so the bridge sits "pending" forever with no error.
+    // Block at the door instead, with an actionable message.
+    const MIN_GAS_WEI = 200_000_000_000_000n; // ~0.0002 ETH; covers the approve + burn
+    if (gasBalance < MIN_GAS_WEI) {
+      return c.json(
+        {
+          error: 'bridge wallet out of gas',
+          detail: `Bridge wallet has ${formatUnits(gasBalance, 18)} ETH on ${body.sourceChainKey}, not enough to pay the bridge gas. Tap "Top up gas" on the Wallets panel (or send testnet ETH to this address), then retry.`,
+          bridgeWalletAddress,
+          sourceChainKey: body.sourceChainKey,
+          gasBalance: formatUnits(gasBalance, 18),
+        },
+        409,
+      );
+    }
   } catch (err) {
+    // Fail closed. Proceeding on a failed read is what lets an under-funded or
+    // gas-starved bridge start and then sit pending for hours with no error
+    // (an SCA depositForBurn that inner-reverts still lands as a "successful"
+    // handleOps tx, so the on-chain call does NOT surface a clear failure). A
+    // transient RPC blip is rare and retryable, so ask the user to retry rather
+    // than start a doomed bridge.
     logger.warn(
       { bridgeId: body.bridgeId, err: (err as Error).message },
-      'preflight balance read failed; proceeding to depositForBurn anyway',
+      'preflight balance read failed; refusing to start bridge',
     );
-    // Don't block the flow on a balance-read failure; the on-chain call
-    // will surface the real error if there's no USDC.
+    return c.json(
+      {
+        error: 'could not verify bridge wallet balance',
+        detail: `Could not read the bridge wallet's balance on ${body.sourceChainKey} just now. Try again in a moment.`,
+        bridgeWalletAddress,
+        sourceChainKey: body.sourceChainKey,
+      },
+      503,
+    );
   }
 
   // Create the bridge record up front in the 'approving' source stage, then

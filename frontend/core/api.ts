@@ -635,6 +635,25 @@ export const api = {
         body: JSON.stringify(body),
       },
     ),
+  /// One call for the Wallets panel: the logged-in wallet's Arc USDC (identity
+  /// hub) plus each agent's Arc USDC. `agents` is null before activation.
+  walletOverview: (address: string) =>
+    json<{
+      identity: { address: string; usdcBalance: string | null };
+      agents: {
+        buyer: { address: string; usdcBalance: string | null };
+        seller: { address: string; usdcBalance: string | null };
+      } | null;
+      bridgeWallets: Record<string, { walletId: string; address: string }>;
+    }>(`/api/activation/wallets?address=${address}`),
+  /// Refuel the Base Sepolia bridge wallet with native gas + USDC from the
+  /// faucet so a CCTP bridge can pay its source-chain gas. Provisions the bridge
+  /// wallet if missing. Testnet only.
+  dripBridgeGas: (address: string) =>
+    json<{ ok: boolean; address: string; blockchain: string }>(
+      '/api/activation/drip-bridge',
+      { method: 'POST', body: JSON.stringify({ address }) },
+    ),
   /// KarwanVault: list every staking position for an address with state +
   /// tenure. Used by /profile StakeCard to render the position list.
   vaultPositions: (address: string) =>

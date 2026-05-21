@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import {
   provisionUserAgentWallets,
   provisionUserBridgeWallet,
@@ -9,7 +9,7 @@ import {
 } from '../circle/wallets.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
-import { usdc as usdcAddress } from '../chain/contracts.js';
+import { usdc as usdcAddress, readUsdcBalance } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -17,6 +17,13 @@ import { logger } from '../logger.js';
 // USDC on Arc exposes a 6-decimal ERC-20 interface. Withdrawals move funds
 // through that interface, the same one the escrow uses.
 const USDC_DECIMALS = 6;
+
+// Starter seed moved from the identity wallet to each agent on activation. The
+// seller agent only needs a small Arc gas float; the buyer agent needs working
+// USDC to fund escrow. Each is also capped to a share of the identity balance
+// so the hub is never fully drained.
+const SELLER_SEED_USDC = 2;
+const BUYER_SEED_USDC = 10;
 
 const addrSchema = z
   .string()
@@ -71,6 +78,98 @@ activationRoutes.get('/status', async (c) => {
   });
 });
 
+/// One call that powers the Wallets panel: the logged-in wallet's Arc USDC
+/// (identity hub) plus each agent's Arc USDC. Bridge-wallet source balances are
+/// read separately via the bridge route (they hit a different chain's RPC and
+/// are slower). On Arc, USDC is the gas token, so a single USDC balance per
+/// wallet covers both spend and gas.
+activationRoutes.get('/wallets', async (c) => {
+  const address = c.req.query('address');
+  if (!address || !addrSchema.safeParse(address).success) {
+    return c.json({ error: 'address query param required' }, 400);
+  }
+  const addr = address.toLowerCase();
+
+  let identityUsdc: string | null = null;
+  try {
+    identityUsdc = formatUnits(await readUsdcBalance(addr), USDC_DECIMALS);
+  } catch {
+    identityUsdc = null;
+  }
+
+  const wallets = await getAgentWallets(addr);
+  let agents: {
+    buyer: { address: string; usdcBalance: string | null };
+    seller: { address: string; usdcBalance: string | null };
+  } | null = null;
+  if (wallets) {
+    const [buyerBal, sellerBal] = await Promise.all([
+      readUsdcBalance(wallets.buyerAddress).catch(() => null),
+      readUsdcBalance(wallets.sellerAddress).catch(() => null),
+    ]);
+    agents = {
+      buyer: {
+        address: wallets.buyerAddress,
+        usdcBalance: buyerBal !== null ? formatUnits(buyerBal, USDC_DECIMALS) : null,
+      },
+      seller: {
+        address: wallets.sellerAddress,
+        usdcBalance: sellerBal !== null ? formatUnits(sellerBal, USDC_DECIMALS) : null,
+      },
+    };
+  }
+
+  return c.json({
+    identity: { address: addr, usdcBalance: identityUsdc },
+    agents,
+    bridgeWallets: wallets?.bridgeWallets ?? {},
+  });
+});
+
+/// Tops up the user's Base Sepolia bridge wallet with native gas + USDC from the
+/// Circle faucet. Lets existing users (whose bridge wallet predates the
+/// activation-time drip) and anyone who ran the gas dry refuel in one click so a
+/// bridge can actually complete. Provisions the bridge wallet if missing.
+const dripBridgeSchema = z.object({ address: addrSchema });
+activationRoutes.post('/drip-bridge', async (c) => {
+  let body;
+  try {
+    body = dripBridgeSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
+
+  let bridge = wallets.bridgeWallets?.[BASE_SEPOLIA_BLOCKCHAIN];
+  if (!bridge) {
+    try {
+      const provisioned = await provisionUserBridgeWallet(userAddress, BASE_SEPOLIA_BLOCKCHAIN);
+      bridge = { walletId: provisioned.walletId, address: provisioned.address };
+      await saveAgentWallets({
+        ...wallets,
+        bridgeWallets: {
+          ...(wallets.bridgeWallets ?? {}),
+          [BASE_SEPOLIA_BLOCKCHAIN]: bridge,
+        },
+      });
+    } catch (err) {
+      return c.json(
+        { error: 'bridge wallet provisioning failed', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+
+  void dripTestnetUsdc(bridge.address, {
+    blockchain: BASE_SEPOLIA_BLOCKCHAIN,
+    native: true,
+    usdc: true,
+  });
+  return c.json({ ok: true, address: bridge.address, blockchain: BASE_SEPOLIA_BLOCKCHAIN }, 200);
+});
+
 /// Provisions a buyer agent wallet and a seller agent wallet for the user.
 /// Idempotent: if the user already has agent wallets, returns them unchanged.
 activationRoutes.post('/activate', async (c) => {
@@ -120,10 +219,23 @@ activationRoutes.post('/activate', async (c) => {
 
     const record = await saveAgentWallets({ userAddress, ...provisioned, bridgeWallets });
 
-    // Seed the buyer agent with testnet USDC so the user can post a brief and
-    // have the agent fund escrow immediately, no faucet hunt. Fire-and-forget:
-    // never blocks activation, testnet-only, self-skips on a live key.
-    void dripTestnetUsdc(record.buyerAddress);
+    // Seed both agents from the identity wallet (the one funded at signup), not
+    // the faucet: a user may be buyer-only or seller-only, and the identity
+    // wallet is the single funding hub. Seller gets a small Arc gas float, buyer
+    // gets working USDC. Fire-and-forget, Circle users only. See seedAgentsFromIdentity.
+    void seedAgentsFromIdentity(userAddress, record);
+
+    // Give the Base Sepolia bridge wallet native gas + USDC so a Circle user can
+    // bridge without bringing Sepolia ETH for the CCTP approve+burn gas. The
+    // bridge runs on the source chain where gas is ETH, not Arc USDC.
+    const baseBridgeAddr = record.bridgeWallets?.[BASE_SEPOLIA_BLOCKCHAIN]?.address;
+    if (baseBridgeAddr) {
+      void dripTestnetUsdc(baseBridgeAddr, {
+        blockchain: BASE_SEPOLIA_BLOCKCHAIN,
+        native: true,
+        usdc: true,
+      });
+    }
 
     bus.emitEvent({
       type: 'agent.activated',
@@ -300,3 +412,78 @@ activationRoutes.post('/fund-agent', async (c) => {
     fundInFlight.delete(key);
   }
 });
+
+/// Move a starter USDC seed from the user's identity wallet to each freshly
+/// provisioned agent so both can act immediately: the seller agent needs a small
+/// Arc gas float, the buyer agent needs working USDC. Identity stays the funding
+/// hub; bigger top-ups still flow through fund-agent. Circle users only (web3
+/// users have no server-side identity wallet). Best-effort and fire-and-forget:
+/// never blocks activation, swallows insufficient-balance / transient errors.
+async function seedAgentsFromIdentity(
+  userAddress: string,
+  record: { buyerAddress: string; sellerAddress: string },
+): Promise<void> {
+  const user = getUserByAddress(userAddress);
+  if (!user?.circleIdentityWalletId) return; // web3 user: no server-side wallet
+
+  let available = 0;
+  try {
+    available = Number(formatUnits(await readUsdcBalance(userAddress), USDC_DECIMALS));
+  } catch (err) {
+    logger.warn(
+      { userAddress, err: (err as Error).message },
+      'agent seed skipped: identity balance read failed',
+    );
+    return;
+  }
+  if (available <= 0.5) return; // nothing meaningful to seed; user funds later
+
+  // Cap each seed to a share of the balance so the hub keeps a reserve.
+  const sellerSeed = Math.min(SELLER_SEED_USDC, available * 0.15);
+  const buyerSeed = Math.min(BUYER_SEED_USDC, available * 0.6);
+
+  // Sequential, not parallel: one Circle DCW serializes tx nonces, so two
+  // concurrent transfers from the identity wallet would collide.
+  await transferFromIdentity(user.circleIdentityWalletId, record.sellerAddress, sellerSeed, userAddress, 'seller');
+  await transferFromIdentity(user.circleIdentityWalletId, record.buyerAddress, buyerSeed, userAddress, 'buyer');
+}
+
+async function transferFromIdentity(
+  identityWalletId: string,
+  toAddress: string,
+  amountUsdc: number,
+  userAddress: string,
+  agent: 'buyer' | 'seller',
+): Promise<void> {
+  if (amountUsdc < 0.5) return; // skip dust transfers
+  try {
+    const amountWei = parseUnits(amountUsdc.toFixed(USDC_DECIMALS), USDC_DECIMALS);
+    const result = await executeContractCall(
+      {
+        walletId: identityWalletId,
+        contractAddress: usdcAddress,
+        abiFunctionSignature: 'transfer(address,uint256)',
+        abiParameters: [toAddress, amountWei.toString()],
+      },
+      `seed-agent(${agent} <- identity ${userAddress})`,
+    );
+    bus.emitEvent({
+      type: 'agent.funded',
+      actor: 'platform',
+      payload: {
+        user: userAddress,
+        agent,
+        agentAddress: toAddress.toLowerCase(),
+        amountUsdc: amountUsdc.toString(),
+        txHash: result.txHash,
+        seed: true,
+      },
+    });
+    logger.info({ userAddress, agent, amountUsdc, txHash: result.txHash }, 'agent seeded from identity');
+  } catch (err) {
+    logger.warn(
+      { userAddress, agent, err: (err as Error).message },
+      'agent seed transfer failed (non-fatal)',
+    );
+  }
+}
