@@ -56,6 +56,13 @@ export interface BuyerJob {
   bids: BuyerBid[];
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
+  /// Privacy gate. The backend returns the full job only to the buyer who
+  /// posted it (and, once matched, the matched seller). For everyone else it
+  /// returns a status-only stub with `isParty: false` and no bids/amounts.
+  isParty?: boolean;
+  /// Set on the status-only stub so the page can say "collecting bids" /
+  /// "in negotiation" without leaking the auction.
+  status?: 'open' | 'negotiating' | 'cancelled' | 'expired';
 }
 
 export interface BuyerAgentProfile {

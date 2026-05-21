@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { api, type DirectDeal } from '@/core/api';
+import { api, ApiError, type DirectDeal } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useAuth } from '@/shared/hooks/useAuth';
 
@@ -69,6 +69,9 @@ export function useDirectDeals() {
 export function useDirectDeal(jobId: string) {
   const [deal, setDeal] = useState<DirectDeal | null>(null);
   const [fetchState, setFetchState] = useState<FetchState>('loading');
+  // Distinguish a privacy 403 ('private') from a genuine miss so the page can
+  // say "this deal is private" instead of "not found" to non-parties.
+  const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
 
   const refresh = useCallback(() => {
     api
@@ -76,8 +79,12 @@ export function useDirectDeal(jobId: string) {
       .then((res) => {
         setDeal(res.deal);
         setFetchState('success');
+        setErrorCode(undefined);
       })
-      .catch(() => setFetchState('error'));
+      .catch((err) => {
+        setErrorCode(err instanceof ApiError ? err.code : undefined);
+        setFetchState('error');
+      });
   }, [jobId]);
 
   useEffect(() => {
@@ -93,5 +100,5 @@ export function useDirectDeal(jobId: string) {
     });
   }, [jobId, refresh]);
 
-  return { deal, fetchState, refresh };
+  return { deal, fetchState, refresh, errorCode };
 }

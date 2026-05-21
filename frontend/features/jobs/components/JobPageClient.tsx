@@ -33,6 +33,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'ready'; job: BuyerJob; explorer: string }
+    | { kind: 'private'; status: NonNullable<BuyerJob['status']> }
     | { kind: 'error'; message: string; isNotFound: boolean }
   >({ kind: 'loading' });
 
@@ -77,8 +78,15 @@ export function JobPageClient({ jobId }: { jobId: string }) {
           setState({ kind: 'error', message: jobOrError.__error, isNotFound: notFound });
           return;
         }
+        const job = jobOrError as BuyerJob;
+        // Privacy gate: non-parties get a status-only stub. Render the private
+        // view instead of the live auction (which they have no data for).
+        if (job.isParty === false) {
+          setState({ kind: 'private', status: job.status ?? 'open' });
+          return;
+        }
         const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
-        setState({ kind: 'ready', job: jobOrError as BuyerJob, explorer });
+        setState({ kind: 'ready', job, explorer });
       },
     );
 
@@ -103,6 +111,47 @@ export function JobPageClient({ jobId }: { jobId: string }) {
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
               Reading the live state from the buyer agent.
             </p>
+          </div>
+        </Band>
+      </FullBleed>
+    );
+  }
+
+  if (state.kind === 'private') {
+    const negotiating = state.status === 'negotiating';
+    const closed = state.status === 'cancelled' || state.status === 'expired';
+    const tag = negotiating ? 'IN NEGOTIATION' : closed ? 'CLOSED' : 'COLLECTING BIDS';
+    const head = negotiating
+      ? 'This deal is private'
+      : closed
+        ? 'This brief is closed'
+        : 'This brief is collecting bids';
+    const body = negotiating
+      ? 'Two parties are settling this deal privately. You cannot see the negotiation. Post a listing so buyers or an agent can find you, or wait for another opportunity.'
+      : closed
+        ? 'This brief is no longer open.'
+        : 'Only the buyer who posted this brief can see its live auction. Post your own brief, or list what you offer and let buyers come to you.';
+    return (
+      <FullBleed>
+        <Band tone="dark" overlay={<GridOverlay />}>
+          <div className="max-w-[48ch] fade-up">
+            <SectionTag tone="dark">{tag}</SectionTag>
+            <HeroHeadline size="md">
+              {head}
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
+              {body}
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <CTAPill href="/market">Browse the market</CTAPill>
+              <Link
+                href="/buyer"
+                className="mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white"
+              >
+                Post a brief →
+              </Link>
+            </div>
           </div>
         </Band>
       </FullBleed>

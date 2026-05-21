@@ -48,7 +48,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
-  const { deal, fetchState, refresh } = useDirectDeal(jobId);
+  const { deal, fetchState, refresh, errorCode } = useDirectDeal(jobId);
   const { activated } = useActivation();
   const [busy, setBusy] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ code?: string; message: string } | null>(null);
@@ -79,20 +79,25 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   }
 
   if (fetchState === 'error' || !deal) {
+    const isPrivate = errorCode === 'private';
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[44ch]">
-            <SectionTag tone="dark">DEAL NOT FOUND</SectionTag>
+            <SectionTag tone="dark">{isPrivate ? 'PRIVATE DEAL' : 'DEAL NOT FOUND'}</SectionTag>
             <HeroHeadline size="md">
-              We couldn&apos;t load this deal
+              {isPrivate ? 'This deal is private' : 'We could not load this deal'}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              The link may be wrong, or your wallet may not be a party.
+              {isPrivate
+                ? 'Only its buyer and seller can see this deal. No one else sees what happens between two parties.'
+                : 'The link may be wrong, or your wallet may not be a party.'}
             </p>
             <div className="mt-7">
-              <CTAPill href="/buyer">Back to buyer desk</CTAPill>
+              <CTAPill href={isPrivate ? '/market' : '/buyer'}>
+                {isPrivate ? 'Browse the market' : 'Back to buyer desk'}
+              </CTAPill>
             </div>
           </div>
         </Band>
