@@ -113,6 +113,20 @@ export async function findProfileByXUserId(id: string): Promise<UserProfile | nu
   return all.find((p) => p.xUserId === id) ?? null;
 }
 
+/// Removes a user's off-chain profile. Used by account delete. On-chain
+/// reputation is permanent and lives elsewhere; this only clears the off-chain
+/// record (display name, role, X handle, settings).
+export async function deleteProfile(address: string): Promise<void> {
+  const key = address.toLowerCase();
+  if (pgEnabled) {
+    await db().delete(profiles).where(eq(profiles.address, key));
+    return;
+  }
+  const store = loadFile();
+  delete store[key];
+  saveFile(store);
+}
+
 export async function listProfiles(): Promise<UserProfile[]> {
   if (pgEnabled) {
     const rows = await db().select().from(profiles);

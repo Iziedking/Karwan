@@ -48,6 +48,12 @@ export interface KarwanUser {
   updatedAt: number;
 }
 
+/// Legacy placeholder credential that early OTP signups persisted by mistake.
+/// It is not a real passkey, so it must be ignored when deciding whether a user
+/// has passkey sign-in (otherwise OTP-only users read as "passkey active" after
+/// a restart, since the in-memory reset was never persisted).
+export const OTP_PLACEHOLDER_CREDENTIAL_ID = '__otp_only_placeholder__';
+
 const STORE_PATH = resolve(process.cwd(), 'data', 'users.json');
 
 interface Store {
@@ -116,12 +122,14 @@ export function getUserByCredentialId(credentialId: string): KarwanUser | null {
 }
 
 /// Creates the row for a new email-auth user. Caller has already provisioned
-/// the Circle identity wallet and registered the first passkey.
+/// the Circle identity wallet. Pass `credential` for a passkey signup; omit it
+/// for an OTP-only signup (the row starts with zero passkeys and one can be
+/// registered later). Never seed a placeholder credential here.
 export function createUser(input: {
   email: string;
   address: string;
   circleIdentityWalletId: string;
-  credential: PasskeyCredential;
+  credential?: PasskeyCredential;
 }): KarwanUser {
   load();
   const email = normEmail(input.email);
@@ -133,7 +141,7 @@ export function createUser(input: {
     email,
     address: input.address.toLowerCase(),
     circleIdentityWalletId: input.circleIdentityWalletId,
-    credentials: [input.credential],
+    credentials: input.credential ? [input.credential] : [],
     createdAt: now,
     updatedAt: now,
   };
@@ -141,6 +149,27 @@ export function createUser(input: {
   store.byAddress[user.address] = email;
   persist();
   return user;
+}
+
+/// True when the user has a real passkey, ignoring the legacy OTP placeholder
+/// and any empty-publicKey rows. Use this instead of `credentials.length > 0`.
+export function hasRealPasskey(user: KarwanUser): boolean {
+  return user.credentials.some(
+    (c) => c.credentialId !== OTP_PLACEHOLDER_CREDENTIAL_ID && !!c.publicKey,
+  );
+}
+
+/// Removes a user row entirely (email entry plus the address index). Used by
+/// account delete. Returns true when a row existed.
+export function deleteUser(address: string): boolean {
+  load();
+  const addr = address.toLowerCase();
+  const email = store.byAddress[addr];
+  if (!email) return false;
+  delete store.byEmail[email];
+  delete store.byAddress[addr];
+  persist();
+  return true;
 }
 
 export function appendCredential(email: string, credential: PasskeyCredential): KarwanUser {

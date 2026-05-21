@@ -520,6 +520,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, handle }),
     }),
+  /// Delete the account: purges off-chain profile + Telegram link + Circle auth
+  /// row. Throws (ApiError) with a clear detail if agent wallets still hold USDC.
+  deleteAccount: (address: string) =>
+    json<{ ok: boolean }>(`/api/profile?address=${address}`, { method: 'DELETE' }),
   getSettings: (address: string) =>
     json<{ settings: UserSettings }>(`/api/settings?address=${address}`),
   saveSettings: (address: string, settings: UserSettings) =>
@@ -646,13 +650,13 @@ export const api = {
       } | null;
       bridgeWallets: Record<string, { walletId: string; address: string }>;
     }>(`/api/activation/wallets?address=${address}`),
-  /// Refuel the Base Sepolia bridge wallet with native gas + USDC from the
-  /// faucet so a CCTP bridge can pay its source-chain gas. Provisions the bridge
-  /// wallet if missing. Testnet only.
-  dripBridgeGas: (address: string) =>
+  /// Refuel a bridge wallet with native gas + USDC from the faucet so a CCTP
+  /// bridge can pay its source-chain gas. Provisions the bridge wallet for that
+  /// chain if missing. Defaults to Base Sepolia. Testnet only.
+  dripBridgeGas: (address: string, chain: 'baseSepolia' | 'sepolia' = 'baseSepolia') =>
     json<{ ok: boolean; address: string; blockchain: string }>(
       '/api/activation/drip-bridge',
-      { method: 'POST', body: JSON.stringify({ address }) },
+      { method: 'POST', body: JSON.stringify({ address, chain }) },
     ),
   /// KarwanVault: list every staking position for an address with state +
   /// tenure. Used by /profile StakeCard to render the position list.

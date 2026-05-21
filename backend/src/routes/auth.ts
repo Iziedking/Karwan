@@ -23,6 +23,8 @@ import {
   createUser,
   getUserByCredentialId,
   getUserByEmail,
+  hasRealPasskey,
+  OTP_PLACEHOLDER_CREDENTIAL_ID,
 } from '../db/users.js';
 import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import {
@@ -329,7 +331,7 @@ authRoutes.get('/me', (c) => {
   let hasPasskey = false;
   if (session.method === 'circle' && session.email) {
     const user = getUserByEmail(session.email);
-    hasPasskey = !!user && user.credentials.length > 0;
+    hasPasskey = !!user && hasRealPasskey(user);
   }
   return c.json({
     user: {
@@ -365,7 +367,7 @@ authRoutes.post('/lookup', async (c) => {
   const user = getUserByEmail(body.email);
   return c.json({
     exists: !!user,
-    hasPasskey: !!user && user.credentials.length > 0,
+    hasPasskey: !!user && hasRealPasskey(user),
   });
 });
 
@@ -396,12 +398,15 @@ authRoutes.post('/passkey/add/options', async (c) => {
       residentKey: 'preferred',
       userVerification: 'preferred',
     },
-    // Exclude credentials the user already has so the platform offers fresh
-    // authenticators rather than asking them to overwrite an existing key.
-    excludeCredentials: user.credentials.map((c) => ({
-      id: c.credentialId,
-      transports: c.transports as AuthenticatorTransportFuture[] | undefined,
-    })),
+    // Exclude real credentials the user already has so the platform offers
+    // fresh authenticators rather than overwriting an existing key. Skip the
+    // legacy OTP placeholder, which isn't a real authenticator.
+    excludeCredentials: user.credentials
+      .filter((c) => c.credentialId !== OTP_PLACEHOLDER_CREDENTIAL_ID && !!c.publicKey)
+      .map((c) => ({
+        id: c.credentialId,
+        transports: c.transports as AuthenticatorTransportFuture[] | undefined,
+      })),
   });
   pending.set(session.email, {
     challenge: options.challenge,
@@ -863,23 +868,13 @@ authRoutes.post('/otp/verify', async (c) => {
       return c.json({ error: 'identity wallet provisioning failed' }, 502);
     }
     try {
+      // OTP signup: no passkey credential. The row is valid on email + address;
+      // the user can register a passkey later, which appends a real credential.
       user = createUser({
         email: body.email,
         address: identity.address,
         circleIdentityWalletId: identity.walletId,
-        // Zero-credential row. user can register a passkey later; in the
-        // meantime OTP is their only proof method.
-        credential: {
-          credentialId: '__otp_only_placeholder__',
-          publicKey: '',
-          counter: 0,
-          createdAt: Date.now(),
-        },
       });
-      // The placeholder credential isn't a real passkey, so strip it after
-      // create. The row stays valid (address + email) and a later passkey
-      // registration appends a real credential.
-      user.credentials = [];
     } catch (err) {
       logger.error(
         { err: (err as Error).message, email: body.email },

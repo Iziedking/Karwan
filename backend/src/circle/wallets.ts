@@ -161,20 +161,29 @@ export interface DripOptions {
   usdc?: boolean;
 }
 
+export interface DripResult {
+  ok: boolean;
+  /// HTTP status from the faucet when it answered (e.g. 429 on a rate limit).
+  status?: number;
+  /// Short reason when !ok, safe to surface to the user.
+  detail?: string;
+}
+
 /// Best-effort testnet drip from Circle's public faucet to a wallet, so a new
 /// user's wallet is usable immediately without hunting for a faucet (Circle
-/// drips ~20 USDC and a little native gas per address per 2h). Non-fatal by
-/// design: faucet rate limits and outages must NEVER block signup or
-/// activation, so this swallows all errors and is meant to be fire-and-forget.
-/// Auto-skips unless the Circle key is a testnet key, so it's a no-op on
-/// mainnet without any extra config.
-export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): Promise<void> {
+/// drips ~20 USDC and a little native gas per address per 2h). Auto-skips unless
+/// the Circle key is a testnet key, so it's a no-op on mainnet. Returns a result
+/// so a user-triggered refuel can report success vs a rate limit; signup /
+/// activation callers ignore it (fire-and-forget) so the faucet never blocks them.
+export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): Promise<DripResult> {
   const key = config.CIRCLE_API_KEY;
-  if (!key || !key.startsWith('TEST_API_KEY')) return; // live key: no faucet
+  if (!key || !key.startsWith('TEST_API_KEY')) {
+    return { ok: false, detail: 'faucet is only available on testnet' };
+  }
   const blockchain = opts.blockchain ?? ARC_TESTNET_BLOCKCHAIN;
   const wantUsdc = opts.usdc ?? true;
   const wantNative = opts.native ?? false;
-  if (!wantUsdc && !wantNative) return;
+  if (!wantUsdc && !wantNative) return { ok: false, detail: 'nothing requested' };
   try {
     const res = await fetch(FAUCET_URL, {
       method: 'POST',
@@ -189,15 +198,17 @@ export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): 
       const detail = await res.text().catch(() => '');
       logger.warn(
         { address, blockchain, native: wantNative, status: res.status, detail: detail.slice(0, 200) },
-        'testnet drip non-2xx (often a per-address rate limit; non-fatal)',
+        'testnet drip non-2xx (often a per-address rate limit)',
       );
-      return;
+      return { ok: false, status: res.status, detail: detail.slice(0, 200) };
     }
     logger.info({ address, blockchain, native: wantNative, usdc: wantUsdc }, 'testnet drip requested');
+    return { ok: true };
   } catch (err) {
     logger.warn(
       { address, blockchain, err: (err as Error).message },
-      'testnet drip failed (non-fatal)',
+      'testnet drip failed',
     );
+    return { ok: false, detail: (err as Error).message };
   }
 }

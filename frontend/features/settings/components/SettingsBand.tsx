@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   startRegistration,
   browserSupportsWebAuthn,
@@ -20,13 +21,15 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export function SettingsBand() {
-  const { address, isAuthenticated, method, email, hasPasskey, refresh } = useAuth();
+  const { address, isAuthenticated, method, email, hasPasskey, refresh, signOut } = useAuth();
   const t = useTranslations();
+  const router = useRouter();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || !address) return;
@@ -182,11 +185,15 @@ export function SettingsBand() {
             onClick={async () => {
               if (!address) return;
               setDeleting(true);
+              setDeleteError(null);
               try {
-                await fetch(`/api/profile?address=${address}`, { method: 'DELETE' });
-              } catch {
-                /* delete endpoint may not exist yet; UI-only confirmation for now */
-              } finally {
+                await api.deleteAccount(address);
+                await signOut();
+                router.push('/');
+              } catch (err) {
+                const detail =
+                  err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+                setDeleteError(detail ?? (err as Error).message);
                 setDeleting(false);
                 setDeleteConfirm('');
               }
@@ -202,6 +209,11 @@ export function SettingsBand() {
             {t.settings.accountDelete}
           </button>
         </div>
+        {deleteError && (
+          <p className="mt-2 mono text-[11px] leading-snug max-w-[52ch] text-[var(--color-critical)]">
+            {deleteError}
+          </p>
+        )}
       </div>
 
       {saving && (

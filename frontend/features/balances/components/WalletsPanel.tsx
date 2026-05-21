@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { api } from '@/core/api';
+import { api, ApiError } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
 type BridgeStatus = Awaited<ReturnType<typeof api.bridgeWalletStatus>>;
@@ -102,6 +103,10 @@ function Row({
 /// gas. Identity is the hub; agents are funded from it; the bridge wallet lives
 /// on Base/Ethereum and needs ETH for gas. See [[karwan_wallet_model]].
 export function WalletsPanel({ address }: { address?: string }) {
+  const { method } = useAuth();
+  // Email / passkey accounts get Karwan-created, faucet-funded wallets; web3
+  // users bring their own wallet as the identity and fund the agents themselves.
+  const isCircle = method === 'circle';
   const [data, setData] = useState<Overview | null>(null);
   const [bridge, setBridge] = useState<BridgeStatus | null>(null);
   const [refueling, setRefueling] = useState(false);
@@ -121,17 +126,18 @@ export function WalletsPanel({ address }: { address?: string }) {
 
   const agents = data?.agents ?? null;
   const bridgeAddr = bridge?.bridgeWalletAddress ?? data?.bridgeWallets?.['BASE-SEPOLIA']?.address;
-  const gasLow = bridge?.gasBalance !== null && bridge?.gasBalance !== undefined && Number(bridge.gasBalance) <= 0;
 
-  const topUpGas = async () => {
+  const topUpGas = async (chain: 'baseSepolia' | 'sepolia') => {
     setRefueling(true);
     setNote(null);
     try {
-      await api.dripBridgeGas(address);
-      setNote('Gas and USDC requested from the faucet. It lands in about a minute, then your bridge can run.');
-      setTimeout(refresh, 8000);
+      await api.dripBridgeGas(address, chain);
+      const label = chain === 'sepolia' ? 'Ethereum Sepolia' : 'Base Sepolia';
+      setNote(`${label} gas and USDC requested. It lands in about a minute, then retry the bridge.`);
+      if (chain === 'baseSepolia') setTimeout(refresh, 8000);
     } catch (err) {
-      setNote((err as Error).message);
+      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+      setNote(detail ?? (err as Error).message);
     } finally {
       setRefueling(false);
     }
@@ -140,15 +146,16 @@ export function WalletsPanel({ address }: { address?: string }) {
   return (
     <section style={CARD} className="p-6 md:p-8">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:HOW YOUR WALLETS WORK:]
+        [:YOUR WALLETS:]
       </span>
       <h3 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
-        One account, a few wallets
+        One account. Several wallets
         <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h3>
       <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-        Money flows faucet to your identity wallet, then out to your agents. On Arc, USDC is the
-        gas, so only the bridge wallet needs ETH.
+        {isCircle
+          ? 'Created with your account. Funds settle into your identity wallet, then route to your agents. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.'
+          : 'Your connected wallet is your identity. Karwan provisions the agent and bridge wallets it runs for you, funded from it. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.'}
       </p>
 
       <ul className="mt-6 space-y-3">
@@ -156,7 +163,11 @@ export function WalletsPanel({ address }: { address?: string }) {
           tag="IDENTITY"
           hub
           title="Identity wallet"
-          purpose="Your main wallet on Arc. Funded at sign-up. Everything else is funded from here."
+          purpose={
+            isCircle
+              ? 'Your account wallet on Arc, funded at sign-up. The hub every other wallet draws from.'
+              : 'Your connected wallet, serving as your Arc identity. Fund the agents from here.'
+          }
           address={data?.identity.address}
           primary={`${fmt(data?.identity.usdcBalance)} USDC`}
         />
@@ -166,14 +177,14 @@ export function WalletsPanel({ address }: { address?: string }) {
             <Row
               tag="BUYER AGENT"
               title="Buyer agent"
-              purpose="Holds and escrows the USDC for deals you buy. Top it up in Agent treasury below."
+              purpose="Escrows USDC for the deals you buy. Top up under Agent treasury."
               address={agents.buyer.address}
               primary={`${fmt(agents.buyer.usdcBalance)} USDC`}
             />
             <Row
               tag="SELLER AGENT"
               title="Seller agent"
-              purpose="Pays the small Arc gas to accept and deliver on deals you sell. Top it up in Agent treasury below."
+              purpose="Covers the Arc gas to accept and deliver on the deals you sell. Top up under Agent treasury."
               address={agents.seller.address}
               primary={`${fmt(agents.seller.usdcBalance)} USDC`}
             />
@@ -190,7 +201,7 @@ export function WalletsPanel({ address }: { address?: string }) {
               borderBottomRightRadius: 3,
             }}
           >
-            [:AGENTS NOT CREATED:] activate to create your buyer and seller agents.
+            [:AGENTS NOT CREATED:] Activate to provision your buyer and seller agents.
           </li>
         )}
 
@@ -198,27 +209,44 @@ export function WalletsPanel({ address }: { address?: string }) {
           <Row
             tag="BRIDGE WALLET"
             title="Bridge wallet"
-            purpose="Brings USDC in from Base or Ethereum. It runs on that chain, so it needs a little ETH for gas, not Arc USDC."
+            purpose="Imports USDC from Base or Ethereum. It settles on that chain, so it holds ETH for gas, not Arc USDC."
             address={bridgeAddr}
             primary={`${fmt(bridge?.usdcBalance)} USDC`}
             secondary={`${fmt(bridge?.gasBalance)} ETH gas`}
             action={
-              <button
-                type="button"
-                onClick={topUpGas}
-                disabled={refueling}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-                style={{
-                  borderTopLeftRadius: 9,
-                  borderTopRightRadius: 9,
-                  borderBottomLeftRadius: 9,
-                  borderBottomRightRadius: 3,
-                  boxShadow: '0 3px 0 rgba(0,0,0,0.2)',
-                }}
-              >
-                {refueling ? 'Requesting' : gasLow ? 'Top up gas' : 'Refuel gas'}
-                <span aria-hidden>→</span>
-              </button>
+              <div className="flex flex-col items-stretch gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => topUpGas('baseSepolia')}
+                  disabled={refueling}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+                  style={{
+                    borderTopLeftRadius: 9,
+                    borderTopRightRadius: 9,
+                    borderBottomLeftRadius: 9,
+                    borderBottomRightRadius: 3,
+                    boxShadow: '0 3px 0 rgba(0,0,0,0.2)',
+                  }}
+                >
+                  {refueling ? 'Requesting' : 'Top up Base gas'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => topUpGas('sepolia')}
+                  disabled={refueling}
+                  className="inline-flex items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50"
+                  style={{
+                    borderColor: 'var(--lp-border-light)',
+                    color: 'var(--lp-text-sub)',
+                    borderTopLeftRadius: 9,
+                    borderTopRightRadius: 9,
+                    borderBottomLeftRadius: 9,
+                    borderBottomRightRadius: 3,
+                  }}
+                >
+                  Ethereum gas
+                </button>
+              </div>
             }
           />
         )}

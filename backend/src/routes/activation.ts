@@ -6,6 +6,7 @@ import {
   provisionUserBridgeWallet,
   dripTestnetUsdc,
   BASE_SEPOLIA_BLOCKCHAIN,
+  ETH_SEPOLIA_BLOCKCHAIN,
 } from '../circle/wallets.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
@@ -130,7 +131,11 @@ activationRoutes.get('/wallets', async (c) => {
 /// Circle faucet. Lets existing users (whose bridge wallet predates the
 /// activation-time drip) and anyone who ran the gas dry refuel in one click so a
 /// bridge can actually complete. Provisions the bridge wallet if missing.
-const dripBridgeSchema = z.object({ address: addrSchema });
+const dripBridgeSchema = z.object({
+  address: addrSchema,
+  // Which CCTP source chain's bridge wallet to refuel. Defaults to Base Sepolia.
+  chain: z.enum(['baseSepolia', 'sepolia']).optional(),
+});
 activationRoutes.post('/drip-bridge', async (c) => {
   let body;
   try {
@@ -139,19 +144,21 @@ activationRoutes.post('/drip-bridge', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
+  const blockchain =
+    body.chain === 'sepolia' ? ETH_SEPOLIA_BLOCKCHAIN : BASE_SEPOLIA_BLOCKCHAIN;
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
 
-  let bridge = wallets.bridgeWallets?.[BASE_SEPOLIA_BLOCKCHAIN];
+  let bridge = wallets.bridgeWallets?.[blockchain];
   if (!bridge) {
     try {
-      const provisioned = await provisionUserBridgeWallet(userAddress, BASE_SEPOLIA_BLOCKCHAIN);
+      const provisioned = await provisionUserBridgeWallet(userAddress, blockchain);
       bridge = { walletId: provisioned.walletId, address: provisioned.address };
       await saveAgentWallets({
         ...wallets,
         bridgeWallets: {
           ...(wallets.bridgeWallets ?? {}),
-          [BASE_SEPOLIA_BLOCKCHAIN]: bridge,
+          [blockchain]: bridge,
         },
       });
     } catch (err) {
@@ -162,12 +169,29 @@ activationRoutes.post('/drip-bridge', async (c) => {
     }
   }
 
-  void dripTestnetUsdc(bridge.address, {
-    blockchain: BASE_SEPOLIA_BLOCKCHAIN,
+  // Await the faucet so the UI gets real feedback. Fire-and-forget here is what
+  // made the refuel look like it "did nothing" when the faucet rate-limited.
+  const drip = await dripTestnetUsdc(bridge.address, {
+    blockchain,
     native: true,
     usdc: true,
   });
-  return c.json({ ok: true, address: bridge.address, blockchain: BASE_SEPOLIA_BLOCKCHAIN }, 200);
+  if (!drip.ok) {
+    const rateLimited =
+      drip.status === 429 || /rate|limit|already|too many/i.test(drip.detail ?? '');
+    return c.json(
+      {
+        error: 'faucet request failed',
+        detail: rateLimited
+          ? 'The faucet is rate-limited for this wallet (about 20 USDC and gas per 2 hours). Wait and try again, or send testnet ETH to the bridge wallet directly.'
+          : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
+        address: bridge.address,
+        blockchain,
+      },
+      502,
+    );
+  }
+  return c.json({ ok: true, address: bridge.address, blockchain }, 200);
 });
 
 /// Provisions a buyer agent wallet and a seller agent wallet for the user.
@@ -226,10 +250,11 @@ activationRoutes.post('/activate', async (c) => {
     void seedAgentsFromIdentity(userAddress, record);
 
     // Give the Base Sepolia bridge wallet native gas + USDC so a Circle user can
-    // bridge without bringing Sepolia ETH for the CCTP approve+burn gas. The
-    // bridge runs on the source chain where gas is ETH, not Arc USDC.
+    // bridge without bringing Sepolia ETH for the CCTP approve+burn gas. Circle
+    // users only: web3 users bridge from their own wallet and never touch the
+    // backend-signed source DCW, so there's nothing to pre-fund for them.
     const baseBridgeAddr = record.bridgeWallets?.[BASE_SEPOLIA_BLOCKCHAIN]?.address;
-    if (baseBridgeAddr) {
+    if (baseBridgeAddr && getUserByAddress(userAddress)?.circleIdentityWalletId) {
       void dripTestnetUsdc(baseBridgeAddr, {
         blockchain: BASE_SEPOLIA_BLOCKCHAIN,
         native: true,
@@ -286,6 +311,34 @@ activationRoutes.post('/withdraw', async (c) => {
   }
   const walletId =
     body.agent === 'buyer' ? wallets.buyerWalletId : wallets.sellerWalletId;
+  const agentAddress =
+    body.agent === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+
+  // Balance precheck so an over-withdrawal returns a clear "insufficient
+  // balance" with the available amount, not a raw Circle/chain revert. An SCA
+  // transfer can land as a "successful" handleOps tx while the inner transfer
+  // reverts on a short balance, so checking up front is the only reliable signal.
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+  try {
+    const balance = await readUsdcBalance(agentAddress);
+    if (balance < amountWei) {
+      return c.json(
+        {
+          error: 'insufficient balance',
+          detail: `Your ${body.agent} agent holds ${formatUnits(balance, USDC_DECIMALS)} USDC, less than the ${body.amountUsdc} you tried to withdraw. Lower the amount and try again.`,
+          available: formatUnits(balance, USDC_DECIMALS),
+          requested: body.amountUsdc.toString(),
+          agent: body.agent,
+        },
+        409,
+      );
+    }
+  } catch (err) {
+    logger.warn(
+      { userAddress, agent: body.agent, err: (err as Error).message },
+      'withdraw balance precheck read failed; attempting transfer anyway',
+    );
+  }
 
   const key = `${userAddress}:${body.agent}`;
   if (withdrawInFlight.has(key)) {
@@ -294,7 +347,6 @@ activationRoutes.post('/withdraw', async (c) => {
 
   withdrawInFlight.add(key);
   try {
-    const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
     const result = await executeContractCall(
       {
         walletId,

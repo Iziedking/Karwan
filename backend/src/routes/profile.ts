@@ -1,8 +1,21 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getProfile, upsertProfile, findProfileByXHandle } from '../db/profiles.js';
+import { formatUnits } from 'viem';
+import {
+  getProfile,
+  upsertProfile,
+  findProfileByXHandle,
+  deleteProfile,
+} from '../db/profiles.js';
+import { getAgentWallets } from '../db/agentWallets.js';
+import { deleteUser } from '../db/users.js';
+import { removeTelegramLink } from '../db/telegramLinks.js';
+import { readUsdcBalance } from '../chain/contracts.js';
+import { readSession, clearSessionCookie } from '../auth/session.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { logger } from '../logger.js';
+
+const USDC_DECIMALS = 6;
 
 const addrSchema = z
   .string()
@@ -133,4 +146,60 @@ profileRoutes.post('/x-handle', async (c) => {
   });
   logger.info({ address: existing.address, handle: normalised ?? null }, 'x handle updated');
   return c.json({ profile }, 200);
+});
+
+/// Delete the account. Purges off-chain data (profile, Telegram link, and the
+/// Circle auth row + session). Refuses while either agent wallet still holds
+/// USDC, so a delete can't strand funds: the user withdraws first. On-chain
+/// reputation is permanent and is not touched.
+profileRoutes.delete('/', async (c) => {
+  const address = c.req.query('address');
+  if (!address || !addrSchema.safeParse(address).success) {
+    return c.json({ error: 'address query param required' }, 400);
+  }
+  const addr = address.toLowerCase();
+
+  // Destructive: a signed-in Circle session may only delete its own account.
+  const session = readSession(c);
+  if (session && session.address.toLowerCase() !== addr) {
+    return c.json({ error: 'address does not match the signed-in account' }, 403);
+  }
+
+  // Don't let a delete strand agent funds. Fail closed if balances can't be read.
+  const wallets = await getAgentWallets(addr);
+  if (wallets) {
+    try {
+      const [buyerBal, sellerBal] = await Promise.all([
+        readUsdcBalance(wallets.buyerAddress),
+        readUsdcBalance(wallets.sellerAddress),
+      ]);
+      if (buyerBal + sellerBal > 10_000n) {
+        // > 0.01 USDC across the agents (6dp).
+        return c.json(
+          {
+            error: 'agent wallets still hold funds',
+            detail: `Withdraw your agent balances first: buyer ${formatUnits(buyerBal, USDC_DECIMALS)} USDC, seller ${formatUnits(sellerBal, USDC_DECIMALS)} USDC. Deleting is permanent and does not move funds.`,
+          },
+          409,
+        );
+      }
+    } catch (err) {
+      logger.warn({ address: addr, err: (err as Error).message }, 'delete: agent balance read failed');
+      return c.json(
+        { error: 'could not verify agent balances', detail: 'Try again in a moment.' },
+        503,
+      );
+    }
+  }
+
+  await deleteProfile(addr);
+  try {
+    await removeTelegramLink(addr);
+  } catch {
+    /* non-fatal */
+  }
+  const removedUser = deleteUser(addr);
+  clearSessionCookie(c);
+  logger.info({ address: addr, removedUser }, 'account deleted');
+  return c.json({ ok: true });
 });
