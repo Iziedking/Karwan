@@ -727,7 +727,7 @@ function Band({
     <section
       id={id}
       className={cn(
-        'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden scroll-mt-24',
+        'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden scroll-mt-24',
         dark
           ? 'bg-[var(--lp-band-dark)] text-white'
           : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',

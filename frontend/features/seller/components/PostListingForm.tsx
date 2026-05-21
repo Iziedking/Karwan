@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useActivation } from '@/shared/hooks/useActivation';
 import { api, ApiError, type Listing } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { Hint } from '@/shared/components/Hint';
@@ -17,6 +18,7 @@ export function PostListingForm() {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
+  const { activate, activating } = useActivation();
   const { recordAction } = useGuide();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -439,7 +441,27 @@ export function PostListingForm() {
           </p>
         )}
         {error && (
-          <p className="mono text-[12px] text-[#ff8a7a]">Couldn&apos;t post: {error}</p>
+          <div className="space-y-1.5">
+            <p className="mono text-[12px] text-[#ff8a7a]">Couldn&apos;t post: {error}</p>
+            {/activate|agent wallet/i.test(error) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await activate();
+                    setError(null);
+                  } catch {
+                    /* useActivation surfaces its own failure; keep the message */
+                  }
+                }}
+                disabled={activating}
+                className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 disabled:opacity-50"
+                style={{ color: 'var(--lp-accent)' }}
+              >
+                {activating ? 'Activating…' : 'Activate your agents here →'}
+              </button>
+            )}
+          </div>
         )}
       </form>
 

@@ -67,6 +67,7 @@ export function useDirectDeals() {
 }
 
 export function useDirectDeal(jobId: string) {
+  const auth = useAuth();
   const [deal, setDeal] = useState<DirectDeal | null>(null);
   const [fetchState, setFetchState] = useState<FetchState>('loading');
   // Distinguish a privacy 403 ('private') from a genuine miss so the page can
@@ -74,8 +75,11 @@ export function useDirectDeal(jobId: string) {
   const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
 
   const refresh = useCallback(() => {
+    // Pass the viewer address as the privacy-gate caller hint. Web3 users have
+    // no backend session, so without this the gate reads them as a non-party
+    // and returns 403 'private' even on their own deal (the refresh bug).
     api
-      .directDeal(jobId)
+      .directDeal(jobId, auth.address)
       .then((res) => {
         setDeal(res.deal);
         setFetchState('success');
@@ -85,12 +89,16 @@ export function useDirectDeal(jobId: string) {
         setErrorCode(err instanceof ApiError ? err.code : undefined);
         setFetchState('error');
       });
-  }, [jobId]);
+  }, [jobId, auth.address]);
 
   useEffect(() => {
+    // Wait until auth resolves before the first fetch. Fetching while auth is
+    // still loading sends no caller, which reads as a non-party and wrongly
+    // shows the private view on refresh.
+    if (auth.isLoading) return;
     setFetchState('loading');
     refresh();
-  }, [refresh]);
+  }, [refresh, auth.isLoading]);
 
   useEffect(() => {
     return subscribeLiveEvents((e) => {

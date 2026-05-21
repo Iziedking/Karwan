@@ -1,5 +1,6 @@
 ﻿'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useTelegramLink } from '../hooks/useTelegramLink';
 
 const TG_BLUE = '#229ED9';
@@ -159,10 +160,18 @@ function TelegramConnectModal({
   onClose: () => void;
 }) {
   const { status, linking, deepLink, startLink, unlink, error } = link;
+  // Portal to <body>: a `position: fixed` modal is contained by any ancestor
+  // with a transform, and the profile bands animate with `.fade-up` (ends at
+  // translateY(0), still a transform). Without the portal the modal anchors to
+  // a band instead of the viewport, so it renders mid-content and clips the
+  // post-"Generate link" state below the fold. Mounted guard keeps SSR happy.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={onClose}
     >
@@ -170,7 +179,7 @@ function TelegramConnectModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-[var(--lp-card)] text-[var(--lp-dark)] overflow-hidden fade-up"
+        className="w-full max-w-md my-auto max-h-[90vh] overflow-y-auto bg-[var(--lp-card)] text-[var(--lp-dark)] fade-up"
         style={{
           border: '1px solid var(--lp-border-light)',
           borderTopLeftRadius: 22,
@@ -315,7 +324,8 @@ function TelegramConnectModal({
           {error && <ModalNote tone="error">{error}</ModalNote>}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -481,17 +481,32 @@ async function handleBidSubmitted(log: Log) {
     const message = (err as Error).message;
     logger.warn(
       { jobId: state.jobId, seller: args.seller, err: message },
-      'bid scoring failed',
+      'bid scoring LLM failed; using deterministic fallback',
     );
     reportError('agents.buyer.bidScore', err, {
       jobId: state.jobId,
       seller: args.seller,
     });
+    // Recover deterministically so an LLM hiccup never drops this bid from the
+    // pool. Without this the bid stays unscored, finalizeBidCollection filters
+    // it out, and the agent ends "no bids" despite a real bid (feedback
+    // #186/#188). Emit a soft fallback, not a hard error, since the agent kept
+    // going. suggestedCounterPrice is left for the counter step's own fallback.
+    const det = scoreBidDeterministic({
+      bidPriceUsdc: Number(priceUsdc),
+      briefBudgetUsdc: Number(state.context.budgetUsdc),
+      effectiveCapUsdc: computeBuyerEffectiveCap(state.context, buyer),
+      sellerTier: (sellerRepTier ?? 'established') as Tier,
+      sellerCompletionRate,
+      sellerVelocity24h,
+    });
+    bid.score = det.score;
+    bid.pattern = pattern;
     bus.emitEvent({
-      type: 'agent.error',
+      type: 'agent.fallback',
       jobId: state.jobId,
       actor: 'buyer',
-      payload: { seller: args.seller, scope: 'bidScore', message },
+      payload: { seller: args.seller, scope: 'bidScore', tier: sellerRepTier, score: det.score },
     });
   }
 
@@ -571,16 +586,23 @@ async function finalizeBidCollection(state: JobState) {
   }
 
   if (ranked.length === 0) {
-    logger.warn({ jobId: state.jobId }, 'no scored bids, nothing to counter');
+    const received = state.bids.size;
+    logger.warn({ jobId: state.jobId, received }, 'no scored bids, nothing to counter');
     state.finalized = true;
     bus.emitEvent({
       type: 'agent.declined',
       jobId: state.jobId,
       actor: 'buyer',
       payload: {
-        reason: 'no-bids',
-        detail: `bid collection window closed with no scored bids from any seller`,
-        receivedBids: state.bids.size,
+        // Be accurate: distinguish "nobody bid" from "bids came in but could
+        // not be evaluated", so the timeline never says "no bids" when bids
+        // were actually received.
+        reason: received > 0 ? 'bids-unevaluated' : 'no-bids',
+        detail:
+          received > 0
+            ? `received ${received} bid(s) but none could be evaluated`
+            : 'bid collection window closed with no bids from any seller',
+        receivedBids: received,
       },
     });
     return;

@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type ChainEvent } from '@/core/api';
+import { api } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
@@ -21,6 +21,8 @@ export interface AppNotification {
   /// proposal arriving, an expired brief. The rest live quietly in the bell.
   toast?: boolean;
 }
+
+type Role = 'buyer' | 'seller';
 
 const STORAGE_PREFIX = 'karwan:notifications:';
 const MAX_STORED = 30;
@@ -64,27 +66,107 @@ const TOAST_TYPES = new Set([
   'job.expired',
 ]);
 
+// Which party should receive each event. This is the fix for notifications
+// landing at the wrong party: a deal event is no longer shown to whoever is a
+// party, it is shown only to the role the message is written for. 'both' shows
+// to either side with role-aware copy. cancel.proposed / cancel.declined route
+// by the proposer in the payload (handled in shouldNotify).
+const RECIPIENT: Record<string, Role | 'both'> = {
+  // Managed (agent) flow.
+  'deal.matched': 'both',
+  'deal.match.approved': 'both',
+  'deal.match.declined': 'both',
+  'job.expired': 'buyer',
+  'listing.matched': 'seller',
+  'agent.declined': 'buyer',
+  // Direct flow.
+  'deal.direct.created': 'seller', // buyer just created it; the seller must act
+  'deal.accepted': 'buyer', // the seller knows they accepted; the buyer's agent funded
+  'deal.delivered': 'buyer', // the buyer verifies and releases
+  'deal.fund.insufficient': 'buyer',
+  'escrow.milestone.released': 'both',
+  'deal.review.started': 'buyer',
+  'deal.review.heartbeat': 'seller', // the buyer extended; the seller cares
+  'deal.auto_released': 'both',
+  'escrow.settled': 'both',
+  'deal.disputed': 'both',
+  'deal.cancelled': 'both',
+  'deal.cancel.proposed': 'both', // special-cased to the counterparty below
+  'deal.cancel.declined': 'both', // special-cased to the proposer below
+};
+
 function hrefForType(type: string, jobId: string): string {
   return MANAGED_TYPES.has(type) ? `/jobs/${jobId}` : `/deals/${jobId}`;
 }
 
-function summaryFor(type: string, payload: Record<string, unknown> | undefined): string {
+/// Resolves the viewer's role in this event's deal. Prefers the payload (which
+/// carries buyer/seller for the events that start a deal), falls back to the
+/// jobId -> role map built from the user's deals. Returns null when we cannot
+/// tell, in which case role-specific events are not shown to avoid misdelivery.
+function roleForEvent(
+  payload: Record<string, unknown> | undefined,
+  me: string,
+  jobId: string,
+  roleMap: Map<string, Role>,
+): Role | null {
+  const buyer = (payload?.buyer as string | undefined)?.toLowerCase();
+  const seller = (payload?.seller as string | undefined)?.toLowerCase();
+  const sellerUser = (payload?.sellerUser as string | undefined)?.toLowerCase();
+  if (buyer === me) return 'buyer';
+  if (seller === me || sellerUser === me) return 'seller';
+  return roleMap.get(jobId.toLowerCase()) ?? null;
+}
+
+function shouldNotify(
+  type: string,
+  role: Role | null,
+  payload: Record<string, unknown> | undefined,
+): boolean {
+  // Cancellation lifecycle routes by who proposed it.
+  if (type === 'deal.cancel.proposed') {
+    const by = payload?.proposedBy as Role | undefined;
+    return !!role && !!by && role !== by; // only the counterparty hears the proposal
+  }
+  if (type === 'deal.cancel.declined') {
+    const by = payload?.proposedBy as Role | undefined;
+    return !!role && !!by && role === by; // only the proposer hears the decline
+  }
+  const rule = RECIPIENT[type];
+  if (!rule) return false;
+  if (rule === 'both') return true;
+  return role === rule;
+}
+
+function summaryFor(
+  type: string,
+  payload: Record<string, unknown> | undefined,
+  role: Role | null,
+): string {
   const priceUsdc = (payload?.agreedPriceUsdc as string | undefined) ?? '';
-  const askingPriceUsdc =
-    (payload?.askingPriceUsdc as string | number | undefined) ?? '';
+  const askingPriceUsdc = (payload?.askingPriceUsdc as string | number | undefined) ?? '';
   const dealAmount = (payload?.dealAmountUsdc as string | undefined) ?? '';
   const reason = (payload?.reason as string | undefined) ?? '';
   switch (type) {
     case 'deal.matched':
-      return priceUsdc
-        ? `Your agent found a match at ${priceUsdc} USDC. Tap to review.`
-        : 'Your agent found a match. Tap to review.';
+      return role === 'seller'
+        ? priceUsdc
+          ? `A buyer matched your bid at ${priceUsdc} USDC. Accept to fund escrow.`
+          : 'A buyer matched your bid. Accept to fund escrow.'
+        : priceUsdc
+          ? `Your agent found a match at ${priceUsdc} USDC. Tap to review.`
+          : 'Your agent found a match. Tap to review.';
     case 'deal.match.approved':
-      return priceUsdc
-        ? `Match accepted at ${priceUsdc} USDC. Escrow funded.`
-        : 'Match accepted. Escrow funded.';
+      return role === 'seller'
+        ? priceUsdc
+          ? `Match accepted at ${priceUsdc} USDC. Escrow funded. Deliver when ready.`
+          : 'Match accepted. Escrow funded. Deliver when ready.'
+        : priceUsdc
+          ? `Seller accepted at ${priceUsdc} USDC. Escrow funded.`
+          : 'Seller accepted. Escrow funded.';
     case 'deal.match.declined':
-      return 'Match declined. Post a fresh brief to retry.';
+      return role === 'seller'
+        ? 'You declined this match.'
+        : 'The seller declined this match. Post a fresh brief to retry.';
     case 'job.expired':
       return 'A brief expired with no match. Repost to retry.';
     case 'listing.matched':
@@ -94,23 +176,28 @@ function summaryFor(type: string, payload: Record<string, unknown> | undefined):
     case 'agent.declined':
       return reason ? `Agent ended negotiation: ${reason}` : 'Agent ended the negotiation.';
     case 'deal.direct.created':
+      // Seller-facing: the buyer opened the deal and is waiting on the seller.
       return dealAmount
-        ? `Direct deal opened at ${dealAmount} USDC. Waiting on seller.`
-        : 'Direct deal opened. Waiting on seller.';
+        ? `A buyer opened a deal with you at ${dealAmount} USDC. Accept to proceed.`
+        : 'A buyer opened a deal with you. Accept to proceed.';
     case 'deal.accepted':
+      // Buyer-facing: their agent funded the escrow after the seller accepted.
       return 'Seller accepted. Your agent funded the escrow.';
     case 'deal.delivered':
+      // Buyer-facing: the buyer verifies and releases.
       return 'Seller marked the work delivered. Release the first milestone.';
     case 'deal.fund.insufficient':
-      return 'Buyer agent needs USDC to fund escrow. Top it up from /profile.';
+      return 'Your buyer agent needs USDC to fund escrow. Top it up from your profile.';
     case 'escrow.milestone.released':
-      return 'A milestone was released.';
+      return role === 'seller' ? 'A milestone was released to you.' : 'A milestone was released.';
     case 'deal.review.started':
       return 'Review window opened. Release the final milestone when ready.';
     case 'deal.review.heartbeat':
-      return 'Buyer extended the review window.';
+      return 'The buyer extended the review window.';
     case 'deal.auto_released':
-      return 'Review window passed. Final milestone auto-released.';
+      return role === 'seller'
+        ? 'Review window passed. The final milestone auto-released to you.'
+        : 'Review window passed. The final milestone auto-released.';
     case 'escrow.settled':
       return 'Deal settled in full. Reputation recorded on chain.';
     case 'deal.disputed':
@@ -119,10 +206,10 @@ function summaryFor(type: string, payload: Record<string, unknown> | undefined):
       return 'Deal cancelled and refunded.';
     case 'deal.cancel.proposed':
       return reason
-        ? `Cancellation proposed: ${reason.slice(0, 60)}`
+        ? `Cancellation proposed by your counterparty: ${reason.slice(0, 60)}`
         : 'Cancellation proposed by your counterparty.';
     case 'deal.cancel.declined':
-      return 'Cancellation proposal declined.';
+      return 'Your cancellation proposal was declined.';
     default:
       return 'Deal update';
   }
@@ -169,24 +256,33 @@ export function useNotifications() {
   const isConnected = auth.isAuthenticated;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [hydratedFor, setHydratedFor] = useState<string | null>(null);
-  // jobIds the user is a party to, tracked across SSE so we don't miss events
-  // where the party-from-payload check would fail (e.g. follow-up events that
-  // only carry jobId).
+  // jobIds the user is a party to + their role in each, so events that only
+  // carry a jobId still route to the correct side.
   const jobIdsRef = useRef<Set<string>>(new Set());
+  const roleByJobRef = useRef<Map<string, Role>>(new Map());
   const initialHydrateRef = useRef(false);
   // Tracks notification ids we've already routed to listeners + sound this
   // session. Lets the SSE handler dedupe BEFORE calling setState, so the
   // toast-listener fan-out can happen safely outside any state updater.
   const seenNotificationIdsRef = useRef<Set<string>>(new Set());
 
-  const refreshJobIds = useCallback(() => {
+  const refreshJobIds = useCallback(async () => {
     if (!address) return;
-    api
-      .directDeals(address)
-      .then((res) => {
-        jobIdsRef.current = new Set(res.deals.map((d) => d.jobId.toLowerCase()));
-      })
-      .catch(() => {});
+    const me = address.toLowerCase();
+    try {
+      const res = await api.directDeals(address);
+      const ids = new Set<string>();
+      const roles = new Map<string, Role>();
+      for (const d of res.deals) {
+        const j = d.jobId.toLowerCase();
+        ids.add(j);
+        roles.set(j, d.buyer.toLowerCase() === me ? 'buyer' : 'seller');
+      }
+      jobIdsRef.current = ids;
+      roleByJobRef.current = roles;
+    } catch {
+      /* keep whatever we have */
+    }
   }, [address]);
 
   // Backfill historical events on hydrate so notifications that fired while
@@ -195,28 +291,21 @@ export function useNotifications() {
   const backfill = useCallback(async (me: string) => {
     try {
       const { events } = await api.activity(200);
-      const myJobs = new Set<string>();
       const fresh: AppNotification[] = [];
       for (const e of events) {
         if (!NOTIFY_TYPES.has(e.type) || !e.jobId) continue;
-        const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
-        const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
-        // For listing.matched, the seller user lives on the listing payload via
-        // sellerUser. Cover both keys.
-        const sellerUser = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
-        if (buyer !== me && seller !== me && sellerUser !== me) continue;
-        myJobs.add(e.jobId.toLowerCase());
+        const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
+        if (!shouldNotify(e.type, role, e.payload)) continue;
         fresh.push({
           id: `${e.jobId}-${e.type}-${e.ts}`,
           jobId: e.jobId,
           type: e.type,
-          summary: summaryFor(e.type, e.payload),
+          summary: summaryFor(e.type, e.payload, role),
           ts: e.ts,
           read: false,
           href: hrefForType(e.type, e.jobId),
         });
       }
-      for (const j of myJobs) jobIdsRef.current.add(j);
       setNotifications((list) => {
         const seen = new Set(list.map((n) => n.id));
         const merged = [...list];
@@ -230,26 +319,27 @@ export function useNotifications() {
     }
   }, []);
 
-  // Hydrate stored notifications + the user's deal jobId set on connect.
+  // Hydrate stored notifications + the user's deal jobId/role map on connect.
   useEffect(() => {
     if (!isConnected || !address) {
       setNotifications([]);
       setHydratedFor(null);
       jobIdsRef.current = new Set();
+      roleByJobRef.current = new Map();
       initialHydrateRef.current = false;
       seenNotificationIdsRef.current = new Set();
       return;
     }
     initialHydrateRef.current = false;
+    const me = address.toLowerCase();
     const stored = load(address);
     setNotifications(stored);
     // Seed the seen-set with persisted notification ids so the first SSE
-    // event after reload doesn't re-fire toasts/sound for items already
-    // shown in a previous session.
+    // event after reload doesn't re-fire toasts/sound for items already shown.
     seenNotificationIdsRef.current = new Set(stored.map((n) => n.id));
-    setHydratedFor(address.toLowerCase());
-    refreshJobIds();
-    void backfill(address.toLowerCase());
+    setHydratedFor(me);
+    // Build the role map first so backfill routes correctly, then backfill.
+    void refreshJobIds().then(() => backfill(me));
   }, [address, isConnected, refreshJobIds, backfill]);
 
   // Persist after hydration completes.
@@ -266,19 +356,23 @@ export function useNotifications() {
     return subscribeLiveEvents((e) => {
       if (!NOTIFY_TYPES.has(e.type) || !e.jobId) return;
 
-      const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
-      const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
-      const sellerUser = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
-      const knownJob = jobIdsRef.current.has(e.jobId.toLowerCase());
-      const partyMatch = buyer === me || seller === me || sellerUser === me;
-      if (!knownJob && !partyMatch) return;
+      // Learn this user's role on a freshly-started deal so later events that
+      // only carry a jobId still route to the right side.
+      if (e.type === 'deal.direct.created' || e.type === 'deal.matched') {
+        const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+        const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+        const j = e.jobId.toLowerCase();
+        if (buyer === me) {
+          jobIdsRef.current.add(j);
+          roleByJobRef.current.set(j, 'buyer');
+        } else if (seller === me) {
+          jobIdsRef.current.add(j);
+          roleByJobRef.current.set(j, 'seller');
+        }
+      }
 
-      if (e.type === 'deal.direct.created' && partyMatch) {
-        jobIdsRef.current.add(e.jobId.toLowerCase());
-      }
-      if (e.type === 'deal.matched' && partyMatch) {
-        jobIdsRef.current.add(e.jobId.toLowerCase());
-      }
+      const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
+      if (!shouldNotify(e.type, role, e.payload)) return;
 
       const id = `${e.jobId}-${e.type}-${e.ts}`;
       const toast = TOAST_TYPES.has(e.type);
@@ -286,18 +380,17 @@ export function useNotifications() {
         id,
         jobId: e.jobId,
         type: e.type,
-        summary: summaryFor(e.type, e.payload),
+        summary: summaryFor(e.type, e.payload, role),
         ts: e.ts,
         read: false,
         href: hrefForType(e.type, e.jobId),
         toast,
       };
 
-      // Dedupe outside the state updater. Running the toast-listener
-      // fan-out inside `setNotifications` triggered React's "Cannot update
-      // a component while rendering a different component" warning,
-      // because each listener calls setState on its own subscriber and
-      // updaters can run during another component's render phase.
+      // Dedupe outside the state updater. Running the toast-listener fan-out
+      // inside `setNotifications` triggered React's "Cannot update a component
+      // while rendering" warning, because each listener calls setState on its
+      // own subscriber and updaters can run during another component's render.
       if (seenNotificationIdsRef.current.has(id)) return;
       seenNotificationIdsRef.current.add(id);
 
@@ -320,9 +413,7 @@ export function useNotifications() {
   }, [address, isConnected]);
 
   const markRead = useCallback((id: string) => {
-    setNotifications((list) =>
-      list.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    );
+    setNotifications((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
   const markAllRead = useCallback(() => {

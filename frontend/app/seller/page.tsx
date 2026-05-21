@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
+import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { PostListingForm } from '@/features/seller/components/PostListingForm';
@@ -133,6 +134,8 @@ export default function SellerPage() {
 
       {/* PENDING MATCHES. shared component, renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Your bid matched" />
+      {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
+      <PendingDealsBand tone="light" />
 
       {/* HOW IT WORKS */}
       <Band tone="light" compact>

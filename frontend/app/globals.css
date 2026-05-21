@@ -175,6 +175,11 @@ html[data-theme="dark"] {
 
   html {
     color-scheme: light;
+    /* Stop iOS from auto-inflating text on orientation change. */
+    -webkit-text-size-adjust: 100%;
+    /* Reserve the vertical scrollbar gutter so the full-bleed width math below
+       stays stable whether or not a page currently scrolls vertically. */
+    scrollbar-gutter: stable;
   }
   html[data-theme="dark"] {
     color-scheme: dark;
@@ -256,6 +261,15 @@ html[data-theme="dark"] {
 .fade-up-3 { animation-delay: 0.16s; }
 .fade-up-4 { animation-delay: 0.22s; }
 .slide-in { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+/* Full-bleed band width. Replaces `w-screen` (100vw), which over-shoots the
+   content area by the vertical scrollbar width and forces a spurious ~15px
+   horizontal scrollbar at normal zoom. Subtracting the live scrollbar width
+   (set by ScrollbarWidthProbe, default 0 on touch devices) makes the band
+   exactly fill the viewport content box, so the only horizontal scrollbar the
+   page ever shows is a real one: when zoomed in far enough to clip content,
+   you can pan left/right to reach it. */
+.w-bleed { width: calc(100vw - var(--scrollbar-width, 0px)); }
 
 @keyframes stat-sweep {
   0% { transform: translateX(-110%); }

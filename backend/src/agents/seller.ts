@@ -29,7 +29,6 @@ import { withLlmTimeout } from './llm-utils.js';
 import {
   heuristicCounterDecision,
   nextCounterPrice,
-  sellerPremiumByBuyerTier,
   type Tier,
 } from './strategy.js';
 import { getBrief } from '../db/briefs.js';
@@ -340,45 +339,35 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     return;
   }
 
-  const llmPrice = Number(decision.suggestedPrice);
-  if (llmPrice < seller.minBudgetUsdc || llmPrice > seller.maxBudgetUsdc) {
-    logger.warn({ jobId: job.jobId, priceUsdc: llmPrice }, 'skipping: LLM price outside seller range');
+  // Each seller agent prices INDEPENDENTLY from its own range, with no view of
+  // other bids, so a multi-seller auction spreads out instead of every seller
+  // converging on the buyer's ceiling. The opening number is deterministic per
+  // seller (seeded by the seller address) within [floor, min(sellerMax, buyer
+  // ceiling)] and biased by the buyer's reputation tier. The buyer agent is the
+  // one that sees the incoming bids and ranks them by reputation and price.
+  const buyerTier = (job.buyerRepTier ?? 'established') as Tier;
+  const opening = sellerOpeningBid(seller, job, buyerTier);
+  if (opening === null) {
+    logger.info(
+      { jobId: job.jobId, seller: seller.address, minBudget: seller.minBudgetUsdc },
+      'skipping: seller floor above the buyer budget cap',
+    );
     bus.emitEvent({
       type: 'agent.skipped',
       jobId: job.jobId,
       actor: 'seller',
       payload: {
         seller: seller.address,
-        reason: 'llm-price-out-of-range',
-        detail: `${llmPrice} USDC is outside the seller's ${seller.minBudgetUsdc}-${seller.maxBudgetUsdc} USDC range`,
-        priceUsdc: llmPrice,
+        reason: 'budget-below-seller-floor',
+        detail: `seller floor ${seller.minBudgetUsdc} USDC is above the buyer's budget cap`,
       },
     });
     return;
   }
-
-  // Apply tier-aware pricing adjustments per reputation-model.md §6.
-  // ELITE buyers earn first-look discounts; COLD/NEW buyers pay a premium
-  // because they're statistically more likely to abandon or dispute. NEW
-  // also raises a humanReview flag so the seller can eyeball it before any
-  // eventual match is approved.
-  const buyerTier = job.buyerRepTier ?? 'established';
-  const adjusted = adjustBidByTier(llmPrice, buyerTier, seller);
-  const priceUsdc = adjusted.priceUsdc;
-  const finalPrice = priceUsdc.toFixed(2);
-  if (adjusted.adjustment !== 'standard') {
-    logger.info(
-      {
-        jobId: job.jobId,
-        seller: seller.address,
-        llmPrice,
-        finalPrice,
-        buyerTier,
-        adjustment: adjusted.adjustment,
-      },
-      'bid price adjusted for buyer tier (§6)',
-    );
-  }
+  const finalPrice = opening.toFixed(2);
+  // NEW buyers still raise a human-review flag so the seller can eyeball a fresh
+  // counterparty before any eventual match is approved.
+  const humanReview = buyerTier === 'new';
 
   const proposedDeadline =
     Math.floor(Date.now() / 1000) + decision.suggestedDeadlineDays * 86_400;
@@ -403,7 +392,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     counterRounds: 0,
     finalized: false,
     responding: false,
-    humanReview: adjusted.humanReview,
+    humanReview,
   });
 
   logger.info({ jobId: job.jobId, seller: seller.address, ...txResult }, 'bid submitted');
@@ -417,51 +406,47 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       deadlineUnix,
       txHash: txResult.txHash,
       buyerTier,
-      tierAdjustment: adjusted.adjustment,
-      humanReview: adjusted.humanReview,
+      humanReview,
     },
   });
 }
 
-/// Adjusts the LLM's suggested price based on the buyer's reputation tier.
-/// Uses the tier-aware premium ladder from strategy.ts: ELITE pays no
-/// premium, STRONG pays a thin 7% cushion, ESTABLISHED stays at +15%,
-/// COLD/NEW pay +20%. Clamps to the seller's profile range. `humanReview`
-/// stays true only for NEW buyers so the seller's UI can eyeball a fresh
-/// counterparty before the human signs off.
-function adjustBidByTier(
-  llmPrice: number,
-  tier: 'new' | 'cold' | 'established' | 'strong' | 'elite',
-  seller: SellerProfile,
-): {
-  priceUsdc: number;
-  adjustment: 'standard' | 'elite-floor' | 'strong-thin' | 'established-cushion' | 'cold-premium' | 'new-premium';
-  humanReview: boolean;
-} {
-  const clamp = (n: number): number =>
-    Math.max(seller.minBudgetUsdc, Math.min(seller.maxBudgetUsdc, n));
-  if (tier === 'elite') {
-    // Trusted regulars earn first-look pricing. Bid at the seller's floor.
-    return {
-      priceUsdc: clamp(seller.minBudgetUsdc),
-      adjustment: 'elite-floor',
-      humanReview: false,
-    };
-  }
-  const multiplier = sellerPremiumByBuyerTier(tier);
-  const adjustment: 'strong-thin' | 'established-cushion' | 'cold-premium' | 'new-premium' =
-    tier === 'strong'
-      ? 'strong-thin'
-      : tier === 'established'
-        ? 'established-cushion'
-        : tier === 'cold'
-          ? 'cold-premium'
-          : 'new-premium';
-  return {
-    priceUsdc: clamp(llmPrice * multiplier),
-    adjustment,
-    humanReview: tier === 'new',
+/// Deterministic per-seller opening bid. Each seller agent prices from its OWN
+/// range with no knowledge of other bids, so a multi-seller auction produces a
+/// spread the buyer agent can rank, instead of every seller converging on the
+/// buyer's ceiling (the "all bids 78 USDC" bug). Returns null when the seller's
+/// floor is above the buyer's budget cap (no possible deal, so skip).
+///
+/// The opening lands in [floor, min(sellerMax, buyerCeiling)] at a point set by
+/// a per-seller seed blended with a buyer-tier bias: trusted buyers (elite) see
+/// prices nearer the floor, new and cold buyers nearer the ceiling.
+function sellerOpeningBid(seller: SellerProfile, job: JobContext, buyerTier: Tier): number | null {
+  const budget = Number(job.budgetUsdc);
+  const tol = job.negotiationMaxIncreasePct ?? 0;
+  const buyerCeiling = budget * (1 + tol / 100);
+  const floor = seller.minBudgetUsdc;
+  const ceiling = Math.min(seller.maxBudgetUsdc, buyerCeiling);
+  if (!Number.isFinite(ceiling) || ceiling < floor) return null;
+  if (ceiling === floor) return Number(floor.toFixed(2));
+
+  const TIER_BIAS: Record<Tier, number> = {
+    elite: 0.15,
+    strong: 0.35,
+    established: 0.5,
+    cold: 0.7,
+    new: 0.8,
   };
+  const frac = Math.max(0, Math.min(1, 0.55 * addrFrac(seller.address) + 0.45 * TIER_BIAS[buyerTier]));
+  return Number((floor + (ceiling - floor) * frac).toFixed(2));
+}
+
+/// Stable address -> [0,1) fraction so each seller's opening bid lands at a
+/// different point in its range. Pure string hash, deterministic.
+function addrFrac(addr: string): number {
+  let h = 0;
+  const s = addr.toLowerCase();
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return (h % 1000) / 1000;
 }
 
 async function handleCounterOffer(log: Log) {

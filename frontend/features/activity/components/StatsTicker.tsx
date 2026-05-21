@@ -44,7 +44,7 @@ export function StatsTicker() {
   const track = [...items, ...items];
 
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b border-[var(--lp-border-subtle)] bg-[var(--lp-band-dark)]">
+    <div className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden border-b border-[var(--lp-border-subtle)] bg-[var(--lp-band-dark)]">
       <div
         className="flex w-max items-center"
         style={{ animation: 'marquee 38s linear infinite' }}

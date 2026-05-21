@@ -29,7 +29,7 @@ export function Band({
   return (
     <section
       className={cn(
-        'relative left-1/2 w-screen -translate-x-1/2 overflow-hidden',
+        'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden',
         dark ? 'bg-[var(--lp-band-dark)] text-white' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
         className,
       )}

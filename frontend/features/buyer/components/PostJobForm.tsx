@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useActivation } from '@/shared/hooks/useActivation';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
@@ -18,6 +19,7 @@ export function PostJobForm() {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
+  const { activate, activating } = useActivation();
   const { profile, loading: profileLoading } = useUserProfile();
   const { recordAction } = useGuide();
   const [brief, setBrief] = useState('');
@@ -439,7 +441,26 @@ export function PostJobForm() {
         </div>
       ) : (
         error && (
-          <p className="mono text-[12px] text-[#7a1f1a]">Couldn&apos;t post: {error}</p>
+          <div className="space-y-1.5">
+            <p className="mono text-[12px] text-[#7a1f1a]">Couldn&apos;t post: {error}</p>
+            {/activate|agent wallet/i.test(error) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await activate();
+                    setError(null);
+                  } catch {
+                    /* useActivation surfaces its own failure; keep the message */
+                  }
+                }}
+                disabled={activating}
+                className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 text-[var(--lp-dark)] disabled:opacity-50"
+              >
+                {activating ? 'Activating…' : 'Activate your agents here →'}
+              </button>
+            )}
+          </div>
         )
       )}
 

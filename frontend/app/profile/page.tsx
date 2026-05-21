@@ -19,6 +19,7 @@ import { TierCelebration } from '@/features/reputation/components/TierCelebratio
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
+import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { PageTour } from '@/shared/guide/PageTour';
 import { PROFILE_TOUR_ID, buildProfileSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -184,6 +185,8 @@ export default function ProfilePage() {
 
       {/* PENDING MATCHES. high-priority surface; renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
+      {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
+      <PendingDealsBand tone="light" />
 
       {/* IDENTITY section anchor. Also contains ACTIVATION + ROLE blocks below. */}
       <div id="identity" aria-hidden style={{ scrollMarginTop: 80 }} />

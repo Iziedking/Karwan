@@ -6,6 +6,29 @@ type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
 const cache = new Map<string, { value: Reputation; ts: number }>();
 const TTL_MS = 30_000;
+const LS_PREFIX = 'karwan:rep:';
+
+// Persist the last-known score per address so a full page refresh (which wipes
+// the in-memory cache) can paint the score immediately while a fresh read runs
+// in the background. Removes the loading-skeleton flash on profile re-entry.
+function readLocal(key: string): Reputation | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(LS_PREFIX + key);
+    return raw ? (JSON.parse(raw) as Reputation) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocal(key: string, value: Reputation): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+  } catch {
+    /* quota or disabled storage; the in-memory cache still covers this session */
+  }
+}
 
 export function useReputation(address?: string | null) {
   const [data, setData] = useState<Reputation | null>(null);
@@ -18,11 +41,13 @@ export function useReputation(address?: string | null) {
       try {
         const res = await api.reputation(addr);
         cache.set(key, { value: res, ts: Date.now() });
+        writeLocal(key, res);
         setData(res);
         setFetchState('success');
         return res;
       } catch {
-        setData(null);
+        // Keep any already-shown score (in-memory or localStorage seed) so a
+        // transient fetch failure doesn't blank the card; just flag the error.
         setFetchState('error');
         return null;
       }
@@ -42,6 +67,18 @@ export function useReputation(address?: string | null) {
       setData(hit.value);
       setFetchState('success');
       return;
+    }
+
+    // Seed from localStorage so the score paints instantly on refresh; still
+    // fall through to a fresh fetch. Only show the skeleton when we have
+    // nothing cached at all (first-ever load for this address).
+    const seed = readLocal(key);
+    if (seed) {
+      setData(seed);
+      setFetchState('success');
+    } else {
+      setData(null);
+      setFetchState('loading');
     }
 
     let cancelled = false;

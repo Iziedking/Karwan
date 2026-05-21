@@ -98,7 +98,7 @@ export function NetworkTicker() {
 
   return (
     <div
-      className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden"
+      className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden"
       style={{ background: 'var(--lp-band-dark)' }}
     >
       <span

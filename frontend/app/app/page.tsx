@@ -7,6 +7,7 @@ import { api, type ApiStatus } from '@/core/api';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { NetworkTicker } from '@/features/activity/components/NetworkTicker';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
+import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
@@ -172,6 +173,7 @@ export default function AppHome() {
           without having to navigate to /seller. Renders nothing when there
           are none, so the layout stays clean for buyers / fresh users. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
+      <PendingDealsBand tone="light" />
 
       {/* THREE DOORS */}
       <Band tone="light">

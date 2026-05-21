@@ -8,6 +8,7 @@ import { SiteFooter } from '@/shared/components/SiteFooter';
 import { AppProviders } from '@/shared/components/AppProviders';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
 import { GuideWelcome } from '@/shared/guide/GuideWelcome';
+import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const geist = Geist({
@@ -63,10 +64,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AppProviders>
-          {/* overflow-x-clip lets full-bleed sections span the viewport without
-              triggering horizontal scroll, and unlike overflow-hidden it does
-              not break the sticky TopNav. */}
-          <div className="min-h-screen flex flex-col overflow-x-clip">
+          <ScrollbarWidthProbe />
+          {/* No overflow clip here on purpose: full-bleed sections use the
+              scrollbar-aware `.w-bleed` width so they don't over-shoot at normal
+              zoom, and leaving overflow visible lets the page show a real
+              horizontal scrollbar when zoomed in far enough to clip content, so
+              nothing is ever unreachable. */}
+          <div className="min-h-screen flex flex-col">
             <TopNav />
             <ProfileNudge />
             <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
@@ -37,6 +38,7 @@ interface AuthPlan {
 
 export function LoginModal({ open, onClose }: Props) {
   const { refresh, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [stage, setStage] = useState<Stage>('pick-method');
   const [email, setEmail] = useState('');
   const [plan, setPlan] = useState<AuthPlan | null>(null);
@@ -66,10 +68,17 @@ export function LoginModal({ open, onClose }: Props) {
       .catch(() => setPasskeyConfigured(false));
   }, [open]);
 
-  // Auto-close once authentication actually lands.
+  // Auto-close once authentication actually lands (covers both the Circle
+  // passkey/OTP path and a web3 wallet connecting via RainbowKit). On login we
+  // send the user to the app home; the /app page routes brand-new users (no
+  // profile) onward to onboarding. Net: existing users land on home, new users
+  // onboard, from wherever they logged in.
   useEffect(() => {
-    if (open && isAuthenticated) onClose();
-  }, [open, isAuthenticated, onClose]);
+    if (open && isAuthenticated) {
+      onClose();
+      router.push('/app');
+    }
+  }, [open, isAuthenticated, onClose, router]);
 
   if (!open) return null;
   if (typeof document === 'undefined') return null;
