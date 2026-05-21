@@ -111,6 +111,13 @@ export function readSession(c: Context): SessionPayload | null {
   return verifySession(token);
 }
 
+/// The authenticated caller's address, lowercased, or null when unauthenticated.
+/// Use this (never a client-supplied param) to gate who may read a private
+/// resource. The address is cryptographically bound to the signed session.
+export function sessionAddress(c: Context): string | null {
+  return readSession(c)?.address?.toLowerCase() ?? null;
+}
+
 export function clearSessionCookie(c: Context) {
   deleteCookie(c, COOKIE_NAME, {
     path: '/',

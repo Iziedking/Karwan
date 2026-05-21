@@ -59,12 +59,15 @@ export function createListing(
   return listing;
 }
 
-/// Open = not matched, not cancelled, not past expiry. Used by every match
-/// scanner and the marketplace browse — the source of truth for "still live."
+/// Open = not cancelled, not past expiry. A listing stays live until it expires
+/// or the seller cancels it, even after it has matched briefs: one offer can be
+/// caught by several buyer agents and negotiated in parallel, and the seller
+/// accepts each match they can deliver on. matchedAt is a "last matched" marker,
+/// not a close signal. Used by every match scanner and the marketplace browse.
 export function listOpenListings(): Listing[] {
   const now = Date.now();
   return [...store.values()].filter(
-    (l) => !l.matchedAt && !l.cancelledAt && l.expiresAt > now,
+    (l) => !l.cancelledAt && l.expiresAt > now,
   );
 }
 
@@ -122,10 +125,13 @@ export function listingFloor(listing: Listing): number {
 
 /// Convenience for the marketplace renderer + scanners that want a derived
 /// "what state is this in" without inlining the same logic three places.
+/// A listing stays `open` even after it has matched briefs. one offer serves
+/// many buyers in parallel, so a match is not a terminal state. `matched` stays
+/// in the union for back-compat but is no longer returned; only cancel/expiry
+/// closes a listing.
 export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
 export function listingStatus(l: Listing): ListingStatus {
   if (l.cancelledAt) return 'cancelled';
-  if (l.matchedAt) return 'matched';
   if (Date.now() > l.expiresAt) return 'expired';
   return 'open';
 }

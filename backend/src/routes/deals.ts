@@ -33,6 +33,7 @@ import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
+import { sessionAddress } from '../auth/session.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -171,6 +172,15 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
+  // A direct deal is private to its two parties. Identity comes from the signed
+  // session, not a param. Non-parties get 403 with a clear, non-leaking reason.
+  const caller = sessionAddress(c);
+  const isParty =
+    !!caller &&
+    (caller === deal.buyer.toLowerCase() || caller === deal.seller.toLowerCase());
+  if (!isParty) {
+    return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
+  }
   return c.json({ deal: await enrich(deal) });
 });
 

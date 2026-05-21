@@ -18,7 +18,9 @@ import {
 } from '../agents/buyer.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
+import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
+import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z
@@ -65,18 +67,27 @@ export const jobsRoutes = new Hono();
 jobsRoutes.get('/', (c) => c.json(getBuyerSnapshot()));
 
 /// Open buyer briefs packaged for the marketplace surface. Public; we mask
-/// the buyer address in the response so a crawler can't enumerate wallets.
-jobsRoutes.get('/marketplace', (c) => {
+/// the buyer address so a crawler can't enumerate wallets. A brief leaves the
+/// market the moment it is spoken for: getMarketplaceBriefs already drops
+/// finalized/funded/cancelled/expired in-memory state, and here we also drop any
+/// brief that carries an active (non-declined) match proposal or a created deal,
+/// so a matched brief can never linger as "awaiting bids".
+jobsRoutes.get('/marketplace', async (c) => {
   function mask(addr: string): string {
     return /^0x[a-fA-F0-9]{40}$/.test(addr)
       ? `${addr.slice(0, 6)}…${addr.slice(-4)}`
       : addr;
   }
-  const briefs = getMarketplaceBriefs().map((b: MarketplaceBrief) => ({
-    ...b,
-    buyer: mask(b.buyer),
-  }));
-  return c.json({ briefs });
+  const candidates = getMarketplaceBriefs();
+  const out: Array<MarketplaceBrief & { buyer: string }> = [];
+  for (const b of candidates) {
+    const proposal = await getMatchProposal(b.jobId);
+    if (proposal && !proposal.declinedAt) continue;
+    const deal = await getDeal(b.jobId);
+    if (deal) continue;
+    out.push({ ...b, buyer: mask(b.buyer) });
+  }
+  return c.json({ briefs: out });
 });
 
 jobsRoutes.get('/:jobId', async (c) => {
@@ -90,12 +101,46 @@ jobsRoutes.get('/:jobId', async (c) => {
     if (ok) job = getBuyerJob(jobId);
   }
   if (!job) return c.json({ error: 'not found' }, 404);
+  const brief = getBrief(jobId);
+
+  // Privacy: the full job page (bids, negotiation, amounts) belongs to the two
+  // parties only. The buyer who posted it always sees it; once a match exists,
+  // the matched seller does too. Everyone else gets a status-only summary so the
+  // page can say "collecting bids" / "in negotiation" without leaking the
+  // auction. Identity is the signed session, never a client-supplied param.
+  const caller = sessionAddress(c);
+  const proposal = await getMatchProposal(jobId);
+  const deal = await getDeal(jobId);
+  const parties = new Set<string>();
+  if (brief?.postedBy) parties.add(brief.postedBy.toLowerCase());
+  if (proposal) {
+    parties.add(proposal.buyerUser.toLowerCase());
+    parties.add(proposal.sellerUser.toLowerCase());
+  }
+  if (deal) {
+    parties.add(deal.buyer.toLowerCase());
+    parties.add(deal.seller.toLowerCase());
+  }
+  const isParty = !!caller && parties.has(caller);
+
+  if (!isParty) {
+    const matched = !!(proposal || deal) || job.finalized || job.escrowFunded;
+    const status = job.cancelledAt
+      ? 'cancelled'
+      : job.expiredAt
+        ? 'expired'
+        : matched
+          ? 'negotiating'
+          : 'open';
+    return c.json({ jobId, isParty: false, status });
+  }
+
   // Merge the off-chain brief metadata (human-readable text, negotiation
   // ceiling) into the response so the job page can render it inline. The
   // on-chain snapshot only carries the termsHash for integrity.
-  const brief = getBrief(jobId);
   return c.json({
     ...job,
+    isParty: true,
     briefText: brief?.briefText ?? null,
     keywords: brief?.keywords ?? null,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct ?? null,
@@ -192,7 +237,16 @@ jobsRoutes.post('/', async (c) => {
 /// before touching the chain. Returns the pending match, or null if there is none.
 jobsRoutes.get('/:jobId/match', async (c) => {
   const jobId = c.req.param('jobId');
-  return c.json({ proposal: await getMatchProposal(jobId) });
+  const proposal = await getMatchProposal(jobId);
+  if (!proposal) return c.json({ proposal: null });
+  // The proposal names both parties and the agreed price. Only they may read it.
+  const caller = sessionAddress(c);
+  const isParty =
+    !!caller &&
+    (caller === proposal.buyerUser.toLowerCase() ||
+      caller === proposal.sellerUser.toLowerCase());
+  if (!isParty) return c.json({ proposal: null });
+  return c.json({ proposal });
 });
 
 /// All open match proposals where caller is either the buyer (awaiting their
