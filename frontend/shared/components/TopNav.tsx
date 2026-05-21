@@ -153,11 +153,10 @@ export function TopNav() {
                   <SettingsIconLink active={pathname.startsWith('/settings')} />
                 )}
               </div>
+              {/* Mobile keeps only the bell up top. Settings moves into the menu
+                  footer (below) so the wallet pill isn't squeezed off-screen. */}
               <div className="md:hidden inline-flex items-center gap-0.5">
                 <NotificationBell />
-                {isAuthenticated && (
-                  <SettingsIconLink active={pathname.startsWith('/settings')} />
-                )}
               </div>
               <ConnectWalletButton />
               <ProfileAvatar />
@@ -233,6 +232,9 @@ export function TopNav() {
             <div className="mt-2 pt-2 border-t border-[var(--color-line)] flex items-center justify-around text-[12px] text-[var(--color-ink-dim)]">
               <SoundToggle />
               <ThemeToggle />
+              {isAuthenticated && (
+                <SettingsIconLink active={pathname.startsWith('/settings')} />
+              )}
               <LiveDot />
             </div>
           </nav>

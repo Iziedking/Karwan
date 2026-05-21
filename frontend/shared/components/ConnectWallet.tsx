@@ -75,7 +75,7 @@ export function ConnectWalletButton() {
             className="w-[6px] h-[6px] rounded-full"
             style={{ background: 'var(--lp-accent)' }}
           />
-          <span className="font-medium">
+          <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">
             {auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
           </span>
         </button>
@@ -174,7 +174,9 @@ export function ConnectWalletButton() {
                         style={{ background: '#0a7553' }}
                       />
                     )}
-                    <span className="font-medium">{account.displayName}</span>
+                    <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">
+                      {account.displayName}
+                    </span>
                   </button>
                 );
               })()}

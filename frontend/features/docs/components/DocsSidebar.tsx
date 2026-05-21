@@ -3,13 +3,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 
-interface DocsSection {
+export interface DocsSection {
   label: string;
   href: string;
   blurb: string;
 }
 
-const SECTIONS: DocsSection[] = [
+/// Single source of truth for the docs order. Drives the sidebar and the
+/// prev/next pager at the bottom of each page.
+export const DOCS_SECTIONS: DocsSection[] = [
   { label: 'Overview', href: '/docs', blurb: 'What Karwan is and how the pieces fit.' },
   { label: 'Agents', href: '/docs/agents', blurb: 'How the buyer and seller agents negotiate.' },
   { label: 'Deals & Escrow', href: '/docs/deals', blurb: 'Both deal flows, milestones, settlement.' },
@@ -27,7 +29,7 @@ export function DocsSidebar() {
         [:DOCUMENTATION:]
       </p>
       <nav className="flex flex-col gap-1">
-        {SECTIONS.map((section) => {
+        {DOCS_SECTIONS.map((section) => {
           const active =
             section.href === '/docs'
               ? pathname === '/docs'
