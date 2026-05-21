@@ -436,6 +436,10 @@ export const api = {
       body: JSON.stringify(body),
     }),
   dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
+  /// Aggregate network numbers only (no per-deal data). Use this for stat
+  /// counters; the feed itself is settled-only and private-safe.
+  dealsStats: () =>
+    json<{ total: number; settled: number; volumeUsdc: number }>('/api/deals/stats'),
   submitFeedback: (body: {
     category: 'bug' | 'improvement' | 'other' | 'praise';
     title: string;

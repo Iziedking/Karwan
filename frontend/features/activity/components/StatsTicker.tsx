@@ -22,16 +22,13 @@ export function StatsTicker() {
   useEffect(() => {
     let cancelled = false;
     api
-      .dealsFeed()
-      .then((res) => {
+      .dealsStats()
+      .then((s) => {
         if (cancelled) return;
-        const deals = res.deals;
-        const settled = deals.filter((d) => d.onChain?.state === 2).length;
-        const total = deals.reduce((s, d) => s + (Number(d.dealAmountUsdc) || 0), 0);
         setItems([
-          { value: deals.length.toLocaleString(), label: 'DIRECT DEALS ON CHAIN' },
-          { value: settled.toLocaleString(), label: 'SETTLED IN FULL' },
-          { value: `${total.toLocaleString()} USDC`, label: 'MOVED THROUGH ESCROW' },
+          { value: s.total.toLocaleString(), label: 'DIRECT DEALS ON CHAIN' },
+          { value: s.settled.toLocaleString(), label: 'SETTLED IN FULL' },
+          { value: `${s.volumeUsdc.toLocaleString()} USDC`, label: 'MOVED THROUGH ESCROW' },
           ...BASE_ITEMS,
         ]);
       })

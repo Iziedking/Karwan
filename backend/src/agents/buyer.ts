@@ -469,7 +469,9 @@ async function handleBidSubmitted(log: Log) {
       type: 'bid.scored',
       jobId: state.jobId,
       actor: 'buyer',
-      payload: { seller: args.seller, priceUsdc, pattern, ...score },
+      // tier is surfaced so the timeline shows the agent scored this bid with the
+      // seller's reputation in hand, not just the price.
+      payload: { seller: args.seller, priceUsdc, pattern, tier: sellerRepTier, ...score },
     });
   } catch (err) {
     const message = (err as Error).message;

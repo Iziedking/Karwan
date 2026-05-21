@@ -51,11 +51,9 @@ export default function AppHome() {
 
   useEffect(() => {
     api
-      .dealsFeed()
-      .then((r) => {
-        const settled = r.deals.filter((d) => d.onChain?.state === 2).length;
-        const usdc = r.deals.reduce((s, d) => s + (Number(d.dealAmountUsdc) || 0), 0);
-        setStats({ deals: r.deals.length, settled, usdc });
+      .dealsStats()
+      .then((s) => {
+        setStats({ deals: s.total, settled: s.settled, usdc: s.volumeUsdc });
       })
       .catch(() => {});
   }, []);

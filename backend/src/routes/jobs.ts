@@ -20,7 +20,7 @@ import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
-import { sessionAddress } from '../auth/session.js';
+import { sessionAddress, isSessionSelf } from '../auth/session.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z
@@ -154,6 +154,9 @@ jobsRoutes.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  if (!isSessionSelf(c, body.posterAddress)) {
+    return c.json({ error: 'You can only post a brief as your own wallet.', code: 'forbidden' }, 403);
+  }
 
   // Managed jobs run on the poster's own buyer agent, so they must have
   // activated and filled a buyer profile.
@@ -278,6 +281,9 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
   if (body.caller.toLowerCase() !== proposal.sellerUser) {
@@ -311,6 +317,9 @@ jobsRoutes.post('/:jobId/cancel', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
   const result = cancelBriefByBuyer(jobId as `0x${string}`, body.caller);
   if (!result.ok) {
     const status = result.code === 'NOT_BUYER' ? 403 : 409;
@@ -329,6 +338,9 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
     body = declineSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);

@@ -13,6 +13,8 @@ const GROUP_BY_TYPE: Record<string, EventGroup> = {
   'bid.accepted':               'negotiation',
   'agent.skipped':              'negotiation',
   'agent.declined':             'negotiation',
+  'agent.fallback':             'negotiation',
+  'market.scanned':             'negotiation',
   'escrow.approved':            'settlement',
   'escrow.funded':              'settlement',
   'escrow.milestone.released':  'settlement',

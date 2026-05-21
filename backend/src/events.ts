@@ -53,6 +53,7 @@ export type KarwanEventType =
   | 'negotiation.attempt-ended'
   | 'negotiation.next-candidate'
   | 'negotiation.exhausted'
+  | 'market.scanned'
   | 'feedback.submitted'
   | 'vault.deposit'
   | 'vault.withdraw.requested'

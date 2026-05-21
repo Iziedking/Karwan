@@ -33,6 +33,7 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'agent.declined': { text: 'Agent ended negotiation', tone: 'error' },
   'agent.error': { text: 'Agent hit an error', tone: 'error' },
   'agent.fallback': { text: 'Agent used a backup decision', tone: 'system' },
+  'market.scanned': { text: 'Market scanned', tone: 'buyer' },
   'deal.matched': { text: 'Match found · awaiting approval', tone: 'buyer' },
   'deal.match.approved': { text: 'Match approved · escrow funded', tone: 'buyer' },
   'deal.match.declined': { text: 'Match declined', tone: 'error' },
@@ -111,6 +112,18 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
   }
   if (payload.score != null) {
     out.push({ key: 'score', label: 'Match', value: `${payload.score}/100` });
+  }
+  if (payload.scanned != null) {
+    out.push({ key: 'scanned', label: 'Listings', value: String(payload.scanned) });
+  }
+  if (payload.matched != null) {
+    out.push({ key: 'matched', label: 'Matched', value: String(payload.matched) });
+  }
+  if (payload.tier != null) {
+    out.push({ key: 'tier', label: 'Reputation', value: String(payload.tier).toUpperCase() });
+  }
+  if (payload.topTier != null) {
+    out.push({ key: 'topTier', label: 'Best rep', value: String(payload.topTier).toUpperCase() });
   }
   if (payload.milestoneIndex != null) {
     out.push({

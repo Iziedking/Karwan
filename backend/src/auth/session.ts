@@ -118,6 +118,17 @@ export function sessionAddress(c: Context): string | null {
   return readSession(c)?.address?.toLowerCase() ?? null;
 }
 
+/// True when the signed-in session matches the address a mutation claims to act
+/// as. Mutations carry a `caller`/`posterAddress` in their body for the party
+/// comparison, but that field is client-controlled and spoofable. Gate every
+/// state-changing route with this so a user can only act as their own wallet.
+/// Agent-driven flows are unaffected: the agents act in-process (not via these
+/// HTTP routes), so they never carry a session and never hit this check.
+export function isSessionSelf(c: Context, claimed: string | null | undefined): boolean {
+  const s = sessionAddress(c);
+  return !!s && !!claimed && s === claimed.toLowerCase();
+}
+
 export function clearSessionCookie(c: Context) {
   deleteCookie(c, COOKIE_NAME, {
     path: '/',

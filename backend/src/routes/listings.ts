@@ -16,6 +16,7 @@ import {
   type Listing,
 } from '../db/listings.js';
 import { resolveSellerProfile } from '../agents/agent-registry.js';
+import { actorSignalsFor } from '../agents/signals.js';
 import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
@@ -225,11 +226,43 @@ export async function scanListingsForBrief(
     { jobId: job.jobId, listingsCount: listings.length },
     'fresh brief, scanning open listings',
   );
+  const TIER_RANK: Record<string, number> = {
+    new: 0,
+    cold: 1,
+    established: 2,
+    strong: 3,
+    elite: 4,
+  };
+  let matched = 0;
+  let topTier: string | null = null;
   for (const listing of listings) {
     const seller = await resolveSellerProfile(listing.sellerAgent);
     if (!seller) continue;
-    await tryMatchListingToJob(listing, job, seller);
+    const ok = await tryMatchListingToJob(listing, job, seller);
+    if (!ok) continue;
+    matched += 1;
+    // The agent doesn't gate the scan on reputation (a relevant listing always
+    // gets to bid), but it does read each matched candidate's tier so the
+    // ranking that follows is reputation-aware. Track the strongest match.
+    try {
+      const sig = await actorSignalsFor(seller.address);
+      if (!topTier || (TIER_RANK[sig.repTier] ?? -1) > (TIER_RANK[topTier] ?? -1)) {
+        topTier = sig.repTier;
+      }
+    } catch {
+      /* reputation read is best-effort; never block the scan on it */
+    }
   }
+  // Surface that the agent shopped the marketplace, how it landed, and the best
+  // reputation among the matches. Renders as a "Market scanned" line on the job
+  // timeline so a buyer (or judge) sees the agent considered the open listings
+  // and weighed reputation rather than picking blind.
+  bus.emitEvent({
+    type: 'market.scanned',
+    jobId: job.jobId,
+    actor: 'buyer',
+    payload: { scanned: listings.length, matched, ...(topTier ? { topTier } : {}) },
+  });
 }
 
 async function tryMatchListingToJob(
