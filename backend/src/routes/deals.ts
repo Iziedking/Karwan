@@ -7,6 +7,8 @@ import {
   escrow,
   usdc as usdcAddress,
   readEscrow,
+  invalidateEscrowCache,
+  readUsdcBalance,
   getEscrowFeeBps,
   computeFunding,
 } from '../chain/contracts.js';
@@ -225,7 +227,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   if (deal.cancelledAt) {
     return c.json({ error: 'this deal was cancelled' }, 409);
   }
-  if (!deal.buyerAgentWalletId) {
+  if (!deal.buyerAgentWalletId || !deal.buyerAgentAddress) {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
   if (inFlight.has(jobId)) {
@@ -250,12 +252,64 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       });
     }
 
+    // Recovery / idempotency: if a prior attempt already funded the escrow on
+    // chain but failed to record acceptedAt (a crash or transient read between
+    // the fund tx and the DB write), the agent's USDC is ALREADY locked in
+    // escrow. Re-funding would revert and the balance preflight below would
+    // wrongly block, stranding the funds. Detect the funded escrow and just mark
+    // the deal accepted so the normal delivery + refund paths apply.
+    invalidateEscrowCache(jobId);
+    const preEscrow = await readEscrow(jobId);
+    if (preEscrow.state === ESCROW_FUNDED) {
+      await patchDeal(jobId, {
+        acceptedAt: deal.acceptedAt ?? Date.now(),
+        sellerAgentWalletId: sellerAgents.sellerWalletId,
+        sellerAgentAddress: sellerAgents.sellerAddress,
+      });
+      bus.emitEvent({
+        type: 'deal.accepted',
+        jobId,
+        actor: 'seller',
+        payload: { seller: deal.seller, buyer: deal.buyer },
+      });
+      logger.info({ jobId }, 'escrow already funded on chain; marked accepted (idempotent recovery)');
+      return c.json({ accepted: true, jobId, recovered: true }, 200);
+    }
+
     // Fund the escrow now: the buyer agent approves, then funds it naming the
     // seller agent as the on-chain seller.
     const milestonePcts = [deal.firstReleasePct, 100 - deal.firstReleasePct];
     const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
     const feeBps = await getEscrowFeeBps();
     const { fundedAmount } = computeFunding(dealAmountWei, feeBps);
+
+    // Preflight the buyer agent's USDC. A Circle wallet is an ERC-4337 SCA, so a
+    // fundEscrow whose inner transferFrom reverts for insufficient USDC still
+    // lands as a SUCCESSFUL handleOps tx (Circle reports COMPLETE), which would
+    // otherwise be recorded as a funded, accepted deal sitting on an empty
+    // escrow. Catch the shortfall up front with the exact numbers.
+    const agentBal = await readUsdcBalance(deal.buyerAgentAddress);
+    if (agentBal < fundedAmount) {
+      bus.emitEvent({
+        type: 'deal.fund.insufficient',
+        jobId,
+        actor: 'platform',
+        payload: {
+          buyer: deal.buyer,
+          seller: deal.seller,
+          buyerAgent: deal.buyerAgentAddress,
+          dealAmountUsdc: deal.dealAmountUsdc,
+          code: 'INSUFFICIENT_AGENT_BALANCE',
+        },
+      });
+      return c.json(
+        {
+          error: `buyer agent is short on USDC: has ${formatUnits(agentBal, USDC_DECIMALS)}, needs ${formatUnits(fundedAmount, USDC_DECIMALS)} (deal + fee). Top up the agent and retry.`,
+          code: 'INSUFFICIENT_AGENT_BALANCE',
+        },
+        409,
+      );
+    }
 
     await executeContractCall(
       {
@@ -280,6 +334,39 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       },
       `fundEscrow(direct ${jobId})`,
     );
+
+    // Verify the escrow is ACTUALLY Funded before marking the deal accepted. The
+    // fund tx above can land as a successful ERC-4337 handleOps even when the
+    // inner fundEscrow userOp reverted, so the txHash alone is not proof. This
+    // guard is what stops an "accepted" deal from sitting on an empty escrow.
+    invalidateEscrowCache(jobId);
+    const fundedAccount = await readEscrow(jobId);
+    if (fundedAccount.state !== ESCROW_FUNDED) {
+      logger.error(
+        { jobId, escrowState: fundedAccount.state, fundTxHash: fundResult.txHash },
+        'fundEscrow tx landed but escrow is not Funded (inner userOp likely reverted)',
+      );
+      bus.emitEvent({
+        type: 'deal.fund.insufficient',
+        jobId,
+        actor: 'platform',
+        payload: {
+          buyer: deal.buyer,
+          seller: deal.seller,
+          buyerAgent: deal.buyerAgentAddress,
+          dealAmountUsdc: deal.dealAmountUsdc,
+          code: 'FUND_NOT_CONFIRMED',
+        },
+      });
+      return c.json(
+        {
+          error:
+            'escrow funding did not confirm on chain. The buyer agent may be short on USDC for this amount plus fee. Top it up and retry.',
+          code: 'FUND_NOT_CONFIRMED',
+        },
+        409,
+      );
+    }
 
     await patchDeal(jobId, {
       acceptedAt: Date.now(),
@@ -605,6 +692,23 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   // Before the seller accepts, no escrow exists yet, so cancel is a plain state
   // change with nothing to refund on chain.
   if (!deal.acceptedAt) {
+    // Defensive: the escrow could be funded on chain even with acceptedAt unset
+    // (a fund that landed but wasn't recorded). A plain pre-accept cancel would
+    // ignore those locked funds. If money is in escrow, refuse the no-op cancel
+    // and route the user to re-accept (idempotent recovery) then the standard or
+    // mutual cancel, which actually refunds on chain.
+    invalidateEscrowCache(jobId);
+    const acct = await readEscrow(jobId);
+    if (acct.state === ESCROW_FUNDED) {
+      return c.json(
+        {
+          error:
+            'this deal is funded on chain. Have the seller re-accept to sync it, then cancel through the standard or mutual path to refund.',
+          code: 'FUNDED_NOT_RECORDED',
+        },
+        409,
+      );
+    }
     const reason = 'buyer withdrew before the seller accepted';
     await patchDeal(jobId, {
       cancelledAt: Date.now(),

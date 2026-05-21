@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
 import { baseSepolia, sepolia } from 'viem/chains';
 import { config } from '../config.js';
-import { executeContractCall } from '../chain/txs.js';
+import { executeContractCall, submitContractCall, getTxState } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
 import { createBridge, getBridge, patchBridge, listPendingBridges } from '../db/bridges.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
@@ -46,13 +46,6 @@ const erc20BalanceOfAbi = [
     outputs: [{ name: '', type: 'uint256' }],
   },
 ] as const;
-
-/// Circle DCW txs on testnet source chains (esp. Base Sepolia) sometimes
-/// confirm slower than the default 90s settle window, which made the bridge
-/// approve throw "did not settle" even though it landed on chain. Give the
-/// bridge approve + burn a longer window and a higher fee level so they
-/// actually settle inside the call.
-const BRIDGE_POLL_ATTEMPTS = 120; // ~240s
 
 /// Per CCTP V2 source-chain config. Verified addresses live in the frontend
 /// at `frontend/features/bridge/config.ts` (the canonical source on both
@@ -221,15 +214,36 @@ function startRelay(input: RelayInput) {
 export async function resumePendingBridges(): Promise<void> {
   const pending = await listPendingBridges();
   if (pending.length === 0) return;
-  logger.info({ count: pending.length }, 'resuming pending bridge relays');
+  logger.info({ count: pending.length }, 'resuming pending bridges');
   for (const b of pending) {
-    startRelay({
-      bridgeId: b.bridgeId,
-      sourceDomain: b.sourceDomain,
-      sourceTxHash: b.sourceTxHash,
-      amountUsdc: b.amountUsdc,
-      mintRecipient: b.mintRecipient,
-    });
+    // Burned already (web3 path, or Circle past the burn): resume the mint relay.
+    if (b.sourceTxHash) {
+      startRelay({
+        bridgeId: b.bridgeId,
+        sourceDomain: b.sourceDomain,
+        sourceTxHash: b.sourceTxHash,
+        amountUsdc: b.amountUsdc,
+        mintRecipient: b.mintRecipient,
+      });
+      continue;
+    }
+    // Circle bridge still mid source pipeline: resume approve/burn if we have
+    // the source context we persisted at create time.
+    if (
+      (b.status === 'approving' || b.status === 'burning') &&
+      b.sourceChainKey &&
+      b.bridgeWalletId &&
+      b.bridgeWalletAddress
+    ) {
+      startSourcePipeline({
+        bridgeId: b.bridgeId,
+        sourceChainKey: b.sourceChainKey,
+        bridgeWalletId: b.bridgeWalletId,
+        bridgeWalletAddress: b.bridgeWalletAddress,
+        amountUsdc: b.amountUsdc,
+        mintRecipient: b.mintRecipient,
+      });
+    }
   }
 }
 
@@ -381,6 +395,223 @@ async function relayLoop(input: RelayInput) {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/* ============================================================================
+   CIRCLE SOURCE PIPELINE.
+   Signs approve + burn from the user's source-chain Circle DCW, asynchronously.
+   Each step is submitted (id captured + persisted) then polled to settlement in
+   the background, so a Circle tx that settles minutes later (Base Sepolia
+   testnet has done this) is never thrown away. On a slow stage the loop exits
+   leaving the bridge in its source state; resumePendingBridges (next boot) or
+   POST /circle-bridge/:id/resume continues it. Only a hard Circle FAILED state
+   marks the bridge errored. Once the burn lands we set sourceTxHash and hand
+   off to the existing mint relay.
+   ========================================================================== */
+
+const SOURCE_POLL_INTERVAL_MS = 5_000;
+// Per source stage. Generous because testnet bundler latency runs in minutes.
+const SOURCE_POLL_TIMEOUT_MS = 60 * 60 * 1000; // 1h
+const sourceInFlight = new Set<string>();
+
+interface SourcePipelineInput {
+  bridgeId: string;
+  sourceChainKey: 'baseSepolia' | 'sepolia';
+  bridgeWalletId: string;
+  bridgeWalletAddress: string;
+  amountUsdc: string;
+  mintRecipient: string;
+}
+
+function startSourcePipeline(input: SourcePipelineInput) {
+  if (sourceInFlight.has(input.bridgeId)) return;
+  sourceInFlight.add(input.bridgeId);
+  sourcePipelineLoop(input).finally(() => sourceInFlight.delete(input.bridgeId));
+}
+
+interface WaitResult {
+  ok: boolean;
+  txHash?: string;
+  failed?: boolean; // true = Circle reported a terminal failure (do not resume)
+  reason?: string;
+}
+
+/// Poll a Circle transaction id to COMPLETE. Returns failed=true on a terminal
+/// Circle failure, or ok=false (failed undefined) on a soft timeout that should
+/// be resumed later rather than errored.
+async function waitForCircleTx(txId: string, label: string): Promise<WaitResult> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < SOURCE_POLL_TIMEOUT_MS) {
+    try {
+      const { state, txHash } = await getTxState(txId);
+      if (state === 'COMPLETE') return { ok: true, txHash };
+      if (state === 'FAILED' || state === 'CANCELLED' || state === 'DENIED') {
+        return { ok: false, failed: true, reason: `${label}: Circle tx ${state}` };
+      }
+    } catch (err) {
+      logger.warn({ txId, err: (err as Error).message }, `${label}: getTxState error`);
+    }
+    await sleep(SOURCE_POLL_INTERVAL_MS);
+  }
+  return { ok: false, reason: `${label}: not settled within source poll window` };
+}
+
+async function failSource(bridgeId: string, scope: string, message: string) {
+  await patchBridge(bridgeId, { status: 'error', error: message });
+  bus.emitEvent({
+    type: 'bridge.error',
+    actor: 'buyer',
+    payload: { bridgeId, scope, message, circle: true },
+  });
+}
+
+async function sourcePipelineLoop(input: SourcePipelineInput) {
+  const chainCfg = CIRCLE_SOURCE_CHAINS[input.sourceChainKey];
+  const amountWei = parseUnits(input.amountUsdc, USDC_DECIMALS);
+  const amountStr = amountWei.toString();
+  const sourceClient = sourceClients[input.sourceChainKey];
+
+  let record = await getBridge(input.bridgeId);
+  if (!record) {
+    logger.warn({ bridgeId: input.bridgeId }, 'source pipeline: bridge record missing');
+    return;
+  }
+  // Already past the source stage: just make sure the mint relay is running.
+  if (record.status === 'minted') return;
+  if (record.sourceTxHash) {
+    startRelay({
+      bridgeId: record.bridgeId,
+      sourceDomain: record.sourceDomain,
+      sourceTxHash: record.sourceTxHash,
+      amountUsdc: record.amountUsdc,
+      mintRecipient: record.mintRecipient,
+    });
+    return;
+  }
+
+  try {
+    // STAGE 1 — APPROVE. Skip when the live allowance already covers the amount
+    // (a prior attempt's approve may have landed after its window lapsed; that
+    // is exactly the bug this pipeline fixes, and reading allowance recovers it).
+    let allowanceOk = false;
+    try {
+      const allowance = (await sourceClient.readContract({
+        address: chainCfg.usdc as `0x${string}`,
+        abi: erc20BalanceOfAbi,
+        functionName: 'allowance',
+        args: [input.bridgeWalletAddress as `0x${string}`, TOKEN_MESSENGER_V2 as `0x${string}`],
+      })) as bigint;
+      allowanceOk = allowance >= amountWei;
+    } catch (err) {
+      logger.warn(
+        { bridgeId: input.bridgeId, err: (err as Error).message },
+        'allowance read failed; will submit approve',
+      );
+    }
+
+    if (!allowanceOk) {
+      await patchBridge(input.bridgeId, { status: 'approving' });
+      // Reuse an in-flight approve id across a resume rather than re-submitting.
+      let approveTxId = record.approveTxId;
+      if (!approveTxId) {
+        bus.emitEvent({
+          type: 'bridge.approving',
+          actor: 'buyer',
+          payload: { bridgeId: input.bridgeId, sourceChainKey: input.sourceChainKey, circle: true },
+        });
+        const { txId } = await submitContractCall(
+          {
+            walletId: input.bridgeWalletId,
+            contractAddress: chainCfg.usdc,
+            abiFunctionSignature: 'approve(address,uint256)',
+            abiParameters: [TOKEN_MESSENGER_V2, amountStr],
+            feeLevel: 'HIGH',
+          },
+          `circle-bridge.approve(${input.sourceChainKey}, ${input.bridgeId})`,
+        );
+        approveTxId = txId;
+        await patchBridge(input.bridgeId, { approveTxId });
+      }
+      const ar = await waitForCircleTx(approveTxId, `circle-bridge.approve(${input.bridgeId})`);
+      if (!ar.ok) {
+        if (ar.failed) await failSource(input.bridgeId, 'approve', ar.reason ?? 'approve failed');
+        else logger.warn({ bridgeId: input.bridgeId }, 'approve pending past window; resumable');
+        return;
+      }
+    }
+
+    // STAGE 2 — BURN.
+    record = (await getBridge(input.bridgeId)) ?? record;
+    let burnTxId = record.burnTxId;
+    if (!burnTxId) {
+      await patchBridge(input.bridgeId, { status: 'burning' });
+      bus.emitEvent({
+        type: 'bridge.burning',
+        actor: 'buyer',
+        payload: { bridgeId: input.bridgeId, sourceChainKey: input.sourceChainKey, circle: true },
+      });
+      const { txId } = await submitContractCall(
+        {
+          walletId: input.bridgeWalletId,
+          contractAddress: TOKEN_MESSENGER_V2,
+          abiFunctionSignature:
+            'depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)',
+          abiParameters: [
+            amountStr,
+            ARC_DOMAIN.toString(),
+            addressToBytes32(input.mintRecipient),
+            chainCfg.usdc,
+            // destinationCaller = zero so the platform buyer agent can relay.
+            `0x${'0'.repeat(64)}`,
+            '0',
+            FINALITY_THRESHOLD_FAST.toString(),
+          ],
+          feeLevel: 'HIGH',
+        },
+        `circle-bridge.depositForBurn(${input.sourceChainKey}, ${input.bridgeId})`,
+      );
+      burnTxId = txId;
+      await patchBridge(input.bridgeId, { burnTxId });
+    }
+    const br = await waitForCircleTx(burnTxId, `circle-bridge.burn(${input.bridgeId})`);
+    if (!br.ok) {
+      if (br.failed) await failSource(input.bridgeId, 'depositForBurn', br.reason ?? 'burn failed');
+      else logger.warn({ bridgeId: input.bridgeId }, 'burn pending past window; resumable');
+      return;
+    }
+    if (!br.txHash) {
+      await failSource(input.bridgeId, 'depositForBurn', 'burn completed without a tx hash');
+      return;
+    }
+
+    // STAGE 3 — hand off to the mint relay.
+    await patchBridge(input.bridgeId, { sourceTxHash: br.txHash, status: 'relaying' });
+    bus.emitEvent({
+      type: 'bridge.burned',
+      actor: 'buyer',
+      payload: {
+        bridgeId: input.bridgeId,
+        sourceDomain: chainCfg.domain,
+        sourceTxHash: br.txHash,
+        amountUsdc: input.amountUsdc,
+        mintRecipient: input.mintRecipient,
+        circle: true,
+      },
+    });
+    startRelay({
+      bridgeId: input.bridgeId,
+      sourceDomain: chainCfg.domain,
+      sourceTxHash: br.txHash,
+      amountUsdc: input.amountUsdc,
+      mintRecipient: input.mintRecipient,
+    });
+  } catch (err) {
+    reportError('bridge.circle.pipeline', err, {
+      bridgeId: input.bridgeId,
+      sourceChainKey: input.sourceChainKey,
+    });
+    await failSource(input.bridgeId, 'pipeline', (err as Error).message);
+  }
 }
 
 /// Manual recheck: re-queries IRIS for the attestation and tries to mint, even
@@ -552,7 +783,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     );
   }
 
-  if (inFlight.has(body.bridgeId)) {
+  if (inFlight.has(body.bridgeId) || sourceInFlight.has(body.bridgeId)) {
     return c.json({ accepted: false, reason: 'bridge already in progress' }, 409);
   }
 
@@ -650,129 +881,91 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     // will surface the real error if there's no USDC.
   }
 
-  inFlight.add(body.bridgeId);
-  try {
-    const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
-    const amountStr = amountWei.toString();
+  // Create the bridge record up front in the 'approving' source stage, then
+  // hand off to the async pipeline and return immediately. The pipeline signs
+  // the approve + burn from the user's source DCW and polls each Circle tx to
+  // settlement in a background loop. Testnet settlement can run minutes past any
+  // sane HTTP window, so this is what stops a slow-but-successful Circle tx from
+  // surfacing as a hard failure. Persisting first means a restart resumes the
+  // pipeline instead of stranding a burned-but-unrecorded transfer.
+  await createBridge({
+    bridgeId: body.bridgeId,
+    sourceDomain: chainCfg.domain,
+    sourceTxHash: '',
+    amountUsdc: body.amountUsdc.toString(),
+    mintRecipient: body.mintRecipient,
+    status: 'approving',
+    sourceChainKey: body.sourceChainKey,
+    bridgeWalletId,
+    bridgeWalletAddress,
+  });
 
-    // Step A: approve the TokenMessenger to pull USDC for the burn. Skip it when
-    // the bridge wallet already has enough allowance. A prior attempt's approve
-    // often lands on chain even after the backend's settle window threw, so
-    // re-approving every retry just re-times-out and never reaches the burn.
-    // Reading the live allowance lets a funded, already-approved wallet jump
-    // straight to depositForBurn.
-    let allowanceOk = false;
-    try {
-      const allowance = (await sourceClients[body.sourceChainKey].readContract({
-        address: chainCfg.usdc as `0x${string}`,
-        abi: erc20BalanceOfAbi,
-        functionName: 'allowance',
-        args: [bridgeWalletAddress as `0x${string}`, TOKEN_MESSENGER_V2 as `0x${string}`],
-      })) as bigint;
-      allowanceOk = allowance >= amountWei;
-    } catch (err) {
-      logger.warn(
-        { bridgeId: body.bridgeId, err: (err as Error).message },
-        'allowance read failed; will run approve to be safe',
-      );
-    }
+  startSourcePipeline({
+    bridgeId: body.bridgeId,
+    sourceChainKey: body.sourceChainKey,
+    bridgeWalletId,
+    bridgeWalletAddress,
+    amountUsdc: body.amountUsdc.toString(),
+    mintRecipient: body.mintRecipient,
+  });
 
-    let approveTxHash: string | undefined;
-    if (!allowanceOk) {
-      const approveResult = await executeContractCall(
-        {
-          walletId: bridgeWalletId,
-          contractAddress: chainCfg.usdc,
-          abiFunctionSignature: 'approve(address,uint256)',
-          abiParameters: [TOKEN_MESSENGER_V2, amountStr],
-          feeLevel: 'HIGH',
-          pollAttempts: BRIDGE_POLL_ATTEMPTS,
-        },
-        `circle-bridge.approve(${body.sourceChainKey}, ${body.bridgeId})`,
-      );
-      approveTxHash = approveResult.txHash;
-    }
-
-    // Step B: depositForBurn. Fast finality threshold (~13s on Base/Eth testnets).
-    // maxFee = 0 means we don't tip Circle's fast attestation lane; standard
-    // is fine for our flow.
-    const burnResult = await executeContractCall(
-      {
-        walletId: bridgeWalletId,
-        contractAddress: TOKEN_MESSENGER_V2,
-        abiFunctionSignature:
-          'depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)',
-        abiParameters: [
-          amountStr,
-          ARC_DOMAIN.toString(),
-          addressToBytes32(body.mintRecipient),
-          chainCfg.usdc,
-          // destinationCaller = zero address (anyone can call receiveMessage,
-          // including our platform buyer agent which already does so).
-          `0x${'0'.repeat(64)}`,
-          '0',
-          FINALITY_THRESHOLD_FAST.toString(),
-        ],
-        feeLevel: 'HIGH',
-        pollAttempts: BRIDGE_POLL_ATTEMPTS,
-      },
-      `circle-bridge.depositForBurn(${body.sourceChainKey}, ${body.bridgeId})`,
-    );
-
-    // Record the bridge so the standard relay loop can take over the mint.
-    await createBridge({
+  return c.json(
+    {
+      accepted: true,
       bridgeId: body.bridgeId,
+      status: 'approving',
+      sourceAddress: bridgeWalletAddress,
       sourceDomain: chainCfg.domain,
-      sourceTxHash: burnResult.txHash,
-      amountUsdc: body.amountUsdc.toString(),
-      mintRecipient: body.mintRecipient,
-    });
+    },
+    202,
+  );
+});
 
-    bus.emitEvent({
-      type: 'bridge.burned',
-      actor: 'buyer',
-      payload: {
-        bridgeId: body.bridgeId,
-        sourceDomain: chainCfg.domain,
-        sourceTxHash: burnResult.txHash,
-        amountUsdc: body.amountUsdc.toString(),
-        mintRecipient: body.mintRecipient,
-        circle: true,
-      },
-    });
-
-    startRelay({
-      bridgeId: body.bridgeId,
-      sourceDomain: chainCfg.domain,
-      sourceTxHash: burnResult.txHash,
-      amountUsdc: body.amountUsdc.toString(),
-      mintRecipient: body.mintRecipient,
-    });
-
-    return c.json(
-      {
-        accepted: true,
-        bridgeId: body.bridgeId,
-        // null when the approve was skipped because allowance already covered
-        // the amount (a prior attempt's approve had landed on chain).
-        approveTxHash: approveTxHash ?? null,
-        burnTxHash: burnResult.txHash,
-        sourceAddress: bridgeWalletAddress,
-        sourceDomain: chainCfg.domain,
-      },
-      202,
-    );
-  } catch (err) {
-    reportError('bridge.circle', err, {
-      bridgeId: body.bridgeId,
-      address: userAddress,
-      sourceChainKey: body.sourceChainKey,
-      amountUsdc: body.amountUsdc,
-    });
-    return c.json({ error: 'circle-bridge failed', detail: (err as Error).message }, 502);
-  } finally {
-    inFlight.delete(body.bridgeId);
+/// Resume a Circle bridge that's mid source-pipeline (approving/burning) or
+/// waiting on the mint relay. Idempotent: safe to call repeatedly. Used by the
+/// frontend retry/auto-recheck for Circle bridges and as a manual nudge. Web3
+/// bridges should use /:bridgeId/recheck instead.
+bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
+  const bridgeId = c.req.param('bridgeId');
+  const record = await getBridge(bridgeId);
+  if (!record) return c.json({ error: 'bridge not found' }, 404);
+  if (record.status === 'minted') {
+    return c.json({ status: 'minted', mintTxHash: record.mintTxHash ?? null });
   }
+  // Already burned: just make sure the mint relay is running.
+  if (record.sourceTxHash) {
+    startRelay({
+      bridgeId,
+      sourceDomain: record.sourceDomain,
+      sourceTxHash: record.sourceTxHash,
+      amountUsdc: record.amountUsdc,
+      mintRecipient: record.mintRecipient,
+    });
+    return c.json({ status: 'relaying' });
+  }
+  // Source stage. Needs the Circle context we persisted at create time.
+  if (!record.sourceChainKey || !record.bridgeWalletId || !record.bridgeWalletAddress) {
+    return c.json(
+      { error: 'bridge has no source context; this is likely a web3 bridge. Use /recheck.' },
+      409,
+    );
+  }
+  // Clear a prior error so the row stops showing failed while we re-run.
+  if (record.status === 'error') {
+    await patchBridge(bridgeId, {
+      status: record.burnTxId ? 'burning' : 'approving',
+      error: undefined,
+    });
+  }
+  startSourcePipeline({
+    bridgeId,
+    sourceChainKey: record.sourceChainKey,
+    bridgeWalletId: record.bridgeWalletId,
+    bridgeWalletAddress: record.bridgeWalletAddress,
+    amountUsdc: record.amountUsdc,
+    mintRecipient: record.mintRecipient,
+  });
+  return c.json({ status: 'resuming' });
 });
 
 const walletStatusQuery = z.object({

@@ -4,6 +4,7 @@ import { parseUnits } from 'viem';
 import {
   provisionUserAgentWallets,
   provisionUserBridgeWallet,
+  dripTestnetUsdc,
   BASE_SEPOLIA_BLOCKCHAIN,
 } from '../circle/wallets.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
@@ -118,6 +119,12 @@ activationRoutes.post('/activate', async (c) => {
     }
 
     const record = await saveAgentWallets({ userAddress, ...provisioned, bridgeWallets });
+
+    // Seed the buyer agent with testnet USDC so the user can post a brief and
+    // have the agent fund escrow immediately, no faucet hunt. Fire-and-forget:
+    // never blocks activation, testnet-only, self-skips on a live key.
+    void dripTestnetUsdc(record.buyerAddress);
+
     bus.emitEvent({
       type: 'agent.activated',
       actor: 'platform',

@@ -154,6 +154,14 @@ function isActive(phase: BridgePhase): boolean {
   return ACTIVE_PHASES.includes(phase);
 }
 
+/// Circle bridges carry "-circle-" in their id (see startCircle). Their source
+/// approve+burn run on the backend pipeline, so unlike web3 bridges they keep
+/// progressing across a page reload and resume via the backend rather than a
+/// browser re-sign.
+function isCircleBridgeId(id: string): boolean {
+  return id.includes('-circle-');
+}
+
 function storageKey(address?: `0x${string}` | null): string | null {
   if (!address) return null;
   return `${STORAGE_KEY_PREFIX}${address.toLowerCase()}`;
@@ -177,6 +185,10 @@ function loadFromStorage(address: `0x${string}` | null | undefined): BridgeRecor
     return arr
       .filter((b) => (b.updatedAt ?? b.startedAt ?? 0) > cutoff)
       .map((b) => {
+        // Circle bridges run approve+burn on the backend, so they keep
+        // progressing after a reload. Leave them in place; the auto-resume
+        // effect re-syncs them with the backend and SSE animates the rest.
+        if (isCircleBridgeId(b.id)) return b;
         if (
           b.phase === 'switching' ||
           b.phase === 'approving' ||
@@ -269,6 +281,9 @@ export function useBridges() {
     if (!identityAddress) return;
     return subscribeLiveEvents((e) => {
       if (
+        e.type !== 'bridge.approving' &&
+        e.type !== 'bridge.burning' &&
+        e.type !== 'bridge.burned' &&
         e.type !== 'bridge.attested' &&
         e.type !== 'bridge.minted' &&
         e.type !== 'bridge.error'
@@ -281,7 +296,24 @@ export function useBridges() {
         if (idx < 0) return list;
         const cur = list[idx]!;
         let next: BridgeRecord = cur;
-        if (e.type === 'bridge.attested') {
+        if (e.type === 'bridge.approving') {
+          // Source pipeline (Circle path) signing the approve on the user's DCW.
+          next = { ...cur, phase: 'approving', error: undefined, updatedAt: Date.now() };
+        } else if (e.type === 'bridge.burning') {
+          next = { ...cur, phase: 'burning', error: undefined, updatedAt: Date.now() };
+        } else if (e.type === 'bridge.burned') {
+          // Burn landed on the source chain. Record the hash and move into the
+          // attestation wait. burnTxHash also gates retry -> recheck so a burned
+          // bridge is never re-burned.
+          const srcHash = e.payload?.sourceTxHash as `0x${string}` | undefined;
+          next = {
+            ...cur,
+            phase: 'attesting',
+            burnTxHash: srcHash ?? cur.burnTxHash,
+            error: undefined,
+            updatedAt: Date.now(),
+          };
+        } else if (e.type === 'bridge.attested') {
           // Progressing again: clear any stale error from a prior failed
           // recheck so the row doesn't show "attesting" alongside an old error.
           next = { ...cur, phase: 'minting', error: undefined, updatedAt: Date.now() };
@@ -542,12 +574,22 @@ export function useBridges() {
     if (hydratedFor !== key) return;
     if (autoRecheckedFor.current === key) return;
     autoRecheckedFor.current = key;
-    const inFlight = bridgesRef.current.filter(
-      (b) => b.phase === 'attesting' || b.phase === 'minting' || b.phase === 'relaying',
+    const inFlightList = bridgesRef.current.filter((b) =>
+      isCircleBridgeId(b.id)
+        ? b.phase === 'approving' ||
+          b.phase === 'burning' ||
+          b.phase === 'relaying' ||
+          b.phase === 'attesting' ||
+          b.phase === 'minting'
+        : b.phase === 'attesting' || b.phase === 'minting' || b.phase === 'relaying',
     );
-    inFlight.forEach((b) => {
-      recheck(b.id).catch(() => {
-        /* recheck logs; UI keeps the previous state */
+    inFlightList.forEach((b) => {
+      // Circle bridges resume the backend source pipeline (which may still be
+      // mid approve/burn); web3 bridges re-query IRIS via recheck. Either way a
+      // missed SSE update (closed tab) gets re-synced on mount.
+      const p = isCircleBridgeId(b.id) ? api.bridgeCircleResume(b.id) : recheck(b.id);
+      Promise.resolve(p).catch(() => {
+        /* logs server-side; UI keeps the previous state */
       });
     });
   }, [identityAddress, hydratedFor, recheck]);
@@ -564,41 +606,28 @@ export function useBridges() {
         await recheck(id);
         return;
       }
-      // Circle user retry: re-fire the backend bridge call. runFlow requires
-      // a wagmi walletClient which Circle users never have, so it would
-      // error out with "Connect your wallet first".
+      // Circle user retry: resume the backend source pipeline rather than
+      // re-POSTing circle-bridge (which would 409 on the existing bridge id).
+      // The pipeline reads the live allowance, so a half-done attempt picks up
+      // where it left off. runFlow can't help here (Circle users have no wagmi
+      // walletClient). SSE animates the row from the resumed pipeline.
       if (isCircleUser && auth.address) {
-        patch(id, (b) => ({
-          ...b,
-          phase: 'approving',
-          error: undefined,
-          approveTxHash: undefined,
-          burnTxHash: undefined,
-          mintTxHash: undefined,
-        }));
+        patch(id, (b) => ({ ...b, phase: 'approving', error: undefined }));
         try {
-          const r = await api.bridgeCircle({
-            bridgeId: id,
-            address: auth.address,
-            sourceChainKey: cur.sourceChainKey,
-            amountUsdc: Number(cur.amountUsdc),
-            mintRecipient: cur.mintRecipient,
-          });
-          patch(id, (b) => ({
-            ...b,
-            phase: 'attesting',
-            approveTxHash: (r.approveTxHash ?? undefined) as `0x${string}` | undefined,
-            burnTxHash: r.burnTxHash as `0x${string}`,
-          }));
+          await api.bridgeCircleResume(id);
         } catch (err) {
+          const raw = errorToString(err).toLowerCase();
           if (typeof console !== 'undefined') {
             // eslint-disable-next-line no-console
             console.warn('[bridge.retry.circle]', errorToString(err));
           }
+          const isOrphan = raw.includes('not found') || raw.includes('404');
           patch(id, (b) => ({
             ...b,
             phase: 'error',
-            error: 'Retry failed. Check your source-chain funding and try again.',
+            error: isOrphan
+              ? 'Bridge record not found. Dismiss and start a fresh one.'
+              : 'Retry failed. Check your source-chain funding and try again.',
           }));
         }
         return;
@@ -648,19 +677,17 @@ export function useBridges() {
       };
       setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
       try {
-        const r = await api.bridgeCircle({
+        await api.bridgeCircle({
           bridgeId: id,
           address: input.userAddress,
           sourceChainKey: input.sourceChainKey,
           amountUsdc: input.amountUsdc,
           mintRecipient: input.mintRecipient,
         });
-        patch(id, (b) => ({
-          ...b,
-          phase: 'attesting',
-          approveTxHash: r.approveTxHash as `0x${string}`,
-          burnTxHash: r.burnTxHash as `0x${string}`,
-        }));
+        // Async backend: the bridge is queued in the source pipeline. SSE drives
+        // the row from here (approving -> burning -> burned -> attested ->
+        // minted). Keep it visibly in 'approving' until the first event lands.
+        patch(id, (b) => ({ ...b, phase: 'approving', error: undefined }));
       } catch (err) {
         if (typeof console !== 'undefined') {
           // eslint-disable-next-line no-console

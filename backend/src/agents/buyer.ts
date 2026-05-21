@@ -7,7 +7,11 @@ import {
   usdc as usdcAddress,
   getEscrowFeeBps,
   computeFunding,
+  readEscrow,
+  invalidateEscrowCache,
+  readUsdcBalance,
 } from '../chain/contracts.js';
+import { ESCROW_FUNDED } from '../chain/settlement.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
@@ -1292,6 +1296,31 @@ async function proposeMatch(
       proposedAt: Date.now(),
       ...(risk ? { riskFlag: risk.flag, riskNote: risk.note } : {}),
     };
+
+    // Balance awareness at the commit point. Negotiation already roamed freely
+    // up to the buyer's authorized ceiling; here the agent reads its own USDC
+    // and flags whether it can fund the agreed price now, so the approval banner
+    // shows any top-up upfront instead of failing at approve. Never blocks or
+    // auto-declines the match. the human (who set the ceiling) tops up. Non-fatal.
+    try {
+      const [agentBal, feeBps] = await Promise.all([
+        readUsdcBalance(buyerWallets.buyerAddress),
+        getEscrowFeeBps(),
+      ]);
+      const priceWei = parseUnits(agreedPriceUsdc, USDC_DECIMALS);
+      const { fundedAmount } = computeFunding(priceWei, feeBps);
+      const fundable = agentBal >= fundedAmount;
+      proposal.fundable = fundable;
+      proposal.agentBalanceUsdc = formatUnits(agentBal, USDC_DECIMALS);
+      proposal.fundedAmountUsdc = formatUnits(fundedAmount, USDC_DECIMALS);
+      proposal.topUpNeededUsdc = formatUnits(fundable ? 0n : fundedAmount - agentBal, USDC_DECIMALS);
+    } catch (err) {
+      logger.warn(
+        { jobId: state.jobId, err: (err as Error).message },
+        'proposeMatch: fundability check failed (non-fatal)',
+      );
+    }
+
     await dbUpsertMatchProposal(proposal);
 
     logger.info(
@@ -1314,6 +1343,9 @@ async function proposeMatch(
         sellerAgent: proposal.sellerAgent,
         agreedPriceUsdc,
         deadlineUnix: proposal.deadlineUnix,
+        fundable: proposal.fundable,
+        topUpNeededUsdc: proposal.topUpNeededUsdc,
+        fundedAmountUsdc: proposal.fundedAmountUsdc,
       },
     });
   } catch (err) {
@@ -1373,7 +1405,20 @@ export async function approveAgentMatch(
   });
 
   const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
-  await fundEscrow(state, seller, priceWei);
+  const fundRes = await fundEscrow(state, seller, priceWei);
+  if (!fundRes.ok) {
+    // Funding did not confirm on chain. Do NOT persist the deal or mark the
+    // proposal approved, otherwise we'd create an "accepted" deal sitting on an
+    // empty escrow (the recurring "escrow got 0" bug). Surface a clear error so
+    // the buyer tops up the agent and re-approves.
+    logger.error({ jobId, reason: fundRes.reason }, 'approveAgentMatch: escrow funding not confirmed');
+    return {
+      ok: false,
+      code: fundRes.reason ?? 'FUND_FAILED',
+      message:
+        'Escrow funding did not confirm. The buyer agent is likely short on USDC for the negotiated amount plus the platform fee. Top up the buyer agent and approve again.',
+    };
+  }
 
   // Persist a deal row so the post-funding flow (seller marks delivered, buyer
   // releases, dispute, auto-release) reuses the direct-deal mechanics.
@@ -1465,8 +1510,8 @@ async function fundEscrow(
   state: JobState,
   seller: `0x${string}`,
   priceWei: bigint,
-) {
-  if (state.escrowFunded) return;
+): Promise<{ ok: boolean; reason?: string }> {
+  if (state.escrowFunded) return { ok: true };
   const buyer = state.buyer;
 
   // The escrow pulls dealAmount + the buyer's half of the platform fee, so the
@@ -1488,7 +1533,7 @@ async function fundEscrow(
   } catch (err) {
     logger.error({ jobId: state.jobId, err: (err as Error).message }, 'usdc approve failed');
     emitAgentChainError(state, seller, 'usdc.approve', err);
-    return;
+    return { ok: false, reason: 'APPROVE_FAILED' };
   }
   logger.info({ jobId: state.jobId, ...approveResult }, 'usdc approved for escrow');
   bus.emitEvent({
@@ -1512,8 +1557,32 @@ async function fundEscrow(
   } catch (err) {
     logger.error({ jobId: state.jobId, err: (err as Error).message }, 'fundEscrow failed');
     emitAgentChainError(state, seller, 'fundEscrow', err);
-    return;
+    return { ok: false, reason: 'FUND_FAILED' };
   }
+
+  // ERC-4337: the handleOps tx can report success even when the inner fundEscrow
+  // userOp reverts (e.g. the buyer agent is short on USDC for amount + fee), so
+  // the txHash is not proof of funding. Read the escrow and require Funded
+  // before we treat the deal as accepted. This is what stops an "accepted" deal
+  // from being persisted on an empty escrow.
+  invalidateEscrowCache(state.jobId);
+  const fundedAccount = await readEscrow(state.jobId);
+  if (fundedAccount.state !== ESCROW_FUNDED) {
+    logger.error(
+      { jobId: state.jobId, escrowState: fundedAccount.state, fundTxHash: fundResult.txHash },
+      'fundEscrow tx landed but escrow not Funded; buyer agent likely short on USDC',
+    );
+    emitAgentChainError(
+      state,
+      seller,
+      'fundEscrow',
+      new Error(
+        'escrow not Funded after fundEscrow; buyer agent likely short on USDC for the negotiated amount plus fee',
+      ),
+    );
+    return { ok: false, reason: 'FUND_NOT_CONFIRMED' };
+  }
+
   state.escrowFunded = true;
   logger.info(
     {
@@ -1537,6 +1606,7 @@ async function fundEscrow(
       txHash: fundResult.txHash,
     },
   });
+  return { ok: true };
 }
 
 export interface BuyerJobSnapshot {

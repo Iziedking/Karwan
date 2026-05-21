@@ -6,17 +6,33 @@ import { bridges } from './schema.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'bridges.json');
 
-export type BridgeStatus = 'relaying' | 'minted' | 'error';
+// 'approving' and 'burning' are the source-side stages of the Circle-user
+// bridge, where the backend signs the burn from a per-user source-chain DCW.
+// 'relaying' onward is shared with the web3 path (burn already on chain, now
+// polling IRIS + minting on Arc). Terminal: 'minted', 'error'.
+export type BridgeStatus = 'approving' | 'burning' | 'relaying' | 'minted' | 'error';
 
 export interface BridgeRelay {
   bridgeId: string;
   sourceDomain: number;
+  /// Empty until the burn lands. The web3 path supplies it up front; the
+  /// Circle path fills it once the backend-signed depositForBurn confirms.
   sourceTxHash: string;
   amountUsdc: string;
   mintRecipient: string;
   status: BridgeStatus;
   mintTxHash?: string;
   error?: string;
+  // --- Circle-user source-side pipeline state (resume across restarts) ---
+  /// Which source chain the DCW lives on. Present only for Circle bridges.
+  sourceChainKey?: 'baseSepolia' | 'sepolia';
+  /// The user's source-chain Circle DCW that signs approve + burn.
+  bridgeWalletId?: string;
+  bridgeWalletAddress?: string;
+  /// Circle transaction ids for the in-flight approve / burn, so a restart can
+  /// re-poll them instead of re-submitting (which would double up userOps).
+  approveTxId?: string;
+  burnTxId?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -30,12 +46,15 @@ export async function getBridge(bridgeId: string): Promise<BridgeRelay | null> {
 }
 
 export async function createBridge(
-  input: Omit<BridgeRelay, 'status' | 'createdAt' | 'updatedAt'>,
+  input: Omit<BridgeRelay, 'status' | 'createdAt' | 'updatedAt'> & { status?: BridgeStatus },
 ): Promise<BridgeRelay> {
   const now = Date.now();
+  const { status, ...rest } = input;
   const record: BridgeRelay = {
-    ...input,
-    status: 'relaying',
+    ...rest,
+    // Web3 bridges arrive already burned, so they default straight to
+    // 'relaying'. Circle bridges pass 'approving' to enter the source pipeline.
+    status: status ?? 'relaying',
     createdAt: now,
     updatedAt: now,
   };
@@ -69,14 +88,16 @@ export async function patchBridge(
   return next;
 }
 
-/// Bridges that burned but never reached a mint or error. Used to resume relays
-/// after a backend restart.
+/// Bridges in any non-terminal state. Used to resume after a backend restart:
+/// 'approving'/'burning' resume the Circle source pipeline, 'relaying' resumes
+/// the IRIS-poll + Arc mint. Terminal states ('minted', 'error') are skipped.
 export async function listPendingBridges(): Promise<BridgeRelay[]> {
+  const isPending = (b: BridgeRelay) => b.status !== 'minted' && b.status !== 'error';
   if (pgEnabled) {
     const rows = await db().select().from(bridges);
-    return rows.map((r) => r.data).filter((b) => b.status === 'relaying');
+    return rows.map((r) => r.data).filter(isPending);
   }
-  return Object.values(loadFile()).filter((b) => b.status === 'relaying');
+  return Object.values(loadFile()).filter(isPending);
 }
 
 // --- flat-file fallback ---

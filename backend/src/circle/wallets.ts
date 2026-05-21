@@ -1,5 +1,6 @@
 import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-controlled-wallets';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 let _client: ReturnType<typeof initiateDeveloperControlledWalletsClient> | null = null;
 
@@ -144,4 +145,46 @@ export async function provisionUserBridgeWallet(
     throw new Error(`bridge wallet provisioning on ${blockchain} returned incomplete data`);
   }
   return { walletId: wallet.id, address: wallet.address, blockchain };
+}
+
+const FAUCET_URL = 'https://api.circle.com/v1/faucet/drips';
+
+/// Best-effort testnet USDC drip from Circle's public faucet to a wallet, so a
+/// new user's wallet is spendable immediately without hunting for a faucet
+/// (Circle drips 20 USDC per address per 2h, Arc Testnet supported). Non-fatal
+/// by design: faucet rate limits and outages must NEVER block signup or
+/// activation, so this swallows all errors and is meant to be fire-and-forget.
+/// Auto-skips unless the Circle key is a testnet key, so it's a no-op on
+/// mainnet without any extra config.
+export async function dripTestnetUsdc(
+  address: string,
+  blockchain: string = ARC_TESTNET_BLOCKCHAIN,
+): Promise<void> {
+  const key = config.CIRCLE_API_KEY;
+  if (!key || !key.startsWith('TEST_API_KEY')) return; // live key: no faucet
+  try {
+    const res = await fetch(FAUCET_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ address, blockchain, usdc: true }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      logger.warn(
+        { address, blockchain, status: res.status, detail: detail.slice(0, 200) },
+        'testnet USDC drip non-2xx (often a per-address rate limit; non-fatal)',
+      );
+      return;
+    }
+    logger.info({ address, blockchain }, 'testnet USDC drip requested');
+  } catch (err) {
+    logger.warn(
+      { address, blockchain, err: (err as Error).message },
+      'testnet USDC drip failed (non-fatal)',
+    );
+  }
 }

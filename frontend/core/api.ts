@@ -249,6 +249,14 @@ export interface MatchProposal {
   /// buyers (docs/reputation-model.md §6) and trumps the buyer-side pattern.
   riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
   riskNote?: string;
+  /// Balance awareness from the buyer agent at propose time. fundable=false
+  /// means the agent agreed within the buyer's authorized cap but its wallet is
+  /// short by topUpNeededUsdc, so the buyer must top up before the seller's
+  /// accept can fund escrow. undefined on legacy proposals (treat as unknown).
+  fundable?: boolean;
+  agentBalanceUsdc?: string;
+  fundedAmountUsdc?: string;
+  topUpNeededUsdc?: string;
 }
 
 export interface DirectDealFunding {
@@ -776,14 +784,26 @@ export const api = {
     json<{
       accepted: true;
       bridgeId: string;
-      approveTxHash: string | null;
-      burnTxHash: string;
+      // Async source pipeline: the route returns once the bridge is queued, in
+      // the 'approving' stage. The burn hash arrives later over SSE, so these
+      // are no longer part of the immediate response.
+      status?: string;
+      approveTxHash?: string | null;
+      burnTxHash?: string;
       sourceAddress: string;
       sourceDomain: number;
     }>('/api/bridge/circle-bridge', {
       method: 'POST',
       body: JSON.stringify(input),
     }),
+  /// Resume a Circle bridge stuck mid source-pipeline (approving/burning) or
+  /// waiting on the mint relay. Idempotent. Used by retry + auto-recheck for
+  /// Circle bridges, where re-POSTing circle-bridge would 409 on the existing id.
+  bridgeCircleResume: (bridgeId: string) =>
+    json<{ status: string; mintTxHash?: string | null; error?: string }>(
+      `/api/bridge/circle-bridge/${bridgeId}/resume`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
   /// Returns or lazy-provisions the user's source-chain DCW address so the
   /// frontend can show "send USDC here" + a faucet link for Circle users.
   bridgeCircleSourceAddress: (address: string, sourceChainKey: 'baseSepolia' | 'sepolia') =>

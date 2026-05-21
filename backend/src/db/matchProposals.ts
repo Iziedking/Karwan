@@ -31,6 +31,18 @@ export interface MatchProposal {
   riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
   /// Short human-readable explanation paired with the riskFlag.
   riskNote?: string;
+  /// Balance awareness, computed at propose time. The agent negotiates freely up
+  /// to the buyer's authorized ceiling (budget x maxIncrease); these say whether
+  /// the buyer agent can fund the agreed price RIGHT NOW so the approval banner
+  /// can show a top-up requirement upfront instead of failing at approve. Never
+  /// causes auto-decline. the human (who set the ceiling) tops up and approves.
+  fundable?: boolean;
+  /// Buyer agent's current USDC balance (6dp string) at propose time.
+  agentBalanceUsdc?: string;
+  /// What the escrow will pull: agreed price + the buyer's half of the fee.
+  fundedAmountUsdc?: string;
+  /// max(0, fundedAmount - balance). 0 when fundable.
+  topUpNeededUsdc?: string;
 }
 
 export async function getMatchProposal(jobId: string): Promise<MatchProposal | null> {

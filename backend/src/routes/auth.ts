@@ -24,7 +24,7 @@ import {
   getUserByCredentialId,
   getUserByEmail,
 } from '../db/users.js';
-import { provisionUserIdentityWallet } from '../circle/wallets.js';
+import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import {
   clearSessionCookie,
   readSession,
@@ -644,6 +644,10 @@ authRoutes.post('/register/verify', async (c) => {
     return c.json({ error: 'account creation failed; please retry' }, 500);
   }
 
+  // Seed the new account's identity wallet with testnet USDC (fire-and-forget,
+  // testnet-only) so it's spendable right away without a faucet hunt.
+  void dripTestnetUsdc(identity.address);
+
   setSessionCookie(c, {
     address: identity.address,
     method: 'circle',
@@ -883,6 +887,9 @@ authRoutes.post('/otp/verify', async (c) => {
       );
       return c.json({ error: 'account creation failed; please retry' }, 500);
     }
+    // Seed the new account's identity wallet with testnet USDC (fire-and-forget,
+    // testnet-only) so it's spendable right away without a faucet hunt.
+    void dripTestnetUsdc(identity.address);
   }
 
   setSessionCookie(c, {

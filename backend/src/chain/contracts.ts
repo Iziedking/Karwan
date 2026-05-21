@@ -129,3 +129,27 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
   escrowCache.set(key, { value, expiresAt: now + READ_ESCROW_TTL_MS });
   return value;
 }
+
+const erc20BalanceAbi = [
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
+/// Reads an address's USDC (ERC-20, 6-decimal interface) balance on Arc. Used
+/// to preflight escrow funding: a Circle SCA executes via ERC-4337, so a
+/// fundEscrow whose inner transferFrom reverts for insufficient USDC still
+/// lands as a successful handleOps tx. Checking the balance up front turns that
+/// silent failure into a clear, early error with the exact shortfall.
+export async function readUsdcBalance(owner: string): Promise<bigint> {
+  return (await publicClient.readContract({
+    address: usdc,
+    abi: erc20BalanceAbi,
+    functionName: 'balanceOf',
+    args: [owner as `0x${string}`],
+  })) as bigint;
+}

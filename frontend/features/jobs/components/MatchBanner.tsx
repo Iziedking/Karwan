@@ -192,6 +192,37 @@ export function MatchBanner({ proposal, onChange }: Props) {
         </div>
       )}
 
+      {/* Balance-aware accept (task #184): the agent negotiated freely up to the
+          buyer's authorized cap, but its wallet is short for this price. Surface
+          the top-up upfront so the buyer acts before the seller's accept tries
+          to fund. Never blocks the match. fundable===false only; undefined =
+          legacy/unknown, no banner. */}
+      {proposal.fundable === false && (
+        <div
+          className="mt-4 px-4 py-3"
+          style={{
+            background: 'rgba(224, 162, 60, 0.10)',
+            border: '1px solid rgba(224, 162, 60, 0.32)',
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
+            borderBottomLeftRadius: 10,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          <p
+            className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5"
+            style={{ color: '#b07d1f' }}
+          >
+            Top up needed
+          </p>
+          <p className="text-[12.5px] leading-snug" style={{ color: 'var(--color-ink)' }}>
+            {viewerIsBuyer
+              ? `Your agent agreed within your cap, but its wallet is short by ${formatUsdc(proposal.topUpNeededUsdc ?? '0', { withSuffix: true })}. Top up your buyer agent so the seller can accept and escrow can fund.`
+              : 'The buyer agent needs a top-up before this can fund. The buyer has been prompted to add funds.'}
+          </p>
+        </div>
+      )}
+
       {viewerIsSeller && !showDeclineReason && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
@@ -262,7 +293,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
         </div>
       )}
 
-      {viewerIsBuyer && (
+      {viewerIsBuyer && proposal.fundable !== false && (
         <p className="mt-3 text-[13px] text-[var(--color-ink-dim)]">
           Waiting for the seller to accept. Your agent will fund escrow automatically when they
           do. No action needed from you.
