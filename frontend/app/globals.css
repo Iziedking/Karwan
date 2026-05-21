@@ -350,6 +350,49 @@ html[data-theme="dark"] {
   .grid-drift { animation: none !important; }
 }
 
+/* Tier-up celebration. A one-shot milestone moment on the profile: brand rails
+   drop from the top of the viewport, square confetti chips tumble after them,
+   and the tier card pops in with a single diagonal sheen. Decorative only,
+   fully suppressed under prefers-reduced-motion. */
+@keyframes celebrateCardPop {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.985); }
+  60%  { opacity: 1; transform: translateY(0) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.celebrate-card-pop { animation: celebrateCardPop 560ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes celebrateSheen {
+  0%   { transform: translateX(-130%) skewX(-14deg); opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translateX(260%) skewX(-14deg); opacity: 0; }
+}
+.celebrate-sheen { animation: celebrateSheen 1100ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both; }
+
+/* Vertical brand rails falling from the top. Each rail sets its own settle depth
+   (--rail-dy), delay and duration so they land staggered. */
+@keyframes tierRailDrop {
+  0%   { transform: translate3d(0, -140%, 0); opacity: 0; }
+  14%  { opacity: 1; }
+  72%  { opacity: 0.9; }
+  100% { transform: translate3d(0, var(--rail-dy, 60vh), 0); opacity: 0; }
+}
+.tier-rail { animation: tierRailDrop var(--rail-dur, 1900ms) cubic-bezier(0.3, 0.1, 0.2, 1) var(--rail-delay, 0ms) both; }
+
+/* Square confetti chips, falling with a tumble. */
+@keyframes tierChipFall {
+  0%   { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  86%  { opacity: 1; }
+  100% { transform: translate3d(var(--chip-dx, 0), var(--chip-dy, 82vh), 0) rotate(var(--chip-rot, 200deg)); opacity: 0; }
+}
+.tier-chip { animation: tierChipFall var(--chip-dur, 2200ms) cubic-bezier(0.4, 0.05, 0.25, 1) var(--chip-delay, 0ms) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tier-burst { display: none !important; }
+  .celebrate-card-pop { animation: none !important; }
+  .celebrate-sheen { display: none !important; }
+}
+
 /* Editorial display utility — Instrument Serif at a generous size with tight tracking. */
 .display {
   font-family: var(--font-serif);
