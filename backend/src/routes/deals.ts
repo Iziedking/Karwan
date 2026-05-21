@@ -33,7 +33,7 @@ import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
-import { sessionAddress, isSessionSelf } from '../auth/session.js';
+import { sessionMismatchesClaim, viewerAddress } from '../auth/session.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -89,7 +89,7 @@ dealsRoutes.post('/direct', async (c) => {
     return c.json({ error: 'buyer and seller must be different wallets' }, 400);
   }
   // Only the buyer can open a deal as themselves.
-  if (!isSessionSelf(c, body.buyerAddress)) {
+  if (sessionMismatchesClaim(c, body.buyerAddress)) {
     return c.json({ error: 'You can only open a deal as your own wallet.', code: 'forbidden' }, 403);
   }
 
@@ -189,7 +189,7 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   if (!deal) return c.json({ error: 'deal not found' }, 404);
   // A direct deal is private to its two parties. Identity comes from the signed
   // session, not a param. Non-parties get 403 with a clear, non-leaking reason.
-  const caller = sessionAddress(c);
+  const caller = viewerAddress(c);
   const isParty =
     !!caller &&
     (caller === deal.buyer.toLowerCase() || caller === deal.seller.toLowerCase());
@@ -213,7 +213,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   if (body.caller.toLowerCase() !== deal.seller) {
@@ -340,7 +340,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   if (body.caller.toLowerCase() !== deal.seller) {
@@ -386,7 +386,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   if (body.caller.toLowerCase() !== deal.buyer) {
@@ -454,7 +454,7 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   if (body.caller.toLowerCase() !== deal.buyer) {
@@ -507,7 +507,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const caller = body.caller.toLowerCase();
@@ -589,7 +589,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   if (body.caller.toLowerCase() !== deal.buyer) {
@@ -712,7 +712,7 @@ dealsRoutes.post('/direct/:jobId/cancel/propose', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
 
@@ -764,7 +764,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
 
@@ -893,7 +893,7 @@ dealsRoutes.post('/direct/:jobId/cancel/decline', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
 

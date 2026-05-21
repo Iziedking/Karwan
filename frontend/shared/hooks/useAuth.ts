@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
-import { api } from '@/core/api';
+import { api, setApiCaller } from '@/core/api';
 
 export type AuthMethod = 'web3' | 'circle';
 
@@ -116,6 +116,12 @@ export function useAuth(): AuthState & {
 
   const address = circle?.address ?? wagmiAddress ?? null;
   const method: AuthMethod | null = circle ? 'circle' : wagmiConnected ? 'web3' : null;
+
+  // Mirror the address into the API client so private reads can pass it as a
+  // `caller` hint (web3 users have no backend session cookie).
+  useEffect(() => {
+    setApiCaller(address);
+  }, [address]);
 
   return {
     address,

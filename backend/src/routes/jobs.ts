@@ -20,7 +20,7 @@ import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
-import { sessionAddress, isSessionSelf } from '../auth/session.js';
+import { sessionMismatchesClaim, viewerAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z
@@ -108,7 +108,7 @@ jobsRoutes.get('/:jobId', async (c) => {
   // the matched seller does too. Everyone else gets a status-only summary so the
   // page can say "collecting bids" / "in negotiation" without leaking the
   // auction. Identity is the signed session, never a client-supplied param.
-  const caller = sessionAddress(c);
+  const caller = viewerAddress(c);
   const proposal = await getMatchProposal(jobId);
   const deal = await getDeal(jobId);
   const parties = new Set<string>();
@@ -154,7 +154,7 @@ jobsRoutes.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.posterAddress)) {
+  if (sessionMismatchesClaim(c, body.posterAddress)) {
     return c.json({ error: 'You can only post a brief as your own wallet.', code: 'forbidden' }, 403);
   }
 
@@ -243,7 +243,7 @@ jobsRoutes.get('/:jobId/match', async (c) => {
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ proposal: null });
   // The proposal names both parties and the agreed price. Only they may read it.
-  const caller = sessionAddress(c);
+  const caller = viewerAddress(c);
   const isParty =
     !!caller &&
     (caller === proposal.buyerUser.toLowerCase() ||
@@ -281,7 +281,7 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const proposal = await getMatchProposal(jobId);
@@ -317,7 +317,7 @@ jobsRoutes.post('/:jobId/cancel', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const result = cancelBriefByBuyer(jobId as `0x${string}`, body.caller);
@@ -339,7 +339,7 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (!isSessionSelf(c, body.caller)) {
+  if (sessionMismatchesClaim(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const proposal = await getMatchProposal(jobId);

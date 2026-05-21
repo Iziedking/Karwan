@@ -129,6 +129,25 @@ export function isSessionSelf(c: Context, claimed: string | null | undefined): b
   return !!s && !!claimed && s === claimed.toLowerCase();
 }
 
+/// True only when a session IS present and does NOT match the claimed actor.
+/// Use this to gate mutations: it blocks a logged-in user from acting as someone
+/// else, but does NOT block requests with no session at all. only Circle users
+/// get a backend session today; web3 users authenticate by wallet and have none,
+/// so a hard session requirement would lock them out. For the sessionless case
+/// the route's own `caller === party` / on-chain signature still applies.
+/// Tighten to isSessionSelf once web3 sessions (SIWE) exist (see todo.md).
+export function sessionMismatchesClaim(c: Context, claimed: string | null | undefined): boolean {
+  const s = sessionAddress(c);
+  return !!s && !!claimed && s !== claimed.toLowerCase();
+}
+
+/// Best-effort viewer identity for read-gating: the verified session if present,
+/// else a client-supplied `caller` query param (web3 users have no session). The
+/// param path is jobId-gated and replaced by a real session once SIWE ships.
+export function viewerAddress(c: Context): string | null {
+  return sessionAddress(c) ?? c.req.query('caller')?.toLowerCase() ?? null;
+}
+
 export function clearSessionCookie(c: Context) {
   deleteCookie(c, COOKIE_NAME, {
     path: '/',

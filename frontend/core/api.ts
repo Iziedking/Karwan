@@ -7,6 +7,19 @@
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
 
+// The signed-in user's address, mirrored here by the auth layer. Web3 users have
+// no backend session cookie, so private reads pass this as a `caller` hint and
+// the backend uses it when no session is present. Circle users' session always
+// takes precedence server-side. Replaced by real web3 sessions (SIWE) later.
+let currentCaller: string | null = null;
+export function setApiCaller(addr: string | null): void {
+  currentCaller = addr ? addr.toLowerCase() : null;
+}
+function withCaller(path: string): string {
+  if (!currentCaller) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}caller=${currentCaller}`;
+}
+
 export interface ApiStatus {
   chain: { id: number; rpc: string; explorer: string };
   contracts: {
@@ -391,9 +404,9 @@ export const api = {
     json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
-  job: (id: string) => json<BuyerJob>(`/api/jobs/${id}`),
+  job: (id: string) => json<BuyerJob>(withCaller(`/api/jobs/${id}`)),
   matchProposal: (jobId: string) =>
-    json<{ proposal: MatchProposal | null }>(`/api/jobs/${jobId}/match`),
+    json<{ proposal: MatchProposal | null }>(withCaller(`/api/jobs/${jobId}/match`)),
   matchesFor: (address: string) =>
     json<{ proposals: MatchProposal[] }>(`/api/jobs/matches/for?caller=${address}`),
   approveMatch: (jobId: string, caller: string) =>
@@ -669,7 +682,7 @@ export const api = {
   directDeals: (address: string) =>
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
   directDeal: (jobId: string) =>
-    json<{ deal: DirectDeal }>(`/api/deals/direct/${jobId}`),
+    json<{ deal: DirectDeal }>(withCaller(`/api/deals/direct/${jobId}`)),
   acceptDirectDeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/accept`,

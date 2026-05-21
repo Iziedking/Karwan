@@ -16,6 +16,7 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
+import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -163,6 +164,8 @@ export default function ProfilePage() {
                 <TelegramConnectButton address={address ?? undefined} />
               </div>
             </div>
+            {/* Persistent tier card. your reputation right at the top of the profile. */}
+            <ProfileTierCard address={address} />
           </div>
           <div className="hidden lg:block fade-up fade-up-4">
             <AgentStatusVignette
