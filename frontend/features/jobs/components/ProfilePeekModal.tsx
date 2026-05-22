@@ -5,6 +5,17 @@ import { api, type UserProfile } from '@/core/api';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { useReputation } from '@/features/reputation/hooks/useReputation';
+
+// Per-tier hue, mirroring ProfileTierCard so the tier reads the same colour
+// everywhere. Shown as a rail down the profile box.
+const TIER_HUE: Record<string, string> = {
+  NEW: '#9a9a9a',
+  COLD: '#e0a23c',
+  ESTABLISHED: 'var(--lp-accent)',
+  STRONG: '#5fd08a',
+  ELITE: '#39e08a',
+};
 
 interface Props {
   open: boolean;
@@ -17,6 +28,8 @@ export function ProfilePeekModal({ open, onClose, address, role }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const { copied, copy } = useClipboard();
+  const { data: rep } = useReputation(open ? address : undefined);
+  const tierHue = TIER_HUE[(rep?.tier ?? 'NEW') as string] ?? TIER_HUE.NEW;
 
   useEffect(() => {
     if (!open) return;
@@ -68,7 +81,7 @@ export function ProfilePeekModal({ open, onClose, address, role }: Props) {
         aria-modal="true"
         aria-label={`${role} profile`}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm overflow-hidden fade-up"
+        className="relative w-full max-w-sm overflow-hidden fade-up"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
@@ -79,6 +92,13 @@ export function ProfilePeekModal({ open, onClose, address, role }: Props) {
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
         }}
       >
+        {/* Tier-coloured rail down the box: reflects the account's reputation
+            tier (grey NEW, amber COLD, lime ESTABLISHED, green STRONG/ELITE). */}
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-[4px]"
+          style={{ background: tierHue }}
+        />
         <div className="relative px-6 pt-7 pb-5">
           <button
             type="button"

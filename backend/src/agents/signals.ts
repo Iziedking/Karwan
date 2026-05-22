@@ -6,6 +6,7 @@ import { logger } from '../logger.js';
 import { compute } from '../reputation/engine.js';
 import { loadInputs } from '../reputation/signals.js';
 import type { Tier } from '../reputation/config.js';
+import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 
 // Deterministic decision signals computed before the LLM ever sees a bid.
 // Naming the features explicitly lets the LLM reason about the *pattern* (low
@@ -103,17 +104,32 @@ function tierToLower(t: Tier): RepTier {
 }
 
 export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
+  // Reputation belongs to the account, not the agent wallet. If `addr` is one of
+  // our agent wallets (a buyer/seller DCW), resolve it to the owner's identity
+  // address so a brand-new agent wallet inherits the account's real standing
+  // (an ESTABLISHED account no longer reads as NEW just because its agent wallet
+  // has no on-chain history). A direct user/EOA address won't match the agent
+  // table and falls through unchanged.
+  let repAddr = addr;
+  try {
+    const owner = await findAgentWalletByAgentAddress(addr);
+    if (owner?.userAddress) repAddr = owner.userAddress;
+  } catch {
+    /* keep addr on lookup failure */
+  }
   let counts: Awaited<ReturnType<typeof readScoreCounts>>;
   try {
-    counts = await readScoreCounts(addr);
+    counts = await readScoreCounts(repAddr);
   } catch (err) {
-    logger.warn({ err: (err as Error).message, addr }, 'scores read failed, using neutral');
+    logger.warn({ err: (err as Error).message, addr: repAddr }, 'scores read failed, using neutral');
     counts = { successCount: 0n, disputedCount: 0n, failedCount: 0n };
   }
-  const reputationBps = await readReputationBps(addr);
+  const reputationBps = await readReputationBps(repAddr);
   const total = counts.successCount + counts.disputedCount + counts.failedCount;
   const completionRate =
     total === 0n ? 1 : Number(counts.successCount) / Number(total);
+  // Velocity stays on the agent address: it measures the bidding cadence of the
+  // wallet doing the bidding (an anti-bot signal), not the account's standing.
   const velocity24h = countRecentActorEvents(addr.toLowerCase());
 
   // Primary tier source: the composite reputation engine. It reads stake,
