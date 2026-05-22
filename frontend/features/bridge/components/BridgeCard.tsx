@@ -1006,6 +1006,8 @@ function CircleSourceFundBanner({
   wallet: { address: string; usdcBalance: string | null; gasBalance: string | null } | null;
 }) {
   const [copied, setCopied] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const address = wallet?.address ?? null;
   async function copyAddress() {
     if (!address) return;
@@ -1017,10 +1019,26 @@ function CircleSourceFundBanner({
       // ignore. clipboard can fail in unfocused tabs.
     }
   }
-  const faucet =
-    sourceChainKey === 'baseSepolia'
-      ? { label: 'Base Sepolia USDC faucet', href: 'https://faucet.circle.com/' }
-      : { label: 'Ethereum Sepolia USDC faucet', href: 'https://faucet.circle.com/' };
+
+  // In-app USDC top-up straight to this source-chain Circle wallet, so the user
+  // never leaves the page. USDC only: Circle users don't need native gas here
+  // (Gas Station sponsors the burn) and Circle's faucet declines native to these
+  // wallets. Rate limits surface as a clear line, not a silent no-op.
+  const CIRCLE_FAUCET = 'https://faucet.circle.com/';
+  async function claimUsdc() {
+    if (!address) return;
+    setClaiming(true);
+    setNote(null);
+    try {
+      await api.fundSource(address, sourceChainKey);
+      setNote({ kind: 'ok', text: 'Test USDC requested. It lands here in about a minute.' });
+    } catch (err) {
+      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+      setNote({ kind: 'err', text: detail ?? (err as Error).message });
+    } finally {
+      setClaiming(false);
+    }
+  }
 
   // Funded state drives the banner accent + status line. usdcBalance null means
   // the balance read hasn't returned yet (or failed) — stay neutral.
@@ -1090,17 +1108,21 @@ function CircleSourceFundBanner({
               </span>
             </p>
           </div>
-          {wallet?.gasBalance != null && Number(wallet.gasBalance) <= 0 && (
-            <div>
-              <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-                Gas
-              </p>
-              <p className="mt-0.5 mono text-[11px] tabular-nums leading-none" style={{ color: TONE_HEX.warning }}>
-                0 ETH
-              </p>
-            </div>
-          )}
+          <div>
+            <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+              Gas
+            </p>
+            <p
+              className="mt-0.5 mono text-[11px] uppercase tracking-[0.12em] leading-none"
+              style={{ color: TONE_HEX.positive }}
+            >
+              Sponsored
+            </p>
+          </div>
         </div>
+        <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">
+          No ETH needed here. Karwan sponsors the gas for this burn, so you only fund USDC.
+        </p>
 
         {/* ADDRESS + ACTIONS */}
         <div className="mt-3 flex items-center justify-between gap-3">
@@ -1128,11 +1150,11 @@ function CircleSourceFundBanner({
             >
               {copied ? 'COPIED' : 'COPY'}
             </button>
-            <a
-              href={faucet.href}
-              target="_blank"
-              rel="noreferrer"
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2 py-1"
+            <button
+              type="button"
+              onClick={claimUsdc}
+              disabled={!address || claiming}
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2 py-1 disabled:opacity-50"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
@@ -1141,12 +1163,29 @@ function CircleSourceFundBanner({
                 borderBottomLeftRadius: 6,
                 borderBottomRightRadius: 2,
               }}
-              title={faucet.label}
             >
-              Faucet
-              <ExternalIcon />
-            </a>
+              {claiming ? 'Requesting' : 'Get USDC'}
+            </button>
           </div>
+        </div>
+        {note && (
+          <p
+            className="mt-2 text-[11px] leading-snug"
+            style={{ color: note.kind === 'err' ? TONE_HEX.warning : 'var(--lp-text-sub)' }}
+          >
+            {note.text}
+          </p>
+        )}
+        <div className="mt-1.5">
+          <a
+            href={CIRCLE_FAUCET}
+            target="_blank"
+            rel="noreferrer"
+            className="mono text-[9px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            Circle faucet
+            <ExternalIcon />
+          </a>
         </div>
       </div>
     </div>
