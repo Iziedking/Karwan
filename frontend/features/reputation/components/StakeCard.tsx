@@ -203,6 +203,12 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     return Number(formatUnits(walletBalance.data.value, walletBalance.data.decimals));
   }, [walletBalance.data]);
 
+  // Block a deposit larger than the wallet holds before it ever reaches the
+  // wallet. Without this the approve succeeds and `vault.deposit` reverts, so
+  // the only error the user sees is a raw wallet failure with no explanation.
+  const depositExceedsBalance =
+    typeof depositAmount === 'number' && walletUsdc != null && depositAmount > walletUsdc;
+
   const refetchPositions = useCallback(async () => {
     if (!address) return;
     try {
@@ -245,6 +251,17 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   const submitDeposit = useCallback(async () => {
     if (!address) return;
     if (typeof depositAmount !== 'number' || depositAmount <= 0) return;
+    // Balance precheck. Surface "insufficient balance" instead of letting the
+    // approve pass and the deposit revert in the wallet with no explanation.
+    if (walletUsdc != null && depositAmount > walletUsdc) {
+      pushLog({
+        kind: 'deposit',
+        amountUsdc: depositAmount.toString(),
+        status: 'failed',
+        error: `Insufficient balance. You have ${walletUsdc.toFixed(2)} USDC.`,
+      });
+      return;
+    }
     // Wrong network: prompt the switch and stop. The user re-clicks once their
     // wallet is on Arc, so we never sign against the wrong chain.
     if (!isCircleUser && chainId !== ARC_CHAIN_ID) {
@@ -304,7 +321,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     } finally {
       setBusyKind(null);
     }
-  }, [address, depositAmount, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
+  }, [address, depositAmount, walletUsdc, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
 
   // -------------------- withdraw --------------------
 
@@ -656,7 +673,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               type="button"
               onClick={submitDeposit}
               disabled={
-                busyKind?.kind === 'deposit' || !depositAmount || vaultDeployed === false || onWrongChain
+                busyKind?.kind === 'deposit' ||
+                !depositAmount ||
+                depositExceedsBalance ||
+                vaultDeployed === false ||
+                onWrongChain
               }
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] shrink-0 transition-[transform,box-shadow] duration-150',
@@ -675,6 +696,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               <span aria-hidden>↘</span>
             </button>
           </div>
+          {depositExceedsBalance && (
+            <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
+              Insufficient balance. You have {walletUsdc?.toFixed(2)} USDC.
+            </p>
+          )}
         </div>
 
         {/* WITHDRAW */}
