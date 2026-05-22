@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
@@ -95,7 +95,7 @@ export function RoleToggle({
               )}
               style={{
                 background: active
-                  ? 'rgba(189, 225, 34,0.10)'
+                  ? 'rgba(175, 201, 91,0.10)'
                   : eligibility.ok
                     ? 'var(--lp-card)'
                     : 'var(--lp-light)',
@@ -108,7 +108,7 @@ export function RoleToggle({
                 borderTopRightRadius: 14,
                 borderBottomLeftRadius: 14,
                 borderBottomRightRadius: 4,
-                boxShadow: active ? '0 1px 0 rgba(189, 225, 34,0.18)' : 'none',
+                boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
               }}
             >
               {active && (

@@ -35,7 +35,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
             aria-pressed={active}
             className="relative overflow-hidden text-left pl-4 pr-3.5 py-3 transition-colors"
             style={{
-              background: active ? 'rgba(189, 225, 34,0.10)' : 'var(--lp-card)',
+              background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
               color: 'var(--lp-dark)',
               border: active
                 ? '1px solid var(--lp-accent)'

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import type { ReactNode } from 'react';
 import { useTelegramLink } from '../hooks/useTelegramLink';
 
@@ -21,9 +21,9 @@ function Note({ tone, children }: { tone: 'info' | 'error'; children: ReactNode 
           border: '1px solid rgba(176,61,58,0.35)',
         }
       : {
-          background: 'rgba(189, 225, 34,0.10)',
+          background: 'rgba(175, 201, 91,0.10)',
           color: 'var(--lp-dark)',
-          border: '1px solid rgba(189, 225, 34,0.30)',
+          border: '1px solid rgba(175, 201, 91,0.30)',
         };
   return (
     <div

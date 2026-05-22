@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -270,9 +270,9 @@ export function BridgeCard({
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] mono font-bold uppercase tracking-[0.14em] shrink-0"
             style={{
-              background: 'rgba(189, 225, 34,0.10)',
+              background: 'rgba(175, 201, 91,0.10)',
               color: 'var(--lp-dark)',
-              border: '1px solid rgba(189, 225, 34,0.35)',
+              border: '1px solid rgba(175, 201, 91,0.35)',
               borderTopLeftRadius: 6,
               borderTopRightRadius: 6,
               borderBottomLeftRadius: 6,
@@ -319,7 +319,7 @@ export function BridgeCard({
                     aria-pressed={active}
                     className="relative overflow-hidden text-left pl-4 pr-3.5 py-3 transition-colors"
                     style={{
-                      background: active ? 'rgba(189, 225, 34,0.10)' : 'var(--lp-card)',
+                      background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
                       color: 'var(--lp-dark)',
                       border: active
                         ? '1px solid var(--lp-accent)'
@@ -328,7 +328,7 @@ export function BridgeCard({
                       borderTopRightRadius: 10,
                       borderBottomLeftRadius: 10,
                       borderBottomRightRadius: 3,
-                      boxShadow: active ? '0 1px 0 rgba(189, 225, 34,0.18)' : 'none',
+                      boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
                     }}
                   >
                     {active && (
@@ -408,7 +408,7 @@ export function BridgeCard({
             <style jsx>{`
               .bridge-amount:focus-within {
                 border-color: var(--lp-dark);
-                box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.25);
+                box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
               }
             `}</style>
           </div>
@@ -809,7 +809,7 @@ function BridgeSteps({ bridge }: { bridge: BridgeRecord }) {
         const tileBg = done
           ? TONE_HEX.positive
           : active
-            ? 'rgba(189, 225, 34,0.12)'
+            ? 'rgba(175, 201, 91,0.12)'
             : failedHere
               ? TONE_HEX.critical
               : 'var(--lp-card)';
@@ -869,9 +869,9 @@ function BridgeSteps({ bridge }: { bridge: BridgeRecord }) {
                   <span
                     className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
                     style={{
-                      background: 'rgba(189, 225, 34,0.18)',
+                      background: 'rgba(175, 201, 91,0.18)',
                       color: 'var(--lp-dark)',
-                      border: '1px solid rgba(189, 225, 34,0.35)',
+                      border: '1px solid rgba(175, 201, 91,0.35)',
                       borderTopLeftRadius: 4,
                       borderTopRightRadius: 4,
                       borderBottomLeftRadius: 4,
@@ -947,13 +947,13 @@ function PhaseChip({
       ? 'rgba(10,117,83,0.10)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.10)'
-        : 'rgba(189, 225, 34,0.14)';
+        : 'rgba(175, 201, 91,0.14)';
   const border =
     tone === 'positive'
       ? 'rgba(10,117,83,0.35)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.35)'
-        : 'rgba(189, 225, 34,0.45)';
+        : 'rgba(175, 201, 91,0.45)';
   const led =
     tone === 'positive'
       ? TONE_HEX.positive
@@ -1060,7 +1060,7 @@ function CircleSourceFundBanner({
           <span
             className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
             style={{
-              background: funded ? 'rgba(10,117,83,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(189, 225, 34, 0.18)',
+              background: funded ? 'rgba(10,117,83,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
               color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
               border: `1px solid ${funded ? 'rgba(10,117,83,0.35)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--lp-accent)'}`,
               borderTopLeftRadius: 4,
@@ -1214,7 +1214,7 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
           style={{
             borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
-            background: 'rgba(189, 225, 34, 0.18)',
+            background: 'rgba(175, 201, 91, 0.18)',
             borderTopLeftRadius: 6,
             borderTopRightRadius: 6,
             borderBottomLeftRadius: 6,

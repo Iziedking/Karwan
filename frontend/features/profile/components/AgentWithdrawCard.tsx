@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -161,7 +161,7 @@ export function AgentWithdrawCard({
                   )}
                   style={{
                     background: active
-                      ? 'rgba(189, 225, 34,0.10)'
+                      ? 'rgba(175, 201, 91,0.10)'
                       : disabled
                         ? 'var(--lp-light)'
                         : 'var(--lp-card)',
@@ -174,7 +174,7 @@ export function AgentWithdrawCard({
                     borderTopRightRadius: 12,
                     borderBottomLeftRadius: 12,
                     borderBottomRightRadius: 3,
-                    boxShadow: active ? '0 1px 0 rgba(189, 225, 34,0.18)' : 'none',
+                    boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
                   }}
                 >
                   {active && (
@@ -276,7 +276,7 @@ export function AgentWithdrawCard({
           <style jsx>{`
             .withdraw-amount:focus-within {
               border-color: var(--lp-dark);
-              box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.25);
+              box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
             }
           `}</style>
         </div>
@@ -333,7 +333,7 @@ export function AgentWithdrawCard({
           <style jsx>{`
             .withdraw-dest:focus {
               border-color: var(--lp-dark);
-              box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.25);
+              box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
             }
           `}</style>
         </label>

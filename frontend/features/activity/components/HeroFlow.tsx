@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 /// dark, so it does not read the themeable --color-* tokens.
 const CARD_BG = '#151515';
 const STROKE = 'rgba(255,255,255,0.16)';
-const ACCENT = '#bde122';
+const ACCENT = '#AFC95B';
 const INK_ACTIVE = '#ededed';
 const SUB = '#8a8a90';
 

@@ -46,10 +46,29 @@ const generalSans = localFont({
   adjustFontFallback: 'Arial',
 });
 
+const SITE_URL = 'https://karwan.site';
+const TITLE = 'Karwan · cross-border SME settlement';
+const DESCRIPTION =
+  'Agent-mediated, USDC-settled, milestone-escrowed deals on Arc. Built on Circle. For the MEASA corridor.';
+
 export const metadata: Metadata = {
-  title: 'Karwan · cross-border SME settlement',
-  description:
-    'Agent-mediated, USDC-settled, milestone-escrowed deals on Arc. Built on Circle. For the MEASA corridor.',
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    siteName: 'Karwan',
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@karwanBuild',
+    creator: '@karwanBuild',
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

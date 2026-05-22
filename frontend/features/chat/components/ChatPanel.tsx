@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useChat } from '../hooks/useChat';
@@ -167,7 +167,7 @@ export function ChatPanel({
       <style jsx>{`
         .chat-input:focus {
           border-color: var(--lp-dark);
-          box-shadow: 0 0 0 3px rgba(189, 225, 34, 0.25);
+          box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
         }
       `}</style>
     </div>

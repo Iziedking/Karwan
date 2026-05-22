@@ -1,4 +1,4 @@
-﻿export type StepKey =
+export type StepKey =
   | 'posted'
   | 'bidding'
   | 'counter'
@@ -54,7 +54,7 @@ export function FlowStepper({
           : done
             ? POSITIVE
             : isActive
-              ? 'rgba(189, 225, 34,0.12)'
+              ? 'rgba(175, 201, 91,0.12)'
               : 'var(--lp-card)';
         const tileBorder = isTerminal
           ? terminalColor

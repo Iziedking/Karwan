@@ -290,7 +290,7 @@ export function FeedbackForm() {
                     className="px-4 py-6 text-center transition-colors"
                     style={{
                       border: `1.5px dashed ${dragging ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-                      background: dragging ? 'rgba(189,225,34,0.06)' : 'var(--lp-light)',
+                      background: dragging ? 'rgba(175, 201, 91,0.06)' : 'var(--lp-light)',
                       borderRadius: 12,
                     }}
                   >

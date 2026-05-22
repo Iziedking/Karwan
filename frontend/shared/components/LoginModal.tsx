@@ -476,8 +476,8 @@ export function LoginModal({ open, onClose }: Props) {
                   onClick={() => setOtpCode(otpDevHint)}
                   className="group w-full inline-flex items-center justify-between gap-2 px-3 py-2 text-left transition-colors"
                   style={{
-                    background: 'rgba(189, 225, 34,0.12)',
-                    border: '1px dashed rgba(189, 225, 34,0.55)',
+                    background: 'rgba(175, 201, 91,0.12)',
+                    border: '1px dashed rgba(175, 201, 91,0.55)',
                     borderTopLeftRadius: 8,
                     borderTopRightRadius: 8,
                     borderBottomLeftRadius: 8,

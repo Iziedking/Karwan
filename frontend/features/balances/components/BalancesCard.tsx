@@ -43,14 +43,14 @@ const CARD_STYLE = {
   boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
 } as const;
 
-type Balance = ReturnType<typeof useBalance>;
-
 /// USDC balance for one address across Arc + every CCTP source chain. Native on
 /// Arc (USDC is the gas token), ERC-20 USDC elsewhere. A fixed-arity custom hook
 /// so the rules-of-hooks order never shifts across renders, and the per-view
 /// boilerplate collapses to three calls. Reads are disabled when address is
 /// undefined (wagmi skips the fetch), so buyer/seller tabs cost nothing until set.
-function useChainBalances(address?: `0x${string}`): Record<RowKey, Balance> {
+/// No explicit return type: let inference carry the real useBalance data shape
+/// (ReturnType<typeof useBalance> widens .data to {} on an unresolved generic).
+function useChainBalances(address?: `0x${string}`) {
   return {
     arc: useBalance({ address, chainId: arcTestnet.id }),
     baseSepolia: useBalance({

@@ -194,7 +194,7 @@ export default function StakePage() {
                 <li
                   className="relative overflow-hidden flex items-start gap-4 px-5 py-4 pl-6"
                   style={{
-                    background: here ? 'rgba(189, 225, 34,0.08)' : 'var(--lp-card)',
+                    background: here ? 'rgba(175, 201, 91,0.08)' : 'var(--lp-card)',
                     border: here ? '1px solid var(--lp-accent)' : '1px solid var(--lp-border-light)',
                     borderTopLeftRadius: 14,
                     borderTopRightRadius: 14,
@@ -220,7 +220,7 @@ export default function StakePage() {
                           <span
                             className="ml-2 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5 align-middle"
                             style={{
-                              background: 'rgba(189, 225, 34,0.18)',
+                              background: 'rgba(175, 201, 91,0.18)',
                               color: 'var(--lp-band-dark)',
                               borderRadius: 3,
                             }}

@@ -260,9 +260,9 @@ export function BridgeOutCard() {
               <p
                 className="px-3 py-2 text-[11.5px] leading-snug"
                 style={{
-                  background: 'rgba(189, 225, 34,0.10)',
+                  background: 'rgba(175, 201, 91,0.10)',
                   color: 'var(--lp-dark)',
-                  border: '1px solid rgba(189, 225, 34,0.30)',
+                  border: '1px solid rgba(175, 201, 91,0.30)',
                   borderTopLeftRadius: 10,
                   borderTopRightRadius: 10,
                   borderBottomLeftRadius: 10,

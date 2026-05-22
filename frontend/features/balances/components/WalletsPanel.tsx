@@ -304,9 +304,9 @@ export function WalletsPanel({ address }: { address?: string }) {
       {note && (
         <p className="mt-4 px-3 py-2.5 text-[12px] leading-snug"
           style={{
-            background: 'rgba(189, 225, 34,0.10)',
+            background: 'rgba(175, 201, 91,0.10)',
             color: 'var(--lp-dark)',
-            border: '1px solid rgba(189, 225, 34,0.30)',
+            border: '1px solid rgba(175, 201, 91,0.30)',
             borderTopLeftRadius: 10,
             borderTopRightRadius: 10,
             borderBottomLeftRadius: 10,

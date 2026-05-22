@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -357,7 +357,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
                 background: isActive
                   ? 'var(--lp-accent)'
                   : isDone
-                    ? 'rgba(189, 225, 34,0.5)'
+                    ? 'rgba(175, 201, 91,0.5)'
                     : 'rgba(255,255,255,0.20)',
                 animation: isActive ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
               }}
@@ -701,10 +701,30 @@ function ProfileStep(props: {
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <NumField label="Min budget (USDC)" value={props.sellerMin} setValue={props.setSellerMin} />
-            <NumField label="Max budget (USDC)" value={props.sellerMax} setValue={props.setSellerMax} />
-            <NumField label="Min deadline (days)" value={props.sellerMinDays} setValue={props.setSellerMinDays} />
-            <NumField label="Max deadline (days)" value={props.sellerMaxDays} setValue={props.setSellerMaxDays} />
+            <NumField
+              label="Min budget (USDC)"
+              hint="Smallest job you will take, in USDC. Briefs priced below this are filtered out before your agent bids."
+              value={props.sellerMin}
+              setValue={props.setSellerMin}
+            />
+            <NumField
+              label="Max budget (USDC)"
+              hint="Largest job you will take, in USDC. Briefs priced above this are skipped."
+              value={props.sellerMax}
+              setValue={props.setSellerMax}
+            />
+            <NumField
+              label="Min deadline (days)"
+              hint="Shortest delivery window you will accept. Jobs due sooner than this are skipped."
+              value={props.sellerMinDays}
+              setValue={props.setSellerMinDays}
+            />
+            <NumField
+              label="Max deadline (days)"
+              hint="Longest delivery window you will commit to."
+              value={props.sellerMaxDays}
+              setValue={props.setSellerMaxDays}
+            />
           </div>
         </ProfileSection>
       )}
@@ -716,10 +736,30 @@ function ProfileStep(props: {
           title="Buyer profile"
         >
           <div className="grid grid-cols-2 gap-3">
-            <NumField label="Max budget per job (USDC)" value={props.buyerMax} setValue={props.setBuyerMax} />
-            <NumField label="Bid window (sec)" value={props.bidWindow} setValue={props.setBidWindow} />
-            <NumField label="Min deadline (days)" value={props.buyerMinDays} setValue={props.setBuyerMinDays} />
-            <NumField label="Max deadline (days)" value={props.buyerMaxDays} setValue={props.setBuyerMaxDays} />
+            <NumField
+              label="Max budget per job (USDC)"
+              hint="The most you will pay for one job, in USDC. Your agent never bids or settles above this."
+              value={props.buyerMax}
+              setValue={props.setBuyerMax}
+            />
+            <NumField
+              label="Bid window (sec)"
+              hint="Seconds your agent collects seller bids before it scores them and picks. 30 is fine for testing. Raise it to gather more bids."
+              value={props.bidWindow}
+              setValue={props.setBidWindow}
+            />
+            <NumField
+              label="Min deadline (days)"
+              hint="Shortest delivery time you would give a seller for a job."
+              value={props.buyerMinDays}
+              setValue={props.setBuyerMinDays}
+            />
+            <NumField
+              label="Max deadline (days)"
+              hint="Longest delivery time you would allow a seller for a job."
+              value={props.buyerMaxDays}
+              setValue={props.setBuyerMaxDays}
+            />
           </div>
           <Field
             label="Milestone split"
@@ -826,20 +866,43 @@ function NumField({
   label,
   value,
   setValue,
+  hint,
 }: {
   label: string;
   value: number;
   setValue: (n: number) => void;
+  hint?: string;
 }) {
+  // Local text buffer so the field can be fully cleared while typing. Binding
+  // value={number} directly makes Number('') collapse to 0, so the last zero can
+  // never be deleted. We hold the displayed text here and report a number up
+  // (empty -> NaN, which the form's validation already treats as invalid).
+  const [text, setText] = useState(() => (Number.isFinite(value) ? String(value) : ''));
+  // Re-sync when the parent value changes from outside (profile prefill in edit
+  // mode) without clobbering what the user is actively typing.
+  useEffect(() => {
+    const current = text.trim() === '' ? NaN : Number(text);
+    const incoming = Number.isFinite(value) ? value : NaN;
+    if (current !== incoming && !(Number.isNaN(current) && Number.isNaN(incoming))) {
+      setText(Number.isFinite(value) ? String(value) : '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
   return (
     <label className="block space-y-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <span className="flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
+        {hint && <Hint>{hint}</Hint>}
       </span>
       <input
         type="number"
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => {
+          const t = e.target.value;
+          setText(t);
+          setValue(t.trim() === '' ? NaN : Number(t));
+        }}
         className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
       />
     </label>
