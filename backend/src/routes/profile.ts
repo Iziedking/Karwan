@@ -158,6 +158,7 @@ profileRoutes.delete('/', async (c) => {
     return c.json({ error: 'address query param required' }, 400);
   }
   const addr = address.toLowerCase();
+  const force = c.req.query('force') === 'true';
 
   // Destructive: a signed-in Circle session may only delete its own account.
   const session = readSession(c);
@@ -165,30 +166,35 @@ profileRoutes.delete('/', async (c) => {
     return c.json({ error: 'address does not match the signed-in account' }, 403);
   }
 
-  // Don't let a delete strand agent funds. Fail closed if balances can't be read.
-  const wallets = await getAgentWallets(addr);
-  if (wallets) {
-    try {
-      const [buyerBal, sellerBal] = await Promise.all([
-        readUsdcBalance(wallets.buyerAddress),
-        readUsdcBalance(wallets.sellerAddress),
-      ]);
-      if (buyerBal + sellerBal > 10_000n) {
-        // > 0.01 USDC across the agents (6dp).
+  // Warn (don't hard-block) when agent wallets still hold funds: deleting does
+  // not move them. The client re-calls with ?force=true after the user confirms.
+  // Skip the read entirely when forcing.
+  if (!force) {
+    const wallets = await getAgentWallets(addr);
+    if (wallets) {
+      try {
+        const [buyerBal, sellerBal] = await Promise.all([
+          readUsdcBalance(wallets.buyerAddress),
+          readUsdcBalance(wallets.sellerAddress),
+        ]);
+        if (buyerBal + sellerBal > 10_000n) {
+          // > 0.01 USDC across the agents (6dp).
+          return c.json(
+            {
+              error: 'agent wallets still hold funds',
+              code: 'agent-funds',
+              detail: `Your agent wallets hold ${formatUnits(buyerBal, USDC_DECIMALS)} USDC (buyer) and ${formatUnits(sellerBal, USDC_DECIMALS)} USDC (seller). Deleting is permanent and does not move them. Proceed anyway?`,
+            },
+            409,
+          );
+        }
+      } catch (err) {
+        logger.warn({ address: addr, err: (err as Error).message }, 'delete: agent balance read failed');
         return c.json(
-          {
-            error: 'agent wallets still hold funds',
-            detail: `Withdraw your agent balances first: buyer ${formatUnits(buyerBal, USDC_DECIMALS)} USDC, seller ${formatUnits(sellerBal, USDC_DECIMALS)} USDC. Deleting is permanent and does not move funds.`,
-          },
-          409,
+          { error: 'could not verify agent balances', detail: 'Try again in a moment.' },
+          503,
         );
       }
-    } catch (err) {
-      logger.warn({ address: addr, err: (err as Error).message }, 'delete: agent balance read failed');
-      return c.json(
-        { error: 'could not verify agent balances', detail: 'Try again in a moment.' },
-        503,
-      );
     }
   }
 

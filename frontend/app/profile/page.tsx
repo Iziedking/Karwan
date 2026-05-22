@@ -13,7 +13,6 @@ import { AgentWithdrawCard } from '@/features/profile/components/AgentWithdrawCa
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { WalletsPanel } from '@/features/balances/components/WalletsPanel';
-import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
@@ -321,22 +320,21 @@ export default function ProfilePage() {
       {/* WALLETS anchor */}
       <div id="wallets" aria-hidden style={{ scrollMarginTop: 80 }} />
 
-      {/* HOLDINGS + BRIDGE */}
+      {/* HOLDINGS */}
       <Band tone="light" compact>
         <SectionTag>HOLDINGS</SectionTag>
         <HeroHeadline size="md">
-          Move <Accent>USDC</Accent>
+          Your <Accent>wallets</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Wallet balances. Base to Arc bridge.
+          Balances at a glance. Bridge USDC in and out from the Bridge tab.
         </p>
         <div className="mt-10">
           <WalletsPanel address={address ?? undefined} />
         </div>
-        <div className="mt-5 grid lg:grid-cols-2 gap-5" data-guide="profile-wallets">
+        <div className="mt-5" data-guide="profile-wallets">
           <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
-          <BridgeCard mintRecipient={agents.buyer as `0x${string}` | undefined} tour={false} />
         </div>
       </Band>
 

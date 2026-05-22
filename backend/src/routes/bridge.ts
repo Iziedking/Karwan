@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { createPublicClient, http, formatUnits, parseUnits } from 'viem';
-import { baseSepolia, sepolia } from 'viem/chains';
+import { createPublicClient, http, formatUnits, parseUnits, type PublicClient } from 'viem';
 import { config } from '../config.js';
 import { executeContractCall, submitContractCall, getTxState } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
@@ -14,24 +13,32 @@ import {
 } from '../db/bridges.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
+import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
+import { usdc as ARC_USDC, readUsdcBalance } from '../chain/contracts.js';
 import {
-  provisionUserBridgeWallet,
-  BASE_SEPOLIA_BLOCKCHAIN,
-  ETH_SEPOLIA_BLOCKCHAIN,
-  type BridgeBlockchain,
-} from '../circle/wallets.js';
+  CCTP_CHAINS,
+  CCTP_CHAIN_KEYS,
+  TOKEN_MESSENGER_V2,
+  MESSAGE_TRANSMITTER_V2,
+  ARC_DOMAIN,
+  FINALITY_THRESHOLD_FAST,
+  addressToBytes32,
+  isCctpChainKey,
+  type CctpChainKey,
+} from '../chain/cctpChains.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 
-/// Lightweight public clients used for source-chain balance reads. Created
-/// once and reused. We avoid spinning these up for every request because
-/// viem's HTTP client allocates a fetch pool. Source-chain reads only need
-/// `balanceOf` and `getBalance`, so the default public RPC is fine.
-const sourceClients = {
-  baseSepolia: createPublicClient({ chain: baseSepolia, transport: http() }),
-  sepolia: createPublicClient({ chain: sepolia, transport: http() }),
-};
+/// Lightweight public clients per CCTP chain for source/destination balance and
+/// allowance reads. Created once and reused (viem's HTTP client allocates a
+/// fetch pool). Keyed by chain key so any registered chain works.
+const sourceClients = Object.fromEntries(
+  CCTP_CHAIN_KEYS.map((k) => [
+    k,
+    createPublicClient({ chain: CCTP_CHAINS[k].viemChain, transport: http() }),
+  ]),
+) as Record<CctpChainKey, PublicClient>;
 
 const erc20BalanceOfAbi = [
   {
@@ -53,42 +60,14 @@ const erc20BalanceOfAbi = [
   },
 ] as const;
 
-/// Per CCTP V2 source-chain config. Verified addresses live in the frontend
-/// at `frontend/features/bridge/config.ts` (the canonical source on both
-/// sides). TokenMessengerV2 is the same address across all V2 testnets per
-/// Circle's deployment: 0x8FE6B999...2542DAA.
-const TOKEN_MESSENGER_V2 = '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA';
-const FINALITY_THRESHOLD_FAST = 2000;
-const ARC_DOMAIN = 26;
-
-interface CircleSourceChain {
-  blockchain: BridgeBlockchain;
-  usdc: string;
-  domain: number;
-}
-
-const CIRCLE_SOURCE_CHAINS: Record<'baseSepolia' | 'sepolia', CircleSourceChain> = {
-  baseSepolia: {
-    blockchain: BASE_SEPOLIA_BLOCKCHAIN,
-    usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    domain: 6,
-  },
-  sepolia: {
-    blockchain: ETH_SEPOLIA_BLOCKCHAIN,
-    usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-    domain: 0,
-  },
-};
+// CCTP V2 source-chain config now lives in the shared registry
+// (chain/cctpChains.ts): TOKEN_MESSENGER_V2, ARC_DOMAIN, FINALITY_THRESHOLD_FAST,
+// addressToBytes32 and CCTP_CHAINS are imported above.
 
 const USDC_DECIMALS = 6;
 
-/// CCTP V2 wraps the address recipient in a 32-byte field. The high 12 bytes
-/// stay zero; the low 20 are the address.
-function addressToBytes32(address: string): `0x${string}` {
-  return `0x${'0'.repeat(24)}${address.slice(2).toLowerCase()}` as `0x${string}`;
-}
-
-const SOURCE_DOMAINS = new Set([0, 6]);
+// Every CCTP domain we relay mints from on Arc (any registered source chain).
+const SOURCE_DOMAINS = new Set(CCTP_CHAIN_KEYS.map((k) => CCTP_CHAINS[k].domain));
 
 // CCTP V2 MessageTransmitter marks a nonce non-zero once its message has been
 // received, so the same burn cannot mint twice. We read this to keep relays
@@ -124,7 +103,7 @@ async function isMessageAlreadyReceived(eventNonce: string): Promise<boolean> {
 const relaySchema = z.object({
   bridgeId: z.string().min(1),
   sourceDomain: z.number().int().refine((d) => SOURCE_DOMAINS.has(d), {
-    message: 'sourceDomain must be 0 (Sepolia) or 6 (Base Sepolia)',
+    message: 'sourceDomain must be a supported CCTP source chain',
   }),
   sourceTxHash: z.string().startsWith('0x'),
   amountUsdc: z.string(),
@@ -250,6 +229,22 @@ export async function resumePendingBridges(): Promise<void> {
   if (pending.length === 0) return;
   logger.info({ count: pending.length }, 'resuming pending bridges');
   for (const b of pending) {
+    // Bridge-out: burn is on Arc, mint is on the destination chain. Resume only
+    // the destination mint relay (the Arc burn is synchronous, so a record stuck
+    // pre-burn after a restart has no on-chain effect and is left to retry).
+    if (b.direction === 'out') {
+      if (b.sourceTxHash && b.destChainKey && b.bridgeWalletId) {
+        startOutRelay({
+          bridgeId: b.bridgeId,
+          destChainKey: b.destChainKey,
+          sourceTxHash: b.sourceTxHash,
+          amountUsdc: b.amountUsdc,
+          recipient: b.mintRecipient,
+          destWalletId: b.bridgeWalletId,
+        });
+      }
+      continue;
+    }
     // Burned already (web3 path, or Circle past the burn): resume the mint relay.
     if (b.sourceTxHash) {
       startRelay({
@@ -459,7 +454,7 @@ function sourceTimedOut(record: { createdAt: number }): boolean {
 
 interface SourcePipelineInput {
   bridgeId: string;
-  sourceChainKey: 'baseSepolia' | 'sepolia';
+  sourceChainKey: CctpChainKey;
   bridgeWalletId: string;
   bridgeWalletAddress: string;
   amountUsdc: string;
@@ -509,7 +504,7 @@ async function failSource(bridgeId: string, scope: string, message: string) {
 }
 
 async function sourcePipelineLoop(input: SourcePipelineInput) {
-  const chainCfg = CIRCLE_SOURCE_CHAINS[input.sourceChainKey];
+  const chainCfg = CCTP_CHAINS[input.sourceChainKey];
   const amountWei = parseUnits(input.amountUsdc, USDC_DECIMALS);
   const amountStr = amountWei.toString();
   const sourceClient = sourceClients[input.sourceChainKey];
@@ -809,7 +804,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
 const circleBridgeSchema = z.object({
   bridgeId: z.string().min(1),
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
-  sourceChainKey: z.enum(['baseSepolia', 'sepolia']),
+  sourceChainKey: z.enum(CCTP_CHAIN_KEYS),
   amountUsdc: z.number().positive(),
   /// Where the minted USDC arrives on Arc. Usually the user's Arc identity
   /// wallet address (same as `address`), but accepted as a separate field
@@ -854,12 +849,12 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   // Lazy-provision the source-chain DCW. Base Sepolia ships at activation, so
   // this is mostly a fallback for Ethereum Sepolia and for accounts that
   // activated before #102 landed.
-  const chainCfg = CIRCLE_SOURCE_CHAINS[body.sourceChainKey];
+  const chainCfg = CCTP_CHAINS[body.sourceChainKey];
   let agentWallets = await getAgentWallets(userAddress);
   if (!agentWallets) {
     return c.json({ error: 'user has no agent wallet record; activate first' }, 409);
   }
-  const existingBridge = agentWallets.bridgeWallets?.[chainCfg.blockchain];
+  const existingBridge = agentWallets.bridgeWallets?.[chainCfg.circleBlockchain];
   let bridgeWalletId: string;
   let bridgeWalletAddress: string;
   if (existingBridge) {
@@ -867,11 +862,11 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     bridgeWalletAddress = existingBridge.address;
   } else {
     logger.info(
-      { userAddress, blockchain: chainCfg.blockchain },
+      { userAddress, blockchain: chainCfg.circleBlockchain },
       'lazy-provisioning bridge wallet',
     );
     try {
-      const created = await provisionUserBridgeWallet(userAddress, chainCfg.blockchain);
+      const created = await provisionUserBridgeWallet(userAddress, chainCfg.circleBlockchain);
       bridgeWalletId = created.walletId;
       bridgeWalletAddress = created.address;
       // Persist into the agentWallets row.
@@ -879,14 +874,14 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
         ...agentWallets,
         bridgeWallets: {
           ...(agentWallets.bridgeWallets ?? {}),
-          [chainCfg.blockchain]: { walletId: bridgeWalletId, address: bridgeWalletAddress },
+          [chainCfg.circleBlockchain]: { walletId: bridgeWalletId, address: bridgeWalletAddress },
         },
       };
       await saveAgentWallets(next);
       agentWallets = next;
     } catch (err) {
       logger.error(
-        { userAddress, blockchain: chainCfg.blockchain, err: (err as Error).message },
+        { userAddress, blockchain: chainCfg.circleBlockchain, err: (err as Error).message },
         'lazy bridge-wallet provisioning failed',
       );
       return c.json(
@@ -928,16 +923,17 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       );
     }
     // Gas precheck. The bridge runs on the source chain, where the CCTP
-    // approve + burn are paid in native ETH, not Arc USDC. Without this a
-    // gas-starved wallet passes the USDC check, starts the pipeline, and the
-    // approve never settles, so the bridge sits "pending" forever with no error.
-    // Block at the door instead, with an actionable message.
-    const MIN_GAS_WEI = 200_000_000_000_000n; // ~0.0002 ETH; covers the approve + burn
-    if (gasBalance < MIN_GAS_WEI) {
+    // approve + burn are paid in the chain's native token, not Arc USDC. Without
+    // this a gas-starved wallet passes the USDC check, starts the pipeline, and
+    // the approve never settles, so the bridge sits "pending" forever with no
+    // error. Block at the door instead, with an actionable message. Skipped when
+    // Gas Station sponsorship is on (the DCW then needs no native gas).
+    const MIN_GAS_WEI = 200_000_000_000_000n; // ~0.0002 native; covers the approve + burn
+    if (!config.CIRCLE_GAS_STATION_ENABLED && gasBalance < MIN_GAS_WEI) {
       return c.json(
         {
           error: 'bridge wallet out of gas',
-          detail: `Bridge wallet has ${formatUnits(gasBalance, 18)} ETH on ${body.sourceChainKey}, not enough to pay the bridge gas. Tap "Top up gas" on the Wallets panel (or send testnet ETH to this address), then retry.`,
+          detail: `Bridge wallet has ${formatUnits(gasBalance, 18)} ${chainCfg.nativeSymbol} on ${chainCfg.name}, not enough to pay the bridge gas. Tap "Top up gas" on the Wallets panel (or send testnet ${chainCfg.nativeSymbol} to this address), then retry.`,
           bridgeWalletAddress,
           sourceChainKey: body.sourceChainKey,
           gasBalance: formatUnits(gasBalance, 18),
@@ -1056,7 +1052,7 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
 
 const walletStatusQuery = z.object({
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  sourceChainKey: z.enum(['baseSepolia', 'sepolia']),
+  sourceChainKey: z.enum(CCTP_CHAIN_KEYS),
 });
 
 /// Returns the user's bridge DCW address and balances on the requested
@@ -1081,20 +1077,20 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
   if (!agentWallets) {
     return c.json({ error: 'user has no agent wallet record' }, 409);
   }
-  const chainCfg = CIRCLE_SOURCE_CHAINS[parsed.data.sourceChainKey];
-  const existing = agentWallets.bridgeWallets?.[chainCfg.blockchain];
+  const chainCfg = CCTP_CHAINS[parsed.data.sourceChainKey];
+  const existing = agentWallets.bridgeWallets?.[chainCfg.circleBlockchain];
   let bridgeWalletAddress: string;
   if (existing) {
     bridgeWalletAddress = existing.address;
   } else {
     try {
-      const created = await provisionUserBridgeWallet(userAddress, chainCfg.blockchain);
+      const created = await provisionUserBridgeWallet(userAddress, chainCfg.circleBlockchain);
       bridgeWalletAddress = created.address;
       const next = {
         ...agentWallets,
         bridgeWallets: {
           ...(agentWallets.bridgeWallets ?? {}),
-          [chainCfg.blockchain]: { walletId: created.walletId, address: created.address },
+          [chainCfg.circleBlockchain]: { walletId: created.walletId, address: created.address },
         },
       };
       await saveAgentWallets(next);
@@ -1145,32 +1141,32 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
   if (!address || !sourceChainKey) {
     return c.json({ error: 'address and sourceChainKey are required' }, 400);
   }
-  if (sourceChainKey !== 'baseSepolia' && sourceChainKey !== 'sepolia') {
-    return c.json({ error: 'sourceChainKey must be baseSepolia or sepolia' }, 400);
+  if (!isCctpChainKey(sourceChainKey)) {
+    return c.json({ error: 'sourceChainKey must be a supported CCTP chain' }, 400);
   }
   const userAddress = address.toLowerCase();
   const user = getUserByAddress(userAddress);
   if (!user) {
     return c.json({ error: 'not a Circle user' }, 409);
   }
-  const chainCfg = CIRCLE_SOURCE_CHAINS[sourceChainKey];
+  const chainCfg = CCTP_CHAINS[sourceChainKey];
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'activate first' }, 409);
 
-  const existing = wallets.bridgeWallets?.[chainCfg.blockchain];
-  if (existing) return c.json({ address: existing.address, blockchain: chainCfg.blockchain });
+  const existing = wallets.bridgeWallets?.[chainCfg.circleBlockchain];
+  if (existing) return c.json({ address: existing.address, blockchain: chainCfg.circleBlockchain });
 
   try {
-    const created = await provisionUserBridgeWallet(userAddress, chainCfg.blockchain);
+    const created = await provisionUserBridgeWallet(userAddress, chainCfg.circleBlockchain);
     const next = {
       ...wallets,
       bridgeWallets: {
         ...(wallets.bridgeWallets ?? {}),
-        [chainCfg.blockchain]: { walletId: created.walletId, address: created.address },
+        [chainCfg.circleBlockchain]: { walletId: created.walletId, address: created.address },
       },
     };
     await saveAgentWallets(next);
-    return c.json({ address: created.address, blockchain: chainCfg.blockchain });
+    return c.json({ address: created.address, blockchain: chainCfg.circleBlockchain });
   } catch (err) {
     return c.json(
       { error: 'lazy provisioning failed', detail: (err as Error).message },
@@ -1178,3 +1174,394 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
     );
   }
 });
+
+/* ============================================================================
+   BRIDGE OUT (Arc -> chain). Burn USDC on Arc from the user's Circle identity
+   DCW, then relay the mint on the destination chain via that chain's bridge DCW
+   (which pays the destination gas). Circle accounts only here: the backend signs
+   the Arc burn. Web3 users sign the Arc burn themselves and would post the burn
+   txHash to a relay endpoint (a thin follow-up that reuses startOutRelay).
+   ========================================================================== */
+
+const bridgeOutSchema = z.object({
+  bridgeId: z.string().min(1),
+  address: z.string().startsWith('0x'),
+  destChainKey: z.enum(CCTP_CHAIN_KEYS),
+  amountUsdc: z.number().positive(),
+  /// Where the minted USDC lands on the destination chain.
+  recipient: z.string().startsWith('0x'),
+});
+
+const outInFlight = new Set<string>();
+
+bridgeRoutes.post('/circle-bridge-out', async (c) => {
+  let body;
+  try {
+    body = bridgeOutSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+  const user = getUserByAddress(userAddress);
+  if (!user?.circleIdentityWalletId) {
+    return c.json(
+      {
+        error: 'bridge-out is for Circle accounts',
+        detail: 'Web3 wallets sign the Arc burn themselves; use the wallet bridge-out path.',
+      },
+      409,
+    );
+  }
+  const dest = CCTP_CHAINS[body.destChainKey];
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+
+  // Preflight: the identity wallet must hold enough Arc USDC (which is also the
+  // Arc gas token, so a little extra is consumed by the burn itself).
+  try {
+    const bal = await readUsdcBalance(userAddress);
+    if (bal < amountWei) {
+      return c.json(
+        {
+          error: 'insufficient balance',
+          detail: `Your identity wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to bridge out.`,
+        },
+        409,
+      );
+    }
+  } catch {
+    return c.json(
+      { error: 'could not verify Arc balance', detail: 'Try again in a moment.' },
+      503,
+    );
+  }
+
+  // Ensure the destination bridge DCW exists (it relays + pays for the mint) and
+  // nudge native gas to it. Provision lazily if this is the user's first bridge
+  // to that chain.
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
+  let destWallet = wallets.bridgeWallets?.[dest.circleBlockchain];
+  if (!destWallet) {
+    try {
+      const created = await provisionUserBridgeWallet(userAddress, dest.circleBlockchain);
+      destWallet = { walletId: created.walletId, address: created.address };
+      await saveAgentWallets({
+        ...wallets,
+        bridgeWallets: {
+          ...(wallets.bridgeWallets ?? {}),
+          [dest.circleBlockchain]: destWallet,
+        },
+      });
+    } catch (err) {
+      return c.json(
+        { error: 'destination wallet provisioning failed', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+  // Best-effort: make sure the destination DCW can pay the mint gas.
+  void dripTestnetUsdc(destWallet.address, {
+    blockchain: dest.circleBlockchain,
+    native: true,
+    usdc: false,
+  });
+
+  await createBridge({
+    bridgeId: body.bridgeId,
+    direction: 'out',
+    sourceDomain: ARC_DOMAIN,
+    sourceTxHash: '',
+    amountUsdc: body.amountUsdc.toString(),
+    mintRecipient: body.recipient,
+    status: 'burning',
+    destChainKey: body.destChainKey,
+    // Reuse the bridge-wallet fields for the DESTINATION DCW that relays the mint.
+    bridgeWalletId: destWallet.walletId,
+    bridgeWalletAddress: destWallet.address,
+  });
+
+  startOutPipeline({
+    bridgeId: body.bridgeId,
+    identityWalletId: user.circleIdentityWalletId,
+    destChainKey: body.destChainKey,
+    amountUsdc: body.amountUsdc.toString(),
+    recipient: body.recipient,
+    destWalletId: destWallet.walletId,
+  });
+
+  return c.json(
+    { accepted: true, bridgeId: body.bridgeId, status: 'burning', direction: 'out' },
+    202,
+  );
+});
+
+interface OutPipelineInput {
+  bridgeId: string;
+  identityWalletId: string;
+  destChainKey: CctpChainKey;
+  amountUsdc: string;
+  recipient: string;
+  destWalletId: string;
+}
+
+function startOutPipeline(input: OutPipelineInput) {
+  if (outInFlight.has(input.bridgeId)) return;
+  outInFlight.add(input.bridgeId);
+  outPipelineLoop(input).finally(() => outInFlight.delete(input.bridgeId));
+}
+
+/// Burn on Arc (approve + depositForBurn from the identity DCW), then hand off to
+/// the destination mint relay. Arc has sub-second finality and USDC is gas, so
+/// the burn legs run synchronously.
+async function outPipelineLoop(input: OutPipelineInput) {
+  const dest = CCTP_CHAINS[input.destChainKey];
+  const amountStr = parseUnits(input.amountUsdc, USDC_DECIMALS).toString();
+  try {
+    const record = await getBridge(input.bridgeId);
+    if (!record) return;
+    if (record.sourceTxHash) {
+      // Burn already landed (resume): jump to the mint relay.
+      startOutRelay({
+        bridgeId: input.bridgeId,
+        destChainKey: input.destChainKey,
+        sourceTxHash: record.sourceTxHash,
+        amountUsdc: input.amountUsdc,
+        recipient: input.recipient,
+        destWalletId: input.destWalletId,
+      });
+      return;
+    }
+
+    // STAGE 1 — approve Arc USDC to the TokenMessenger.
+    await executeContractCall(
+      {
+        walletId: input.identityWalletId,
+        contractAddress: ARC_USDC,
+        abiFunctionSignature: 'approve(address,uint256)',
+        abiParameters: [TOKEN_MESSENGER_V2, amountStr],
+      },
+      `bridge-out.approve(${input.bridgeId})`,
+    );
+
+    // STAGE 2 — burn on Arc, routed to the destination domain.
+    const burn = await executeContractCall(
+      {
+        walletId: input.identityWalletId,
+        contractAddress: TOKEN_MESSENGER_V2,
+        abiFunctionSignature:
+          'depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)',
+        abiParameters: [
+          amountStr,
+          dest.domain.toString(),
+          addressToBytes32(input.recipient),
+          ARC_USDC,
+          `0x${'0'.repeat(64)}`,
+          '0',
+          FINALITY_THRESHOLD_FAST.toString(),
+        ],
+      },
+      `bridge-out.depositForBurn(${input.bridgeId})`,
+    );
+
+    await patchBridge(input.bridgeId, { sourceTxHash: burn.txHash, status: 'relaying' });
+    bus.emitEvent({
+      type: 'bridge.burned',
+      actor: 'buyer',
+      payload: {
+        bridgeId: input.bridgeId,
+        direction: 'out',
+        destChainKey: input.destChainKey,
+        sourceTxHash: burn.txHash,
+        amountUsdc: input.amountUsdc,
+      },
+    });
+
+    startOutRelay({
+      bridgeId: input.bridgeId,
+      destChainKey: input.destChainKey,
+      sourceTxHash: burn.txHash,
+      amountUsdc: input.amountUsdc,
+      recipient: input.recipient,
+      destWalletId: input.destWalletId,
+    });
+  } catch (err) {
+    reportError('bridge.out.pipeline', err, { bridgeId: input.bridgeId });
+    await patchBridge(input.bridgeId, { status: 'error', error: (err as Error).message });
+    bus.emitEvent({
+      type: 'bridge.error',
+      actor: 'buyer',
+      payload: { bridgeId: input.bridgeId, scope: 'out-pipeline', message: (err as Error).message },
+    });
+  }
+}
+
+interface OutRelayInput {
+  bridgeId: string;
+  destChainKey: CctpChainKey;
+  sourceTxHash: string;
+  amountUsdc: string;
+  recipient: string;
+  destWalletId: string;
+}
+
+function startOutRelay(input: OutRelayInput) {
+  const key = `out:${input.bridgeId}`;
+  if (outInFlight.has(key)) return;
+  outInFlight.add(key);
+  outRelayLoop(input).finally(() => outInFlight.delete(key));
+}
+
+/// True if a CCTP message nonce has already been consumed on the given chain's
+/// MessageTransmitter (so we don't double-mint or revert on a used nonce).
+async function isMessageReceivedOn(
+  client: PublicClient,
+  eventNonce: string,
+): Promise<boolean> {
+  try {
+    const used = (await client.readContract({
+      address: MESSAGE_TRANSMITTER_V2 as `0x${string}`,
+      abi: messageTransmitterAbi,
+      functionName: 'usedNonces',
+      args: [eventNonce as `0x${string}`],
+    })) as bigint;
+    return used !== 0n;
+  } catch {
+    return false;
+  }
+}
+
+/// Marks an out-bridge minted. Verifies the destination receipt when a txHash is
+/// supplied so a reverted mint surfaces as an error rather than false success.
+async function markOutMinted(
+  input: OutRelayInput,
+  destClient: PublicClient,
+  txHash?: string,
+): Promise<void> {
+  if (txHash) {
+    try {
+      const receipt = await destClient.waitForTransactionReceipt({
+        hash: txHash as `0x${string}`,
+        timeout: 90_000,
+      });
+      if (receipt.status !== 'success') {
+        const message = `Destination mint ${txHash} reverted on ${input.destChainKey}`;
+        await patchBridge(input.bridgeId, { status: 'error', error: message });
+        bus.emitEvent({
+          type: 'bridge.error',
+          actor: 'buyer',
+          payload: { bridgeId: input.bridgeId, scope: 'receiveMessage', message },
+        });
+        return;
+      }
+    } catch (err) {
+      // Could not confirm the receipt; leave the record relaying so a recheck can
+      // settle it rather than flipping to a possibly-wrong terminal state.
+      logger.warn(
+        { bridgeId: input.bridgeId, err: (err as Error).message },
+        'out-mint receipt verify failed; leaving relaying',
+      );
+      return;
+    }
+  }
+  await patchBridge(input.bridgeId, {
+    status: 'minted',
+    ...(txHash ? { mintTxHash: txHash } : {}),
+  });
+  bus.emitEvent({
+    type: 'bridge.minted',
+    actor: 'buyer',
+    payload: {
+      bridgeId: input.bridgeId,
+      direction: 'out',
+      destChainKey: input.destChainKey,
+      amountUsdc: input.amountUsdc,
+      mintRecipient: input.recipient,
+      sourceTxHash: input.sourceTxHash,
+      ...(txHash ? { txHash } : { alreadyMinted: true }),
+    },
+  });
+}
+
+/// Polls IRIS for the Arc-origin burn's attestation, then calls receiveMessage
+/// on the destination chain via that chain's bridge DCW.
+async function outRelayLoop(input: OutRelayInput) {
+  const destClient = sourceClients[input.destChainKey];
+  const startedAt = Date.now();
+  const url = `${config.IRIS_API_BASE}/v2/messages/${ARC_DOMAIN}?transactionHash=${input.sourceTxHash}`;
+  let attestation: { message: string; attestation: string; eventNonce?: string } | null = null;
+
+  while (Date.now() - startedAt < POLL_TIMEOUT_MS) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = (await res.json()) as {
+          messages?: Array<{
+            status?: string;
+            message?: string;
+            attestation?: string;
+            eventNonce?: string;
+          }>;
+        };
+        const m = data.messages?.[0];
+        if (m?.status === 'complete' && m.message && m.attestation) {
+          attestation = { message: m.message, attestation: m.attestation, eventNonce: m.eventNonce };
+          break;
+        }
+      } else if (res.status !== 404) {
+        logger.warn({ status: res.status }, 'out-relay iris lookup non-2xx');
+      }
+    } catch (err) {
+      logger.warn({ err: (err as Error).message }, 'out-relay iris poll error');
+    }
+    await sleep(POLL_INTERVAL_MS);
+  }
+
+  if (!attestation) {
+    const message = 'Attestation did not arrive within poll window';
+    reportError('bridge.out.attestation', new Error(message), { bridgeId: input.bridgeId });
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
+    bus.emitEvent({
+      type: 'bridge.error',
+      actor: 'buyer',
+      payload: { bridgeId: input.bridgeId, scope: 'attestation', message },
+    });
+    return;
+  }
+
+  bus.emitEvent({
+    type: 'bridge.attested',
+    actor: 'buyer',
+    payload: { bridgeId: input.bridgeId, sourceTxHash: input.sourceTxHash },
+  });
+
+  if (attestation.eventNonce && (await isMessageReceivedOn(destClient, attestation.eventNonce))) {
+    await markOutMinted(input, destClient);
+    return;
+  }
+
+  try {
+    const result = await executeContractCall(
+      {
+        walletId: input.destWalletId,
+        contractAddress: MESSAGE_TRANSMITTER_V2,
+        abiFunctionSignature: 'receiveMessage(bytes,bytes)',
+        abiParameters: [attestation.message, attestation.attestation],
+      },
+      `bridge-out.receiveMessage(${input.bridgeId})`,
+    );
+    await markOutMinted(input, destClient, result.txHash);
+  } catch (err) {
+    if (attestation.eventNonce && (await isMessageReceivedOn(destClient, attestation.eventNonce))) {
+      await markOutMinted(input, destClient);
+      return;
+    }
+    const message = (err as Error).message;
+    reportError('bridge.out.receiveMessage', err, { bridgeId: input.bridgeId });
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
+    bus.emitEvent({
+      type: 'bridge.error',
+      actor: 'buyer',
+      payload: { bridgeId: input.bridgeId, scope: 'receiveMessage', message },
+    });
+  }
+}

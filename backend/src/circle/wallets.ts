@@ -24,9 +24,15 @@ export const ARC_TESTNET_BLOCKCHAIN = 'ARC-TESTNET' as const;
 /// at https://developers.circle.com/api-reference/wallets/developer-controlled-wallets/create-wallet).
 export const BASE_SEPOLIA_BLOCKCHAIN = 'BASE-SEPOLIA' as const;
 export const ETH_SEPOLIA_BLOCKCHAIN = 'ETH-SEPOLIA' as const;
+export const OP_SEPOLIA_BLOCKCHAIN = 'OP-SEPOLIA' as const;
+export const ARB_SEPOLIA_BLOCKCHAIN = 'ARB-SEPOLIA' as const;
+export const POLYGON_AMOY_BLOCKCHAIN = 'MATIC-AMOY' as const;
 export type BridgeBlockchain =
   | typeof BASE_SEPOLIA_BLOCKCHAIN
-  | typeof ETH_SEPOLIA_BLOCKCHAIN;
+  | typeof ETH_SEPOLIA_BLOCKCHAIN
+  | typeof OP_SEPOLIA_BLOCKCHAIN
+  | typeof ARB_SEPOLIA_BLOCKCHAIN
+  | typeof POLYGON_AMOY_BLOCKCHAIN;
 
 export interface ProvisionedAgentWallets {
   buyerWalletId: string;

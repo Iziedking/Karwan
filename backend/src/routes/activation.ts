@@ -6,8 +6,8 @@ import {
   provisionUserBridgeWallet,
   dripTestnetUsdc,
   BASE_SEPOLIA_BLOCKCHAIN,
-  ETH_SEPOLIA_BLOCKCHAIN,
 } from '../circle/wallets.js';
+import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { usdc as usdcAddress, readUsdcBalance } from '../chain/contracts.js';
@@ -133,8 +133,8 @@ activationRoutes.get('/wallets', async (c) => {
 /// bridge can actually complete. Provisions the bridge wallet if missing.
 const dripBridgeSchema = z.object({
   address: addrSchema,
-  // Which CCTP source chain's bridge wallet to refuel. Defaults to Base Sepolia.
-  chain: z.enum(['baseSepolia', 'sepolia']).optional(),
+  // Which CCTP chain's bridge wallet to refuel. Defaults to Base Sepolia.
+  chain: z.enum(CCTP_CHAIN_KEYS).optional(),
 });
 activationRoutes.post('/drip-bridge', async (c) => {
   let body;
@@ -144,8 +144,7 @@ activationRoutes.post('/drip-bridge', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
-  const blockchain =
-    body.chain === 'sepolia' ? ETH_SEPOLIA_BLOCKCHAIN : BASE_SEPOLIA_BLOCKCHAIN;
+  const blockchain = CCTP_CHAINS[body.chain ?? 'baseSepolia'].circleBlockchain;
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
 
@@ -192,6 +191,49 @@ activationRoutes.post('/drip-bridge', async (c) => {
     );
   }
   return c.json({ ok: true, address: bridge.address, blockchain }, 200);
+});
+
+/// Arc-USDC faucet for the user's own wallets. `target` picks identity (the
+/// logged-in wallet) or an agent wallet. Awaits the faucet so the button can
+/// report a rate limit. Testnet only; no-op on a live key.
+const faucetSchema = z.object({
+  address: addrSchema,
+  target: z.enum(['identity', 'buyer', 'seller']),
+});
+activationRoutes.post('/faucet', async (c) => {
+  let body;
+  try {
+    body = faucetSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+
+  let target = userAddress; // identity = the logged-in wallet, funded on Arc
+  if (body.target !== 'identity') {
+    const wallets = await getAgentWallets(userAddress);
+    if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
+    target = body.target === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+  }
+
+  // Defaults to Arc Testnet USDC (the faucet helper's default blockchain).
+  const drip = await dripTestnetUsdc(target);
+  if (!drip.ok) {
+    const rateLimited =
+      drip.status === 429 || /rate|limit|already|too many/i.test(drip.detail ?? '');
+    return c.json(
+      {
+        error: 'faucet request failed',
+        detail: rateLimited
+          ? 'The faucet is rate-limited for this wallet (about 20 USDC per 2 hours). Try again later.'
+          : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
+        target: body.target,
+        address: target,
+      },
+      502,
+    );
+  }
+  return c.json({ ok: true, target: body.target, address: target }, 200);
 });
 
 /// Provisions a buyer agent wallet and a seller agent wallet for the user.

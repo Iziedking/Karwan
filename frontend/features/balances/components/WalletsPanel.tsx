@@ -98,6 +98,28 @@ function Row({
   );
 }
 
+/// Small outline button that pulls testnet USDC from the faucet to a wallet.
+function FaucetButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className="inline-flex items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50 hover:bg-black/[0.03]"
+      style={{
+        borderColor: 'var(--lp-border-light)',
+        color: 'var(--lp-text-sub)',
+        borderTopLeftRadius: 9,
+        borderTopRightRadius: 9,
+        borderBottomLeftRadius: 9,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      {busy ? 'Requesting' : 'Faucet'}
+    </button>
+  );
+}
+
 /// Plain-language map of the wallets in a Karwan account, with live balances and
 /// the one action most users miss: refuelling the bridge wallet's source-chain
 /// gas. Identity is the hub; agents are funded from it; the bridge wallet lives
@@ -110,6 +132,7 @@ export function WalletsPanel({ address }: { address?: string }) {
   const [data, setData] = useState<Overview | null>(null);
   const [bridge, setBridge] = useState<BridgeStatus | null>(null);
   const [refueling, setRefueling] = useState(false);
+  const [faucetBusy, setFaucetBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -126,6 +149,21 @@ export function WalletsPanel({ address }: { address?: string }) {
 
   const agents = data?.agents ?? null;
   const bridgeAddr = bridge?.bridgeWalletAddress ?? data?.bridgeWallets?.['BASE-SEPOLIA']?.address;
+
+  const runFaucet = async (target: 'identity' | 'buyer' | 'seller') => {
+    setFaucetBusy(target);
+    setNote(null);
+    try {
+      await api.faucet(address, target);
+      setNote('Faucet requested. About 20 USDC lands on Arc in a minute.');
+      setTimeout(refresh, 8000);
+    } catch (err) {
+      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+      setNote(detail ?? (err as Error).message);
+    } finally {
+      setFaucetBusy(null);
+    }
+  };
 
   const topUpGas = async (chain: 'baseSepolia' | 'sepolia') => {
     setRefueling(true);
@@ -170,6 +208,11 @@ export function WalletsPanel({ address }: { address?: string }) {
           }
           address={data?.identity.address}
           primary={`${fmt(data?.identity.usdcBalance)} USDC`}
+          action={
+            isCircle ? (
+              <FaucetButton onClick={() => runFaucet('identity')} busy={faucetBusy === 'identity'} />
+            ) : undefined
+          }
         />
 
         {agents ? (
@@ -180,6 +223,9 @@ export function WalletsPanel({ address }: { address?: string }) {
               purpose="Escrows USDC for the deals you buy. Top up under Agent treasury."
               address={agents.buyer.address}
               primary={`${fmt(agents.buyer.usdcBalance)} USDC`}
+              action={
+                <FaucetButton onClick={() => runFaucet('buyer')} busy={faucetBusy === 'buyer'} />
+              }
             />
             <Row
               tag="SELLER AGENT"

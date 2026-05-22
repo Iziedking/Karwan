@@ -21,6 +21,15 @@ function withCaller(path: string, caller?: string | null): string {
   return `${path}${path.includes('?') ? '&' : '?'}caller=${c.toLowerCase()}`;
 }
 
+/// CCTP chain keys Karwan bridges with (mirrors features/bridge/config.ts and
+/// backend chain/cctpChains.ts). Kept local so core/api has no feature import.
+export type BridgeChainKey =
+  | 'sepolia'
+  | 'optimismSepolia'
+  | 'arbitrumSepolia'
+  | 'baseSepolia'
+  | 'polygonAmoy';
+
 export interface ApiStatus {
   chain: { id: number; rpc: string; explorer: string };
   contracts: {
@@ -521,9 +530,13 @@ export const api = {
       body: JSON.stringify({ address, handle }),
     }),
   /// Delete the account: purges off-chain profile + Telegram link + Circle auth
-  /// row. Throws (ApiError) with a clear detail if agent wallets still hold USDC.
-  deleteAccount: (address: string) =>
-    json<{ ok: boolean }>(`/api/profile?address=${address}`, { method: 'DELETE' }),
+  /// row. If agent wallets still hold USDC, throws ApiError with code
+  /// 'agent-funds' (a confirmable warning); re-call with force=true to proceed.
+  deleteAccount: (address: string, force = false) =>
+    json<{ ok: boolean }>(
+      `/api/profile?address=${address}${force ? '&force=true' : ''}`,
+      { method: 'DELETE' },
+    ),
   getSettings: (address: string) =>
     json<{ settings: UserSettings }>(`/api/settings?address=${address}`),
   saveSettings: (address: string, settings: UserSettings) =>
@@ -650,10 +663,17 @@ export const api = {
       } | null;
       bridgeWallets: Record<string, { walletId: string; address: string }>;
     }>(`/api/activation/wallets?address=${address}`),
+  /// Arc-USDC faucet for one of the user's own wallets (identity hub or an
+  /// agent). Testnet only.
+  faucet: (address: string, target: 'identity' | 'buyer' | 'seller') =>
+    json<{ ok: boolean; target: string; address: string }>('/api/activation/faucet', {
+      method: 'POST',
+      body: JSON.stringify({ address, target }),
+    }),
   /// Refuel a bridge wallet with native gas + USDC from the faucet so a CCTP
   /// bridge can pay its source-chain gas. Provisions the bridge wallet for that
   /// chain if missing. Defaults to Base Sepolia. Testnet only.
-  dripBridgeGas: (address: string, chain: 'baseSepolia' | 'sepolia' = 'baseSepolia') =>
+  dripBridgeGas: (address: string, chain: BridgeChainKey = 'baseSepolia') =>
     json<{ ok: boolean; address: string; blockchain: string }>(
       '/api/activation/drip-bridge',
       { method: 'POST', body: JSON.stringify({ address, chain }) },
@@ -800,7 +820,7 @@ export const api = {
   bridgeCircle: (input: {
     bridgeId: string;
     address: string;
-    sourceChainKey: 'baseSepolia' | 'sepolia';
+    sourceChainKey: BridgeChainKey;
     amountUsdc: number;
     mintRecipient: string;
   }) =>
@@ -819,6 +839,20 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     }),
+  /// Bridge OUT (Arc -> chain) for Circle accounts. Backend burns from the
+  /// identity DCW on Arc, then relays the mint on the destination chain. The
+  /// burn hash + mint land later over SSE.
+  bridgeOut: (input: {
+    bridgeId: string;
+    address: string;
+    destChainKey: BridgeChainKey;
+    amountUsdc: number;
+    recipient: string;
+  }) =>
+    json<{ accepted: true; bridgeId: string; status: string; direction: 'out' }>(
+      '/api/bridge/circle-bridge-out',
+      { method: 'POST', body: JSON.stringify(input) },
+    ),
   /// Resume a Circle bridge stuck mid source-pipeline (approving/burning) or
   /// waiting on the mint relay. Idempotent. Used by retry + auto-recheck for
   /// Circle bridges, where re-POSTing circle-bridge would 409 on the existing id.
@@ -829,7 +863,7 @@ export const api = {
     ),
   /// Returns or lazy-provisions the user's source-chain DCW address so the
   /// frontend can show "send USDC here" + a faucet link for Circle users.
-  bridgeCircleSourceAddress: (address: string, sourceChainKey: 'baseSepolia' | 'sepolia') =>
+  bridgeCircleSourceAddress: (address: string, sourceChainKey: BridgeChainKey) =>
     json<{ address: string; blockchain: string }>(
       `/api/bridge/circle-source-address?address=${address}&sourceChainKey=${sourceChainKey}`,
     ),
@@ -837,10 +871,10 @@ export const api = {
   /// address plus its live USDC and native-gas balances so the bridge card can
   /// show a funded/empty state. usdcBalance/gasBalance are null when the
   /// on-chain balance read failed (transient RPC); the address still returns.
-  bridgeWalletStatus: (address: string, sourceChainKey: 'baseSepolia' | 'sepolia') =>
+  bridgeWalletStatus: (address: string, sourceChainKey: BridgeChainKey) =>
     json<{
       bridgeWalletAddress: string;
-      sourceChainKey: 'baseSepolia' | 'sepolia';
+      sourceChainKey: BridgeChainKey;
       usdcBalance: string | null;
       gasBalance: string | null;
     }>(

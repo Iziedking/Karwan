@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { bridges } from './schema.js';
+import type { CctpChainKey } from '../chain/cctpChains.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'bridges.json');
 
@@ -23,9 +24,15 @@ export interface BridgeRelay {
   status: BridgeStatus;
   mintTxHash?: string;
   error?: string;
+  /// Bridge direction. 'in' = another chain -> Arc (mint on Arc, the default and
+  /// legacy behaviour). 'out' = Arc -> another chain (burn on Arc, mint on the
+  /// destination). Absent is treated as 'in'.
+  direction?: 'in' | 'out';
+  /// For 'out' bridges: the destination CCTP chain the mint lands on.
+  destChainKey?: CctpChainKey;
   // --- Circle-user source-side pipeline state (resume across restarts) ---
-  /// Which source chain the DCW lives on. Present only for Circle bridges.
-  sourceChainKey?: 'baseSepolia' | 'sepolia';
+  /// Which CCTP chain the DCW lives on. Present only for Circle bridges.
+  sourceChainKey?: CctpChainKey;
   /// The user's source-chain Circle DCW that signs approve + burn.
   bridgeWalletId?: string;
   bridgeWalletAddress?: string;

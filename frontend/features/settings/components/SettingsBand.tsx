@@ -30,6 +30,42 @@ export function SettingsBand() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // When the account still has funded agent wallets, the server returns a
+  // confirmable warning instead of deleting. We hold the message here and show
+  // a Yes/No so the user can proceed with eyes open.
+  const [forceConfirm, setForceConfirm] = useState<string | null>(null);
+
+  const runDelete = useCallback(
+    async (force: boolean) => {
+      if (!address) return;
+      setDeleting(true);
+      setDeleteError(null);
+      try {
+        await api.deleteAccount(address, force);
+        await signOut();
+        router.push('/');
+      } catch (err) {
+        // Funded agent wallets: surface the warning with a Yes/No instead of a
+        // hard error.
+        if (err instanceof ApiError && err.code === 'agent-funds' && !force) {
+          setForceConfirm(
+            typeof err.detail === 'string'
+              ? err.detail
+              : 'Your agent wallets are funded. Deleting will not move them. Proceed anyway?',
+          );
+          setDeleting(false);
+          return;
+        }
+        const detail =
+          err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+        setDeleteError(detail ?? (err as Error).message);
+        setForceConfirm(null);
+        setDeleting(false);
+        setDeleteConfirm('');
+      }
+    },
+    [address, signOut, router],
+  );
 
   useEffect(() => {
     if (!isAuthenticated || !address) return;
@@ -181,23 +217,8 @@ export function SettingsBand() {
           />
           <button
             type="button"
-            disabled={deleteConfirm !== 'DELETE' || deleting}
-            onClick={async () => {
-              if (!address) return;
-              setDeleting(true);
-              setDeleteError(null);
-              try {
-                await api.deleteAccount(address);
-                await signOut();
-                router.push('/');
-              } catch (err) {
-                const detail =
-                  err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
-                setDeleteError(detail ?? (err as Error).message);
-                setDeleting(false);
-                setDeleteConfirm('');
-              }
-            }}
+            disabled={deleteConfirm !== 'DELETE' || deleting || forceConfirm !== null}
+            onClick={() => runDelete(false)}
             className="px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background: 'var(--color-critical)',
@@ -209,6 +230,46 @@ export function SettingsBand() {
             {t.settings.accountDelete}
           </button>
         </div>
+        {forceConfirm && (
+          <div
+            className="mt-3 p-3 border max-w-[52ch]"
+            style={{ borderColor: 'var(--color-critical)', borderRadius: 3 }}
+          >
+            <p className="text-[12px] leading-snug text-[var(--color-ink-dim)]">{forceConfirm}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => runDelete(true)}
+                className="px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
+                style={{
+                  background: 'var(--color-critical)',
+                  color: 'var(--color-surface)',
+                  border: '1px solid var(--color-critical)',
+                  borderRadius: 3,
+                }}
+              >
+                {deleting ? 'Deleting' : 'Yes, delete'}
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setForceConfirm(null);
+                  setDeleteConfirm('');
+                }}
+                className="px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
+                style={{
+                  border: '1px solid var(--color-line)',
+                  color: 'var(--color-ink-dim)',
+                  borderRadius: 3,
+                }}
+              >
+                No, keep it
+              </button>
+            </div>
+          </div>
+        )}
         {deleteError && (
           <p className="mt-2 mono text-[11px] leading-snug max-w-[52ch] text-[var(--color-critical)]">
             {deleteError}

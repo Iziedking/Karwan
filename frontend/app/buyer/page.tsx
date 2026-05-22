@@ -5,7 +5,6 @@ import { api, type BuyerJob } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
-import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import { SignInGate } from '@/shared/components/SignInGate';
@@ -133,9 +132,8 @@ export default function BuyerPage() {
               </div>
             </PageCard>
           </div>
-          <div className="space-y-4" id="bridge-section">
+          <div className="space-y-4">
             <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
-            <BridgeCard mintRecipient={agents?.buyer as `0x${string}` | undefined} tour={false} />
           </div>
         </div>
       </Band>

@@ -33,6 +33,12 @@ export function TopNav() {
   const t = useTranslations();
   const { isAuthenticated } = useAuth();
 
+  const tradesActive =
+    pathname.startsWith('/buyer') ||
+    pathname.startsWith('/seller') ||
+    pathname.startsWith('/jobs') ||
+    pathname.startsWith('/deals');
+
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -100,24 +106,15 @@ export function TopNav() {
             <NavLink href="/app" active={pathname === '/app'}>
               {t.nav.home}
             </NavLink>
-            <NavLink
-              href="/buyer"
-              active={
-                pathname.startsWith('/buyer') ||
-                pathname.startsWith('/jobs') ||
-                pathname.startsWith('/deals')
-              }
-            >
-              {t.nav.buyer}
-            </NavLink>
-            <NavLink href="/seller" active={pathname.startsWith('/seller')}>
-              {t.nav.seller}
-            </NavLink>
+            <TradesDropdown active={tradesActive} />
             <NavLink
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
             >
               Market
+            </NavLink>
+            <NavLink href="/bridge" active={pathname.startsWith('/bridge')}>
+              Bridge
             </NavLink>
             <NavLinkSoon title="Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.">
               SME Trades
@@ -131,7 +128,6 @@ export function TopNav() {
             <NavLink href="/profile" active={pathname.startsWith('/profile')}>
               {t.nav.profile}
             </NavLink>
-            <ExternalNavLink href="https://testnet.arcscan.app">Explorer</ExternalNavLink>
           </nav>
         )}
 
@@ -184,6 +180,11 @@ export function TopNav() {
             <MobileNavLink href="/app" active={pathname === '/app'}>
               {t.nav.home}
             </MobileNavLink>
+            {/* Trades group: buyer + seller, labelled so the two desks read as
+                distinct surfaces, not a flat list. */}
+            <p className="px-3 pt-3 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
+              Trades
+            </p>
             <MobileNavLink
               href="/buyer"
               active={
@@ -197,11 +198,15 @@ export function TopNav() {
             <MobileNavLink href="/seller" active={pathname.startsWith('/seller')}>
               {t.nav.seller}
             </MobileNavLink>
+            <div className="my-1.5 border-t border-[var(--color-line)]" />
             <MobileNavLink
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
             >
               Market
+            </MobileNavLink>
+            <MobileNavLink href="/bridge" active={pathname.startsWith('/bridge')}>
+              Bridge
             </MobileNavLink>
             <MobileNavLinkSoon>SME Trades</MobileNavLinkSoon>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
@@ -213,22 +218,6 @@ export function TopNav() {
             <MobileNavLink href="/profile" active={pathname.startsWith('/profile')}>
               {t.nav.profile}
             </MobileNavLink>
-            <a
-              href="https://testnet.arcscan.app"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3 py-2.5 rounded-md text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center justify-between"
-            >
-              <span>Explorer</span>
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path
-                  d="M5.5 4.5h6v6M11 5l-6.5 6.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </a>
             <div className="mt-2 pt-2 border-t border-[var(--color-line)] flex items-center justify-around text-[12px] text-[var(--color-ink-dim)]">
               <SoundToggle />
               <ThemeToggle />
@@ -344,31 +333,115 @@ function MobileNavLinkSoon({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ExternalNavLink({ href, children }: { href: string; children: React.ReactNode }) {
+/// Buyer + Seller collapse into one "Trades" rail slot. The dropdown gives each
+/// desk its own labelled row with a distinct accent dot, so the two surfaces
+/// read as separate, not a flat list. Hover-opens on desktop; chevron rotates.
+function TradesDropdown({ active }: { active: boolean }) {
+  const [open, setOpen] = useState(false);
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="group px-3 pr-3.5 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors inline-flex items-center gap-1"
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
     >
-      {children}
-      <svg
-        width="10"
-        height="10"
-        viewBox="0 0 16 16"
-        fill="none"
-        aria-hidden
-        className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={cn(
+          'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors inline-flex items-center gap-1.5',
+          active
+            ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-[0_2px_0_rgba(0,0,0,0.15)]'
+            : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+        )}
       >
-        <path
-          d="M5.5 4.5h6v6M11 5l-6.5 6.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </a>
+        Trades
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className={cn('transition-transform duration-200', open && 'rotate-180')}
+        >
+          <path
+            d="M3 6l5 5 5-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-40">
+          <div
+            className="w-[300px] p-2 border bg-[var(--color-surface)] fade-up"
+            style={{
+              borderColor: 'var(--color-line)',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderBottomLeftRadius: 16,
+              borderBottomRightRadius: 4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
+            }}
+          >
+            <TradesItem
+              href="/buyer"
+              title="Buyer desk"
+              sub="Post a brief. Agents run the auction."
+              accent="var(--lp-accent)"
+            />
+            <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
+            <TradesItem
+              href="/seller"
+              title="Seller desk"
+              sub="Post a listing. Take incoming deals."
+              accent="#7CC2FF"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TradesItem({
+  href,
+  title,
+  sub,
+  accent,
+}: {
+  href: string;
+  title: string;
+  sub: string;
+  accent: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-start gap-3 p-3 rounded-xl hover:bg-[var(--color-surface-2)] transition-colors"
+    >
+      <span
+        aria-hidden
+        className="mt-1.5 w-1.5 h-1.5 shrink-0"
+        style={{ background: accent, borderRadius: 1 }}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block font-sans text-[14px] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
+          {title}
+        </span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-[var(--color-ink-dim)]">
+          {sub}
+        </span>
+      </span>
+      <span
+        aria-hidden
+        className="self-center text-[var(--color-ink-faint)] transition-transform duration-200 group-hover:translate-x-0.5"
+      >
+        →
+      </span>
+    </Link>
   );
 }
 

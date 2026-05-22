@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseUnits } from 'viem';
 import {
   useAccount,
@@ -9,7 +9,7 @@ import {
   useWalletClient,
 } from 'wagmi';
 import { api, type ChainEvent } from '@/core/api';
-import { ARC_TESTNET, SOURCE_CHAINS, addressToBytes32, FINALITY_THRESHOLD_FAST, type SourceChainConfig } from '../config';
+import { ARC_TESTNET, SOURCE_CHAINS, addressToBytes32, FINALITY_THRESHOLD_FAST, type SourceChainConfig, type CctpChainKey } from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -223,8 +223,24 @@ export function useBridges() {
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
-  const baseSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.baseSepolia.chainId });
+  // Public client per CCTP source chain so any registered chain's web3 burn
+  // reads from the right RPC (not a base/eth fallback). Memoised so the keyed
+  // map is stable for callback deps.
   const sepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.sepolia.chainId });
+  const optimismSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.optimismSepolia.chainId });
+  const arbitrumSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.arbitrumSepolia.chainId });
+  const baseSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.baseSepolia.chainId });
+  const polygonAmoyClient = usePublicClient({ chainId: SOURCE_CHAINS.polygonAmoy.chainId });
+  const sourceClients = useMemo<Record<CctpChainKey, ReturnType<typeof usePublicClient>>>(
+    () => ({
+      sepolia: sepoliaClient,
+      optimismSepolia: optimismSepoliaClient,
+      arbitrumSepolia: arbitrumSepoliaClient,
+      baseSepolia: baseSepoliaClient,
+      polygonAmoy: polygonAmoyClient,
+    }),
+    [sepoliaClient, optimismSepoliaClient, arbitrumSepoliaClient, baseSepoliaClient, polygonAmoyClient],
+  );
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
   const { recordAction } = useGuide();
@@ -378,8 +394,7 @@ export function useBridges() {
   const runFlow = useCallback(
     async (record: BridgeRecord) => {
       const source = SOURCE_CHAINS[record.sourceChainKey];
-      const sourcePublicClient =
-        record.sourceChainKey === 'baseSepolia' ? baseSepoliaClient : sepoliaClient;
+      const sourcePublicClient = sourceClients[record.sourceChainKey];
 
       if (!isConnected || !address || !walletClient || !sourcePublicClient) {
         patch(record.id, (b) => ({ ...b, phase: 'error', error: 'Connect your wallet first' }));
@@ -475,7 +490,7 @@ export function useBridges() {
         }));
       }
     },
-    [address, baseSepoliaClient, chainId, isConnected, patch, sepoliaClient, switchChainAsync, walletClient],
+    [address, sourceClients, chainId, isConnected, patch, switchChainAsync, walletClient],
   );
 
   const start = useCallback(

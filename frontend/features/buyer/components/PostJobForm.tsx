@@ -430,10 +430,7 @@ export function PostJobForm() {
           <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">{error}</p>
           <button
             type="button"
-            onClick={() => {
-              const el = document.getElementById('bridge-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
+            onClick={() => window.location.assign('/bridge')}
             className="mono text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--lp-dark)] underline-offset-2 hover:underline"
           >
             Top up via CCTP →
