@@ -124,6 +124,11 @@ export type BridgePhase =
 export interface BridgeRecord {
   id: string;
   phase: BridgePhase;
+  /// 'in' = chain -> Arc (mint on Arc). 'out' = Arc -> chain (mint on the other
+  /// chain). Absent is treated as 'in' (legacy + the existing web3/circle flow).
+  direction?: 'in' | 'out';
+  /// For 'in' the source chain; for 'out' the destination chain. Either way the
+  /// non-Arc chain, so SOURCE_CHAINS[sourceChainKey] resolves its name/explorer.
   sourceChainKey: SourceChainConfig['key'];
   amountUsdc: string;
   mintRecipient: `0x${string}`;
@@ -724,5 +729,65 @@ export function useBridges() {
     [patch],
   );
 
-  return { bridges, start, startCircle, retry, recheck, dismiss, clearCompleted, isActive };
+  /// Circle bridge-OUT (Arc -> chain). Backend burns from the identity DCW on
+  /// Arc and relays the mint on the destination chain (gas sponsored via Gas
+  /// Station). Records the bridge locally; the same SSE handlers animate it
+  /// (burning -> attesting -> minting -> done) by bridgeId.
+  const startCircleOut = useCallback(
+    async (input: {
+      destChainKey: SourceChainConfig['key'];
+      amountUsdc: number;
+      recipient: `0x${string}`;
+      userAddress: string;
+    }) => {
+      const id = `${input.destChainKey}-out-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'burning',
+        direction: 'out',
+        sourceChainKey: input.destChainKey, // the non-Arc chain = destination
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.recipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      try {
+        await api.bridgeOut({
+          bridgeId: id,
+          address: input.userAddress,
+          destChainKey: input.destChainKey,
+          amountUsdc: input.amountUsdc,
+          recipient: input.recipient,
+        });
+        patch(id, (b) => ({ ...b, phase: 'burning', error: undefined }));
+      } catch (err) {
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[bridge.startCircleOut]', errorToString(err));
+        }
+        const raw = errorToString(err).toLowerCase();
+        const friendly = raw.includes('insufficient')
+          ? 'Your Arc balance is short. Lower the amount and try again.'
+          : raw.includes('failed to fetch')
+            ? 'Could not reach the bridge service. Try again in a moment.'
+            : 'Bridge-out could not start. Try again in a moment.';
+        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+      }
+    },
+    [patch],
+  );
+
+  return {
+    bridges,
+    start,
+    startCircle,
+    startCircleOut,
+    retry,
+    recheck,
+    dismiss,
+    clearCompleted,
+    isActive,
+  };
 }

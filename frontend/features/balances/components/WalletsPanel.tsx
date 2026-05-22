@@ -233,6 +233,9 @@ export function WalletsPanel({ address }: { address?: string }) {
               purpose="Covers the Arc gas to accept and deliver on the deals you sell. Top up under Agent treasury."
               address={agents.seller.address}
               primary={`${fmt(agents.seller.usdcBalance)} USDC`}
+              action={
+                <FaucetButton onClick={() => runFaucet('seller')} busy={faucetBusy === 'seller'} />
+              }
             />
           </>
         ) : (

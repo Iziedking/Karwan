@@ -670,6 +670,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, target }),
     }),
+  /// Auto-pool native gas + USDC from Circle's faucet to any address on a CCTP
+  /// source chain. Funds a web3 user's own wallet (or any address) in-app instead
+  /// of sending them to faucet.circle.com. Testnet only.
+  fundSource: (address: string, chain: BridgeChainKey) =>
+    json<{ ok: boolean; chain: string }>('/api/activation/fund-source', {
+      method: 'POST',
+      body: JSON.stringify({ address, chain }),
+    }),
   /// Refuel a bridge wallet with native gas + USDC from the faucet so a CCTP
   /// bridge can pay its source-chain gas. Provisions the bridge wallet for that
   /// chain if missing. Defaults to Base Sepolia. Testnet only.

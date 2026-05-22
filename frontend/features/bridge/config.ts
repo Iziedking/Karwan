@@ -91,6 +91,19 @@ export const SOURCE_CHAINS: Record<CctpChainKey, SourceChainConfig> = {
 
 export const SOURCE_CHAIN_KEYS = Object.keys(SOURCE_CHAINS) as CctpChainKey[];
 
+// Native-gas testnet faucets per source chain. Only web3 users need these (they
+// pay their own source-chain burn gas); Circle users are sponsored by Gas
+// Station. USDC for any chain comes from faucet.circle.com.
+export const GAS_FAUCETS: Record<CctpChainKey, string> = {
+  sepolia: 'https://www.alchemy.com/faucets/ethereum-sepolia',
+  optimismSepolia: 'https://www.alchemy.com/faucets/optimism-sepolia',
+  arbitrumSepolia: 'https://www.alchemy.com/faucets/arbitrum-sepolia',
+  baseSepolia: 'https://www.alchemy.com/faucets/base-sepolia',
+  polygonAmoy: 'https://faucet.polygon.technology/',
+};
+
+export const USDC_FAUCET = 'https://faucet.circle.com/';
+
 export const ARC_TESTNET = {
   chainId: arcTestnet.id,
   domain: 26,

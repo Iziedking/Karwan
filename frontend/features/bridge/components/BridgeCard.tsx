@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api } from '@/core/api';
-import { SOURCE_CHAINS, type SourceChainConfig } from '../config';
+import { api, ApiError } from '@/core/api';
+import { SOURCE_CHAINS, GAS_FAUCETS, USDC_FAUCET, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
@@ -122,6 +122,8 @@ export function BridgeCard({
   const isCircleUser = auth.method === 'circle';
   const { bridges, start, startCircle, retry, recheck, dismiss, clearCompleted, isActive } =
     useBridges();
+  // This card only handles bridging IN. Out-records render in BridgeOutCard.
+  const inBridges = bridges.filter((b) => b.direction !== 'out');
   const [sourceKey, setSourceKey] = useState<SourceChainConfig['key']>('baseSepolia');
   const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -238,7 +240,7 @@ export function BridgeCard({
     );
   }
 
-  const activeCount = bridges.filter((b) => isActive(b.phase)).length;
+  const activeCount = inBridges.filter((b) => isActive(b.phase)).length;
 
   return (
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
@@ -299,6 +301,7 @@ export function BridgeCard({
             wallet={circleWallet}
           />
         )}
+        {!isCircleUser && isConnected && <Web3FundHint source={source} />}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
           <div data-guide="bridge-source">
@@ -485,14 +488,14 @@ export function BridgeCard({
           </button>
         </form>
 
-        {bridges.length > 0 && (
+        {inBridges.length > 0 && (
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
             <div className="flex items-baseline justify-between gap-3 mb-3.5">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 [:ACTIVITY:]
               </span>
               <div className="flex items-baseline gap-3">
-                {bridges.some((b) => !isActive(b.phase)) && (
+                {inBridges.some((b) => !isActive(b.phase)) && (
                   <button
                     type="button"
                     onClick={clearCompleted}
@@ -503,12 +506,12 @@ export function BridgeCard({
                   </button>
                 )}
                 <p className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {bridges.length} {bridges.length === 1 ? 'BRIDGE' : 'BRIDGES'}
+                  {inBridges.length} {inBridges.length === 1 ? 'BRIDGE' : 'BRIDGES'}
                 </p>
               </div>
             </div>
             <ul className="space-y-2">
-              {bridges.map((b) => (
+              {inBridges.map((b) => (
                 <BridgeRow
                   key={b.id}
                   bridge={b}
@@ -1147,6 +1150,117 @@ function CircleSourceFundBanner({
         </div>
       </div>
     </div>
+  );
+}
+
+/// Web3 users sign their own source-chain burn, so they pay gas there. Gas
+/// Station only sponsors Circle DCWs, so a connected wallet has to claim its own
+/// native gas. One in-app button pools test gas + USDC from Circle's faucet
+/// straight to the connected wallet; the external faucets stay as a fallback.
+function Web3FundHint({ source }: { source: SourceChainConfig }) {
+  const auth = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  async function autopool() {
+    if (!auth.address) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.fundSource(auth.address, source.key);
+      setNote({
+        kind: 'ok',
+        text: `Test ${source.nativeSymbol} and USDC sent to your wallet on ${source.name}. Lands in about a minute, then bridge.`,
+      });
+    } catch (err) {
+      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
+      setNote({ kind: 'err', text: detail ?? (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="relative mb-4 overflow-hidden px-4 py-3 pl-5"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: 'var(--lp-accent)' }}
+      />
+      <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        [:FUND {source.shortName.toUpperCase()} TO BRIDGE:]
+      </p>
+      <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+        You sign the burn on {source.name}, so your wallet pays the gas there. Pull test{' '}
+        {source.nativeSymbol} and USDC to it in one click.
+      </p>
+      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={autopool}
+          disabled={busy || !auth.address}
+          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1.5 px-2.5 py-1 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+          style={{
+            background: 'var(--lp-accent)',
+            color: 'var(--lp-band-dark)',
+            borderTopLeftRadius: 6,
+            borderTopRightRadius: 6,
+            borderBottomLeftRadius: 6,
+            borderBottomRightRadius: 2,
+            boxShadow: '0 2px 0 rgba(0,0,0,0.2)',
+          }}
+        >
+          {busy ? 'Requesting' : `Get test ${source.nativeSymbol} and USDC`}
+        </button>
+      </div>
+      {note && (
+        <p
+          className="mt-2 text-[11px] leading-snug"
+          style={{ color: note.kind === 'err' ? TONE_HEX.warning : 'var(--lp-text-sub)' }}
+        >
+          {note.text}
+        </p>
+      )}
+      <div className="mt-2 flex items-center gap-2 flex-wrap">
+        <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          Or claim direct:
+        </span>
+        <FaucetLink href={GAS_FAUCETS[source.key]}>{source.nativeSymbol} faucet</FaucetLink>
+        <FaucetLink href={USDC_FAUCET}>USDC faucet</FaucetLink>
+      </div>
+    </div>
+  );
+}
+
+function FaucetLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2 py-1"
+      style={{
+        background: 'var(--lp-accent)',
+        color: 'var(--lp-band-dark)',
+        borderTopLeftRadius: 6,
+        borderTopRightRadius: 6,
+        borderBottomLeftRadius: 6,
+        borderBottomRightRadius: 2,
+      }}
+    >
+      {children}
+      <ExternalIcon />
+    </a>
   );
 }
 

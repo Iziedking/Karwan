@@ -236,6 +236,44 @@ activationRoutes.post('/faucet', async (c) => {
   return c.json({ ok: true, target: body.target, address: target }, 200);
 });
 
+/// Auto-pool from Circle's faucet to any address on a CCTP source chain (native
+/// gas + USDC). Lets the bridge UI fund the wallet a tester bridges from in-app
+/// instead of sending them to faucet.circle.com. Used for web3 users' own wallet
+/// and as a one-tap top-up. Testnet only.
+const fundSourceSchema = z.object({
+  address: addrSchema,
+  chain: z.enum(CCTP_CHAIN_KEYS),
+});
+activationRoutes.post('/fund-source', async (c) => {
+  let body;
+  try {
+    body = fundSourceSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const blockchain = CCTP_CHAINS[body.chain].circleBlockchain;
+  const drip = await dripTestnetUsdc(body.address.toLowerCase(), {
+    blockchain,
+    native: true,
+    usdc: true,
+  });
+  if (!drip.ok) {
+    const rateLimited =
+      drip.status === 429 || /rate|limit|already|too many/i.test(drip.detail ?? '');
+    return c.json(
+      {
+        error: 'faucet request failed',
+        detail: rateLimited
+          ? 'The faucet is rate-limited for this address (about 20 USDC and gas per 2 hours). Try again later.'
+          : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
+        chain: body.chain,
+      },
+      502,
+    );
+  }
+  return c.json({ ok: true, chain: body.chain }, 200);
+});
+
 /// Provisions a buyer agent wallet and a seller agent wallet for the user.
 /// Idempotent: if the user already has agent wallets, returns them unchanged.
 activationRoutes.post('/activate', async (c) => {

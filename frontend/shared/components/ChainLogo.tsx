@@ -92,14 +92,14 @@ export function ChainLogo({
   }
 
   if (c === 'arbitrum') {
+    // Arbitrum navy with the signature white double-slash + two-tone peak
+    // (white left face, cyan right face).
     return tile(
-      '#1B4ADD',
+      '#213147',
       <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
-        <path
-          d="M16 6 L24 24 H19 L16 16 L13 24 H8 Z"
-          fill="#fff"
-          fillOpacity="0.95"
-        />
+        <path d="M8.5 23 L12 9.5 L13.6 9.5 L10.1 23 Z" fill="#fff" />
+        <path d="M17 9 L11.8 23 L14.8 23 L17 16 Z" fill="#fff" />
+        <path d="M17 9 L22.2 23 L19.2 23 L17 16 Z" fill="#28A0F0" />
       </svg>,
     );
   }
