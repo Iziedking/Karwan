@@ -1,5 +1,11 @@
 ﻿import { defineChain, fallback } from 'viem';
-import { baseSepolia, sepolia } from 'viem/chains';
+import {
+  baseSepolia,
+  sepolia,
+  optimismSepolia,
+  arbitrumSepolia,
+  polygonAmoy,
+} from 'viem/chains';
 import { http, createConfig } from 'wagmi';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import {
@@ -46,6 +52,27 @@ const SEPOLIA_RPCS = [
   'https://rpc.sepolia.org',
 ].filter((u): u is string => !!u);
 
+const OP_SEPOLIA_RPCS = [
+  process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC,
+  'https://optimism-sepolia-rpc.publicnode.com',
+  'https://optimism-sepolia.drpc.org',
+  'https://sepolia.optimism.io',
+].filter((u): u is string => !!u);
+
+const ARB_SEPOLIA_RPCS = [
+  process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC,
+  'https://arbitrum-sepolia-rpc.publicnode.com',
+  'https://arbitrum-sepolia.drpc.org',
+  'https://sepolia-rollup.arbitrum.io/rpc',
+].filter((u): u is string => !!u);
+
+const POLYGON_AMOY_RPCS = [
+  process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC,
+  'https://polygon-amoy-bor-rpc.publicnode.com',
+  'https://polygon-amoy.drpc.org',
+  'https://rpc-amoy.polygon.technology',
+].filter((u): u is string => !!u);
+
 const connectors = connectorsForWallets(
   [
     {
@@ -57,12 +84,15 @@ const connectors = connectorsForWallets(
 );
 
 export const wagmiConfig = createConfig({
-  chains: [arcTestnet, baseSepolia, sepolia],
+  chains: [arcTestnet, baseSepolia, sepolia, optimismSepolia, arbitrumSepolia, polygonAmoy],
   connectors,
   transports: {
     [arcTestnet.id]: http('https://rpc.testnet.arc.network'),
     [baseSepolia.id]: fallback(BASE_SEPOLIA_RPCS.map((url) => http(url))),
     [sepolia.id]: fallback(SEPOLIA_RPCS.map((url) => http(url))),
+    [optimismSepolia.id]: fallback(OP_SEPOLIA_RPCS.map((url) => http(url))),
+    [arbitrumSepolia.id]: fallback(ARB_SEPOLIA_RPCS.map((url) => http(url))),
+    [polygonAmoy.id]: fallback(POLYGON_AMOY_RPCS.map((url) => http(url))),
   },
   ssr: true,
 });

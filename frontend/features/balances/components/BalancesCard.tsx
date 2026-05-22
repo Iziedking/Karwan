@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState } from 'react';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -10,10 +10,26 @@ import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { useAuth } from '@/shared/hooks/useAuth';
 
-const CHAIN_META: Record<string, { name: string; sub: string; key: ChainKey }> = {
+// Arc (settlement) first, then every CCTP source chain the bridge supports.
+// Each key doubles as the ChainLogo key, so the row map stays simple.
+type RowKey = 'arc' | keyof typeof SOURCE_CHAINS;
+
+const ROW_KEYS: RowKey[] = [
+  'arc',
+  'baseSepolia',
+  'sepolia',
+  'arbitrumSepolia',
+  'optimismSepolia',
+  'polygonAmoy',
+];
+
+const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> = {
   arc: { name: 'Arc', sub: 'Testnet', key: 'arc' },
   baseSepolia: { name: 'Base', sub: 'Sepolia', key: 'baseSepolia' },
   sepolia: { name: 'Ethereum', sub: 'Sepolia', key: 'sepolia' },
+  arbitrumSepolia: { name: 'Arbitrum', sub: 'Sepolia', key: 'arbitrumSepolia' },
+  optimismSepolia: { name: 'Optimism', sub: 'Sepolia', key: 'optimismSepolia' },
+  polygonAmoy: { name: 'Polygon', sub: 'Amoy', key: 'polygonAmoy' },
 };
 
 const CARD_STYLE = {
@@ -26,6 +42,44 @@ const CARD_STYLE = {
   borderBottomRightRadius: 5,
   boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
 } as const;
+
+type Balance = ReturnType<typeof useBalance>;
+
+/// USDC balance for one address across Arc + every CCTP source chain. Native on
+/// Arc (USDC is the gas token), ERC-20 USDC elsewhere. A fixed-arity custom hook
+/// so the rules-of-hooks order never shifts across renders, and the per-view
+/// boilerplate collapses to three calls. Reads are disabled when address is
+/// undefined (wagmi skips the fetch), so buyer/seller tabs cost nothing until set.
+function useChainBalances(address?: `0x${string}`): Record<RowKey, Balance> {
+  return {
+    arc: useBalance({ address, chainId: arcTestnet.id }),
+    baseSepolia: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.baseSepolia.chainId,
+      token: SOURCE_CHAINS.baseSepolia.usdc,
+    }),
+    sepolia: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.sepolia.chainId,
+      token: SOURCE_CHAINS.sepolia.usdc,
+    }),
+    arbitrumSepolia: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.arbitrumSepolia.chainId,
+      token: SOURCE_CHAINS.arbitrumSepolia.usdc,
+    }),
+    optimismSepolia: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.optimismSepolia.chainId,
+      token: SOURCE_CHAINS.optimismSepolia.usdc,
+    }),
+    polygonAmoy: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.polygonAmoy.chainId,
+      token: SOURCE_CHAINS.polygonAmoy.usdc,
+    }),
+  };
+}
 
 type View = 'you' | 'buyer' | 'seller';
 
@@ -44,43 +98,12 @@ export function BalancesCard({
   const address = auth.address as `0x${string}` | undefined;
   const [view, setView] = useState<View>('you');
 
-  const yArc = useBalance({ address, chainId: arcTestnet.id });
-  const yBase = useBalance({
-    address,
-    chainId: SOURCE_CHAINS.baseSepolia.chainId,
-    token: SOURCE_CHAINS.baseSepolia.usdc,
-  });
-  const yEth = useBalance({
-    address,
-    chainId: SOURCE_CHAINS.sepolia.chainId,
-    token: SOURCE_CHAINS.sepolia.usdc,
-  });
-
   const buyer = (buyerAgent as `0x${string}` | undefined) ?? undefined;
-  const bArc = useBalance({ address: buyer, chainId: arcTestnet.id });
-  const bBase = useBalance({
-    address: buyer,
-    chainId: SOURCE_CHAINS.baseSepolia.chainId,
-    token: SOURCE_CHAINS.baseSepolia.usdc,
-  });
-  const bEth = useBalance({
-    address: buyer,
-    chainId: SOURCE_CHAINS.sepolia.chainId,
-    token: SOURCE_CHAINS.sepolia.usdc,
-  });
-
   const seller = (sellerAgent as `0x${string}` | undefined) ?? undefined;
-  const sArc = useBalance({ address: seller, chainId: arcTestnet.id });
-  const sBase = useBalance({
-    address: seller,
-    chainId: SOURCE_CHAINS.baseSepolia.chainId,
-    token: SOURCE_CHAINS.baseSepolia.usdc,
-  });
-  const sEth = useBalance({
-    address: seller,
-    chainId: SOURCE_CHAINS.sepolia.chainId,
-    token: SOURCE_CHAINS.sepolia.usdc,
-  });
+
+  const youBal = useChainBalances(address);
+  const buyerBal = useChainBalances(buyer);
+  const sellerBal = useChainBalances(seller);
 
   if (!auth.isAuthenticated || !address) {
     return (
@@ -96,9 +119,9 @@ export function BalancesCard({
   }
 
   const groups = {
-    you: { address, arc: yArc, base: yBase, eth: yEth },
-    buyer: { address: buyer, arc: bArc, base: bBase, eth: bEth },
-    seller: { address: seller, arc: sArc, base: sBase, eth: sEth },
+    you: { address, bal: youBal },
+    buyer: { address: buyer, bal: buyerBal },
+    seller: { address: seller, bal: sellerBal },
   } as const;
 
   const active = groups[view];
@@ -108,7 +131,7 @@ export function BalancesCard({
     { key: 'seller', label: 'Seller', disabled: !seller },
   ];
 
-  const allBalances = [yArc, yBase, yEth, bArc, bBase, bEth, sArc, sBase, sEth];
+  const allBalances = [youBal, buyerBal, sellerBal].flatMap((g) => Object.values(g));
   const busy = allBalances.some((b) => b.isRefetching);
   const lastUpdated = Math.max(
     ...allBalances.map((b) => b.dataUpdatedAt).filter((t) => t > 0),
@@ -119,11 +142,10 @@ export function BalancesCard({
     for (const b of allBalances) b.refetch();
   }
 
-  const rows: Array<{ key: keyof typeof CHAIN_META; data: typeof yArc.data; loading: boolean }> = [
-    { key: 'arc', data: active.arc.data, loading: active.arc.isLoading },
-    { key: 'baseSepolia', data: active.base.data, loading: active.base.isLoading },
-    { key: 'sepolia', data: active.eth.data, loading: active.eth.isLoading },
-  ];
+  const rows = ROW_KEYS.map((key) => {
+    const q = active.bal[key];
+    return { key, data: q.data, loading: q.isLoading };
+  });
 
   return (
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
@@ -210,7 +232,7 @@ export function BalancesCard({
 
       <ul className="px-6">
         {rows.map((r, i) => {
-          const m = CHAIN_META[r.key]!;
+          const m = CHAIN_META[r.key];
           const num =
             r.loading || !r.data ? null : Number(formatUnits(r.data.value, r.data.decimals));
           return (

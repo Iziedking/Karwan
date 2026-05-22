@@ -236,10 +236,12 @@ activationRoutes.post('/faucet', async (c) => {
   return c.json({ ok: true, target: body.target, address: target }, 200);
 });
 
-/// Auto-pool from Circle's faucet to any address on a CCTP source chain (native
-/// gas + USDC). Lets the bridge UI fund the wallet a tester bridges from in-app
-/// instead of sending them to faucet.circle.com. Used for web3 users' own wallet
-/// and as a one-tap top-up. Testnet only.
+/// Auto-pool USDC from Circle's faucet to any address on a CCTP source chain.
+/// Lets the bridge UI fund the wallet a tester bridges from in-app instead of
+/// sending them to faucet.circle.com. USDC only by design: web3 users claim
+/// their own native gas from a public faucet (Gas Station only sponsors Circle
+/// DCWs), and Circle's faucet declines native drips to external EOAs. Testnet
+/// only.
 const fundSourceSchema = z.object({
   address: addrSchema,
   chain: z.enum(CCTP_CHAIN_KEYS),
@@ -254,17 +256,22 @@ activationRoutes.post('/fund-source', async (c) => {
   const blockchain = CCTP_CHAINS[body.chain].circleBlockchain;
   const drip = await dripTestnetUsdc(body.address.toLowerCase(), {
     blockchain,
-    native: true,
+    native: false,
     usdc: true,
   });
   if (!drip.ok) {
-    const rateLimited =
-      drip.status === 429 || /rate|limit|already|too many/i.test(drip.detail ?? '');
+    // The faucet caps ~20 USDC per address, per chain, per 2h, plus per-key/IP
+    // limits. Over-quota comes back as 429 or a 403 {"code":3,"message":
+    // "Forbidden"} — map both to one clear line instead of leaking raw JSON.
+    const declined =
+      drip.status === 429 ||
+      drip.status === 403 ||
+      /rate|limit|already|too many|forbidden/i.test(drip.detail ?? '');
     return c.json(
       {
         error: 'faucet request failed',
-        detail: rateLimited
-          ? 'The faucet is rate-limited for this address (about 20 USDC and gas per 2 hours). Try again later.'
+        detail: declined
+          ? 'The faucet declined this request. It allows about 20 USDC per chain every 2 hours. Wait and retry, or claim from faucet.circle.com.'
           : drip.detail ?? 'Could not reach the faucet just now. Try again in a moment.',
         chain: body.chain,
       },

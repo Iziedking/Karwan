@@ -559,10 +559,11 @@ export function useBridges() {
         // 'relaying' = still polling on the backend; leave the row in
         // 'attesting' so the user sees the live indicator again.
       } catch (err) {
-        const raw = errorToString(err).toLowerCase();
+        const real = errorToString(err);
+        const raw = real.toLowerCase();
         if (typeof console !== 'undefined') {
           // eslint-disable-next-line no-console
-          console.warn('[bridge.recheck]', errorToString(err));
+          console.warn('[bridge.recheck]', real);
         }
         // Treat "bridge not found" specially. This happens when the backend
         // record was wiped (flat-file reset, DB migration, fresh deploy) but
@@ -573,12 +574,18 @@ export function useBridges() {
           raw.includes('not found') ||
           raw.includes('bridge not found') ||
           raw.includes('404');
+        // Otherwise surface the backend's real reason (IRIS lookup, Arc mint
+        // relay revert) instead of a dead-end generic line, so a stuck bridge
+        // is diagnosable. The burn already landed, so recheck stays available.
+        const reason = real.trim();
+        const surfaced =
+          reason && !/^\d+$/.test(reason)
+            ? `Recheck failed. ${reason.slice(0, 140)}`
+            : 'Recheck failed. Try again in a moment.';
         patch(id, (b) => ({
           ...b,
           phase: 'error',
-          error: isOrphan
-            ? 'Bridge record not found. Dismiss and start a fresh one.'
-            : 'Recheck failed. Try again in a moment.',
+          error: isOrphan ? 'Bridge record not found. Dismiss and start a fresh one.' : surfaced,
         }));
       }
     },

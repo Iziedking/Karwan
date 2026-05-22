@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError } from '@/core/api';
-import { SOURCE_CHAINS, GAS_FAUCETS, USDC_FAUCET, type SourceChainConfig } from '../config';
+import { SOURCE_CHAINS, GAS_FAUCETS, type SourceChainConfig } from '../config';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
@@ -1154,15 +1154,15 @@ function CircleSourceFundBanner({
 }
 
 /// Web3 users sign their own source-chain burn, so they pay gas there. Gas
-/// Station only sponsors Circle DCWs, so a connected wallet has to claim its own
-/// native gas. One in-app button pools test gas + USDC from Circle's faucet
-/// straight to the connected wallet; the external faucets stay as a fallback.
+/// Station only sponsors Circle DCWs, so a connected wallet claims its own native
+/// gas from a public faucet (the prominent link). USDC is the one part we can
+/// pool in-app: Circle's faucet drips it straight to the connected wallet.
 function Web3FundHint({ source }: { source: SourceChainConfig }) {
   const auth = useAuth();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
-  async function autopool() {
+  async function pullUsdc() {
     if (!auth.address) return;
     setBusy(true);
     setNote(null);
@@ -1170,7 +1170,7 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
       await api.fundSource(auth.address, source.key);
       setNote({
         kind: 'ok',
-        text: `Test ${source.nativeSymbol} and USDC sent to your wallet on ${source.name}. Lands in about a minute, then bridge.`,
+        text: `Test USDC sent to your wallet on ${source.name}. Lands in about a minute, then bridge.`,
       });
     } catch (err) {
       const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
@@ -1201,26 +1201,27 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
         [:FUND {source.shortName.toUpperCase()} TO BRIDGE:]
       </p>
       <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-        You sign the burn on {source.name}, so your wallet pays the gas there. Pull test{' '}
-        {source.nativeSymbol} and USDC to it in one click.
+        You sign the burn on {source.name}, so your wallet needs {source.nativeSymbol} for gas.
+        Claim gas from the faucet, then pull test USDC here.
       </p>
       <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+        <FaucetLink href={GAS_FAUCETS[source.key]}>Claim {source.nativeSymbol} gas</FaucetLink>
         <button
           type="button"
-          onClick={autopool}
+          onClick={pullUsdc}
           disabled={busy || !auth.address}
-          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1.5 px-2.5 py-1 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1.5 px-2.5 py-1 border transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
           style={{
-            background: 'var(--lp-accent)',
+            borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
+            background: 'rgba(189, 225, 34, 0.18)',
             borderTopLeftRadius: 6,
             borderTopRightRadius: 6,
             borderBottomLeftRadius: 6,
             borderBottomRightRadius: 2,
-            boxShadow: '0 2px 0 rgba(0,0,0,0.2)',
           }}
         >
-          {busy ? 'Requesting' : `Get test ${source.nativeSymbol} and USDC`}
+          {busy ? 'Requesting' : 'Get test USDC'}
         </button>
       </div>
       {note && (
@@ -1231,13 +1232,6 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
           {note.text}
         </p>
       )}
-      <div className="mt-2 flex items-center gap-2 flex-wrap">
-        <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-          Or claim direct:
-        </span>
-        <FaucetLink href={GAS_FAUCETS[source.key]}>{source.nativeSymbol} faucet</FaucetLink>
-        <FaucetLink href={USDC_FAUCET}>USDC faucet</FaucetLink>
-      </div>
     </div>
   );
 }
