@@ -527,23 +527,27 @@ function RoleCard({
       : tone === 'accent'
         ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
+  // The accent surface is a fixed lime in both themes, so its text must be a
+  // fixed dark (--lp-band-dark), not the theme-flipping --lp-dark which turns
+  // light in dark mode and leaves faint grey text on lime. Opacities are also
+  // bumped so the caption reads on the muted lime.
   const eyebrowColor =
     tone === 'dark'
       ? 'text-white/55'
       : tone === 'accent'
-        ? 'text-[var(--lp-dark)]/65'
+        ? 'text-[var(--lp-band-dark)]/70'
         : 'text-[var(--lp-text-muted)]';
   const muted =
     tone === 'dark'
       ? 'text-white/65'
       : tone === 'accent'
-        ? 'text-[var(--lp-dark)]/75'
+        ? 'text-[var(--lp-band-dark)]/90'
         : 'text-[var(--lp-text-sub)]';
   const tagColor =
     tone === 'dark'
       ? 'text-white/45'
       : tone === 'accent'
-        ? 'text-[var(--lp-dark)]/55'
+        ? 'text-[var(--lp-band-dark)]/75'
         : 'text-[var(--lp-text-muted)]';
 
   return (
@@ -575,7 +579,7 @@ function RoleCard({
               className="px-2 py-0.5 mono text-[9px] uppercase tracking-[0.18em] font-semibold"
               style={{
                 background:
-                  tone === 'accent' ? 'var(--lp-dark)' : 'var(--lp-accent)',
+                  tone === 'accent' ? 'var(--lp-band-dark)' : 'var(--lp-accent)',
                 color: tone === 'accent' ? 'var(--lp-accent)' : 'var(--lp-dark)',
                 borderRadius: 3,
               }}

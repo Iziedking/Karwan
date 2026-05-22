@@ -4,6 +4,9 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { api } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { NOTIFICATION_STORAGE_PREFIX } from '@/shared/utils/notificationStore';
+// Re-export so existing call sites can keep importing from the hook module.
+export { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 
 export interface AppNotification {
   id: string;
@@ -24,7 +27,7 @@ export interface AppNotification {
 
 type Role = 'buyer' | 'seller';
 
-const STORAGE_PREFIX = 'karwan:notifications:';
+const STORAGE_PREFIX = NOTIFICATION_STORAGE_PREFIX;
 const MAX_STORED = 30;
 
 // Events worth bubbling into the bell. Split into agent-deal (route to

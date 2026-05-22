@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { api, setApiCaller } from '@/core/api';
+import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 
 export type AuthMethod = 'web3' | 'circle';
 
@@ -95,6 +96,10 @@ export function useAuth(): AuthState & {
   }, [refresh]);
 
   const signOut = useCallback(async () => {
+    // Capture the address before we tear down the session so we can clear this
+    // account's cached notifications. Without this, the bell's localStorage
+    // copy survives sign-out and re-appears on the next sign-in.
+    const current = circle?.address ?? wagmiAddress ?? null;
     if (circle) {
       try {
         await api.authLogout();
@@ -110,9 +115,10 @@ export function useAuth(): AuthState & {
         /* ignore */
       }
     }
+    purgeStoredNotifications(current);
     // Broadcast so every other useAuth instance picks up the change.
     emitAuthChanged();
-  }, [circle, wagmiConnected, disconnectAsync]);
+  }, [circle, wagmiConnected, wagmiAddress, disconnectAsync]);
 
   const address = circle?.address ?? wagmiAddress ?? null;
   const method: AuthMethod | null = circle ? 'circle' : wagmiConnected ? 'web3' : null;
