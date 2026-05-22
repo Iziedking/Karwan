@@ -209,6 +209,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   const depositExceedsBalance =
     typeof depositAmount === 'number' && walletUsdc != null && depositAmount > walletUsdc;
 
+  // Same gate on the withdraw side: you can only cool stake you actually hold
+  // active. Asking for more would otherwise cool every position with no warning.
+  const withdrawExceedsActive =
+    typeof withdrawAmount === 'number' && withdrawAmount > Number(totalActive);
+
   const refetchPositions = useCallback(async () => {
     if (!address) return;
     try {
@@ -337,6 +342,17 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     if (typeof withdrawAmount !== 'number' || withdrawAmount <= 0) return;
     const active = positions.filter((p) => p.state === 'active');
     if (active.length === 0) return;
+    // Can't cool more than is active. Surface it instead of silently cooling
+    // every position when the request overshoots the active total.
+    if (withdrawAmount > Number(totalActive)) {
+      pushLog({
+        kind: 'request',
+        amountUsdc: withdrawAmount.toString(),
+        status: 'failed',
+        error: `Insufficient stake. You have ${formatUsdc(totalActive, { withSuffix: false })} USDC active.`,
+      });
+      return;
+    }
 
     // Position-selection algorithm. The contract cools whole positions, so
     // we pick the set that gives the user what they typed with the least
@@ -384,7 +400,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       coolingTotal,
       toCool: toCool.map((p) => ({ positionId: p.positionId, principalUsdc: p.principalUsdc })),
     });
-  }, [address, withdrawAmount, positions]);
+  }, [address, withdrawAmount, positions, totalActive, pushLog]);
 
   const confirmWithdraw = useCallback(async () => {
     if (!pendingWithdraw || !address) return;
@@ -744,6 +760,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               disabled={
                 busyKind?.kind === 'request' ||
                 !withdrawAmount ||
+                withdrawExceedsActive ||
                 Number(totalActive) <= 0 ||
                 vaultDeployed === false ||
                 onWrongChain
@@ -764,6 +781,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               <span aria-hidden>↗</span>
             </button>
           </div>
+          {withdrawExceedsActive && (
+            <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
+              Insufficient stake. You have {formatUsdc(totalActive, { withSuffix: false })} USDC active.
+            </p>
+          )}
         </div>
       </div>
 
