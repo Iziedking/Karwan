@@ -80,6 +80,15 @@ async function maybeCelebrateTierUp(
 
 export const reputationRoutes = new Hono();
 
+// Short-lived server-side cache. The composite read fires several chain RPCs
+// (scores, vault stake, legacy score), so without this every badge render on an
+// address we haven't seen recently pays the full RPC latency. Keyed by the
+// resolved account address (agent addresses collapse to their owner). A read
+// with `?fresh=1` bypasses the cache (used by the frontend right after a stake
+// change so the new tier shows without waiting out the window).
+const REP_CACHE_TTL_MS = 45_000;
+const repCache = new Map<string, { body: Record<string, unknown>; ts: number }>();
+
 /// Composite reputation read. Returns the new engine output plus the legacy
 /// `scoreBps` field so any UI still consuming the old shape keeps working
 /// while frontend migrates to `score`/`tier`/`terms`.
@@ -103,25 +112,31 @@ reputationRoutes.get('/', async (c) => {
       /* fall back to the queried address on lookup failure */
     }
 
-    const inputs = await loadInputs(repAddr);
+    const cacheKey = repAddr.toLowerCase();
+    const wantsFresh = c.req.query('fresh') === '1';
+    if (!wantsFresh) {
+      const hit = repCache.get(cacheKey);
+      if (hit && Date.now() - hit.ts < REP_CACHE_TTL_MS) {
+        return c.json(hit.body);
+      }
+    }
+
+    // The composite inputs and the legacy bps score are independent chain reads.
+    // Run them together so a cache miss pays one round-trip's latency, not two.
+    const [inputs, scoreBps] = await Promise.all([
+      loadInputs(repAddr),
+      reputation.read
+        .getReputationScore([repAddr as `0x${string}`])
+        .then((raw) => Number(raw as bigint))
+        // Fall back to neutral 5000 if the legacy view reverts on this address.
+        .catch(() => 5000),
+    ]);
     const result = compute(inputs);
 
     // Detect a tier-up and surface the 12h congrats window for the profile card.
     const tierCelebration = await maybeCelebrateTierUp(result.address, result.tier);
 
-    // Legacy basis-points score read straight off chain. Kept in the response
-    // until the frontend reputation badge fully migrates to `score`/`tier`.
-    let scoreBps = 5000;
-    try {
-      const raw = (await reputation.read.getReputationScore([
-        repAddr as `0x${string}`,
-      ])) as bigint;
-      scoreBps = Number(raw);
-    } catch {
-      // Fall back to neutral 5000 if the legacy view reverts on this address.
-    }
-
-    return c.json({
+    const body: Record<string, unknown> = {
       address: result.address,
       score: result.score,
       tier: result.tier,
@@ -141,7 +156,9 @@ reputationRoutes.get('/', async (c) => {
         result.inputs.successCount +
         result.inputs.disputedCount +
         result.inputs.failedCount,
-    });
+    };
+    repCache.set(cacheKey, { body, ts: Date.now() });
+    return c.json(body);
   } catch (err) {
     return c.json(
       { error: 'reputation read failed', detail: (err as Error).message },

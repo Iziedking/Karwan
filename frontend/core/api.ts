@@ -620,8 +620,8 @@ export const api = {
     if (caller) q.set('caller', caller);
     return json<{ events: ChainEvent[] }>(`/api/activity?${q.toString()}`);
   },
-  reputation: (address: string) =>
-    json<Reputation>(`/api/reputation?address=${address}`),
+  reputation: (address: string, fresh = false) =>
+    json<Reputation>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}`),
   activationStatus: (address: string) =>
     json<ActivationStatus>(`/api/activation/status?address=${address}`),
   activate: (address: string) =>

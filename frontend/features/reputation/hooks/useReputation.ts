@@ -35,11 +35,11 @@ export function useReputation(address?: string | null) {
   const [fetchState, setFetchState] = useState<FetchState>('idle');
 
   const fetchOnce = useCallback(
-    async (addr: string) => {
+    async (addr: string, fresh = false) => {
       const key = addr.toLowerCase();
       setFetchState('loading');
       try {
-        const res = await api.reputation(addr);
+        const res = await api.reputation(addr, fresh);
         cache.set(key, { value: res, ts: Date.now() });
         writeLocal(key, res);
         setData(res);
@@ -98,7 +98,8 @@ export function useReputation(address?: string | null) {
   const refetch = useCallback(async () => {
     if (!address) return null;
     cache.delete(address.toLowerCase());
-    return fetchOnce(address);
+    // Bypass the backend's cache too so a just-landed stake change shows now.
+    return fetchOnce(address, true);
   }, [address, fetchOnce]);
 
   return { data, fetchState, refetch };

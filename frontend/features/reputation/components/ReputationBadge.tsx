@@ -156,7 +156,7 @@ export function ReputationBadge({
         <span
           className={`mono uppercase tracking-[0.18em] text-[var(--color-ink-faint)] ${cellPad} ${labelSize}`}
         >
-          , 
+          ·
         </span>
       </span>
     );
