@@ -12,7 +12,7 @@ const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
     value: 'managed',
     label: 'Find me a seller',
     blurb:
-      'Post a brief. Your agent runs the auction. You wake up to a settled deal.',
+      'Post a request. Your agent runs the bidding. You wake up to a settled deal.',
   },
   {
     value: 'direct',

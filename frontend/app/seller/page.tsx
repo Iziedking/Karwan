@@ -29,12 +29,12 @@ const STEPS = [
   {
     n: '01',
     title: 'Watches the chain',
-    body: 'Listens for new briefs on Arc as they post.',
+    body: 'Listens for new requests on Arc as they post.',
   },
   {
     n: '02',
-    title: 'Scores the brief',
-    body: 'Matches each brief against your skills and ranges. Bids or skips.',
+    title: 'Scores the request',
+    body: 'Matches each request against your skills and ranges. Bids or skips.',
   },
   {
     n: '03',
@@ -79,7 +79,7 @@ export default function SellerPage() {
       <SignInGate
         variant="page"
         tag="SELLER DESK"
-        body="Listings and bids are keyed to your wallet. Sign in to set up the seller agent."
+        body="Offers and bids are keyed to your wallet. Sign in to set up the seller agent."
       />
     );
   }
@@ -104,7 +104,7 @@ export default function SellerPage() {
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Listens for briefs. Bids inside the ranges you set. Wake up to matched deals.
+              Listens for requests. Bids inside the ranges you set. Wake up to matched deals.
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               <a
@@ -117,7 +117,7 @@ export default function SellerPage() {
                   borderBottomRightRadius: 4,
                 }}
               >
-                Post a listing ↓
+                Post an offer ↓
               </a>
               {address && (
                 <span className="ml-1">
@@ -146,7 +146,7 @@ export default function SellerPage() {
           <Accent>One agent.</Accent>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Every activated wallet runs a seller agent. Set skills and ranges on profile, post listings here to broadcast supply.
+          Every activated wallet runs a seller agent. Set skills and ranges on profile, post offers here to broadcast supply.
         </p>
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
           {STEPS.map((s, i) => (
@@ -167,7 +167,7 @@ export default function SellerPage() {
           Set the floor.
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          Publish a listing at your asking price. Matches land in your inbox.
+          Publish an offer at your asking price. Matches land in your inbox.
         </p>
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
           <div className="min-w-0 lg:col-span-2">
@@ -228,7 +228,7 @@ export default function SellerPage() {
               {activeBids.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
             <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Bids placed on open briefs. Counters reply automatically inside your range.
+              Bids placed on open requests. Counters reply automatically inside your range.
             </p>
           </div>
         </div>
@@ -259,7 +259,7 @@ export default function SellerPage() {
               </div>
             ) : activeBids.length === 0 ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                No active bids. Post a listing to start scanning briefs.
+                No active bids. Post an offer to start scanning requests.
               </p>
             ) : (
               <BidsTable bids={activeBids} />
@@ -361,7 +361,7 @@ function SellerAgentVignette({
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
           {activated
-            ? 'Watching briefs. Scoring against skills. Bidding on match.'
+            ? 'Watching requests. Scoring against skills. Bidding on match.'
             : 'Activate on profile to start bidding.'}
         </p>
       </div>

@@ -40,7 +40,7 @@ export default function DocsOverviewPage() {
         </DocsListItem>
         <DocsListItem>
           <strong>Agent-matched deal.</strong> You do not have a counterparty
-          yet. Post a brief (as a buyer) or a listing (as a seller). Your agent
+          yet. Post a request (as a buyer) or an offer (as a seller). Your agent
           watches the marketplace, negotiates on your behalf, and surfaces a
           proposal you approve before any money moves.
         </DocsListItem>
@@ -57,8 +57,8 @@ export default function DocsOverviewPage() {
           Ethereum via the bridge, or use the Arc faucet for testnet USDC.
         </DocsListItem>
         <DocsListItem>
-          <strong>Open a deal.</strong> Post a brief, name a counterparty, or
-          browse listings. The escrow does the rest.
+          <strong>Open a deal.</strong> Post a request, name a counterparty, or
+          browse offers. The escrow does the rest.
         </DocsListItem>
       </DocsList>
 

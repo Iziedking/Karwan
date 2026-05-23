@@ -31,6 +31,7 @@ import {
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { getBrief } from '../db/briefs.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -119,6 +120,7 @@ dealsRoutes.post('/direct', async (c) => {
     firstReleasePct: body.firstReleasePct,
     deadlineUnix,
     terms: body.terms,
+    origin: 'direct',
   });
 
   bus.emitEvent({
@@ -169,7 +171,14 @@ dealsRoutes.get('/stats', async (c) => {
   const total = deals.length;
   const settled = deals.filter((d) => d.settledAt != null).length;
   const volumeUsdc = deals.reduce((s, d) => s + (Number(d.dealAmountUsdc) || 0), 0);
-  return c.json({ total, settled, volumeUsdc });
+  // Split direct vs agent. New rows carry an explicit origin; legacy rows fall
+  // back to the brief store, since every agent deal has a brief and a direct
+  // deal never does.
+  const agent = deals.filter(
+    (d) => (d.origin ?? (getBrief(d.jobId) ? 'agent' : 'direct')) === 'agent',
+  ).length;
+  const direct = total - agent;
+  return c.json({ total, direct, agent, settled, volumeUsdc });
 });
 
 /// List direct deals where the address is buyer or seller, enriched with the

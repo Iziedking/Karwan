@@ -14,7 +14,7 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
     return (
       <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
         {bids.length === 0
-          ? 'Idle. The agent is subscribed to JobPosted and will respond when a matching brief lands.'
+          ? 'Idle. The agent is subscribed to JobPosted and will respond when a matching request lands.'
           : 'All finalized bids dismissed.'}
       </div>
     );

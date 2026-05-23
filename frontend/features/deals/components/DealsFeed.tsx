@@ -141,7 +141,7 @@ export function DealsFeed() {
           </p>
           <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
             {filter === 'all'
-              ? 'Post a brief or open a direct deal to see it here.'
+              ? 'Post a request or open a direct deal to see it here.'
               : `No ${filter} deals on your book right now.`}
           </p>
         </div>

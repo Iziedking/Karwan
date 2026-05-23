@@ -235,7 +235,7 @@ export function PostJobForm() {
       {/* THE WORK */}
       <FieldSection eyebrow="THE WORK" title="Describe what you need built." dataGuide="buyer-brief">
         <FormLabel
-          label="Brief"
+          label="Request"
           hint="Outline scope, deliverables, must-haves. The seller agent reads this to decide whether to bid."
         >
           <textarea
@@ -341,19 +341,19 @@ export function PostJobForm() {
           }}
         >
           <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
-            [:WAIT. IS THIS A BRIEF OR A LISTING?:]
+            [:WAIT. IS THIS A REQUEST OR AN OFFER?:]
           </p>
           <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
             This reads like something you <span className="font-bold">offer</span>, not something
-            you <span className="font-bold">need</span>. Briefs are for buyers; listings (posted
+            you <span className="font-bold">need</span>. Requests are for buyers; offers (posted
             from the seller desk) are for sellers. If you meant to sell a service,{' '}
             <Link
               href="/seller"
               className="underline underline-offset-2 hover:opacity-80"
             >
-              post a listing instead
+              post an offer instead
             </Link>
-            . Click <span className="font-bold">Post on chain</span> again to post the brief
+            . Click <span className="font-bold">Post on chain</span> again to post the request
             as-is.
           </p>
         </div>

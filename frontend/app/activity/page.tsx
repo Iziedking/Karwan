@@ -37,7 +37,7 @@ export default function ActivityPage() {
       <SignInGate
         variant="page"
         tag="STREAM"
-        body="Activity is scoped to your wallet so you only see events from your deals. Sign in to view your stream."
+        body="Every deal moving across Karwan, live from Arc. Sign in to view the network stream and search by job ID."
       />
     );
   }

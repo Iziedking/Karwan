@@ -111,7 +111,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
           <div className="max-w-[48ch] fade-up">
             <SectionTag tone="dark">LOADING JOB</SectionTag>
             <HeroHeadline size="md">
-              Fetching the brief
+              Fetching the request
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
@@ -130,13 +130,13 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     const head = negotiating
       ? 'This deal is private'
       : closed
-        ? 'This brief is closed'
-        : 'This brief is collecting bids';
+        ? 'This request is closed'
+        : 'This request is collecting bids';
     const body = negotiating
-      ? 'Two parties are settling this deal privately. You cannot see the negotiation. Post a listing so buyers or an agent can find you, or wait for another opportunity.'
+      ? 'Two parties are settling this deal privately. You cannot see the negotiation. Post an offer so buyers or an agent can find you, or wait for another opportunity.'
       : closed
-        ? 'This brief is no longer open.'
-        : 'Only the buyer who posted this brief can see its live auction. Post your own brief, or list what you offer and let buyers come to you.';
+        ? 'This request is no longer open.'
+        : 'Only the buyer who posted this request can see its live auction. Post your own request, or list what you offer and let buyers come to you.';
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
@@ -155,7 +155,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
                 href="/buyer"
                 className="mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white"
               >
-                Post a brief →
+                Post a request →
               </Link>
             </div>
           </div>
@@ -170,10 +170,10 @@ export function JobPageClient({ jobId }: { jobId: string }) {
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch] fade-up">
             <SectionTag tone="dark">
-              {state.isNotFound ? 'BRIEF NOT TRACKED YET' : 'JOB ERROR'}
+              {state.isNotFound ? 'REQUEST NOT TRACKED YET' : 'JOB ERROR'}
             </SectionTag>
             <HeroHeadline size="md">
-              {state.isNotFound ? 'We could not find this brief' : 'Could not load this job'}
+              {state.isNotFound ? 'We could not find this request' : 'Could not load this job'}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">

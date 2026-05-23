@@ -254,7 +254,7 @@ export default function ProfilePage() {
                 <Punc>.</Punc>
               </HeroHeadline>
               <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                Ranges agents respect on every brief.
+                Ranges agents respect on every request.
               </p>
               <div className="mt-10 grid md:grid-cols-2 gap-5">
                 {profile.buyer && (

@@ -127,7 +127,7 @@ export default function HomePage() {
           Or let an agent find one.
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-          Post the brief. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.
+          Post the request. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
@@ -247,7 +247,7 @@ function FlowSection() {
     label: string;
     state: 'pos' | 'info' | 'warn';
   }> = [
-    { tag: 'POSTED', label: 'Brief on chain', state: 'pos' },
+    { tag: 'POSTED', label: 'Request on chain', state: 'pos' },
     { tag: 'BIDS', label: 'Agents bid & counter', state: 'info' },
     { tag: 'ACCEPT', label: 'Buyer signs match', state: 'info' },
     { tag: 'ESCROW', label: 'USDC funded', state: 'warn' },
@@ -511,7 +511,7 @@ function EarlyTradesSection() {
     },
     {
       tag: 'SELLER · NAIROBI',
-      title: 'Agent bid 14 briefs while I slept, won 3',
+      title: 'Agent bid 14 requests while I slept, won 3',
       value: '3 / 14',
       unit: 'WON',
       sub: 'zero manual touches',

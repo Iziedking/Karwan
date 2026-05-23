@@ -23,7 +23,7 @@ export default function DocsAgentsPage() {
         <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h1>
       <DocsP>
-        When you post a brief or a listing, you get an agent. It finds matches,
+        When you post a request or an offer, you get an agent. It finds matches,
         negotiates price and deadline, and brings the final terms back to you
         before any money moves. It is a matchmaker, not a spender. It never
         opens an escrow without your sign-off.
@@ -31,7 +31,7 @@ export default function DocsAgentsPage() {
 
       <DocsH2>How a negotiation runs</DocsH2>
       <DocsP>
-        Post a brief and your buyer agent opens a short auction window. Seller
+        Post a request and your buyer agent opens a short auction window. Seller
         agents bid. Your agent scores every bid on price, the seller's
         reputation, their completion rate, how long they have been on the
         platform, and how active they are. The best bids line up in a queue.
@@ -88,7 +88,7 @@ export default function DocsAgentsPage() {
 
       <DocsFigure
         src="/docs/images/agent-guardrails.png"
-        alt="The brief form showing budget, deadline, and tolerance guardrails"
+        alt="The request form showing budget, deadline, and tolerance guardrails"
         caption="The guardrails your agent negotiates within"
       />
     </article>

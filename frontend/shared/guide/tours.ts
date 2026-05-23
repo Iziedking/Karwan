@@ -64,7 +64,7 @@ export const SELLER_STEPS: TourStep[] = [
   },
   {
     title: 'Publish it',
-    body: 'Post the listing and your assistant watches for matching requests, negotiates, and brings you a deal to accept. You approve before anything is binding.',
+    body: 'Post the offer and your assistant watches for matching requests, negotiates, and brings you a deal to accept. You approve before anything is binding.',
     target: 'seller-submit',
   },
 ];
@@ -169,8 +169,8 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
 export const ACTIVITY_TOUR_ID = 'activity-v1';
 export const ACTIVITY_STEPS: TourStep[] = [
   {
-    title: 'Your live feed',
-    body: 'Everything that happens on your deals shows here as it happens: posts, bids, escrow moves, settlements.',
+    title: 'The live network feed',
+    body: 'Every deal moving across Karwan shows here as it happens: posts, bids, escrow moves, settlements. Search by job ID to follow a specific one.',
     target: 'activity-stream',
   },
   {
@@ -205,6 +205,6 @@ export const MARKET_STEPS: TourStep[] = [
   },
   {
     title: 'Start from any card',
-    body: 'Open a listing to start a deal with that seller, or pick up a request as a seller. Your assistant handles the negotiation from there.',
+    body: 'Open an offer to start a deal with that seller, or pick up a request as a seller. Your assistant handles the negotiation from there.',
   },
 ];

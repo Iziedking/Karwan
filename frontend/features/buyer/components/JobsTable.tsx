@@ -23,7 +23,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
     return (
       <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
         {jobs.length === 0
-          ? 'No jobs yet. Post a brief and the seller agent will respond within seconds.'
+          ? 'No jobs yet. Post a request and the seller agent will respond within seconds.'
           : 'All cancelled deals dismissed.'}
       </div>
     );
@@ -87,10 +87,10 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                         title="Dismiss"
                         aria-label={
                           j.expiredAt
-                            ? 'Dismiss this expired brief'
+                            ? 'Dismiss this expired request'
                             : j.cancelledAt
                               ? 'Dismiss this cancelled deal'
-                              : 'Dismiss this funded brief'
+                              : 'Dismiss this funded request'
                         }
                         onClick={(e) => {
                           e.stopPropagation();

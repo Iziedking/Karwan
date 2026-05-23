@@ -132,7 +132,7 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       const price = (e.payload?.askingPriceUsdc as number | string | undefined) ?? '';
       const link = jobUrl(e.jobId);
       return withLink(
-        `*Karwan matched your listing to an open brief*${price ? ` at ${price} USDC` : ''}. Tap to review and accept the deal.`,
+        `*Karwan matched your offer to an open request*${price ? ` at ${price} USDC` : ''}. Tap to review and accept the deal.`,
         link,
       );
     }
@@ -159,7 +159,7 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       return withLink(
         role === 'seller'
           ? '*You declined the matched proposal.*'
-          : '*The seller declined this match.* Post a fresh brief to re-run the auction.',
+          : '*The seller declined this match.* Post a fresh request to re-run the auction.',
         null,
       );
     case 'deal.direct.created':

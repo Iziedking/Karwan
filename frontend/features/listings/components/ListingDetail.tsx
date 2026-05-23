@@ -88,10 +88,10 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           <div className="max-w-[48ch]">
             <SectionTag tone="dark">LISTING NOT FOUND</SectionTag>
             <HeroHeadline size="md">
-              We couldn&apos;t load this listing<Punc>.</Punc>
+              We couldn&apos;t load this offer<Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              The link may be wrong, or the listing has been removed.
+              The link may be wrong, or the offer has been removed.
             </p>
             <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-white/45 break-all">
               {listingId}
@@ -258,9 +258,9 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               {isCancelled ? (
                 <>You called it off<Punc>.</Punc></>
               ) : isExpired ? (
-                <>Listing window closed<Punc>.</Punc></>
+                <>Offer window closed<Punc>.</Punc></>
               ) : matched ? (
-                <>Brief landed<Punc>.</Punc></>
+                <>Request landed<Punc>.</Punc></>
               ) : viewerIsOwner ? (
                 <>Agent is watching<Punc>.</Punc></>
               ) : (
@@ -286,25 +286,25 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           >
             {isCancelled ? (
               <p className="text-[14px] leading-relaxed text-white/70">
-                You cancelled this listing. It no longer scans for matches and won&apos;t accept
-                bids. Post a new listing if you want to offer again.
+                You cancelled this offer. It no longer scans for matches and won&apos;t accept
+                bids. Post a new offer if you want to offer again.
               </p>
             ) : isExpired ? (
               <p className="text-[14px] leading-relaxed text-white/70">
-                The matching window has closed. No bid landed in time. Post a new listing to put
-                the offer back in front of buyer agents.
+                The matching window has closed. No bid landed in time. Post a new offer to put
+                it back in front of buyer agents.
               </p>
             ) : matched ? (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  Your agent bid on a matching brief. The auction continues on the job page.
+                  Your agent bid on a matching request. The auction continues on the job page.
                 </p>
                 <CTAPill href={`/jobs/${listing.matchedJobId}`}>Open matched job</CTAPill>
               </div>
             ) : viewerIsOwner ? (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  The seller agent watches every brief that lands. When one matches this listing
+                  The seller agent watches every request that lands. When one matches this offer
                   and the price gap is crossable, it bids automatically. You will get a
                   notification the moment that happens.
                 </p>
@@ -314,7 +314,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                     onClick={() => setConfirmCancel(true)}
                     className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-white/55 hover:text-white underline underline-offset-2"
                   >
-                    Cancel this listing
+                    Cancel this offer
                   </button>
                 ) : (
                   <div
@@ -329,7 +329,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                     }}
                   >
                     <p className="text-[13px] text-white/85 leading-snug">
-                      Cancel this listing? It drops out of every match scanner immediately.
+                      Cancel this offer? It drops out of every match scanner immediately.
                       Cannot be undone. Post fresh if you change your mind.
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -366,7 +366,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             ) : (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  This listing is open. Open a direct deal with this seller at the asking
+                  This offer is open. Open a direct deal with this seller at the asking
                   price. Escrow funds when they accept.
                 </p>
                 <CTAPill href={buyerOfferHref}>Open a deal at {listing.askingPriceUsdc} USDC</CTAPill>

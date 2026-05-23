@@ -7,7 +7,7 @@ import { api, ApiError, type BuyerJob } from '@/core/api';
 import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
 import { FlowStepper } from './FlowStepper';
-import { EventList } from './EventList';
+import { NegotiationCard } from './NegotiationCard';
 import { LiveBidsPanel } from './LiveBidsPanel';
 import { MatchBanner } from './MatchBanner';
 import { useMatchProposal } from '../hooks/useMatchProposal';
@@ -59,7 +59,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
     ? { label: `Escrow funded · ${formatUsdc(job.budgetUsdc)}`, tone: 'positive', live: false }
     : expired
-      ? { label: 'Brief expired', tone: 'default', live: false }
+      ? { label: 'Request expired', tone: 'default', live: false }
       : declined
         ? { label: 'Negotiation ended', tone: 'critical', live: false }
         : matchPending
@@ -165,7 +165,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-accent)' }} />
               <div className="flex-1 px-5 py-4">
                 <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
-                  [:BRIEF:]
+                  [:REQUEST:]
                 </p>
                 <p className="text-[14.5px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap break-words">
                   {job.briefText}
@@ -209,11 +209,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <span aria-hidden className="w-[3px]" style={{ background: '#6b6b6b' }} />
               <div className="flex-1 px-5 py-4">
                 <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
-                  Brief expired · read only
+                  Request expired · read only
                 </p>
                 <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
                   Deadline {relativeTime(job.deadlineUnix)}. The agent stopped tracking this
-                  brief, no funds were ever moved. Open a new brief to run another auction.
+                  request, no funds were ever moved. Open a new request to run another auction.
                 </p>
               </div>
             </div>
@@ -239,14 +239,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               </div>
             </PageCard>
 
-            <PageCard>
-              <div className="px-6 pt-6">
-                <SectionTag>TIMELINE</SectionTag>
-              </div>
-              <div className="px-6 pb-6 pt-3">
-                <EventList events={events} explorer={explorer} />
-              </div>
-            </PageCard>
+            <NegotiationCard
+              events={events}
+              explorer={explorer}
+              terminal={expired || declined}
+            />
 
             <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
             <CancelBriefSection
@@ -440,7 +437,7 @@ function SettleSection({
     return (
       <SettleCard label="NEGOTIATION ENDED" title="No agreement">
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Your agent ended the negotiation. No terms agreed, no escrow funded. Post a fresh brief
+          Your agent ended the negotiation. No terms agreed, no escrow funded. Post a fresh request
           with a higher budget or tolerance.
         </p>
       </SettleCard>
@@ -532,12 +529,12 @@ function CancelBriefSection({
       <div className="px-6 pt-6 pb-3">
         <SectionTag>OR</SectionTag>
         <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-          Pull this brief
+          Pull this request
         </h3>
       </div>
       <div className="px-6 pb-6 space-y-3">
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Posted by mistake or changed your mind? Pull the brief now, before any seller agent
+          Posted by mistake or changed your mind? Pull the request now, before any seller agent
           locks in a match. Nothing funded yet, so the cancel is free.
         </p>
         {!confirm ? (
@@ -546,7 +543,7 @@ function CancelBriefSection({
             onClick={() => setConfirm(true)}
             className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
           >
-            Cancel brief
+            Cancel request
           </button>
         ) : (
           <div
@@ -561,7 +558,7 @@ function CancelBriefSection({
             }}
           >
             <p className="text-[13px] text-[var(--lp-dark)] leading-snug">
-              Pull this brief? The agent stops scanning bids on it immediately. You can post a
+              Pull this request? The agent stops scanning bids on it immediately. You can post a
               fresh one any time.
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -586,7 +583,7 @@ function CancelBriefSection({
                 disabled={busy}
                 className="mono text-[11px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
               >
-                Keep brief
+                Keep request
               </button>
             </div>
             {error && (

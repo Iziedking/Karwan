@@ -262,7 +262,15 @@ jobsRoutes.get('/matches/for', async (c) => {
     return c.json({ error: 'caller query param required (0x... address)' }, 400);
   }
   const all = await listMatchProposalsForUser(caller);
-  const proposals = all.filter((p) => !p.approvedAt && !p.declinedAt);
+  // Hide expired pending matches. A proposal whose agreed delivery deadline has
+  // already passed is unactionable (the seller cannot deliver on time and the
+  // buyer never approved), so it should drop off the home and profile lists
+  // instead of lingering as "active". Funded deals are tracked separately and
+  // are not affected.
+  const now = Math.floor(Date.now() / 1000);
+  const proposals = all.filter(
+    (p) => !p.approvedAt && !p.declinedAt && (!p.deadlineUnix || p.deadlineUnix > now),
+  );
   return c.json({ proposals });
 });
 

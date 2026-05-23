@@ -71,6 +71,12 @@ export interface DirectDeal {
   autoReleasedAt?: number;
   settledAt?: number;
   fundTxHash?: string;
+  /// How this deal originated:
+  /// - 'direct' — opened straight from /buyer "I have a seller", no auction.
+  /// - 'agent'  — settled out of the managed auction and negotiation flow.
+  /// Absent on rows created before this field existed; /stats infers those
+  /// from the brief store (agent deals always have a brief, direct never do).
+  origin?: 'direct' | 'agent';
   createdAt: number;
   updatedAt: number;
 }

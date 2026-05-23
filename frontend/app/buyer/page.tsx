@@ -61,7 +61,7 @@ export default function BuyerPage() {
       <SignInGate
         variant="page"
         tag="BUYER DESK"
-        body="Briefs and direct deals are keyed to your wallet. Sign in to continue."
+        body="Requests and direct deals are keyed to your wallet. Sign in to continue."
       />
     );
   }
@@ -206,7 +206,7 @@ export default function BuyerPage() {
               </div>
             ) : sortedJobs.length === 0 ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                No managed deals yet. Post a brief to start one.
+                No managed deals yet. Post a request to start one.
               </p>
             ) : (
               <JobsTable jobs={sortedJobs} />

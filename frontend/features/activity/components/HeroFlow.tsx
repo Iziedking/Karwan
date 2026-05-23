@@ -68,7 +68,7 @@ export function HeroFlow() {
 
         {/* Stage labels on the top track. */}
         <g fontSize="9.5" fill={SUB} fontFamily="var(--font-geist, sans-serif)" textAnchor="middle">
-          <text x="105" y="128">brief</text>
+          <text x="105" y="128">request</text>
           <text x="160" y="128">bid</text>
           <text x="215" y="128">counter</text>
           <text x="270" y="128">accept</text>

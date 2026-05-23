@@ -462,7 +462,7 @@ function RoleStep({
             tone="dark"
             eyebrow="HIRE SOMEONE"
             title="Run the auction"
-            body="Post briefs. Your buyer agent ranks bids, negotiates within your terms, and locks the deal."
+            body="Post requests. Your buyer agent ranks bids, negotiates within your terms, and locks the deal."
             tagline="Best for founders, agencies, procurement."
           />
         </div>
@@ -707,13 +707,13 @@ function ProfileStep(props: {
           <div className="grid grid-cols-2 gap-3">
             <NumField
               label="Min budget (USDC)"
-              hint="Smallest job you will take, in USDC. Briefs priced below this are filtered out before your agent bids."
+              hint="Smallest job you will take, in USDC. Requests priced below this are filtered out before your agent bids."
               value={props.sellerMin}
               setValue={props.setSellerMin}
             />
             <NumField
               label="Max budget (USDC)"
-              hint="Largest job you will take, in USDC. Briefs priced above this are skipped."
+              hint="Largest job you will take, in USDC. Requests priced above this are skipped."
               value={props.sellerMax}
               setValue={props.setSellerMax}
             />

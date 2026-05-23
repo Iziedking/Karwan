@@ -19,7 +19,7 @@ function hrefForEvent(e: ChainEvent): string | null {
 
 const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system' | 'error' }> = {
   'job.tracked': { text: 'Job posted on chain', tone: 'system' },
-  'job.expired': { text: 'Brief expired with no match', tone: 'error' },
+  'job.expired': { text: 'Request expired with no match', tone: 'error' },
   'bid.scored': { text: 'Buyer agent scored the bid', tone: 'buyer' },
   'bid.submitted': { text: 'Seller submitted a bid', tone: 'seller' },
   'counter.issued': { text: 'Buyer agent issued a counter', tone: 'buyer' },
@@ -29,7 +29,7 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'escrow.funded': { text: 'Escrow funded', tone: 'buyer' },
   'escrow.milestone.released': { text: 'Milestone released', tone: 'buyer' },
   'escrow.settled': { text: 'Deal settled', tone: 'system' },
-  'agent.skipped': { text: 'Seller skipped this brief', tone: 'seller' },
+  'agent.skipped': { text: 'Seller skipped this request', tone: 'seller' },
   'agent.declined': { text: 'Agent ended negotiation', tone: 'error' },
   'agent.error': { text: 'Agent hit an error', tone: 'error' },
   'agent.fallback': { text: 'Agent used a backup decision', tone: 'system' },
@@ -37,8 +37,8 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'deal.matched': { text: 'Match found · awaiting approval', tone: 'buyer' },
   'deal.match.approved': { text: 'Match approved · escrow funded', tone: 'buyer' },
   'deal.match.declined': { text: 'Match declined', tone: 'error' },
-  'listing.posted': { text: 'Listing posted', tone: 'seller' },
-  'listing.matched': { text: 'Listing matched a brief', tone: 'seller' },
+  'listing.posted': { text: 'Offer posted', tone: 'seller' },
+  'listing.matched': { text: 'Offer matched a request', tone: 'seller' },
   'bridge.burned': { text: 'USDC burned on source chain', tone: 'system' },
   'bridge.attested': { text: 'Circle attestation received', tone: 'system' },
   'bridge.minted': { text: 'USDC minted on Arc', tone: 'system' },
@@ -114,7 +114,7 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
     out.push({ key: 'score', label: 'Match', value: `${payload.score}/100` });
   }
   if (payload.scanned != null) {
-    out.push({ key: 'scanned', label: 'Listings', value: String(payload.scanned) });
+    out.push({ key: 'scanned', label: 'Offers', value: String(payload.scanned) });
   }
   if (payload.matched != null) {
     out.push({ key: 'matched', label: 'Matched', value: String(payload.matched) });

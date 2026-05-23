@@ -1507,6 +1507,7 @@ async function persistApprovedMatch(
       terms: proposal.termsHash,
       acceptedAt: now,
       fundTxHash,
+      origin: 'agent',
     });
     logger.info(
       { jobId: proposal.jobId, buyer: proposal.buyerUser, seller: proposal.sellerUser },

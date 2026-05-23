@@ -46,8 +46,8 @@ export default function DocsFaqPage() {
       <DocsH3>What happens if a negotiation does not agree?</DocsH3>
       <DocsP>
         Your agent works through the other matched sellers before giving up. If
-        no one lands inside your range, the brief ends with no agreement and no
-        money moves. Post a fresh brief with a higher budget or more tolerance
+        no one lands inside your range, the request ends with no agreement and no
+        money moves. Post a fresh request with a higher budget or more tolerance
         to try again.
       </DocsP>
 

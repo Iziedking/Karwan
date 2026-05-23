@@ -91,7 +91,7 @@ export function ListingsBrowse() {
     const briefCards: Card[] = briefs.map((b) => {
       const title =
         (b.briefText.split('\n')[0] || b.briefText).slice(0, 80) ||
-        `Brief ${b.jobId.slice(0, 10)}`;
+        `Request ${b.jobId.slice(0, 10)}`;
       const body = b.briefText.length > title.length ? b.briefText : '';
       return {
         side: 'brief',
@@ -126,7 +126,7 @@ export function ListingsBrowse() {
   const FILTERS: Array<{ key: Side; label: string; count: number }> = [
     { key: 'all', label: 'All', count: cards.length },
     { key: 'offers', label: 'Offers', count: offersCount },
-    { key: 'briefs', label: 'Briefs', count: briefsCount },
+    { key: 'briefs', label: 'Requests', count: briefsCount },
   ];
 
   if (isLoading) return null;
@@ -136,7 +136,7 @@ export function ListingsBrowse() {
       <SignInGate
         variant="page"
         tag="MARKETPLACE"
-        body="Live offers and briefs matched to your profile. Sign in to watch both sides."
+        body="Live offers and requests matched to your profile. Sign in to watch both sides."
       />
     );
   }
@@ -159,7 +159,7 @@ export function ListingsBrowse() {
           </HeroHeadline>
         </div>
         <p className="fade-up fade-up-2 mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
-          Live offers and briefs on Karwan. Matches land in your bell and Telegram.
+          Live offers and requests on Karwan. Matches land in your bell and Telegram.
         </p>
       </Band>
 
@@ -229,7 +229,7 @@ export function ListingsBrowse() {
               </p>
               <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
                 {cards.length === 0
-                  ? 'No offers or briefs yet. Post one to start the network.'
+                  ? 'No offers or requests yet. Post one to start the network.'
                   : `No ${side} right now.`}
               </p>
             </div>

@@ -169,13 +169,13 @@ function summaryFor(
     case 'deal.match.declined':
       return role === 'seller'
         ? 'You declined this match.'
-        : 'The seller declined this match. Post a fresh brief to retry.';
+        : 'The seller declined this match. Post a fresh request to retry.';
     case 'job.expired':
-      return 'A brief expired with no match. Repost to retry.';
+      return 'A request expired with no match. Repost to retry.';
     case 'listing.matched':
       return askingPriceUsdc
-        ? `Karwan matched your listing to a brief at ${askingPriceUsdc} USDC.`
-        : 'Karwan matched your listing to an open brief.';
+        ? `Karwan matched your offer to a request at ${askingPriceUsdc} USDC.`
+        : 'Karwan matched your offer to an open request.';
     case 'agent.declined':
       return reason ? `Agent ended negotiation: ${reason}` : 'Agent ended the negotiation.';
     case 'deal.direct.created':
@@ -268,6 +268,11 @@ export function useNotifications() {
   // session. Lets the SSE handler dedupe BEFORE calling setState, so the
   // toast-listener fan-out can happen safely outside any state updater.
   const seenNotificationIdsRef = useRef<Set<string>>(new Set());
+  // Mirror of the latest list so read/clear actions can persist synchronously.
+  // Clicking a notification both marks it read and navigates to the deal; the
+  // passive persist effect can miss that write before the route unmounts, which
+  // made read notifications come back unread on the next load.
+  const notificationsRef = useRef<AppNotification[]>([]);
 
   const refreshJobIds = useCallback(async () => {
     if (!address) return;
@@ -415,15 +420,34 @@ export function useNotifications() {
     });
   }, [address, isConnected]);
 
-  const markRead = useCallback((id: string) => {
-    setNotifications((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
+
+  // Persist immediately, not only through the passive effect, so a click that
+  // marks a notification read and navigates away in the same tick cannot lose
+  // the write.
+  const persistNow = useCallback(
+    (next: AppNotification[]) => {
+      notificationsRef.current = next;
+      setNotifications(next);
+      save(address, next);
+    },
+    [address],
+  );
+
+  const markRead = useCallback(
+    (id: string) => {
+      persistNow(notificationsRef.current.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    },
+    [persistNow],
+  );
 
   const markAllRead = useCallback(() => {
-    setNotifications((list) => list.map((n) => ({ ...n, read: true })));
-  }, []);
+    persistNow(notificationsRef.current.map((n) => ({ ...n, read: true })));
+  }, [persistNow]);
 
-  const clearAll = useCallback(() => setNotifications([]), []);
+  const clearAll = useCallback(() => persistNow([]), [persistNow]);
 
   const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 

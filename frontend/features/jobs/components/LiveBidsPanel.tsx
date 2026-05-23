@@ -31,7 +31,7 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
       <div className="px-5 py-10 text-center">
         <p className="text-[13px] text-[var(--color-ink-dim)]">No bids yet.</p>
         <p className="text-[11px] text-[var(--color-ink-faint)] mt-1">
-          The seller agent is scoring your brief.
+          The seller agent is scoring your request.
         </p>
       </div>
     );

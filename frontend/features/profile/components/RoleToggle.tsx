@@ -7,8 +7,8 @@ import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
 type Option = { value: UserRole; label: string; description: string };
 
 const OPTIONS: Option[] = [
-  { value: 'buyer', label: 'Buyer', description: 'Post briefs, accept bids' },
-  { value: 'seller', label: 'Seller', description: 'Bid on briefs, deliver work' },
+  { value: 'buyer', label: 'Buyer', description: 'Post requests, accept bids' },
+  { value: 'seller', label: 'Seller', description: 'Bid on requests, deliver work' },
   { value: 'both', label: 'Both', description: 'One profile, both sides' },
 ];
 

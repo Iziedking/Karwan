@@ -71,17 +71,17 @@ export default function HowItWorksPage() {
             When you need an agent to find one
           </h2>
           <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
-            Post a brief and the agents run the auction and negotiation for you.
+            Post a request and the agents run the auction and negotiation for you.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          <DemoStep n="1" title="Post a brief">
+          <DemoStep n="1" title="Post a request">
             On <span className="mono">/buyer</span>, pick &quot;Find me a seller&quot;. Write what
             you need, set a budget and deadline. A <span className="mono">postJob</span>{' '}
             transaction lands on Arc in a few seconds.
           </DemoStep>
           <DemoStep n="2" title="Agents negotiate">
-            The seller agent scores the brief and calls <span className="mono">submitBid</span>.
+            The seller agent scores the request and calls <span className="mono">submitBid</span>.
             Your buyer agent ranks it, counters once, and accepts the best terms. Each step shows
             on the live timeline.
           </DemoStep>
@@ -107,7 +107,7 @@ export default function HowItWorksPage() {
         <Card>
           <ol className="space-y-4">
             <Step label="postJob(bytes32, uint256, uint64, string)" actor="Buyer agent · managed only">
-              Records the brief on the JobBoard. Emits <span className="mono">JobPosted</span>,
+              Records the request on the JobBoard. Emits <span className="mono">JobPosted</span>,
               the event seller agents subscribe to.
             </Step>
             <Step label="submitBid · counterOffer · respondToCounter · acceptBid" actor="Both agents · managed only">
@@ -249,7 +249,7 @@ export default function HowItWorksPage() {
           <Faq q="What is the difference between a direct deal and a managed deal?">
             A direct deal is for two parties who already found each other. You open an escrow
             naming the seller&apos;s wallet, no auction. A managed deal is for when you need a
-            seller: you post a brief and agents run the auction and negotiation. Both use the same
+            seller: you post a request and agents run the auction and negotiation. Both use the same
             escrow, reputation, and settlement underneath.
           </Faq>
           <Faq q="What is the platform fee?">
@@ -276,7 +276,7 @@ export default function HowItWorksPage() {
             on-chain arbitration.
           </Faq>
           <Faq q="What if the seller agent skips my managed job?">
-            The seller&apos;s profile has a budget and deadline range. If your brief falls outside
+            The seller&apos;s profile has a budget and deadline range. If your request falls outside
             it, the agent skips and the timeline shows you why. The LLM can also skip on
             confidence, and that gets logged too.
           </Faq>

@@ -103,29 +103,50 @@ export function TopNav() {
           <nav
             className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
           >
-            <NavLink href="/app" active={pathname === '/app'}>
+            <NavLink
+              href="/app"
+              active={pathname === '/app'}
+              title="Your home base. Deals, activity, and what to do next."
+            >
               {t.nav.home}
             </NavLink>
             <TradesDropdown active={tradesActive} />
             <NavLink
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
+              title="Browse open requests and offers from others."
             >
               Market
             </NavLink>
-            <NavLink href="/bridge" active={pathname.startsWith('/bridge')}>
+            <NavLink
+              href="/bridge"
+              active={pathname.startsWith('/bridge')}
+              title="Move USDC from another chain onto Arc."
+            >
               Bridge
             </NavLink>
             <NavLinkSoon title="Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.">
               SME Trades
             </NavLinkSoon>
-            <NavLink href="/activity" active={pathname.startsWith('/activity')}>
+            <NavLink
+              href="/activity"
+              active={pathname.startsWith('/activity')}
+              title="Live feed of every deal and settlement."
+            >
               {t.nav.activity}
             </NavLink>
-            <NavLink href="/stake" active={pathname.startsWith('/stake')}>
+            <NavLink
+              href="/stake"
+              active={pathname.startsWith('/stake')}
+              title="Lock USDC to raise your reputation tier."
+            >
               {t.nav.stake}
             </NavLink>
-            <NavLink href="/profile" active={pathname.startsWith('/profile')}>
+            <NavLink
+              href="/profile"
+              active={pathname.startsWith('/profile')}
+              title="Your wallets, agents, and reputation."
+            >
               {t.nav.profile}
             </NavLink>
           </nav>
@@ -143,11 +164,10 @@ export function TopNav() {
               </div>
               <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
                 <NotificationBell />
-                <SoundToggle />
-                <ThemeToggle />
-                {isAuthenticated && (
-                  <SettingsIconLink active={pathname.startsWith('/settings')} />
-                )}
+                <QuickControls
+                  isAuthenticated={isAuthenticated}
+                  settingsActive={pathname.startsWith('/settings')}
+                />
               </div>
               {/* Mobile keeps only the bell up top. Settings moves into the menu
                   footer (below) so the wallet pill isn't squeezed off-screen. */}
@@ -261,14 +281,20 @@ function NavLink({
   href,
   active,
   children,
+  title,
 }: {
   href: string;
   active: boolean;
   children: React.ReactNode;
+  /// Plain-language hover hint. Crypto and trade terms (Bridge, Stake, Market)
+  /// are opaque to first-time users; the tooltip says what each one does in
+  /// normal words without changing the rail's look.
+  title?: string;
 }) {
   return (
     <Link
       href={href}
+      title={title}
       className={cn(
         'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors',
         active
@@ -389,14 +415,14 @@ function TradesDropdown({ active }: { active: boolean }) {
             <TradesItem
               href="/buyer"
               title="Buyer desk"
-              sub="Post a brief. Agents run the auction."
+              sub="Post a request. Agents run the bidding."
               accent="var(--lp-accent)"
             />
             <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
             <TradesItem
               href="/seller"
               title="Seller desk"
-              sub="Post a listing. Take incoming deals."
+              sub="Post an offer. Take incoming deals."
               accent="#7CC2FF"
             />
           </div>
@@ -442,6 +468,88 @@ function TradesItem({
         →
       </span>
     </Link>
+  );
+}
+
+/// Collapses the low-frequency controls (theme, sound, settings) behind a single
+/// overflow button so the top bar shows fewer icons. Theme and sound also live
+/// on the Settings page; keeping them here means logged-out visitors can still
+/// reach them. Notifications stay outside this menu since unread count is
+/// high-signal and should be visible at a glance.
+function QuickControls({
+  isAuthenticated,
+  settingsActive,
+}: {
+  isAuthenticated: boolean;
+  settingsActive: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Preferences"
+        aria-expanded={open}
+        className={cn(
+          'inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
+          open || settingsActive
+            ? 'bg-[var(--color-surface-2)] text-[var(--color-ink)]'
+            : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
+        )}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+          <circle cx="3" cy="8" r="1.35" />
+          <circle cx="8" cy="8" r="1.35" />
+          <circle cx="13" cy="8" r="1.35" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full pt-2 z-40">
+          <div
+            className="w-[224px] p-2 border bg-[var(--color-surface)] fade-up"
+            style={{
+              borderColor: 'var(--color-line)',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderBottomLeftRadius: 16,
+              borderBottomRightRadius: 4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
+            }}
+          >
+            <ControlRow label="Theme">
+              <ThemeToggle />
+            </ControlRow>
+            <ControlRow label="Sound">
+              <SoundToggle />
+            </ControlRow>
+            {isAuthenticated && (
+              <>
+                <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
+                <Link
+                  href="/settings"
+                  className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+                >
+                  <span>All settings</span>
+                  <span aria-hidden className="text-[var(--color-ink-faint)]">
+                    →
+                  </span>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ControlRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-lg">
+      <span className="text-[13px] text-[var(--color-ink-dim)]">{label}</span>
+      {children}
+    </div>
   );
 }
 

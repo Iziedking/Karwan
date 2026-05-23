@@ -26,6 +26,8 @@ import {
 
 interface NetStats {
   deals: number;
+  direct: number;
+  agent: number;
   settled: number;
   usdc: number;
 }
@@ -54,7 +56,13 @@ export default function AppHome() {
     api
       .dealsStats()
       .then((s) => {
-        setStats({ deals: s.total, settled: s.settled, usdc: s.volumeUsdc });
+        setStats({
+          deals: s.total,
+          direct: s.direct,
+          agent: s.agent,
+          settled: s.settled,
+          usdc: s.volumeUsdc,
+        });
       })
       .catch(() => {});
   }, []);
@@ -139,7 +147,7 @@ export default function AppHome() {
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {(profile.role === 'buyer' || profile.role === 'both') && (
-                <CTAPill href="/buyer">Post a brief →</CTAPill>
+                <CTAPill href="/buyer">Post a request →</CTAPill>
               )}
               {(profile.role === 'seller' || profile.role === 'both') && (
                 <CTAPill
@@ -147,7 +155,7 @@ export default function AppHome() {
                   variant={profile.role === 'seller' ? 'primary' : 'secondary'}
                   tone="dark"
                 >
-                  Post a listing →
+                  Post an offer →
                 </CTAPill>
               )}
               <CTAPill href="/activity" variant="secondary" tone="dark">
@@ -177,7 +185,7 @@ export default function AppHome() {
 
       {/* THREE DOORS */}
       <Band tone="light">
-        <SectionTag>THREE DOORS</SectionTag>
+        <SectionTag>WHERE TO START</SectionTag>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           One spine<Punc>.</Punc>
           <br />
@@ -192,8 +200,8 @@ export default function AppHome() {
               href="/buyer"
               tone="cream"
               eyebrow="BUYER"
-              title="Post a brief"
-              body="Run an auction from a brief."
+              title="Post a request"
+              body="Say what you need. Agents collect bids and you choose."
               vignette={<BriefVignette />}
             />
           </div>
@@ -202,8 +210,8 @@ export default function AppHome() {
               href="/seller"
               tone="dark"
               eyebrow="SELLER"
-              title="Watch the bids"
-              body="Bids placed on matched briefs."
+              title="Take work"
+              body="List what you offer and accept the deals that fit."
               vignette={<BidVignette />}
             />
           </div>
@@ -212,8 +220,8 @@ export default function AppHome() {
               href="/activity"
               tone="accent"
               eyebrow="ACTIVITY"
-              title="Audit every event"
-              body="Full event log with explorer links."
+              title="Track deals"
+              body="Watch every deal settle live on Arc."
               vignette={<StreamVignette />}
             />
           </div>
@@ -244,22 +252,37 @@ export default function AppHome() {
             </span>
           </Link>
         </div>
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="fade-up fade-up-1">
             <BigStatTile
-              label="Direct deals"
+              label="Total deals"
               value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} />}
+              hint="Direct plus agent"
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-2">
+            <BigStatTile
+              label="Direct deals"
+              value={<AnimatedNumber value={stats?.direct ?? 0} decimals={0} />}
+              loading={!stats}
+            />
+          </div>
+          <div className="fade-up fade-up-3">
+            <BigStatTile
+              label="Agent deals"
+              value={<AnimatedNumber value={stats?.agent ?? 0} decimals={0} />}
+              loading={!stats}
+            />
+          </div>
+          <div className="fade-up fade-up-4">
             <BigStatTile
               label="Settled in full"
               value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} />}
               loading={!stats}
             />
           </div>
-          <div className="fade-up fade-up-3">
+          <div className="fade-up fade-up-4">
             <BigStatTile
               label="USDC through escrow"
               value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} />}
@@ -534,7 +557,7 @@ function BriefVignette() {
     <div className="px-4 py-4 space-y-3 flex-1 flex flex-col">
       <div className="flex items-center justify-between">
         <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          BRIEF · 0x12ab
+          REQUEST · 0x12ab
         </span>
         <span className="mono text-[10px] tabular-nums text-[var(--lp-text-sub)]">2 min</span>
       </div>

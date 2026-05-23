@@ -17,8 +17,10 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const auth = useAuth();
   const address = auth.address ?? undefined;
   const isAuthed = auth.isAuthenticated;
-  // Scope to the signed-in identity. only events the user is a party to.
-  const events = useLiveEvents(undefined, 200, address);
+  // Platform-wide stream: every deal moving across Karwan, not just the caller's.
+  // Passing no caller returns the global feed (job IDs and prices intact, wallet
+  // addresses masked). The page itself stays sign-in gated below.
+  const events = useLiveEvents(undefined, 200);
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the
   // user signs in.
@@ -32,8 +34,8 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const filtered = useMemo(() => applyFilters(events, filters), [events, filters]);
   const counts = useMemo(() => countByGroup(events), [events]);
 
-  // Hard gate: never render the activity stream when not signed in. there is
-  // nothing to scope to and the global stream would leak other users' events.
+  // Sign-in gate. The feed is platform-wide, but kept behind sign-in so the
+  // full network log isn't exposed to anonymous crawlers.
   if (!isAuthed || !address) {
     return (
       <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
@@ -41,8 +43,8 @@ export function ActivityView({ explorer }: { explorer: string }) {
           NOT SIGNED IN
         </p>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Sign in to see the events your deals have triggered. This stream is scoped to your
-          identity. you won&apos;t see other users&apos; activity.
+          Sign in to watch every deal moving across Karwan. Search by job ID to follow a
+          specific one.
         </p>
       </div>
     );

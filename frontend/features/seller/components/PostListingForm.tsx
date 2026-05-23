@@ -156,7 +156,7 @@ export function PostListingForm() {
           />
           <div className="relative px-6 py-6">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-band-dark)]/65">
-              LISTING PREVIEW
+              OFFER PREVIEW
             </p>
             <div className="mt-3 flex items-baseline gap-2 flex-wrap">
               <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
@@ -193,7 +193,7 @@ export function PostListingForm() {
                 </>
               )}
               <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
-              <span>matched to buyer briefs</span>
+              <span>matched to buyer requests</span>
             </div>
           </div>
         </div>
@@ -216,14 +216,14 @@ export function PostListingForm() {
           </FormLabel>
           <FormLabel
             label="Description"
-            hint="What you build, examples, turnaround. Your agent uses this to match briefs."
+            hint="What you build, examples, turnaround. Your agent uses this to match requests."
           >
             <textarea
               value={description}
               rows={3}
               maxLength={500}
               disabled={submitting}
-              placeholder="Describe your offer in detail. The agent uses this to match buyer briefs."
+              placeholder="Describe your offer in detail. The agent uses this to match buyer requests."
               onChange={(e) => {
                 setDescription(e.target.value);
                 setIntentWarned(false);
@@ -275,7 +275,7 @@ export function PostListingForm() {
             <FormLabel
               label="Window"
               unit={ttlUnit === 'min' ? 'MIN' : ttlUnit === 'hr' ? 'HRS' : 'DAYS'}
-              hint="How long the listing stays live before it auto-expires. Pick a unit for demo timing."
+              hint="How long the offer stays live before it auto-expires. Pick a unit for demo timing."
             >
               <div className="flex items-stretch gap-2">
                 <input
@@ -358,19 +358,19 @@ export function PostListingForm() {
             }}
           >
             <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
-              [:WAIT. IS THIS A LISTING OR A BRIEF?:]
+              [:WAIT. IS THIS AN OFFER OR A REQUEST?:]
             </p>
             <p className="text-[12.5px] leading-snug text-white/85">
               This reads like something you <span className="font-bold">need</span>, not something
-              you <span className="font-bold">offer</span>. Listings are for sellers; briefs
+              you <span className="font-bold">offer</span>. Offers are for sellers; requests
               (posted from the buyer desk) are for buyers. If you meant to find a backend engineer,{' '}
               <a
                 href="/buyer"
                 className="underline underline-offset-2 hover:text-white"
               >
-                post a brief instead
+                post a request instead
               </a>
-              . Click <span className="font-bold">Post listing</span> again to publish as-is.
+              . Click <span className="font-bold">Post offer</span> again to publish as-is.
             </p>
           </div>
         )}
@@ -409,7 +409,7 @@ export function PostListingForm() {
                 <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             )}
-            {submitting ? 'Posting…' : 'Post listing'}
+            {submitting ? 'Posting…' : 'Post offer'}
             {!submitting && (
               <span
                 aria-hidden
@@ -472,10 +472,10 @@ export function PostListingForm() {
           return (
             <div className="pt-6 border-t border-white/[0.08]">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-3">
-                YOUR LISTINGS
+                YOUR OFFERS
               </p>
               <p className="text-[13px] text-white/55">
-                All terminal listings dismissed.
+                All terminal offers dismissed.
               </p>
             </div>
           );
@@ -483,7 +483,7 @@ export function PostListingForm() {
         return (
           <div className="pt-6 border-t border-white/[0.08]">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-4">
-              YOUR LISTINGS
+              YOUR OFFERS
             </p>
             <ul className="divide-y divide-white/[0.08]">
               {visible.slice(0, 5).map((l) => {
@@ -511,7 +511,7 @@ export function PostListingForm() {
                     }}
                     tabIndex={0}
                     role="link"
-                    aria-label={`Open listing ${l.title}`}
+                    aria-label={`Open offer ${l.title}`}
                     className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-white/[0.04] -mx-2 px-2 transition-colors rounded-md focus:bg-white/[0.04] focus:outline-none"
                   >
                     <div className="min-w-0">
@@ -531,7 +531,7 @@ export function PostListingForm() {
                         <button
                           type="button"
                           title="Dismiss"
-                          aria-label={`Dismiss ${label.toLowerCase()} listing`}
+                          aria-label={`Dismiss ${label.toLowerCase()} offer`}
                           onClick={(e) => {
                             e.stopPropagation();
                             dismiss(l.id);

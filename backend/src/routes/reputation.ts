@@ -5,6 +5,7 @@ import { compute } from '../reputation/engine.js';
 import { loadInputs } from '../reputation/signals.js';
 import { tierRank, type Tier } from '../reputation/config.js';
 import { getTierState, saveTierState } from '../db/tierState.js';
+import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { bus } from '../events.js';
 import { getTelegramLink } from '../db/telegramLinks.js';
 import { sendTelegramMessage, telegramEnabled } from '../telegram/bot.js';
@@ -89,7 +90,20 @@ reputationRoutes.get('/', async (c) => {
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
 
   try {
-    const inputs = await loadInputs(parsed.data);
+    // Reputation belongs to the account, not the agent wallet. If the queried
+    // address is one of our agent DCWs (a buyer/seller agent), resolve it to the
+    // owner so bid cards and match banners show the account's real tier instead
+    // of a blank NEW. A normal account or web3 wallet does not match and is used
+    // as-is.
+    let repAddr = parsed.data;
+    try {
+      const owner = await findAgentWalletByAgentAddress(parsed.data);
+      if (owner?.userAddress) repAddr = owner.userAddress;
+    } catch {
+      /* fall back to the queried address on lookup failure */
+    }
+
+    const inputs = await loadInputs(repAddr);
     const result = compute(inputs);
 
     // Detect a tier-up and surface the 12h congrats window for the profile card.
@@ -100,7 +114,7 @@ reputationRoutes.get('/', async (c) => {
     let scoreBps = 5000;
     try {
       const raw = (await reputation.read.getReputationScore([
-        parsed.data as `0x${string}`,
+        repAddr as `0x${string}`,
       ])) as bigint;
       scoreBps = Number(raw);
     } catch {
