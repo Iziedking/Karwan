@@ -826,7 +826,7 @@ const otpVerifySchema = z.object({
   code: z.string().trim().regex(/^\d{6}$/, 'code must be 6 digits'),
 });
 
-authRoutes.post('/otp/verify', async (c) => {
+authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, name: 'otp-verify' }), async (c) => {
   let body;
   try {
     body = otpVerifySchema.parse(await c.req.json());

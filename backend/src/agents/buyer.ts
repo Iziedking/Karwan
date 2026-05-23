@@ -886,9 +886,19 @@ async function issueCounter(state: JobState, bid: Bid) {
     return;
   }
 
+  // The buyer's posted budget is their committed valuation and the floor of the
+  // negotiation: never counter below it. The buyer holds at budget and concedes
+  // only upward toward the tolerance cap, mirroring the seller pushing up. This
+  // is what keeps a settlement inside [budget, cap] instead of below budget.
+  const briefBudget = Number(state.context.budgetUsdc);
+  const counterUsdc = Math.max(
+    Number.isFinite(briefBudget) ? briefBudget : counterPrice,
+    counterPrice,
+  ).toFixed(2);
+
   const counterDeadlineUnix =
     Math.floor(Date.now() / 1000) + bid.suggestedCounterDeadlineDays * 86_400;
-  const counterPriceWei = parseUnits(bid.suggestedCounterPrice, USDC_DECIMALS);
+  const counterPriceWei = parseUnits(counterUsdc, USDC_DECIMALS);
 
   // Keep the brief's working deadline in step with the negotiation. A counter
   // routinely proposes a later delivery date than the original (often short)
@@ -896,7 +906,7 @@ async function issueCounter(state: JobState, bid: Bid) {
   // negotiation at the original clock. Extend only, never shorten.
   extendWorkingDeadline(state, counterDeadlineUnix);
 
-  state.lastCounterPriceBySeller.set(bid.seller, bid.suggestedCounterPrice);
+  state.lastCounterPriceBySeller.set(bid.seller, counterUsdc);
   state.counterRoundsBySeller.set(
     bid.seller,
     (state.counterRoundsBySeller.get(bid.seller) ?? 0) + 1,
@@ -924,7 +934,7 @@ async function issueCounter(state: JobState, bid: Bid) {
     actor: 'buyer',
     payload: {
       seller: bid.seller,
-      counterPriceUsdc: bid.suggestedCounterPrice,
+      counterPriceUsdc: counterUsdc,
       counterDeadlineDays: bid.suggestedCounterDeadlineDays,
       txHash: result.txHash,
     },
@@ -990,12 +1000,17 @@ async function handleCounterResponse(log: Log) {
     Math.floor((state.context.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
   );
   const buyerLastNumeric = Number(buyerLastCounter || state.context.budgetUsdc);
+  // The buyer never re-counters below their posted budget (their committed
+  // valuation). Floor the deterministic suggestion and the LLM range at it so
+  // the seller's steering floor (also the budget now) is never tripped.
+  const briefBudget = Number(state.context.budgetUsdc);
+  const buyerFloor = Number.isFinite(briefBudget) ? briefBudget : 0;
   const suggestedCounter = nextCounterPrice({
     role: 'buyer',
     mine: buyerLastNumeric,
     theirs: Number(sellerCounterPrice),
     round: currentRound,
-    floor: 0,
+    floor: buyerFloor,
     ceiling: effectiveMaxAcceptable,
     tier: sellerTier,
     daysToDeadline,
@@ -1012,7 +1027,7 @@ async function handleCounterResponse(log: Log) {
           state.context,
           {
             side: 'buyer',
-            minAcceptablePriceUsdc: 0,
+            minAcceptablePriceUsdc: buyerFloor,
             maxAcceptablePriceUsdc: effectiveMaxAcceptable,
             minDeadlineDays: buyer.minDeadlineDays,
             maxDeadlineDays: buyer.maxDeadlineDays,

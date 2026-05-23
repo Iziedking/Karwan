@@ -33,6 +33,7 @@ import {
 } from './strategy.js';
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
+import { marketHeat } from './marketDemand.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -346,7 +347,10 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // ceiling)] and biased by the buyer's reputation tier. The buyer agent is the
   // one that sees the incoming bids and ranks them by reputation and price.
   const buyerTier = (job.buyerRepTier ?? 'established') as Tier;
-  const opening = sellerOpeningBid(seller, job, buyerTier);
+  // Market heat for this seller's skills: hot skill -> hold nearer the buyer's
+  // tolerance ceiling, common skill -> price nearer the buyer's posted budget.
+  const heat = await marketHeat([...(seller.keywords ?? []), ...(seller.skills ?? [])], seller.address);
+  const opening = sellerOpeningBid(seller, job, buyerTier, heat);
   if (opening === null) {
     logger.info(
       { jobId: job.jobId, seller: seller.address, minBudget: seller.minBudgetUsdc },
@@ -411,24 +415,41 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   });
 }
 
-/// Deterministic per-seller opening bid. Each seller agent prices from its OWN
-/// range with no knowledge of other bids, so a multi-seller auction produces a
-/// spread the buyer agent can rank, instead of every seller converging on the
-/// buyer's ceiling (the "all bids 78 USDC" bug). Returns null when the seller's
-/// floor is above the buyer's budget cap (no possible deal, so skip).
+/// Deterministic per-seller opening bid.
 ///
-/// The opening lands in [floor, min(sellerMax, buyerCeiling)] at a point set by
-/// a per-seller seed blended with a buyer-tier bias: trusted buyers (elite) see
-/// prices nearer the floor, new and cold buyers nearer the ceiling.
-function sellerOpeningBid(seller: SellerProfile, job: JobContext, buyerTier: Tier): number | null {
+/// Economic model: a buyer who posts a brief has committed to that budget as
+/// their valuation, so it is the FLOOR of the negotiation, not a ceiling to
+/// undercut. The seller opens between the buyer's posted budget and the
+/// tolerance ceiling (budget x (1 + maxIncrease%)) and only ever negotiates
+/// upward within that band. It never bids below what the buyer already offered.
+///
+/// Sellers want more, so the opening biases toward the ceiling, lifted by market
+/// demand (a hot skill holds near the ceiling) and softened for trusted buyers
+/// (an elite/repeat buyer is quoted nearer the floor). A per-seller address seed
+/// keeps a multi-seller auction spread out instead of every seller converging on
+/// one number. Returns null when no point in [budget, ceiling] is reachable for
+/// this seller (their max is below the buyer's budget, or their min above the
+/// ceiling) — i.e. no possible deal, so skip.
+function sellerOpeningBid(
+  seller: SellerProfile,
+  job: JobContext,
+  buyerTier: Tier,
+  heat: number,
+): number | null {
   const budget = Number(job.budgetUsdc);
   const tol = job.negotiationMaxIncreasePct ?? 0;
   const buyerCeiling = budget * (1 + tol / 100);
-  const floor = seller.minBudgetUsdc;
+  // Floor = the buyer's posted budget, never below it. (The seller's own
+  // minimum still applies if it's higher — that seller wants more than the
+  // buyer offered, so they open above the buyer's price.)
+  const floor = Math.max(seller.minBudgetUsdc, budget);
   const ceiling = Math.min(seller.maxBudgetUsdc, buyerCeiling);
   if (!Number.isFinite(ceiling) || ceiling < floor) return null;
   if (ceiling === floor) return Number(floor.toFixed(2));
 
+  // Higher bias = nearer the ceiling (seller earns more). NEW/COLD buyers pay
+  // toward the top of the band; ELITE/STRONG repeat buyers are quoted nearer
+  // the floor. Market heat lifts everyone toward the ceiling for scarce skills.
   const TIER_BIAS: Record<Tier, number> = {
     elite: 0.15,
     strong: 0.35,
@@ -436,7 +457,11 @@ function sellerOpeningBid(seller: SellerProfile, job: JobContext, buyerTier: Tie
     cold: 0.7,
     new: 0.8,
   };
-  const frac = Math.max(0, Math.min(1, 0.55 * addrFrac(seller.address) + 0.45 * TIER_BIAS[buyerTier]));
+  const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
+  const frac = Math.max(
+    0,
+    Math.min(1, 0.3 * addrFrac(seller.address) + 0.4 * TIER_BIAS[buyerTier] + 0.3 * h),
+  );
   return Number((floor + (ceiling - floor) * frac).toFixed(2));
 }
 
@@ -491,10 +516,16 @@ async function runCounterEvaluation(
   //    profile-wide minimum just because the buyer pushed hard. Ceiling stays
   //    at the seller's profile-wide maximum.
   const originalBid = Number(active.originalBidPriceUsdc);
+  // Brief-flow floor includes the buyer's posted budget: the seller negotiates
+  // upward from what the buyer offered and never concedes below it. (Listing
+  // flow keeps the listing's own floor — that's the seller-initiated flow where
+  // the buyer is the one pricing down toward their budget.)
+  const briefBudget = Number(active.jobContext.budgetUsdc);
   const profileFloor = active.listingFloorUsdc
     ? active.listingFloorUsdc
     : Math.max(
         seller.minBudgetUsdc,
+        Number.isFinite(briefBudget) ? briefBudget : 0,
         Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
       );
   const minAcceptable = profileFloor;
@@ -504,6 +535,10 @@ async function runCounterEvaluation(
   // Tier elasticity + urgency lean the move in the right direction; the LLM
   // ratifies (and writes the reasoning trace).
   const buyerTier = (active.jobContext.buyerRepTier ?? 'established') as Tier;
+  const heat = await marketHeat(
+    [...(seller.keywords ?? []), ...(seller.skills ?? [])],
+    seller.address,
+  );
   const sellerDaysToDeadline = Math.max(
     1,
     Math.floor(
@@ -547,6 +582,7 @@ async function runCounterEvaluation(
             suggestedCounterPrice: suggestedCounter,
             marketMedianPrice: priceHistorySnapshot()?.median,
             marketSampleCount: priceHistorySnapshot()?.sampleCount,
+            marketHeat: heat,
           },
         ),
       }),

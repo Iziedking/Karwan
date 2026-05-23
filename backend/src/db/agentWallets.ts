@@ -43,17 +43,38 @@ export async function listAllAgentWallets(): Promise<AgentWallets[]> {
   return Object.values(loadFile());
 }
 
+// Reverse-lookup cache: agentAddress -> owner record. Without it,
+// findAgentWalletByAgentAddress loads + scans the whole table on every call,
+// and it sits on the per-bid agent hot path (actorSignalsFor resolves an agent
+// wallet to its owner account for reputation on every BidSubmitted / counter /
+// listing match). Short TTL so a newly-activated user self-heals across
+// processes; saveAgentWallets clears it immediately for the local process.
+let reverseCache: { map: Map<string, AgentWallets>; builtAt: number } | null = null;
+const REVERSE_CACHE_TTL_MS = 60_000;
+
+function invalidateReverseCache() {
+  reverseCache = null;
+}
+
 /// Finds the agent wallet record that owns a given agent address, matching on
 /// either the buyer or the seller agent address. Used for reverse lookups when
-/// only the on-chain agent address is known.
+/// only the on-chain agent address is known. Cached (see above) so it doesn't
+/// re-scan the table on every bid.
 export async function findAgentWalletByAgentAddress(
   agentAddress: string,
 ): Promise<AgentWallets | null> {
   const a = agentAddress.toLowerCase();
-  const all = await listAllAgentWallets();
-  return (
-    all.find((w) => w.buyerAddress === a || w.sellerAddress === a) ?? null
-  );
+  const now = Date.now();
+  if (!reverseCache || now - reverseCache.builtAt > REVERSE_CACHE_TTL_MS) {
+    const all = await listAllAgentWallets();
+    const map = new Map<string, AgentWallets>();
+    for (const w of all) {
+      map.set(w.buyerAddress, w);
+      map.set(w.sellerAddress, w);
+    }
+    reverseCache = { map, builtAt: now };
+  }
+  return reverseCache.map.get(a) ?? null;
 }
 
 export async function saveAgentWallets(
@@ -72,11 +93,13 @@ export async function saveAgentWallets(
       .insert(agentWallets)
       .values({ userAddress: key, data: record })
       .onConflictDoUpdate({ target: agentWallets.userAddress, set: { data: record } });
+    invalidateReverseCache();
     return record;
   }
   const store = loadFile();
   store[key] = record;
   saveFile(store);
+  invalidateReverseCache();
   return record;
 }
 

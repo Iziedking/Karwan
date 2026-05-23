@@ -23,6 +23,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { sessionMismatchesClaim } from '../auth/session.js';
 
 const addrSchema = z
   .string()
@@ -110,6 +111,12 @@ listingsRoutes.post('/:id/cancel', async (c) => {
   }
   const listing = getListing(id);
   if (!listing) return c.json({ error: 'listing not found' }, 404);
+  // A Circle session may only act as its own wallet; the body `caller` is then
+  // verified against the listing owner below. Together this stops a spoofed
+  // body field from cancelling someone else's listing.
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
   if (body.caller.toLowerCase() !== listing.sellerUser) {
     return c.json({ error: 'only the seller can cancel this listing' }, 403);
   }
@@ -145,6 +152,12 @@ listingsRoutes.post('/', async (c) => {
     body = createSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Authorization: a Circle session may only post a listing as its own wallet.
+  // Matches the gate on jobs/deals/profile writes; web3 users have no session
+  // yet, so this is a no-op for them (see auth/session.ts).
+  if (sessionMismatchesClaim(c, body.sellerUser)) {
+    return c.json({ error: 'You can only post a listing as your own wallet.', code: 'forbidden' }, 403);
   }
 
   const agents = await getAgentWallets(body.sellerUser);

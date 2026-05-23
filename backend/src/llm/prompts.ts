@@ -87,17 +87,13 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     `- Maximum days to delivery: ${seller.maxDeadlineDays}`,
     `- Pre-computed: budget-in-range=${inBudgetRange}, deadline-in-range=${inDeadlineRange}.`,
     '',
-    'Tier-aware pricing (applied deterministically AFTER your decision per docs/reputation-model.md §6):',
-    '- buyer ELITE  → final price is forced to seller floor (good clients earn discounts).',
-    '- buyer STRONG / ESTABLISHED → your suggestedPrice stands.',
-    '- buyer COLD   → final price is your suggestedPrice × 1.10 (premium for unproven counterparties).',
-    '- buyer NEW    → final price is your suggestedPrice × 1.15 AND the proposal is flagged for human approval.',
-    'Just pick the right STANDARD price below. The system handles the multiplier.',
+    'Pricing (the system sets the exact opening price; you do not):',
+    "- The buyer's posted budget is their committed valuation and the FLOOR. The system opens your bid between that budget and the buyer's tolerance ceiling (budget x (1 + their max increase %)), biased UP when demand for your skill is high and DOWN toward the budget for trusted or repeat buyers. Your agent never bids below the buyer's posted budget.",
+    '- So you are not racing to the bottom: you start at or above what the buyer offered and negotiate from there. Sellers want a premium; the buyer holds near their budget; you meet in between.',
     '',
     'Output rules:',
     '- decision: "bid" ONLY if topical match passes AND budget-in-range AND deadline-in-range. Otherwise "skip".',
-    "- suggestedPrice: digits only USDC amount. PRICING RULE: when the buyer's posted budget is within the seller's acceptable range, bid AT the buyer's posted budget — DO NOT undercut. The seller is here to earn the asking price, not to win a race-to-the-bottom. Only bid above the buyer's posted budget if seller.minBudgetUsdc forces it (in which case bid at minBudgetUsdc and let the buyer agent counter). Only bid below the buyer's posted budget if the seller's max is below the budget (in which case bid at seller.maxBudgetUsdc).",
-    `- suggestedPrice MUST satisfy: between ${seller.minBudgetUsdc} and ${seller.maxBudgetUsdc} (seller bounds), and SHOULD equal ${Math.min(seller.maxBudgetUsdc, Math.max(seller.minBudgetUsdc, budgetN))} (buyer's budget clamped to seller's range).`,
+    `- suggestedPrice: digits only USDC amount between ${seller.minBudgetUsdc} and ${seller.maxBudgetUsdc}. This is only a hint for the reasoning; the system sets the actual opening inside [budget, ceiling]. A sensible hint is ${Math.min(seller.maxBudgetUsdc, Math.max(seller.minBudgetUsdc, budgetN))} USDC or above.`,
     `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.min(seller.maxDeadlineDays, daysToBuyerDeadline)}]`,
     '- confidence: 0..1. Lower confidence (≤ 0.5) means weak topical match or borderline range.',
     '- reasoning: one or two sentences explaining the topical fit (or lack of it) and price logic.',
@@ -191,6 +187,9 @@ export interface NegotiationContext {
   marketMedianPrice?: number;
   /// Sample size behind the median so the LLM weighs it appropriately.
   marketSampleCount?: number;
+  /// 0..1 market demand for the skill (agents/marketDemand.ts). High demand lets
+  /// the seller hold firmer and signals the buyer to expect to pay nearer the cap.
+  marketHeat?: number;
 }
 
 export function buildCounterEvaluationPrompt(
@@ -216,12 +215,12 @@ export function buildCounterEvaluationPrompt(
   const persona =
     role === 'buyer'
       ? [
-          `You are the BUYER's agent. Your principal posted a brief at ${job.budgetUsdc} USDC. The ${other}'s counter is ${theirCounterPriceUsdc} USDC.`,
-          'Posture: hold the budget. Move up only when the seller has credible reputation OR the market median justifies it. Never exceed the principal\'s acceptable cap.',
+          `You are the BUYER's agent. Your principal posted this brief at ${job.budgetUsdc} USDC — what they have decided the work is worth. That is your FLOOR (${party.minAcceptablePriceUsdc} USDC), never a number to undercut. The ${other} wants a premium above it, up to your hard cap of ${party.maxAcceptablePriceUsdc} USDC. Their counter is ${theirCounterPriceUsdc} USDC.`,
+          'Posture: hold near the posted budget and make the seller earn any premium. Concede UPWARD toward the cap only when the seller has credible reputation OR demand for this skill is high. Never offer below the posted budget; never exceed the cap.',
         ]
       : [
-          `You are the SELLER's agent. Your principal bid ${ourLastPriceUsdc} USDC. The ${other}'s counter is ${theirCounterPriceUsdc} USDC.`,
-          'Posture: defend the asking price. Concede only when the buyer has shown credible reputation OR the deal is urgent. Never drop below the seller\'s acceptable floor.',
+          `You are the SELLER's agent. The buyer committed ${job.budgetUsdc} USDC, which is the floor; your principal wants more, up to ${party.maxAcceptablePriceUsdc} USDC. Your last price on the table is ${ourLastPriceUsdc} USDC; the buyer's counter is ${theirCounterPriceUsdc} USDC.`,
+          `Posture: defend your asking price and earn a premium above the buyer's budget. Concede DOWNWARD toward the buyer's budget only when their reputation is strong OR demand for your skill is soft. Never drop below your acceptable floor (${party.minAcceptablePriceUsdc} USDC).`,
         ];
 
   const concessionGuide = ctx
@@ -240,6 +239,11 @@ export function buildCounterEvaluationPrompt(
           : '',
         ctx.marketMedianPrice != null
           ? `- Recent settlement median for this skill: ${ctx.marketMedianPrice} USDC (n=${ctx.marketSampleCount ?? '?'}).`
+          : '',
+        ctx.marketHeat != null
+          ? `- Market demand for this skill: ${
+              ctx.marketHeat >= 0.66 ? 'HIGH' : ctx.marketHeat >= 0.4 ? 'MODERATE' : 'LOW'
+            }. High demand: the seller holds firmer and the buyer should expect to pay nearer the cap. Low demand: the seller concedes faster and the buyer holds near the budget.`
           : '',
       ]
         .filter(Boolean)
