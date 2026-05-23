@@ -7,6 +7,7 @@ import {
 } from '@simplewebauthn/browser';
 import { api, ApiError, type UserSettings, type ThemePreference } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Locale } from '@/shared/i18n/locales';
 import { LanguagePicker } from './LanguagePicker';
@@ -42,6 +43,10 @@ export function SettingsBand() {
       setDeleteError(null);
       try {
         await api.deleteAccount(address, force);
+        // Wipe this account's bell cache + read-state so a re-created account on
+        // the same wallet starts clean. Sign-out no longer purges (it preserves
+        // read state for normal re-login), so deletion owns the purge now.
+        purgeStoredNotifications(address);
         await signOut();
         router.push('/');
       } catch (err) {

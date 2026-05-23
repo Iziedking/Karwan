@@ -139,7 +139,11 @@ export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
   // legacy bps-based binning so the agent loop never blocks on reputation.
   let repTier: RepTier;
   try {
-    const inputs = await loadInputs(addr);
+    // Use the owner-resolved address (repAddr), not the raw agent wallet, so the
+    // composite tier matches what /api/reputation shows. Reading `addr` here was
+    // the bug behind an ESTABLISHED account getting a 'new-buyer' risk flag: the
+    // agent wallet has no stake/history of its own and binned to NEW.
+    const inputs = await loadInputs(repAddr);
     const result = compute(inputs);
     repTier = tierToLower(result.tier);
   } catch (err) {

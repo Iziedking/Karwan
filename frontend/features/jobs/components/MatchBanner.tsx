@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type MatchProposal } from '@/core/api';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { ProfilePeekModal } from './ProfilePeekModal';
 
@@ -29,6 +30,26 @@ export function MatchBanner({ proposal, onChange }: Props) {
     !!address && address.toLowerCase() === proposal.buyerUser.toLowerCase();
   const approved = !!proposal.approvedAt;
   const declined = !!proposal.declinedAt;
+
+  // The risk flags new-buyer / honey-trap / lowball all hinge on the buyer being
+  // unproven (NEW/COLD) at match time. They're a point-in-time snapshot; if the
+  // buyer's live tier is now ESTABLISHED+, the warning is stale and contradicts
+  // the badge shown right beside it. Read the live tier and suppress those flags
+  // when it no longer holds. (spammy is velocity-based, not tier-based — kept.)
+  const { data: buyerRep } = useReputation(proposal.buyerUser);
+  const buyerProvenNow =
+    buyerRep?.tier === 'ESTABLISHED' ||
+    buyerRep?.tier === 'STRONG' ||
+    buyerRep?.tier === 'ELITE';
+  const flagIsRepBased =
+    proposal.riskFlag === 'new-buyer' ||
+    proposal.riskFlag === 'honey-trap' ||
+    proposal.riskFlag === 'lowball';
+  const showRisk =
+    !!proposal.riskFlag &&
+    !!proposal.riskNote &&
+    viewerIsSeller &&
+    !(flagIsRepBased && buyerProvenNow);
 
   async function onApprove() {
     if (!address) return;
@@ -170,7 +191,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
           spammy, new-buyer) — they describe the BUYER, for the SELLER to
           judge before accepting. Render only when the viewer is the seller
           so the buyer doesn't see warnings written about themselves. */}
-      {proposal.riskFlag && proposal.riskNote && viewerIsSeller && (
+      {showRisk && (
         <div
           className="mt-4 px-4 py-3"
           style={{
@@ -184,7 +205,7 @@ export function MatchBanner({ proposal, onChange }: Props) {
           }}
         >
           <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
-            {riskLabel[proposal.riskFlag]}
+            {riskLabel[proposal.riskFlag!]}
           </p>
           <p className="text-[12.5px] leading-snug" style={{ color: 'var(--color-ink)' }}>
             {proposal.riskNote}

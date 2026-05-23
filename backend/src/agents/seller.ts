@@ -92,9 +92,11 @@ export async function submitListingBid(
   const key = bidKey(job.jobId, seller.address);
   if (activeBids.has(key)) return { ok: false, reason: 'already-bid' };
 
-  const proposedDays = listing.deadlineDays ?? seller.maxDeadlineDays;
-  const proposedDeadline = Math.floor(Date.now() / 1000) + proposedDays * 86_400;
-  const deadlineUnix = Math.min(proposedDeadline, job.deadlineUnix);
+  // The on-chain bid deadline is the OFFER's acceptance validity (acceptBid
+  // reverts BidExpired once it passes), not the delivery deadline (the brief's,
+  // carried on the off-chain deal row). Keep the offer acceptable for the whole
+  // job window so a seller approving the match minutes or hours later still funds.
+  const deadlineUnix = job.deadlineUnix;
   const priceUsdc = listing.askingPriceUsdc.toString();
   const priceWei = parseUnits(priceUsdc, USDC_DECIMALS);
 
@@ -373,9 +375,12 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // counterparty before any eventual match is approved.
   const humanReview = buyerTier === 'new';
 
-  const proposedDeadline =
-    Math.floor(Date.now() / 1000) + decision.suggestedDeadlineDays * 86_400;
-  const deadlineUnix = Math.min(proposedDeadline, job.deadlineUnix);
+  // The on-chain bid deadline is the offer's acceptance validity (acceptBid
+  // reverts BidExpired past it), not the delivery deadline (the brief's, kept on
+  // the off-chain deal row). A short LLM-suggested delivery used to make the
+  // offer expire in minutes, so a late match approval hit BidExpired. Keep the
+  // offer acceptable for the whole job window.
+  const deadlineUnix = job.deadlineUnix;
   const priceWei = parseUnits(finalPrice, USDC_DECIMALS);
 
   const txResult = await executeContractCall(

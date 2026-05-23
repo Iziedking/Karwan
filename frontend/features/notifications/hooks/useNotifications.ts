@@ -4,7 +4,11 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { api } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
-import { NOTIFICATION_STORAGE_PREFIX } from '@/shared/utils/notificationStore';
+import {
+  NOTIFICATION_STORAGE_PREFIX,
+  loadReadIds,
+  saveReadIds,
+} from '@/shared/utils/notificationStore';
 // Re-export so existing call sites can keep importing from the hook module.
 export { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 
@@ -273,6 +277,10 @@ export function useNotifications() {
   // passive persist effect can miss that write before the route unmounts, which
   // made read notifications come back unread on the next load.
   const notificationsRef = useRef<AppNotification[]>([]);
+  // Read-state that outlives the 30-item bell cache. Backfill and SSE paint a
+  // notification read when its id is in here, so a read item that was trimmed
+  // from the bell (or whose cache was lost) doesn't reappear unread.
+  const readIdsRef = useRef<Set<string>>(new Set());
 
   const refreshJobIds = useCallback(async () => {
     if (!address) return;
@@ -304,13 +312,14 @@ export function useNotifications() {
         if (!NOTIFY_TYPES.has(e.type) || !e.jobId) continue;
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
+        const id = `${e.jobId}-${e.type}-${e.ts}`;
         fresh.push({
-          id: `${e.jobId}-${e.type}-${e.ts}`,
+          id,
           jobId: e.jobId,
           type: e.type,
           summary: summaryFor(e.type, e.payload, role),
           ts: e.ts,
-          read: false,
+          read: readIdsRef.current.has(id),
           href: hrefForType(e.type, e.jobId),
         });
       }
@@ -336,10 +345,12 @@ export function useNotifications() {
       roleByJobRef.current = new Map();
       initialHydrateRef.current = false;
       seenNotificationIdsRef.current = new Set();
+      readIdsRef.current = new Set();
       return;
     }
     initialHydrateRef.current = false;
     const me = address.toLowerCase();
+    readIdsRef.current = loadReadIds(address);
     const stored = load(address);
     setNotifications(stored);
     // Seed the seen-set with persisted notification ids so the first SSE
@@ -390,7 +401,7 @@ export function useNotifications() {
         type: e.type,
         summary: summaryFor(e.type, e.payload, role),
         ts: e.ts,
-        read: false,
+        read: readIdsRef.current.has(id),
         href: hrefForType(e.type, e.jobId),
         toast,
       };
@@ -436,18 +447,35 @@ export function useNotifications() {
     [address],
   );
 
+  // Remember read ids in the durable set (and persist it) so the state survives
+  // bell-cache trimming, a lost cache, and re-login.
+  const rememberRead = useCallback(
+    (ids: string[]) => {
+      for (const id of ids) readIdsRef.current.add(id);
+      saveReadIds(address, readIdsRef.current);
+    },
+    [address],
+  );
+
   const markRead = useCallback(
     (id: string) => {
+      rememberRead([id]);
       persistNow(notificationsRef.current.map((n) => (n.id === id ? { ...n, read: true } : n)));
     },
-    [persistNow],
+    [persistNow, rememberRead],
   );
 
   const markAllRead = useCallback(() => {
+    rememberRead(notificationsRef.current.map((n) => n.id));
     persistNow(notificationsRef.current.map((n) => ({ ...n, read: true })));
-  }, [persistNow]);
+  }, [persistNow, rememberRead]);
 
-  const clearAll = useCallback(() => persistNow([]), [persistNow]);
+  // Clearing dismisses the bell. Record the ids as read first so any that are
+  // still inside the /api/activity window don't bounce back as unread.
+  const clearAll = useCallback(() => {
+    rememberRead(notificationsRef.current.map((n) => n.id));
+    persistNow([]);
+  }, [persistNow, rememberRead]);
 
   const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 
