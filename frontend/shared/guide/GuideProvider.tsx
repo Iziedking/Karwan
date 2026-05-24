@@ -349,10 +349,12 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 /// The two always-available helpers, one in each bottom corner: Tour (left,
 /// launches the current page's guide) and Feedback (right, to /feedback). Both
 /// match the Karwan pill grammar — visible but quiet. Hidden while a tour runs
-/// so the spotlight owns the screen. The Tour pill only appears when the page
-/// registered a tour; Feedback shows everywhere (it also lives in the footer).
+/// so the spotlight owns the screen. The Tour pill shows whenever the page
+/// registered a tour — even if auto-tips are turned off, since it is a MANUAL
+/// launcher (the click forces the tour open). Feedback shows everywhere (it
+/// also lives in the footer).
 function FloatingActions() {
-  const { currentTour, startTour, disabled, hasActive } = useGuide();
+  const { currentTour, startTour, hasActive } = useGuide();
   if (hasActive) return null;
 
   const pill =
@@ -367,7 +369,7 @@ function FloatingActions() {
 
   return (
     <>
-      {currentTour && !disabled && (
+      {currentTour && (
         <button
           type="button"
           onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}

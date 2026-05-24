@@ -51,7 +51,11 @@ export const repConfig = {
 
   // ---- decay + spam -----------------------------------------------------
   decayHalflifeDays: num('REP_DECAY_HALFLIFE_DAYS', 180),
-  spamBurstLimit: num('REP_SPAM_BURST_LIMIT', 5),
+  // Posts (deals + listings + briefs) in 24h before the burst signal kicks in.
+  // 5 was too aggressive: an active trading desk (or a tester) easily clears it
+  // and gets falsely penalized as spammy, flipping a healthy account a tier. A
+  // real sybil farm posts far more, so 15 still catches abuse. Tune via env.
+  spamBurstLimit: num('REP_SPAM_BURST_LIMIT', 15),
 
   // Bumped to 2 for the additive rewrite. Older v1 scores stay comparable
   // under their own version key.

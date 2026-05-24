@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
+import { formatUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError } from '@/core/api';
 import { SOURCE_CHAINS, GAS_FAUCETS, type SourceChainConfig } from '../config';
@@ -115,7 +116,7 @@ export function BridgeCard({
   /// bridge tour doesn't fire there too. On for the standalone bridge surface.
   tour?: boolean;
 }) {
-  const { isConnected } = useAccount();
+  const { isConnected, address: web3Address } = useAccount();
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const auth = useAuth();
@@ -169,6 +170,22 @@ export function BridgeCard({
   }, [isCircleUser, auth.address, sourceKey]);
 
   const source = SOURCE_CHAINS[sourceKey];
+
+  // Source-chain USDC balance shown on the amount field. Circle users get the
+  // polled bridge-wallet balance; web3 users get a cross-chain read of their own
+  // wallet on the selected source chain (every source chain is in the wagmi
+  // config). Tapping the balance fills the amount (MAX).
+  const web3SourceBal = useBalance({
+    address: web3Address,
+    token: source.usdc,
+    chainId: source.chainId,
+    query: { enabled: !isCircleUser && isConnected && !!web3Address },
+  });
+  const sourceBalance: string | null = isCircleUser
+    ? circleWallet?.usdcBalance ?? null
+    : web3SourceBal.data
+      ? formatUnits(web3SourceBal.data.value, web3SourceBal.data.decimals)
+      : null;
   // The wagmi wallet may be on Arc (the user just funded an agent there) or on
   // any other chain. The bridge flow will switch it automatically, but the CTA
   // label tells the user that's about to happen so the wallet pop-up isn't a
@@ -386,9 +403,20 @@ export function BridgeCard({
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 [:AMOUNT:]
               </span>
-              <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                USDC · 6 decimals
-              </span>
+              {sourceBalance != null && Number(sourceBalance) > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setAmount(Number(sourceBalance))}
+                  className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  title="Use full balance"
+                >
+                  Balance {formatUsdc(sourceBalance, { withSuffix: false })} · MAX
+                </button>
+              ) : (
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  USDC
+                </span>
+              )}
             </div>
             <div className="px-4 pb-3 flex items-baseline gap-3">
               <input

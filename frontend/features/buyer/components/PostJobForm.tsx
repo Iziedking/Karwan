@@ -233,7 +233,7 @@ export function PostJobForm() {
       </div>
 
       {/* THE WORK */}
-      <FieldSection eyebrow="THE WORK" title="Describe what you need built." dataGuide="buyer-brief">
+      <FieldSection eyebrow="THE WORK" title="Describe what you need." dataGuide="buyer-brief">
         <FormLabel
           label="Request"
           hint="Outline scope, deliverables, must-haves. The seller agent reads this to decide whether to bid."
