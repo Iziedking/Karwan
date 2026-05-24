@@ -18,8 +18,34 @@ export const WELCOME_STEPS: TourStep[] = [
     body: 'Use the top menu: Buyer to hire, Seller to offer work, Activity to follow everything live. Your money stays in your own wallet until you fund a deal.',
   },
   {
-    title: 'You stay in control',
-    body: 'Nothing moves without your approval. We will point things out as you go. Hit "Skip all tips" any time if you already know your way around.',
+    title: 'Two buttons, always there',
+    body: 'Nothing moves without your approval. Need a hand on any page? Tap Tour, bottom-left, for a quick walkthrough of that page. Spot a bug or have an idea? Tap Feedback, bottom-right. That is it. Go build.',
+  },
+];
+
+/// Home (/app) tour. The desk a signed-in user lands on. Walks the money view,
+/// where to start, the three doors, and the deal book — every tool on the page.
+export const HOME_TOUR_ID = 'home-v1';
+export const HOME_STEPS: TourStep[] = [
+  {
+    title: 'Your money, at a glance',
+    body: 'What you can spend, what is locked safely in deals, and what you have earned. Held in USDC (digital dollars) in escrow on Arc. Locked money is released only as work is delivered.',
+    target: 'home-money',
+  },
+  {
+    title: 'Start a deal',
+    body: 'Post a request to hire someone, or an offer to take work. Your assistant runs the bidding and negotiation from there and brings you terms to approve.',
+    target: 'home-start',
+  },
+  {
+    title: 'Three ways in',
+    body: 'Hire someone, offer your work, or open a deal directly with a counterparty you already know. Same escrow and reputation underneath, three entry points.',
+    target: 'home-doors',
+  },
+  {
+    title: 'Your book',
+    body: 'Every deal you are part of, with its live stage. Tap any one to act on it: accept, deliver, release a milestone, or settle.',
+    target: 'home-deals',
   },
 ];
 
@@ -36,6 +62,11 @@ export const BUYER_STEPS: TourStep[] = [
     title: 'Set your budget',
     body: 'What you are willing to pay, in USDC (digital dollars, about 1 USDC to 1 US dollar). Add a little flexibility and your assistant can negotiate within it.',
     target: 'buyer-budget',
+  },
+  {
+    title: 'How far the agent can go',
+    body: 'Tolerance is how much above your budget your assistant may accept on a counter. 0 keeps it strict at your budget; a little room lets it close a fair deal without overpaying.',
+    target: 'buyer-tolerance',
   },
   {
     title: 'Set a deadline',
@@ -59,8 +90,18 @@ export const SELLER_STEPS: TourStep[] = [
   },
   {
     title: 'Set your asking price',
-    body: 'What you want for the work, in USDC (digital dollars, about 1 USDC to 1 US dollar). Add a little flexibility so your assistant can close a deal.',
+    body: 'What you want for the work, in USDC (digital dollars, about 1 USDC to 1 US dollar). Your assistant negotiates up from a buyer offer toward this.',
     target: 'seller-price',
+  },
+  {
+    title: 'Your floor',
+    body: 'Accept decrease is how far below your asking the assistant may settle. 0 holds firm at your price; a little room helps it close. It never goes below this.',
+    target: 'seller-floor',
+  },
+  {
+    title: 'How long it stays live',
+    body: 'The window is how long the offer is open before it auto-expires. Set it long enough to catch matching requests; you can always post a fresh one.',
+    target: 'seller-window',
   },
   {
     title: 'Publish it',
@@ -106,6 +147,31 @@ export const BRIDGE_STEPS: TourStep[] = [
     title: 'Bring it over',
     body: 'Start the transfer. It usually lands on Arc in 10 to 19 minutes; you can leave the page and come back.',
     target: 'bridge-submit',
+  },
+];
+
+/// Live request page tour (/jobs/[id]) — the auction + negotiation surface a
+/// buyer watches after posting a request, before escrow funds.
+export const JOBS_TOUR_ID = 'jobs-v1';
+export const JOBS_STEPS: TourStep[] = [
+  {
+    title: 'Where this request stands',
+    body: 'The flow shows each stage from posted to funded: collecting offers, negotiating, then your approval. No money has moved yet.',
+    target: 'job-flow',
+  },
+  {
+    title: 'Watch the agents negotiate',
+    body: 'Your assistant and the sellers haggle here in real time. The card shows the price moving toward a deal; tap it to expand the round-by-round.',
+    target: 'job-negotiation',
+  },
+  {
+    title: 'The offers on the table',
+    body: 'Every offer your assistant is weighing, scored on price and reputation. The strongest rises to the top.',
+    target: 'job-bids',
+  },
+  {
+    title: 'You have the final say',
+    body: 'When the agents agree, a match appears at the top for you to approve. Nothing funds and no escrow locks until you say yes.',
   },
 ];
 

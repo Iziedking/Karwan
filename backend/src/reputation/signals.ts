@@ -92,7 +92,15 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
       completedDeals += 1;
       lifetimeVolumeUsdc += Number(d.dealAmountUsdc) || 0;
     }
-    if (d.cancelledAt && d.cancelledAt > now - NINETY_DAYS_MS) cancelsLast90d += 1;
+    // Only rep-affecting cancels count toward the penalty. Per the cancellation
+    // taxonomy (db/deals.ts), 'mutual', 'platform-attributed' and 'pre-accept'
+    // are rep-neutral; only a 'unilateral' cancel (buyer reclaimed after the
+    // deadline lapsed) counts. Legacy rows with no cancelKind were the original
+    // unilateral /cancel path, so treat undefined as unilateral.
+    const repAffectingCancel = d.cancelKind === 'unilateral' || d.cancelKind == null;
+    if (d.cancelledAt && d.cancelledAt > now - NINETY_DAYS_MS && repAffectingCancel) {
+      cancelsLast90d += 1;
+    }
     const created = d.createdAt ?? 0;
     if (created > 0) {
       if (firstActionAt === 0 || created < firstActionAt) firstActionAt = created;

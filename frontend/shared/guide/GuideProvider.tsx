@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
 /// spotlights its tools one at a time with a plain-language line. Tours open
@@ -49,6 +50,12 @@ interface GuideContextValue {
   experience: number;
   recordAction: (type: string) => void;
   mastered: boolean;
+  /// A page registers its tour here on mount so the global floating Tour pill
+  /// knows what to launch. Page tours no longer auto-open (only the first-run
+  /// welcome does); the pill is the on-demand trigger on every page.
+  registerTour: (id: string, steps: TourStep[], label?: string) => void;
+  unregisterTour: (id: string) => void;
+  currentTour: { id: string; steps: TourStep[]; label: string } | null;
 }
 
 /// Transactions after which a user is treated as having "mastered" the app:
@@ -150,6 +157,9 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [active, setActive] = useState<ActiveTour | null>(null);
   const [actions, setActions] = useState<Record<string, number>>({});
+  const [currentTour, setCurrentTour] = useState<
+    { id: string; steps: TourStep[]; label: string } | null
+  >(null);
   // Consecutive bail-outs. A ref because no UI depends on the live value; it is
   // persisted so the "5 skips and stop" rule survives reloads.
   const skipsRef = useRef(0);
@@ -269,6 +279,14 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     setActive(null);
   }, []);
 
+  const registerTour = useCallback((id: string, steps: TourStep[], label = 'Tour') => {
+    setCurrentTour({ id, steps, label });
+  }, []);
+
+  const unregisterTour = useCallback((id: string) => {
+    setCurrentTour((cur) => (cur?.id === id ? null : cur));
+  }, []);
+
   const enableTips = useCallback(() => {
     // Re-enabling gives a clean slate so the skip counter doesn't immediately
     // re-trip the "5 in a row" rule.
@@ -297,15 +315,93 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       experience,
       recordAction,
       mastered: experience >= GUIDE_MASTERY_XP,
+      registerTour,
+      unregisterTour,
+      currentTour,
     }),
-    [disabled, dismissAll, enableTips, isSeen, active, startTour, next, prev, close, experience, recordAction],
+    [
+      disabled,
+      dismissAll,
+      enableTips,
+      isSeen,
+      active,
+      startTour,
+      next,
+      prev,
+      close,
+      experience,
+      recordAction,
+      registerTour,
+      unregisterTour,
+      currentTour,
+    ],
   );
 
   return (
     <GuideContext.Provider value={value}>
       {children}
       <GuideOverlay />
+      <FloatingActions />
     </GuideContext.Provider>
+  );
+}
+
+/// The two always-available helpers, one in each bottom corner: Tour (left,
+/// launches the current page's guide) and Feedback (right, to /feedback). Both
+/// match the Karwan pill grammar — visible but quiet. Hidden while a tour runs
+/// so the spotlight owns the screen. The Tour pill only appears when the page
+/// registered a tour; Feedback shows everywhere (it also lives in the footer).
+function FloatingActions() {
+  const { currentTour, startTour, disabled, hasActive } = useGuide();
+  if (hasActive) return null;
+
+  const pill =
+    'z-[60] inline-flex items-center gap-1.5 px-3 py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors';
+  const corner = {
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 3,
+    boxShadow: '0 6px 18px -10px rgba(0,0,0,0.3)',
+  } as const;
+
+  return (
+    <>
+      {currentTour && !disabled && (
+        <button
+          type="button"
+          onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
+          className={`fixed bottom-5 left-5 ${pill}`}
+          style={corner}
+          title="Take a guided tour of this page"
+        >
+          <span
+            aria-hidden
+            className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold"
+            style={{ background: 'var(--lp-accent)', color: 'var(--lp-band-dark)' }}
+          >
+            ?
+          </span>
+          {currentTour.label}
+        </button>
+      )}
+
+      <Link
+        href="/feedback"
+        className={`fixed bottom-5 right-5 ${pill}`}
+        style={corner}
+        title="Send feedback or report a bug"
+      >
+        <span
+          aria-hidden
+          className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold"
+          style={{ background: 'var(--lp-dark)', color: 'var(--lp-card)' }}
+        >
+          !
+        </span>
+        Feedback
+      </Link>
+    </>
   );
 }
 

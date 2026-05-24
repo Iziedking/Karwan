@@ -420,7 +420,8 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   });
 }
 
-/// Deterministic per-seller opening bid.
+/// Per-seller opening bid — demand-driven, with bounded jitter so it doesn't
+/// fall into a fixed pattern.
 ///
 /// Economic model: a buyer who posts a brief has committed to that budget as
 /// their valuation, so it is the FLOOR of the negotiation, not a ceiling to
@@ -463,9 +464,18 @@ function sellerOpeningBid(
     new: 0.8,
   };
   const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
+  // Market heat is the heaviest input, so a hot skill genuinely holds nearer the
+  // ceiling and a common one prices down — the open tracks live demand, not a
+  // fixed formula. A per-bid jitter keeps the same seller from opening at the
+  // identical point each time (less robotic, harder to game); the address seed
+  // still spreads a multi-seller auction. All clamped within [floor, ceiling].
+  const jitter = Math.random();
   const frac = Math.max(
     0,
-    Math.min(1, 0.3 * addrFrac(seller.address) + 0.4 * TIER_BIAS[buyerTier] + 0.3 * h),
+    Math.min(
+      1,
+      0.15 * addrFrac(seller.address) + 0.3 * TIER_BIAS[buyerTier] + 0.4 * h + 0.15 * jitter,
+    ),
   );
   return Number((floor + (ceiling - floor) * frac).toFixed(2));
 }

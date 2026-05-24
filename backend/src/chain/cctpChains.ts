@@ -14,8 +14,12 @@ import {
 export const TOKEN_MESSENGER_V2 = '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA' as const;
 export const MESSAGE_TRANSMITTER_V2 = '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275' as const;
 export const ARC_DOMAIN = 26;
-// CCTP V2 fast finality (~13s on testnets). Same threshold both directions.
-export const FINALITY_THRESHOLD_FAST = 2000;
+// CCTP V2 finality thresholds: 1000 = Fast Transfer (soft/"confirmed" finality,
+// ~seconds), 2000 = Standard Transfer (hard finality, ~13-19 min). Fast also
+// requires a maxFee >= the route's fast fee on depositForBurn, else Circle falls
+// the transfer back to Standard. See computeFastMaxFee in routes/bridge.ts.
+export const FINALITY_THRESHOLD_FAST = 1000;
+export const FINALITY_THRESHOLD_STANDARD = 2000;
 
 /// Stable keys for the non-Arc CCTP chains, as a tuple so zod enums and the
 /// union type stay in lockstep. The values match the viem chain export names.

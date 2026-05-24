@@ -140,7 +140,12 @@ function shouldNotify(
   }
   const rule = RECIPIENT[type];
   if (!rule) return false;
-  if (rule === 'both') return true;
+  // 'both' means "either party to THIS deal" — never "everyone." Require a
+  // resolved role so a 'both' event from a deal the viewer isn't part of (which
+  // the global SSE bus and the activity feed both carry) doesn't leak into their
+  // bell as a generic notification. role is non-null only when the viewer is a
+  // party (named in the payload, or the jobId is in their deal map).
+  if (rule === 'both') return role != null;
   return role === rule;
 }
 
@@ -306,7 +311,12 @@ export function useNotifications() {
   // the bell. SSE is live-only; without this, refreshing the tab loses signal.
   const backfill = useCallback(async (me: string) => {
     try {
-      const { events } = await api.activity(200);
+      // Scope to the caller so the BACKEND returns only events this user is a
+      // party to. Without the caller arg this hit the global feed, which (with
+      // the platform-wide activity stream) leaked other users' deals into the
+      // bell. The shouldNotify role check below is the second guard for the
+      // live SSE path, which is global by nature.
+      const { events } = await api.activity(200, undefined, me);
       const fresh: AppNotification[] = [];
       for (const e of events) {
         if (!NOTIFY_TYPES.has(e.type) || !e.jobId) continue;

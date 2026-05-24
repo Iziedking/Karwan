@@ -9,10 +9,15 @@ import type { Tier } from '../reputation/config.js';
 const STORE_PATH = resolve(process.cwd(), 'data', 'tier-state.json');
 
 export interface TierState {
-  /// The highest tier we've already acknowledged for this address.
+  /// The current tier we last recorded for this address (moves up AND down).
   tier: Tier;
+  /// The highest tier RANK ever reached (tierRank value). We only celebrate a
+  /// genuine all-time high, so re-entering a tier after a drop never re-fires the
+  /// congrats card for a tier the user already passed. Optional for back-compat
+  /// with rows written before this field existed.
+  maxRank?: number;
   /// Epoch ms until which the profile shows the congrats card. 0 when not
-  /// celebrating. Set to now + 12h on a tier-up.
+  /// celebrating. Set to now + 12h on a genuine tier-up; cleared on a drop.
   celebrateUntil: number;
   /// Last time we recorded a change, for debugging.
   updatedAt: number;

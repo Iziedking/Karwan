@@ -9,6 +9,8 @@ import { useJobLiveState } from '../hooks/useJobLiveState';
 import { FlowStepper } from './FlowStepper';
 import { NegotiationCard } from './NegotiationCard';
 import { LiveBidsPanel } from './LiveBidsPanel';
+import { PageTour } from '@/shared/guide/PageTour';
+import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -80,6 +82,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
 
   return (
     <FullBleed>
+      <PageTour id={JOBS_TOUR_ID} steps={JOBS_STEPS} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
@@ -231,7 +234,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         <div className="mt-8 grid lg:grid-cols-3 gap-5 items-start">
           <div className="lg:col-span-2 space-y-5">
             <PageCard>
-              <div className="p-6">
+              <div className="p-6" data-guide="job-flow">
                 <SectionTag>FLOW</SectionTag>
                 <div className="mt-6">
                   <FlowStepper active={active} completed={completed} ended={ended} />
@@ -239,11 +242,13 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               </div>
             </PageCard>
 
-            <NegotiationCard
-              events={events}
-              explorer={explorer}
-              terminal={expired || declined}
-            />
+            <div data-guide="job-negotiation">
+              <NegotiationCard
+                events={events}
+                explorer={explorer}
+                terminal={expired || declined}
+              />
+            </div>
 
             <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
             <CancelBriefSection
@@ -255,7 +260,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             />
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-5" data-guide="job-bids">
             <PageCard>
               <div className="px-6 pt-6">
                 <SectionTag>BIDS</SectionTag>

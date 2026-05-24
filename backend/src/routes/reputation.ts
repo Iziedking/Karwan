@@ -36,15 +36,22 @@ async function maybeCelebrateTierUp(
 ): Promise<{ tier: Tier; until: number } | null> {
   const now = Date.now();
   const prev = getTierState(address);
+  const rank = tierRank(tier);
 
   if (!prev) {
-    saveTierState(address, { tier, celebrateUntil: 0, updatedAt: now });
+    // First read. Record the baseline; never congratulate a fresh account.
+    saveTierState(address, { tier, maxRank: rank, celebrateUntil: 0, updatedAt: now });
     return null;
   }
 
-  if (tierRank(tier) > tierRank(prev.tier)) {
+  // Back-compat: rows written before maxRank existed fall back to the stored tier.
+  const prevMax = prev.maxRank ?? tierRank(prev.tier);
+
+  if (rank > prevMax) {
+    // Genuine all-time high. This is the only thing we celebrate, so dropping a
+    // tier and climbing back into one you already reached never re-fires it.
     const celebrateUntil = now + CELEBRATE_MS;
-    saveTierState(address, { tier, celebrateUntil, updatedAt: now });
+    saveTierState(address, { tier, maxRank: rank, celebrateUntil, updatedAt: now });
     bus.emitEvent({
       type: 'reputation.tier-up',
       actor: 'platform',
@@ -66,16 +73,13 @@ async function maybeCelebrateTierUp(
     return { tier, until: celebrateUntil };
   }
 
-  // No promotion. Keep the stored tier in sync (it may have dropped) but never
-  // celebrate a demotion. Preserve any still-active celebration window.
-  if (tier !== prev.tier || (prev.celebrateUntil && prev.celebrateUntil <= now)) {
-    saveTierState(address, {
-      tier,
-      celebrateUntil: prev.celebrateUntil > now ? prev.celebrateUntil : 0,
-      updatedAt: now,
-    });
-  }
-  return prev.celebrateUntil > now ? { tier: prev.tier, until: prev.celebrateUntil } : null;
+  // Not a new high. Keep maxRank, sync the current tier. Show the congrats card
+  // only while the user is still AT their peak tier and the window is live; a
+  // drop below peak clears it so we never welcome them to a tier they passed.
+  const stillAtPeak = rank >= prevMax;
+  const celebrateUntil = stillAtPeak && prev.celebrateUntil > now ? prev.celebrateUntil : 0;
+  saveTierState(address, { tier, maxRank: prevMax, celebrateUntil, updatedAt: now });
+  return celebrateUntil > now ? { tier, until: celebrateUntil } : null;
 }
 
 export const reputationRoutes = new Hono();

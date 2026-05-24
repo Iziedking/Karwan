@@ -154,6 +154,13 @@ export async function provisionUserBridgeWallet(
 }
 
 const FAUCET_URL = 'https://api.circle.com/v1/faucet/drips';
+/// Circle's faucet API (/v1/faucet/drips) returns 403 Forbidden for these chains
+/// (verified 2026-05-24): they are dispensed only through the web faucet at
+/// faucet.circle.com. Notably ARC-TESTNET — so the signup auto-drip never worked.
+/// We skip the API call for these and signal the caller to point users at the web
+/// faucet instead, rather than firing a guaranteed 403.
+const WEB_FAUCET_ONLY = new Set<string>(['ARC-TESTNET', 'ETH-SEPOLIA']);
+export const WEB_FAUCET_URL = 'https://faucet.circle.com';
 
 export interface DripOptions {
   /// Target chain. Defaults to Arc Testnet. Use BASE-SEPOLIA / ETH-SEPOLIA to
@@ -190,6 +197,11 @@ export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): 
   const wantUsdc = opts.usdc ?? true;
   const wantNative = opts.native ?? false;
   if (!wantUsdc && !wantNative) return { ok: false, detail: 'nothing requested' };
+  // Circle's API faucet 403s these chains; they're web-faucet-only. Don't fire a
+  // call we know will fail — surface the web faucet so the UI can link users to it.
+  if (WEB_FAUCET_ONLY.has(blockchain)) {
+    return { ok: false, detail: `Use the web faucet at ${WEB_FAUCET_URL} for ${blockchain}.` };
+  }
   try {
     const res = await fetch(FAUCET_URL, {
       method: 'POST',

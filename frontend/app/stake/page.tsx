@@ -14,18 +14,13 @@ import { SignInGate } from '@/shared/components/SignInGate';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
+import { TIER_HUE } from '@/features/reputation/tierColors';
 
 type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
 const ORDER: Tier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
 const BREAKS = [0, 200, 400, 600, 800, 1000];
-// Square LED hue per tier. Names render in ink (lime fails contrast on light).
-const TIER_HUE: Record<Tier, string> = {
-  NEW: '#9a9a9a',
-  COLD: '#e0a23c',
-  ESTABLISHED: '#9bd119',
-  STRONG: '#37c87f',
-  ELITE: '#16b06a',
-};
+// Tier hue + unlock copy. The hue palette is shared (tierColors) so the ladder,
+// the reputation badge on bids/negotiation, and deal/profile all read the same.
 const TIER_UNLOCK: Record<Tier, string> = {
   NEW: 'New here. Agents add a small premium until you build a record.',
   COLD: 'Early track record. Agents ease the premium.',

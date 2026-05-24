@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { api, type ApiStatus } from '@/core/api';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
+import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
+import { PageTour } from '@/shared/guide/PageTour';
+import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 import { NetworkTicker } from '@/features/activity/components/NetworkTicker';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
@@ -125,6 +128,7 @@ export default function AppHome() {
 
   return (
     <FullBleed>
+      <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">
@@ -145,7 +149,10 @@ export default function AppHome() {
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
               Agents run the auction. You approve the terms.
             </p>
-            <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
+            <div
+              data-guide="home-start"
+              className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3"
+            >
               {(profile.role === 'buyer' || profile.role === 'both') && (
                 <CTAPill href="/buyer">Post a request →</CTAPill>
               )}
@@ -177,6 +184,12 @@ export default function AppHome() {
         </div>
       </Band>
 
+      {/* YOUR MONEY. First personal surface after the hero: where your money is
+          and that it's safe, in plain dollars. The trust answer up front. */}
+      <div data-guide="home-money">
+        <MoneyStrip />
+      </div>
+
       {/* PENDING MATCHES. surfaces here so users see them from the home page
           without having to navigate to /seller. Renders nothing when there
           are none, so the layout stays clean for buyers / fresh users. */}
@@ -194,7 +207,7 @@ export default function AppHome() {
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
           Same escrow. Same reputation. Three entry points.
         </p>
-        <div className="mt-12 grid md:grid-cols-3 gap-5">
+        <div data-guide="home-doors" className="mt-12 grid md:grid-cols-3 gap-5">
           <div className="fade-up fade-up-1">
             <FeatureCard
               href="/buyer"
@@ -319,7 +332,7 @@ export default function AppHome() {
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           Your <Accent>book</Accent><Punc>.</Punc>
         </HeroHeadline>
-        <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
+        <div data-guide="home-deals" className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
             className="bg-[var(--lp-card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_56px_-20px_rgba(0,0,0,0.12)] lg:rounded-tl-[28px] lg:rounded-tr-[28px] lg:rounded-bl-[28px] lg:rounded-br-[6px]"
             style={{

@@ -1,7 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { Reputation } from '@/core/api';
 import { useReputation } from '../hooks/useReputation';
+import {
+  TIER_HUE,
+  TIER_LABEL,
+  tierBg,
+  tierBorder,
+  type CompositeTier,
+} from '../tierColors';
 
 type Tier = {
   label: string;
@@ -10,42 +16,18 @@ type Tier = {
   border: string;
 };
 
-type CompositeTier = NonNullable<Reputation['tier']>;
-
-// The one true tier vocabulary, shared by every surface (bid cards, MatchBanner,
-// profile, deal detail, peek modal). Mirrors the composite engine + docs:
-// NEW < COLD < ESTABLISHED < STRONG < ELITE. Labels render uppercase via CSS.
+// The one true tier vocabulary + palette, shared by every surface (bid cards,
+// MatchBanner, profile, deal detail, peek modal) AND the /stake ladder via the
+// tierColors module. NEW < COLD < ESTABLISHED < STRONG < ELITE.
+function tierStyle(t: CompositeTier): Tier {
+  return { label: TIER_LABEL[t], color: TIER_HUE[t], bg: tierBg(t), border: tierBorder(t) };
+}
 const TIER_STYLES: Record<CompositeTier, Tier> = {
-  NEW: {
-    label: 'New',
-    color: 'var(--color-ink-faint)',
-    bg: 'var(--color-surface-2)',
-    border: 'var(--color-line)',
-  },
-  COLD: {
-    label: 'Cold',
-    color: 'var(--color-warning)',
-    bg: 'var(--color-warning-soft)',
-    border: 'color-mix(in oklab, var(--color-warning) 28%, transparent)',
-  },
-  ESTABLISHED: {
-    label: 'Established',
-    color: 'var(--color-accent)',
-    bg: 'var(--color-accent-soft)',
-    border: 'color-mix(in oklab, var(--color-accent) 28%, transparent)',
-  },
-  STRONG: {
-    label: 'Strong',
-    color: 'var(--color-positive)',
-    bg: 'var(--color-positive-soft)',
-    border: 'color-mix(in oklab, var(--color-positive) 28%, transparent)',
-  },
-  ELITE: {
-    label: 'Elite',
-    color: '#0E5E3E',
-    bg: 'color-mix(in oklab, #0E5E3E 8%, transparent)',
-    border: 'color-mix(in oklab, #0E5E3E 30%, transparent)',
-  },
+  NEW: tierStyle('NEW'),
+  COLD: tierStyle('COLD'),
+  ESTABLISHED: tierStyle('ESTABLISHED'),
+  STRONG: tierStyle('STRONG'),
+  ELITE: tierStyle('ELITE'),
 };
 
 // Legacy bps badge, kept only as a fallback for API responses that predate the

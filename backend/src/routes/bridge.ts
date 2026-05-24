@@ -113,10 +113,43 @@ const relaySchema = z.object({
 const inFlight = new Set<string>();
 
 const POLL_INTERVAL_MS = 5_000;
-// CCTP V2 standard finality is ~13-19 min on testnet, but Circle's IRIS Sandbox
-// sometimes lags much longer. Give the relay a long, generous window before
-// declaring a hard error; the user can also call /recheck at any point.
+// CCTP V2 Fast Transfer attestations land in ~seconds; we keep a generous window
+// because Circle's IRIS Sandbox can still lag. The user can also call /recheck.
 const POLL_TIMEOUT_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+// CCTP V2 Fast Transfer only happens when maxFee >= the route's fast fee; with
+// maxFee 0 Circle settles it as a slow Standard Transfer. We query the route's
+// fast fee (bps) and set maxFee to it plus headroom. maxFee is only a ceiling —
+// the user is charged the real feeExecuted (<= maxFee) at mint, so the headroom
+// never costs them; it just guarantees the transfer qualifies as Fast.
+const FAST_FEE_FALLBACK_BPS = 10; // generous default when the fee API is unreachable
+async function computeFastMaxFee(
+  sourceDomain: number,
+  destDomain: number,
+  amount: bigint,
+): Promise<string> {
+  let bps = FAST_FEE_FALLBACK_BPS;
+  try {
+    const res = await fetch(`${config.IRIS_API_BASE}/v2/burn/USDC/fees/${sourceDomain}/${destDomain}`);
+    if (res.ok) {
+      const rows = (await res.json()) as Array<{ finalityThreshold?: number; minimumFee?: number }>;
+      const fast = rows.find((r) => r.finalityThreshold === FINALITY_THRESHOLD_FAST);
+      if (fast && typeof fast.minimumFee === 'number' && fast.minimumFee >= 0) bps = fast.minimumFee;
+    } else {
+      logger.warn({ status: res.status, sourceDomain, destDomain }, 'fast-fee lookup non-2xx; using fallback bps');
+    }
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message, sourceDomain, destDomain },
+      'fast-fee lookup failed; using fallback bps',
+    );
+  }
+  const base = (amount * BigInt(Math.max(0, Math.ceil(bps)))) / 10_000n;
+  const withHeadroom = base + base / 2n + 1n; // +50% + 1 unit so it always qualifies as Fast
+  const cap = amount / 50n; // never authorize more than 2% as the ceiling
+  const maxFee = withHeadroom > cap ? cap : withHeadroom;
+  return maxFee.toString();
+}
 
 export const bridgeRoutes = new Hono();
 
@@ -594,6 +627,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
         actor: 'buyer',
         payload: { bridgeId: input.bridgeId, sourceChainKey: input.sourceChainKey, circle: true },
       });
+      const maxFee = await computeFastMaxFee(chainCfg.domain, ARC_DOMAIN, BigInt(amountStr));
       const { txId } = await submitContractCall(
         {
           walletId: input.bridgeWalletId,
@@ -607,7 +641,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
             chainCfg.usdc,
             // destinationCaller = zero so the platform buyer agent can relay.
             `0x${'0'.repeat(64)}`,
-            '0',
+            maxFee,
             FINALITY_THRESHOLD_FAST.toString(),
           ],
           feeLevel: 'HIGH',
@@ -1344,6 +1378,7 @@ async function outPipelineLoop(input: OutPipelineInput) {
     );
 
     // STAGE 2 — burn on Arc, routed to the destination domain.
+    const maxFee = await computeFastMaxFee(ARC_DOMAIN, dest.domain, BigInt(amountStr));
     const burn = await executeContractCall(
       {
         walletId: input.identityWalletId,
@@ -1356,7 +1391,7 @@ async function outPipelineLoop(input: OutPipelineInput) {
           addressToBytes32(input.recipient),
           ARC_USDC,
           `0x${'0'.repeat(64)}`,
-          '0',
+          maxFee,
           FINALITY_THRESHOLD_FAST.toString(),
         ],
       },

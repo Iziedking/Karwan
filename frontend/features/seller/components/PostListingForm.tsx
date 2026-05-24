@@ -257,6 +257,7 @@ export function PostListingForm() {
               label="Accept decrease"
               unit="%"
               hint="How far below asking the agent may accept. 0 = strict at price."
+              dataGuide="seller-floor"
             >
               <input
                 type="number"
@@ -276,6 +277,7 @@ export function PostListingForm() {
               label="Window"
               unit={ttlUnit === 'min' ? 'MIN' : ttlUnit === 'hr' ? 'HRS' : 'DAYS'}
               hint="How long the offer stays live before it auto-expires. Pick a unit for demo timing."
+              dataGuide="seller-window"
             >
               <div className="flex items-stretch gap-2">
                 <input

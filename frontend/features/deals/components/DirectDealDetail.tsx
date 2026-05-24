@@ -44,6 +44,29 @@ const STAGE_RAIL: Record<DealStage, string> = {
   disputed: '#92294a',
 };
 
+/// One reassuring line on the funding card, by stage + viewer side. Keeps the
+/// web3 vocabulary (escrow, on Arc, on chain) on purpose — Karwan is a web3
+/// product and the chain is the reason the money is safe — but says it plainly.
+/// Returns null for terminal/dispute states, which have their own copy.
+function fundingSafetyLine(stage: string, viewerIsBuyer: boolean): string | null {
+  if (stage === 'settled') return 'Settled on chain. The escrow paid out in full.';
+  if (stage === 'awaiting-acceptance') {
+    return viewerIsBuyer
+      ? 'When the seller accepts, your payment locks in escrow on Arc. Released only as milestones clear, only when you say so.'
+      : "Accept and the buyer's payment locks in escrow on Arc. It becomes yours as you deliver.";
+  }
+  if (
+    stage === 'awaiting-delivery' ||
+    stage === 'awaiting-first-release' ||
+    stage === 'awaiting-final-release'
+  ) {
+    return viewerIsBuyer
+      ? 'Your payment is locked in escrow on Arc. The seller is paid only as milestones clear, and only when you release.'
+      : "The buyer's payment is locked in escrow on Arc. It becomes yours as milestones clear. No one can pull it back on a whim.";
+  }
+  return null;
+}
+
 export function DirectDealDetail({ jobId }: { jobId: string }) {
   const auth = useAuth();
   const address = auth.address;
@@ -409,6 +432,19 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   value={(fee.sellerNet * (100 - deal.firstReleasePct)) / 100}
                 />
               </div>
+              {fundingSafetyLine(stage, viewerIsBuyer) && (
+                <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)]">
+                  <p
+                    className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+                    style={{ color: 'var(--lp-accent)' }}
+                  >
+                    [:PROTECTED:]
+                  </p>
+                  <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+                    {fundingSafetyLine(stage, viewerIsBuyer)}
+                  </p>
+                </div>
+              )}
             </div>
           </PageCard>
         </div>

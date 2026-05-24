@@ -309,6 +309,7 @@ export function PostJobForm() {
             label="Tolerance"
             unit="%"
             hint="How much above budget the agent may accept on a counter. 0 = strict."
+            dataGuide="buyer-tolerance"
           >
             <input
               type="number"

@@ -98,7 +98,9 @@ function Row({
   );
 }
 
-/// Small outline button that pulls testnet USDC from the faucet to a wallet.
+/// Small outline button that opens Circle's web faucet for a wallet. Arc USDC is
+/// only dispensed by the web faucet (the drips API 403s ARC-TESTNET), so this
+/// copies the address and sends the user there rather than calling the API.
 function FaucetButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
   return (
     <button
@@ -115,7 +117,7 @@ function FaucetButton({ onClick, busy }: { onClick: () => void; busy: boolean })
         borderBottomRightRadius: 3,
       }}
     >
-      {busy ? 'Requesting' : 'Faucet'}
+      {busy ? 'Opening' : 'Get USDC'}
     </button>
   );
 }
@@ -150,19 +152,27 @@ export function WalletsPanel({ address }: { address?: string }) {
   const agents = data?.agents ?? null;
   const bridgeAddr = bridge?.bridgeWalletAddress ?? data?.bridgeWallets?.['BASE-SEPOLIA']?.address;
 
+  // Arc USDC is dispensed only by Circle's web faucet (the drips API 403s
+  // ARC-TESTNET), so hand off there: copy the target wallet's address and open
+  // the faucet in a new tab for the user to paste.
   const runFaucet = async (target: 'identity' | 'buyer' | 'seller') => {
+    const addr =
+      target === 'identity'
+        ? data?.identity.address
+        : target === 'buyer'
+          ? agents?.buyer.address
+          : agents?.seller.address;
+    if (!addr) return;
     setFaucetBusy(target);
     setNote(null);
     try {
-      await api.faucet(address, target);
-      setNote('Faucet requested. About 20 USDC lands on Arc in a minute.');
-      setTimeout(refresh, 8000);
-    } catch (err) {
-      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
-      setNote(detail ?? (err as Error).message);
-    } finally {
-      setFaucetBusy(null);
+      await navigator.clipboard?.writeText(addr);
+      setNote("Address copied. On Circle's faucet, choose Arc Testnet and paste it to get USDC.");
+    } catch {
+      setNote(`On Circle's faucet, choose Arc Testnet and paste ${short(addr)} to get USDC.`);
     }
+    window.open('https://faucet.circle.com', '_blank', 'noopener,noreferrer');
+    setFaucetBusy(null);
   };
 
   const topUpGas = async (chain: 'baseSepolia' | 'sepolia') => {
