@@ -44,6 +44,31 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
   }
 }
 
+/// Generic commerce / filler words that two unrelated listings often share
+/// ("sell an account", "good service") but which say nothing about the actual
+/// topic. Stripped before a topical check so a bare "account" can't make an
+/// Amazon-account request look like a match for an outlier-account seller.
+const GENERIC_TAG_WORDS = new Set([
+  'account', 'accounts', 'service', 'services', 'sale', 'sales', 'sell',
+  'selling', 'buy', 'buying', 'work', 'job', 'online', 'digital', 'deal',
+  'deals', 'fast', 'cheap', 'good', 'quality', 'best', 'new', 'used', 'the',
+  'and', 'for', 'with', 'your', 'our', 'all', 'kinds',
+]);
+
+/// Topical overlap that ignores generic commerce filler, so a shared word like
+/// "account" or "service" can't on its own make two unrelated listings look
+/// related. Splits multi-word tags into words, drops the filler and very short
+/// tokens, then runs the normal substring overlap on what's left.
+///   "amazon account" vs "outlier account"  -> 0 (only the generic "account" was shared)
+///   "amazon account" vs "amazon seller"     -> 1 ("amazon" is meaningful)
+export function topicalOverlap(a: string[], b: string[]): number {
+  const meaningful = (tags: string[]): string[] =>
+    tags
+      .flatMap((t) => t.toLowerCase().split(/[^a-z0-9]+/))
+      .filter((w) => w.length >= 3 && !GENERIC_TAG_WORDS.has(w));
+  return keywordOverlap(meaningful(a), meaningful(b));
+}
+
 /// Cheap overlap score: count of shared tokens between two tag lists.
 /// Substring matches count too so "morse" matches "morse-wl" etc.
 export function keywordOverlap(a: string[], b: string[]): number {

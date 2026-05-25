@@ -35,7 +35,7 @@ import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { marketHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
-import { keywordOverlap, extractKeywords } from '../llm/keywords.js';
+import { topicalOverlap, extractKeywords } from '../llm/keywords.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -326,7 +326,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // brief with no extractable tags can't be judged this way, so defer to the LLM.
   const briefTags = job.keywords ?? [];
   const sellerTags = [...(seller.keywords ?? []), ...(seller.skills ?? [])];
-  if (briefTags.length > 0 && sellerTags.length > 0 && keywordOverlap(briefTags, sellerTags) === 0) {
+  if (briefTags.length > 0 && sellerTags.length > 0 && topicalOverlap(briefTags, sellerTags) === 0) {
     logger.info(
       { jobId: job.jobId, seller: seller.address, briefTags, sellerTags },
       'skipping: no topical overlap between brief and seller tags',

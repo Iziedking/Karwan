@@ -336,6 +336,9 @@ async function tryMatchListingToJob(
       deadlineUnix: job.deadlineUnix,
       buyerCeilingUsdc: buyerCeiling,
       sellerFloorUsdc: floor,
+      // The LLM already confirmed this listing is the buyer's exact product
+      // above, so surface it even at a wider stretch than a fuzzy profile guess.
+      confirmedTopical: true,
     });
     if (raised) {
       logger.info(

@@ -9,9 +9,17 @@ import {
   type NearMissApproval,
 } from '../db/nearMiss.js';
 
-/// How far beyond a party's limit still counts as a near-miss worth surfacing.
-/// A real near-miss, not a wild mismatch. Tunable; defaults to 25%.
+/// How far beyond a party's limit still counts as a near-miss worth surfacing
+/// for a FUZZY (profile / no-overlap) match. A real near-miss, not a wild
+/// mismatch. Tunable; defaults to 25%.
 const MAX_GAP_PCT = numEnv('NEAR_MISS_MAX_GAP_PCT', 25);
+/// Wider band for a CONFIRMED market match: the agent already verified the
+/// listing is the exact thing the buyer asked for, it is just over budget. When
+/// the right product is sitting in the market, the buyer should hear about it
+/// even at a bigger stretch than a fuzzy profile guess would justify. Defaults
+/// to 100% (up to twice the budget); above that it is a different purchase, not
+/// a near-miss.
+const LISTING_MAX_GAP_PCT = numEnv('NEAR_MISS_LISTING_MAX_GAP_PCT', 100);
 /// Consent window. After this the near-miss lapses and nothing funds. Capped by
 /// the brief's own deadline so we never ask past the point a deal could deliver.
 const WINDOW_MS = numEnv('NEAR_MISS_WINDOW_MS', 60 * 60 * 1000);
@@ -43,6 +51,10 @@ interface NearMissInput {
   deadlineUnix: number;
   buyerCeilingUsdc: number;
   sellerFloorUsdc: number;
+  /// True when the match is an LLM-confirmed market listing (the exact product),
+  /// not a fuzzy profile guess. Widens the gap band so a confirmed-but-pricey
+  /// market offer still reaches the buyer.
+  confirmedTopical?: boolean;
 }
 
 /// Detection + creation. Called from a give-up point where the agents found a
@@ -57,7 +69,8 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   if (gap <= 0) return false; // ranges overlap, not a near-miss
   if (buyerCeilingUsdc <= 0) return false;
   const relGap = gap / buyerCeilingUsdc;
-  if (relGap > MAX_GAP_PCT / 100) return false; // too far apart, let it skip
+  const cap = input.confirmedTopical ? LISTING_MAX_GAP_PCT : MAX_GAP_PCT;
+  if (relGap > cap / 100) return false; // too far apart, let it skip
 
   // Don't stack near-misses on the same job. An existing pending one already
   // asked someone; a resolved one means the human already had their say.
