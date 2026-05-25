@@ -19,6 +19,37 @@ function isParty(event: KarwanEvent, caller: string): boolean {
   return false;
 }
 
+// The general/public feed shows only trade activity: requests, bids,
+// negotiation, matches, deal lifecycle, on-chain settlement txns, and listings.
+// Account, platform, and personal events (telegram link, agent activation,
+// agent funding/withdrawal, staking, bridging, tier-ups, private chat, errors)
+// are NOT public and never appear here. An allowlist, not a blocklist, so a new
+// event type is private by default until deliberately surfaced.
+const PUBLIC_EVENT_TYPES = new Set<string>([
+  // request lifecycle
+  'job.posted', 'job.tracked', 'job.expired',
+  // bidding + negotiation
+  'bid.submitted', 'bid.scored', 'bid.accepted',
+  'counter.issued', 'counter.received', 'counter.evaluated', 'counter.response.submitted',
+  'negotiation.attempt-ended', 'negotiation.next-candidate', 'negotiation.exhausted',
+  'negotiation.near-miss', 'negotiation.near-miss.proceeded', 'negotiation.near-miss.declined',
+  'market.scanned',
+  // agent decisions
+  'agent.decision', 'agent.skipped', 'agent.declined', 'agent.fallback',
+  // matches
+  'deal.matched', 'deal.match.declined', 'deal.match.approved',
+  // deal lifecycle
+  'deal.direct.created', 'deal.accepted', 'deal.delivered',
+  'deal.review.started', 'deal.auto_released', 'deal.disputed',
+  'deal.cancelled', 'deal.cancel.proposed', 'deal.cancel.declined',
+  // on-chain settlement / agent txns
+  'escrow.approved', 'escrow.funded', 'escrow.milestone.released', 'escrow.settled',
+  'reputation.recorded',
+  // listings
+  'listing.posted', 'listing.matched', 'listing.cancelled', 'listing.expired',
+  'brief.cancelled',
+]);
+
 // Payload keys that hold wallet addresses; redacted to a short form on the
 // public feed so we don't leak full addresses to crawlers / observers.
 const ADDRESS_KEYS = new Set<string>([
@@ -71,9 +102,11 @@ activityRoutes.get('/', (c) => {
   const base = bus.recent(500, jobId);
 
   if (!caller) {
-    // Public form: redact wallet addresses and strip free-form text so the
-    // landing-page tickers don't leak parties or party-authored reasons.
-    return c.json({ events: base.slice(0, limit).map(redactEvent) });
+    // Public form: keep only trade activity, then redact wallet addresses and
+    // strip free-form text so the general feed and landing-page tickers never
+    // leak account/platform events, parties, or party-authored reasons.
+    const publicEvents = base.filter((e) => PUBLIC_EVENT_TYPES.has(e.type));
+    return c.json({ events: publicEvents.slice(0, limit).map(redactEvent) });
   }
 
   // Two-pass filter so we don't drop follow-up events that lack party fields

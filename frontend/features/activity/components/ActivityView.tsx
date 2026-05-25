@@ -12,6 +12,7 @@ import {
   type ActivityFilters as Filters,
   type EventGroup,
 } from '../types';
+import { publicizeEvents } from '../publicFeed';
 
 const PAGE_SIZE = 20;
 
@@ -22,7 +23,12 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // Platform-wide stream: every deal moving across Karwan, not just the caller's.
   // Passing no caller returns the global feed (job IDs and prices intact, wallet
   // addresses masked). The page itself stays sign-in gated below.
-  const events = useLiveEvents(undefined, 200);
+  const rawEvents = useLiveEvents(undefined, 200);
+  // Public/general feed: drop account, platform, and personal events (telegram
+  // link, activation, staking, bridging, tier-ups, private chat, errors) and
+  // mask wallet addresses. The live SSE stream carries everything raw, so this
+  // is the client-side counterpart to the backend's PUBLIC_EVENT_TYPES allowlist.
+  const events = useMemo(() => publicizeEvents(rawEvents), [rawEvents]);
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the
   // user signs in.
