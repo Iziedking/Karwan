@@ -33,6 +33,7 @@ const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system'
   'agent.declined': { text: 'Agent ended negotiation', tone: 'error' },
   'agent.error': { text: 'Agent hit an error', tone: 'error' },
   'agent.fallback': { text: 'Agent used a backup decision', tone: 'system' },
+  'agent.decision': { text: 'Agent decision', tone: 'system' },
   'market.scanned': { text: 'Market scanned', tone: 'buyer' },
   'deal.matched': { text: 'Match found · awaiting approval', tone: 'buyer' },
   'deal.match.approved': { text: 'Match approved · escrow funded', tone: 'buyer' },
@@ -67,12 +68,22 @@ interface Chip {
 const REASON_LABELS: Record<string, string> = {
   'llm-counter-over-budget': 'Price above ceiling',
   'no-keyword-match': 'Outside skills',
+  'no-topical-overlap': 'Outside skills',
+  'not-a-match': 'Not a match',
   'low-confidence-or-skip': 'Not a topical match',
   'buyer-reputation-too-low': 'Buyer reputation too low',
   'llm-price-out-of-range': 'Price out of range',
   'no-bids': 'No bids received',
   'no-counter-suggestion': 'No counter prepared',
   'price-gap-uncrossable': 'Price gap too wide',
+};
+
+/// How a decision was reached. The whole reliability story in one chip: did the
+/// model decide, the deterministic spine, or the spine catching a model failure.
+const SOURCE_LABELS: Record<string, string> = {
+  llm: 'Model',
+  deterministic: 'Rules',
+  fallback: 'Backup',
 };
 function reasonLabel(code: string): string {
   return REASON_LABELS[code] ?? code;
@@ -131,6 +142,13 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
       label: 'Milestone',
       value: `#${Number(payload.milestoneIndex) + 1}`,
     });
+  }
+  if (payload.decision != null && typeof payload.decision === 'string') {
+    out.push({ key: 'decision', label: 'Call', value: String(payload.decision) });
+  }
+  if (payload.source != null) {
+    const code = String(payload.source);
+    out.push({ key: 'source', label: 'Via', value: SOURCE_LABELS[code] ?? code });
   }
   if (payload.reason != null) {
     const code = String(payload.reason);
@@ -234,6 +252,13 @@ export function EventList({
                   {relativeTime(e.ts)}
                 </span>
               </div>
+              {(e.type === 'agent.decision' || e.type === 'agent.fallback') &&
+                typeof e.payload?.reasoning === 'string' &&
+                e.payload.reasoning && (
+                  <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+                    {String(e.payload.reasoning)}
+                  </p>
+                )}
               <div className="flex flex-wrap items-center gap-2 mt-2.5">
                 <ActorChip tone={tone} actor={e.actor} />
                 {showJobId && e.jobId && (

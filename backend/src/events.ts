@@ -52,6 +52,7 @@ export type KarwanEventType =
   | 'agent.declined'
   | 'agent.error'
   | 'agent.fallback'
+  | 'agent.decision'
   | 'negotiation.attempt-ended'
   | 'negotiation.next-candidate'
   | 'negotiation.exhausted'

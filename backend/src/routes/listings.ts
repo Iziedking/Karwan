@@ -21,6 +21,7 @@ import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
 import { maybeRaiseNearMiss } from '../agents/nearMiss.js';
 import { topicalOverlap } from '../llm/keywords.js';
+import { emitAgentDecision } from '../agents/observability.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
@@ -327,13 +328,50 @@ async function tryMatchListingToJob(
   if (decision) {
     // The LLM answered. Respect an explicit rejection (it also runs the
     // direction check: offer-vs-request).
-    if (!decision.match || decision.confidence < 0.6) return false;
+    if (!decision.match || decision.confidence < 0.6) {
+      emitAgentDecision({
+        jobId: job.jobId,
+        actor: 'seller',
+        stage: 'relevance',
+        decision: 'skipped',
+        source: 'llm',
+        reason: 'not-a-match',
+        detail: `"${listing.title}" is not a match for this request`,
+        reasoning: decision.reasoning,
+        signals: { listingId: listing.id, confidence: decision.confidence, topical },
+      });
+      return false;
+    }
   } else if (!topical) {
     // LLM unavailable AND no keyword overlap to lean on. Genuinely can't tell.
+    emitAgentDecision({
+      jobId: job.jobId,
+      actor: 'seller',
+      stage: 'relevance',
+      decision: 'skipped',
+      source: 'deterministic',
+      reason: 'no-topical-overlap',
+      detail: `"${listing.title}" shares no topic with this request, and the matcher was unavailable`,
+      signals: { listingId: listing.id, topical: false },
+    });
     return false;
   }
-  // Otherwise proceed: either the LLM confirmed, or it errored but the brief and
-  // listing share a real topic word (e.g. "amazon").
+  // Proceeding: either the LLM confirmed, or it errored but the brief and listing
+  // share a real topic word (e.g. "amazon").
+  emitAgentDecision({
+    jobId: job.jobId,
+    actor: 'seller',
+    stage: 'relevance',
+    decision: 'matched',
+    source: decision ? 'llm' : 'fallback',
+    detail: `"${listing.title}" matches this request`,
+    reasoning: decision?.reasoning,
+    signals: {
+      listingId: listing.id,
+      topical,
+      ...(decision ? { confidence: decision.confidence } : {}),
+    },
+  });
 
   const floor = listingFloor(listing);
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
