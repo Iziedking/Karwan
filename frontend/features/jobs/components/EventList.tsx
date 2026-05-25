@@ -76,6 +76,10 @@ const REASON_LABELS: Record<string, string> = {
   'no-bids': 'No bids received',
   'no-counter-suggestion': 'No counter prepared',
   'price-gap-uncrossable': 'Price gap too wide',
+  'budget-out-of-range': 'Outside budget range',
+  'budget-below-seller-floor': 'Outside budget range',
+  'deadline-out-of-range': 'Outside delivery window',
+  'own-auction': 'Your own seller',
 };
 
 function reasonLabel(code: string): string {
@@ -241,13 +245,22 @@ export function EventList({
                   {relativeTime(e.ts)}
                 </span>
               </div>
-              {(e.type === 'agent.decision' || e.type === 'agent.fallback') &&
-                typeof e.payload?.reasoning === 'string' &&
-                e.payload.reasoning && (
+              {(() => {
+                // agent.decision/fallback carry a `reasoning`; skips/declines
+                // carry a `detail`. Render whichever is present as the row's
+                // subtitle so every "stood down" event says why in plain words.
+                const sub =
+                  e.type === 'agent.decision' || e.type === 'agent.fallback'
+                    ? e.payload?.reasoning
+                    : e.type === 'agent.skipped' || e.type === 'agent.declined'
+                      ? e.payload?.detail
+                      : undefined;
+                return typeof sub === 'string' && sub ? (
                   <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-                    {String(e.payload.reasoning)}
+                    {sub}
                   </p>
-                )}
+                ) : null;
+              })()}
               <div className="flex flex-wrap items-center gap-2 mt-2.5">
                 <ActorChip tone={tone} actor={e.actor} />
                 {showJobId && e.jobId && (

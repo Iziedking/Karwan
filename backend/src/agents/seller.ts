@@ -267,7 +267,23 @@ async function handleJobPosted(log: Log) {
   }
 
   for (const seller of sellers) {
-    if (seller.address.toLowerCase() === excludeSeller) continue;
+    if (seller.address.toLowerCase() === excludeSeller) {
+      // The buyer's own seller agent is kept out of their own request so they
+      // don't bid against themselves. Emit it so the owner sees why their seller
+      // stood down instead of wondering where their bid went (the silent skip
+      // here read as "my agent ignored my request").
+      bus.emitEvent({
+        type: 'agent.skipped',
+        jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          reason: 'own-auction',
+          detail: 'This is your own seller agent. Karwan keeps it out of your own request so you never bid against yourself.',
+        },
+      });
+      continue;
+    }
     if (activeBids.has(bidKey(jobId, seller.address))) continue;
     await evaluateAndBid(seller, { ...baseJob });
   }
@@ -897,20 +913,25 @@ async function runCounterEvaluation(
   });
 }
 
+/// `reason` is a stable code the timeline maps to a short label; `detail` is the
+/// human sentence shown as the row's subtitle. Both ride on the agent.skipped
+/// payload so the seller's owner can always read why their agent stood down.
 function profileMismatchReason(
   seller: SellerProfile,
   job: JobContext,
-): { reason: string; budgetUsdc?: string; daysToDeadline?: number } | null {
+): { reason: string; detail: string; budgetUsdc?: string; daysToDeadline?: number } | null {
   const budget = Number(job.budgetUsdc);
   if (budget < seller.minBudgetUsdc) {
     return {
-      reason: `budget ${budget} USDC below seller minimum of ${seller.minBudgetUsdc} USDC`,
+      reason: 'budget-out-of-range',
+      detail: `Budget ${budget} USDC is below your ${seller.minBudgetUsdc} USDC minimum.`,
       budgetUsdc: job.budgetUsdc,
     };
   }
   if (budget > seller.maxBudgetUsdc) {
     return {
-      reason: `budget ${budget} USDC above seller maximum of ${seller.maxBudgetUsdc} USDC`,
+      reason: 'budget-out-of-range',
+      detail: `Budget ${budget} USDC is above your ${seller.maxBudgetUsdc} USDC maximum.`,
       budgetUsdc: job.budgetUsdc,
     };
   }
@@ -920,13 +941,15 @@ function profileMismatchReason(
   const daysToDeadline = Math.ceil(rawDays);
   if (daysToDeadline < seller.minDeadlineDays) {
     return {
-      reason: `deadline ${daysToDeadline}d sooner than seller minimum of ${seller.minDeadlineDays}d`,
+      reason: 'deadline-out-of-range',
+      detail: `Deadline ${daysToDeadline}d is sooner than your ${seller.minDeadlineDays}d minimum.`,
       daysToDeadline,
     };
   }
   if (daysToDeadline > seller.maxDeadlineDays) {
     return {
-      reason: `deadline ${daysToDeadline}d longer than seller maximum of ${seller.maxDeadlineDays}d`,
+      reason: 'deadline-out-of-range',
+      detail: `Deadline ${daysToDeadline}d is longer than your ${seller.maxDeadlineDays}d maximum.`,
       daysToDeadline,
     };
   }
