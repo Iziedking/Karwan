@@ -15,6 +15,11 @@ export interface JobContext {
    *  for jobs posted before we tracked it, in which case the LLM falls back to
    *  budget/deadline matching only. */
   briefText?: string;
+  /// Synonym-expanded match tags for the brief, extracted at post time (same
+  /// extractor the seller profile uses). The seller agent compares these against
+  /// its own tags as a deterministic topical guard before trusting the LLM's
+  /// relevance call. Absent for jobs posted before we tracked it.
+  keywords?: string[];
   /// Optional deterministic signals on the buyer. Passed through so the seller
   /// agent can see "is this a real buyer or a probable bot/scammer" before it
   /// commits gas to a bid that will never close.

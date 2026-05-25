@@ -125,6 +125,14 @@ jobsRoutes.get('/:jobId', async (c) => {
     parties.add(deal.buyer.toLowerCase());
     parties.add(deal.seller.toLowerCase());
   }
+  // A pending near-miss invites the asked party (and their counterparty) to act
+  // on the job page, before any proposal exists. Grant them access so the
+  // near-miss card renders instead of the private summary.
+  const nearMiss = getPendingNearMiss(jobId);
+  if (nearMiss) {
+    parties.add(nearMiss.buyerUser.toLowerCase());
+    parties.add(nearMiss.sellerUser.toLowerCase());
+  }
   const isParty = !!caller && parties.has(caller);
 
   if (!isParty) {

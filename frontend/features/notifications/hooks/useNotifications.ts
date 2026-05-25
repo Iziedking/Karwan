@@ -8,6 +8,8 @@ import {
   NOTIFICATION_STORAGE_PREFIX,
   loadReadIds,
   saveReadIds,
+  loadClearedBefore,
+  saveClearedBefore,
 } from '@/shared/utils/notificationStore';
 // Re-export so existing call sites can keep importing from the hook module.
 export { purgeStoredNotifications } from '@/shared/utils/notificationStore';
@@ -105,6 +107,13 @@ const RECIPIENT: Record<string, Role | 'both'> = {
 };
 
 function hrefForType(type: string, jobId: string): string {
+  // listing.matched fires when a seller's offer matches a buyer's brief and the
+  // agent bids — before any match proposal exists. The buyer's job page is
+  // private to the two parties (and to the seller only once a proposal names
+  // them), so deep-linking there dead-ends the seller on "this deal is private."
+  // Send them to their own dashboard, where the bid and any resulting match
+  // surface. Once a proposal exists, deal.matched routes them to /jobs/[id].
+  if (type === 'listing.matched') return '/seller';
   return MANAGED_TYPES.has(type) ? `/jobs/${jobId}` : `/deals/${jobId}`;
 }
 
@@ -302,6 +311,10 @@ export function useNotifications() {
   // notification read when its id is in here, so a read item that was trimmed
   // from the bell (or whose cache was lost) doesn't reappear unread.
   const readIdsRef = useRef<Set<string>>(new Set());
+  // High-water mark set by "clear all". Backfill + SSE drop any event at or
+  // below it so cleared notifications stay cleared across reload and re-login,
+  // while genuinely newer events still come through.
+  const clearedBeforeRef = useRef<number>(0);
 
   const refreshJobIds = useCallback(async () => {
     if (!address) return;
@@ -336,6 +349,8 @@ export function useNotifications() {
       const fresh: AppNotification[] = [];
       for (const e of events) {
         if (!NOTIFY_TYPES.has(e.type) || !e.jobId) continue;
+        // Respect a prior "clear all": anything dismissed then stays dismissed.
+        if (e.ts <= clearedBeforeRef.current) continue;
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
         const id = `${e.jobId}-${e.type}-${e.ts}`;
@@ -372,11 +387,13 @@ export function useNotifications() {
       initialHydrateRef.current = false;
       seenNotificationIdsRef.current = new Set();
       readIdsRef.current = new Set();
+      clearedBeforeRef.current = 0;
       return;
     }
     initialHydrateRef.current = false;
     const me = address.toLowerCase();
     readIdsRef.current = loadReadIds(address);
+    clearedBeforeRef.current = loadClearedBefore(address);
     const stored = load(address);
     setNotifications(stored);
     // Seed the seen-set with persisted notification ids so the first SSE
@@ -400,6 +417,8 @@ export function useNotifications() {
 
     return subscribeLiveEvents((e) => {
       if (!NOTIFY_TYPES.has(e.type) || !e.jobId) return;
+      // A live event older than the last "clear all" was already dismissed.
+      if (e.ts <= clearedBeforeRef.current) return;
 
       // Learn this user's role on a freshly-started deal so later events that
       // only carry a jobId still route to the right side.
@@ -496,12 +515,17 @@ export function useNotifications() {
     persistNow(notificationsRef.current.map((n) => ({ ...n, read: true })));
   }, [persistNow, rememberRead]);
 
-  // Clearing dismisses the bell. Record the ids as read first so any that are
-  // still inside the /api/activity window don't bounce back as unread.
+  // Clearing dismisses the bell for good. Set a high-water mark at the newest
+  // notification's timestamp so backfill + SSE drop everything up to it on the
+  // next load; without this they re-fetched the /api/activity window and the
+  // cleared items came back. Still record ids read as a belt-and-braces guard.
   const clearAll = useCallback(() => {
+    const newest = notificationsRef.current.reduce((m, n) => Math.max(m, n.ts), clearedBeforeRef.current);
+    clearedBeforeRef.current = newest;
+    saveClearedBefore(address, newest);
     rememberRead(notificationsRef.current.map((n) => n.id));
     persistNow([]);
-  }, [persistNow, rememberRead]);
+  }, [address, persistNow, rememberRead]);
 
   const unreadCount = notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 

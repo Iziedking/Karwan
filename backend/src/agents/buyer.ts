@@ -343,6 +343,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       termsHash: args.termsHash,
       buyerReputationBps: 5000,
       negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
+      keywords: brief?.keywords,
     },
     bids: new Map(),
     collectionTimer: null,

@@ -35,6 +35,7 @@ import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { marketHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
+import { keywordOverlap, extractKeywords } from '../llm/keywords.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -229,6 +230,15 @@ async function handleJobPosted(log: Log) {
   // Pull off-chain brief metadata if the buyer posted via our API. Lets the
   // LLM bid decision evaluate topical match against the seller's profile.
   const brief = getBrief(jobId);
+  // Brief keywords power the deterministic topical guard in evaluateAndBid. They
+  // are extracted fire-and-forget at post time, so on a fresh brief they may not
+  // have landed yet when this fires. Extract once here (shared across every
+  // seller's evaluation below) so the guard always has tags to judge against,
+  // instead of racing the post-time extraction and silently skipping the check.
+  let briefKeywords = brief?.keywords ?? [];
+  if (briefKeywords.length === 0 && brief?.briefText) {
+    briefKeywords = await extractKeywords(brief.briefText, `brief-match:${jobId}`);
+  }
   const baseJob: JobContext = {
     jobId,
     buyer: args.buyer,
@@ -238,6 +248,7 @@ async function handleJobPosted(log: Log) {
     buyerReputationBps: 5000,
     briefText: brief?.briefText,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
+    keywords: briefKeywords,
   };
 
   // Read the buyer's deterministic signals once and share across every seller
@@ -301,6 +312,35 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
         reason: 'buyer-reputation-too-low',
         detail: `buyer reputation ${job.buyerReputationBps} bps is below the 3000 bps minimum`,
         buyerReputationBps: job.buyerReputationBps,
+      },
+    });
+    return;
+  }
+
+  // Deterministic topical guard, applied BEFORE the LLM relevance call. That
+  // call is a single small-model decision and occasionally returns a confident
+  // "bid" on a clearly unrelated brief (a content writer bidding on "need a
+  // burger"). Both the brief and the seller carry synonym-expanded keyword tags
+  // from the same extractor, so zero overlap is a reliable off-topic signal:
+  // skip without burning the LLM call. Only veto when BOTH sides have tags — a
+  // brief with no extractable tags can't be judged this way, so defer to the LLM.
+  const briefTags = job.keywords ?? [];
+  const sellerTags = [...(seller.keywords ?? []), ...(seller.skills ?? [])];
+  if (briefTags.length > 0 && sellerTags.length > 0 && keywordOverlap(briefTags, sellerTags) === 0) {
+    logger.info(
+      { jobId: job.jobId, seller: seller.address, briefTags, sellerTags },
+      'skipping: no topical overlap between brief and seller tags',
+    );
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: {
+        seller: seller.address,
+        reason: 'no-topical-overlap',
+        detail: 'the brief shares no topic tags with this seller, so the agent did not bid',
+        briefTags,
+        sellerTags,
       },
     });
     return;

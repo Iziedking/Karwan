@@ -11,6 +11,33 @@ export const NOTIFICATION_STORAGE_PREFIX = 'karwan:notifications:';
 // also clears it.
 const READ_IDS_PREFIX = `${NOTIFICATION_STORAGE_PREFIX}read:`;
 const MAX_READ_IDS = 500;
+// "Clear all" needs to stick. Marking ids read wasn't enough: the backfill from
+// /api/activity re-fetches the window and re-adds those events (painted read),
+// so cleared notifications kept coming back on reload. This high-water mark
+// records the newest timestamp the user dismissed; backfill + SSE drop anything
+// at or below it, so a clear is permanent while genuinely newer events still
+// arrive. Nests under the notifications prefix so the wildcard purge clears it.
+const CLEARED_BEFORE_PREFIX = `${NOTIFICATION_STORAGE_PREFIX}cleared-before:`;
+
+export function loadClearedBefore(address?: string | null): number {
+  if (!address || typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(`${CLEARED_BEFORE_PREFIX}${address.toLowerCase()}`);
+    const n = raw ? Number(raw) : 0;
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function saveClearedBefore(address: string | null | undefined, ts: number) {
+  if (!address || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`${CLEARED_BEFORE_PREFIX}${address.toLowerCase()}`, String(ts));
+  } catch {
+    /* quota, ignore */
+  }
+}
 
 export function loadReadIds(address?: string | null): Set<string> {
   if (!address || typeof window === 'undefined') return new Set();
@@ -47,6 +74,7 @@ export function purgeStoredNotifications(address?: string | null) {
       const a = address.toLowerCase();
       window.localStorage.removeItem(`${NOTIFICATION_STORAGE_PREFIX}${a}`);
       window.localStorage.removeItem(`${READ_IDS_PREFIX}${a}`);
+      window.localStorage.removeItem(`${CLEARED_BEFORE_PREFIX}${a}`);
       return;
     }
     const keys: string[] = [];
