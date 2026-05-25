@@ -119,7 +119,12 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
     out.push({ key: 'confidence', label: 'Confidence', value: `${pct}%` });
   }
   if (payload.score != null) {
-    out.push({ key: 'score', label: 'Match', value: `${payload.score}/100` });
+    out.push({ key: 'score', label: 'Score', value: `${payload.score}/100` });
+  }
+  // Skill match: how well the seller's skills/keywords cover the brief. This is
+  // the dominant ranking key, so it's worth showing next to the bid score.
+  if (payload.topicalMatch != null) {
+    out.push({ key: 'skillMatch', label: 'Skill match', value: `${payload.topicalMatch}%` });
   }
   if (payload.scanned != null) {
     out.push({ key: 'scanned', label: 'Offers', value: String(payload.scanned) });

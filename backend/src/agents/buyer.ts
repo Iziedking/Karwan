@@ -26,6 +26,7 @@ import {
   type BidContext,
   type JobContext,
 } from '../llm/prompts.js';
+import { topicalMatchScore } from '../llm/keywords.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
@@ -100,12 +101,39 @@ interface Bid {
   /// the rolling 24-hour bid+listing+cancel count for the seller.
   completionRate?: number;
   velocity24h?: number;
+  /// Coverage-based 0-100 score for how well this seller's skills/keywords
+  /// cover what the brief asks for (see topicalMatchScore). Computed at bid
+  /// time against the brief's keywords. undefined when the brief carries no
+  /// keywords to score against, in which case ranking falls back to the
+  /// deterministic price+reputation score alone. This is the dominant ranking
+  /// key: a clearly better skill fit beats a higher-reputation weaker fit.
+  topicalMatch?: number;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
 /// reputation tiebreaker. LLM scoring is noisy at the unit level, so 3 points
 /// on a 0-100 scale is well inside the noise floor.
 const REPUTATION_TIEBREAK_EPSILON = 3;
+
+/// Width of a topical-match band, on the 0-100 match scale. Bids whose match
+/// scores land in the same band are "comparable" on skill and ranked by the
+/// deterministic price+reputation score; a bid in a higher band always ranks
+/// above one in a lower band, regardless of price or reputation. 25 gives four
+/// bands (<25, 25-49, 50-74, 75-100), which cleanly separates a near-exact
+/// skill fit from a partial one while staying coarse enough that two genuinely
+/// comparable sellers aren't split by match-score noise. Bucketing (rather than
+/// a pairwise epsilon) keeps the sort comparator transitive.
+const MATCH_BAND_SIZE = 25;
+
+/// The match band for a bid. A bid with no computable match (brief had no
+/// keywords) shares one neutral band with every other such bid on the same
+/// brief, so ranking among them is decided entirely by the deterministic score
+/// (preserving pre-match-ranking behaviour). Within a single brief, keywords
+/// are uniform, so bids are either all scored or all neutral; the two never mix.
+function matchBand(bid: Bid): number {
+  if (typeof bid.topicalMatch !== 'number') return -1;
+  return Math.floor(bid.topicalMatch / MATCH_BAND_SIZE);
+}
 
 interface JobState {
   jobId: `0x${string}`;
@@ -410,6 +438,25 @@ async function handleBidSubmitted(log: Log) {
     /* keep neutral defaults */
   }
 
+  // Topical match: how well the seller's skills/keywords cover what the brief
+  // asks for. This is the dominant ranking key in finalizeBidCollection, so a
+  // near-exact skill fit wins ahead of price and reputation (the karwan-match-
+  // ranking rule). Left undefined when the brief has no keywords to score
+  // against; ranking then falls back to the deterministic price+reputation score.
+  let topicalMatch: number | undefined;
+  const briefKeywords = state.context.keywords ?? [];
+  if (briefKeywords.length > 0) {
+    try {
+      const sellerProfile = await resolveSellerProfile(args.seller);
+      const sellerTags = sellerProfile
+        ? [...sellerProfile.keywords, ...sellerProfile.skills]
+        : [];
+      topicalMatch = topicalMatchScore(briefKeywords, sellerTags);
+    } catch {
+      /* leave undefined: ranking falls back to the deterministic score */
+    }
+  }
+
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
@@ -423,6 +470,7 @@ async function handleBidSubmitted(log: Log) {
     sellerTier: sellerRepTier,
     completionRate: sellerCompletionRate,
     velocity24h: sellerVelocity24h,
+    topicalMatch,
   };
 
   const bidContext: BidContext = {
@@ -473,9 +521,9 @@ async function handleBidSubmitted(log: Log) {
       type: 'bid.scored',
       jobId: state.jobId,
       actor: 'buyer',
-      // tier is surfaced so the timeline shows the agent scored this bid with the
-      // seller's reputation in hand, not just the price.
-      payload: { seller: args.seller, priceUsdc, pattern, tier: sellerRepTier, ...score },
+      // tier + topicalMatch are surfaced so the timeline shows the agent scored
+      // this bid with the seller's reputation AND skill fit in hand, not just price.
+      payload: { seller: args.seller, priceUsdc, pattern, tier: sellerRepTier, topicalMatch, ...score },
     });
   } catch (err) {
     const message = (err as Error).message;
@@ -506,7 +554,7 @@ async function handleBidSubmitted(log: Log) {
       type: 'agent.fallback',
       jobId: state.jobId,
       actor: 'buyer',
-      payload: { seller: args.seller, scope: 'bidScore', tier: sellerRepTier, score: det.score },
+      payload: { seller: args.seller, scope: 'bidScore', tier: sellerRepTier, topicalMatch, score: det.score },
     });
   }
 
@@ -529,11 +577,15 @@ async function finalizeBidCollection(state: JobState) {
   state.collectionFired = true;
   state.collectionTimer = null;
 
-  // Primary sort uses the deterministic bid score (price + reputation +
-  // completion + age + velocity), keyed off the same signals the LLM had.
-  // The LLM's score still gets recorded on the bid for narrative, but
-  // ranking comes from the deterministic function so two evaluations of
-  // the same bid pool can't disagree. Reputation breaks near-ties.
+  // Ranking is match-first: the seller whose skills/keywords best cover the
+  // brief wins, ahead of price and reputation (the karwan-match-ranking rule).
+  // Bids in the same topical-match band are "comparable" and ranked by the
+  // deterministic score (price + reputation + completion + age + velocity),
+  // with reputation breaking near-ties inside that. When the brief carries no
+  // keywords, every bid shares one neutral band and the deterministic score
+  // decides alone, exactly as it did before match ranking. The deterministic
+  // score is keyed off the same signals the LLM had, so two evaluations of the
+  // same pool can't disagree; the LLM score is recorded only for narrative.
   const budget = Number(state.context.budgetUsdc);
   const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
   const scoredBids = [...state.bids.values()]
@@ -549,36 +601,52 @@ async function finalizeBidCollection(state: JobState) {
       });
       return { bid: b, deterministicScore: det.score, breakdown: det.breakdown };
     });
-  const ranked = scoredBids
-    .sort((a, b) => {
-      const scoreDelta = b.deterministicScore - a.deterministicScore;
-      if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
-        const repA = a.bid.sellerReputationBps ?? 5000;
-        const repB = b.bid.sellerReputationBps ?? 5000;
-        if (repA !== repB) return repB - repA;
-      }
-      return scoreDelta;
-    })
-    .map((entry) => entry.bid);
+  const rankedEntries = scoredBids.sort((a, b) => {
+    const bandDelta = matchBand(b.bid) - matchBand(a.bid);
+    if (bandDelta !== 0) return bandDelta;
+    const scoreDelta = b.deterministicScore - a.deterministicScore;
+    if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
+      const repA = a.bid.sellerReputationBps ?? 5000;
+      const repB = b.bid.sellerReputationBps ?? 5000;
+      if (repA !== repB) return repB - repA;
+    }
+    return scoreDelta;
+  });
+  const ranked = rankedEntries.map((entry) => entry.bid);
 
-  if (ranked.length > 1 && typeof ranked[0]!.score === 'number' && typeof ranked[1]!.score === 'number') {
-    const top = ranked[0]!;
-    const second = ranked[1]!;
-    const scoreDelta = (second.score ?? 0) - (top.score ?? 0);
-    const repTop = top.sellerReputationBps ?? 5000;
-    const repSecond = second.sellerReputationBps ?? 5000;
-    // Log when reputation overrode the LLM. Useful for tuning the epsilon and
-    // for narrating "we picked the more reputable seller" in audit traces.
-    if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON && repTop > repSecond && (top.score ?? 0) < (second.score ?? 0)) {
+  // Audit: log when a ranking rule put a seller on top that a plain price+rep
+  // sort would not have, so the choice is narratable and the bands are tunable.
+  // Two cases worth surfacing: a stronger skill fit overriding a higher
+  // deterministic score (the whole point of match ranking), and reputation
+  // breaking a near-tie within a band.
+  if (rankedEntries.length > 1) {
+    const top = rankedEntries[0]!;
+    const second = rankedEntries[1]!;
+    if (matchBand(top.bid) > matchBand(second.bid) && top.deterministicScore < second.deterministicScore) {
       logger.info(
         {
           jobId: state.jobId,
-          chosen: top.seller,
-          chosenScore: top.score,
-          chosenRepBps: repTop,
-          runnerUp: second.seller,
-          runnerUpScore: second.score,
-          runnerUpRepBps: repSecond,
+          chosen: top.bid.seller,
+          chosenMatch: top.bid.topicalMatch,
+          chosenScore: top.deterministicScore,
+          runnerUp: second.bid.seller,
+          runnerUpMatch: second.bid.topicalMatch,
+          runnerUpScore: second.deterministicScore,
+        },
+        'skill match outranked a higher price+reputation score',
+      );
+    } else if (
+      Math.abs(top.deterministicScore - second.deterministicScore) < REPUTATION_TIEBREAK_EPSILON &&
+      (top.bid.sellerReputationBps ?? 5000) > (second.bid.sellerReputationBps ?? 5000) &&
+      top.deterministicScore < second.deterministicScore
+    ) {
+      logger.info(
+        {
+          jobId: state.jobId,
+          chosen: top.bid.seller,
+          chosenRepBps: top.bid.sellerReputationBps ?? 5000,
+          runnerUp: second.bid.seller,
+          runnerUpRepBps: second.bid.sellerReputationBps ?? 5000,
         },
         'reputation broke a near-tie in bid ranking',
       );
@@ -608,8 +676,8 @@ async function finalizeBidCollection(state: JobState) {
     return;
   }
 
-  // Build the candidate queue: top-MAX_CANDIDATES bids by deterministic
-  // score. When the head's negotiation fails, the buyer agent moves to the
+  // Build the candidate queue: top-MAX_CANDIDATES bids in ranked (match-first)
+  // order. When the head's negotiation fails, the buyer agent moves to the
   // next candidate instead of finalizing. This turns the bid pool into a
   // funnel the agent works through, mirroring how a human would line up
   // alternatives before committing.
@@ -622,6 +690,7 @@ async function finalizeBidCollection(state: JobState) {
         seller: c.seller,
         priceUsdc: c.priceUsdc,
         tier: c.sellerTier,
+        match: c.topicalMatch,
       })),
     },
     'candidate queue built',

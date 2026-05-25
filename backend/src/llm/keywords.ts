@@ -89,6 +89,33 @@ export function topicalOverlap(a: string[], b: string[]): number {
   return keywordOverlap(meaningful(a), meaningful(b));
 }
 
+/// Coverage-based 0-100 match score: of the meaningful terms the brief asks
+/// for, what fraction does this seller's tags cover. This is the ranking signal
+/// the buyer agent uses to put the best skill fit first, ahead of price and
+/// reputation. A "data science / machine learning" brief scores a seller whose
+/// tags carry those words near 100; a "data analyst" who only shares "data"
+/// scores low. Generic commerce filler is stripped first, same as topicalOverlap,
+/// so a shared "account" or "service" can't inflate the match. Returns 0 when
+/// either side has no meaningful tags (caller treats that as "can't assess").
+export function topicalMatchScore(briefTags: string[], sellerTags: string[]): number {
+  const meaningful = (tags: string[]): string[] =>
+    Array.from(
+      new Set(
+        tags
+          .flatMap((t) => t.toLowerCase().split(/[^a-z0-9]+/))
+          .filter((w) => w.length >= 3 && !GENERIC_TAG_WORDS.has(w)),
+      ),
+    );
+  const brief = meaningful(briefTags);
+  const seller = meaningful(sellerTags);
+  if (brief.length === 0 || seller.length === 0) return 0;
+  let matched = 0;
+  for (const term of brief) {
+    if (seller.some((s) => s === term || s.includes(term) || term.includes(s))) matched += 1;
+  }
+  return Math.round((matched / brief.length) * 100);
+}
+
 /// Cheap overlap score: count of shared tokens between two tag lists.
 /// Substring matches count too so "morse" matches "morse-wl" etc.
 export function keywordOverlap(a: string[], b: string[]): number {
