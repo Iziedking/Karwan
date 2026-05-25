@@ -57,7 +57,7 @@ import {
   type MatchProposal as DbMatchProposal,
 } from '../db/matchProposals.js';
 import { getSellerBidFlags, submitListingBid } from './seller.js';
-import { withLlmTimeout } from './llm-utils.js';
+import { withLlmRetry } from './llm-utils.js';
 import {
   actorSignalsFor,
   priceAnomalyScore,
@@ -457,8 +457,7 @@ async function handleBidSubmitted(log: Log) {
   );
 
   try {
-    const { object: score } = await withLlmTimeout(
-      `bidScore(${state.jobId})`,
+    const { object: score } = await withLlmRetry(`bidScore(${state.jobId})`, () =>
       generateObject({
         model: llmModel,
         schema: bidScoreSchema,
@@ -1019,8 +1018,7 @@ async function handleCounterResponse(log: Log) {
 
   let decision: CounterEvaluation;
   try {
-    const result = await withLlmTimeout(
-      `counterEvaluation(${state.jobId})`,
+    const result = await withLlmRetry(`counterEvaluation(${state.jobId})`, () =>
       generateObject({
         model: llmModel,
         schema: counterEvaluationSchema,

@@ -2,7 +2,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { resolveAllSellerProfiles } from './agent-registry.js';
 import { llmModel } from '../llm/client.js';
-import { withLlmTimeout } from './llm-utils.js';
+import { withLlmRetry } from './llm-utils.js';
 import { logger } from '../logger.js';
 
 /// Market-demand signal for the negotiation agents.
@@ -86,8 +86,7 @@ async function externalMarketHeat(keywords: string[]): Promise<number | null> {
 
 async function refreshExternalHeat(key: string, kw: string[]): Promise<void> {
   try {
-    const res = await withLlmTimeout(
-      `marketHeat(${key})`,
+    const res = await withLlmRetry(`marketHeat(${key})`, () =>
       generateObject({
         model: llmModel,
         schema: heatSchema,

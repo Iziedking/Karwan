@@ -25,7 +25,7 @@ import {
   resolveSellerProfile,
   siblingSellerAddress,
 } from './agent-registry.js';
-import { withLlmTimeout } from './llm-utils.js';
+import { withLlmRetry } from './llm-utils.js';
 import {
   heuristicCounterDecision,
   nextCounterPrice,
@@ -348,8 +348,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
 
   let decision;
   try {
-    const result = await withLlmTimeout(
-      `bidDecision(${job.jobId})`,
+    const result = await withLlmRetry(`bidDecision(${job.jobId})`, () =>
       generateObject({
         model: llmModel,
         schema: bidDecisionSchema,
@@ -658,8 +657,7 @@ async function runCounterEvaluation(
 
   let decision: CounterEvaluation;
   try {
-    const result = await withLlmTimeout(
-      `counterEvaluation(${args.jobId})`,
+    const result = await withLlmRetry(`counterEvaluation(${args.jobId})`, () =>
       generateObject({
         model: llmModel,
         schema: counterEvaluationSchema,
