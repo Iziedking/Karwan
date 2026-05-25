@@ -359,15 +359,38 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     decision = result.object;
   } catch (err) {
     const message = (err as Error).message;
-    logger.warn({ jobId: job.jobId, err: message }, 'bid LLM call failed');
+    // The deterministic gates above (budget/deadline range, buyer reputation,
+    // and the topical keyword overlap) already cleared this job, so the LLM's
+    // only remaining job was a bid/skip judgment call. Dropping a qualified
+    // seller because the model hiccuped is exactly the "fail toward silence" we
+    // forbid. Fall back to bidding; sellerOpeningBid computes the real opening
+    // deterministically, and the buyer agent plus the two human gates still
+    // filter from here. (docs/agent.md, rules R1/R2.)
+    logger.warn(
+      { jobId: job.jobId, err: message },
+      'bid LLM call failed; bidding on the deterministic floor',
+    );
     reportError('agents.seller.bidDecision', err, { jobId: job.jobId, seller: seller.address });
     bus.emitEvent({
-      type: 'agent.error',
+      type: 'agent.fallback',
       jobId: job.jobId,
       actor: 'seller',
-      payload: { seller: seller.address, scope: 'bidDecision', message },
+      payload: {
+        seller: seller.address,
+        scope: 'bidDecision',
+        message,
+        decision: 'bid',
+        reasoning:
+          'LLM unavailable; budget, deadline, and topical checks passed, so bidding at the deterministic opening.',
+      },
     });
-    return;
+    decision = {
+      decision: 'bid' as const,
+      confidence: 0.95,
+      suggestedPrice: String(Math.max(seller.minBudgetUsdc, Number(job.budgetUsdc))),
+      suggestedDeadlineDays: seller.minDeadlineDays,
+      reasoning: 'deterministic fallback (LLM unavailable)',
+    };
   }
 
   logger.info({ jobId: job.jobId, seller: seller.address, decision }, 'llm decision');

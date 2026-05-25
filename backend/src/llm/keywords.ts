@@ -23,8 +23,10 @@ const PROMPT_PREFIX =
   'Include common synonyms and abbreviations. Lowercase, no punctuation, 1-3 words each. ' +
   'Do not invent unrelated tags; stay close to the input.';
 
-/// Extract canonical match tags from arbitrary text. Returns an empty array on
-/// any failure (LLM timeout, schema parse error) so callers fall back gracefully.
+/// Extract canonical match tags from arbitrary text. On any LLM failure it falls
+/// back to a deterministic keyword pull from the text itself, so the topical
+/// gate downstream is never blinded just because the extractor model hiccuped
+/// (docs/agent.md, rule R1). Returns [] only when the text has nothing usable.
 export async function extractKeywords(text: string, label = 'keywords'): Promise<string[]> {
   const cleaned = text.trim();
   if (cleaned.length < 3) return [];
@@ -37,11 +39,30 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
         prompt: `${PROMPT_PREFIX}\n\nInput:\n${cleaned}`,
       }),
     );
-    return result.object.keywords.map((k) => k.toLowerCase().trim()).filter(Boolean);
+    const tags = result.object.keywords.map((k) => k.toLowerCase().trim()).filter(Boolean);
+    return tags.length > 0 ? tags : naiveKeywords(cleaned);
   } catch (err) {
-    logger.warn({ label, err: (err as Error).message }, 'keyword extraction failed');
-    return [];
+    logger.warn({ label, err: (err as Error).message }, 'keyword extraction failed; using naive fallback');
+    return naiveKeywords(cleaned);
   }
+}
+
+/// Common request/filler words to drop from the naive fallback, on top of the
+/// generic commerce filler. Not exhaustive, just enough to keep the signal words.
+const NAIVE_STOPWORDS = new Set([
+  'need', 'want', 'looking', 'hire', 'hiring', 'get', 'please', 'help', 'someone',
+  'good', 'have', 'this', 'that', 'from', 'into', 'will', 'can', 'are', 'you',
+  'who', 'any', 'one', 'out', 'now', 'not',
+]);
+
+/// Deterministic fallback: significant words from the text, generic commerce and
+/// request filler dropped, deduped, capped. "i need an amazon account" -> ["amazon"].
+function naiveKeywords(text: string): string[] {
+  const words = text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 3 && !GENERIC_TAG_WORDS.has(w) && !NAIVE_STOPWORDS.has(w));
+  return Array.from(new Set(words)).slice(0, 8);
 }
 
 /// Generic commerce / filler words that two unrelated listings often share
