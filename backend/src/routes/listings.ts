@@ -20,6 +20,7 @@ import { actorSignalsFor } from '../agents/signals.js';
 import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
 import { maybeRaiseNearMiss } from '../agents/nearMiss.js';
+import { topicalOverlap } from '../llm/keywords.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
@@ -281,7 +282,7 @@ export async function scanListingsForBrief(
 
 async function tryMatchListingToJob(
   listing: Listing,
-  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number },
+  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; keywords?: string[] },
   seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
 ): Promise<boolean> {
   // Skip the user's own briefs — sellers shouldn't bid on themselves.
@@ -294,7 +295,7 @@ async function tryMatchListingToJob(
     return false;
   }
 
-  let decision;
+  let decision: { match: boolean; confidence: number; reasoning?: string } | null = null;
   try {
     const result = await withLlmTimeout(
       `listingMatch(${listing.id}:${job.jobId})`,
@@ -308,17 +309,31 @@ async function tryMatchListingToJob(
   } catch (err) {
     logger.warn(
       { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
-      'match LLM failed',
+      'match LLM failed; falling back to keyword overlap',
     );
-    return false;
   }
 
+  // Deterministic topical signal so a flaky LLM call can't silently drop a real
+  // match (and with it the bid / near-miss). Brief keywords vs the listing's own
+  // words, generic filler ("account", "service") stripped.
+  const topical =
+    topicalOverlap(job.keywords ?? [], [listing.title, listing.description]) > 0;
+
   logger.info(
-    { listingId: listing.id, jobId: job.jobId, decision },
+    { listingId: listing.id, jobId: job.jobId, decision, topical },
     'listing-brief match decision',
   );
 
-  if (!decision.match || decision.confidence < 0.6) return false;
+  if (decision) {
+    // The LLM answered. Respect an explicit rejection (it also runs the
+    // direction check: offer-vs-request).
+    if (!decision.match || decision.confidence < 0.6) return false;
+  } else if (!topical) {
+    // LLM unavailable AND no keyword overlap to lean on. Genuinely can't tell.
+    return false;
+  }
+  // Otherwise proceed: either the LLM confirmed, or it errored but the brief and
+  // listing share a real topic word (e.g. "amazon").
 
   const floor = listingFloor(listing);
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
@@ -395,7 +410,7 @@ async function tryMatchListingToJob(
       seller: listing.sellerUser,
       askingPriceUsdc: listing.askingPriceUsdc,
       floorUsdc: floor,
-      reasoning: decision.reasoning,
+      reasoning: decision?.reasoning ?? 'Matched on shared keywords (LLM unavailable).',
     },
   });
   return true;
