@@ -301,7 +301,14 @@ export interface DirectDealFunding {
 
 export interface ActivationStatus {
   activated: boolean;
-  agents?: { buyer: string; seller: string };
+  agents?: { buyer: string; seller: string; buyerName?: string; sellerName?: string };
+}
+
+/// Optional custom names for the agent pair. Blank/omitted means the UI shows
+/// the default "Buyer agent" / "Seller agent".
+export interface AgentNames {
+  buyerName?: string;
+  sellerName?: string;
 }
 
 export interface Reputation {
@@ -662,10 +669,15 @@ export const api = {
     json<Reputation>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}`),
   activationStatus: (address: string) =>
     json<ActivationStatus>(`/api/activation/status?address=${address}`),
-  activate: (address: string) =>
+  activate: (address: string, names?: AgentNames) =>
     json<ActivationStatus>('/api/activation/activate', {
       method: 'POST',
-      body: JSON.stringify({ address }),
+      body: JSON.stringify({ address, ...names }),
+    }),
+  setAgentNames: (address: string, names: AgentNames) =>
+    json<ActivationStatus>('/api/activation/agent-names', {
+      method: 'POST',
+      body: JSON.stringify({ address, ...names }),
     }),
   withdrawFromAgent: (body: {
     address: string;

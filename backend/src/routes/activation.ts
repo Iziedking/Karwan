@@ -8,8 +8,14 @@ import {
   BASE_SEPOLIA_BLOCKCHAIN,
 } from '../circle/wallets.js';
 import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
-import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import {
+  getAgentWallets,
+  saveAgentWallets,
+  updateAgentNames,
+  type AgentWallets,
+} from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
+import { sessionMismatchesClaim } from '../auth/session.js';
 import { usdc as usdcAddress, readUsdcBalance } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
@@ -30,7 +36,36 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
-const activateSchema = z.object({ address: addrSchema });
+/// Optional agent display name. Cleaned to a single trimmed line, max 40 chars.
+/// Blank/whitespace becomes undefined so the UI shows the default label.
+const nameSchema = z.string().max(80).optional();
+function cleanName(s: unknown): string | undefined {
+  if (typeof s !== 'string') return undefined;
+  const t = s.trim().replace(/\s+/g, ' ').slice(0, 40);
+  return t.length > 0 ? t : undefined;
+}
+
+const activateSchema = z.object({
+  address: addrSchema,
+  buyerName: nameSchema,
+  sellerName: nameSchema,
+});
+
+const agentNamesSchema = z.object({
+  address: addrSchema,
+  buyerName: nameSchema,
+  sellerName: nameSchema,
+});
+
+/// The agents block returned to the client: addresses plus any custom names.
+function agentsPayload(w: AgentWallets) {
+  return {
+    buyer: w.buyerAddress,
+    seller: w.sellerAddress,
+    ...(w.buyerName ? { buyerName: w.buyerName } : {}),
+    ...(w.sellerName ? { sellerName: w.sellerName } : {}),
+  };
+}
 
 const withdrawSchema = z.object({
   address: addrSchema,
@@ -71,10 +106,7 @@ activationRoutes.get('/status', async (c) => {
   if (!wallets) return c.json({ activated: false });
   return c.json({
     activated: true,
-    agents: {
-      buyer: wallets.buyerAddress,
-      seller: wallets.sellerAddress,
-    },
+    agents: agentsPayload(wallets),
     bridgeWallets: wallets.bridgeWallets ?? {},
   });
 });
@@ -294,10 +326,9 @@ activationRoutes.post('/activate', async (c) => {
 
   const existing = await getAgentWallets(userAddress);
   if (existing) {
-    return c.json({
-      activated: true,
-      agents: { buyer: existing.buyerAddress, seller: existing.sellerAddress },
-    });
+    // Already activated: idempotent. Name changes go through /agent-names, not a
+    // repeat activate, so we don't disturb existing names here.
+    return c.json({ activated: true, agents: agentsPayload(existing) });
   }
 
   if (inFlight.has(userAddress)) {
@@ -328,7 +359,13 @@ activationRoutes.post('/activate', async (c) => {
       );
     }
 
-    const record = await saveAgentWallets({ userAddress, ...provisioned, bridgeWallets });
+    const record = await saveAgentWallets({
+      userAddress,
+      ...provisioned,
+      bridgeWallets,
+      buyerName: cleanName(body.buyerName),
+      sellerName: cleanName(body.sellerName),
+    });
 
     // Seed both agents from the identity wallet (the one funded at signup), not
     // the faucet: a user may be buyer-only or seller-only, and the identity
@@ -369,7 +406,7 @@ activationRoutes.post('/activate', async (c) => {
     );
     return c.json({
       activated: true,
-      agents: { buyer: record.buyerAddress, seller: record.sellerAddress },
+      agents: agentsPayload(record),
       bridgeWallets: record.bridgeWallets ?? {},
     });
   } catch (err) {
@@ -378,6 +415,28 @@ activationRoutes.post('/activate', async (c) => {
   } finally {
     inFlight.delete(userAddress);
   }
+});
+
+/// Rename the user's agents (or clear back to the defaults by sending blanks).
+/// Session-gated: you can only rename your own agents. Names are display-only,
+/// never touch the on-chain wallets, so this is a cheap off-chain update that
+/// preserves the agents' createdAt.
+activationRoutes.post('/agent-names', async (c) => {
+  let body;
+  try {
+    body = agentNamesSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.address)) {
+    return c.json({ error: 'You can only rename your own agents.', code: 'forbidden' }, 403);
+  }
+  const updated = await updateAgentNames(body.address, {
+    buyerName: cleanName(body.buyerName),
+    sellerName: cleanName(body.sellerName),
+  });
+  if (!updated) return c.json({ error: 'no agent wallets — activate first' }, 409);
+  return c.json({ activated: true, agents: agentsPayload(updated) });
 });
 
 /// Withdraws USDC from one of the user's agent wallets to an external address.

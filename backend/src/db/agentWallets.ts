@@ -14,6 +14,11 @@ export interface AgentWallets {
   sellerWalletId: string;
   sellerAddress: string;
   createdAt: number;
+  /// Optional human names the user gave their agents at activation (or later via
+  /// the rename endpoint). Blank/unset means the UI shows "Buyer agent" /
+  /// "Seller agent". Lets the negotiation read like the user's own assistant.
+  buyerName?: string;
+  sellerName?: string;
   /// Optional per-chain bridge DCWs (one per CCTP source chain). Keyed by
   /// the Circle blockchain enum string (e.g. 'BASE-SEPOLIA', 'ETH-SEPOLIA').
   /// Provisioned at activation for the common testnet source (Base Sepolia)
@@ -101,6 +106,35 @@ export async function saveAgentWallets(
   saveFile(store);
   invalidateReverseCache();
   return record;
+}
+
+/// Update just the agent display names, preserving every other field including
+/// createdAt (saveAgentWallets resets createdAt, which would wipe the agent's
+/// age, so renames must not go through it). Pass a name to set it, or undefined
+/// to clear it back to the default label. Returns null if the user has no
+/// agents yet.
+export async function updateAgentNames(
+  userAddress: string,
+  names: { buyerName?: string; sellerName?: string },
+): Promise<AgentWallets | null> {
+  const key = userAddress.toLowerCase();
+  const existing = await getAgentWallets(key);
+  if (!existing) return null;
+  const next: AgentWallets = {
+    ...existing,
+    buyerName: names.buyerName,
+    sellerName: names.sellerName,
+  };
+  if (pgEnabled) {
+    await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
+    invalidateReverseCache();
+    return next;
+  }
+  const store = loadFile();
+  store[key] = next;
+  saveFile(store);
+  invalidateReverseCache();
+  return next;
 }
 
 // --- flat-file fallback ---

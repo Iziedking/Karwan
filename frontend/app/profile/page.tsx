@@ -174,6 +174,8 @@ export default function ProfilePage() {
               loading={activation.loading}
               buyer={agents.buyer}
               seller={agents.seller}
+              buyerName={activation.agents?.buyerName}
+              sellerName={activation.agents?.sellerName}
             />
           </div>
         </div>
@@ -260,6 +262,7 @@ export default function ProfilePage() {
                 {profile.buyer && (
                   <AgentBlock
                     role="Buyer"
+                    name={activation.agents?.buyerName}
                     agentAddress={agents.buyer}
                     rows={[
                       { label: 'Max budget', value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
@@ -280,6 +283,7 @@ export default function ProfilePage() {
                 {profile.seller && (
                   <AgentBlock
                     role="Seller"
+                    name={activation.agents?.sellerName}
                     agentAddress={agents.seller}
                     rows={[
                       { label: 'Skills', value: profile.seller.skills.join(', ') || '-' },
@@ -407,6 +411,7 @@ export default function ProfilePage() {
         open={activationOpen}
         onClose={() => setActivationOpen(false)}
         activate={activation.activate}
+        renameAgents={activation.renameAgents}
         activating={activation.activating}
         error={activation.error}
         activated={activation.activated}
@@ -420,10 +425,12 @@ type AgentRow = { label: string; value: string; mono?: boolean };
 
 function AgentBlock({
   role,
+  name,
   agentAddress,
   rows,
 }: {
   role: 'Buyer' | 'Seller';
+  name?: string;
   agentAddress: string | undefined;
   rows: AgentRow[];
 }) {
@@ -444,10 +451,10 @@ function AgentBlock({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:AGENT:]
+              [:{role} AGENT:]
             </span>
             <h3 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-              {role}
+              {name || role}
             </h3>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -488,11 +495,15 @@ function AgentStatusVignette({
   loading,
   buyer,
   seller,
+  buyerName,
+  sellerName,
 }: {
   activated: boolean;
   loading: boolean;
   buyer?: string;
   seller?: string;
+  buyerName?: string;
+  sellerName?: string;
 }) {
   return (
     <div
@@ -545,13 +556,17 @@ function AgentStatusVignette({
       </div>
       <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
         <div className="px-4 py-4 min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Buyer agent</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 truncate">
+            {buyerName || 'Buyer agent'}
+          </p>
           <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
             {buyer ? shortAddress(buyer) : '-'}
           </p>
         </div>
         <div className="px-4 py-4 min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Seller agent</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 truncate">
+            {sellerName || 'Seller agent'}
+          </p>
           <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
             {seller ? shortAddress(seller) : '-'}
           </p>
