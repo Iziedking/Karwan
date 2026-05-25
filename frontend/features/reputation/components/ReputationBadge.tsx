@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useReputation } from '../hooks/useReputation';
 import {
   TIER_HUE,
@@ -223,6 +224,14 @@ export function ReputationBadge({
           <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[10px] text-[var(--color-ink-faint)] leading-snug">
             Composite of deal history, stake, and tenure. Recorded on-chain.
           </p>
+          {address && (
+            <Link
+              href={`/credit-passport/${address}`}
+              className="mt-2 inline-flex items-center gap-1 text-[10px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
+            >
+              Credit passport ↗
+            </Link>
+          )}
         </div>
       )}
     </span>
