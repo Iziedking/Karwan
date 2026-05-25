@@ -46,6 +46,8 @@ backend/data/
 PLAN.md
 todo.md
 docs/agent.md
+docs/api-healthcheck.md
+scripts/api-healthcheck.mjs
 docs/demo-script.md
 docs/telegram-bot-setup.md
 docs/bot-assets
