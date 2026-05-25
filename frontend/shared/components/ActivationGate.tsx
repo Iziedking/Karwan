@@ -8,7 +8,7 @@ import { ActivationModal } from './ActivationModal';
 /// the activation modal. When the wallet is not connected, children render as
 /// is so the inner flow can show its own connect prompt.
 export function ActivationGate({ children }: { children: ReactNode }) {
-  const { isConnected, activated, loading, activating, error, agents, activate } =
+  const { isConnected, activated, loading, activating, error, agents, activate, renameAgents } =
     useActivation();
   const [open, setOpen] = useState(false);
 
@@ -55,6 +55,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
         open={open}
         onClose={() => setOpen(false)}
         activate={activate}
+        renameAgents={renameAgents}
         activating={activating}
         error={error}
         activated={activated}

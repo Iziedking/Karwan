@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { api, type ActivationStatus } from '@/core/api';
+import { api, type ActivationStatus, type AgentNames } from '@/core/api';
 import { useAuth } from './useAuth';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
@@ -43,22 +43,46 @@ export function useActivation() {
     };
   }, [address, isConnected]);
 
-  const activate = useCallback(async () => {
-    if (!address) return;
-    setActivating(true);
-    setError(null);
-    try {
-      const res = await api.activate(address);
-      setStatus(res);
-      setFetchState('success');
-      return res;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'activation failed');
-      throw err;
-    } finally {
-      setActivating(false);
-    }
-  }, [address]);
+  const activate = useCallback(
+    async (names?: AgentNames) => {
+      if (!address) return;
+      setActivating(true);
+      setError(null);
+      try {
+        const res = await api.activate(address, names);
+        setStatus(res);
+        setFetchState('success');
+        return res;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'activation failed');
+        throw err;
+      } finally {
+        setActivating(false);
+      }
+    },
+    [address],
+  );
+
+  /// Rename the agents after activation (display-only, no on-chain effect).
+  const renameAgents = useCallback(
+    async (names: AgentNames) => {
+      if (!address) return;
+      setActivating(true);
+      setError(null);
+      try {
+        const res = await api.setAgentNames(address, names);
+        setStatus(res);
+        setFetchState('success');
+        return res;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'rename failed');
+        throw err;
+      } finally {
+        setActivating(false);
+      }
+    },
+    [address],
+  );
 
   return {
     address,
@@ -70,5 +94,6 @@ export function useActivation() {
     activating,
     error,
     activate,
+    renameAgents,
   };
 }
