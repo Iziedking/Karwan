@@ -78,13 +78,6 @@ const REASON_LABELS: Record<string, string> = {
   'price-gap-uncrossable': 'Price gap too wide',
 };
 
-/// How a decision was reached. The whole reliability story in one chip: did the
-/// model decide, the deterministic spine, or the spine catching a model failure.
-const SOURCE_LABELS: Record<string, string> = {
-  llm: 'Model',
-  deterministic: 'Rules',
-  fallback: 'Backup',
-};
 function reasonLabel(code: string): string {
   return REASON_LABELS[code] ?? code;
 }
@@ -145,10 +138,6 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
   }
   if (payload.decision != null && typeof payload.decision === 'string') {
     out.push({ key: 'decision', label: 'Call', value: String(payload.decision) });
-  }
-  if (payload.source != null) {
-    const code = String(payload.source);
-    out.push({ key: 'source', label: 'Via', value: SOURCE_LABELS[code] ?? code });
   }
   if (payload.reason != null) {
     const code = String(payload.reason);
