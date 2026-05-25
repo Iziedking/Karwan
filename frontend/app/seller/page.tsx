@@ -10,6 +10,7 @@ import { PostListingForm } from '@/features/seller/components/PostListingForm';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
   FullBleed,
   Band,
@@ -131,6 +132,11 @@ export default function SellerPage() {
           </div>
         </div>
       </Band>
+
+      {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
+          the dead end where a seller profile is saved but no agent was ever
+          provisioned, so the seller agent silently never bids. */}
+      <ActivateAgentsNotice role="seller" tone="light" />
 
       {/* PENDING MATCHES. shared component, renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Your bid matched" />

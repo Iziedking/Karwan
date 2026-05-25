@@ -8,6 +8,7 @@ import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
 import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
   FullBleed,
   Band,
@@ -113,6 +114,10 @@ export default function BuyerPage() {
           </div>
         </div>
       </Band>
+
+      {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches
+          the dead end where a profile is saved but no agent was provisioned. */}
+      <ActivateAgentsNotice role="buyer" tone="light" />
 
       {/* NEW DEAL + SIDE COLUMN */}
       <Band tone="light" compact>

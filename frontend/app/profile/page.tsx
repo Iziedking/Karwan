@@ -258,6 +258,15 @@ export default function ProfilePage() {
               <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
                 Ranges agents respect on every request.
               </p>
+              {!activation.activated && (
+                <p
+                  className="mt-3 mono text-[11px] uppercase tracking-[0.12em] leading-relaxed max-w-[52ch]"
+                  style={{ color: '#b25425' }}
+                >
+                  [:HEADS UP:] this is saved, but your agents aren&apos;t active yet, so they
+                  won&apos;t bid or post. Activate above to put them to work.
+                </p>
+              )}
               <div className="mt-10 grid md:grid-cols-2 gap-5">
                 {profile.buyer && (
                   <AgentBlock
