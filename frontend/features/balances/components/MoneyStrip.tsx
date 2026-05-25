@@ -100,7 +100,7 @@ export function MoneyStrip() {
           Held safe on Arc · withdraw anytime
         </p>
       </div>
-      <div className="mt-6 grid grid-cols-3 gap-3 fade-up fade-up-1">
+      <div data-guide="home-money" className="mt-6 grid grid-cols-3 gap-3 fade-up fade-up-1">
         {cells.map((c) => (
           <div
             key={c.label}

@@ -11,6 +11,7 @@ import { deleteBriefsByPoster } from '../db/briefs.js';
 import { deleteListingsBySeller } from '../db/listings.js';
 import { deleteDealsInvolvingAddress, getDeal, patchDeal } from '../db/deals.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
+import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -59,15 +60,16 @@ adminRoutes.post('/reset-history', async (c) => {
   const listings = deleteListingsBySeller(target);
   const deals = await deleteDealsInvolvingAddress(target);
   const proposals = await deleteMatchProposalsInvolvingAddress(target);
+  const nearMisses = deleteNearMissInvolvingAddress(target);
   const buyerJobs = deleteBuyerJobsForBuyer(target);
   logger.info(
-    { target, briefs, listings, deals, proposals, buyerJobs },
+    { target, briefs, listings, deals, proposals, nearMisses, buyerJobs },
     'admin: reset-history executed',
   );
   return c.json({
     ok: true,
     address: target,
-    removed: { briefs, listings, deals, proposals, buyerJobs },
+    removed: { briefs, listings, deals, proposals, nearMisses, buyerJobs },
   });
 });
 

@@ -185,10 +185,10 @@ export default function AppHome() {
       </Band>
 
       {/* YOUR MONEY. First personal surface after the hero: where your money is
-          and that it's safe, in plain dollars. The trust answer up front. */}
-      <div data-guide="home-money">
-        <MoneyStrip />
-      </div>
+          and that it's safe, in plain dollars. The trust answer up front.
+          (The tour target lives on the inner card grid in MoneyStrip so the
+          spotlight fits the content, not the full-bleed band.) */}
+      <MoneyStrip />
 
       {/* PENDING MATCHES. surfaces here so users see them from the home page
           without having to navigate to /seller. Renders nothing when there
@@ -332,8 +332,9 @@ export default function AppHome() {
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           Your <Accent>book</Accent><Punc>.</Punc>
         </HeroHeadline>
-        <div data-guide="home-deals" className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
+        <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
+            data-guide="home-deals"
             className="bg-[var(--lp-card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_56px_-20px_rgba(0,0,0,0.12)] lg:rounded-tl-[28px] lg:rounded-tr-[28px] lg:rounded-bl-[28px] lg:rounded-br-[6px]"
             style={{
               marginLeft: 'clamp(20px,5vw,72px)',

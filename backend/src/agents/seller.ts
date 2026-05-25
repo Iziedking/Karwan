@@ -34,6 +34,7 @@ import {
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { marketHeat } from './marketDemand.js';
+import { maybeRaiseNearMiss } from './nearMiss.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -354,6 +355,27 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const heat = await marketHeat([...(seller.keywords ?? []), ...(seller.skills ?? [])], seller.address);
   const opening = sellerOpeningBid(seller, job, buyerTier, heat);
   if (opening === null) {
+    // Seller floor sits above the buyer's ceiling, so no price clears both
+    // ranges. When the gap is small, ask the blocked side to stretch instead of
+    // walking away silently (a near-miss). The guard inside maybeRaiseNearMiss
+    // only fires when the seller floor genuinely exceeds the buyer ceiling.
+    const tol = job.negotiationMaxIncreasePct ?? 0;
+    const buyerCeiling = Number(job.budgetUsdc) * (1 + tol / 100);
+    const raised = await maybeRaiseNearMiss({
+      jobId: job.jobId,
+      buyerAgent: job.buyer,
+      sellerAgent: seller.address,
+      deadlineUnix: job.deadlineUnix,
+      buyerCeilingUsdc: buyerCeiling,
+      sellerFloorUsdc: seller.minBudgetUsdc,
+    });
+    if (raised) {
+      logger.info(
+        { jobId: job.jobId, seller: seller.address, minBudget: seller.minBudgetUsdc, buyerCeiling },
+        'near-miss raised: seller floor just above buyer ceiling',
+      );
+      return;
+    }
     logger.info(
       { jobId: job.jobId, seller: seller.address, minBudget: seller.minBudgetUsdc },
       'skipping: seller floor above the buyer budget cap',

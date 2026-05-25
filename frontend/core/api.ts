@@ -268,6 +268,30 @@ export interface MatchProposal {
   topUpNeededUsdc?: string;
 }
 
+/// Agents found a topical match, but the best achievable price lands just
+/// outside one party's range. Instead of skipping, the agent asks that party
+/// to proceed at the agreed price (anchored at the other side's boundary, so a
+/// single yes closes the deal). Valid until expiresAt; lapses to nothing.
+export interface NearMissApproval {
+  jobId: string;
+  buyerUser: string;
+  buyerAgent: string;
+  sellerUser: string;
+  sellerAgent: string;
+  askedSide: 'buyer' | 'seller';
+  askedUser: string;
+  proceedPriceUsdc: string;
+  limitUsdc: string;
+  gapUsdc: string;
+  buyerCeilingUsdc: string;
+  sellerFloorUsdc: string;
+  createdAt: number;
+  expiresAt: number;
+  proceededAt?: number;
+  declinedAt?: number;
+  buyerAsked?: boolean;
+}
+
 export interface DirectDealFunding {
   dealAmountUsdc: string;
   fundedAmountUsdc: string;
@@ -442,6 +466,20 @@ export const api = {
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/cancel`,
       { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  nearMiss: (jobId: string, caller?: string | null) =>
+    json<{ nearMiss: NearMissApproval | null }>(
+      withCaller(`/api/jobs/${jobId}/near-miss`, caller),
+    ),
+  proceedNearMiss: (jobId: string, caller: string) =>
+    json<{ proceeded: boolean; jobId: string; txHash: string }>(
+      `/api/jobs/${jobId}/near-miss`,
+      { method: 'POST', body: JSON.stringify({ caller, action: 'proceed' }) },
+    ),
+  declineNearMiss: (jobId: string, caller: string) =>
+    json<{ declined: boolean; flipped: boolean; jobId: string }>(
+      `/api/jobs/${jobId}/near-miss`,
+      { method: 'POST', body: JSON.stringify({ caller, action: 'decline' }) },
     ),
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
   listingsForSeller: (address: string) =>

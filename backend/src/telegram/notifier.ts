@@ -38,6 +38,7 @@ const RELEVANT = new Set([
   'deal.matched',
   'deal.match.approved',
   'deal.match.declined',
+  'negotiation.near-miss',
   'deal.direct.created',
   'deal.accepted',
   'deal.delivered',
@@ -84,6 +85,15 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     if (buyer) out.push({ address: buyer, role: 'buyer' });
     if (seller) out.push({ address: seller, role: 'seller' });
     return out;
+  }
+  // A near-miss is addressed to exactly one party (the one being asked to stretch
+  // beyond their range). Route from the payload, never to both.
+  if (e.type === 'negotiation.near-miss') {
+    const askedSide = e.payload?.askedSide as 'buyer' | 'seller' | undefined;
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+    const target = askedSide === 'seller' ? seller : buyer;
+    return target ? [{ address: target, role: askedSide ?? 'self' }] : [];
   }
   // listing.matched fires the moment a seller agent bids via a matched
   // listing. The on-chain deal row may not exist yet (acceptance is pending),
@@ -162,6 +172,17 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
           : '*The seller declined this match.* Post a fresh request to re-run the auction.',
         null,
       );
+    case 'negotiation.near-miss': {
+      const price = (e.payload?.proceedPriceUsdc as string | undefined) ?? '';
+      const gap = (e.payload?.gapUsdc as string | undefined) ?? '';
+      const link = jobUrl(e.jobId);
+      return withLink(
+        role === 'seller'
+          ? `*Karwan found you a deal at ${price} USDC.* That's ${gap} USDC below your floor. Open to proceed or pass.`
+          : `*Karwan found you a deal at ${price} USDC.* That's ${gap} USDC above your cap. Open to proceed or pass.`,
+        link,
+      );
+    }
     case 'deal.direct.created':
       return withLink(
         role === 'seller'

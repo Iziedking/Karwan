@@ -41,6 +41,7 @@ const MANAGED_TYPES = new Set([
   'deal.matched',
   'deal.match.approved',
   'deal.match.declined',
+  'negotiation.near-miss',
   'job.expired',
   'listing.matched',
   'agent.declined',
@@ -70,6 +71,7 @@ const TOAST_TYPES = new Set([
   'deal.match.approved',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
+  'negotiation.near-miss',
   'job.expired',
 ]);
 
@@ -138,6 +140,12 @@ function shouldNotify(
     const by = payload?.proposedBy as Role | undefined;
     return !!role && !!by && role === by; // only the proposer hears the decline
   }
+  // A near-miss is addressed to exactly one party: the side being asked to
+  // stretch beyond their range. Only they should hear it.
+  if (type === 'negotiation.near-miss') {
+    const askedSide = payload?.askedSide as Role | undefined;
+    return !!role && !!askedSide && role === askedSide;
+  }
   const rule = RECIPIENT[type];
   if (!rule) return false;
   // 'both' means "either party to THIS deal" — never "everyone." Require a
@@ -187,6 +195,14 @@ function summaryFor(
         : 'Karwan matched your offer to an open request.';
     case 'agent.declined':
       return reason ? `Agent ended negotiation: ${reason}` : 'Agent ended the negotiation.';
+    case 'negotiation.near-miss': {
+      const proceed = (payload?.proceedPriceUsdc as string | undefined) ?? '';
+      const gap = (payload?.gapUsdc as string | undefined) ?? '';
+      const where = role === 'seller' ? 'below your floor' : 'above your cap';
+      return proceed
+        ? `Karwan found a deal at ${proceed} USDC, ${gap} ${where}. Tap to proceed or pass.`
+        : `Karwan found a deal just ${where}. Tap to proceed or pass.`;
+    }
     case 'deal.direct.created':
       // Seller-facing: the buyer opened the deal and is waiting on the seller.
       return dealAmount

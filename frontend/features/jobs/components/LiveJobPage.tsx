@@ -12,7 +12,9 @@ import { LiveBidsPanel } from './LiveBidsPanel';
 import { PageTour } from '@/shared/guide/PageTour';
 import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
+import { NearMissCard } from './NearMissCard';
 import { useMatchProposal } from '../hooks/useMatchProposal';
+import { useNearMiss } from '../hooks/useNearMiss';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -30,6 +32,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const { job } = useJobSnapshot(initial);
   const { events, active, completed, declined, ended } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
+  const { nearMiss, refresh: refreshNearMiss } = useNearMiss(initial.jobId);
   const { address } = useAuth();
   const router = useRouter();
 
@@ -227,6 +230,16 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         {proposal && !expired && (
           <div className="mt-8 fade-up fade-up-1">
             <MatchBanner proposal={proposal} onChange={refreshProposal} />
+          </div>
+        )}
+
+        {/* NEAR-MISS. The agent found a match just outside one side's range and
+            is asking that party whether to proceed. Sits in the banner slot
+            before any match proposal exists; once proceeded it becomes a funded
+            deal and the page redirects to /deals/[id]. */}
+        {nearMiss && !proposal && !expired && !job.escrowFunded && (
+          <div className="mt-8 fade-up fade-up-1">
+            <NearMissCard nearMiss={nearMiss} onChange={refreshNearMiss} />
           </div>
         )}
 

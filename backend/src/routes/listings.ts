@@ -19,6 +19,7 @@ import { resolveSellerProfile } from '../agents/agent-registry.js';
 import { actorSignalsFor } from '../agents/signals.js';
 import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
+import { maybeRaiseNearMiss } from '../agents/nearMiss.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
@@ -323,6 +324,26 @@ async function tryMatchListingToJob(
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
   const buyerCeiling = Number(job.budgetUsdc) * (1 + buyerPct / 100);
   if (floor > buyerCeiling) {
+    // Topical match, but the seller's floor sits above the buyer's ceiling, so
+    // no price satisfies both ranges. Rather than skip silently, ask the blocked
+    // side whether to stretch when the gap is small (a near-miss). The agent
+    // becomes an assistant, not a wall. Falls back to a plain skip when the gap
+    // is too wide to bother anyone with.
+    const raised = await maybeRaiseNearMiss({
+      jobId: job.jobId,
+      buyerAgent: job.buyer,
+      sellerAgent: listing.sellerAgent,
+      deadlineUnix: job.deadlineUnix,
+      buyerCeilingUsdc: buyerCeiling,
+      sellerFloorUsdc: floor,
+    });
+    if (raised) {
+      logger.info(
+        { listingId: listing.id, jobId: job.jobId, listingFloor: floor, buyerCeiling },
+        'near-miss raised for an uncrossable but close match',
+      );
+      return false; // not consumed by a bid; the human decides whether to proceed
+    }
     logger.info(
       {
         listingId: listing.id,

@@ -14,8 +14,12 @@ import {
   declineAgentMatch,
   getMarketplaceBriefs,
   cancelBriefByBuyer,
+  proceedAgentNearMiss,
   type MarketplaceBrief,
 } from '../agents/buyer.js';
+import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
+import { flipOrEndOnDecline } from '../agents/nearMiss.js';
+import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
 import { getDeal } from '../db/deals.js';
@@ -358,4 +362,85 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   const result = await declineAgentMatch(jobId, body.reason);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, 409);
   return c.json({ accepted: true, jobId }, 200);
+});
+
+/// The pending near-miss for a job, gated to the two parties. A near-miss is the
+/// agent saying "I found a deal, but the price is outside your range, proceed?"
+/// when the ranges don't overlap by a small margin. Only the party being asked
+/// can act on it (see POST below); both parties may read it.
+jobsRoutes.get('/:jobId/near-miss', (c) => {
+  const jobId = c.req.param('jobId');
+  const nm = getPendingNearMiss(jobId);
+  if (!nm) return c.json({ nearMiss: null });
+  const caller = viewerAddress(c);
+  const isParty =
+    !!caller && (caller === nm.buyerUser || caller === nm.sellerUser);
+  if (!isParty) return c.json({ nearMiss: null });
+  return c.json({ nearMiss: nm });
+});
+
+const nearMissActionSchema = z.object({
+  caller: addrSchema,
+  action: z.enum(['proceed', 'decline']),
+});
+
+/// Act on a near-miss. Only the party being asked may proceed or decline.
+/// Proceed funds the deal at the agreed (out-of-range) price through the same
+/// accept + fund path a seller-approved match uses. Decline hands the ask to the
+/// other side (when the buyer passes first) or ends it.
+jobsRoutes.post('/:jobId/near-miss', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = nearMissActionSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const nm = getPendingNearMiss(jobId);
+  if (!nm) return c.json({ error: 'no pending near-miss for this job', code: 'NO_NEAR_MISS' }, 404);
+  if (body.caller.toLowerCase() !== nm.askedUser) {
+    return c.json({ error: 'only the party being asked can act on this', code: 'forbidden' }, 403);
+  }
+
+  if (body.action === 'decline') {
+    const { flipped } = flipOrEndOnDecline(jobId);
+    return c.json({ declined: true, flipped, jobId }, 200);
+  }
+
+  // proceed
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this job', code: 'BUSY' }, 409);
+  }
+  inFlight.add(jobId);
+  try {
+    const result = await proceedAgentNearMiss(jobId, nm.sellerAgent, nm.proceedPriceUsdc);
+    if (!result.ok) {
+      const status =
+        result.code === 'NO_JOB_STATE' || result.code === 'ALREADY_FUNDED' || result.code === 'ALREADY_APPROVED'
+          ? 409
+          : result.code === 'INSUFFICIENT_AGENT_BALANCE'
+            ? 409
+            : 502;
+      return c.json({ error: 'could not proceed', code: result.code, detail: result.message }, status);
+    }
+    upsertNearMiss({ ...nm, proceededAt: Date.now() });
+    bus.emitEvent({
+      type: 'negotiation.near-miss.proceeded',
+      jobId,
+      actor: 'platform',
+      payload: {
+        buyer: nm.buyerUser,
+        sellerUser: nm.sellerUser,
+        askedSide: nm.askedSide,
+        agreedPriceUsdc: nm.proceedPriceUsdc,
+        txHash: result.txHash,
+      },
+    });
+    return c.json({ proceeded: true, jobId, txHash: result.txHash }, 200);
+  } finally {
+    inFlight.delete(jobId);
+  }
 });

@@ -119,6 +119,8 @@ function labelFor(type: string): string {
       return 'CANCEL PROPOSED';
     case 'deal.fund.insufficient':
       return 'TOP UP NEEDED';
+    case 'negotiation.near-miss':
+      return 'NEAR MATCH';
     case 'job.expired':
       return 'BRIEF EXPIRED';
     default:

@@ -30,7 +30,7 @@ import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 import { bus } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
-import { resolveBuyerProfile } from './agent-registry.js';
+import { resolveBuyerProfile, resolveSellerProfile } from './agent-registry.js';
 import {
   heuristicCounterDecision,
   nextCounterPrice,
@@ -56,7 +56,7 @@ import {
   hasPendingProposal as dbHasPendingProposal,
   type MatchProposal as DbMatchProposal,
 } from '../db/matchProposals.js';
-import { getSellerBidFlags } from './seller.js';
+import { getSellerBidFlags, submitListingBid } from './seller.js';
 import { withLlmTimeout } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -1476,6 +1476,61 @@ export async function approveAgentMatch(
     },
   });
   return { ok: true, txHash: acceptResult.txHash };
+}
+
+/// Resume a near-miss the asked party approved. The agreed price is anchored at
+/// the OTHER party's boundary, so that party is already within their own
+/// authorization and a single "proceed" closes the deal. We place a standing bid
+/// at the agreed price, propose the match, and fund it through the exact path a
+/// seller-approved match takes (acceptBid + fundEscrow). No second human gate,
+/// because the asked party just consented and the counterparty is in range.
+export async function proceedAgentNearMiss(
+  jobId: string,
+  sellerAgentAddress: string,
+  proceedPriceUsdc: string,
+): Promise<{ ok: true; txHash: string } | { ok: false; code: string; message: string }> {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) {
+    return {
+      ok: false,
+      code: 'NO_JOB_STATE',
+      message: 'This negotiation is no longer active. Repost the request to try again.',
+    };
+  }
+  if (state.escrowFunded) {
+    return { ok: false, code: 'ALREADY_FUNDED', message: 'This deal has already funded.' };
+  }
+  const existing = await dbGetMatchProposal(jobId);
+  if (existing?.approvedAt) {
+    return { ok: false, code: 'ALREADY_APPROVED', message: 'This job already matched.' };
+  }
+
+  const seller = await resolveSellerProfile(sellerAgentAddress);
+  if (!seller) {
+    return { ok: false, code: 'NO_SELLER', message: 'Could not resolve the seller agent.' };
+  }
+
+  // Lock the job to this resume before the bid lands. handleBidSubmitted bails on
+  // a finalized job, so this stops the normal bid-collection path from racing the
+  // match we are about to propose. clearCounterWatchdog stops any pending stall
+  // timer from cascading us elsewhere mid-resume.
+  state.finalized = true;
+  clearCounterWatchdog(state);
+
+  // Place a standing bid at the agreed price from the seller wallet so the buyer
+  // has something to accept on chain. A bid left from an earlier round is fine to
+  // reuse (already-bid is not an error here).
+  const bidRes = await submitListingBid(state.context, seller, {
+    askingPriceUsdc: Number(proceedPriceUsdc),
+    floorUsdc: Number(proceedPriceUsdc),
+    description: '',
+  });
+  if (!bidRes.ok && bidRes.reason !== 'already-bid') {
+    return { ok: false, code: 'BID_FAILED', message: bidRes.reason };
+  }
+
+  await proposeMatch(state, sellerAgentAddress as `0x${string}`, proceedPriceUsdc);
+  return approveAgentMatch(jobId);
 }
 
 async function persistApprovedMatch(

@@ -28,14 +28,14 @@ export const WELCOME_STEPS: TourStep[] = [
 export const HOME_TOUR_ID = 'home-v1';
 export const HOME_STEPS: TourStep[] = [
   {
-    title: 'Your money, at a glance',
-    body: 'What you can spend, what is locked safely in deals, and what you have earned. Held in USDC (digital dollars) in escrow on Arc. Locked money is released only as work is delivered.',
-    target: 'home-money',
-  },
-  {
     title: 'Start a deal',
     body: 'Post a request to hire someone, or an offer to take work. Your assistant runs the bidding and negotiation from there and brings you terms to approve.',
     target: 'home-start',
+  },
+  {
+    title: 'Your money, at a glance',
+    body: 'What you can spend, what is locked safely in deals, and what you have earned. Held in USDC (digital dollars) in escrow on Arc. Locked money is released only as work is delivered.',
+    target: 'home-money',
   },
   {
     title: 'Three ways in',
@@ -64,14 +64,14 @@ export const BUYER_STEPS: TourStep[] = [
     target: 'buyer-budget',
   },
   {
-    title: 'How far the agent can go',
-    body: 'Tolerance is how much above your budget your assistant may accept on a counter. 0 keeps it strict at your budget; a little room lets it close a fair deal without overpaying.',
-    target: 'buyer-tolerance',
-  },
-  {
     title: 'Set a deadline',
     body: 'How long the work has. Give enough time for the back-and-forth plus the delivery, so a tight clock does not cut a negotiation short.',
     target: 'buyer-deadline',
+  },
+  {
+    title: 'How far the agent can go',
+    body: 'Tolerance is how much above your budget your assistant may accept on a counter. 0 keeps it strict at your budget; a little room lets it close a fair deal without overpaying.',
+    target: 'buyer-tolerance',
   },
   {
     title: 'Let it run',

@@ -249,7 +249,7 @@ export function ListingsBrowse() {
 
 function MarketCard({ card }: { card: Card }) {
   const sideTone = card.side === 'offer' ? '#0a7553' : '#b25425';
-  const statusLabel = card.side === 'offer' ? (card.matched ? 'MATCHED' : 'OFFER') : 'BRIEF';
+  const statusLabel = card.matched ? 'MATCHED' : card.side === 'offer' ? 'OFFER' : 'REQUEST';
   const statusTone = card.matched ? 'var(--lp-accent)' : sideTone;
   return (
     <Link
@@ -267,19 +267,10 @@ function MarketCard({ card }: { card: Card }) {
       <div className="px-5 pt-5 pb-4 space-y-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span
-            className="inline-flex items-center gap-1.5 mono text-[9px] font-bold uppercase tracking-[0.18em] px-1.5 py-1 border"
-            style={{
-              color: statusTone,
-              borderColor: `${statusTone}55`,
-              background: `${statusTone}14`,
-              borderRadius: 4,
-            }}
+            className="inline-flex items-center gap-1.5 mono text-[9px] font-bold uppercase tracking-[0.18em]"
+            style={{ color: statusTone }}
           >
-            <span
-              aria-hidden
-              className="w-[5px] h-[5px]"
-              style={{ background: statusTone }}
-            />
+            <span aria-hidden className="w-[6px] h-[6px]" style={{ background: statusTone }} />
             {statusLabel}
           </span>
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
