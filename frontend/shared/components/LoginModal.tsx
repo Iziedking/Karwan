@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -45,6 +45,15 @@ export function LoginModal({ open, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passkeyConfigured, setPasskeyConfigured] = useState<boolean | null>(null);
+  // Pre-fetched WebAuthn options. iOS Safari only shows the passkey sheet when
+  // navigator.credentials.create/get fires inside the tap's user-activation
+  // window; an await on the options fetch in between drops that activation and
+  // the sheet silently never appears. We fetch the options when the user reaches
+  // the auth step so the button tap can call the ceremony directly.
+  type PrefetchedOptions =
+    | { kind: 'register'; options: Awaited<ReturnType<typeof api.authRegisterOptions>>['options'] }
+    | { kind: 'login'; options: Awaited<ReturnType<typeof api.authLoginOptions>>['options'] };
+  const [passkeyOpts, setPasskeyOpts] = useState<PrefetchedOptions | null>(null);
 
   /// OTP sub-state. We jump straight from the unified flow into "show 6-digit
   /// input" once a code has been sent.
@@ -62,6 +71,7 @@ export function LoginModal({ open, onClose }: Props) {
     setOtpSent(false);
     setOtpCode('');
     setOtpDevHint(null);
+    setPasskeyOpts(null);
     api
       .authStatus()
       .then((r) => setPasskeyConfigured(r.configured))
@@ -112,24 +122,63 @@ export function LoginModal({ open, onClose }: Props) {
     }
   }
 
+  // Fetch the right WebAuthn options ahead of the tap. Stored so runPasskey can
+  // fire the ceremony with no await in between (the iOS activation fix). A fresh
+  // challenge each time, so a retry after a cancel uses a valid one.
+  const prefetchPasskey = useCallback(async () => {
+    if (!plan || plan.pref !== 'passkey') return;
+    try {
+      if (plan.exists) {
+        const r = await api.authLoginOptions(email);
+        setPasskeyOpts({ kind: 'login', options: r.options });
+      } else {
+        const r = await api.authRegisterOptions(email);
+        setPasskeyOpts({ kind: 'register', options: r.options });
+      }
+    } catch {
+      // Leave it null; runPasskey falls back to fetching inline on tap.
+      setPasskeyOpts(null);
+    }
+  }, [plan, email]);
+
+  // Warm the options the moment the passkey step is shown.
+  useEffect(() => {
+    if (stage !== 'auth' || !plan || plan.pref !== 'passkey' || otpSent) {
+      setPasskeyOpts(null);
+      return;
+    }
+    setPasskeyOpts(null);
+    void prefetchPasskey();
+  }, [stage, plan, otpSent, prefetchPasskey]);
+
   async function runPasskey() {
     if (!plan) return;
     setBusy(true);
     setError(null);
     try {
       if (plan.exists) {
-        const optsRes = await api.authLoginOptions(email);
-        const assertResp = await startAuthentication({ optionsJSON: optsRes.options });
+        // Use the pre-fetched options when ready so the ceremony fires inside the
+        // tap gesture. Fall back to an inline fetch only if the warm-up lost a race.
+        const options =
+          passkeyOpts?.kind === 'login'
+            ? passkeyOpts.options
+            : (await api.authLoginOptions(email)).options;
+        const assertResp = await startAuthentication({ optionsJSON: options });
         await api.authLoginVerify(email, assertResp);
       } else {
-        const optsRes = await api.authRegisterOptions(email);
-        const attResp = await startRegistration({ optionsJSON: optsRes.options });
+        const options =
+          passkeyOpts?.kind === 'register'
+            ? passkeyOpts.options
+            : (await api.authRegisterOptions(email)).options;
+        const attResp = await startRegistration({ optionsJSON: options });
         await api.authRegisterVerify(email, attResp);
       }
       await refresh();
       emitAuthChanged();
       onClose();
     } catch (err) {
+      // The pre-fetched challenge is single-use; warm a fresh one for the retry.
+      void prefetchPasskey();
       const e = err as Error & { name?: string };
       if (e.name === 'NotAllowedError' || /timed out|not allowed/i.test(e.message ?? '')) {
         setError(
