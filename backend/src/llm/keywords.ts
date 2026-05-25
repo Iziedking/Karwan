@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { llmModel } from './client.js';
-import { withLlmTimeout } from '../agents/llm-utils.js';
+import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
 
 const keywordSchema = z.object({
@@ -31,8 +31,7 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
   const cleaned = text.trim();
   if (cleaned.length < 3) return [];
   try {
-    const result = await withLlmTimeout(
-      label,
+    const result = await withLlmRetry(label, () =>
       generateObject({
         model: llmModel,
         schema: keywordSchema,

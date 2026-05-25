@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { generateObject } from 'ai';
 import { llmModel } from '../llm/client.js';
-import { withLlmTimeout } from '../agents/llm-utils.js';
+import { withLlmRetry } from '../agents/llm-utils.js';
 import {
   cancelListing,
   createListing,
@@ -298,8 +298,7 @@ async function tryMatchListingToJob(
 
   let decision: { match: boolean; confidence: number; reasoning?: string } | null = null;
   try {
-    const result = await withLlmTimeout(
-      `listingMatch(${listing.id}:${job.jobId})`,
+    const result = await withLlmRetry(`listingMatch(${listing.id}:${job.jobId})`, () =>
       generateObject({
         model: llmModel,
         schema: matchDecisionSchema,
