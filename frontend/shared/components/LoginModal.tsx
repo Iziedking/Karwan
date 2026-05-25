@@ -90,6 +90,38 @@ export function LoginModal({ open, onClose }: Props) {
     }
   }, [open, isAuthenticated, onClose, router]);
 
+  // Fetch the right WebAuthn options ahead of the tap. Stored so runPasskey can
+  // fire the ceremony with no await in between (the iOS activation fix). A fresh
+  // challenge each time, so a retry after a cancel uses a valid one. MUST sit
+  // above the early returns below so the hook order is identical whether the
+  // modal is open or closed — otherwise opening it runs extra hooks and React
+  // throws #310 ("rendered more hooks than during the previous render").
+  const prefetchPasskey = useCallback(async () => {
+    if (!plan || plan.pref !== 'passkey') return;
+    try {
+      if (plan.exists) {
+        const r = await api.authLoginOptions(email);
+        setPasskeyOpts({ kind: 'login', options: r.options });
+      } else {
+        const r = await api.authRegisterOptions(email);
+        setPasskeyOpts({ kind: 'register', options: r.options });
+      }
+    } catch {
+      // Leave it null; runPasskey falls back to fetching inline on tap.
+      setPasskeyOpts(null);
+    }
+  }, [plan, email]);
+
+  // Warm the options the moment the passkey step is shown.
+  useEffect(() => {
+    if (stage !== 'auth' || !plan || plan.pref !== 'passkey' || otpSent) {
+      setPasskeyOpts(null);
+      return;
+    }
+    setPasskeyOpts(null);
+    void prefetchPasskey();
+  }, [stage, plan, otpSent, prefetchPasskey]);
+
   if (!open) return null;
   if (typeof document === 'undefined') return null;
 
@@ -121,35 +153,6 @@ export function LoginModal({ open, onClose }: Props) {
       setBusy(false);
     }
   }
-
-  // Fetch the right WebAuthn options ahead of the tap. Stored so runPasskey can
-  // fire the ceremony with no await in between (the iOS activation fix). A fresh
-  // challenge each time, so a retry after a cancel uses a valid one.
-  const prefetchPasskey = useCallback(async () => {
-    if (!plan || plan.pref !== 'passkey') return;
-    try {
-      if (plan.exists) {
-        const r = await api.authLoginOptions(email);
-        setPasskeyOpts({ kind: 'login', options: r.options });
-      } else {
-        const r = await api.authRegisterOptions(email);
-        setPasskeyOpts({ kind: 'register', options: r.options });
-      }
-    } catch {
-      // Leave it null; runPasskey falls back to fetching inline on tap.
-      setPasskeyOpts(null);
-    }
-  }, [plan, email]);
-
-  // Warm the options the moment the passkey step is shown.
-  useEffect(() => {
-    if (stage !== 'auth' || !plan || plan.pref !== 'passkey' || otpSent) {
-      setPasskeyOpts(null);
-      return;
-    }
-    setPasskeyOpts(null);
-    void prefetchPasskey();
-  }, [stage, plan, otpSent, prefetchPasskey]);
 
   async function runPasskey() {
     if (!plan) return;
