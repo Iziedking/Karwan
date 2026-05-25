@@ -27,11 +27,14 @@ export interface DepositedLog {
 const PAGE_SIZE = 9_500n;
 
 /// How far back the reader walks when KARWAN_VAULT_DEPLOY_BLOCK is unset.
-/// 500,000 blocks at Arc's ~2s cadence is ~11 days. Plenty for testnet
-/// sessions that run weeks. Producers should set the deploy-block env var
-/// for production so we don't waste calls scanning blocks that predate the
-/// contract.
-const DEFAULT_HISTORY_WINDOW = 500_000n;
+/// 5,000,000 blocks at Arc's ~2s cadence is ~115 days. The previous 500k
+/// (~11 days) window silently dropped positions older than it on every cold
+/// start, so a stake total would shrink after a redeploy and "recover" only
+/// once an older process's cache happened to still hold them. A testnet
+/// session can't outrun 115 days, so positions no longer age out of view.
+/// Producers should still set KARWAN_VAULT_DEPLOY_BLOCK so the cold scan
+/// anchors at the contract and never wastes calls on blocks that predate it.
+const DEFAULT_HISTORY_WINDOW = 5_000_000n;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -56,11 +59,24 @@ function cacheToArray(c: OwnerCache): DepositedLog[] {
   return [...c.byId.values()];
 }
 
+let warnedMissingDeployBlock = false;
+
 function resolveColdStart(head: bigint): bigint {
   const startConfig = (
     config as unknown as { KARWAN_VAULT_DEPLOY_BLOCK?: bigint }
   ).KARWAN_VAULT_DEPLOY_BLOCK;
   if (startConfig != null && startConfig >= 0n) return startConfig;
+  // Money-critical read: a missing anchor must be loud, not silent. Without it
+  // the scan walks a sliding window relative to head, so any position older than
+  // the window vanishes from the stake total until a later read happens to cover
+  // it. Warn once so the operator sets the deploy block.
+  if (!warnedMissingDeployBlock) {
+    warnedMissingDeployBlock = true;
+    logger.warn(
+      { defaultWindowBlocks: DEFAULT_HISTORY_WINDOW.toString() },
+      'vaultLogs: KARWAN_VAULT_DEPLOY_BLOCK is unset; cold scans use a sliding default window. Set it to the vault deploy block so full position history is always covered.',
+    );
+  }
   return head > DEFAULT_HISTORY_WINDOW ? head - DEFAULT_HISTORY_WINDOW : 0n;
 }
 
