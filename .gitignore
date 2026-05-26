@@ -58,3 +58,4 @@ docs/images
 .claude/
 SESSION_STATE.md
 presentation.md
+*.tsbuildinfo
