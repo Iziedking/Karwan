@@ -27,6 +27,7 @@ import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { circleWebhookRoutes } from './routes/circle-webhook.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
@@ -111,6 +112,7 @@ app.route('/api/listings', listingsRoutes);
 app.route('/api/x', xRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/feedback', feedbackRoutes);
+app.route('/api/circle', circleWebhookRoutes);
 
 // Process-wide error capture. Routes unhandled rejections + uncaught
 // exceptions through `errorTracker` so they land in the ring buffer and

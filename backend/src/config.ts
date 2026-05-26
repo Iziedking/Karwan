@@ -79,6 +79,21 @@ const envSchema = z.object({
   // skips its out-of-gas precheck. The sponsorship is the console policy; this
   // flag just tells the code to trust it. See todo #181.
   CIRCLE_GAS_STATION_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  // Circle webhook subscription ID for the dev-controlled-wallets event stream.
+  // Created in the Circle Developer Console (Webhooks tab) once per environment.
+  // When unset, POST /api/circle/webhook returns 503 "not configured" and the
+  // polling path in chain/txs.ts is the only completion signal. When set, the
+  // backend additionally receives signed event push notifications for faster
+  // terminal-state propagation (the polling stays as fallback).
+  CIRCLE_WEBHOOK_SUBSCRIPTION_ID: optionalString,
+  // Feature flag for the App Kit migration. When false, IN-direction Circle
+  // bridges run through the hand-rolled startSourcePipeline (the proven path
+  // with the resumable approve/burn state machine). When true, they run
+  // through `kit.bridge()` with the Forwarding Service handling attestation +
+  // destination mint. The two paths coexist behind this flag so the App Kit
+  // path can be exercised in isolation and rolled back to the hand-rolled
+  // pipeline at any time. Default: false (no behavior change until opt-in).
+  BRIDGE_USE_APP_KIT: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
 
   BUYER_AGENT_WALLET_ID: optionalString,
   BUYER_AGENT_ADDRESS: optionalAddr,

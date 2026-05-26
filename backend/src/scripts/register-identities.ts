@@ -33,6 +33,10 @@ async function pollForCompletion(
 async function registerAgent(label: string, walletId: string, metadataURI: string) {
   const client = circleWalletsClient();
 
+  // One-shot setup script: no auto-retry, so we rely on the SDK's per-call
+  // auto-generated idempotency key (UUID v4). If this script is re-run after
+  // a partial success, the on-chain IdentityRegistry will reject a second
+  // register() call for the same wallet, so no dedup is needed here either.
   const tx = await client.createContractExecutionTransaction({
     walletId,
     contractAddress: config.IDENTITY_REGISTRY_ADDR,

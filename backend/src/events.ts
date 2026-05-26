@@ -66,6 +66,7 @@ export type KarwanEventType =
   | 'vault.withdraw.requested'
   | 'vault.withdraw.cancelled'
   | 'vault.claimed'
+  | 'circle.webhook'
   | 'system.error';
 
 export interface KarwanEvent {

@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { bridges } from './schema.js';
 import type { CctpChainKey } from '../chain/cctpChains.js';
+import type { AppKitSourceChainKey } from '../circle/bridge-kit.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'bridges.json');
 
@@ -31,8 +32,19 @@ export interface BridgeRelay {
   /// For 'out' bridges: the destination CCTP chain the mint lands on.
   destChainKey?: CctpChainKey;
   // --- Circle-user source-side pipeline state (resume across restarts) ---
-  /// Which CCTP chain the DCW lives on. Present only for Circle bridges.
-  sourceChainKey?: CctpChainKey;
+  /// Which source chain the DCW lives on. Present only for Circle bridges.
+  /// Hand-rolled (CCTP V2 contract direct) bridges use a CctpChainKey (the
+  /// 5 EVM testnets). App Kit bridges can additionally be 'solanaDevnet',
+  /// which the hand-rolled path cannot handle — `appKit: true` below marks
+  /// those records so resume logic skips them.
+  sourceChainKey?: AppKitSourceChainKey;
+  /// True when this bridge is managed by the App Kit + Forwarding Service
+  /// path (POST /circle-bridge-app-kit). The hand-rolled resume logic
+  /// (resumePendingBridges → startSourcePipeline) skips these because App
+  /// Kit's kit.bridge() does not currently checkpoint resumable state across
+  /// process restarts. A future iteration can persist the BridgeResult and
+  /// call kit.retry() on boot.
+  appKit?: boolean;
   /// The user's source-chain Circle DCW that signs approve + burn.
   bridgeWalletId?: string;
   bridgeWalletAddress?: string;
@@ -40,6 +52,14 @@ export interface BridgeRelay {
   /// re-poll them instead of re-submitting (which would double up userOps).
   approveTxId?: string;
   burnTxId?: string;
+  /// UUID v4 idempotency keys generated at createBridge time and reused on every
+  /// submitContractCall for approve / burn. Closes the small gap between Circle
+  /// accepting a submit and our process persisting the txId: if our process
+  /// dies in that window, retry sends the same key and Circle dedupes instead
+  /// of accepting a second submission. Absent on bridges created before this
+  /// field landed — those fall back to the SDK's per-call auto-generated key.
+  approveIdempotencyKey?: string;
+  burnIdempotencyKey?: string;
   createdAt: number;
   updatedAt: number;
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { createPublicClient, http, formatUnits, parseUnits, type PublicClient } from 'viem';
@@ -14,6 +15,11 @@ import {
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
+import {
+  APP_KIT_SOURCE_CHAINS,
+  APP_KIT_SOURCE_CHAIN_KEYS,
+  bridgeInToArcViaAppKit,
+} from '../circle/bridge-kit.js';
 import { usdc as ARC_USDC, readUsdcBalance } from '../chain/contracts.js';
 import {
   CCTP_CHAINS,
@@ -262,6 +268,16 @@ export async function resumePendingBridges(): Promise<void> {
   if (pending.length === 0) return;
   logger.info({ count: pending.length }, 'resuming pending bridges');
   for (const b of pending) {
+    // App Kit-managed bridges don't have persisted resumable state yet (no
+    // BridgeResult checkpoint). Skip them on boot; an operator marks them
+    // 'error' or 'minted' manually after observing the on-chain mint.
+    if (b.appKit) {
+      logger.info(
+        { bridgeId: b.bridgeId, status: b.status },
+        'skipping app-kit bridge in resume (no persisted resumable state)',
+      );
+      continue;
+    }
     // Bridge-out: burn is on Arc, mint is on the destination chain. Resume only
     // the destination mint relay (the Arc burn is synchronous, so a record stuck
     // pre-burn after a restart has no on-chain effect and is left to retry).
@@ -290,10 +306,15 @@ export async function resumePendingBridges(): Promise<void> {
       continue;
     }
     // Circle bridge still mid source pipeline: resume approve/burn if we have
-    // the source context we persisted at create time.
+    // the source context we persisted at create time. isCctpChainKey narrows
+    // the AppKitSourceChainKey union to the EVM CctpChainKey that
+    // startSourcePipeline expects; Solana records were already skipped above
+    // by the appKit guard, but the type system can't see that without an
+    // explicit narrowing.
     if (
       (b.status === 'approving' || b.status === 'burning') &&
       b.sourceChainKey &&
+      isCctpChainKey(b.sourceChainKey) &&
       b.bridgeWalletId &&
       b.bridgeWalletAddress
     ) {
@@ -597,6 +618,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
             abiFunctionSignature: 'approve(address,uint256)',
             abiParameters: [TOKEN_MESSENGER_V2, amountStr],
             feeLevel: 'HIGH',
+            idempotencyKey: record.approveIdempotencyKey,
           },
           `circle-bridge.approve(${input.sourceChainKey}, ${input.bridgeId})`,
         );
@@ -645,6 +667,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
             FINALITY_THRESHOLD_FAST.toString(),
           ],
           feeLevel: 'HIGH',
+          idempotencyKey: record.burnIdempotencyKey,
         },
         `circle-bridge.depositForBurn(${input.sourceChainKey}, ${input.bridgeId})`,
       );
@@ -1004,6 +1027,10 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   // sane HTTP window, so this is what stops a slow-but-successful Circle tx from
   // surfacing as a hard failure. Persisting first means a restart resumes the
   // pipeline instead of stranding a burned-but-unrecorded transfer.
+  // Generate the approve + burn idempotency keys here, before any submit. If
+  // the process dies between submit-accepted-at-Circle and our patch persisting
+  // the txId, the next attempt re-uses the same key and Circle dedupes server-
+  // side, so no second tx is submitted.
   await createBridge({
     bridgeId: body.bridgeId,
     sourceDomain: chainCfg.domain,
@@ -1014,6 +1041,8 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     sourceChainKey: body.sourceChainKey,
     bridgeWalletId,
     bridgeWalletAddress,
+    approveIdempotencyKey: randomUUID(),
+    burnIdempotencyKey: randomUUID(),
   });
 
   startSourcePipeline({
@@ -1032,6 +1061,208 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       status: 'approving',
       sourceAddress: bridgeWalletAddress,
       sourceDomain: chainCfg.domain,
+    },
+    202,
+  );
+});
+
+/// App Kit + Forwarding Service variant of the Circle bridge. A single
+/// kit.bridge() call drives approve → burn → fetchAttestation → mint;
+/// Circle's forwarder broadcasts the destination mint on Arc, so no relay
+/// DCW is needed. Supports the 5 EVM CCTP testnet sources AND Solana Devnet
+/// (which the hand-rolled /circle-bridge cannot — it is wired only to EVM
+/// CCTP V2 contracts).
+///
+/// Coexists with /circle-bridge: same BridgeRelay record schema, same UI
+/// consumers (listBridgesForWallets, the bridge feed). Records created via
+/// this route are tagged `appKit: true` so resumePendingBridges skips them
+/// on boot (kit.bridge() does not currently checkpoint resumable state
+/// across restarts; a future iteration can persist the BridgeResult and
+/// call kit.retry()).
+const circleBridgeAppKitSchema = z.object({
+  bridgeId: z.string().min(1),
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
+  sourceChainKey: z.enum(APP_KIT_SOURCE_CHAIN_KEYS),
+  amountUsdc: z.number().positive(),
+  mintRecipient: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
+});
+
+bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
+  let body;
+  try {
+    body = circleBridgeAppKitSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  const userAddress = body.address.toLowerCase();
+  const user = getUserByAddress(userAddress);
+  if (!user) {
+    return c.json(
+      {
+        error: 'no Circle identity wallet for this address',
+        detail: 'circle-bridge-app-kit is for Circle email/passkey users.',
+      },
+      409,
+    );
+  }
+
+  if (inFlight.has(body.bridgeId) || sourceInFlight.has(body.bridgeId)) {
+    return c.json({ accepted: false, reason: 'bridge already in progress' }, 409);
+  }
+  const existing = await getBridge(body.bridgeId);
+  if (existing) {
+    return c.json(
+      {
+        accepted: false,
+        reason: 'bridge id already exists; pass a fresh bridgeId per attempt',
+        existing,
+      },
+      409,
+    );
+  }
+
+  const chain = APP_KIT_SOURCE_CHAINS[body.sourceChainKey];
+
+  // Lazy-provision the source-chain DCW. Both EVM (SCA) and Solana (EOA)
+  // route through provisionUserBridgeWallet, which switches accountType by
+  // the blockchain string under the hood.
+  let agentWallets = await getAgentWallets(userAddress);
+  if (!agentWallets) {
+    return c.json({ error: 'user has no agent wallet record; activate first' }, 409);
+  }
+  const existingBridge = agentWallets.bridgeWallets?.[chain.circleBlockchain];
+  let bridgeWalletId: string;
+  let bridgeWalletAddress: string;
+  if (existingBridge) {
+    bridgeWalletId = existingBridge.walletId;
+    bridgeWalletAddress = existingBridge.address;
+  } else {
+    try {
+      // chain.circleBlockchain is a BridgeBlockchain union member by
+      // construction in APP_KIT_SOURCE_CHAINS (one of the 5 EVM testnets or
+      // SOL-DEVNET). The cast is safe because the registry is exhaustive.
+      const created = await provisionUserBridgeWallet(
+        userAddress,
+        chain.circleBlockchain as Parameters<typeof provisionUserBridgeWallet>[1],
+      );
+      bridgeWalletId = created.walletId;
+      bridgeWalletAddress = created.address;
+      await saveAgentWallets({
+        ...agentWallets,
+        bridgeWallets: {
+          ...(agentWallets.bridgeWallets ?? {}),
+          [chain.circleBlockchain]: { walletId: bridgeWalletId, address: bridgeWalletAddress },
+        },
+      });
+    } catch (err) {
+      logger.error(
+        { userAddress, blockchain: chain.circleBlockchain, err: (err as Error).message },
+        'app-kit lazy bridge-wallet provisioning failed',
+      );
+      return c.json(
+        { error: 'could not provision bridge wallet', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+
+  // EVM pre-checks (USDC balance + native gas) only run on EVM sources.
+  // Solana balance is an SPL token on an ATA; App Kit handles that internally
+  // and reports balance errors through the returned BridgeResult. We could
+  // mirror the pre-check via @solana/web3.js later, but for the first cut
+  // we let the SDK surface the failure rather than maintaining a parallel
+  // balance-reader.
+  if (!chain.isSolana) {
+    const evmKey = body.sourceChainKey as CctpChainKey;
+    const evmChainCfg = CCTP_CHAINS[evmKey];
+    try {
+      const sourceClient = sourceClients[evmKey];
+      const [usdcBalance, gasBalance] = await Promise.all([
+        sourceClient.readContract({
+          address: evmChainCfg.usdc as `0x${string}`,
+          abi: erc20BalanceOfAbi,
+          functionName: 'balanceOf',
+          args: [bridgeWalletAddress as `0x${string}`],
+        }) as Promise<bigint>,
+        sourceClient.getBalance({ address: bridgeWalletAddress as `0x${string}` }),
+      ]);
+      const neededUsdc = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+      if (usdcBalance < neededUsdc) {
+        return c.json(
+          {
+            error: 'bridge wallet under-funded',
+            detail: `Bridge wallet has ${formatUnits(usdcBalance, USDC_DECIMALS)} USDC on ${chain.name} but needs ${body.amountUsdc}. Send USDC to this address and retry.`,
+            bridgeWalletAddress,
+            sourceChainKey: body.sourceChainKey,
+          },
+          409,
+        );
+      }
+      const MIN_GAS_WEI = 200_000_000_000_000n;
+      if (!config.CIRCLE_GAS_STATION_ENABLED && gasBalance < MIN_GAS_WEI) {
+        return c.json(
+          {
+            error: 'bridge wallet out of gas',
+            detail: `Bridge wallet has ${formatUnits(gasBalance, 18)} ${evmChainCfg.nativeSymbol} on ${chain.name}, not enough for the bridge.`,
+            bridgeWalletAddress,
+            sourceChainKey: body.sourceChainKey,
+          },
+          409,
+        );
+      }
+    } catch (err) {
+      logger.warn(
+        { bridgeId: body.bridgeId, err: (err as Error).message },
+        'app-kit preflight balance read failed; refusing to start',
+      );
+      return c.json(
+        {
+          error: 'could not verify bridge wallet balance',
+          detail: `Could not read the bridge wallet's balance on ${chain.name}.`,
+        },
+        503,
+      );
+    }
+  }
+
+  // Solana's CCTP domain is 5; EVM domains come from CCTP_CHAINS. App Kit
+  // doesn't read this off the record (it uses the chain enum directly), but
+  // UI consumers persist it in their JSON payload.
+  const sourceDomain = chain.isSolana ? 5 : CCTP_CHAINS[body.sourceChainKey as CctpChainKey].domain;
+
+  await createBridge({
+    bridgeId: body.bridgeId,
+    sourceDomain,
+    sourceTxHash: '',
+    amountUsdc: body.amountUsdc.toString(),
+    mintRecipient: body.mintRecipient,
+    status: 'approving',
+    sourceChainKey: body.sourceChainKey,
+    bridgeWalletId,
+    bridgeWalletAddress,
+    appKit: true,
+  });
+
+  // Fire-and-forget. kit.bridge() runs the full approve/burn/attest/mint
+  // lifecycle in the background and patches the bridge record at each step
+  // via the SDK event listeners in bridgeInToArcViaAppKit.
+  void bridgeInToArcViaAppKit({
+    bridgeId: body.bridgeId,
+    sourceChainKey: body.sourceChainKey,
+    bridgeWalletAddress,
+    amountUsdc: body.amountUsdc.toString(),
+    mintRecipient: body.mintRecipient,
+  });
+
+  return c.json(
+    {
+      accepted: true,
+      bridgeId: body.bridgeId,
+      status: 'approving',
+      sourceAddress: bridgeWalletAddress,
+      sourceChainKey: body.sourceChainKey,
+      via: 'app-kit',
     },
     202,
   );
@@ -1063,6 +1294,28 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   if (!record.sourceChainKey || !record.bridgeWalletId || !record.bridgeWalletAddress) {
     return c.json(
       { error: 'bridge has no source context; this is likely a web3 bridge. Use /recheck.' },
+      409,
+    );
+  }
+  // App Kit bridges don't have a resumable hand-rolled state to re-enter.
+  // Manual operator path: mark the record minted or error after observing
+  // the on-chain outcome of the in-flight kit.bridge() call.
+  if (record.appKit) {
+    return c.json(
+      {
+        error: 'app-kit bridge has no resumable state',
+        detail:
+          'This bridge is managed by App Kit. Wait for the in-flight kit.bridge() to settle, then verify the mint on Arcscan and mark the record manually if needed.',
+      },
+      409,
+    );
+  }
+  if (!isCctpChainKey(record.sourceChainKey)) {
+    return c.json(
+      {
+        error: 'unsupported source chain for hand-rolled resume',
+        detail: `source ${record.sourceChainKey} is App Kit-only; the hand-rolled pipeline does not support it`,
+      },
       409,
     );
   }

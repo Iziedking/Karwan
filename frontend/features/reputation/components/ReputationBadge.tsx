@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useReputation } from '../hooks/useReputation';
 import {
@@ -97,14 +98,71 @@ export function ReputationBadge({
 }) {
   const { data, fetchState } = useReputation(address);
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLSpanElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Portal target only exists on the client. Gating the createPortal call on
+  // this flag keeps SSR safe and avoids a hydration mismatch on first render.
+  const [mounted, setMounted] = useState(false);
+  // Viewport-clamped popover position. Null until computed so we render the
+  // popover only after the trigger's bounding rect is known, no flash.
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // Close popover on outside click / Escape.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Compute the popover position from the trigger button's bounding rect,
+  // clamped to the viewport so it never sits off-screen on narrow widths.
+  // Re-runs on scroll and resize so the popover tracks the button. Uses
+  // useLayoutEffect so the computed position lands before paint, no jump.
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) {
+      setPos(null);
+      return;
+    }
+    function compute() {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const margin = 12;
+      const width = Math.min(256, Math.max(220, window.innerWidth - margin * 2));
+      let left = rect.left;
+      if (left + width > window.innerWidth - margin) {
+        left = window.innerWidth - width - margin;
+      }
+      if (left < margin) left = margin;
+      let top = rect.bottom + 8;
+      // Flip the popover above the trigger if dropping below would overflow
+      // the viewport bottom (common on the seller row deep in a card on mobile).
+      const estimatedHeight = 240;
+      if (top + estimatedHeight > window.innerHeight - margin) {
+        const above = rect.top - estimatedHeight - 8;
+        if (above >= margin) top = above;
+      }
+      setPos({ top, left, width });
+    }
+    compute();
+    window.addEventListener('resize', compute);
+    // Capture-phase scroll listener catches scrolls in any scrollable
+    // ancestor, not just the window, so a popover inside an overflowing card
+    // still tracks the trigger.
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+    };
+  }, [open]);
+
+  // Close on outside click / Escape. With the popover portaled to body, an
+  // "outside" click means the event target is neither the trigger nor the
+  // popover element.
   useEffect(() => {
     if (!open) return;
     function onPointer(e: MouseEvent) {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
@@ -156,11 +214,14 @@ export function ReputationBadge({
   const showScore = useComposite ? true : data.totalDeals > 0;
 
   return (
-    <span ref={wrapRef} className="relative inline-block">
+    <span className="inline-block">
       <button
+        ref={buttonRef}
         type="button"
         onClick={withDetail ? () => setOpen((s) => !s) : undefined}
         disabled={!withDetail}
+        aria-haspopup={withDetail ? 'dialog' : undefined}
+        aria-expanded={withDetail ? open : undefined}
         title={`${tier.label} · ${data.totalDeals} ${data.totalDeals === 1 ? 'deal' : 'deals'}`}
         className={`group inline-flex items-stretch border transition-colors ${
           withDetail ? 'hover:brightness-95' : 'cursor-default'
@@ -195,45 +256,52 @@ export function ReputationBadge({
         )}
       </button>
 
-      {withDetail && open && (
-        <div
-          className="absolute left-0 mt-2 z-30 w-64 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card-hover)] p-3 fade-up"
-        >
-          <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--color-line)]">
-            <span className="eyebrow">Reputation</span>
-            <span className="text-[10px] mono text-[var(--color-ink-faint)]">
-              {data.totalDeals} {data.totalDeals === 1 ? 'deal' : 'deals'}
-            </span>
-          </div>
-          <div className="pt-3 pb-2 flex items-baseline gap-3">
-            <span
-              className="text-[36px] tracking-tight tabular-nums leading-none"
-              style={{ fontFamily: 'var(--font-serif)', color: tier.color }}
-            >
-              {showScore ? score : '-'}
-            </span>
-            <span className="text-[10px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
-              {showScore ? `/ ${scoreMax}` : 'unrated'}
-            </span>
-          </div>
-          <div className="space-y-1.5 pt-2">
-            <StatRow label="Success" value={data.successCount} tone="positive" />
-            <StatRow label="Disputed" value={data.disputedCount} tone="warning" />
-            <StatRow label="Failed" value={data.failedCount} tone="critical" />
-          </div>
-          <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[10px] text-[var(--color-ink-faint)] leading-snug">
-            Composite of deal history, stake, and tenure. Recorded on-chain.
-          </p>
-          {address && (
-            <Link
-              href={`/credit-passport/${address}`}
-              className="mt-2 inline-flex items-center gap-1 text-[10px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
-            >
-              Credit passport ↗
-            </Link>
-          )}
-        </div>
-      )}
+      {withDetail && open && mounted && pos &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            role="dialog"
+            aria-label="Reputation details"
+            className="fixed z-50 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card-hover)] p-3 fade-up"
+            style={{ top: pos.top, left: pos.left, width: pos.width }}
+          >
+            <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--color-line)]">
+              <span className="eyebrow">Reputation</span>
+              <span className="text-[10px] mono text-[var(--color-ink-faint)]">
+                {data.totalDeals} {data.totalDeals === 1 ? 'deal' : 'deals'}
+              </span>
+            </div>
+            <div className="pt-3 pb-2 flex items-baseline gap-3">
+              <span
+                className="text-[36px] tracking-tight tabular-nums leading-none"
+                style={{ fontFamily: 'var(--font-serif)', color: tier.color }}
+              >
+                {showScore ? score : '-'}
+              </span>
+              <span className="text-[10px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
+                {showScore ? `/ ${scoreMax}` : 'unrated'}
+              </span>
+            </div>
+            <div className="space-y-1.5 pt-2">
+              <StatRow label="Success" value={data.successCount} tone="positive" />
+              <StatRow label="Disputed" value={data.disputedCount} tone="warning" />
+              <StatRow label="Failed" value={data.failedCount} tone="critical" />
+            </div>
+            <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[10px] text-[var(--color-ink-faint)] leading-snug">
+              Composite of deal history, stake, and tenure. Recorded on-chain.
+            </p>
+            {address && (
+              <Link
+                href={`/credit-passport/${address}`}
+                className="mt-2 inline-flex items-center gap-1 text-[10px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
+              >
+                Credit passport ↗
+              </Link>
+            )}
+          </div>,
+          document.body,
+        )
+      }
     </span>
   );
 }

@@ -1,5 +1,6 @@
-﻿import { defineChain, fallback } from 'viem';
+﻿import { fallback } from 'viem';
 import {
+  arcTestnet,
   baseSepolia,
   sepolia,
   optimismSepolia,
@@ -16,19 +17,11 @@ import {
   injectedWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 
-export const arcTestnet = defineChain({
-  id: 5042002,
-  name: 'Arc Testnet',
-  nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://rpc.testnet.arc.network'] },
-    public: { http: ['https://rpc.testnet.arc.network'] },
-  },
-  blockExplorers: {
-    default: { name: 'ArcScan', url: 'https://testnet.arcscan.app' },
-  },
-  testnet: true,
-});
+// Arc Testnet ships with viem (v2.48+): chain id 5042002, native USDC at 18
+// decimals, three RPC fallbacks (arc + quicknode + blockdaemon), multicall3,
+// arcscan explorer + apiUrl. Re-exported here so the existing callers around
+// the app keep their `@/core/wagmi` import path; no functional change.
+export { arcTestnet };
 
 const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? 'karwan-demo';
 

@@ -2,6 +2,15 @@ import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
+/// Idempotency note. The DCW SDK auto-generates a fresh UUID v4 idempotency key
+/// per request when `idempotencyKey` is not supplied (see WithIdempotencyKey in
+/// `@circle-fin/developer-controlled-wallets/dist/types/clients/core.d.ts`).
+/// Callers in this file therefore do NOT pass an explicit key: there is no
+/// process-level retry on createWallets here (an in-flight Set + the
+/// agent-wallet table prevents duplicate provisioning), and the SDK's per-call
+/// key already gives Circle dedup against an accidentally-doubled request.
+/// The bridge pipeline IS retry-driven (resumePendingBridges) so it persists an
+/// explicit key on the bridge record; see backend/src/routes/bridge.ts.
 let _client: ReturnType<typeof initiateDeveloperControlledWalletsClient> | null = null;
 
 export function circleWalletsClient() {
@@ -27,12 +36,18 @@ export const ETH_SEPOLIA_BLOCKCHAIN = 'ETH-SEPOLIA' as const;
 export const OP_SEPOLIA_BLOCKCHAIN = 'OP-SEPOLIA' as const;
 export const ARB_SEPOLIA_BLOCKCHAIN = 'ARB-SEPOLIA' as const;
 export const POLYGON_AMOY_BLOCKCHAIN = 'MATIC-AMOY' as const;
+/// Solana Devnet bridge wallet. Provisioned for the App Kit path only; the
+/// hand-rolled CCTP pipeline is EVM-only and cannot bridge from Solana.
+/// Circle SCAs are EVM-only per the use-developer-controlled-wallets skill,
+/// so the Solana provisioning below uses EOA accountType instead.
+export const SOL_DEVNET_BLOCKCHAIN = 'SOL-DEVNET' as const;
 export type BridgeBlockchain =
   | typeof BASE_SEPOLIA_BLOCKCHAIN
   | typeof ETH_SEPOLIA_BLOCKCHAIN
   | typeof OP_SEPOLIA_BLOCKCHAIN
   | typeof ARB_SEPOLIA_BLOCKCHAIN
-  | typeof POLYGON_AMOY_BLOCKCHAIN;
+  | typeof POLYGON_AMOY_BLOCKCHAIN
+  | typeof SOL_DEVNET_BLOCKCHAIN;
 
 export interface ProvisionedAgentWallets {
   buyerWalletId: string;
@@ -138,12 +153,16 @@ export async function provisionUserBridgeWallet(
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
   }
   const refId = userAddress.toLowerCase();
+  // Circle SCAs are EVM-only. Solana wallets must be provisioned as EOA;
+  // Circle returns 400 with a clear error if SCA is requested on SOL-DEVNET.
+  const accountType: 'SCA' | 'EOA' =
+    blockchain === SOL_DEVNET_BLOCKCHAIN ? 'EOA' : 'SCA';
   const client = circleWalletsClient();
   const res = await client.createWallets({
     blockchains: [blockchain],
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
-    accountType: 'SCA',
+    accountType,
     metadata: [{ name: `karwan-bridge-${blockchain.toLowerCase()}`, refId }],
   });
   const wallet = res.data?.wallets?.[0];

@@ -146,6 +146,16 @@ export default function ProfilePage() {
             </div>
             <div className="fade-up fade-up-2 mt-6 flex flex-wrap items-center gap-3">
               {address && <AddressPill address={shortAddress(address)} tone="dark" />}
+              {address && (
+                <a
+                  href={`/credit-passport/${address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-accent)] hover:underline"
+                >
+                  Public passport ↗
+                </a>
+              )}
               {profile && (
                 <span className="mono text-[11px] uppercase tracking-[0.12em] text-white/45">
                   Updated {new Date(profile.updatedAt).toLocaleDateString()}
