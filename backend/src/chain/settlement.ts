@@ -2,6 +2,7 @@ import { escrow, reputation, readEscrow } from './contracts.js';
 import { executeContractCall } from './txs.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { reportError } from '../errorTracker.js';
 
 // KarwanReputation.Outcome enum: None=0, Success=1, DisputeResolved=2, Failed=3.
 export const OUTCOME_SUCCESS = 1;
@@ -73,6 +74,18 @@ export async function finalizeIfSettled(
 /// wallet. Outcome defaults to success; pass Failed for a buyer cancel (the
 /// seller never delivered) or DisputeResolved for an appeal. Idempotent: the
 /// contract locks one record per jobId, and we skip if already recorded.
+///
+/// ERC-4337 inner-revert verification: Circle reporting COMPLETE on the
+/// userOp wrapper (handleOps) does NOT guarantee the inner recordCompletion
+/// call landed. The wrapper can succeed while the inner call reverts — the
+/// "escrow got 0" bug (see karwan_erc4337_innerrevert.md) was the same
+/// shape on fundEscrow. Without a re-read, we'd emit reputation.recorded +
+/// surface a "Reputation recorded on chain" notification to the user, while
+/// the contract's `scores[subject]` mapping stays at zero. The credit
+/// passport then shows 0 settled deals despite the success notification.
+/// Fix: after executeContractCall returns, re-read `recorded[jobId]`. If
+/// it's still false, the inner call reverted; emit an agent.error instead
+/// of reputation.recorded so the reconciler picks it up on the next pass.
 export async function recordReputation(
   jobId: string,
   walletId: string,
@@ -99,6 +112,47 @@ export async function recordReputation(
       },
       `recordCompletion(${jobId}, ${label})`,
     );
+
+    // Verify on-chain state landed. Circle's COMPLETE state means the
+    // handleOps wrapper succeeded, but the inner recordCompletion may have
+    // reverted (NotParty if msg.sender != buyer/seller on chain, or a
+    // contract-redeploy mismatch). Without this re-read we'd emit
+    // reputation.recorded for a call that never actually wrote.
+    let verified = false;
+    try {
+      verified = (await reputation.read.recorded([
+        jobId as `0x${string}`,
+      ])) as boolean;
+    } catch (err) {
+      logger.warn(
+        { jobId, err: (err as Error).message },
+        'reputation post-write verify read failed',
+      );
+    }
+
+    if (!verified) {
+      const message = `Circle reported COMPLETE on tx ${result.txHash} but recorded[${jobId}] is still false; inner recordCompletion likely reverted (ERC-4337 wrapper masked it).`;
+      logger.error(
+        { jobId, seller, outcome: label, txHash: result.txHash },
+        'reputation inner-revert detected; chain state unchanged',
+      );
+      // Route through the process-wide error tracker so the failure shows in
+      // /api/admin/errors. Without this it stays only in pino at error level
+      // and operators can't see it via the live admin endpoint.
+      reportError(
+        'recordReputation.innerRevert',
+        new Error(message),
+        { jobId, seller, outcome: label, txHash: result.txHash },
+      );
+      bus.emitEvent({
+        type: 'agent.error',
+        jobId,
+        actor: 'buyer',
+        payload: { scope: 'recordCompletion', message },
+      });
+      return;
+    }
+
     bus.emitEvent({
       type: 'reputation.recorded',
       jobId,

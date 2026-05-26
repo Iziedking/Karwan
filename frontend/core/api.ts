@@ -995,7 +995,9 @@ export const api = {
     ),
   /// Returns or lazy-provisions the user's source-chain DCW address so the
   /// frontend can show "send USDC here" + a faucet link for Circle users.
-  bridgeCircleSourceAddress: (address: string, sourceChainKey: BridgeChainKey) =>
+  /// Accepts both the hand-rolled CCTP chains and App Kit chains (Solana
+  /// Devnet today). The backend provisions on read for any supported key.
+  bridgeCircleSourceAddress: (address: string, sourceChainKey: AppKitBridgeChainKey) =>
     json<{ address: string; blockchain: string }>(
       `/api/bridge/circle-source-address?address=${address}&sourceChainKey=${sourceChainKey}`,
     ),

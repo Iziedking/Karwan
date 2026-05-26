@@ -13,16 +13,28 @@ function constantTimeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-/// Fail-closed admin gate. Requires `X-Admin-Token` to match ADMIN_API_TOKEN.
-/// When the token isn't configured, the admin surface is DISABLED (503) rather
-/// than left open — so a missing env var can never silently expose admin.
+/// Fail-closed admin gate. Accepts the token via either header convention:
+///   X-Admin-Token: <token>
+///   Authorization: Bearer <token>
+/// Both compare against ADMIN_API_TOKEN. When the token isn't configured, the
+/// admin surface is DISABLED (503) rather than left open — so a missing env
+/// var can never silently expose admin.
+///
+/// The Authorization: Bearer form is the standard most CLI users + curl
+/// examples reach for; keeping X-Admin-Token for back-compat with anything
+/// already wired against the older shape.
 export async function requireAdmin(c: Context, next: Next): Promise<Response | void> {
   const expected = config.ADMIN_API_TOKEN;
   if (!expected) {
     return c.json({ error: 'admin API disabled (ADMIN_API_TOKEN not set)' }, 503);
   }
-  const provided = c.req.header('x-admin-token') ?? '';
-  if (!constantTimeEqual(provided, expected)) {
+  const headerToken = c.req.header('x-admin-token') ?? '';
+  const authHeader = c.req.header('authorization') ?? '';
+  const bearerToken = authHeader.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : '';
+  const provided = headerToken || bearerToken;
+  if (!provided || !constantTimeEqual(provided, expected)) {
     return c.json({ error: 'unauthorized' }, 401);
   }
   await next();

@@ -79,6 +79,27 @@ const envSchema = z.object({
   // skips its out-of-gas precheck. The sponsorship is the console policy; this
   // flag just tells the code to trust it. See todo #181.
   CIRCLE_GAS_STATION_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  // Comma-separated CCTP source-chain keys that the Gas Station policy actually
+  // sponsors. The Console policy is per-chain (task #181 sponsored baseSepolia
+  // + sepolia only), but the ENABLED flag above is a single bool. Without this
+  // whitelist, ENABLED=true skipped the gas precheck for all 5 chains and
+  // bridges from arbitrumSepolia / optimismSepolia / polygonAmoy hung forever
+  // in "APPROVING USDC" because the SCA had no native gas and no Console
+  // sponsorship to cover the userOp.
+  //
+  // Empty (default) = back-compat: ENABLED=true sponsors every chain (the old
+  // behavior). Operators should set this to match the Console policy
+  // explicitly, e.g. CIRCLE_GAS_STATION_SPONSORED_CHAINS=baseSepolia,sepolia.
+  CIRCLE_GAS_STATION_SPONSORED_CHAINS: z.preprocess(
+    (v) => {
+      if (typeof v !== 'string' || !v.trim()) return [];
+      return v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    },
+    z.array(z.string()),
+  ),
   // Circle webhook subscription ID for the dev-controlled-wallets event stream.
   // Created in the Circle Developer Console (Webhooks tab) once per environment.
   // When unset, POST /api/circle/webhook returns 503 "not configured" and the

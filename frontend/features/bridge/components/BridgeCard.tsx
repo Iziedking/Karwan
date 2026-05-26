@@ -1375,13 +1375,50 @@ function CircleSourceFundBanner({
 }
 
 /// Solana Devnet (and any future App-Kit-only source) needs a different
-/// funding banner than the EVM Circle path. There is no per-user backend
-/// balance read yet, so we surface the faucet links directly: SOL faucet
-/// for gas on the Solana side (the backend DCW signs the SPL transfer, but
-/// the testnet still needs SOL for blockhash + signature) plus Circle's USDC
-/// faucet which supports Solana Devnet. Auto-claim is unreliable here, so
-/// the faucet buttons are the primary path.
+/// funding banner than the EVM Circle path. The backend lazy-provisions a
+/// per-user Solana DCW (EOA on SOL-DEVNET) on first read; we fetch its
+/// address here and display it with a Copy button so users know exactly
+/// where to send USDC. Live balance polling isn't wired yet for Solana
+/// (the backend ERC-20 balance read doesn't apply to SPL tokens), so the
+/// banner stays address-only — the faucet links are the user's primary
+/// path because auto-drip is unreliable on devnet.
 function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
+  const auth = useAuth();
+  const [address, setAddress] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Fetch the user's source-chain DCW address. The backend provisions on
+  // read, so the first call may take a second; surface "provisioning…" in
+  // place of the address until it resolves. Re-fires when the source key
+  // changes (parent re-renders this banner per source).
+  useEffect(() => {
+    if (!auth.address) return;
+    let cancelled = false;
+    setAddress(null);
+    api
+      .bridgeCircleSourceAddress(auth.address as string, source.key)
+      .then((r) => {
+        if (!cancelled) setAddress(r.address);
+      })
+      .catch(() => {
+        /* keep null; the row reads "provisioning…" so the user retries */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.address, source.key]);
+
+  async function copyAddress() {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* clipboard can fail in unfocused tabs */
+    }
+  }
+
   return (
     <div
       className="relative mb-4 overflow-hidden px-4 py-3 pl-5"
@@ -1403,12 +1440,40 @@ function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
         [:FUND {source.shortName.toUpperCase()} TO BRIDGE:]
       </p>
       <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-        {source.name} bridges through Circle App Kit. Your Solana wallet needs
-        a small amount of {source.nativeSymbol} for blockhash fees and USDC to
-        bridge. Auto-drip is unreliable on devnet, so claim from the public
-        faucets directly.
+        {source.name} bridges through Circle App Kit. Karwan signs the burn
+        from your dedicated {source.shortName} wallet, so you fund that
+        address with USDC once and {source.nativeSymbol} for blockhash fees.
+        Auto-drip is unreliable on devnet, so claim from the public faucets
+        directly.
       </p>
-      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+
+      <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Your {source.shortName} Circle address
+          </p>
+          <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
+            {address ?? 'provisioning…'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={copyAddress}
+          disabled={!address}
+          className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15 shrink-0"
+          style={{
+            borderTopLeftRadius: 6,
+            borderTopRightRadius: 6,
+            borderBottomLeftRadius: 6,
+            borderBottomRightRadius: 2,
+            color: copied ? '#0a7553' : undefined,
+          }}
+        >
+          {copied ? 'COPIED' : 'COPY'}
+        </button>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
         {source.faucet && (
           <FaucetLink href={source.faucet}>
             Claim {source.nativeSymbol} gas

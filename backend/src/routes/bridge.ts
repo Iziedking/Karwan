@@ -983,10 +983,25 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     // approve + burn are paid in the chain's native token, not Arc USDC. Without
     // this a gas-starved wallet passes the USDC check, starts the pipeline, and
     // the approve never settles, so the bridge sits "pending" forever with no
-    // error. Block at the door instead, with an actionable message. Skipped when
-    // Gas Station sponsorship is on (the DCW then needs no native gas).
+    // error. Block at the door instead, with an actionable message. Skipped only
+    // when Gas Station sponsorship covers THIS specific source chain.
+    //
+    // Sponsorship resolution:
+    //   1. ENABLED=false → no sponsorship, every chain needs gas (precheck on).
+    //   2. ENABLED=true + whitelist empty → back-compat: all chains sponsored
+    //      (matches the pre-whitelist behavior; safe when the operator has
+    //      enabled sponsorship for all CCTP chains in Console).
+    //   3. ENABLED=true + whitelist non-empty → only listed chains sponsored.
+    //
+    // Without (3), a single boolean for a multi-chain Console policy is the
+    // source of the long-hanging "APPROVING USDC" on Arbitrum / OP / Polygon
+    // Amoy where the SCA has no gas because Console only covers Base + Eth.
+    const sponsoredList = config.CIRCLE_GAS_STATION_SPONSORED_CHAINS;
+    const sponsored =
+      config.CIRCLE_GAS_STATION_ENABLED &&
+      (sponsoredList.length === 0 || sponsoredList.includes(body.sourceChainKey));
     const MIN_GAS_WEI = 200_000_000_000_000n; // ~0.0002 native; covers the approve + burn
-    if (!config.CIRCLE_GAS_STATION_ENABLED && gasBalance < MIN_GAS_WEI) {
+    if (!sponsored && gasBalance < MIN_GAS_WEI) {
       return c.json(
         {
           error: 'bridge wallet out of gas',
@@ -1422,38 +1437,57 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
 
 /// Returns or lazy-provisions the user's source-chain bridge wallet address
 /// so the frontend can display it (faucet target, "send USDC here" copy).
+/// Accepts both CCTP chain keys (the 5 EVM testnets handled by the hand-rolled
+/// pipeline) and App Kit chain keys (currently Solana Devnet, signed via the
+/// Circle Wallets adapter on the backend). Resolves the Circle blockchain
+/// string from whichever registry owns the key and runs the same
+/// provisionUserBridgeWallet path, which switches accountType internally
+/// (SCA for EVM, EOA for Solana).
 bridgeRoutes.get('/circle-source-address', async (c) => {
   const address = c.req.query('address');
   const sourceChainKey = c.req.query('sourceChainKey');
   if (!address || !sourceChainKey) {
     return c.json({ error: 'address and sourceChainKey are required' }, 400);
   }
-  if (!isCctpChainKey(sourceChainKey)) {
-    return c.json({ error: 'sourceChainKey must be a supported CCTP chain' }, 400);
+  let circleBlockchain: string;
+  if (isCctpChainKey(sourceChainKey)) {
+    circleBlockchain = CCTP_CHAINS[sourceChainKey].circleBlockchain;
+  } else if (sourceChainKey in APP_KIT_SOURCE_CHAINS) {
+    circleBlockchain =
+      APP_KIT_SOURCE_CHAINS[sourceChainKey as keyof typeof APP_KIT_SOURCE_CHAINS]
+        .circleBlockchain;
+  } else {
+    return c.json(
+      { error: 'sourceChainKey must be a supported CCTP or App Kit chain' },
+      400,
+    );
   }
+
   const userAddress = address.toLowerCase();
   const user = getUserByAddress(userAddress);
   if (!user) {
     return c.json({ error: 'not a Circle user' }, 409);
   }
-  const chainCfg = CCTP_CHAINS[sourceChainKey];
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'activate first' }, 409);
 
-  const existing = wallets.bridgeWallets?.[chainCfg.circleBlockchain];
-  if (existing) return c.json({ address: existing.address, blockchain: chainCfg.circleBlockchain });
+  const existing = wallets.bridgeWallets?.[circleBlockchain];
+  if (existing) return c.json({ address: existing.address, blockchain: circleBlockchain });
 
   try {
-    const created = await provisionUserBridgeWallet(userAddress, chainCfg.circleBlockchain);
+    const created = await provisionUserBridgeWallet(
+      userAddress,
+      circleBlockchain as Parameters<typeof provisionUserBridgeWallet>[1],
+    );
     const next = {
       ...wallets,
       bridgeWallets: {
         ...(wallets.bridgeWallets ?? {}),
-        [chainCfg.circleBlockchain]: { walletId: created.walletId, address: created.address },
+        [circleBlockchain]: { walletId: created.walletId, address: created.address },
       },
     };
     await saveAgentWallets(next);
-    return c.json({ address: created.address, blockchain: chainCfg.circleBlockchain });
+    return c.json({ address: created.address, blockchain: circleBlockchain });
   } catch (err) {
     return c.json(
       { error: 'lazy provisioning failed', detail: (err as Error).message },

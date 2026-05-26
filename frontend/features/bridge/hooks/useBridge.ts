@@ -8,7 +8,7 @@ import {
   useSwitchChain,
   useWalletClient,
 } from 'wagmi';
-import { api, type ChainEvent } from '@/core/api';
+import { api, ApiError, type ChainEvent } from '@/core/api';
 import {
   ARC_TESTNET,
   SOURCE_CHAINS,
@@ -616,6 +616,21 @@ export function useBridges() {
         if (typeof console !== 'undefined') {
           // eslint-disable-next-line no-console
           console.warn('[bridge.recheck]', real);
+        }
+        // 409 "a relay is already in progress" is not a failure. The backend's
+        // recheck endpoint refuses to start a parallel relay while one is
+        // already running; the existing relay continues and SSE will animate
+        // the row when the attestation lands. Keep the row in 'attesting',
+        // clear the spurious error, and let the user wait (or recheck again
+        // later once the in-flight relay finishes). Without this branch the
+        // row gets stamped 'error' even though nothing actually broke.
+        if (
+          err instanceof ApiError &&
+          err.status === 409 &&
+          (raw.includes('relay is already in progress') || raw.includes('relaying'))
+        ) {
+          patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
+          return;
         }
         // Treat "bridge not found" specially. This happens when the backend
         // record was wiped (flat-file reset, DB migration, fresh deploy) but

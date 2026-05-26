@@ -13,14 +13,21 @@ import { shortAddress } from '@/shared/utils/format';
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 
-// Composite tier bands on the 0-1000 scale (docs/reputation-model.md): NEW <250,
-// COLD 250-449, ESTABLISHED 450-649, STRONG 650-849, ELITE >=850.
+// Composite tier bands on the 0-1000 scale. MUST mirror the backend's
+// TIER_BREAKPOINTS in backend/src/reputation/config.ts (NEW <200, COLD 200-399,
+// ESTABLISHED 400-599, STRONG 600-799, ELITE >=800). Earlier this used a 250 /
+// 450 / 650 / 850 scheme that drifted from the backend after the v2 engine
+// landed, which made the "Next tier · +N" hint compute against a different
+// ladder than the pill rendered against — e.g. score 407 read as ESTABLISHED
+// (backend rule >=400) yet the hint said "Established · +43" (frontend rule
+// >=450). The two sides MUST stay in lockstep; if you change the backend
+// breakpoints, change these too.
 const TIER_BANDS: { tier: CompositeTier; start: number }[] = [
   { tier: 'NEW', start: 0 },
-  { tier: 'COLD', start: 250 },
-  { tier: 'ESTABLISHED', start: 450 },
-  { tier: 'STRONG', start: 650 },
-  { tier: 'ELITE', start: 850 },
+  { tier: 'COLD', start: 200 },
+  { tier: 'ESTABLISHED', start: 400 },
+  { tier: 'STRONG', start: 600 },
+  { tier: 'ELITE', start: 800 },
 ];
 
 // Human labels for the composite term breakdown the engine returns (all [0,1]).
