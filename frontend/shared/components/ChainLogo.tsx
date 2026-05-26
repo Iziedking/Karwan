@@ -8,13 +8,15 @@ export type ChainKey =
   | 'optimism'
   | 'arbitrum'
   | 'polygon'
+  | 'solana'
   | 'baseSepolia'
   | 'sepolia'
   | 'optimismSepolia'
   | 'arbitrumSepolia'
-  | 'polygonAmoy';
+  | 'polygonAmoy'
+  | 'solanaDevnet';
 
-type BaseChain = 'arc' | 'base' | 'ethereum' | 'optimism' | 'arbitrum' | 'polygon';
+type BaseChain = 'arc' | 'base' | 'ethereum' | 'optimism' | 'arbitrum' | 'polygon' | 'solana';
 
 function normalize(k: ChainKey): BaseChain {
   if (k === 'baseSepolia') return 'base';
@@ -22,6 +24,7 @@ function normalize(k: ChainKey): BaseChain {
   if (k === 'optimismSepolia') return 'optimism';
   if (k === 'arbitrumSepolia') return 'arbitrum';
   if (k === 'polygonAmoy') return 'polygon';
+  if (k === 'solanaDevnet') return 'solana';
   return k;
 }
 
@@ -115,6 +118,21 @@ export function ChainLogo({
           strokeLinejoin="round"
           fill="none"
         />
+      </svg>,
+    );
+  }
+
+  if (c === 'solana') {
+    // Solana's signature three-bar gradient mark, drawn as flat fills so the
+    // tile sits cleanly next to the EVM marks (matches the codebase rule
+    // against AI gradients on chain logos). Dark backdrop with the brand's
+    // teal + magenta strokes flat-coloured.
+    return tile(
+      '#0B0F1A',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path d="M9 11 L24 11 L21 14 L6 14 Z" fill="#14F195" />
+        <path d="M9 17.5 L24 17.5 L21 20.5 L6 20.5 Z" fill="#9945FF" />
+        <path d="M9 24 L24 24 L21 27 L6 27 Z" fill="#14F195" />
       </svg>,
     );
   }

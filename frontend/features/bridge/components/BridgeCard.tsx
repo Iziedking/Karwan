@@ -4,8 +4,24 @@ import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError } from '@/core/api';
-import { SOURCE_CHAINS, GAS_FAUCETS, type SourceChainConfig } from '../config';
-import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
+import {
+  SOURCE_CHAINS,
+  APP_KIT_SOURCES,
+  APP_KIT_SOURCE_KEYS,
+  GAS_FAUCETS,
+  USDC_FAUCET,
+  isAppKitOnlyChainKey,
+  type SourceChainConfig,
+  type AppKitSourceConfig,
+  type AnySourceChainKey,
+  type CctpChainKey,
+} from '../config';
+import {
+  useBridges,
+  bridgeChainMeta,
+  type BridgePhase,
+  type BridgeRecord,
+} from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
@@ -121,13 +137,24 @@ export function BridgeCard({
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
-  const { bridges, start, startCircle, retry, recheck, dismiss, clearCompleted, isActive } =
-    useBridges();
+  const {
+    bridges,
+    start,
+    startCircle,
+    startCircleAppKit,
+    retry,
+    recheck,
+    dismiss,
+    clearCompleted,
+    isActive,
+  } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridges = bridges.filter((b) => b.direction !== 'out');
-  const [sourceKey, setSourceKey] = useState<SourceChainConfig['key']>('baseSepolia');
+  const [sourceKey, setSourceKey] = useState<AnySourceChainKey>('baseSepolia');
   const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const sourceIsAppKitOnly = isAppKitOnlyChainKey(sourceKey);
 
   // For Circle users we surface the source-chain DCW address the backend
   // provisioned (or lazy-provisions on first read) PLUS its live USDC + gas
@@ -144,11 +171,20 @@ export function BridgeCard({
       setCircleWallet(null);
       return;
     }
+    // bridgeWalletStatus only supports the EVM CCTP chains right now (the
+    // backend reads an ERC-20 balanceOf). Solana Devnet uses a separate
+    // SPL token + Solana RPC, so its balance read isn't wired yet — show
+    // the address-only banner without live balances for that source.
+    if (isAppKitOnlyChainKey(sourceKey)) {
+      setCircleWallet(null);
+      return;
+    }
+    const cctpKey = sourceKey;
     let cancelled = false;
     setCircleWallet(null);
     const load = () => {
       api
-        .bridgeWalletStatus(auth.address as string, sourceKey)
+        .bridgeWalletStatus(auth.address as string, cctpKey)
         .then((r) => {
           if (!cancelled)
             setCircleWallet({
@@ -169,39 +205,58 @@ export function BridgeCard({
     };
   }, [isCircleUser, auth.address, sourceKey]);
 
-  const source = SOURCE_CHAINS[sourceKey];
+  // Resolve EVM source config when we're on a CCTP chain; null when the
+  // selected source is App-Kit-only (Solana Devnet). The wagmi balance hook
+  // below is conditional on the EVM source so the call is still made
+  // unconditionally (rules of hooks) but disabled when there's no EVM
+  // address to read.
+  const evmSource: SourceChainConfig | null = sourceIsAppKitOnly
+    ? null
+    : SOURCE_CHAINS[sourceKey];
+  const appKitSource: AppKitSourceConfig | null = sourceIsAppKitOnly
+    ? APP_KIT_SOURCES[sourceKey]
+    : null;
 
-  // Source-chain USDC balance shown on the amount field. Circle users get the
-  // polled bridge-wallet balance; web3 users get a cross-chain read of their own
-  // wallet on the selected source chain (every source chain is in the wagmi
-  // config). Tapping the balance fills the amount (MAX).
+  // Source-chain USDC balance shown on the amount field. Circle users on an
+  // EVM source get the polled bridge-wallet balance; web3 users get a
+  // cross-chain read of their own wallet on the selected EVM source. Solana
+  // (App-Kit-only) currently has no balance read on the frontend.
   const web3SourceBal = useBalance({
     address: web3Address,
-    token: source.usdc,
-    chainId: source.chainId,
-    query: { enabled: !isCircleUser && isConnected && !!web3Address },
+    token: evmSource?.usdc,
+    chainId: evmSource?.chainId,
+    query: { enabled: !!evmSource && !isCircleUser && isConnected && !!web3Address },
   });
-  const sourceBalance: string | null = isCircleUser
-    ? circleWallet?.usdcBalance ?? null
-    : web3SourceBal.data
-      ? formatUnits(web3SourceBal.data.value, web3SourceBal.data.decimals)
-      : null;
+  const sourceBalance: string | null = sourceIsAppKitOnly
+    ? null
+    : isCircleUser
+      ? circleWallet?.usdcBalance ?? null
+      : web3SourceBal.data
+        ? formatUnits(web3SourceBal.data.value, web3SourceBal.data.decimals)
+        : null;
   // The wagmi wallet may be on Arc (the user just funded an agent there) or on
   // any other chain. The bridge flow will switch it automatically, but the CTA
   // label tells the user that's about to happen so the wallet pop-up isn't a
-  // surprise.
-  const onWrongChain = isConnected && walletChainId !== source.chainId;
+  // surprise. App-Kit-only sources (Solana) have no EVM chainId; web3 users
+  // can't bridge from them at all so we don't surface a "wrong chain" prompt.
+  const onWrongChain =
+    !!evmSource && isConnected && walletChainId !== evmSource.chainId;
+
+  // Web3 users have no Solana signer in this app, so App-Kit-only sources are
+  // Circle-only. Display label changes accordingly.
+  const web3CannotSign = sourceIsAppKitOnly && !isCircleUser;
+  const sourceShortName = evmSource?.shortName ?? appKitSource?.shortName ?? '';
 
   // Split the button gate from "submit burn".
-  //   - canSwitch: web3 user on wrong chain just needs an active wallet to
-  //     trigger the chain switch. Amount + recipient don't matter for this.
-  //   - canBurn:   web3 user on the correct chain, with amount + recipient.
+  //   - canSwitch: web3 user on wrong EVM chain just needs an active wallet
+  //     to trigger the chain switch. Amount + recipient don't matter.
+  //   - canBurn:   web3 user on the correct EVM chain, with amount + recipient.
   //   - canBridgeCircle: Circle user, amount + recipient (backend signs).
-  // The button is enabled if any of these holds. Without this split, removing
-  // the default amount left web3 users unable to click "Switch to Base"
-  // until they typed an amount first, which makes no sense.
-  const canSwitch = isConnected && onWrongChain && !isSwitching;
+  // Solana picked by a web3 user disables everything except a "switch to
+  // Circle" hint surfaced inside the button label.
+  const canSwitch = !!evmSource && isConnected && onWrongChain && !isSwitching;
   const canBurn =
+    !!evmSource &&
     isConnected &&
     !onWrongChain &&
     typeof amount === 'number' &&
@@ -214,15 +269,25 @@ export function BridgeCard({
     typeof amount === 'number' &&
     amount > 0 &&
     !!mintRecipient;
-  const canSubmit = canBridgeCircle || canSwitch || canBurn;
+  const canSubmit =
+    !web3CannotSign && (canBridgeCircle || canSwitch || canBurn);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isCircleUser && auth.address) {
       if (!canBridgeCircle) return;
-      // Backend signs both legs from the per-user source-chain DCW. No chain
-      // switch, no wallet prompt. The record appears in the bridge list and
-      // animates the same way once burnTxHash + attestation land.
+      // Solana (and any future App-Kit-only source) routes through the
+      // unified bridge endpoint; EVM Circle bridges keep the hand-rolled
+      // pipeline for now. SSE drives both rows identically downstream.
+      if (sourceIsAppKitOnly) {
+        startCircleAppKit({
+          sourceChainKey: sourceKey,
+          amountUsdc: amount as number,
+          mintRecipient: mintRecipient as `0x${string}`,
+          userAddress: auth.address,
+        });
+        return;
+      }
       startCircle({
         sourceChainKey: sourceKey,
         amountUsdc: amount as number,
@@ -231,17 +296,26 @@ export function BridgeCard({
       });
       return;
     }
-    if (onWrongChain) {
+    if (web3CannotSign) {
+      // Defensive — the submit button is disabled, but a stray Enter shouldn't
+      // fire a no-op flow.
+      return;
+    }
+    if (onWrongChain && evmSource) {
       if (!canSwitch) return;
       try {
-        await switchChainAsync({ chainId: source.chainId });
+        await switchChainAsync({ chainId: evmSource.chainId });
       } catch {
         // User declined the wallet prompt. Stay on the same button.
       }
       return;
     }
     if (!canBurn || !mintRecipient) return;
-    start({ sourceChainKey: sourceKey, amountUsdc: amount as number, mintRecipient });
+    start({
+      sourceChainKey: sourceKey as CctpChainKey,
+      amountUsdc: amount as number,
+      mintRecipient,
+    });
   }
 
   if (!mintRecipient) {
@@ -312,13 +386,16 @@ export function BridgeCard({
       </div>
 
       <div className="px-6 pb-6">
-        {isCircleUser && (
+        {isCircleUser && !sourceIsAppKitOnly && (
           <CircleSourceFundBanner
-            sourceChainKey={sourceKey}
+            sourceChainKey={sourceKey as CctpChainKey}
             wallet={circleWallet}
           />
         )}
-        {!isCircleUser && isConnected && <Web3FundHint source={source} />}
+        {isCircleUser && sourceIsAppKitOnly && appKitSource && (
+          <AppKitFundBanner source={appKitSource} />
+        )}
+        {!isCircleUser && isConnected && evmSource && <Web3FundHint source={evmSource} />}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
           <div data-guide="bridge-source">
@@ -377,6 +454,78 @@ export function BridgeCard({
                           style={{ color: 'var(--lp-text-muted)' }}
                         >
                           Sepolia · d{c.domain}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* App-Kit-only sources (Solana Devnet today). Circle users
+                  bridge from these through /circle-bridge-app-kit. Web3 users
+                  see the card disabled with a "Circle only" hint — the app
+                  has no wagmi connector for Solana, so they cannot sign. */}
+              {APP_KIT_SOURCE_KEYS.map((k) => {
+                const c = APP_KIT_SOURCES[k];
+                const active = sourceKey === k;
+                const disabled = !isCircleUser;
+                return (
+                  <button
+                    type="button"
+                    key={k}
+                    onClick={() => !disabled && setSourceKey(k)}
+                    aria-pressed={active}
+                    disabled={disabled}
+                    title={
+                      disabled
+                        ? 'Solana bridge runs through Circle App Kit. Sign in with a Circle account to use it.'
+                        : undefined
+                    }
+                    className="relative overflow-hidden text-left pl-4 pr-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
+                      color: 'var(--lp-dark)',
+                      border: active
+                        ? '1px solid var(--lp-accent)'
+                        : '1px solid var(--lp-border-light)',
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                      boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
+                    }}
+                  >
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        style={{ background: 'var(--lp-accent)' }}
+                      />
+                    )}
+                    <div className="flex items-center gap-2.5">
+                      <ChainMark which="solana" size={26} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-sans text-[13px] font-semibold tracking-tight leading-tight">
+                            {c.shortName}
+                          </p>
+                          {disabled && (
+                            <span
+                              className="mono text-[8px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
+                              style={{
+                                color: 'var(--lp-text-muted)',
+                                background: 'rgba(0,0,0,0.05)',
+                              }}
+                            >
+                              Circle only
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
+                          style={{ color: 'var(--lp-text-muted)' }}
+                        >
+                          Devnet · App Kit
                         </p>
                       </div>
                     </div>
@@ -487,13 +636,15 @@ export function BridgeCard({
             {isCircleUser || isConnected ? (
               <>
                 <span>
-                  {isCircleUser
-                    ? `Bridge from ${source.shortName}`
-                    : isSwitching
-                      ? `Switching to ${source.shortName}…`
-                      : onWrongChain
-                        ? `Switch to ${source.shortName}`
-                        : `Bridge from ${source.shortName}`}
+                  {web3CannotSign
+                    ? 'Solana bridge needs a Circle account'
+                    : isCircleUser
+                      ? `Bridge from ${sourceShortName}`
+                      : isSwitching
+                        ? `Switching to ${sourceShortName}…`
+                        : onWrongChain
+                          ? `Switch to ${sourceShortName}`
+                          : `Bridge from ${sourceShortName}`}
                 </span>
                 <span
                   aria-hidden
@@ -573,7 +724,10 @@ function BridgeRow({
   onRecheck: () => void;
   onDismiss: () => void;
 }) {
-  const source = SOURCE_CHAINS[bridge.sourceChainKey];
+  // Bridge records can be EVM (SOURCE_CHAINS) or App-Kit-only (Solana, in
+  // APP_KIT_SOURCES). Use the uniform meta lookup so this row renders for
+  // either source without per-chain branching.
+  const meta = bridgeChainMeta(bridge.sourceChainKey);
   const tone = phaseTone(bridge.phase);
   const idx = stepIndexFor(bridge.phase);
   const isStuck =
@@ -622,7 +776,7 @@ function BridgeRow({
             </span>
           </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <PhaseChip tone={tone} label={phaseLabel(bridge.phase, source.shortName)} />
+            <PhaseChip tone={tone} label={phaseLabel(bridge.phase, meta.shortName)} />
             <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none tabular-nums">
               {elapsed(bridge.startedAt)}
             </span>
@@ -678,13 +832,13 @@ function BridgeRow({
             <div className="space-y-1.5">
               {bridge.burnTxHash && (
                 <a
-                  href={source.explorerTx(bridge.burnTxHash)}
+                  href={meta.explorerTx(bridge.burnTxHash)}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    BURN · {source.shortName.toUpperCase()}
+                    BURN · {meta.shortName.toUpperCase()}
                   </span>
                   <span className="mono inline-flex items-center gap-1 tabular-nums">
                     {shortHash(bridge.burnTxHash)}
@@ -816,12 +970,12 @@ function SegmentedProgress({ idx, tone }: { idx: number; tone: 'live' | 'positiv
 }
 
 function BridgeSteps({ bridge }: { bridge: BridgeRecord }) {
-  const source = SOURCE_CHAINS[bridge.sourceChainKey];
+  const meta = bridgeChainMeta(bridge.sourceChainKey);
   const idx = stepIndexFor(bridge.phase);
   const errored = bridge.phase === 'error';
   const steps: Array<{ key: BridgePhase; label: string; hint?: string }> = [
-    { key: 'approving', label: `Approve · ${source.shortName}` },
-    { key: 'burning', label: `Burn · ${source.shortName}` },
+    { key: 'approving', label: `Approve · ${meta.shortName}` },
+    { key: 'burning', label: `Burn · ${meta.shortName}` },
     { key: 'attesting', label: 'Circle attestation', hint: '~10–19 MIN' },
     { key: 'minting', label: 'Mint · Arc' },
   ];
@@ -1215,6 +1369,52 @@ function CircleSourceFundBanner({
             <ExternalIcon />
           </a>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/// Solana Devnet (and any future App-Kit-only source) needs a different
+/// funding banner than the EVM Circle path. There is no per-user backend
+/// balance read yet, so we surface the faucet links directly: SOL faucet
+/// for gas on the Solana side (the backend DCW signs the SPL transfer, but
+/// the testnet still needs SOL for blockhash + signature) plus Circle's USDC
+/// faucet which supports Solana Devnet. Auto-claim is unreliable here, so
+/// the faucet buttons are the primary path.
+function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
+  return (
+    <div
+      className="relative mb-4 overflow-hidden px-4 py-3 pl-5"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: 'var(--lp-accent)' }}
+      />
+      <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        [:FUND {source.shortName.toUpperCase()} TO BRIDGE:]
+      </p>
+      <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+        {source.name} bridges through Circle App Kit. Your Solana wallet needs
+        a small amount of {source.nativeSymbol} for blockhash fees and USDC to
+        bridge. Auto-drip is unreliable on devnet, so claim from the public
+        faucets directly.
+      </p>
+      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+        {source.faucet && (
+          <FaucetLink href={source.faucet}>
+            Claim {source.nativeSymbol} gas
+          </FaucetLink>
+        )}
+        <FaucetLink href={USDC_FAUCET}>Get test USDC</FaucetLink>
       </div>
     </div>
   );

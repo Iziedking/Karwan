@@ -19,6 +19,14 @@ export type CctpChainKey =
   | 'baseSepolia'
   | 'polygonAmoy';
 
+/// Source chains supported by the App Kit bridge path on top of the EVM CCTP
+/// V2 set. Solana doesn't fit the SourceChainConfig shape (no chainId, SPL
+/// USDC instead of an ERC-20 address, no wagmi signer), so it routes
+/// exclusively through POST /api/bridge/circle-bridge-app-kit using a
+/// Solana Devnet Circle DCW the backend provisions on first use.
+export type AppKitOnlyChainKey = 'solanaDevnet';
+export type AnySourceChainKey = CctpChainKey | AppKitOnlyChainKey;
+
 export interface SourceChainConfig {
   key: CctpChainKey;
   chainId: number;
@@ -28,6 +36,21 @@ export interface SourceChainConfig {
   nativeSymbol: string;
   usdc: `0x${string}`;
   tokenMessenger: `0x${string}`;
+  explorerTx: (hash: string) => string;
+}
+
+/// App-Kit-only source chain (currently Solana Devnet). The frontend never
+/// signs from this chain itself; the burn happens on a Circle DCW the
+/// backend provisions, and the App Kit forwarder broadcasts the Arc mint.
+/// Web3 users cannot use these sources (no wagmi connector); the picker
+/// gates accordingly.
+export interface AppKitSourceConfig {
+  key: AppKitOnlyChainKey;
+  name: string;
+  shortName: string;
+  nativeSymbol: string;
+  /// Used for the per-chain Circle faucet/gas help link in the UI.
+  faucet?: string;
   explorerTx: (hash: string) => string;
 }
 
@@ -90,6 +113,26 @@ export const SOURCE_CHAINS: Record<CctpChainKey, SourceChainConfig> = {
 };
 
 export const SOURCE_CHAIN_KEYS = Object.keys(SOURCE_CHAINS) as CctpChainKey[];
+
+/// App-Kit-only chains. Currently just Solana Devnet. The frontend lists
+/// these alongside the EVM source chains in the picker but routes the
+/// bridge call to /circle-bridge-app-kit because no wagmi signer exists.
+export const APP_KIT_SOURCES: Record<AppKitOnlyChainKey, AppKitSourceConfig> = {
+  solanaDevnet: {
+    key: 'solanaDevnet',
+    name: 'Solana Devnet',
+    shortName: 'Solana',
+    nativeSymbol: 'SOL',
+    faucet: 'https://faucet.solana.com/',
+    explorerTx: (h) => `https://explorer.solana.com/tx/${h}?cluster=devnet`,
+  },
+};
+
+export const APP_KIT_SOURCE_KEYS = Object.keys(APP_KIT_SOURCES) as AppKitOnlyChainKey[];
+
+export function isAppKitOnlyChainKey(k: string): k is AppKitOnlyChainKey {
+  return k in APP_KIT_SOURCES;
+}
 
 // Native-gas testnet faucets per source chain. Only web3 users need these (they
 // pay their own source-chain burn gas); Circle users are sponsored by Gas

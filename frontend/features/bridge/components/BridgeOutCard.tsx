@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
+import { useBridges, bridgeChainMeta, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, ARC_TESTNET, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
@@ -353,7 +353,10 @@ function OutRow({
   onDismiss: () => void;
   active: boolean;
 }) {
-  const dest = SOURCE_CHAINS[bridge.sourceChainKey];
+  // OUT records always land on a CCTP EVM destination today (Solana is
+  // bridge-IN-only on the App Kit path), so this index is safe. The meta
+  // lookup tolerates a future widening without forcing a rewrite here.
+  const dest = bridgeChainMeta(bridge.sourceChainKey);
   const tone = phaseTone(bridge.phase);
   const rail =
     tone === 'positive' ? '#0a7553' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';

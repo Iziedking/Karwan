@@ -30,6 +30,12 @@ export type BridgeChainKey =
   | 'baseSepolia'
   | 'polygonAmoy';
 
+/// Source chains supported via the App Kit bridge path on top of the hand-rolled
+/// EVM set. Solana is App-Kit-only because the frontend has no wagmi connector
+/// for it; the burn signs on a backend Circle DCW and the App Kit forwarder
+/// broadcasts the Arc mint. Mirrors backend/src/circle/bridge-kit.ts.
+export type AppKitBridgeChainKey = BridgeChainKey | 'solanaDevnet';
+
 export interface ApiStatus {
   chain: { id: number; rpc: string; explorer: string };
   contracts: {
@@ -415,10 +421,35 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       parsed = await res.text().catch(() => res.statusText);
     }
-    const message =
-      typeof parsed === 'object' && parsed && 'error' in parsed
-        ? String((parsed as { error: unknown }).error)
-        : String(parsed);
+    // Extract a usable message from the response shape. The backend's various
+    // routes use slightly different keys for the human line: `error`, `detail`,
+    // `message`, `reason`, sometimes a `status` enum. Before this rewrite we
+    // only looked at `error`, so a body like `{ status: 'relaying', detail:
+    // 'a relay is already in progress' }` fell into `String(parsed)` and
+    // surfaced the famous "[object Object]". Iterate the common fields in
+    // priority order; fall back to JSON.stringify before resorting to a raw
+    // String() coercion.
+    let message: string;
+    if (typeof parsed === 'string') {
+      message = parsed;
+    } else if (parsed && typeof parsed === 'object') {
+      const o = parsed as Record<string, unknown>;
+      const candidates = [o.error, o.detail, o.message, o.reason, o.status];
+      const found = candidates.find(
+        (c): c is string => typeof c === 'string' && c.trim().length > 0,
+      );
+      if (found) {
+        message = found;
+      } else {
+        try {
+          message = JSON.stringify(parsed);
+        } catch {
+          message = res.statusText || `HTTP ${res.status}`;
+        }
+      }
+    } else {
+      message = res.statusText || `HTTP ${res.status}`;
+    }
     const detail =
       typeof parsed === 'object' && parsed && 'detail' in parsed
         ? (parsed as { detail: unknown }).detail
@@ -915,6 +946,28 @@ export const api = {
       sourceAddress: string;
       sourceDomain: number;
     }>('/api/bridge/circle-bridge', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  /// App Kit bridge path. Routes through Circle's bundled SDK
+  /// (@circle-fin/app-kit) instead of the hand-rolled CCTP V2 pipeline, so
+  /// Solana Devnet (and any future non-EVM source) can bridge to Arc via
+  /// the same UI. The forwarder broadcasts the Arc mint, no per-destination
+  /// relay DCW needed. Status events flow over the same SSE channel as the
+  /// hand-rolled bridges.
+  bridgeCircleAppKit: (input: {
+    bridgeId: string;
+    address: string;
+    sourceChainKey: AppKitBridgeChainKey;
+    amountUsdc: number;
+    mintRecipient: string;
+  }) =>
+    json<{
+      accepted: true;
+      bridgeId: string;
+      sourceAddress: string;
+      sourceChainKey: AppKitBridgeChainKey;
+    }>('/api/bridge/circle-bridge-app-kit', {
       method: 'POST',
       body: JSON.stringify(input),
     }),

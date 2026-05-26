@@ -9,7 +9,17 @@ import {
   useWalletClient,
 } from 'wagmi';
 import { api, type ChainEvent } from '@/core/api';
-import { ARC_TESTNET, SOURCE_CHAINS, addressToBytes32, FINALITY_THRESHOLD_FAST, type SourceChainConfig, type CctpChainKey } from '../config';
+import {
+  ARC_TESTNET,
+  SOURCE_CHAINS,
+  APP_KIT_SOURCES,
+  isAppKitOnlyChainKey,
+  addressToBytes32,
+  FINALITY_THRESHOLD_FAST,
+  type SourceChainConfig,
+  type CctpChainKey,
+  type AnySourceChainKey,
+} from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -128,8 +138,10 @@ export interface BridgeRecord {
   /// chain). Absent is treated as 'in' (legacy + the existing web3/circle flow).
   direction?: 'in' | 'out';
   /// For 'in' the source chain; for 'out' the destination chain. Either way the
-  /// non-Arc chain, so SOURCE_CHAINS[sourceChainKey] resolves its name/explorer.
-  sourceChainKey: SourceChainConfig['key'];
+  /// non-Arc chain. EVM chains resolve via SOURCE_CHAINS; Solana Devnet (App-
+  /// Kit-only) resolves via APP_KIT_SOURCES; use bridgeChainMeta(key) to look
+  /// up name/short-name/explorer uniformly so consumers don't have to branch.
+  sourceChainKey: AnySourceChainKey;
   amountUsdc: string;
   mintRecipient: `0x${string}`;
   approveTxHash?: `0x${string}`;
@@ -144,6 +156,33 @@ export interface StartBridgeInput {
   sourceChainKey: SourceChainConfig['key'];
   amountUsdc: number;
   mintRecipient: `0x${string}`;
+}
+
+/// Uniform metadata lookup for any source chain (EVM or App-Kit-only). Use
+/// from row rendering and SSE handlers so we never have to branch on Solana
+/// vs EVM at the call site.
+export function bridgeChainMeta(key: AnySourceChainKey): {
+  name: string;
+  shortName: string;
+  nativeSymbol: string;
+  explorerTx: (h: string) => string;
+} {
+  if (isAppKitOnlyChainKey(key)) {
+    const c = APP_KIT_SOURCES[key];
+    return {
+      name: c.name,
+      shortName: c.shortName,
+      nativeSymbol: c.nativeSymbol,
+      explorerTx: c.explorerTx,
+    };
+  }
+  const c = SOURCE_CHAINS[key];
+  return {
+    name: c.name,
+    shortName: c.shortName,
+    nativeSymbol: c.nativeSymbol,
+    explorerTx: c.explorerTx,
+  };
 }
 
 const ACTIVE_PHASES: BridgePhase[] = [
@@ -398,8 +437,21 @@ export function useBridges() {
 
   const runFlow = useCallback(
     async (record: BridgeRecord) => {
-      const source = SOURCE_CHAINS[record.sourceChainKey];
-      const sourcePublicClient = sourceClients[record.sourceChainKey];
+      // runFlow is the web3 wagmi-signed path. App-Kit-only sources (Solana
+      // Devnet today) never enter this — startCircleAppKit handles them
+      // entirely on the backend. The guard prevents a future caller from
+      // dropping an App Kit record into the EVM signer path silently.
+      if (isAppKitOnlyChainKey(record.sourceChainKey)) {
+        patch(record.id, (b) => ({
+          ...b,
+          phase: 'error',
+          error: 'This source is signed by Circle on the backend. Use the App Kit bridge.',
+        }));
+        return;
+      }
+      const cctpKey: CctpChainKey = record.sourceChainKey;
+      const source = SOURCE_CHAINS[cctpKey];
+      const sourcePublicClient = sourceClients[cctpKey];
 
       if (!isConnected || !address || !walletClient || !sourcePublicClient) {
         patch(record.id, (b) => ({ ...b, phase: 'error', error: 'Connect your wallet first' }));
@@ -736,6 +788,60 @@ export function useBridges() {
     [patch],
   );
 
+  /// App Kit bridge-IN. The frontend never signs from the source chain;
+  /// Circle's App Kit SDK runs on the backend, with the Forwarding Service
+  /// broadcasting the Arc mint. Used for Solana (no wagmi signer exists) and
+  /// can be flipped on for the EVM chains too via the BRIDGE_USE_APP_KIT env
+  /// flag, but the existing hand-rolled CCTP path is the default for EVM.
+  const startCircleAppKit = useCallback(
+    async (input: {
+      sourceChainKey: AnySourceChainKey;
+      amountUsdc: number;
+      mintRecipient: `0x${string}`;
+      userAddress: string;
+    }) => {
+      const id = `${input.sourceChainKey}-appkit-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'approving',
+        sourceChainKey: input.sourceChainKey,
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.mintRecipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      try {
+        await api.bridgeCircleAppKit({
+          bridgeId: id,
+          address: input.userAddress,
+          sourceChainKey: input.sourceChainKey,
+          amountUsdc: input.amountUsdc,
+          mintRecipient: input.mintRecipient,
+        });
+        // Backend has queued the kit.bridge() call. SSE drives the row from
+        // here (approve -> burn -> attest -> mint). The App Kit path emits
+        // the same bus event types as the hand-rolled path, so no special
+        // handling is needed downstream.
+        patch(id, (b) => ({ ...b, phase: 'approving', error: undefined }));
+      } catch (err) {
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[bridge.startCircleAppKit]', errorToString(err));
+        }
+        const raw = errorToString(err).toLowerCase();
+        const friendly = raw.includes('failed to fetch')
+          ? 'Could not reach the bridge service. Check your connection and try again.'
+          : raw.includes('insufficient')
+            ? 'Source-chain wallet is short on funds. Top it up and try again.'
+            : `App Kit bridge could not start. ${errorToString(err).slice(0, 140)}`;
+        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+      }
+    },
+    [patch],
+  );
+
   /// Circle bridge-OUT (Arc -> chain). Backend burns from the identity DCW on
   /// Arc and relays the mint on the destination chain (gas sponsored via Gas
   /// Station). Records the bridge locally; the same SSE handlers animate it
@@ -790,6 +896,7 @@ export function useBridges() {
     bridges,
     start,
     startCircle,
+    startCircleAppKit,
     startCircleOut,
     retry,
     recheck,
