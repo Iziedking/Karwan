@@ -339,6 +339,19 @@ export interface Reputation {
   /// tier. Drives the profile congrats card.
   tierCelebration?: { tier: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE'; until: number } | null;
   modelVersion?: number;
+  /// Raw inputs the engine fed into the formula. Used by the credit passport
+  /// to display tenure days, the chain-vs-DB settlement gap, lifetime volume,
+  /// etc. without re-fetching every source. Shape mirrors the backend's
+  /// ReputationInputs interface; only the fields the UI actually consumes
+  /// are listed here.
+  inputs?: {
+    registeredAt?: number;
+    stakeUsdc?: number;
+    stakeDays?: number;
+    activeDays?: number;
+    lifetimeVolumeUsdc?: number;
+    completedDeals?: number;
+  };
 }
 
 export interface BalanceRow {
@@ -756,6 +769,12 @@ export const api = {
       totalActiveUsdc: string;
       totalCoolingUsdc: string;
       cooldownDays: number;
+      /// False while the backend is still scanning the vault's event log for
+      /// this owner — older positions may be missing from the served set
+      /// until the scan reaches head. The UI should render a syncing
+      /// indicator and refetch shortly. Absent on older deploys; treat as
+      /// `true` for back-compat.
+      synced?: boolean;
     }>(`/api/vault/positions?address=${address}`),
   /// Circle-only vault writes. Web3 users sign deposit/withdraw/claim
   /// directly from the wallet via wagmi `writeContract`.

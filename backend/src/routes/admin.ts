@@ -12,7 +12,12 @@ import {
 } from '../agents/buyer.js';
 import { deleteBriefsByPoster } from '../db/briefs.js';
 import { deleteListingsBySeller } from '../db/listings.js';
-import { deleteDealsInvolvingAddress, getDeal, patchDeal } from '../db/deals.js';
+import {
+  deleteDealsInvolvingAddress,
+  getDeal,
+  patchDeal,
+} from '../db/deals.js';
+import { reconcileReputationOnce } from '../reputation/reconciler.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
@@ -92,6 +97,53 @@ adminRoutes.post('/deals/:jobId/force-cancel', async (c) => {
   await patchDeal(jobId, { cancelledAt: Date.now() });
   logger.warn({ jobId, buyer: deal.buyer, seller: deal.seller }, 'admin: force-cancelled deal');
   return c.json({ ok: true, jobId, forced: true });
+});
+
+/// Replays settled deals onto the on-chain KarwanReputation registry.
+/// Necessary because the recordCompletion mirror is a best-effort call that
+/// can fail silently (network blip, redeployed contract, deals settled
+/// without a buyerAgentWalletId). When the chain has fewer recorded
+/// completions than the DB has settledAt rows, the credit-passport score
+/// understates a real history.
+///
+/// Note: the same reconciler runs on a 10-minute periodic loop wired in
+/// index.ts, so future silent failures self-heal without operator action.
+/// This endpoint is for ad-hoc recovery (post-redeploy bulk replay, manual
+/// triage when an operator wants to see the result immediately) and dry
+/// runs. Pass ?address=0x... to limit scope, ?dry=1 to report without
+/// sending txs.
+adminRoutes.post('/reputation/backfill', async (c) => {
+  const filterAddrRaw = c.req.query('address');
+  const filterAddr = filterAddrRaw?.toLowerCase() ?? null;
+  if (filterAddr && !addrSchema.safeParse(filterAddr).success) {
+    return c.json({ error: 'invalid address filter' }, 400);
+  }
+  const dryRun = c.req.query('dry') === '1';
+
+  const result = await reconcileReputationOnce({
+    addressFilter: filterAddr,
+    dryRun,
+  });
+
+  logger.info(
+    {
+      filterAddr,
+      dryRun,
+      candidates: result.candidates,
+      recorded: result.recorded.length,
+      alreadyOnChain: result.alreadyOnChain.length,
+      failed: result.failed.length,
+      skipped: result.skipped.length,
+    },
+    'admin: reputation backfill complete',
+  );
+
+  return c.json({
+    ok: true,
+    dryRun,
+    filterAddr,
+    ...result,
+  });
 });
 
 /// Backend runtime errors captured by the process-wide tracker. Returns up

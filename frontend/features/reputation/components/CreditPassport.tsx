@@ -40,35 +40,70 @@ export function CreditPassport({ address }: { address: string }) {
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stakeUsdc, setStakeUsdc] = useState<string>('0');
+  const [stakeSynced, setStakeSynced] = useState<boolean>(true);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!valid) return;
     let cancelled = false;
-    setFetchState('loading');
-    Promise.allSettled([
-      api.reputation(address),
-      api.getProfile(address),
-      api.vaultPositions(address),
-    ])
-      .then(([repRes, profRes, vaultRes]) => {
-        if (cancelled) return;
-        // Reputation is the load-bearing read; if it fails the passport can't render.
-        if (repRes.status !== 'fulfilled') {
-          setFetchState('error');
-          return;
+    let pollId: ReturnType<typeof setTimeout> | null = null;
+
+    async function load() {
+      const [repRes, profRes, vaultRes] = await Promise.allSettled([
+        api.reputation(address),
+        api.getProfile(address),
+        api.vaultPositions(address),
+      ]);
+      if (cancelled) return;
+      // Reputation is the load-bearing read; if it fails the passport can't render.
+      if (repRes.status !== 'fulfilled') {
+        setFetchState('error');
+        return;
+      }
+      setRep(repRes.value);
+      setProfile(profRes.status === 'fulfilled' ? profRes.value.profile : null);
+      if (vaultRes.status === 'fulfilled') {
+        setStakeUsdc(vaultRes.value.totalActiveUsdc);
+        // synced is optional on the response for back-compat with older
+        // backends — undefined means "we don't know, assume final".
+        const synced = vaultRes.value.synced !== false;
+        setStakeSynced(synced);
+        // Mid-scan: poll the vault endpoint until it reports synced, so the
+        // total catches up without the user manually refreshing. Reputation
+        // is left as the first read since it depends on chain mirroring,
+        // not the vault scan.
+        if (!synced) {
+          pollId = setTimeout(async () => {
+            try {
+              const next = await api.vaultPositions(address);
+              if (cancelled) return;
+              setStakeUsdc(next.totalActiveUsdc);
+              const nextSynced = next.synced !== false;
+              setStakeSynced(nextSynced);
+              if (!nextSynced) {
+                // Same effect, recurse via the load() guarantee that pollId
+                // only ever holds the latest scheduled timer.
+                pollId = setTimeout(load, 5000);
+              }
+            } catch {
+              /* transient; the next user-driven refresh will catch up */
+            }
+          }, 5000);
         }
-        setRep(repRes.value);
-        setProfile(profRes.status === 'fulfilled' ? profRes.value.profile : null);
-        setStakeUsdc(vaultRes.status === 'fulfilled' ? vaultRes.value.totalActiveUsdc : '0');
-        setFetchState('ready');
-      })
-      .catch(() => {
-        if (!cancelled) setFetchState('error');
-      });
+      } else {
+        setStakeUsdc('0');
+        setStakeSynced(true);
+      }
+      setFetchState('ready');
+    }
+
+    setFetchState('loading');
+    void load();
+
     return () => {
       cancelled = true;
+      if (pollId) clearTimeout(pollId);
     };
   }, [address, valid]);
 
@@ -115,14 +150,27 @@ export function CreditPassport({ address }: { address: string }) {
   const tier: CompositeTier = rep.tier ?? 'NEW';
   const score = Math.round(rep.score ?? 0);
   const total = rep.totalDeals;
-  const successRate = total > 0 ? Math.round((rep.successCount / total) * 100) : null;
-  const disputeRate = total > 0 ? Math.round((rep.disputedCount / total) * 100) : null;
   const hue = TIER_HUE[tier];
 
   const terms = rep.terms ?? {};
   const termRows = Object.entries(TERM_LABELS)
     .map(([key, label]) => ({ label, value: (terms as Record<string, number | undefined>)[key] }))
     .filter((r): r is { label: string; value: number } => typeof r.value === 'number');
+
+  // Distance to the next tier ladder rung. Drives the "next tier +X" hint
+  // on the score panel so a viewer knows what reaching the next badge would
+  // take. Null at ELITE (no higher rung).
+  const nextTierTarget = TIER_BANDS.find((b) => b.start > score);
+  const distanceToNext = nextTierTarget ? nextTierTarget.start - score : null;
+
+  // Tenure in days. Pulled from the registration timestamp the engine uses for
+  // the tenure factor. Surfaced as a stat so viewers see how long this wallet
+  // has been on Karwan — useful context for a passport someone is sharing.
+  const registeredAt = rep.inputs?.registeredAt;
+  const tenureDays =
+    registeredAt && registeredAt > 0
+      ? Math.max(0, Math.floor((Date.now() - registeredAt) / 86_400_000))
+      : null;
 
   async function copyAddress() {
     try {
@@ -171,48 +219,112 @@ export function CreditPassport({ address }: { address: string }) {
         <TierPill tier={tier} />
       </div>
 
-      {/* SCORE + BAND */}
+      {/* SCORE PANEL — score + tier ladder + next-tier hint, all in one card so
+          the number, the tier, and what it would take to climb sit together
+          instead of as three separate isolated panels. */}
       <section
-        className="mt-8 rounded-xl border p-6"
+        className="mt-8 rounded-xl border overflow-hidden"
         style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
       >
-        <div className="flex items-baseline gap-3">
-          <span
-            className="text-[64px] leading-none tabular-nums tracking-tight"
-            style={{ fontFamily: 'var(--font-serif)', color: hue }}
-          >
-            {score}
-          </span>
-          <span className="mono text-[13px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-            / 1000
-          </span>
+        <div className="p-6 md:p-7">
+          <div className="flex items-end gap-4 flex-wrap">
+            <span
+              className="text-[72px] md:text-[88px] leading-[0.85] tabular-nums tracking-[-0.02em]"
+              style={{ fontFamily: 'var(--font-serif)', color: hue }}
+            >
+              {score}
+            </span>
+            <div className="pb-1">
+              <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
+                Composite score
+              </p>
+              <p className="mt-0.5 mono text-[11px] text-[var(--color-ink-dim)] tabular-nums">
+                of 1000
+              </p>
+            </div>
+            {distanceToNext != null && nextTierTarget && (
+              <div className="ml-auto pb-1 text-right">
+                <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
+                  Next tier
+                </p>
+                <p
+                  className="mt-0.5 mono text-[12px] tabular-nums"
+                  style={{ color: TIER_HUE[nextTierTarget.tier] }}
+                >
+                  {TIER_LABEL[nextTierTarget.tier]} · +{distanceToNext}
+                </p>
+              </div>
+            )}
+          </div>
+          <ScoreBand score={score} tier={tier} />
         </div>
-        <ScoreBand score={score} tier={tier} />
       </section>
 
-      {/* STATS */}
-      <section className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-line)', background: 'var(--color-line)' }}>
-        <Stat label="Settled deals" value={String(total)} />
-        <Stat label="Success rate" value={successRate === null ? '—' : `${successRate}%`} tone="positive" />
-        <Stat label="Dispute rate" value={disputeRate === null ? '—' : `${disputeRate}%`} tone={disputeRate && disputeRate > 0 ? 'warning' : undefined} />
-        <Stat label="Active stake" value={`${trimUsdc(stakeUsdc)} USDC`} />
+      {/* TRADE RECORD — four stats in one row: the three on-chain outcome
+          counters plus active stake. This replaces the two-row layout that
+          duplicated outcome data (Settled / Success rate / Dispute rate on
+          top, Success / Disputed / Failed below) with one tighter strip. */}
+      <section
+        className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border"
+        style={{ borderColor: 'var(--color-line)', background: 'var(--color-line)' }}
+      >
+        <Stat
+          label="Success"
+          value={String(rep.successCount)}
+          tone={rep.successCount > 0 ? 'positive' : undefined}
+        />
+        <Stat
+          label="Disputed"
+          value={String(rep.disputedCount)}
+          tone={rep.disputedCount > 0 ? 'warning' : undefined}
+        />
+        <Stat
+          label="Failed"
+          value={String(rep.failedCount)}
+          tone={rep.failedCount > 0 ? 'critical' : undefined}
+        />
+        <Stat
+          label="Active stake"
+          value={`${trimUsdc(stakeUsdc)} USDC`}
+          syncing={!stakeSynced}
+        />
       </section>
 
-      {/* OUTCOME BREAKDOWN */}
-      <section className="mt-5 grid grid-cols-3 gap-px rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-line)', background: 'var(--color-line)' }}>
-        <Stat label="Success" value={String(rep.successCount)} tone="positive" />
-        <Stat label="Disputed" value={String(rep.disputedCount)} tone="warning" />
-        <Stat label="Failed" value={String(rep.failedCount)} tone="critical" />
+      {/* META — settled total + tenure days, lower-weight than the trade
+          record. Separates the headline outcome counters from the supporting
+          metadata so the eye lands on outcomes first. */}
+      <section className="mt-4 flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--color-ink-dim)] px-1">
+        <span>
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] mr-1.5">
+            Settled
+          </span>
+          <span className="tabular-nums">{total}</span>
+        </span>
+        {tenureDays != null && (
+          <span>
+            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] mr-1.5">
+              Tenure
+            </span>
+            <span className="tabular-nums">{tenureDays}d</span>
+          </span>
+        )}
       </section>
 
-      {/* TERM BREAKDOWN */}
+      {/* SCORE FACTORS — each row reads as data, not decoration: explicit
+          numerator/denominator, percent fill matches numerator, label sits
+          left of value so the eye scans down the column of values cleanly. */}
       {termRows.length > 0 && (
         <section
           className="mt-5 rounded-xl border p-6"
           style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
         >
-          <p className="eyebrow">Score factors</p>
-          <div className="mt-4 space-y-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="eyebrow">Score factors</p>
+            <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+              0 — 100 each
+            </p>
+          </div>
+          <div className="mt-4 space-y-3.5">
             {termRows.map((r) => (
               <TermBar key={r.label} label={r.label} value={r.value} hue={hue} />
             ))}
@@ -290,10 +402,15 @@ function Stat({
   label,
   value,
   tone,
+  syncing,
 }: {
   label: string;
   value: string;
   tone?: 'positive' | 'warning' | 'critical';
+  /// True while the underlying read is mid-flight — the value is provisional
+  /// and may still rise. Renders a small "syncing" chip next to the label so
+  /// readers don't take a partial total as final.
+  syncing?: boolean;
 }) {
   const color =
     tone === 'positive'
@@ -305,7 +422,21 @@ function Stat({
           : 'var(--color-ink)';
   return (
     <div className="p-4" style={{ background: 'var(--color-surface)' }}>
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">{label}</p>
+      <div className="flex items-center gap-1.5">
+        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">{label}</p>
+        {syncing && (
+          <span
+            className="mono text-[8px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
+            style={{
+              color: 'var(--color-ink-faint)',
+              background: 'var(--color-surface-2)',
+            }}
+            title="Scanning chain history. The total may still rise."
+          >
+            syncing
+          </span>
+        )}
+      </div>
       <p className="mt-1.5 text-[22px] tabular-nums tracking-tight" style={{ fontFamily: 'var(--font-serif)', color }}>
         {value}
       </p>

@@ -35,6 +35,7 @@ import {
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
+import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
@@ -177,6 +178,14 @@ function bootAgents() {
     stopFns.push(startJobExpiryWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'job expiry watcher not started');
+  }
+  try {
+    stopFns.push(startReputationReconciler());
+  } catch (err) {
+    appLogger.warn(
+      { err: (err as Error).message },
+      'reputation reconciler not started',
+    );
   }
 }
 

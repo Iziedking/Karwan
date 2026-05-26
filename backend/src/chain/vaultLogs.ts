@@ -59,6 +59,22 @@ function cacheToArray(c: OwnerCache): DepositedLog[] {
   return [...c.byId.values()];
 }
 
+/// Result shape callers consume. `logs` is whatever the cache holds; `synced`
+/// is true when the cache has been walked all the way to the current chain
+/// head with no failed pages. Surfacing this lets the UI render a "syncing"
+/// state instead of an under-counted total (e.g. a credit-passport that
+/// loaded mid-scan and saw only the older subset of positions).
+export interface DepositedReadResult {
+  logs: DepositedLog[];
+  synced: boolean;
+}
+
+/// In-flight scan dedupe per (vault, owner). Concurrent reads for the same
+/// owner all await the same scan promise instead of triggering parallel scans
+/// — saves RPC pressure and prevents the "two callers see two different
+/// partial states" flicker that caused 85.2 vs 235.2 on the same wallet.
+const inFlight = new Map<string, Promise<DepositedReadResult>>();
+
 let warnedMissingDeployBlock = false;
 
 function resolveColdStart(head: bigint): bigint {
@@ -114,17 +130,49 @@ async function getLogsPageWithRetry(
 /// drop topic-indexed filters when the range is wide, so we fetch all
 /// vault Deposited logs in each window and let the caller pick.
 ///
-/// Correctness guarantee: this NEVER returns a partial result. If a page
-/// ultimately fails after retries, we fall back to the last fully-successful
-/// read for this owner; if there's no prior good read, we throw so the caller
-/// keeps its last value rather than displaying an understated total.
-export async function fetchDepositedLogsForOwner(
+/// Result shape:
+///   { logs: DepositedLog[], synced: boolean }
+///
+/// `synced` is true when the cache's scannedToBlock has reached `head` with
+/// no failed pages. The cache `byId` is monotonic (only ever grows), so even
+/// when `synced` is false the served set is a strict subset of the eventual
+/// full set — never wrong, just incomplete. Consumers that care about
+/// completeness (UI totals, score-affecting reads) inspect `synced` and
+/// surface a syncing state instead of treating the partial as authoritative.
+///
+/// Concurrent reads for the same (vault, owner) share one in-flight scan via
+/// the `inFlight` map. Without this, a credit-passport load and a /profile
+/// load fired within seconds of each other would each start their own scan
+/// and could observe different commit points, producing the 85.2 vs 235.2
+/// flicker that motivated this rewrite.
+export function fetchDepositedLogsForOwner(
   vaultAddress: `0x${string}`,
   ownerAddress: string,
-): Promise<DepositedLog[]> {
+): Promise<DepositedReadResult> {
   const owner = ownerAddress.toLowerCase();
   const cacheKey = `${vaultAddress.toLowerCase()}:${owner}`;
+  const existing = inFlight.get(cacheKey);
+  if (existing) return existing;
+  const p = runScan(vaultAddress, owner, cacheKey).finally(() => {
+    inFlight.delete(cacheKey);
+  });
+  inFlight.set(cacheKey, p);
+  return p;
+}
 
+/// Cap on pages walked in one call. Set high enough that a typical cold scan
+/// (vault deployed within the DEFAULT_HISTORY_WINDOW) completes in one call,
+/// so the UI never observes a permanent partial state. 600 × PAGE_SIZE =
+/// 5.7M blocks, covering the default window plus headroom. The retry +
+/// backoff inside getLogsPageWithRetry keeps the worst case bounded; the
+/// in-flight dedupe means parallel callers don't multiply the cost.
+const MAX_PAGES = 600;
+
+async function runScan(
+  vaultAddress: `0x${string}`,
+  owner: string,
+  cacheKey: string,
+): Promise<DepositedReadResult> {
   let head: bigint;
   try {
     head = await publicClient.getBlockNumber();
@@ -134,25 +182,28 @@ export async function fetchDepositedLogsForOwner(
       'vaultLogs: getBlockNumber failed',
     );
     // Can't advance; serve the cache rather than an empty (flicker-to-zero) set.
+    // Cache-only serves are inherently un-synced because we couldn't confirm head.
     const c = ownerCache.get(cacheKey);
-    return c ? cacheToArray(c) : [];
+    return { logs: c ? cacheToArray(c) : [], synced: false };
   }
 
   const cached = ownerCache.get(cacheKey);
   const start = cached ? cached.scannedToBlock + 1n : resolveColdStart(head);
 
   // Nothing new since the last scan — return the cached set unchanged.
-  if (start > head) return cached ? cacheToArray(cached) : [];
+  if (start > head) {
+    return {
+      logs: cached ? cacheToArray(cached) : [],
+      synced: cached != null,
+    };
+  }
 
   // Seed from the cache. Deposits are append-only, so we only ever add IDs.
   const byId = new Map<string, DepositedLog>(cached?.byId);
   let committedTo = start > 0n ? start - 1n : 0n;
   let cursor = start;
-  // Cap pages per call so one read can't spin forever on a cold cache with a
-  // very old vault. Progress is committed, so a scan longer than this simply
-  // finishes across the next call(s).
-  const MAX_PAGES = 100;
   let pages = 0;
+  let failed = false;
 
   while (cursor <= head && pages < MAX_PAGES) {
     const upper = cursor + PAGE_SIZE - 1n;
@@ -169,20 +220,14 @@ export async function fetchDepositedLogsForOwner(
           fromBlock: cursor.toString(),
           toBlock: toBlock.toString(),
         },
-        'vaultLogs: getLogs page failed after retries; committing progress, serving set so far',
+        'vaultLogs: getLogs page failed after retries; committing progress, serving partial set with synced=false',
       );
       // FAIL CLOSED, but keep the ranges that DID scan so we never re-walk
       // them. `byId` only grows, so the served total never flickers downward;
-      // the failed tail is picked up on the next call. Throw only on a true
-      // cold failure with nothing to show.
-      if (byId.size > 0 || cached) {
-        const partial: OwnerCache = { byId, scannedToBlock: committedTo };
-        ownerCache.set(cacheKey, partial);
-        return cacheToArray(partial);
-      }
-      throw new Error(
-        `vault log read failed at blocks ${cursor}-${toBlock} with no prior data: ${(err as Error).message}`,
-      );
+      // the failed tail is picked up on the next call. `synced` is false so
+      // the UI knows this is provisional.
+      failed = true;
+      break;
     }
     for (const log of rawLogs) {
       const args = (log as unknown as {
@@ -204,6 +249,12 @@ export async function fetchDepositedLogsForOwner(
 
   const next: OwnerCache = { byId, scannedToBlock: committedTo };
   ownerCache.set(cacheKey, next);
+
+  // Synced iff we reached head WITHOUT bailing on a page failure or the
+  // page cap. A cap hit means the scan is mid-flight and the next call will
+  // pick up where this one stopped.
+  const synced = !failed && pages < MAX_PAGES && committedTo >= head;
+
   logger.info(
     {
       vault: vaultAddress,
@@ -214,8 +265,10 @@ export async function fetchDepositedLogsForOwner(
       pages,
       matched: byId.size,
       incremental: cached != null,
+      synced,
     },
     'vaultLogs: read complete',
   );
-  return cacheToArray(next);
+
+  return { logs: cacheToArray(next), synced };
 }

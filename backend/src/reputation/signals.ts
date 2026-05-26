@@ -111,9 +111,32 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     if (last > 0) activeDayBuckets.add(bucket(last));
   }
 
-  // The on-chain success count is the canonical settlement signal. Prefer it
-  // over the DB count when it's higher (the DB can lag behind the chain).
-  completedDeals = Math.max(completedDeals, chain.successCount);
+  // The on-chain reputation contract is the source of truth for settled-deal
+  // credit. The DB tracks settlement intent (it advances when the backend
+  // marks settledAt) but a chain-side recordCompletion call can fail silently
+  // (network blip, contract redeploy, missing buyerAgentWalletId, etc.), so a
+  // wallet can show "N settled in DB / 0 recorded on chain". Crediting the DB
+  // count in that window inflates the score against an unverified history.
+  //
+  // Rule: completion + volume are gated by chain. DB-only settlements earn
+  // ZERO completion credit and ZERO volume credit until backfilled on chain.
+  // Once recordCompletion fires for a jobId, both factors include it
+  // automatically. dbSettled is preserved for diagnostics + UI surfaces that
+  // want to show the gap (e.g. "12 settled locally, 7 verified on chain").
+  const dbSettled = completedDeals;
+  completedDeals = chain.successCount;
+  if (dbSettled > 0 && chain.successCount === 0) {
+    // No chain credit at all → volume contribution is zero. Don't reward an
+    // address for transactions the reputation contract never witnessed.
+    lifetimeVolumeUsdc = 0;
+  } else if (dbSettled > chain.successCount) {
+    // Partial credit. Pro-rate the volume by the chain/db ratio so volume
+    // tracks the verified subset. A future iteration can walk
+    // CompletionRecorded events to map each chain-recorded settlement back
+    // to its dealAmountUsdc precisely; the ratio is the pragmatic stand-in.
+    const ratio = chain.successCount / dbSettled;
+    lifetimeVolumeUsdc = lifetimeVolumeUsdc * ratio;
+  }
 
   const [stake, spam, profile, wallets] = await Promise.all([
     activeStakeSummary(address).catch(() => ({ stakeUsdc: 0, stakeDays: 0 })),

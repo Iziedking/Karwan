@@ -97,18 +97,27 @@ function stateLabelFor(state: number): PositionStateLabel {
   return 'claimed';
 }
 
-async function readPositions(addressRaw: string): Promise<Position[]> {
+interface ReadPositionsResult {
+  positions: Position[];
+  /// False when the vault-log scan didn't reach chain head (page cap or RPC
+  /// failure). The served positions are a strict subset of the eventual full
+  /// set, never a wrong total — but a UI showing a stake total has to know
+  /// when to render a "syncing" pill instead of treating the number as final.
+  synced: boolean;
+}
+
+async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
   const vault = vaultAddress();
   if (!vault) {
     logger.warn({ addressRaw }, 'vault.readPositions: KARWAN_VAULT_ADDR unset');
-    return [];
+    return { positions: [], synced: true };
   }
   const address = addressRaw.toLowerCase() as `0x${string}`;
 
   // Paginated read covers the vault's full deployed history, so positions
   // older than the previous ~5h window no longer drop off after a refresh.
-  const logs = await fetchDepositedLogsForOwner(vault, address);
-  if (logs.length === 0) return [];
+  const { logs, synced } = await fetchDepositedLogsForOwner(vault, address);
+  if (logs.length === 0) return { positions: [], synced };
 
   const now = Math.floor(Date.now() / 1000);
   const out: Position[] = [];
@@ -131,7 +140,10 @@ async function readPositions(addressRaw: string): Promise<Position[]> {
       tenureDays: Math.max(0, (now - Number(depositedAt)) / 86_400),
     });
   }
-  return out.sort((a, b) => Number(b.positionId) - Number(a.positionId));
+  return {
+    positions: out.sort((a, b) => Number(b.positionId) - Number(a.positionId)),
+    synced,
+  };
 }
 
 function sumByState(positions: Position[], state: PositionStateLabel): string {
@@ -167,7 +179,7 @@ vaultRoutes.get('/positions', async (c) => {
   }
 
   try {
-    const positions = await readPositions(parsed.data);
+    const { positions, synced } = await readPositions(parsed.data);
     let cooldownDays = 7;
     try {
       const cd = (await publicClient.readContract({
@@ -185,6 +197,11 @@ vaultRoutes.get('/positions', async (c) => {
       totalActiveUsdc: sumByState(positions, 'active'),
       totalCoolingUsdc: sumByState(positions, 'cooling'),
       cooldownDays,
+      /// When false, the underlying vault-log scan hasn't reached chain
+      /// head — totals are provisional and may rise on the next read. The UI
+      /// should render a "syncing" indicator and refresh shortly. Always true
+      /// once a cold scan completes; an idle wallet stays synced indefinitely.
+      synced,
     });
   } catch (err) {
     logger.warn(

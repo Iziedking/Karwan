@@ -79,7 +79,7 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
   try {
     // Paginated read covers the vault's full deployed history rather than
     // only the last ~5h that the previous `latest - 9500` anchor surfaced.
-    const logs = await fetchDepositedLogsForOwner(vaultAddr as `0x${string}`, address);
+    const { logs } = await fetchDepositedLogsForOwner(vaultAddr as `0x${string}`, address);
 
     if (logs.length === 0) {
       cache.set(address, { value: 0, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -147,7 +147,7 @@ export async function activeStakeSummary(addressRaw: string): Promise<ActiveStak
   }
 
   try {
-    const logs = await fetchDepositedLogsForOwner(vaultAddr as `0x${string}`, address);
+    const { logs } = await fetchDepositedLogsForOwner(vaultAddr as `0x${string}`, address);
     if (logs.length === 0) {
       summaryCache.set(address, { value: empty, expiresAt: Date.now() + CACHE_TTL_MS });
       return empty;

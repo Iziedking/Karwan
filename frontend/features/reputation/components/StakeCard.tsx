@@ -170,6 +170,10 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     }>
   >([]);
   const [totalActive, setTotalActive] = useState('0');
+  /// False while the backend is still walking the vault's event log for this
+  /// owner. Drives the "syncing" pill so the user doesn't take a mid-scan
+  /// total as final.
+  const [synced, setSynced] = useState(true);
   const [totalCooling, setTotalCooling] = useState('0');
   const [cooldownDays, setCooldownDays] = useState(7);
   const [vaultDeployed, setVaultDeployed] = useState<boolean | null>(null);
@@ -223,6 +227,8 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       setTotalCooling(r.totalCoolingUsdc);
       setCooldownDays(r.cooldownDays);
       setVaultDeployed(r.vaultAddress != null);
+      // synced is optional for back-compat with older backends.
+      setSynced(r.synced !== false);
     } catch {
       // Silent — UI shows "could not load" if it stays empty.
     } finally {
@@ -561,6 +567,18 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               USDC ACTIVE
             </span>
+            {!synced && (
+              <span
+                className="mono text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full"
+                style={{
+                  color: 'var(--lp-text-muted)',
+                  background: 'var(--lp-surface-2, rgba(0,0,0,0.05))',
+                }}
+                title="Scanning chain history. The total may still rise."
+              >
+                syncing
+              </span>
+            )}
             {Number(totalCooling) > 0 && (
               <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 · {formatUsdc(totalCooling, { withSuffix: false })} cooling
