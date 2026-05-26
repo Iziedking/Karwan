@@ -36,8 +36,18 @@ const MAX_NOTIFICATION_AGE_SEC = 10 * 60;
 ///   5. Reject events older than MAX_NOTIFICATION_AGE_SEC (anti-replay).
 ///   6. Emit on the bus and respond 200.
 circleWebhookRoutes.post('/webhook', async (c) => {
+  // Circle's connectivity probe at subscription-creation time hits POST
+  // before CIRCLE_WEBHOOK_SUBSCRIPTION_ID can possibly be set (the id is
+  // only minted once the subscription saves). Acknowledge with 200 so the
+  // registration completes; once the operator pastes the id into env and
+  // restarts, this branch never fires and full signature verification kicks
+  // in below. Real notifications received during the unconfigured window
+  // get logged but not processed — no key to verify against anyway.
   if (!config.CIRCLE_WEBHOOK_SUBSCRIPTION_ID) {
-    return c.json({ error: 'circle webhook not configured' }, 503);
+    logger.warn(
+      'circle webhook: POST received but CIRCLE_WEBHOOK_SUBSCRIPTION_ID unset; acknowledging without verification',
+    );
+    return c.json({ ok: true, configured: false });
   }
 
   let rawBody: string;
