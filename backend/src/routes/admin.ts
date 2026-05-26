@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { formatUnits } from 'viem';
+import { config } from '../config.js';
+import { publicClient } from '../chain/client.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { getProfile } from '../db/profiles.js';
 import {
@@ -135,4 +138,94 @@ adminRoutes.get('/proposals', async (c) => {
 /// /api/agents/buyer but with no address filter.
 adminRoutes.get('/jobs', (c) => {
   return c.json(getBuyerSnapshot());
+});
+
+/// USDC is a 6-decimal ERC-20 on Arc; the USYC mock and oracle report price at
+/// 8 decimals (1e8 = $1.00), matching a Chainlink USD feed.
+const TREASURY_USDC_DECIMALS = 6;
+const TREASURY_PRICE_SCALE = 100_000_000n; // 1e8
+
+const erc20BalanceAbi = [
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
+const treasuryAbi = [
+  { type: 'function', name: 'usdc', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'usyc', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'oracle', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'idleThreshold', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
+  { type: 'function', name: 'totalReserves', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
+] as const;
+
+const oracleAbi = [
+  { type: 'function', name: 'latestAnswer', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'int256' }] },
+] as const;
+
+/// KarwanTreasury reserves: liquid USDC, the USYC holding marked to the oracle
+/// price, and total reserves. This is the Track 2 "protocol reserves earn yield"
+/// surface: on testnet the USYC value drifts above the USYC token count as the
+/// MockUSYC price ramps, which is the simulated yield. Reports configured:false
+/// (not an error) until KARWAN_TREASURY_CONTRACT_ADDR is set after deploy.
+adminRoutes.get('/treasury', async (c) => {
+  const treasury = config.KARWAN_TREASURY_CONTRACT_ADDR as `0x${string}` | undefined;
+  if (!treasury) {
+    return c.json({
+      configured: false,
+      detail: 'KarwanTreasury not deployed (KARWAN_TREASURY_CONTRACT_ADDR unset).',
+    });
+  }
+  try {
+    const [usdcAddr, usycAddr, oracleAddr, idleThreshold, totalReserves] = await Promise.all([
+      publicClient.readContract({ address: treasury, abi: treasuryAbi, functionName: 'usdc' }),
+      publicClient.readContract({ address: treasury, abi: treasuryAbi, functionName: 'usyc' }),
+      publicClient.readContract({ address: treasury, abi: treasuryAbi, functionName: 'oracle' }),
+      publicClient.readContract({ address: treasury, abi: treasuryAbi, functionName: 'idleThreshold' }),
+      publicClient.readContract({ address: treasury, abi: treasuryAbi, functionName: 'totalReserves' }),
+    ]);
+
+    const [usdcBal, usycBal, price] = await Promise.all([
+      publicClient.readContract({
+        address: usdcAddr as `0x${string}`,
+        abi: erc20BalanceAbi,
+        functionName: 'balanceOf',
+        args: [treasury],
+      }),
+      publicClient.readContract({
+        address: usycAddr as `0x${string}`,
+        abi: erc20BalanceAbi,
+        functionName: 'balanceOf',
+        args: [treasury],
+      }),
+      publicClient.readContract({ address: oracleAddr as `0x${string}`, abi: oracleAbi, functionName: 'latestAnswer' }),
+    ]);
+
+    const usdcWei = usdcBal as bigint;
+    const usycWei = usycBal as bigint;
+    const priceWei = price as bigint; // 8 decimals
+    // USYC marked to current price, in 6-decimal USDC terms.
+    const usycValueWei = (usycWei * priceWei) / TREASURY_PRICE_SCALE;
+
+    return c.json({
+      configured: true,
+      address: treasury,
+      usdcBalanceUsdc: formatUnits(usdcWei, TREASURY_USDC_DECIMALS),
+      usycBalance: formatUnits(usycWei, TREASURY_USDC_DECIMALS),
+      usycValueUsdc: formatUnits(usycValueWei, TREASURY_USDC_DECIMALS),
+      totalReservesUsdc: formatUnits(totalReserves as bigint, TREASURY_USDC_DECIMALS),
+      idleThresholdUsdc: formatUnits(idleThreshold as bigint, TREASURY_USDC_DECIMALS),
+      // Oracle price of USYC in USD, 8 decimals normalised to a plain number.
+      usycPriceUsd: Number(priceWei) / 1e8,
+      usyc: usycAddr,
+      oracle: oracleAddr,
+    });
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, treasury }, 'admin: treasury read failed');
+    return c.json({ error: 'treasury read failed', detail: (err as Error).message }, 502);
+  }
 });

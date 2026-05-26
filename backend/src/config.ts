@@ -54,6 +54,11 @@ const envSchema = z.object({
   // Treasury that collects the platform fee. Must match the address the escrow
   // was deployed with; surfaced here for display and reconciliation.
   KARWAN_TREASURY_ADDR: optionalAddr,
+  // KarwanTreasury CONTRACT (distinct from KARWAN_TREASURY_ADDR, the EOA that
+  // collects the escrow fee). Parks idle USDC reserves in USYC for yield.
+  // Optional: when unset, GET /api/admin/treasury reports not-configured.
+  // Populated after `forge script DeployTreasury`.
+  KARWAN_TREASURY_CONTRACT_ADDR: optionalAddr,
   // Direct-deal review window in milliseconds. Used for two timers: the buyer
   // has this long to release the first milestone after the seller delivers, and
   // again to release the final milestone. When it expires the agent
