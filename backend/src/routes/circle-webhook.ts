@@ -9,10 +9,13 @@ import {
 
 export const circleWebhookRoutes = new Hono();
 
-/// Connectivity probe. Circle hits HEAD before the subscription becomes active
-/// and uses the same path as POST for ongoing notifications. Returning 200 here
-/// confirms reachability without revealing anything.
-circleWebhookRoutes.on('HEAD', '/webhook', (c) => c.body(null, 200));
+/// Connectivity probes. Circle has used HEAD historically; current production
+/// behaviour (observed 2026-05-26) probes via POST. Either method gets 200, no
+/// body, no information disclosure. Adding a GET handler too so curl-style
+/// health checks work without -X HEAD gymnastics.
+circleWebhookRoutes.on(['GET', 'HEAD'], '/webhook', (c) =>
+  c.json({ ok: true, configured: !!config.CIRCLE_WEBHOOK_SUBSCRIPTION_ID }),
+);
 
 /// Reject anything past this age in seconds. Anti-replay; legitimate webhooks
 /// arrive within a few seconds. 10 minutes is a generous tolerance for clock
