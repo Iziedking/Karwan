@@ -137,10 +137,14 @@ async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
     return { positions: [], synced: false };
   }
 
-  if (nextId <= 1n) return { positions: [], synced: true };
+  if (nextId < 0n) return { positions: [], synced: true };
 
+  // Walk position 0 through nextId inclusive. allowFailure on the multicall
+  // catches None slots so the +/- 1 ambiguity around the contract counter
+  // can't drop a real position. Owner-mismatch and None-state checks below
+  // filter out anything that isn't a real active or cooling row.
   const calls = [];
-  for (let i = 1n; i < nextId; i++) {
+  for (let i = 0n; i <= nextId; i++) {
     calls.push({
       address: vault,
       abi: vaultAbi,
@@ -175,7 +179,8 @@ async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
     const tuple = r.result as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
     if (tuple[0].toLowerCase() !== address) continue;
     const [, principal, depositedAt, cooldownStartedAt, claimableAt, state] = tuple;
-    const positionId = (BigInt(i) + 1n).toString();
+    if (state === 0) continue;
+    const positionId = i.toString();
     out.push({
       positionId,
       principalUsdc: formatUnits(principal, USDC_DECIMALS),

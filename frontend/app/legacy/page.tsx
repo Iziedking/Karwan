@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   useWalletClient,
@@ -17,6 +17,8 @@ import {
   Accent,
 } from '@/shared/components/Bands';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { Countdown } from '@/shared/components/Countdown';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
@@ -92,7 +94,7 @@ const escrowAbi = [
 
 interface Window {
   open: boolean;
-  daysRemaining: number | null;
+  closesAtMs: number | null;
   hasLegacyEscrow: boolean;
   hasLegacyVault: boolean;
 }
@@ -107,12 +109,12 @@ export default function LegacyPage() {
       .then((r) =>
         setWindowState({
           open: r.open,
-          daysRemaining: r.daysRemaining,
+          closesAtMs: r.closesAtMs,
           hasLegacyEscrow: r.hasLegacyEscrow,
           hasLegacyVault: r.hasLegacyVault,
         }),
       )
-      .catch(() => setWindowState({ open: false, daysRemaining: null, hasLegacyEscrow: false, hasLegacyVault: false }));
+      .catch(() => setWindowState({ open: false, closesAtMs: null, hasLegacyEscrow: false, hasLegacyVault: false }));
   }, []);
 
   if (!isAuthenticated || !address) {
@@ -168,31 +170,42 @@ export default function LegacyPage() {
     );
   }
 
-  const daysCopy =
-    windowState?.daysRemaining == null
-      ? 'CLOSES SOON'
-      : windowState.daysRemaining <= 0
-        ? 'CLOSES TODAY'
-        : `${windowState.daysRemaining} DAYS LEFT`;
-
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="max-w-[64ch]">
           <SectionTag tone="dark" dot="live">
-            LEGACY · {daysCopy}
+            LEGACY · RECOVERY OPEN
           </SectionTag>
           <HeroHeadline size="md">
             Reclaim from <Accent>previous</Accent> contracts
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[58ch]">
-            We upgraded our escrow + vault to v2.D. Anything you staked or any deal you funded on
-            the previous contracts still belongs to you — this page lets you pull it out before
+            We upgraded our escrow and vault to v2.D. Anything you staked or any deal you funded
+            on the previous contracts still belongs to you. This page lets you pull it out before
             the recovery window closes.
           </p>
-          <p className="mt-4 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed">
-            // AFTER THE WINDOW, INTERACT WITH THE LEGACY CONTRACTS DIRECTLY VIA THE EXPLORER
+          <div
+            className="mt-7 inline-flex items-center gap-3 px-4 py-2.5"
+            style={{
+              background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
+              border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
+              window closes in
+            </span>
+            <span className="mono text-[14px] sm:text-[16px] font-extrabold text-white tabular-nums">
+              {windowState?.closesAtMs ? <Countdown targetMs={windowState.closesAtMs} /> : '—'}
+            </span>
+          </div>
+          <p className="mt-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed">
+            // AFTER THE WINDOW, THE LEGACY CONTRACTS STAY LIVE ON ARC AND CAN BE CALLED DIRECTLY VIA THE EXPLORER
           </p>
         </div>
       </Band>
@@ -265,6 +278,7 @@ function LegacyStakeCard({
   const [busy, setBusy] = useState<StakeBusy>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
+  const [pendingRequest, setPendingRequest] = useState<{ positionId: string; principal: string } | null>(null);
 
   const onWrongChain = !isCircleUser && chainId !== ARC_CHAIN_ID;
 
@@ -301,26 +315,23 @@ function LegacyStakeCard({
         return;
       }
       if (kind === 'request') {
-        const ok = window.confirm(
-          `Start the ${cooldownDays}-day cool-down on legacy position #${positionId}? After it elapses you can claim back to your wallet.`,
-        );
-        if (!ok) return;
+        const target = positions.find((p) => p.positionId === positionId);
+        setPendingRequest({
+          positionId,
+          principal: target?.principalUsdc ?? '0',
+        });
+        return;
       }
       setBusy({ kind, positionId });
       try {
         if (isCircleUser) {
           const route =
-            kind === 'request'
-              ? api.legacyVaultRequestWithdraw
-              : kind === 'cancel'
-                ? api.legacyVaultCancelWithdraw
-                : api.legacyVaultClaim;
+            kind === 'cancel' ? api.legacyVaultCancelWithdraw : api.legacyVaultClaim;
           const r = await route({ address, positionId });
           setLastTx(r.txHash);
         } else {
           if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
-          const fnName =
-            kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim';
+          const fnName = kind === 'cancel' ? 'cancelWithdraw' : 'claim';
           const hash = await walletClient.writeContract({
             address: KARWAN_VAULT_LEGACY_ADDRESS,
             abi: vaultAbi,
@@ -339,8 +350,40 @@ function LegacyStakeCard({
         setBusy(null);
       }
     },
-    [onWrongChain, switchChainAsync, isCircleUser, cooldownDays, walletClient, arcClient, address, refetch],
+    [onWrongChain, switchChainAsync, isCircleUser, positions, walletClient, arcClient, address, refetch],
   );
+
+  const confirmRequest = useCallback(async () => {
+    if (!pendingRequest) return;
+    const positionId = pendingRequest.positionId;
+    setPendingRequest(null);
+    setLastError(null);
+    setLastTx(null);
+    setBusy({ kind: 'request', positionId });
+    try {
+      if (isCircleUser) {
+        const r = await api.legacyVaultRequestWithdraw({ address, positionId });
+        setLastTx(r.txHash);
+      } else {
+        if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+        const hash = await walletClient.writeContract({
+          address: KARWAN_VAULT_LEGACY_ADDRESS,
+          abi: vaultAbi,
+          functionName: 'requestWithdraw',
+          args: [BigInt(positionId)],
+          chain: walletClient.chain,
+          account: address as `0x${string}`,
+        });
+        await arcClient.waitForTransactionReceipt({ hash });
+        setLastTx(hash);
+      }
+      await refetch();
+    } catch (err) {
+      setLastError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }, [pendingRequest, isCircleUser, walletClient, arcClient, address, refetch]);
 
   if (loading) {
     return <div className="h-32 bg-black/[0.04] animate-pulse rounded-2xl" />;
@@ -400,6 +443,21 @@ function LegacyStakeCard({
         </p>
       )}
       {lastError && <Note tone="warn">{lastError}</Note>}
+
+      <ConfirmDialog
+        open={pendingRequest != null}
+        title={`Cool ${pendingRequest?.principal ?? ''} USDC?`}
+        body={
+          <>
+            Starts the {cooldownDays}-day cool-down on this legacy position. Once it elapses you
+            can claim the principal back to your wallet. Cooling stake stops earning reputation
+            until you cancel or claim.
+          </>
+        }
+        confirmLabel="Start cool-down"
+        onCancel={() => setPendingRequest(null)}
+        onConfirm={confirmRequest}
+      />
     </div>
   );
 }
@@ -604,6 +662,10 @@ function LegacyDealsList({
   const [busy, setBusy] = useState<DealBusy>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept';
+    deal: LegacyDeal;
+  } | null>(null);
 
   const onWrongChain = !isCircleUser && chainId !== ARC_CHAIN_ID;
 
@@ -649,13 +711,11 @@ function LegacyDealsList({
     [walletClient, arcClient, address],
   );
 
-  const runRefund = useCallback(
-    async (deal: LegacyDeal) => {
-      if (deal.role !== 'buyer') return;
-      const ok = window.confirm(
-        `Refund ${deal.dealAmountUsdc} USDC from the legacy escrow back to your wallet?`,
-      );
-      if (!ok) return;
+  // Action handlers stash the deal in pendingAction so the dialog can render
+  // its confirmation. Web3 chain-switch happens here so the user only sees
+  // the confirm dialog once their wallet is on Arc.
+  const queueAction = useCallback(
+    async (deal: LegacyDeal, kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept') => {
       setLastError(null);
       setLastTx(null);
       if (onWrongChain) {
@@ -666,108 +726,75 @@ function LegacyDealsList({
         }
         return;
       }
-      setBusy({ jobId: deal.jobId, kind: 'refund' });
-      try {
-        if (isCircleUser) {
-          const r = await api.legacyDealRefund({ jobId: deal.jobId, address, role: 'buyer' });
-          setLastTx(r.txHash);
-        } else {
-          const hash = await signWeb3('refund', deal.jobId);
-          setLastTx(hash);
-        }
-        await refetch();
-      } catch (err) {
-        setLastError((err as Error).message);
-      } finally {
-        setBusy(null);
-      }
+      setPendingAction({ kind, deal });
     },
-    [onWrongChain, switchChainAsync, isCircleUser, address, signWeb3, refetch],
+    [onWrongChain, switchChainAsync],
   );
 
-  const runRelease = useCallback(
-    async (deal: LegacyDeal) => {
-      if (deal.role !== 'buyer') return;
-      const ok = window.confirm(
-        `Release ${deal.dealAmountUsdc} USDC to the seller? Settles the legacy escrow.`,
-      );
-      if (!ok) return;
-      setLastError(null);
-      setLastTx(null);
-      setBusy({ jobId: deal.jobId, kind: 'release' });
-      try {
-        if (isCircleUser) {
-          const r = await api.legacyDealReleaseFinal({
-            jobId: deal.jobId,
-            address,
-            role: 'buyer',
-          });
-          setLastTx(r.txHash);
-        } else {
-          const hash = await signWeb3('releaseFinal', deal.jobId);
-          setLastTx(hash);
-        }
-        await refetch();
-      } catch (err) {
-        setLastError((err as Error).message);
-      } finally {
-        setBusy(null);
-      }
-    },
-    [isCircleUser, address, signWeb3, refetch],
-  );
-
+  const runRefund = useCallback((deal: LegacyDeal) => queueAction(deal, 'refund'), [queueAction]);
+  const runRelease = useCallback((deal: LegacyDeal) => queueAction(deal, 'release'), [queueAction]);
   const runProposeCancel = useCallback(
-    async (deal: LegacyDeal) => {
-      const reason = window.prompt(
-        'Reason for proposing a mutual cancellation? (shown to the other party)',
-        'No longer needed',
-      );
-      if (!reason || !reason.trim()) return;
-      const role: 'buyer' | 'seller' = deal.role === 'seller' ? 'seller' : 'buyer';
-      setLastError(null);
-      setLastTx(null);
-      setBusy({ jobId: deal.jobId, kind: 'cancel-propose' });
-      try {
-        if (isCircleUser) {
-          const r = await api.legacyDealCancelPropose({
-            jobId: deal.jobId,
-            address,
-            role,
-            reason: reason.trim(),
-          });
-          setLastTx(r.txHash);
-        } else {
-          const hash = await signWeb3('proposeCancellation', deal.jobId, reason.trim());
-          setLastTx(hash);
-        }
-        await refetch();
-      } catch (err) {
-        setLastError((err as Error).message);
-      } finally {
-        setBusy(null);
-      }
-    },
-    [isCircleUser, address, signWeb3, refetch],
+    (deal: LegacyDeal) => queueAction(deal, 'cancel-propose'),
+    [queueAction],
+  );
+  const runAcceptCancel = useCallback(
+    (deal: LegacyDeal) => queueAction(deal, 'cancel-accept'),
+    [queueAction],
   );
 
-  const runAcceptCancel = useCallback(
-    async (deal: LegacyDeal) => {
-      const role: 'buyer' | 'seller' = deal.role === 'seller' ? 'seller' : 'buyer';
+  const executePendingAction = useCallback(
+    async (reason?: string) => {
+      if (!pendingAction) return;
+      const { kind, deal } = pendingAction;
+      setPendingAction(null);
       setLastError(null);
       setLastTx(null);
-      setBusy({ jobId: deal.jobId, kind: 'cancel-accept' });
+      setBusy({ jobId: deal.jobId, kind });
+      const role: 'buyer' | 'seller' = deal.role === 'seller' ? 'seller' : 'buyer';
       try {
-        if (isCircleUser) {
-          const r = await api.legacyDealCancelAccept({
-            jobId: deal.jobId,
-            address,
-            role,
-          });
-          setLastTx(r.txHash);
-        } else {
-          const hash = await signWeb3('acceptCancellation', deal.jobId);
-          setLastTx(hash);
+        if (kind === 'refund') {
+          if (isCircleUser) {
+            const r = await api.legacyDealRefund({ jobId: deal.jobId, address, role: 'buyer' });
+            setLastTx(r.txHash);
+          } else {
+            const hash = await signWeb3('refund', deal.jobId);
+            setLastTx(hash);
+          }
+        } else if (kind === 'release') {
+          if (isCircleUser) {
+            const r = await api.legacyDealReleaseFinal({
+              jobId: deal.jobId,
+              address,
+              role: 'buyer',
+            });
+            setLastTx(r.txHash);
+          } else {
+            const hash = await signWeb3('releaseFinal', deal.jobId);
+            setLastTx(hash);
+          }
+        } else if (kind === 'cancel-propose') {
+          const cleaned = (reason ?? '').trim();
+          if (!cleaned) throw new Error('Reason is required to propose a cancellation.');
+          if (isCircleUser) {
+            const r = await api.legacyDealCancelPropose({
+              jobId: deal.jobId,
+              address,
+              role,
+              reason: cleaned,
+            });
+            setLastTx(r.txHash);
+          } else {
+            const hash = await signWeb3('proposeCancellation', deal.jobId, cleaned);
+            setLastTx(hash);
+          }
+        } else if (kind === 'cancel-accept') {
+          if (isCircleUser) {
+            const r = await api.legacyDealCancelAccept({ jobId: deal.jobId, address, role });
+            setLastTx(r.txHash);
+          } else {
+            const hash = await signWeb3('acceptCancellation', deal.jobId);
+            setLastTx(hash);
+          }
         }
         await refetch();
       } catch (err) {
@@ -776,7 +803,7 @@ function LegacyDealsList({
         setBusy(null);
       }
     },
-    [isCircleUser, address, signWeb3, refetch],
+    [pendingAction, isCircleUser, address, signWeb3, refetch],
   );
 
   const open = useMemo(
@@ -882,8 +909,85 @@ function LegacyDealsList({
         </p>
       )}
       {lastError && <Note tone="warn">{lastError}</Note>}
+
+      <ConfirmDialog
+        open={pendingAction != null}
+        title={dialogTitle(pendingAction?.kind, pendingAction?.deal)}
+        body={dialogBody(pendingAction?.kind, pendingAction?.deal)}
+        reasonPrompt={
+          pendingAction?.kind === 'cancel-propose'
+            ? {
+                label: 'Reason (shared with the other party)',
+                placeholder: 'No longer needed',
+                required: true,
+              }
+            : undefined
+        }
+        confirmLabel={dialogConfirmLabel(pendingAction?.kind)}
+        tone={pendingAction?.kind === 'refund' ? 'danger' : 'primary'}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={executePendingAction}
+      />
     </div>
   );
+}
+
+function dialogTitle(
+  kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' | undefined,
+  deal: LegacyDeal | undefined,
+): string {
+  if (!kind || !deal) return '';
+  if (kind === 'refund') return `Refund ${deal.dealAmountUsdc} USDC to your wallet?`;
+  if (kind === 'release') return `Release ${deal.dealAmountUsdc} USDC to the seller?`;
+  if (kind === 'cancel-propose') return 'Propose a mutual cancellation?';
+  return 'Accept the proposed cancellation?';
+}
+
+function dialogBody(
+  kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' | undefined,
+  deal: LegacyDeal | undefined,
+): ReactNode {
+  if (!kind || !deal) return null;
+  if (kind === 'refund') {
+    return (
+      <>
+        Cancels the deal on the legacy escrow and returns the full {deal.dealAmountUsdc} USDC to
+        your wallet. Reputation is unchanged on this recovery path.
+      </>
+    );
+  }
+  if (kind === 'release') {
+    return (
+      <>
+        Settles the legacy escrow and pays the seller their {deal.dealAmountUsdc} USDC net of
+        platform fees. Use this when the seller already delivered before the contract migration.
+      </>
+    );
+  }
+  if (kind === 'cancel-propose') {
+    return (
+      <>
+        Sends a cancellation proposal to the other party. They have to accept before the deal
+        cancels. Funds stay locked until they accept or you withdraw the proposal.
+      </>
+    );
+  }
+  return (
+    <>
+      The other party proposed cancelling this deal. Accepting refunds you the full{' '}
+      {deal.dealAmountUsdc} USDC and closes the legacy escrow.
+    </>
+  );
+}
+
+function dialogConfirmLabel(
+  kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' | undefined,
+): string {
+  if (kind === 'refund') return 'Refund to buyer';
+  if (kind === 'release') return 'Release to seller';
+  if (kind === 'cancel-propose') return 'Send proposal';
+  if (kind === 'cancel-accept') return 'Accept cancellation';
+  return 'Confirm';
 }
 
 function DealRow({

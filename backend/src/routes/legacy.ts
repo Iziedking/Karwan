@@ -10,7 +10,8 @@ import {
   readLegacyEscrow,
   LEGACY_ESCROW_STATE,
 } from '../chain/contracts.js';
-import { vaultAbi } from '../chain/abis/vault.js';
+import { legacyVaultAbi } from '../chain/abis/legacyVault.js';
+import { config } from '../config.js';
 import { getLegacyWindow } from '../chain/legacyWindow.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
@@ -453,24 +454,36 @@ legacyRoutes.get('/vault/positions', async (c) => {
     });
   }
 
-  const a = parsed.data.toLowerCase();
+  const a = parsed.data.toLowerCase() as `0x${string}`;
+  const vaultAddr = legacyVaultAddress as `0x${string}`;
 
-  let nextId: bigint;
+  // Legacy vault has no nextPositionId or activeStakeOf views; those were
+  // added in v2.D. Find this owner's positions by scanning Deposited events
+  // filtered by the owner topic. viem batches the block range internally.
+  const fromBlock =
+    (config as unknown as Record<string, bigint | undefined>).KARWAN_VAULT_LEGACY_DEPLOY_BLOCK ??
+    0n;
+
+  let logs: Array<{ args: { positionId?: bigint; owner?: `0x${string}`; principal?: bigint } }>;
   try {
-    nextId = (await publicClient.readContract({
-      address: legacyVaultAddress,
-      abi: vaultAbi,
-      functionName: 'nextPositionId',
-    })) as bigint;
-  } catch {
+    logs = (await publicClient.getContractEvents({
+      address: vaultAddr,
+      abi: legacyVaultAbi,
+      eventName: 'Deposited',
+      args: { owner: a },
+      fromBlock,
+      toBlock: 'latest',
+    })) as typeof logs;
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'legacy vault Deposited scan failed');
     return c.json({ error: 'legacy vault read failed' }, 502);
   }
 
   let cooldownDays = 7;
   try {
     const cd = (await publicClient.readContract({
-      address: legacyVaultAddress,
-      abi: vaultAbi,
+      address: vaultAddr,
+      abi: legacyVaultAbi,
       functionName: 'COOLDOWN_DAYS',
     })) as number;
     cooldownDays = Number(cd);
@@ -478,9 +491,9 @@ legacyRoutes.get('/vault/positions', async (c) => {
     // legacy default 7
   }
 
-  if (nextId <= 1n) {
+  if (logs.length === 0) {
     return c.json({
-      vaultAddress: legacyVaultAddress,
+      vaultAddress: vaultAddr,
       positions: [],
       totalActiveUsdc: '0',
       totalCoolingUsdc: '0',
@@ -488,15 +501,21 @@ legacyRoutes.get('/vault/positions', async (c) => {
     });
   }
 
-  const calls = [];
-  for (let i = 1n; i < nextId; i++) {
-    calls.push({
-      address: legacyVaultAddress,
-      abi: vaultAbi,
-      functionName: 'positions',
-      args: [i],
-    } as const);
-  }
+  // Dedup positionIds in case the RPC returned the same event twice across
+  // a page boundary; multicall over the unique set stays small.
+  const positionIds = Array.from(
+    new Set(logs.map((l) => (l.args.positionId ?? 0n).toString())),
+  ).map((s) => BigInt(s));
+
+  const calls = positionIds.map(
+    (id) =>
+      ({
+        address: vaultAddr,
+        abi: legacyVaultAbi,
+        functionName: 'positions',
+        args: [id],
+      }) as const,
+  );
 
   const results = await publicClient.multicall({ contracts: calls, allowFailure: true });
   const positions: LegacyPosition[] = [];
@@ -512,8 +531,11 @@ legacyRoutes.get('/vault/positions', async (c) => {
       number,
     ];
     if (tuple[0].toLowerCase() !== a) continue;
+    if (tuple[5] === 0) continue;
+    const positionId = positionIds[i];
+    if (positionId == null) continue;
     positions.push({
-      positionId: (BigInt(i) + 1n).toString(),
+      positionId: positionId.toString(),
       principalUsdc: formatUnits(tuple[1], USDC_DECIMALS),
       depositedAt: Number(tuple[2]),
       cooldownStartedAt: Number(tuple[3]),

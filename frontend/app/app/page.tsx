@@ -14,6 +14,7 @@ import { PendingDealsBand } from '@/features/notifications/components/PendingDea
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { LegacyBanner } from '@/shared/components/LegacyBanner';
 import { shortAddress } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -129,6 +130,7 @@ export default function AppHome() {
   return (
     <FullBleed>
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
+      <LegacyBanner />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">

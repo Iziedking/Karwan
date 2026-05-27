@@ -23,6 +23,7 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { vault, legacyVault } from '../chain/contracts.js';
 import { vaultAbi } from '../chain/abis/vault.js';
+import { legacyVaultAbi } from '../chain/abis/legacyVault.js';
 import { logger } from '../logger.js';
 
 interface CacheEntry {
@@ -49,15 +50,17 @@ interface PositionView {
   state: number;
 }
 
-/// Read every position owned by `owner` on the given vault. Walks positionId
-/// 1..nextPositionId via multicall, then filters in memory. Replaces the
-/// previous event-log scanner which silently lost positions on RPC pages
-/// that returned incomplete matches. The vault contract auto-increments
-/// nextPositionId on every deposit, so this enumeration is exact.
+/// Read every position owned by `owner` on the given vault. For the active
+/// (v2.D) vault, walks positionId 1..nextPositionId via multicall. For the
+/// legacy (pre-v2.D) vault, falls back to scanning Deposited events filtered
+/// by the owner topic, because the older contract has no nextPositionId
+/// view. Both paths converge on the same positionView shape downstream.
 async function readPositionsForOwner(
   vaultAddress: `0x${string}`,
   owner: string,
+  isLegacy = false,
 ): Promise<PositionView[]> {
+  if (isLegacy) return readLegacyPositions(vaultAddress, owner);
   // Treat zero-address vault as "no positions"; happens during transition
   // when KARWAN_VAULT_LEGACY_ADDR is unset.
   if (!vaultAddress) return [];
@@ -155,9 +158,9 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
     .KARWAN_VAULT_LEGACY_ADDR;
 
   const [activePositions, legacyPositions] = await Promise.all([
-    readPositionsForOwner(vaultAddr as `0x${string}`, address),
+    readPositionsForOwner(vaultAddr as `0x${string}`, address, false),
     legacyAddr
-      ? readPositionsForOwner(legacyAddr as `0x${string}`, address)
+      ? readPositionsForOwner(legacyAddr as `0x${string}`, address, true)
       : Promise.resolve([] as PositionView[]),
   ]);
 
@@ -221,9 +224,9 @@ export async function activeStakeSummary(addressRaw: string): Promise<ActiveStak
     .KARWAN_VAULT_LEGACY_ADDR;
 
   const [activePositions, legacyPositions, reservedRaw] = await Promise.all([
-    readPositionsForOwner(vaultAddr as `0x${string}`, address),
+    readPositionsForOwner(vaultAddr as `0x${string}`, address, false),
     legacyAddr
-      ? readPositionsForOwner(legacyAddr as `0x${string}`, address)
+      ? readPositionsForOwner(legacyAddr as `0x${string}`, address, true)
       : Promise.resolve([] as PositionView[]),
     vault.read.reservedTotal([address as `0x${string}`]).catch(() => 0n),
   ]);
@@ -257,4 +260,94 @@ export async function activeStakeSummary(addressRaw: string): Promise<ActiveStak
 /// to render a "Legacy positions are still earning tenure" badge.
 export function hasLegacyVault(): boolean {
   return legacyVault !== null;
+}
+
+/// Event-log path for the pre-v2.D vault, which doesn't expose the
+/// nextPositionId view we use on the active contract. Scans Deposited
+/// events filtered by the owner topic, then multicalls positions(id) for
+/// the current state of each.
+async function readLegacyPositions(
+  vaultAddress: `0x${string}`,
+  owner: string,
+): Promise<PositionView[]> {
+  const fromBlock =
+    (config as unknown as Record<string, bigint | undefined>).KARWAN_VAULT_LEGACY_DEPLOY_BLOCK ??
+    0n;
+  let logs: Array<{ args: { positionId?: bigint; owner?: `0x${string}` } }>;
+  try {
+    logs = (await publicClient.getContractEvents({
+      address: vaultAddress,
+      abi: legacyVaultAbi,
+      eventName: 'Deposited',
+      args: { owner: owner as `0x${string}` },
+      fromBlock,
+      toBlock: 'latest',
+    })) as typeof logs;
+  } catch (err) {
+    if (!warned.has(vaultAddress)) {
+      warned.add(vaultAddress);
+      logger.warn(
+        { err: (err as Error).message, vault: vaultAddress },
+        'legacy Deposited scan failed (logged once per vault)',
+      );
+    }
+    return [];
+  }
+
+  if (logs.length === 0) return [];
+
+  const positionIds = Array.from(
+    new Set(logs.map((l) => (l.args.positionId ?? 0n).toString())),
+  ).map((s) => BigInt(s));
+
+  const calls = positionIds.map(
+    (id) =>
+      ({
+        address: vaultAddress,
+        abi: legacyVaultAbi,
+        functionName: 'positions',
+        args: [id],
+      }) as const,
+  );
+
+  let results: Array<{ status: 'success' | 'failure'; result?: unknown }>;
+  try {
+    results = (await publicClient.multicall({
+      contracts: calls,
+      allowFailure: true,
+    })) as typeof results;
+  } catch (err) {
+    if (!warned.has(vaultAddress)) {
+      warned.add(vaultAddress);
+      logger.warn(
+        { err: (err as Error).message, vault: vaultAddress },
+        'legacy positions multicall failed',
+      );
+    }
+    return [];
+  }
+
+  const ownerLower = owner.toLowerCase();
+  const out: PositionView[] = [];
+  for (const r of results) {
+    if (r.status !== 'success') continue;
+    const tuple = r.result as readonly [
+      `0x${string}`,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      number,
+    ];
+    if (tuple[0].toLowerCase() !== ownerLower) continue;
+    out.push({
+      owner: tuple[0],
+      principal: tuple[1],
+      depositedAt: tuple[2],
+      cooldownStartedAt: tuple[3],
+      claimableAt: tuple[4],
+      state: tuple[5],
+    });
+  }
+  return out;
 }
