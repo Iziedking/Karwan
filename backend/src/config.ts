@@ -37,6 +37,20 @@ const envSchema = z.object({
 
   KARWAN_JOBBOARD_ADDR: optionalAddr,
   KARWAN_ESCROW_ADDR: optionalAddr,
+  /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
+  /// users with funds still locked on the legacy contract (Funded or
+  /// pre-v2.D "accepted" but never delivered) can refund / cancel from
+  /// the dedicated /legacy page. Unset = recovery surface disabled.
+  KARWAN_ESCROW_LEGACY_ADDR: optionalAddr,
+  /// Hard cutoff for the legacy recovery surface. Any time after this
+  /// instant: home banner hides, /legacy returns 410, /api/legacy/* routes
+  /// return 410. Reads still answer for transparency but writes refuse.
+  /// ISO 8601 UTC timestamp. Unset = legacy surface disabled entirely
+  /// (post-window state).
+  LEGACY_WINDOW_CLOSES_AT: z.preprocess(
+    blankToUndefined,
+    z.string().datetime({ offset: true }).optional(),
+  ),
   KARWAN_REPUTATION_ADDR: optionalAddr,
   // KarwanVault. Optional because pre-deploy the reputation engine cleanly
   // degrades stakeTerm to its base value (1.0). Once set, stake.ts indexes

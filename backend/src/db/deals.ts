@@ -79,6 +79,16 @@ export interface DirectDeal {
   origin?: 'direct' | 'agent';
   createdAt: number;
   updatedAt: number;
+  /// True when the on-chain escrow for this jobId lives on the pre-v2.D
+  /// KarwanEscrow address. Set by the boot-time sweep that scans every deal
+  /// whose new-escrow state is None against the legacy escrow. Drives the
+  /// /legacy recovery surface and excludes the deal from regular feeds.
+  legacyEscrow?: boolean;
+  /// Cached terminal-state snapshot from the legacy escrow. Helps the /legacy
+  /// page render past deals (Settled/Refunded) alongside open ones (Funded)
+  /// without re-querying the chain. Pre-v2.D state enum:
+  /// None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
+  legacyState?: number;
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

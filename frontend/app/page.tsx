@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { HeroFlow } from '@/features/activity/components/HeroFlow';
 import { PartnerLogos } from '@/shared/components/PartnerLogos';
 import { StatsTicker } from '@/features/activity/components/StatsTicker';
+import { LegacyBanner } from '@/shared/components/LegacyBanner';
 import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
@@ -40,6 +41,7 @@ export default function HomePage() {
 
   return (
     <div className="-mt-10 -mb-10">
+      <LegacyBanner />
       <StatsTicker />
 
       <StickyTabStrip tabs={TABS} active={active} onChange={setActive} onDark />

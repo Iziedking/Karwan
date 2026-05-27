@@ -5,7 +5,6 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
-import { fetchDepositedLogsForOwner } from '../chain/vaultLogs.js';
 import { getUserByAddress } from '../db/users.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -32,19 +31,13 @@ const positionActionSchema = z.object({
 
 const inFlight = new Set<string>();
 
-/// Minimal ABI subset used by both reads (Deposited log filter + positions
-/// view) and writes (deposit / withdraw / claim / cancel). Keeping it inline
-/// so the backend doesn't import the contracts package.
+/// Minimal ABI subset used by reads (positions view + cooldown + reserved)
+/// and writes (deposit / withdraw / claim / cancel). nextPositionId drives
+/// the multicall enumeration that replaced the Deposited-event scan: event
+/// logs were silently dropping pages on the Arc RPC, so freshly-deposited
+/// positions stopped appearing until the chain history shifted. Enumerating
+/// positionIds 1..nextPositionId via multicall is exact.
 const vaultAbi = [
-  {
-    type: 'event',
-    name: 'Deposited',
-    inputs: [
-      { name: 'positionId', type: 'uint256', indexed: true },
-      { name: 'owner', type: 'address', indexed: true },
-      { name: 'principal', type: 'uint256', indexed: false },
-    ],
-  },
   {
     type: 'function',
     name: 'positions',
@@ -58,6 +51,13 @@ const vaultAbi = [
       { name: 'claimableAt', type: 'uint64' },
       { name: 'state', type: 'uint8' },
     ],
+  },
+  {
+    type: 'function',
+    name: 'nextPositionId',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
   },
   {
     type: 'function',
@@ -93,51 +93,91 @@ function vaultAddress(): `0x${string}` | null {
 
 function stateLabelFor(state: number): PositionStateLabel {
   // KarwanVault.sol PositionState enum: { None=0, Active=1, Cooling=2, Withdrawn=3 }.
-  // We surface 'claimed' rather than 'withdrawn' as the UI label because the
-  // user-facing noun maps better to user intent ("you got your money back").
+  // 'claimed' is the UI label for Withdrawn — user intent reads "you got your money back".
   if (state === 1) return 'active';
   if (state === 2) return 'cooling';
   if (state === 3) return 'claimed';
-  // state === 0 is None (empty slot). The positions endpoint enumerates from
-  // Deposited events so it shouldn't appear, but if it does, hide by mapping
-  // to a terminal label so the row falls off the UI filter.
   return 'claimed';
 }
 
 interface ReadPositionsResult {
   positions: Position[];
-  /// False when the vault-log scan didn't reach chain head (page cap or RPC
-  /// failure). The served positions are a strict subset of the eventual full
-  /// set, never a wrong total — but a UI showing a stake total has to know
-  /// when to render a "syncing" pill instead of treating the number as final.
+  /// False when the multicall enumeration partially failed for this read.
+  /// The served positions are a strict subset of the eventual full set,
+  /// never a wrong total. UI renders a "syncing" pill when false and skips
+  /// treating the total as final.
   synced: boolean;
 }
 
+/// Multicall-enumerated read across positionId 1..nextPositionId. Replaces
+/// the previous Deposited-event scan, which silently lost positions when
+/// the Arc RPC dropped pages mid-walk. The vault's positionId counter only
+/// monotonically increases (it auto-increments on every deposit and never
+/// rewinds on withdraw/claim), so enumerating up to nextPositionId is exact.
 async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
   const vault = vaultAddress();
   if (!vault) {
     logger.warn({ addressRaw }, 'vault.readPositions: KARWAN_VAULT_ADDR unset');
     return { positions: [], synced: true };
   }
-  const address = addressRaw.toLowerCase() as `0x${string}`;
+  const address = addressRaw.toLowerCase();
 
-  // Paginated read covers the vault's full deployed history, so positions
-  // older than the previous ~5h window no longer drop off after a refresh.
-  const { logs, synced } = await fetchDepositedLogsForOwner(vault, address);
-  if (logs.length === 0) return { positions: [], synced };
+  let nextId: bigint;
+  try {
+    nextId = (await publicClient.readContract({
+      address: vault,
+      abi: vaultAbi,
+      functionName: 'nextPositionId',
+    })) as bigint;
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message, vault },
+      'vault.readPositions: nextPositionId read failed',
+    );
+    return { positions: [], synced: false };
+  }
 
-  const now = Math.floor(Date.now() / 1000);
-  const out: Position[] = [];
-  for (const log of logs) {
-    const p = (await publicClient.readContract({
+  if (nextId <= 1n) return { positions: [], synced: true };
+
+  const calls = [];
+  for (let i = 1n; i < nextId; i++) {
+    calls.push({
       address: vault,
       abi: vaultAbi,
       functionName: 'positions',
-      args: [log.positionId],
-    })) as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
-    const [, principal, depositedAt, cooldownStartedAt, claimableAt, state] = p;
+      args: [i],
+    } as const);
+  }
+
+  let results: Array<{ status: 'success' | 'failure'; result?: unknown; error?: unknown }>;
+  try {
+    results = (await publicClient.multicall({
+      contracts: calls,
+      allowFailure: true,
+    })) as typeof results;
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message, vault },
+      'vault.readPositions: multicall failed',
+    );
+    return { positions: [], synced: false };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const out: Position[] = [];
+  let anyFailed = false;
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (!r || r.status !== 'success') {
+      anyFailed = true;
+      continue;
+    }
+    const tuple = r.result as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
+    if (tuple[0].toLowerCase() !== address) continue;
+    const [, principal, depositedAt, cooldownStartedAt, claimableAt, state] = tuple;
+    const positionId = (BigInt(i) + 1n).toString();
     out.push({
-      positionId: log.positionId.toString(),
+      positionId,
       principalUsdc: formatUnits(principal, USDC_DECIMALS),
       principalWei: principal.toString(),
       depositedAt: Number(depositedAt),
@@ -149,7 +189,7 @@ async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
   }
   return {
     positions: out.sort((a, b) => Number(b.positionId) - Number(a.positionId)),
-    synced,
+    synced: !anyFailed,
   };
 }
 

@@ -7,6 +7,10 @@ import {
   escrow,
   usdc as usdcAddress,
   readEscrow,
+  readLegacyEscrow,
+  legacyEscrow,
+  ESCROW_STATE,
+  LEGACY_ESCROW_STATE,
   invalidateEscrowCache,
   readUsdcBalance,
   getEscrowFeeBps,
@@ -194,7 +198,10 @@ dealsRoutes.get('/direct', async (c) => {
 
   const deals = await listDealsForAddress(parsed.data);
   const enriched = await Promise.all(deals.map((d) => enrich(d)));
-  return c.json({ deals: enriched });
+  // Legacy deals live on the dedicated /legacy recovery page; filtering
+  // them here kills the false "release first" buttons on activity / buyer
+  // / seller dashboards that otherwise show pre-v2.D escrow state.
+  return c.json({ deals: enriched.filter((d) => !d.legacyEscrow) });
 });
 
 dealsRoutes.get('/direct/:jobId', async (c) => {
@@ -1182,6 +1189,22 @@ async function enrich(deal: DirectDeal) {
   if (!deal.acceptedAt) return { ...base, onChain: null };
   try {
     const account = await readEscrow(deal.jobId);
+    // Legacy detection: state==None on the new escrow + a configured legacy
+    // address = the funds are still on the pre-v2.D contract. Tag the deal
+    // lazily so subsequent /direct calls can filter it out without re-
+    // querying. Stays a deal record; the /legacy surface picks it up.
+    if (account.state === ESCROW_STATE.None && legacyEscrow) {
+      const legacy = await readLegacyEscrow(deal.jobId);
+      if (legacy && legacy.state !== LEGACY_ESCROW_STATE.None) {
+        if (!deal.legacyEscrow || deal.legacyState !== legacy.state) {
+          await patchDeal(deal.jobId, {
+            legacyEscrow: true,
+            legacyState: legacy.state,
+          }).catch(() => {});
+        }
+        return { ...base, legacyEscrow: true, legacyState: legacy.state, onChain: null };
+      }
+    }
     return {
       ...base,
       onChain: {

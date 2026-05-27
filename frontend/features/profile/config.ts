@@ -19,8 +19,16 @@ export const ARC_USDC_ADDRESS = '0x3600000000000000000000000000000000000000' as 
 // USDC at the ERC-20 interface is 6 decimals (the same scale escrow + vault use).
 export const ARC_USDC_DECIMALS = 6;
 
-// KarwanVault deployed to Arc testnet. Surfaced here so the staking UI can
-// read positions + sign deposits/withdrawals without an env round-trip.
-// Mirrors the backend KARWAN_VAULT_ADDR. Set to the empty string while the
-// vault is being redeployed and the UI will degrade to a "not deployed" pill.
-export const KARWAN_VAULT_ADDRESS = '0x92b1223921944024f6615A604a2bDA6eF1fEe922' as const;
+// Active KarwanVault (v2.D bundle) on Arc Testnet. Mirrors the backend
+// KARWAN_VAULT_ADDR. Web3 users sign deposit / withdraw / claim against this.
+export const KARWAN_VAULT_ADDRESS = '0xAb26EB7c8462F26A03A9bf32A6E662FaEE64368E' as const;
+
+// Pre-v2.D KarwanVault. Read-only on the standalone /legacy page so existing
+// stakers can request-withdraw / claim USDC still parked on the old contract.
+// Mirrors the backend KARWAN_VAULT_LEGACY_ADDR.
+export const KARWAN_VAULT_LEGACY_ADDRESS = '0x92b1223921944024f6615A604a2bDA6eF1fEe922' as const;
+
+// Pre-v2.D KarwanEscrow. Backs the legacy deal recovery flow (refund,
+// release-final, mutual cancel) on /legacy. Mirrors the backend
+// KARWAN_ESCROW_LEGACY_ADDR.
+export const KARWAN_ESCROW_LEGACY_ADDRESS = '0xb81d9093607E460e2E4Fa971c75d9322E756b838' as const;

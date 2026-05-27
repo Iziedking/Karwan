@@ -5,6 +5,7 @@ import { jobBoardAbi } from './abis/jobBoard.js';
 import { escrowAbi } from './abis/escrow.js';
 import { reputationAbi } from './abis/reputation.js';
 import { vaultAbi } from './abis/vault.js';
+import { legacyEscrowAbi, LEGACY_ESCROW_STATE } from './abis/legacyEscrow.js';
 
 function required(name: string, value: string | undefined): Address {
   if (!value) throw new Error(`${name} is not set in .env`);
@@ -55,6 +56,64 @@ export const legacyVaultAddress: Address | null = optional(
 export const legacyVault = legacyVaultAddress
   ? getContract({ address: legacyVaultAddress, abi: vaultAbi, client: publicClient })
   : null;
+
+/// Pre-v2.D KarwanEscrow. Backs the 30-day recovery surface so buyers can
+/// refund / cancel deals whose USDC is still locked on the legacy contract.
+/// Returns null when KARWAN_ESCROW_LEGACY_ADDR is unset (post-window or
+/// fresh environments).
+export const legacyEscrowAddress: Address | null = optional(
+  (config as unknown as Record<string, string | undefined>).KARWAN_ESCROW_LEGACY_ADDR,
+);
+
+export const legacyEscrow = legacyEscrowAddress
+  ? getContract({ address: legacyEscrowAddress, abi: legacyEscrowAbi, client: publicClient })
+  : null;
+
+export { LEGACY_ESCROW_STATE };
+
+/// Auto-getter shape on the legacy escrow. Same tuple as before but without
+/// milestonePcts (the dynamic array is dropped by Solidity's auto-getter).
+export interface LegacyEscrowAccount {
+  buyer: `0x${string}`;
+  seller: `0x${string}`;
+  dealAmount: bigint;
+  sellerNet: bigint;
+  feeTotal: bigint;
+  released: bigint;
+  feeReleased: bigint;
+  milestonesReleased: number;
+  state: number;
+}
+
+export async function readLegacyEscrow(jobId: string): Promise<LegacyEscrowAccount | null> {
+  if (!legacyEscrow) return null;
+  try {
+    const raw = (await legacyEscrow.read.escrows([jobId as `0x${string}`])) as readonly [
+      `0x${string}`,
+      `0x${string}`,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      number,
+      number,
+    ];
+    return {
+      buyer: raw[0],
+      seller: raw[1],
+      dealAmount: raw[2],
+      sellerNet: raw[3],
+      feeTotal: raw[4],
+      released: raw[5],
+      feeReleased: raw[6],
+      milestonesReleased: raw[7],
+      state: raw[8],
+    };
+  } catch {
+    return null;
+  }
+}
 
 export const usdc = required('USDC_ADDR', config.USDC_ADDR);
 export const identityRegistry = required('IDENTITY_REGISTRY_ADDR', config.IDENTITY_REGISTRY_ADDR);

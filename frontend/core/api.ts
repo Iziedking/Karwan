@@ -838,6 +838,99 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  /// 30-day legacy recovery surface. Reads the window status (open / closing-
+  /// in / closed) so the home banner and /legacy page can branch off it.
+  legacyWindow: () =>
+    json<{
+      open: boolean;
+      closesAtMs: number | null;
+      daysRemaining: number | null;
+      hasLegacyEscrow: boolean;
+      hasLegacyVault: boolean;
+      legacyEscrowAddress: string | null;
+      legacyVaultAddress: string | null;
+    }>('/api/legacy/window'),
+  legacyDeals: (address: string) =>
+    json<{
+      legacyEscrowAddress: string | null;
+      deals: Array<{
+        jobId: string;
+        role: 'buyer' | 'seller' | 'both';
+        buyer: string;
+        seller: string;
+        dealAmountUsdc: string;
+        state: number;
+        stateLabel: 'funded' | 'settled' | 'disputed' | 'refunded' | 'unknown';
+        deadlineUnix: number;
+        pastDeadline: boolean;
+        delivered: boolean;
+        hasCancellationProposal: boolean;
+        cancellationProposal?: {
+          proposedBy: 'buyer' | 'seller';
+          kind: string;
+          reason: string;
+          proposedAt: number;
+        };
+        createdAt: number;
+        releasedUsdc: string;
+      }>;
+    }>(`/api/legacy/deals?address=${address}`),
+  legacyDealRefund: (body: { jobId: string; address: string; role: 'buyer' }) =>
+    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({ address: body.address, role: body.role }),
+    }),
+  legacyDealReleaseFinal: (body: { jobId: string; address: string; role: 'buyer' }) =>
+    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/release-final`, {
+      method: 'POST',
+      body: JSON.stringify({ address: body.address, role: body.role }),
+    }),
+  legacyDealCancelPropose: (body: {
+    jobId: string;
+    address: string;
+    role: 'buyer' | 'seller';
+    reason: string;
+  }) =>
+    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/cancel-propose`, {
+      method: 'POST',
+      body: JSON.stringify({ address: body.address, role: body.role, reason: body.reason }),
+    }),
+  legacyDealCancelAccept: (body: { jobId: string; address: string; role: 'buyer' | 'seller' }) =>
+    json<{ ok: true; txHash: string }>(`/api/legacy/deals/${body.jobId}/cancel-accept`, {
+      method: 'POST',
+      body: JSON.stringify({ address: body.address, role: body.role }),
+    }),
+  legacyVaultPositions: (address: string) =>
+    json<{
+      vaultAddress: string | null;
+      positions: Array<{
+        positionId: string;
+        principalUsdc: string;
+        depositedAt: number;
+        cooldownStartedAt: number;
+        claimableAt: number;
+        state: 'active' | 'cooling' | 'claimed';
+      }>;
+      totalActiveUsdc: string;
+      totalCoolingUsdc: string;
+      cooldownDays: number;
+    }>(`/api/legacy/vault/positions?address=${address}`),
+  legacyVaultRequestWithdraw: (body: { address: string; positionId: string }) =>
+    json<{ ok: true; txHash: string }>('/api/legacy/vault/request-withdraw', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  legacyVaultCancelWithdraw: (body: { address: string; positionId: string }) =>
+    json<{ ok: true; txHash: string }>('/api/legacy/vault/cancel-withdraw', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  legacyVaultClaim: (body: { address: string; positionId: string }) =>
+    json<{ ok: true; txHash: string }>('/api/legacy/vault/claim', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   createDirectDeal: (body: {
     buyerAddress: string;
     sellerAddress: string;
