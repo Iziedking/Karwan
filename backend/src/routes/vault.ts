@@ -143,40 +143,34 @@ async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
   // catches None slots so the +/- 1 ambiguity around the contract counter
   // can't drop a real position. Owner-mismatch and None-state checks below
   // filter out anything that isn't a real active or cooling row.
-  const calls = [];
-  for (let i = 0n; i <= nextId; i++) {
-    calls.push({
-      address: vault,
-      abi: vaultAbi,
-      functionName: 'positions',
-      args: [i],
-    } as const);
-  }
+  // Arc Testnet has no Multicall3 contract, so viem's `multicall()` throws.
+  // Promise.allSettled with individual eth_call requests works on any chain
+  // and the N is small (max ~21 positions per address), so the cost is
+  // negligible. Same pattern used for the legacy vault.
+  const positionIds: bigint[] = [];
+  for (let i = 0n; i <= nextId; i++) positionIds.push(i);
 
-  let results: Array<{ status: 'success' | 'failure'; result?: unknown; error?: unknown }>;
-  try {
-    results = (await publicClient.multicall({
-      contracts: calls,
-      allowFailure: true,
-    })) as typeof results;
-  } catch (err) {
-    logger.warn(
-      { err: (err as Error).message, vault },
-      'vault.readPositions: multicall failed',
-    );
-    return { positions: [], synced: false };
-  }
+  const results = await Promise.allSettled(
+    positionIds.map((id) =>
+      publicClient.readContract({
+        address: vault,
+        abi: vaultAbi,
+        functionName: 'positions',
+        args: [id],
+      }),
+    ),
+  );
 
   const now = Math.floor(Date.now() / 1000);
   const out: Position[] = [];
   let anyFailed = false;
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
-    if (!r || r.status !== 'success') {
+    if (!r || r.status !== 'fulfilled') {
       anyFailed = true;
       continue;
     }
-    const tuple = r.result as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
+    const tuple = r.value as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
     if (tuple[0].toLowerCase() !== address) continue;
     const [, principal, depositedAt, cooldownStartedAt, claimableAt, state] = tuple;
     if (state === 0) continue;

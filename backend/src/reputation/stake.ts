@@ -85,59 +85,47 @@ async function readPositionsForOwner(
 
   if (nextId <= 1n) return [];
 
-  // Build the multicall payload: positions(1), positions(2), ... positions(nextId-1).
-  // viem's multicall packs these into a single RPC round-trip.
-  const calls = [];
-  for (let i = 1n; i < nextId; i++) {
-    calls.push({
-      address: vaultAddress,
-      abi: vaultAbi,
-      functionName: 'positions',
-      args: [i],
-    } as const);
-  }
+  // Arc Testnet has no Multicall3 contract, so viem's `multicall()` throws.
+  // Promise.allSettled with N individual reads (N capped by nextPositionId,
+  // typically under 50 for testnet) is portable and the round-trip cost is
+  // negligible at this scale.
+  const ids: bigint[] = [];
+  for (let i = 1n; i < nextId; i++) ids.push(i);
 
-  try {
-    const results = await publicClient.multicall({
-      contracts: calls,
-      allowFailure: true,
+  const results = await Promise.allSettled(
+    ids.map((id) =>
+      publicClient.readContract({
+        address: vaultAddress,
+        abi: vaultAbi,
+        functionName: 'positions',
+        args: [id],
+      }),
+    ),
+  );
+
+  const ownerLower = owner.toLowerCase();
+  const out: PositionView[] = [];
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    const tuple = r.value as readonly [
+      `0x${string}`,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      number,
+    ];
+    if (tuple[0].toLowerCase() !== ownerLower) continue;
+    out.push({
+      owner: tuple[0],
+      principal: tuple[1],
+      depositedAt: tuple[2],
+      cooldownStartedAt: tuple[3],
+      claimableAt: tuple[4],
+      state: tuple[5],
     });
-
-    const ownerLower = owner.toLowerCase();
-    const out: PositionView[] = [];
-    for (const r of results) {
-      if (r.status !== 'success') continue;
-      // viem returns the position tuple as a struct-like object when the ABI
-      // declares named outputs. We accessed it positionally for safety:
-      const tuple = r.result as readonly [
-        `0x${string}`,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        number,
-      ];
-      if (tuple[0].toLowerCase() !== ownerLower) continue;
-      out.push({
-        owner: tuple[0],
-        principal: tuple[1],
-        depositedAt: tuple[2],
-        cooldownStartedAt: tuple[3],
-        claimableAt: tuple[4],
-        state: tuple[5],
-      });
-    }
-    return out;
-  } catch (err) {
-    if (!warned.has(vaultAddress)) {
-      warned.add(vaultAddress);
-      logger.warn(
-        { err: (err as Error).message, vault: vaultAddress },
-        'multicall positions read failed, defaulting to empty (logged once per vault)',
-      );
-    }
-    return [];
   }
+  return out;
 }
 
 /// Returns the tenure-weighted active stake for an address, summed across
@@ -291,38 +279,25 @@ async function readLegacyPositions(
 
   if (nextId === 0n) return [];
 
-  const calls = [];
-  for (let i = 0n; i <= nextId; i++) {
-    calls.push({
-      address: vaultAddress,
-      abi: legacyVaultAbi,
-      functionName: 'positions',
-      args: [i],
-    } as const);
-  }
+  const ids: bigint[] = [];
+  for (let i = 0n; i <= nextId; i++) ids.push(i);
 
-  let results: Array<{ status: 'success' | 'failure'; result?: unknown }>;
-  try {
-    results = (await publicClient.multicall({
-      contracts: calls,
-      allowFailure: true,
-    })) as typeof results;
-  } catch (err) {
-    if (!warned.has(vaultAddress)) {
-      warned.add(vaultAddress);
-      logger.warn(
-        { err: (err as Error).message, vault: vaultAddress },
-        'legacy positions multicall failed',
-      );
-    }
-    return [];
-  }
+  const results = await Promise.allSettled(
+    ids.map((id) =>
+      publicClient.readContract({
+        address: vaultAddress,
+        abi: legacyVaultAbi,
+        functionName: 'positions',
+        args: [id],
+      }),
+    ),
+  );
 
   const ownerLower = owner.toLowerCase();
   const out: PositionView[] = [];
   for (const r of results) {
-    if (r.status !== 'success') continue;
-    const tuple = r.result as readonly [
+    if (r.status !== 'fulfilled') continue;
+    const tuple = r.value as readonly [
       `0x${string}`,
       bigint,
       bigint,

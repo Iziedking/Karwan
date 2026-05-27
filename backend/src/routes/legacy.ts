@@ -574,22 +574,24 @@ legacyRoutes.get('/vault/positions', async (c) => {
   const positionIds: bigint[] = [];
   for (let i = 0n; i <= nextId; i++) positionIds.push(i);
 
-  const calls = positionIds.map(
-    (id) =>
-      ({
+  // Arc Testnet has no Multicall3 contract, so viem's `multicall()` throws.
+  // Promise.allSettled is portable and the N is small enough that the
+  // round-trip overhead is fine.
+  const results = await Promise.allSettled(
+    positionIds.map((id) =>
+      publicClient.readContract({
         address: vaultAddr,
         abi: legacyVaultAbi,
         functionName: 'positions',
         args: [id],
-      }) as const,
+      }),
+    ),
   );
-
-  const results = await publicClient.multicall({ contracts: calls, allowFailure: true });
   const positions: LegacyPosition[] = [];
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
-    if (!r || r.status !== 'success') continue;
-    const tuple = r.result as readonly [
+    if (!r || r.status !== 'fulfilled') continue;
+    const tuple = r.value as readonly [
       `0x${string}`,
       bigint,
       bigint,
