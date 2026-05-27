@@ -288,10 +288,18 @@ async function callLegacyEscrowFn(
   }
 }
 
-/// Buyer-side refund on the legacy contract. Matches the "Cancel & Reclaim
-/// Funds" button surface on deals where the seller never delivered and the
-/// deadline passed. The legacy escrow enforces the deadline check on chain.
+/// Buyer-side refund on the legacy contract. Pre-v2.D escrow required a
+/// two-step buyer cancel: dispute(jobId, reason) moves Funded to Disputed,
+/// then refund(jobId) moves Disputed to Refunded and returns USDC. This
+/// route chains both calls so the user clicks once and the backend signs
+/// twice with the buyer agent DCW.
 legacyRoutes.post('/deals/:jobId/refund', async (c) => {
+  const closed = refuseIfClosed(c);
+  if (closed) return closed;
+  if (!legacyEscrow || !legacyEscrowAddress) {
+    return c.json({ error: 'legacy escrow not configured' }, 410);
+  }
+
   let body: z.infer<typeof dealActionSchema>;
   try {
     body = dealActionSchema.parse(await c.req.json());
@@ -301,15 +309,81 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
   if (body.role !== 'buyer') {
     return c.json({ error: 'refund is buyer-only' }, 403);
   }
-  return callLegacyEscrowFn(
-    c,
-    c.req.param('jobId'),
-    'refund',
-    'refund(bytes32)',
-    body,
-    [c.req.param('jobId')],
-    'deal.cancelled',
-  );
+
+  const jobId = c.req.param('jobId');
+  const loaded = await loadDealForLegacyAction(c, jobId, body);
+  if (!loaded.ok) return loaded.response;
+
+  const onChain = await readLegacyEscrow(jobId);
+  if (!onChain) {
+    return c.json({ error: 'legacy escrow record not found' }, 404);
+  }
+
+  const key = `${body.address.toLowerCase()}:legacy:refund:${jobId.toLowerCase()}`;
+  if (inFlight.has(key)) {
+    return c.json({ error: 'a legacy refund is already in progress for this deal' }, 409);
+  }
+  inFlight.add(key);
+
+  try {
+    let disputeTxHash: string | null = null;
+    // Funded means refund alone reverts InvalidState; dispute first.
+    if (onChain.state === LEGACY_ESCROW_STATE.Funded) {
+      const disputeResult = await executeContractCall(
+        {
+          walletId: loaded.walletId,
+          contractAddress: legacyEscrowAddress,
+          abiFunctionSignature: 'dispute(bytes32,string)',
+          abiParameters: [jobId, 'Recovery: seller did not deliver by deadline'],
+        },
+        `legacy.dispute(${jobId})`,
+      );
+      disputeTxHash = disputeResult.txHash;
+      bus.emitEvent({
+        type: 'deal.disputed',
+        jobId,
+        actor: 'buyer',
+        payload: { txHash: disputeTxHash, legacy: true },
+      });
+    } else if (onChain.state !== LEGACY_ESCROW_STATE.Disputed) {
+      return c.json(
+        {
+          error: 'legacy escrow is not in a refundable state',
+          state: onChain.state,
+        },
+        409,
+      );
+    }
+
+    const refundResult = await executeContractCall(
+      {
+        walletId: loaded.walletId,
+        contractAddress: legacyEscrowAddress,
+        abiFunctionSignature: 'refund(bytes32)',
+        abiParameters: [jobId],
+      },
+      `legacy.refund(${jobId})`,
+    );
+    bus.emitEvent({
+      type: 'deal.cancelled',
+      jobId,
+      actor: 'buyer',
+      payload: { txHash: refundResult.txHash, legacy: true, disputeTxHash },
+    });
+    logger.info(
+      { jobId, refundTxHash: refundResult.txHash, disputeTxHash },
+      'legacy buyer refund confirmed',
+    );
+    return c.json({ ok: true, txHash: refundResult.txHash, disputeTxHash });
+  } catch (err) {
+    logger.error(
+      { jobId, err: (err as Error).message },
+      'legacy buyer refund failed',
+    );
+    return c.json({ error: 'refund failed', detail: (err as Error).message }, 502);
+  } finally {
+    inFlight.delete(key);
+  }
 });
 
 /// Buyer-side final release on the legacy contract. For deals where the

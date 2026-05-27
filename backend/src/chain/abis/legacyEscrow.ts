@@ -66,6 +66,16 @@ export const legacyEscrowAbi = [
     inputs: [{ name: 'jobId', type: 'bytes32' }],
     outputs: [],
   },
+  {
+    type: 'function',
+    name: 'dispute',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'jobId', type: 'bytes32' },
+      { name: 'reasonHash', type: 'string' },
+    ],
+    outputs: [],
+  },
 ] as const;
 
 export const LEGACY_ESCROW_STATE = {

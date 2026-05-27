@@ -27,7 +27,6 @@ import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
   KARWAN_VAULT_LEGACY_ADDRESS,
-  KARWAN_ESCROW_LEGACY_ADDRESS,
 } from '@/features/profile/config';
 
 /// 30-day recovery surface for the pre-v2.D KarwanEscrow + KarwanVault. One
@@ -54,40 +53,6 @@ const vaultAbi = [
     name: 'claim',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'positionId', type: 'uint256' }],
-    outputs: [],
-  },
-] as const;
-
-const escrowAbi = [
-  {
-    type: 'function',
-    name: 'refund',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'jobId', type: 'bytes32' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'releaseFinal',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'jobId', type: 'bytes32' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'proposeCancellation',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'jobId', type: 'bytes32' },
-      { name: 'reason', type: 'string' },
-    ],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'acceptCancellation',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'jobId', type: 'bytes32' }],
     outputs: [],
   },
 ] as const;
@@ -201,7 +166,7 @@ export default function LegacyPage() {
               window closes in
             </span>
             <span className="mono text-[14px] sm:text-[16px] font-extrabold text-white tabular-nums">
-              {windowState?.closesAtMs ? <Countdown targetMs={windowState.closesAtMs} /> : '—'}
+              {windowState?.closesAtMs ? <Countdown targetMs={windowState.closesAtMs} /> : '...'}
             </span>
           </div>
           <p className="mt-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed">
@@ -217,7 +182,7 @@ export default function LegacyPage() {
         </HeroHeadline>
         <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch]">
           Positions parked on the previous KarwanVault. Cool-down on this contract is 7 days. New
-          deposits go to the v2.D vault — visit{' '}
+          deposits go to the v2.D vault. Visit{' '}
           <Link href="/stake" className="underline underline-offset-2">/stake</Link> for that.
         </p>
         <div className="mt-8">
@@ -236,7 +201,7 @@ export default function LegacyPage() {
           cancellation.
         </p>
         <div className="mt-8">
-          <LegacyDealsList address={address} isCircleUser={method === 'circle'} />
+          <LegacyDealsList address={address} />
         </div>
       </Band>
     </FullBleed>
@@ -416,7 +381,7 @@ function LegacyStakeCard({
 
       {active.length > 0 && (
         <PositionGroup
-          title="Active — start cool-down to recover"
+          title="Active. Start cool-down to recover"
           positions={active}
           busy={busy}
           onAction={runAction}
@@ -544,7 +509,7 @@ function CoolingGroup({
   return (
     <div className="space-y-2.5">
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        Cooling — claim once the countdown ends
+        Cooling. Claim once the countdown ends
       </p>
       <ul className="space-y-2">
         {positions.map((p) => {
@@ -645,18 +610,7 @@ interface LegacyDeal {
 
 type DealBusy = { jobId: string; kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' } | null;
 
-function LegacyDealsList({
-  address,
-  isCircleUser,
-}: {
-  address: string;
-  isCircleUser: boolean;
-}) {
-  const { data: walletClient } = useWalletClient();
-  const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
-  const chainId = useChainId();
-  const { switchChainAsync } = useSwitchChain();
-
+function LegacyDealsList({ address }: { address: string }) {
   const [deals, setDeals] = useState<LegacyDeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<DealBusy>(null);
@@ -666,8 +620,6 @@ function LegacyDealsList({
     kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept';
     deal: LegacyDeal;
   } | null>(null);
-
-  const onWrongChain = !isCircleUser && chainId !== ARC_CHAIN_ID;
 
   const refetch = useCallback(async () => {
     try {
@@ -686,49 +638,18 @@ function LegacyDealsList({
     return () => clearInterval(id);
   }, [refetch]);
 
-  const signWeb3 = useCallback(
-    async (
-      fn: 'refund' | 'releaseFinal' | 'acceptCancellation' | 'proposeCancellation',
-      jobId: string,
-      reason?: string,
-    ) => {
-      if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
-      const args =
-        fn === 'proposeCancellation'
-          ? ([jobId as `0x${string}`, reason ?? ''] as const)
-          : ([jobId as `0x${string}`] as const);
-      const hash = await walletClient.writeContract({
-        address: KARWAN_ESCROW_LEGACY_ADDRESS,
-        abi: escrowAbi,
-        functionName: fn,
-        args: args as never,
-        chain: walletClient.chain,
-        account: address as `0x${string}`,
-      });
-      await arcClient.waitForTransactionReceipt({ hash });
-      return hash;
-    },
-    [walletClient, arcClient, address],
-  );
-
-  // Action handlers stash the deal in pendingAction so the dialog can render
-  // its confirmation. Web3 chain-switch happens here so the user only sees
-  // the confirm dialog once their wallet is on Arc.
+  // Legacy escrow actions always route through the backend agent DCW.
+  // The on-chain buyer field on a legacy escrow is the buyer-agent wallet,
+  // not the user's identity wallet, so signing with the connected wagmi
+  // wallet would always revert NotBuyer. The backend signs with the agent
+  // DCW that originally funded the escrow.
   const queueAction = useCallback(
-    async (deal: LegacyDeal, kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept') => {
+    (deal: LegacyDeal, kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept') => {
       setLastError(null);
       setLastTx(null);
-      if (onWrongChain) {
-        try {
-          await switchChainAsync({ chainId: ARC_CHAIN_ID });
-        } catch {
-          // declined
-        }
-        return;
-      }
       setPendingAction({ kind, deal });
     },
-    [onWrongChain, switchChainAsync],
+    [],
   );
 
   const runRefund = useCallback((deal: LegacyDeal) => queueAction(deal, 'refund'), [queueAction]);
@@ -753,48 +674,28 @@ function LegacyDealsList({
       const role: 'buyer' | 'seller' = deal.role === 'seller' ? 'seller' : 'buyer';
       try {
         if (kind === 'refund') {
-          if (isCircleUser) {
-            const r = await api.legacyDealRefund({ jobId: deal.jobId, address, role: 'buyer' });
-            setLastTx(r.txHash);
-          } else {
-            const hash = await signWeb3('refund', deal.jobId);
-            setLastTx(hash);
-          }
+          const r = await api.legacyDealRefund({ jobId: deal.jobId, address, role: 'buyer' });
+          setLastTx(r.txHash);
         } else if (kind === 'release') {
-          if (isCircleUser) {
-            const r = await api.legacyDealReleaseFinal({
-              jobId: deal.jobId,
-              address,
-              role: 'buyer',
-            });
-            setLastTx(r.txHash);
-          } else {
-            const hash = await signWeb3('releaseFinal', deal.jobId);
-            setLastTx(hash);
-          }
+          const r = await api.legacyDealReleaseFinal({
+            jobId: deal.jobId,
+            address,
+            role: 'buyer',
+          });
+          setLastTx(r.txHash);
         } else if (kind === 'cancel-propose') {
           const cleaned = (reason ?? '').trim();
           if (!cleaned) throw new Error('Reason is required to propose a cancellation.');
-          if (isCircleUser) {
-            const r = await api.legacyDealCancelPropose({
-              jobId: deal.jobId,
-              address,
-              role,
-              reason: cleaned,
-            });
-            setLastTx(r.txHash);
-          } else {
-            const hash = await signWeb3('proposeCancellation', deal.jobId, cleaned);
-            setLastTx(hash);
-          }
+          const r = await api.legacyDealCancelPropose({
+            jobId: deal.jobId,
+            address,
+            role,
+            reason: cleaned,
+          });
+          setLastTx(r.txHash);
         } else if (kind === 'cancel-accept') {
-          if (isCircleUser) {
-            const r = await api.legacyDealCancelAccept({ jobId: deal.jobId, address, role });
-            setLastTx(r.txHash);
-          } else {
-            const hash = await signWeb3('acceptCancellation', deal.jobId);
-            setLastTx(hash);
-          }
+          const r = await api.legacyDealCancelAccept({ jobId: deal.jobId, address, role });
+          setLastTx(r.txHash);
         }
         await refetch();
       } catch (err) {
@@ -803,7 +704,7 @@ function LegacyDealsList({
         setBusy(null);
       }
     },
-    [pendingAction, isCircleUser, address, signWeb3, refetch],
+    [pendingAction, address, refetch],
   );
 
   const open = useMemo(
@@ -830,18 +731,12 @@ function LegacyDealsList({
 
   return (
     <div className="space-y-6">
-      {onWrongChain && (
-        <Note tone="warn">
-          Your wallet is on another network. Switch to Arc to sign legacy escrow actions.
-        </Note>
-      )}
-
       {open.length === 0 ? (
         <Note tone="info">No open legacy deals. Everything past settled or refunded.</Note>
       ) : (
         <div className="space-y-2.5">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Open — actions available
+            Open. Actions available
           </p>
           <ul className="space-y-3">
             {open.map((deal) => (
@@ -862,7 +757,7 @@ function LegacyDealsList({
       {past.length > 0 && (
         <div className="space-y-2.5">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Past — already settled or refunded
+            Past. Already settled or refunded
           </p>
           <ul className="space-y-2">
             {past.map((deal) => (
