@@ -896,12 +896,38 @@ function ActionPanel({
 
   if (stage === 'awaiting-acceptance') {
     if (viewerIsSeller) {
+      // v2.D insurance reservation: 50% of deal value locks against the
+      // seller's free vault stake on accept. Surface the exact number so
+      // the seller knows what'll be locked before they click. The number
+      // is computed off `deal.dealAmountUsdc` × the protocol's
+      // reservationBps; the value 50% is hardcoded here as a hint —
+      // the contract is the source of truth and will revert with
+      // InsufficientStake if the seller's free stake doesn't cover it.
+      const RESERVATION_PCT = 50;
+      const reservedAmount = (
+        (Number(deal.dealAmountUsdc) * RESERVATION_PCT) /
+        100
+      ).toFixed(2);
       return (
         <div className="space-y-4">
           <Body>
             Review terms and the funding split. Accepting agrees to deliver on these terms and
             funds the escrow.
           </Body>
+          <div
+            className="px-3 py-2 mono text-[11px] leading-snug"
+            style={{
+              background: 'color-mix(in oklab, var(--lp-accent) 10%, transparent)',
+              borderLeft: '2px solid var(--lp-accent)',
+              color: 'var(--lp-band-dark)',
+            }}
+          >
+            On accept,{' '}
+            <span className="font-bold tabular-nums">{reservedAmount} USDC</span>{' '}
+            ({RESERVATION_PCT}% of {deal.dealAmountUsdc}) reserves from your
+            stake as buyer-side deal insurance. It releases back when the
+            deal settles, or slashes to the buyer if you lose a dispute.
+          </div>
           <CTAPill disabled={busy} onClick={onAccept}>
             {busy ? 'Confirming on Arc…' : 'Accept deal'}
           </CTAPill>
@@ -1512,6 +1538,34 @@ function DealErrorNote({
       <p className="font-medium">
         The buyer agent doesn&apos;t have enough native gas on Arc to send this transaction.
       </p>,
+    );
+  }
+  if (info.code === 'INSUFFICIENT_STAKE') {
+    // v2.D: seller agent's free stake is below the insurance reservation.
+    // Surface a clear "stake more" CTA. Only seller sees this — the buyer
+    // never triggers the accept call.
+    return wrap(
+      <div className="space-y-1.5">
+        <p className="font-medium">
+          Your seller agent doesn&apos;t have enough free stake to backstop
+          this deal.
+        </p>
+        <p className="text-[11px] opacity-90">{info.message}</p>
+        <p className="text-[11px] opacity-90">
+          <Link href="/stake" className="underline font-medium">
+            Stake more
+          </Link>
+          {' '}then return here to accept.
+        </p>
+      </div>,
+    );
+  }
+  if (info.code === 'ACCEPT_ESCROW_FAILED') {
+    return wrap(
+      <div className="space-y-1.5">
+        <p className="font-medium">Could not accept the escrow on chain.</p>
+        <p className="text-[11px] opacity-90">{info.message}</p>
+      </div>,
     );
   }
   return wrap(info.message);

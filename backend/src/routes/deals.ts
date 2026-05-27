@@ -16,12 +16,15 @@ import { executeContractCall } from '../chain/txs.js';
 import {
   releaseMilestone,
   finalizeIfSettled,
+  acceptEscrow as acceptEscrowOnChain,
   recordReputation,
   ESCROW_FUNDED,
+  ESCROW_ACCEPTED,
   ESCROW_DISPUTED,
   OUTCOME_FAILED,
   OUTCOME_DISPUTE_RESOLVED,
 } from '../chain/settlement.js';
+import { vault, getReservationBps } from '../chain/contracts.js';
 import {
   createDeal,
   getDeal,
@@ -269,7 +272,31 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     // the deal accepted so the normal delivery + refund paths apply.
     invalidateEscrowCache(jobId);
     const preEscrow = await readEscrow(jobId);
-    if (preEscrow.state === ESCROW_FUNDED) {
+    // v2.D-aware idempotent recovery. Two on-chain states count as "already
+    // partway through accept":
+    //   - Funded: buyer funded, seller hasn't called acceptEscrow yet. We
+    //     skip fundEscrow but still need to call acceptEscrow.
+    //   - Accepted: seller already accepted; just record acceptedAt.
+    if (preEscrow.state === ESCROW_FUNDED || preEscrow.state === ESCROW_ACCEPTED) {
+      if (preEscrow.state === ESCROW_FUNDED) {
+        try {
+          await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
+          invalidateEscrowCache(jobId);
+        } catch (err) {
+          const message = (err as Error).message;
+          const lower = message.toLowerCase();
+          const isInsufficientStake =
+            lower.includes('insufficientstake') ||
+            lower.includes('insufficientfreestake');
+          const code = isInsufficientStake
+            ? 'INSUFFICIENT_STAKE'
+            : 'ACCEPT_ESCROW_FAILED';
+          const detail = isInsufficientStake
+            ? `Your seller agent needs more stake to backstop this deal. Stake more in /stake and retry.`
+            : `acceptEscrow reverted: ${message}`;
+          return c.json({ error: detail, code, detail: message }, 502);
+        }
+      }
       await patchDeal(jobId, {
         acceptedAt: deal.acceptedAt ?? Date.now(),
         sellerAgentWalletId: sellerAgents.sellerWalletId,
@@ -281,7 +308,10 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         actor: 'seller',
         payload: { seller: deal.seller, buyer: deal.buyer },
       });
-      logger.info({ jobId }, 'escrow already funded on chain; marked accepted (idempotent recovery)');
+      logger.info(
+        { jobId, escrowState: preEscrow.state },
+        'escrow already past Funded; marked accepted (idempotent recovery)',
+      );
       return c.json({ accepted: true, jobId, recovered: true }, 200);
     }
 
@@ -376,6 +406,80 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         409,
       );
     }
+
+    // v2.D: pre-flight the seller agent's free stake on the vault. The
+    // reservation amount = dealAmount * reservationBps / 10000 must be
+    // covered by the seller agent's `freeStakeOf` (active stake minus any
+    // existing reservations). Catching the shortfall here lets us give
+    // the user a clean message rather than a raw chain revert. The
+    // contract still gates with the same check (defence in depth).
+    try {
+      const reservationBps = await getReservationBps();
+      const reservationWei =
+        (dealAmountWei * BigInt(reservationBps)) / 10000n;
+      const sellerFreeWei = (await vault.read.freeStakeOf([
+        sellerAgents.sellerAddress as `0x${string}`,
+      ])) as bigint;
+      if (sellerFreeWei < reservationWei) {
+        const reservationUsdc = formatUnits(reservationWei, USDC_DECIMALS);
+        const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+        const message = `Your seller agent has ${freeUsdc} USDC free stake but this deal needs ${reservationUsdc} USDC reserved (${reservationBps / 100}% of ${deal.dealAmountUsdc}). Stake more in /stake before accepting.`;
+        bus.emitEvent({
+          type: 'agent.error',
+          jobId,
+          actor: 'seller',
+          payload: { scope: 'acceptEscrow.preflight', message, code: 'INSUFFICIENT_STAKE' },
+        });
+        return c.json({ error: message, code: 'INSUFFICIENT_STAKE' }, 409);
+      }
+    } catch (err) {
+      // Read failure on the vault is not blocking — fall through to the
+      // chain call which will revert with the same constraint if needed.
+      logger.warn(
+        { jobId, err: (err as Error).message },
+        'freeStake preflight read failed; proceeding to acceptEscrow',
+      );
+    }
+
+    // v2.D: the seller agent signs acceptEscrow which transitions the
+    // escrow from Funded to Accepted and locks an insurance reservation
+    // on the vault (dealAmount * reservationBps / 10000). Without this
+    // the buyer can never release milestones. Failure modes are surfaced
+    // back to the seller as actionable errors — most commonly
+    // "insufficient stake" if the seller agent hasn't deposited enough.
+    try {
+      const acceptTx = await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
+      logger.info({ jobId, acceptTx }, 'seller accepted escrow on chain (v2.D)');
+    } catch (err) {
+      const message = (err as Error).message;
+      const lower = message.toLowerCase();
+      // Map well-known revert reasons to actionable user errors. The vault
+      // surfaces InsufficientStake when the seller agent doesn't have
+      // enough free stake to cover the reservation.
+      const isInsufficientStake =
+        lower.includes('insufficientstake') ||
+        lower.includes('insufficientfreestake');
+      const code = isInsufficientStake
+        ? 'INSUFFICIENT_STAKE'
+        : 'ACCEPT_ESCROW_FAILED';
+      const detail = isInsufficientStake
+        ? `Your seller agent needs more stake to backstop a deal of ${deal.dealAmountUsdc} USDC. Stake more in /stake and retry.`
+        : `acceptEscrow reverted: ${message}`;
+      logger.error({ jobId, err: message, code }, 'acceptEscrow on chain failed');
+      bus.emitEvent({
+        type: 'agent.error',
+        jobId,
+        actor: 'seller',
+        payload: { scope: 'acceptEscrow', message, code },
+      });
+      // The escrow stays in Funded state on chain — the buyer's USDC is
+      // locked there. The buyer can dispute + refund to recover (which
+      // skips slash since reservedAmount is still 0). We return the error
+      // so the seller knows; off-chain state stays clean (no acceptedAt
+      // set, no deal.accepted event).
+      return c.json({ error: detail, code, detail: message }, 502);
+    }
+    invalidateEscrowCache(jobId);
 
     await patchDeal(jobId, {
       acceptedAt: Date.now(),
@@ -507,7 +611,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   try {
     const releasedIndex = account.milestonesReleased;
     const txHash = await releaseMilestone(jobId, releasedIndex, deal.buyerAgentWalletId);
-    const settled = await finalizeIfSettled(jobId, deal.buyerAgentWalletId);
+    const settled = await finalizeIfSettled(jobId);
     if (settled) {
       await patchDeal(jobId, { settledAt: Date.now() });
     } else if (releasedIndex === 0) {

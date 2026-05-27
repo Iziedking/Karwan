@@ -175,6 +175,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   /// total as final.
   const [synced, setSynced] = useState(true);
   const [totalCooling, setTotalCooling] = useState('0');
+  /// v2.D insurance: amount of active stake locked against open deals.
+  /// Cannot be cooled until the related deal settles or refunds. Absent on
+  /// pre-v2.D backends; treated as '0' there.
+  const [reservedUsdc, setReservedUsdc] = useState('0');
+  /// v2.D: totalActive minus reservedUsdc. The portion the user can cool
+  /// down or use to accept new deals.
+  const [freeStakeUsdc, setFreeStakeUsdc] = useState('0');
   const [cooldownDays, setCooldownDays] = useState(7);
   const [vaultDeployed, setVaultDeployed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -213,10 +220,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   const depositExceedsBalance =
     typeof depositAmount === 'number' && walletUsdc != null && depositAmount > walletUsdc;
 
-  // Same gate on the withdraw side: you can only cool stake you actually hold
-  // active. Asking for more would otherwise cool every position with no warning.
+  // Same gate on the withdraw side: you can only cool the FREE portion of
+  // active stake. Reserved stake (locked against open deal insurance) is
+  // refused by the contract via ReservationLocked. Pre-v2.D backends omit
+  // freeStakeUsdc so it falls back to totalActive — same behaviour as
+  // before. Naming kept as -Active for diff stability across uses below.
   const withdrawExceedsActive =
-    typeof withdrawAmount === 'number' && withdrawAmount > Number(totalActive);
+    typeof withdrawAmount === 'number' && withdrawAmount > Number(freeStakeUsdc);
 
   const refetchPositions = useCallback(async () => {
     if (!address) return;
@@ -225,6 +235,10 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       setPositions(r.positions);
       setTotalActive(r.totalActiveUsdc);
       setTotalCooling(r.totalCoolingUsdc);
+      // v2.D reservation fields. Pre-v2.D backends omit them; fall back to
+      // zero reservation, free = active so the UI stays correct.
+      setReservedUsdc(r.reservedUsdc ?? '0');
+      setFreeStakeUsdc(r.freeStakeUsdc ?? r.totalActiveUsdc);
       setCooldownDays(r.cooldownDays);
       setVaultDeployed(r.vaultAddress != null);
       // synced is optional for back-compat with older backends.
@@ -348,14 +362,17 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     if (typeof withdrawAmount !== 'number' || withdrawAmount <= 0) return;
     const active = positions.filter((p) => p.state === 'active');
     if (active.length === 0) return;
-    // Can't cool more than is active. Surface it instead of silently cooling
-    // every position when the request overshoots the active total.
-    if (withdrawAmount > Number(totalActive)) {
+    // Can't cool more than is free. Reserved stake is locked against open
+    // deals and the contract refuses to cool it (ReservationLocked).
+    if (withdrawAmount > Number(freeStakeUsdc)) {
       pushLog({
         kind: 'request',
         amountUsdc: withdrawAmount.toString(),
         status: 'failed',
-        error: `Insufficient stake. You have ${formatUsdc(totalActive, { withSuffix: false })} USDC active.`,
+        error:
+          Number(reservedUsdc) > 0
+            ? `Insufficient free stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC free, ${formatUsdc(reservedUsdc, { withSuffix: false })} USDC reserved against open deals.`
+            : `Insufficient stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC active.`,
       });
       return;
     }
@@ -406,7 +423,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       coolingTotal,
       toCool: toCool.map((p) => ({ positionId: p.positionId, principalUsdc: p.principalUsdc })),
     });
-  }, [address, withdrawAmount, positions, totalActive, pushLog]);
+  }, [address, withdrawAmount, positions, freeStakeUsdc, reservedUsdc, pushLog]);
 
   const confirmWithdraw = useCallback(async () => {
     if (!pendingWithdraw || !address) return;
@@ -479,11 +496,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       }
       // Withdrawal is the only destructive action on a position. Guard it
       // behind an explicit confirm so an accidental click doesn't kick off
-      // the 7-day cool-down. cancel + claim are reversible / terminal, no
-      // need to confirm.
+      // the cool-down (3 days on v2.D, was 7 on pre-v2.D). cancel + claim
+      // are reversible / terminal, no need to confirm.
       if (kind === 'request') {
         const ok = window.confirm(
-          `Start the 7-day withdrawal cool-down on position #${positionId}? Stake stops earning reputation until you cancel or claim.`,
+          `Start the ${cooldownDays}-day withdrawal cool-down on position #${positionId}? Stake stops earning reputation until you cancel or claim.`,
         );
         if (!ok) return;
       }
@@ -523,7 +540,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         setBusyKind(null);
       }
     },
-    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog],
+    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays],
   );
 
   // -------------------- derived --------------------
@@ -554,7 +571,10 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   return (
     <div style={CARD_STYLE} className="px-6 py-7 space-y-7">
       {tour && <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />}
-      {/* HEADER */}
+      {/* HEADER — v2.D three-way split: Active total prominent, then a
+          smaller meta line breaking it into Free / Reserved (open deal
+          insurance) / Cooling. Reserved only renders when > 0 so users
+          who haven't accepted any deals see the familiar pre-v2.D shape. */}
       <div className="flex items-start justify-between gap-6 flex-wrap">
         <div className="space-y-2 min-w-0" data-guide="stake-total">
           <SectionEyebrow>STAKE</SectionEyebrow>
@@ -579,10 +599,28 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 syncing
               </span>
             )}
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            <span>
+              FREE {formatUsdc(freeStakeUsdc, { withSuffix: false })}
+            </span>
+            {Number(reservedUsdc) > 0 && (
+              <>
+                <span aria-hidden>·</span>
+                <span
+                  title="Locked against an active deal as buyer-side insurance. Releases on settle, slashes to the buyer on a dispute you lose."
+                >
+                  RESERVED {formatUsdc(reservedUsdc, { withSuffix: false })}
+                </span>
+              </>
+            )}
             {Number(totalCooling) > 0 && (
-              <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                · {formatUsdc(totalCooling, { withSuffix: false })} cooling
-              </span>
+              <>
+                <span aria-hidden>·</span>
+                <span>
+                  COOLING {formatUsdc(totalCooling, { withSuffix: false })}
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -745,16 +783,18 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             </span>
             <button
               type="button"
-              onClick={() => Number(totalActive) > 0 && setWithdrawAmount(Number(totalActive))}
-              disabled={Number(totalActive) <= 0}
+              onClick={() => Number(freeStakeUsdc) > 0 && setWithdrawAmount(Number(freeStakeUsdc))}
+              disabled={Number(freeStakeUsdc) <= 0}
               title={
-                Number(totalActive) > 0
-                  ? `Active stake: ${formatUsdc(totalActive, { withSuffix: false })} USDC. Click to fill.`
-                  : 'No active stake to withdraw'
+                Number(freeStakeUsdc) > 0
+                  ? `Free stake: ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC. Click to fill. (Reserved stake stays locked until the deal settles.)`
+                  : Number(reservedUsdc) > 0
+                    ? 'All your active stake is reserved against open deals. It unlocks when those deals settle.'
+                    : 'No active stake to withdraw'
               }
               className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
-              MAX {formatUsdc(totalActive, { withSuffix: false })}
+              MAX {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </button>
           </div>
           <div className="flex items-stretch gap-2">
@@ -762,12 +802,12 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               type="number"
               min={1}
               step={1}
-              max={Number(totalActive) || undefined}
+              max={Number(freeStakeUsdc) || undefined}
               value={withdrawAmount}
               onChange={(e) =>
                 setWithdrawAmount(e.target.value === '' ? '' : Number(e.target.value))
               }
-              disabled={busyKind?.kind === 'request' || Number(totalActive) <= 0}
+              disabled={busyKind?.kind === 'request' || Number(freeStakeUsdc) <= 0}
               placeholder="0"
               className="form-input form-input-num flex-1 min-w-0"
               aria-label="Withdraw amount in USDC"
@@ -779,7 +819,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 busyKind?.kind === 'request' ||
                 !withdrawAmount ||
                 withdrawExceedsActive ||
-                Number(totalActive) <= 0 ||
+                Number(freeStakeUsdc) <= 0 ||
                 vaultDeployed === false ||
                 onWrongChain
               }
@@ -801,7 +841,9 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           </div>
           {withdrawExceedsActive && (
             <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
-              Insufficient stake. You have {formatUsdc(totalActive, { withSuffix: false })} USDC active.
+              {Number(reservedUsdc) > 0
+                ? `Insufficient free stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC free (${formatUsdc(reservedUsdc, { withSuffix: false })} USDC reserved against open deals).`
+                : `Insufficient stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC active.`}
             </p>
           )}
         </div>

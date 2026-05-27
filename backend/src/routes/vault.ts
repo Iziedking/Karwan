@@ -66,6 +66,13 @@ const vaultAbi = [
     inputs: [],
     outputs: [{ name: '', type: 'uint32' }],
   },
+  {
+    type: 'function',
+    name: 'reservedTotal',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
 ] as const;
 
 interface Position {
@@ -191,11 +198,36 @@ vaultRoutes.get('/positions', async (c) => {
     } catch {
       // Vault contract pre-deploy or transient RPC; keep the documented default.
     }
+    // v2.D: read the owner's reservedTotal so the Stake card can split the
+    // header into Free / Reserved / Cooling. Pre-v2.D vaults don't have
+    // this view; fall back to 0. Reading reservedTotal as `0` matches the
+    // semantic of "no insurance reservations" so existing UIs still work.
+    let reservedUsdc = '0';
+    try {
+      const reservedRaw = (await publicClient.readContract({
+        address: vault,
+        abi: vaultAbi,
+        functionName: 'reservedTotal',
+        args: [parsed.data as `0x${string}`],
+      })) as bigint;
+      reservedUsdc = formatUnits(reservedRaw, USDC_DECIMALS);
+    } catch {
+      // Legacy vault (no reservation system); reservedUsdc stays at '0'.
+    }
+    const totalActiveUsdc = sumByState(positions, 'active');
+    // freeStakeUsdc = active − reserved, floored at 0 so the UI can't show
+    // a negative free balance during reservation/release race conditions.
+    const freeStakeUsdc = String(
+      Math.max(0, Number(totalActiveUsdc) - Number(reservedUsdc)),
+    );
     return c.json({
       vaultAddress: vault,
       positions,
-      totalActiveUsdc: sumByState(positions, 'active'),
+      totalActiveUsdc,
       totalCoolingUsdc: sumByState(positions, 'cooling'),
+      /// v2.D insurance state.
+      reservedUsdc,
+      freeStakeUsdc,
       cooldownDays,
       /// When false, the underlying vault-log scan hasn't reached chain
       /// head — totals are provisional and may rise on the next read. The UI

@@ -73,7 +73,10 @@ async function tick() {
         if (now <= effectiveDeadline) continue;
 
         await releaseMilestone(deal.jobId, account.milestonesReleased, buyerWalletId);
-        await finalizeIfSettled(deal.jobId, buyerWalletId);
+        // v2.D: finalizeIfSettled no longer needs a wallet — the escrow's
+        // own releaseProgress / releaseFinal call records reputation on
+        // chain. finalizeIfSettled just emits the settled bus event.
+        await finalizeIfSettled(deal.jobId);
         await patchDeal(deal.jobId, { autoReleasedAt: now, settledAt: Date.now() });
         bus.emitEvent({
           type: 'deal.auto_released',

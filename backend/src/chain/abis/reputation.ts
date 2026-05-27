@@ -1,4 +1,37 @@
+// Auto-generated from forge inspect KarwanReputation abi --json
+// Source contract: contracts/src/KarwanReputation.sol
 export const reputationAbi = [
+  {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deployer",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "escrow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
   {
     "type": "function",
     "name": "getReputationScore",
@@ -95,6 +128,19 @@ export const reputationAbi = [
     "stateMutability": "view"
   },
   {
+    "type": "function",
+    "name": "setEscrow",
+    "inputs": [
+      {
+        "name": "_escrow",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
     "name": "CompletionRecorded",
     "inputs": [
@@ -126,8 +172,26 @@ export const reputationAbi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "EscrowSet",
+    "inputs": [
+      {
+        "name": "escrow",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadyRecorded",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EscrowAlreadySet",
     "inputs": []
   },
   {
@@ -137,7 +201,17 @@ export const reputationAbi = [
   },
   {
     "type": "error",
-    "name": "NotParty",
+    "name": "NotDeployer",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotEscrow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAddress",
     "inputs": []
   }
 ] as const;

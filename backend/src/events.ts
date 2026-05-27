@@ -17,6 +17,8 @@ export type KarwanEventType =
   | 'escrow.funded'
   | 'escrow.milestone.released'
   | 'escrow.settled'
+  | 'escrow.accepted'
+  | 'escrow.released_from_dispute'
   | 'bridge.approving'
   | 'bridge.burning'
   | 'bridge.burned'

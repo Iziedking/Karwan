@@ -42,6 +42,18 @@ const envSchema = z.object({
   // degrades stakeTerm to its base value (1.0). Once set, stake.ts indexes
   // Deposited events for the address to compute tenure-weighted active stake.
   KARWAN_VAULT_ADDR: optionalAddr,
+  /// Legacy KarwanVault from the pre-v2.D deployment. Read-only during the
+  /// migration window so existing stakers keep their tenure on positions
+  /// staked before the redeploy. Optional — leave blank in fresh
+  /// environments or after the legacy vault drains.
+  KARWAN_VAULT_LEGACY_ADDR: optionalAddr,
+  /// Deploy block for the legacy vault. Only consulted when reading from
+  /// the legacy vault; otherwise ignored. Same shape as the active
+  /// KARWAN_VAULT_DEPLOY_BLOCK.
+  KARWAN_VAULT_LEGACY_DEPLOY_BLOCK: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^\d+$/).transform(BigInt).optional(),
+  ),
   // Block at which KarwanVault was deployed. When set, the paginated event
   // reader starts here instead of `latest - 9500` (which only covered ~5h of
   // Arc testnet history at 2s blocks and made older positions disappear).

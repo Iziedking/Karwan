@@ -4,9 +4,15 @@ import { publicClient } from './client.js';
 import { jobBoardAbi } from './abis/jobBoard.js';
 import { escrowAbi } from './abis/escrow.js';
 import { reputationAbi } from './abis/reputation.js';
+import { vaultAbi } from './abis/vault.js';
 
 function required(name: string, value: string | undefined): Address {
   if (!value) throw new Error(`${name} is not set in .env`);
+  return value as Address;
+}
+
+function optional(value: string | undefined): Address | null {
+  if (!value) return null;
   return value as Address;
 }
 
@@ -28,10 +34,42 @@ export const reputation = getContract({
   client: publicClient,
 });
 
+/// Active KarwanVault (v2.D bundle). Holds stake positions, runs the
+/// insurance reservation system, and is the source of truth for the
+/// stake factor in the reputation engine.
+export const vault = getContract({
+  address: required('KARWAN_VAULT_ADDR', config.KARWAN_VAULT_ADDR),
+  abi: vaultAbi,
+  client: publicClient,
+});
+
+/// Legacy KarwanVault (pre-v2.D). Read-only during the migration window so
+/// users don't lose tenure on positions they staked before the redeploy.
+/// Returns null when KARWAN_VAULT_LEGACY_ADDR is unset (post-migration or
+/// fresh environments). The dual-vault reader in reputation/stake.ts sums
+/// principal across this and the active vault.
+export const legacyVaultAddress: Address | null = optional(
+  (config as unknown as Record<string, string | undefined>).KARWAN_VAULT_LEGACY_ADDR,
+);
+
+export const legacyVault = legacyVaultAddress
+  ? getContract({ address: legacyVaultAddress, abi: vaultAbi, client: publicClient })
+  : null;
+
 export const usdc = required('USDC_ADDR', config.USDC_ADDR);
 export const identityRegistry = required('IDENTITY_REGISTRY_ADDR', config.IDENTITY_REGISTRY_ADDR);
 
-// EscrowState enum from KarwanEscrow: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
+/// EscrowState enum from KarwanEscrow v2.D:
+///   None=0, Funded=1, Accepted=2, Settled=3, Disputed=4, Refunded=5
+export const ESCROW_STATE = {
+  None: 0,
+  Funded: 1,
+  Accepted: 2,
+  Settled: 3,
+  Disputed: 4,
+  Refunded: 5,
+} as const;
+
 export interface EscrowAccount {
   buyer: `0x${string}`;
   seller: `0x${string}`;
@@ -40,17 +78,30 @@ export interface EscrowAccount {
   feeTotal: bigint;
   released: bigint;
   feeReleased: bigint;
+  /// Amount reserved on the vault against this jobId. 0 until acceptEscrow.
+  /// Doubles as the "was-Accepted" sentinel for the refund / dispute paths.
+  reservedAmount: bigint;
+  milestonePcts: number[];
   milestonesReleased: number;
   state: number;
 }
 
-// feeBps is immutable on the escrow contract, so it is safe to cache.
+// feeBps and reservationBps are immutable on the escrow contract; cache safe.
 let _feeBpsCache: number | null = null;
+let _reservationBpsCache: number | null = null;
+
 export async function getEscrowFeeBps(): Promise<number> {
   if (_feeBpsCache === null) {
     _feeBpsCache = Number(await escrow.read.feeBps());
   }
   return _feeBpsCache;
+}
+
+export async function getReservationBps(): Promise<number> {
+  if (_reservationBpsCache === null) {
+    _reservationBpsCache = Number(await escrow.read.reservationBps());
+  }
+  return _reservationBpsCache;
 }
 
 export interface FundingBreakdown {
@@ -61,8 +112,7 @@ export interface FundingBreakdown {
   fundedAmount: bigint;
 }
 
-/// Mirrors KarwanEscrow.fundEscrow math: 1.5% fee split evenly. Buyer transfers
-/// in dealAmount + buyerFee; seller nets dealAmount - sellerFee.
+/// Mirrors KarwanEscrow.fundEscrow math.
 export function computeFunding(dealAmountWei: bigint, feeBps: number): FundingBreakdown {
   const feeTotal = (dealAmountWei * BigInt(feeBps)) / 10000n;
   const buyerFee = feeTotal / 2n;
@@ -76,14 +126,20 @@ export function computeFunding(dealAmountWei: bigint, feeBps: number): FundingBr
   };
 }
 
-/// Reads the escrow struct getter, which omits the dynamic milestonePcts array.
+/// Computes the vault reservation that acceptEscrow will lock against the
+/// seller's free stake. dealAmountWei × reservationBps / 10000.
+export function computeReservation(dealAmountWei: bigint, reservationBps: number): bigint {
+  return (dealAmountWei * BigInt(reservationBps)) / 10000n;
+}
+
+/// Reads the escrow record via the explicit getEscrow(jobId) view rather
+/// than the public-mapping auto-getter, which silently drops the
+/// milestonePcts dynamic array (audit M-3). The explicit view returns the
+/// full struct in one call.
 ///
-/// Cached with a short TTL because /api/deals/feed enrich()s up to 60 deals
-/// per request, each issuing an `escrows` view call. The RPC cost is small but
-/// real (~30-60ms each over a long-haul connection), and on-chain state only
-/// changes when a write tx mines, which is observable via the bus and clears
-/// the cache. SSE-driven UIs refresh themselves on relevant events, so a 10s
-/// staleness window is invisible in practice.
+/// Cached with a short TTL because /api/deals/feed enrich()s up to 60
+/// deals per request. SSE-driven UIs refresh themselves on relevant
+/// events, so a 10s staleness window is invisible in practice.
 const READ_ESCROW_TTL_MS = 10_000;
 interface EscrowCacheEntry {
   value: EscrowAccount;
@@ -104,27 +160,31 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
   const now = Date.now();
   const cached = escrowCache.get(key);
   if (cached && cached.expiresAt > now) return cached.value;
-  const tuple = (await escrow.read.escrows([jobId as `0x${string}`])) as readonly [
-    `0x${string}`,
-    `0x${string}`,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-    number,
-    number,
-  ];
+  const raw = (await escrow.read.getEscrow([jobId as `0x${string}`])) as {
+    buyer: `0x${string}`;
+    seller: `0x${string}`;
+    dealAmount: bigint;
+    sellerNet: bigint;
+    feeTotal: bigint;
+    released: bigint;
+    feeReleased: bigint;
+    reservedAmount: bigint;
+    milestonePcts: readonly number[];
+    milestonesReleased: number;
+    state: number;
+  };
   const value: EscrowAccount = {
-    buyer: tuple[0],
-    seller: tuple[1],
-    dealAmount: tuple[2],
-    sellerNet: tuple[3],
-    feeTotal: tuple[4],
-    released: tuple[5],
-    feeReleased: tuple[6],
-    milestonesReleased: tuple[7],
-    state: tuple[8],
+    buyer: raw.buyer,
+    seller: raw.seller,
+    dealAmount: raw.dealAmount,
+    sellerNet: raw.sellerNet,
+    feeTotal: raw.feeTotal,
+    released: raw.released,
+    feeReleased: raw.feeReleased,
+    reservedAmount: raw.reservedAmount,
+    milestonePcts: [...raw.milestonePcts],
+    milestonesReleased: raw.milestonesReleased,
+    state: raw.state,
   };
   escrowCache.set(key, { value, expiresAt: now + READ_ESCROW_TTL_MS });
   return value;
@@ -140,11 +200,9 @@ const erc20BalanceAbi = [
   },
 ] as const;
 
-/// Reads an address's USDC (ERC-20, 6-decimal interface) balance on Arc. Used
-/// to preflight escrow funding: a Circle SCA executes via ERC-4337, so a
-/// fundEscrow whose inner transferFrom reverts for insufficient USDC still
-/// lands as a successful handleOps tx. Checking the balance up front turns that
-/// silent failure into a clear, early error with the exact shortfall.
+/// Reads an address's USDC balance on Arc. Used to preflight escrow
+/// funding so a Circle SCA's inner transferFrom doesn't silently revert
+/// inside a successful handleOps wrapper.
 export async function readUsdcBalance(owner: string): Promise<bigint> {
   return (await publicClient.readContract({
     address: usdc,

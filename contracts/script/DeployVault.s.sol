@@ -2,17 +2,14 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import {KarwanVault} from "../src/KarwanVault.sol";
 
+/// @notice DEPRECATED. After v2.D the vault binds the escrow via a one-shot
+///         setEscrow, and the escrow needs the vault in its constructor.
+///         Deploying the vault alone leaves it in an unwired state where
+///         no escrow can ever bind to it. Use Deploy.s.sol for the full
+///         vault + reputation + escrow + jobBoard bundle.
 contract DeployVault is Script {
-    function run() external {
-        address usdc = vm.envOr("USDC_ADDR", address(0x3600000000000000000000000000000000000000));
-
-        vm.startBroadcast();
-        KarwanVault vault = new KarwanVault(usdc);
-        vm.stopBroadcast();
-
-        console.log("KarwanVault:      ", address(vault));
-        console.log("Vault USDC:       ", usdc);
+    function run() external pure {
+        revert("DeployVault standalone is deprecated; use Deploy.s.sol for the v2.D bundle.");
     }
 }

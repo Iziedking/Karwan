@@ -63,5 +63,7 @@ async function releaseLoop(jobId: string, total: number, startIndex: number, wal
       return;
     }
   }
-  await finalizeIfSettled(jobId, walletId);
+  // v2.D: finalizeIfSettled doesn't need a wallet anymore; the escrow's
+  // own release call recorded reputation atomically on chain.
+  await finalizeIfSettled(jobId);
 }

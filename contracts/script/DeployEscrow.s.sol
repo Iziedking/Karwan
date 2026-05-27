@@ -2,22 +2,18 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
-import {KarwanEscrow} from "../src/KarwanEscrow.sol";
 
-/// @notice Redeploys only KarwanEscrow (e.g. after the platform-fee change).
-///         JobBoard and Reputation are untouched; keep their existing addresses.
+/// @notice DEPRECATED. After the v2.D redeploy KarwanEscrow takes a vault +
+///         reputation address in its constructor, and both of those bind to
+///         the escrow via one-shot setEscrow setters. That means you can't
+///         deploy a new escrow alone — the previously bound vault + rep
+///         refuse to re-bind, leaving the new escrow unable to call them.
+///
+///         To rotate escrow, use Deploy.s.sol which deploys the whole
+///         vault + reputation + escrow + jobBoard bundle in one
+///         transaction. Then point the backend at the new addresses.
 contract DeployEscrow is Script {
-    function run() external {
-        address usdc = vm.envOr("USDC_ADDR", address(0x3600000000000000000000000000000000000000));
-        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(150)));
-        address treasury = vm.envOr("KARWAN_TREASURY_ADDR", msg.sender);
-
-        vm.startBroadcast();
-        KarwanEscrow escrow = new KarwanEscrow(usdc, feeBps, treasury);
-        vm.stopBroadcast();
-
-        console.log("KarwanEscrow:    ", address(escrow));
-        console.log("Escrow feeBps:   ", feeBps);
-        console.log("Escrow treasury: ", treasury);
+    function run() external pure {
+        revert("DeployEscrow standalone is deprecated; use Deploy.s.sol for the v2.D bundle.");
     }
 }

@@ -799,6 +799,15 @@ export const api = {
       }>;
       totalActiveUsdc: string;
       totalCoolingUsdc: string;
+      /// v2.D: Sum of open insurance reservations against the owner's
+      /// active positions. The free side of the Free / Reserved / Cooling
+      /// split shown on /profile and /stake. Absent on pre-v2.D deployments
+      /// where the vault doesn't have a reservation system; treat as '0'.
+      reservedUsdc?: string;
+      /// v2.D: totalActiveUsdc minus reservedUsdc, floored at zero. The
+      /// portion of stake that can backstop a new deal. Same back-compat
+      /// fallback — treat absent as equal to totalActiveUsdc.
+      freeStakeUsdc?: string;
       cooldownDays: number;
       /// False while the backend is still scanning the vault's event log for
       /// this owner — older positions may be missing from the served set
