@@ -39,6 +39,13 @@ export const legacyVaultAbi = [
   },
   {
     type: 'function',
+    name: 'nextPositionId',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
     name: 'requestWithdraw',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'positionId', type: 'uint256' }],

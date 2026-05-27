@@ -262,53 +262,44 @@ export function hasLegacyVault(): boolean {
   return legacyVault !== null;
 }
 
-/// Event-log path for the pre-v2.D vault, which doesn't expose the
-/// nextPositionId view we use on the active contract. Scans Deposited
-/// events filtered by the owner topic, then multicalls positions(id) for
-/// the current state of each.
+/// Reads positions for `owner` on the pre-v2.D vault by enumerating every
+/// position from 0 to nextPositionId via multicall, then filtering in
+/// memory. The legacy contract lacks activeStakeOf but does expose the
+/// nextPositionId counter and positions() view; verified by hand against
+/// the deployed contract.
 async function readLegacyPositions(
   vaultAddress: `0x${string}`,
   owner: string,
 ): Promise<PositionView[]> {
-  const fromBlock =
-    (config as unknown as Record<string, bigint | undefined>).KARWAN_VAULT_LEGACY_DEPLOY_BLOCK ??
-    0n;
-  let logs: Array<{ args: { positionId?: bigint; owner?: `0x${string}` } }>;
+  let nextId: bigint;
   try {
-    logs = (await publicClient.getContractEvents({
+    nextId = (await publicClient.readContract({
       address: vaultAddress,
       abi: legacyVaultAbi,
-      eventName: 'Deposited',
-      args: { owner: owner as `0x${string}` },
-      fromBlock,
-      toBlock: 'latest',
-    })) as typeof logs;
+      functionName: 'nextPositionId',
+    })) as bigint;
   } catch (err) {
     if (!warned.has(vaultAddress)) {
       warned.add(vaultAddress);
       logger.warn(
         { err: (err as Error).message, vault: vaultAddress },
-        'legacy Deposited scan failed (logged once per vault)',
+        'legacy nextPositionId read failed (logged once per vault)',
       );
     }
     return [];
   }
 
-  if (logs.length === 0) return [];
+  if (nextId === 0n) return [];
 
-  const positionIds = Array.from(
-    new Set(logs.map((l) => (l.args.positionId ?? 0n).toString())),
-  ).map((s) => BigInt(s));
-
-  const calls = positionIds.map(
-    (id) =>
-      ({
-        address: vaultAddress,
-        abi: legacyVaultAbi,
-        functionName: 'positions',
-        args: [id],
-      }) as const,
-  );
+  const calls = [];
+  for (let i = 0n; i <= nextId; i++) {
+    calls.push({
+      address: vaultAddress,
+      abi: legacyVaultAbi,
+      functionName: 'positions',
+      args: [i],
+    } as const);
+  }
 
   let results: Array<{ status: 'success' | 'failure'; result?: unknown }>;
   try {

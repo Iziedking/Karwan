@@ -11,7 +11,6 @@ import {
   LEGACY_ESCROW_STATE,
 } from '../chain/contracts.js';
 import { legacyVaultAbi } from '../chain/abis/legacyVault.js';
-import { config } from '../config.js';
 import { getLegacyWindow } from '../chain/legacyWindow.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
@@ -528,28 +527,25 @@ legacyRoutes.get('/vault/positions', async (c) => {
     });
   }
 
-  const a = parsed.data.toLowerCase() as `0x${string}`;
+  const a = parsed.data.toLowerCase();
   const vaultAddr = legacyVaultAddress as `0x${string}`;
 
-  // Legacy vault has no nextPositionId or activeStakeOf views; those were
-  // added in v2.D. Find this owner's positions by scanning Deposited events
-  // filtered by the owner topic. viem batches the block range internally.
-  const fromBlock =
-    (config as unknown as Record<string, bigint | undefined>).KARWAN_VAULT_LEGACY_DEPLOY_BLOCK ??
-    0n;
-
-  let logs: Array<{ args: { positionId?: bigint; owner?: `0x${string}`; principal?: bigint } }>;
+  // The legacy vault exposes nextPositionId even though it lacks
+  // activeStakeOf, so enumerate position 0 through nextId via multicall
+  // and filter by owner. This is the path we verified by hand with cast:
+  // 7 positions for this address come back in one round trip.
+  let nextId: bigint;
   try {
-    logs = (await publicClient.getContractEvents({
+    nextId = (await publicClient.readContract({
       address: vaultAddr,
       abi: legacyVaultAbi,
-      eventName: 'Deposited',
-      args: { owner: a },
-      fromBlock,
-      toBlock: 'latest',
-    })) as typeof logs;
+      functionName: 'nextPositionId',
+    })) as bigint;
   } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'legacy vault Deposited scan failed');
+    logger.warn(
+      { err: (err as Error).message, vault: vaultAddr },
+      'legacy nextPositionId read failed',
+    );
     return c.json({ error: 'legacy vault read failed' }, 502);
   }
 
@@ -565,7 +561,7 @@ legacyRoutes.get('/vault/positions', async (c) => {
     // legacy default 7
   }
 
-  if (logs.length === 0) {
+  if (nextId === 0n) {
     return c.json({
       vaultAddress: vaultAddr,
       positions: [],
@@ -575,11 +571,8 @@ legacyRoutes.get('/vault/positions', async (c) => {
     });
   }
 
-  // Dedup positionIds in case the RPC returned the same event twice across
-  // a page boundary; multicall over the unique set stays small.
-  const positionIds = Array.from(
-    new Set(logs.map((l) => (l.args.positionId ?? 0n).toString())),
-  ).map((s) => BigInt(s));
+  const positionIds: bigint[] = [];
+  for (let i = 0n; i <= nextId; i++) positionIds.push(i);
 
   const calls = positionIds.map(
     (id) =>
