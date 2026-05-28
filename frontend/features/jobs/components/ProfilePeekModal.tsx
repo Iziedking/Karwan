@@ -22,9 +22,14 @@ interface Props {
   onClose: () => void;
   address: string;
   role: 'buyer' | 'seller';
+  /// Lightweight identity card for surfaces where the full peek (X link,
+  /// Credit Passport, copy-address, reputation detail) would be overkill —
+  /// like a bid card during an auction. Renders just the display name and
+  /// the masked address with a tiny close button.
+  compact?: boolean;
 }
 
-export function ProfilePeekModal({ open, onClose, address, role }: Props) {
+export function ProfilePeekModal({ open, onClose, address, role, compact = false }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const { copied, copy } = useClipboard();
@@ -69,6 +74,64 @@ export function ProfilePeekModal({ open, onClose, address, role }: Props) {
   const displayName = profile?.displayName?.trim();
   const xHandle = profile?.xHandle?.replace(/^@/, '');
   const xHref = xHandle ? `https://x.com/${xHandle}` : null;
+
+  // Compact: a stripped-down identity card for surfaces like the bid card
+  // where the auction is still running. Just the display name and the masked
+  // address. No tier rail, no actions, no reputation detail.
+  if (compact) {
+    return createPortal(
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style={{ background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(3px)' }}
+        onClick={onClose}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${role} identity`}
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-[320px] fade-up"
+          style={{
+            background: 'var(--lp-card)',
+            border: '1px solid var(--lp-border-light)',
+            borderTopLeftRadius: 14,
+            borderTopRightRadius: 14,
+            borderBottomLeftRadius: 14,
+            borderBottomRightRadius: 3,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.3)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path
+                d="M3 3l10 10M13 3L3 13"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <div className="px-5 py-4">
+            <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+              [:{role.toUpperCase()}:]
+            </span>
+            <p className="mt-1.5 font-sans text-[16px] font-bold tracking-[-0.01em] text-[var(--lp-dark)] truncate">
+              {displayName || shortAddress(address)}
+            </p>
+            <p className="mt-0.5 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
+              {shortAddress(address)}
+            </p>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
 
   return createPortal(
     <div

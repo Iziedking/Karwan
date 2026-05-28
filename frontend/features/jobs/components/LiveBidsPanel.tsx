@@ -4,6 +4,7 @@ import { api, type BuyerJob, type BuyerBid } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { ProfilePeekModal } from './ProfilePeekModal';
 
 const REFRESH_TRIGGERS = new Set([
   'bid.submitted',
@@ -15,6 +16,10 @@ const REFRESH_TRIGGERS = new Set([
 
 export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   const [job, setJob] = useState(initial);
+  // Profile peek state: address of the seller whose card was clicked.
+  // Lives on the panel (not each row) so the modal portal mounts once and
+  // re-uses the same component across all rows.
+  const [peekSeller, setPeekSeller] = useState<string | null>(null);
   const events = useLiveEvents(initial.jobId, 50);
 
   useEffect(() => {
@@ -47,16 +52,32 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   const topScore = sorted[0]?.score ?? null;
 
   return (
-    <ul className="divide-y divide-[var(--color-line)]">
-      {sorted.map((b, i) => {
-        const isLead = topScore != null && b.score === topScore;
-        return <BidRow key={b.seller} bid={b} isLead={isLead && i === 0} />;
-      })}
-    </ul>
+    <>
+      <ul className="divide-y divide-[var(--color-line)]">
+        {sorted.map((b, i) => {
+          const isLead = topScore != null && b.score === topScore;
+          return (
+            <BidRow
+              key={b.seller}
+              bid={b}
+              isLead={isLead && i === 0}
+              onPeek={() => setPeekSeller(b.seller)}
+            />
+          );
+        })}
+      </ul>
+      <ProfilePeekModal
+        open={peekSeller != null}
+        onClose={() => setPeekSeller(null)}
+        address={peekSeller ?? ''}
+        role="seller"
+        compact
+      />
+    </>
   );
 }
 
-function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
+function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPeek: () => void }) {
   const price = formatUsdc(bid.priceUsdc, { withSuffix: false });
   const counter = bid.suggestedCounterPrice
     ? formatUsdc(bid.suggestedCounterPrice, { withSuffix: false })
@@ -76,7 +97,13 @@ function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
         />
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={onPeek}
+        title={`View ${shortAddress(bid.seller)}'s profile`}
+        aria-label={`View profile for ${shortAddress(bid.seller)}`}
+        className="w-full flex items-center justify-between gap-3 -mx-1 px-1 py-0.5 rounded-sm transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] cursor-pointer"
+      >
         <div className="flex items-center gap-2 min-w-0">
           {isLead && (
             <span
@@ -90,8 +117,16 @@ function BidRow({ bid, isLead }: { bid: BuyerBid; isLead: boolean }) {
             {shortAddress(bid.seller)}
           </span>
         </div>
-        <ReputationBadge address={bid.seller} size="sm" />
-      </div>
+        <span className="inline-flex items-center gap-1.5 shrink-0">
+          <ReputationBadge address={bid.seller} size="sm" />
+          <span
+            aria-hidden
+            className="mono text-[10px] text-[var(--color-ink-faint)] opacity-60"
+          >
+            ↗
+          </span>
+        </span>
+      </button>
 
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">

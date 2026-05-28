@@ -660,6 +660,48 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
         409,
       );
     }
+
+    // Pre-flight the seller's free stake. The on-chain revert reason is a
+    // custom error and the Circle SDK surfaces it as bare "tx FAILED", so a
+    // shortfall here would otherwise read as a mystery to the buyer. Reading
+    // freeStake + reservationBps off chain lets us return INSUFFICIENT_STAKE
+    // with the exact numbers, including a hint to use the dispute/refund path
+    // when the seller's stake can't be made whole.
+    if (deal.sellerAgentAddress) {
+      try {
+        const reservationBps = await getReservationBps();
+        const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
+        const requiredWei = (dealAmountWei * BigInt(reservationBps)) / 10000n;
+        const sellerFreeWei = (await vault.read.freeStakeOf([
+          deal.sellerAgentAddress as `0x${string}`,
+        ])) as bigint;
+        if (sellerFreeWei < requiredWei) {
+          const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
+          const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+          logger.warn(
+            { jobId, requiredUsdc, freeUsdc },
+            'release self-heal blocked: seller free stake below reservation',
+          );
+          return c.json(
+            {
+              error: `Can't release yet. The seller's free stake is ${freeUsdc} USDC but this deal needs ${requiredUsdc} USDC reserved as insurance. Ask the seller to top up at /stake, or call the deal off via Propose Cancellation or Appeal This Deal to refund your USDC now.`,
+              code: 'INSUFFICIENT_STAKE',
+              detail: { requiredUsdc, freeUsdc, reservationBps },
+            },
+            409,
+          );
+        }
+      } catch (err) {
+        // Vault read failed. Don't block here — fall through to the chain
+        // call and let the contract revert do the gating. The catch below
+        // surfaces the chain error to the user.
+        logger.warn(
+          { jobId, err: (err as Error).message },
+          'release self-heal: free stake pre-check failed, proceeding to chain',
+        );
+      }
+    }
+
     try {
       await acceptEscrowOnChain(jobId, deal.sellerAgentWalletId);
       invalidateEscrowCache(jobId);
@@ -674,9 +716,12 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       const code = isInsufficientStake
         ? 'INSUFFICIENT_STAKE'
         : 'ACCEPT_ESCROW_FAILED';
+      // When the on-chain revert reason isn't recognisable, the buyer needs a
+      // recovery path that doesn't depend on the seller — disputing and
+      // refunding still works from Funded, and doesn't touch stake reservations.
       const detail = isInsufficientStake
-        ? `The seller agent needs more free stake to backstop this deal. They top up at /stake and you retry.`
-        : `acceptEscrow reverted: ${message}`;
+        ? `The seller's free stake won't cover this deal. Ask them to top up at /stake, or call the deal off via Propose Cancellation or Appeal This Deal to refund.`
+        : `Couldn't accept the escrow on chain. The seller may be short on stake or gas. If retrying doesn't help, refund via Propose Cancellation or Appeal This Deal. (chain error: ${message})`;
       logger.error({ jobId, err: message, code }, 'release self-heal acceptEscrow failed');
       return c.json({ error: detail, code, detail: message }, 502);
     }

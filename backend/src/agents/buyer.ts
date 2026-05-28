@@ -69,6 +69,7 @@ import {
   type RepTier,
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
+import { maybeRaiseNearMiss } from './nearMiss.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -159,6 +160,12 @@ interface JobState {
   /// at MAX_CANDIDATES so a 10-bid auction can't spawn 10 sequential rounds.
   candidateQueue: Bid[];
   triedSellers: Set<`0x${string}`>;
+  /// Seller's most recent on-chain counter price, keyed by seller agent
+  /// address. Updated every time handleCounterResponse processes a non-accept
+  /// reply. Used by the walk-end near-miss path so the buyer sees the best
+  /// last price the agent could extract instead of a flat "no match" when
+  /// the candidate queue exhausts without convergence.
+  lastSellerCounterBySeller: Map<`0x${string}`, string>;
   finalized: boolean;
   escrowFunded: boolean;
   /// Set by the jobExpiryWatcher when deadline passes with no accepted bid
@@ -227,17 +234,20 @@ function extendWorkingDeadline(state: JobState, proposedDeadlineUnix: number) {
   }
 }
 
-/// The cap the buyer agent will accept counters up to. Per-brief tolerance
-/// raises the cap above the budget; the user's profile maxBudgetUsdc remains
-/// an absolute ceiling regardless of brief tolerance.
+/// The cap the buyer agent will accept counters up to. The brief's per-deal
+/// tolerance is the buyer's explicit authorization for that brief and is
+/// authoritative — we used to clip it against buyer.maxBudgetUsdc but that
+/// silently overruled tolerance the buyer set with eyes open (a brief with
+/// 15% tolerance on a 50 USDC budget got clipped to 50 because the activation
+/// default left maxBudgetUsdc low). The profile cap stays as a creation-time
+/// safety guide; runtime negotiation trusts the per-deal authorization.
 function computeBuyerEffectiveCap(
   context: { budgetUsdc: string; negotiationMaxIncreasePct?: number },
-  buyer: BuyerProfile,
+  _buyer: BuyerProfile,
 ): number {
   const base = Number(context.budgetUsdc);
   const tolerance = context.negotiationMaxIncreasePct ?? 0;
-  const fromTolerance = base * (1 + tolerance / 100);
-  return Math.min(fromTolerance, buyer.maxBudgetUsdc);
+  return base * (1 + tolerance / 100);
 }
 
 function logDedupeKey(label: string, log: Log): string {
@@ -387,6 +397,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     lastCounterPriceBySeller: new Map(),
     candidateQueue: [],
     triedSellers: new Set(),
+    lastSellerCounterBySeller: new Map(),
     finalized: false,
     escrowFunded: false,
     expired: isExpired,
@@ -858,11 +869,36 @@ async function finalizeBidCollection(state: JobState) {
   await issueCounter(state, top);
 }
 
+/// Returns the tried candidate with the lowest last seller-counter price.
+/// Used by the walk-end near-miss path: when the candidate queue exhausts
+/// without a match, this picks the best (cheapest) "they wouldn't go below"
+/// price across all tried sellers. Returns null when no seller ever
+/// counter-responded (handleCounterResponse never fired) — the buyer never
+/// got a chance to see a real counter from anyone, so there is no number
+/// worth surfacing as a near-miss.
+function pickLowestSellerLast(
+  state: JobState,
+): { seller: `0x${string}`; lastPrice: string } | null {
+  let best: { seller: `0x${string}`; lastPrice: string } | null = null;
+  for (const [seller, lastPrice] of state.lastSellerCounterBySeller.entries()) {
+    if (!state.triedSellers.has(seller)) continue;
+    const n = Number(lastPrice);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (!best || n < Number(best.lastPrice)) {
+      best = { seller, lastPrice };
+    }
+  }
+  return best;
+}
+
 /// Pop the next candidate off the queue and start a fresh negotiation with
 /// them. Called from any terminal-failure path on the current candidate
 /// (LLM decline, counter-out-of-range, max-counter-rounds). Marks the
 /// previous seller as tried so we don't loop. When the queue is empty,
-/// emits `negotiation.exhausted` and finalizes the job.
+/// emits `negotiation.exhausted` and finalizes the job — or raises a
+/// walk-end near-miss with the best last seller price across all tried
+/// candidates so the buyer can approve the stretch instead of getting a
+/// silent decline (karwan_near_miss doctrine extended).
 ///
 /// The new candidate gets a fresh negotiation: their bid is re-evaluated
 /// against the buyer's budget and tier rules. If their bid is in budget
@@ -891,8 +927,57 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
         triedSellers: state.triedSellers.size,
         queueDepth: state.candidateQueue.length,
       },
-      'candidate queue exhausted, finalizing as declined',
+      'candidate queue exhausted, attempting walk-end near-miss',
     );
+
+    // Walk-end near-miss. The buyer set a budget + tolerance with eyes open;
+    // when negotiation walked and nothing converged, surface the best last
+    // seller price as an approval prompt instead of a silent decline. The
+    // near-miss module's gap-band gate (default 100% above buyer ceiling for
+    // confirmed-topical matches) keeps runaway proposals out: a 50 USDC brief
+    // can surface up to ~100 USDC, never 500. If no candidate's last counter
+    // is within band, we fall through to the existing decline path.
+    const buyerCeiling = computeBuyerEffectiveCap(state.context, state.buyer);
+    const best = pickLowestSellerLast(state);
+    if (best && Number(best.lastPrice) > buyerCeiling) {
+      try {
+        const raised = await maybeRaiseNearMiss({
+          jobId: state.jobId,
+          buyerAgent: state.buyer.address,
+          sellerAgent: best.seller,
+          deadlineUnix: state.context.deadlineUnix,
+          buyerCeilingUsdc: buyerCeiling,
+          sellerFloorUsdc: Number(best.lastPrice),
+          confirmedTopical: true,
+        });
+        if (raised) {
+          state.finalized = true;
+          bus.emitEvent({
+            type: 'negotiation.exhausted',
+            jobId: state.jobId,
+            actor: 'buyer',
+            payload: {
+              triedCount: state.triedSellers.size,
+              queueDepth: state.candidateQueue.length,
+              nearMissRaised: true,
+              askedPriceUsdc: best.lastPrice,
+              askedSeller: best.seller,
+            },
+          });
+          logger.info(
+            { jobId: state.jobId, seller: best.seller, askedPriceUsdc: best.lastPrice },
+            'walk-end near-miss raised; buyer can approve the stretch',
+          );
+          return;
+        }
+      } catch (err) {
+        logger.warn(
+          { jobId: state.jobId, err: (err as Error).message },
+          'walk-end near-miss raise failed; falling through to decline',
+        );
+      }
+    }
+
     state.finalized = true;
     bus.emitEvent({
       type: 'negotiation.exhausted',
@@ -1096,6 +1181,10 @@ async function handleCounterResponse(log: Log) {
 
   const sellerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const sellerCounterDeadlineUnix = Number(args.newDeadline);
+  // Record the seller's most recent counter so the walk-end near-miss path
+  // can surface the best last price across all tried candidates when the
+  // negotiation exhausts without convergence.
+  state.lastSellerCounterBySeller.set(args.seller, sellerCounterPrice);
   // The seller's counter can carry a later delivery date too; keep the working
   // deadline aligned so the expiry watcher doesn't cut the round short.
   extendWorkingDeadline(state, sellerCounterDeadlineUnix);
