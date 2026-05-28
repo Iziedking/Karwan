@@ -16,9 +16,9 @@ const REFRESH_TRIGGERS = new Set([
 
 export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   const [job, setJob] = useState(initial);
-  // Profile peek state: address of the seller whose card was clicked.
-  // Lives on the panel (not each row) so the modal portal mounts once and
-  // re-uses the same component across all rows.
+  // Profile peek state. We open by USER address (not agent), since profiles
+  // are keyed by user. Falls back to agent address when the bid lacks a
+  // resolved user — the peek still shows the masked address gracefully.
   const [peekSeller, setPeekSeller] = useState<string | null>(null);
   const events = useLiveEvents(initial.jobId, 50);
 
@@ -61,7 +61,7 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
               key={b.seller}
               bid={b}
               isLead={isLead && i === 0}
-              onPeek={() => setPeekSeller(b.seller)}
+              onPeek={() => setPeekSeller(b.sellerUserAddress ?? b.seller)}
             />
           );
         })}
@@ -100,8 +100,8 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
       <button
         type="button"
         onClick={onPeek}
-        title={`View ${shortAddress(bid.seller)}'s profile`}
-        aria-label={`View profile for ${shortAddress(bid.seller)}`}
+        title={`View ${bid.sellerDisplayName ?? shortAddress(bid.seller)}'s profile`}
+        aria-label={`View profile for ${bid.sellerDisplayName ?? shortAddress(bid.seller)}`}
         className="w-full flex items-center justify-between gap-3 -mx-1 px-1 py-0.5 rounded-sm transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -113,9 +113,20 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
               Lead
             </span>
           )}
-          <span className="mono text-[12px] text-[var(--color-ink-dim)] truncate">
-            {shortAddress(bid.seller)}
-          </span>
+          {bid.sellerDisplayName ? (
+            <>
+              <span className="font-sans text-[13px] font-semibold text-[var(--color-ink)] truncate">
+                {bid.sellerDisplayName}
+              </span>
+              <span className="mono text-[11px] text-[var(--color-ink-faint)] tabular-nums">
+                {shortAddress(bid.seller)}
+              </span>
+            </>
+          ) : (
+            <span className="mono text-[12px] text-[var(--color-ink-dim)] truncate">
+              {shortAddress(bid.seller)}
+            </span>
+          )}
         </div>
         <span className="inline-flex items-center gap-1.5 shrink-0">
           <ReputationBadge address={bid.seller} size="sm" />

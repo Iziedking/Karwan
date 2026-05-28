@@ -61,6 +61,13 @@ export interface BuyerBid {
   /// Composite-engine tier of the seller at bid time. Null when the bid
   /// landed before the tier was wired (legacy bids on old jobs).
   sellerTier: 'new' | 'cold' | 'established' | 'strong' | 'elite' | null;
+  /// Owner address behind the seller agent — used by the compact peek so
+  /// `api.getProfile` resolves the right profile (profiles are keyed by
+  /// user address, not agent). Null on legacy bids.
+  sellerUserAddress: string | null;
+  /// Seller's display name from their profile. Surfaced inline on the bid
+  /// card. Null when unset or on legacy bids.
+  sellerDisplayName: string | null;
 }
 
 export interface BuyerJob {

@@ -50,6 +50,7 @@ const MAX_CANDIDATES = 3;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
+import { getProfile } from '../db/profiles.js';
 import {
   getMatchProposal as dbGetMatchProposal,
   upsertMatchProposal as dbUpsertMatchProposal,
@@ -115,6 +116,15 @@ interface Bid {
   /// breaks ties between sellers of the same tier. 0 when the vault read failed
   /// or the seller has no stake.
   sellerFreeStakeUsdc?: number;
+  /// Owner address behind the seller agent. Resolved once at bid time via
+  /// the agent-wallet store so the bid card can open a profile peek by the
+  /// user address (profiles are keyed by user, not agent). Absent when the
+  /// agent has no recorded binding (rare; happens on stale data).
+  sellerUserAddress?: string;
+  /// Display name from the seller's profile. Surfaced inline on the bid
+  /// card and in the compact peek so the buyer sees a human name instead
+  /// of just an address. Absent when the seller hasn't set one.
+  sellerDisplayName?: string;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -486,6 +496,25 @@ async function handleBidSubmitted(log: Log) {
     /* leave at 0 */
   }
 
+  // Resolve the seller's user address + display name so the bid card can open
+  // a profile peek by user address (profiles are keyed by user, not agent).
+  // Best-effort: stale or missing bindings leave both undefined and the card
+  // falls back to the masked address.
+  let sellerUserAddress: string | undefined;
+  let sellerDisplayName: string | undefined;
+  try {
+    const wallet = await findAgentWalletByAgentAddress(args.seller);
+    if (wallet?.userAddress) {
+      sellerUserAddress = wallet.userAddress;
+      const profile = await getProfile(wallet.userAddress);
+      if (profile?.displayName?.trim()) {
+        sellerDisplayName = profile.displayName.trim();
+      }
+    }
+  } catch {
+    /* leave both undefined */
+  }
+
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
@@ -501,6 +530,8 @@ async function handleBidSubmitted(log: Log) {
     velocity24h: sellerVelocity24h,
     topicalMatch,
     sellerFreeStakeUsdc,
+    sellerUserAddress,
+    sellerDisplayName,
   };
 
   const bidContext: BidContext = {
@@ -1924,6 +1955,12 @@ export interface BuyerJobSnapshot {
     /// tier dot on each bid card so the user can read the reputation context
     /// of every offer at a glance.
     sellerTier: RepTier | null;
+    /// Owner address behind the seller agent. The bid card peek opens a
+    /// profile by user address (profiles are keyed by user, not agent).
+    sellerUserAddress: string | null;
+    /// Profile display name for the seller, if set. Bid card shows this
+    /// inline; falls back to the masked address when null.
+    sellerDisplayName: string | null;
   }>;
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
@@ -1989,6 +2026,8 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
         suggestedCounterPrice: b.suggestedCounterPrice ?? null,
         suggestedCounterDeadlineDays: b.suggestedCounterDeadlineDays ?? null,
         sellerTier: b.sellerTier ?? null,
+        sellerUserAddress: b.sellerUserAddress ?? null,
+        sellerDisplayName: b.sellerDisplayName ?? null,
       })),
       lastCounterPriceBySeller: Object.fromEntries(s.lastCounterPriceBySeller),
       counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),
