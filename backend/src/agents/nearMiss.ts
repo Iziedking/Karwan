@@ -67,15 +67,34 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   const { jobId, buyerCeilingUsdc, sellerFloorUsdc } = input;
   const gap = sellerFloorUsdc - buyerCeilingUsdc;
   if (gap <= 0) return false; // ranges overlap, not a near-miss
-  if (buyerCeilingUsdc <= 0) return false;
+  if (buyerCeilingUsdc <= 0) {
+    emitSkipped(jobId, 'invalid-buyer-ceiling', { buyerCeilingUsdc, sellerFloorUsdc });
+    return false;
+  }
   const relGap = gap / buyerCeilingUsdc;
   const cap = input.confirmedTopical ? LISTING_MAX_GAP_PCT : MAX_GAP_PCT;
-  if (relGap > cap / 100) return false; // too far apart, let it skip
+  if (relGap > cap / 100) {
+    emitSkipped(jobId, 'gap-too-wide', {
+      buyerCeilingUsdc: round2(buyerCeilingUsdc),
+      sellerFloorUsdc: round2(sellerFloorUsdc),
+      gapUsdc: round2(gap),
+      relGapPct: Math.round(relGap * 100),
+      capPct: cap,
+      confirmedTopical: input.confirmedTopical === true,
+    });
+    return false;
+  }
 
   // Don't stack near-misses on the same job. An existing pending one already
   // asked someone; a resolved one means the human already had their say.
   const existing = getNearMiss(jobId);
   if (existing && (isPending(existing) || existing.proceededAt || existing.declinedAt)) {
+    if (!isPending(existing)) {
+      emitSkipped(jobId, 'already-resolved', {
+        proceededAt: existing.proceededAt,
+        declinedAt: existing.declinedAt,
+      });
+    }
     return existing != null && isPending(existing);
   }
 
@@ -84,7 +103,22 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     findAgentWalletByAgentAddress(input.sellerAgent),
   ]);
   if (!buyerWallets || !sellerWallets) {
-    logger.warn({ jobId }, 'near-miss: could not resolve both wallets, skipping');
+    logger.warn(
+      {
+        jobId,
+        buyerAgent: input.buyerAgent,
+        sellerAgent: input.sellerAgent,
+        buyerResolved: buyerWallets !== null,
+        sellerResolved: sellerWallets !== null,
+      },
+      'near-miss: could not resolve both wallets, skipping',
+    );
+    emitSkipped(jobId, 'wallets-unresolved', {
+      buyerAgent: input.buyerAgent,
+      sellerAgent: input.sellerAgent,
+      buyerResolved: buyerWallets !== null,
+      sellerResolved: sellerWallets !== null,
+    });
     return false;
   }
 
@@ -156,6 +190,19 @@ export function flipOrEndOnDecline(jobId: string): { flipped: boolean } {
     payload: { buyer: ended.buyerUser, sellerUser: ended.sellerUser, askedSide: n.askedSide },
   });
   return { flipped: false };
+}
+
+/// Emit a structured "near-miss skipped" event for every silent-false return.
+/// Without this, a real match that the gap-band or wallet-resolution gate
+/// rejected leaves nothing in the activity feed and the operator has to read
+/// logs to find it. Payload carries the reason and enough context to act on.
+function emitSkipped(jobId: string, reason: string, payload: Record<string, unknown>) {
+  bus.emitEvent({
+    type: 'negotiation.near-miss.skipped',
+    jobId,
+    actor: 'platform',
+    payload: { reason, ...payload },
+  });
 }
 
 function emitNearMiss(n: NearMissApproval) {

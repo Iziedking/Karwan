@@ -216,17 +216,44 @@ async function scanBriefsForListing(
   const briefs = listOpenJobContexts();
   if (briefs.length === 0) {
     logger.info({ listingId: listing.id }, 'no open briefs to match against');
+    // Surface the empty scan so the operator can spot the "brief is on chain
+    // but the in-memory jobs map is empty" pattern (post-restart hole, or
+    // buyer never activated their buyer agent). Without this the listing
+    // appears posted then sits silent with no event explaining why.
+    bus.emitEvent({
+      type: 'market.scanned',
+      actor: 'seller',
+      payload: { listingId: listing.id, scanned: 0, matched: 0 },
+    });
     return;
   }
   logger.info(
     { listingId: listing.id, briefsCount: briefs.length },
     'scanning open briefs for topical match',
   );
+  let matched = 0;
+  let consumedJobId: string | null = null;
   for (const job of briefs) {
-    const matched = await tryMatchListingToJob(listing, job, seller);
-    if (matched) return; // listing consumed by first feasible match
+    const ok = await tryMatchListingToJob(listing, job, seller);
+    if (ok) {
+      matched += 1;
+      consumedJobId = job.jobId;
+      break; // listing consumed by first feasible match
+    }
   }
-  logger.info({ listingId: listing.id }, 'no matching briefs found');
+  bus.emitEvent({
+    type: 'market.scanned',
+    actor: 'seller',
+    payload: {
+      listingId: listing.id,
+      scanned: briefs.length,
+      matched,
+      ...(consumedJobId ? { consumedJobId } : {}),
+    },
+  });
+  if (matched === 0) {
+    logger.info({ listingId: listing.id, briefsCount: briefs.length }, 'no matching briefs found');
+  }
 }
 
 /// Symmetric scan: a fresh buyer brief just landed; check every open listing
@@ -293,6 +320,17 @@ async function tryMatchListingToJob(
       { listingId: listing.id, jobId: job.jobId },
       'skipping own brief',
     );
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: {
+        listingId: listing.id,
+        seller: listing.sellerUser,
+        reason: 'own-brief',
+        detail: 'Karwan keeps a seller out of matching against their own request.',
+      },
+    });
     return false;
   }
 

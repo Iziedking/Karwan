@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { readEscrow } from '../chain/contracts.js';
-import { releaseMilestone, finalizeIfSettled, ESCROW_FUNDED } from '../chain/settlement.js';
+import { releaseMilestone, finalizeIfSettled, ESCROW_ACCEPTED } from '../chain/settlement.js';
 import { findWalletIdForAgent } from '../agents/agent-registry.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -28,8 +28,11 @@ milestonesRoutes.post('/release', async (c) => {
   }
 
   const account = await readEscrow(body.jobId);
-  if (account.state !== ESCROW_FUNDED) {
-    return c.json({ error: `escrow state must be Funded(1), got ${account.state}` }, 409);
+  if (account.state !== ESCROW_ACCEPTED) {
+    return c.json(
+      { error: `escrow state must be Accepted(2), got ${account.state}. Releases run after the seller accepts the escrow.` },
+      409,
+    );
   }
 
   // Managed deals settle through the buyer agent that funded the escrow.

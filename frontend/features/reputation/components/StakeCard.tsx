@@ -874,6 +874,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
               Cool <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> for <span className="font-bold">{cooldownDays} days</span>.
             </p>
+            {pendingWithdraw.coolingTotal > pendingWithdraw.requested + 0.000_001 && (
+              <p className="mt-1 text-[12px] leading-snug" style={{ color: '#b25425' }}>
+                Rounded up from your <span className="tabular-nums">{pendingWithdraw.requested}</span> USDC request. The vault cools whole positions only, and your smallest matching position is {pendingWithdraw.toCool.length === 1 ? `#${pendingWithdraw.toCool[0].positionId} (${pendingWithdraw.toCool[0].principalUsdc} USDC)` : `${pendingWithdraw.toCool.length} positions`}. To cool less, deposit smaller amounts next time.
+              </p>
+            )}
             <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
               This stake stops earning reputation during the cool-down. Cancel anytime in the {cooldownDays}-day window to resume earning with tenure intact.
             </p>

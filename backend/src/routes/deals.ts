@@ -561,8 +561,11 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   }
 
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED) {
-    return c.json({ error: `escrow state must be Funded(1), got ${account.state}` }, 409);
+  if (account.state !== ESCROW_ACCEPTED) {
+    return c.json(
+      { error: `escrow state must be Accepted(2), got ${account.state}. The seller must accept the escrow before marking delivery.` },
+      409,
+    );
   }
 
   await patchDeal(jobId, {
@@ -610,8 +613,11 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   }
 
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED) {
-    return c.json({ error: `escrow state must be Funded(1), got ${account.state}` }, 409);
+  if (account.state !== ESCROW_ACCEPTED) {
+    return c.json(
+      { error: `escrow state must be Accepted(2), got ${account.state}. Releases run after the seller accepts the escrow.` },
+      409,
+    );
   }
 
   inFlight.add(jobId);
@@ -737,7 +743,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   }
 
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED) {
+  if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not in a disputable state (${account.state})` }, 409);
   }
 
@@ -819,7 +825,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     // mutual cancel, which actually refunds on chain.
     invalidateEscrowCache(jobId);
     const acct = await readEscrow(jobId);
-    if (acct.state === ESCROW_FUNDED) {
+    if (acct.state === ESCROW_FUNDED || acct.state === ESCROW_ACCEPTED) {
       return c.json(
         {
           error:
@@ -857,7 +863,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   }
 
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED) {
+  if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not in a cancellable state (${account.state})` }, 409);
   }
 
@@ -1043,7 +1049,11 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_DISPUTED) {
+  if (
+    account.state !== ESCROW_FUNDED &&
+    account.state !== ESCROW_ACCEPTED &&
+    account.state !== ESCROW_DISPUTED
+  ) {
     return c.json({ error: `escrow is not in a cancellable state (${account.state})` }, 409);
   }
 
@@ -1053,8 +1063,9 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     // Skip the dispute() call if the escrow is already in Disputed state
     // (eg. seller previously appealed). The contract reverts InvalidState
     // when dispute() is called from Disputed, so re-firing would block the
-    // refund path that the parties have now agreed to.
-    if (account.state === ESCROW_FUNDED) {
+    // refund path that the parties have now agreed to. Both Funded and
+    // Accepted are valid dispute() starting states on v2.D.
+    if (account.state !== ESCROW_DISPUTED) {
       await executeContractCall(
         {
           walletId: deal.buyerAgentWalletId,

@@ -357,8 +357,11 @@ function FloatingActions() {
   const { currentTour, startTour, hasActive } = useGuide();
   if (hasActive) return null;
 
+  // On mobile the labels are hidden and the pill collapses to an icon-only
+  // round button so it stops covering hero copy at the bottom of the fold.
+  // Desktop keeps the wide pill with the label since there's plenty of room.
   const pill =
-    'z-[60] inline-flex items-center gap-1.5 px-3 py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors';
+    'z-[60] inline-flex items-center justify-center sm:justify-start gap-0 sm:gap-1.5 p-2 sm:px-3 sm:py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors';
   const corner = {
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
@@ -373,35 +376,37 @@ function FloatingActions() {
         <button
           type="button"
           onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
-          className={`fixed bottom-5 left-5 ${pill}`}
+          className={`fixed bottom-4 sm:bottom-5 left-4 sm:left-5 ${pill}`}
           style={corner}
-          title="Take a guided tour of this page"
+          title={`Take a guided tour: ${currentTour.label}`}
+          aria-label={`Take a guided tour: ${currentTour.label}`}
         >
           <span
             aria-hidden
-            className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold"
+            className="inline-flex items-center justify-center w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full text-[10px] sm:text-[9px] font-bold"
             style={{ background: 'var(--lp-accent)', color: 'var(--lp-band-dark)' }}
           >
             ?
           </span>
-          {currentTour.label}
+          <span className="hidden sm:inline">{currentTour.label}</span>
         </button>
       )}
 
       <Link
         href="/feedback"
-        className={`fixed bottom-5 right-5 ${pill}`}
+        className={`fixed bottom-4 sm:bottom-5 right-4 sm:right-5 ${pill}`}
         style={corner}
         title="Send feedback or report a bug"
+        aria-label="Send feedback or report a bug"
       >
         <span
           aria-hidden
-          className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold"
+          className="inline-flex items-center justify-center w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full text-[10px] sm:text-[9px] font-bold"
           style={{ background: 'var(--lp-dark)', color: 'var(--lp-card)' }}
         >
           !
         </span>
-        Feedback
+        <span className="hidden sm:inline">Feedback</span>
       </Link>
     </>
   );

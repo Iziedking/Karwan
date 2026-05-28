@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { listAllDeals, patchDeal } from '../db/deals.js';
 import { readEscrow } from '../chain/contracts.js';
-import { releaseMilestone, finalizeIfSettled, ESCROW_FUNDED } from '../chain/settlement.js';
+import { releaseMilestone, finalizeIfSettled, ESCROW_ACCEPTED } from '../chain/settlement.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -28,7 +28,11 @@ async function tick() {
     processing.add(deal.jobId);
     try {
       const account = await readEscrow(deal.jobId);
-      if (account.state !== ESCROW_FUNDED) continue;
+      // v2.D: the watcher acts on accepted-but-not-yet-released escrows.
+      // Pre-v2.D this was Funded; after the seller's acceptEscrow lands
+      // (which the deal-accept route invokes), the state moves to Accepted
+      // and stays there until milestones are released.
+      if (account.state !== ESCROW_ACCEPTED) continue;
       const buyerWalletId = deal.buyerAgentWalletId;
 
       // Timer 1: first-release auto.

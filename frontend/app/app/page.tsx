@@ -15,6 +15,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { LegacyBanner } from '@/shared/components/LegacyBanner';
+import { MigrationBanner } from '@/shared/components/MigrationBanner';
 import { shortAddress } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -130,6 +131,7 @@ export default function AppHome() {
   return (
     <FullBleed>
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
+      <MigrationBanner />
       <LegacyBanner />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>

@@ -66,8 +66,8 @@ export function LegacyBanner() {
           backgroundSize: '40px 40px',
         }}
       />
-      <div className="relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-5 sm:py-6 flex items-center justify-between gap-4 sm:gap-8 flex-wrap">
-        <div className="min-w-0 flex-1 flex items-center gap-4 sm:gap-5">
+      <div className="relative mx-auto max-w-[1440px] px-[clamp(16px,5vw,72px)] py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-8">
+        <div className="min-w-0 flex-1 flex items-start sm:items-center gap-3 sm:gap-5 pr-8 sm:pr-0">
           <span
             className="hidden sm:flex shrink-0 items-center justify-center w-12 h-12 mono text-[18px] font-extrabold"
             style={{
@@ -84,7 +84,7 @@ export function LegacyBanner() {
           </span>
           <div className="min-w-0">
             <span
-              className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-2"
+              className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-1.5 sm:mb-2 whitespace-nowrap"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
@@ -99,18 +99,18 @@ export function LegacyBanner() {
               )}
               :]
             </span>
-            <p className="font-sans text-[17px] sm:text-[19px] font-extrabold tracking-[-0.01em] leading-tight text-white">
+            <p className="font-sans text-[15px] sm:text-[19px] font-extrabold tracking-[-0.01em] leading-tight text-white">
               Reclaim stake or finalize pending deals from the previous contracts.
             </p>
-            <p className="mt-1.5 text-[13px] leading-snug text-white/65">
+            <p className="hidden sm:block mt-1.5 text-[13px] leading-snug text-white/65">
               We redeployed the escrow and vault. Log in and head to the recovery page to pull anything still locked.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
           <Link
             href="/legacy"
-            className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 mono text-[12px] sm:text-[13px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 transition-[transform,box-shadow] duration-150 shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:shadow-[0_5px_0_rgba(0,0,0,0.35)] active:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
+            className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 mono text-[11px] sm:text-[13px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] sm:hover:-translate-y-0.5 active:translate-y-0 transition-[transform,box-shadow] duration-150 shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:shadow-[0_5px_0_rgba(0,0,0,0.35)] active:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
             style={{
               borderTopLeftRadius: 14,
               borderTopRightRadius: 14,
@@ -129,7 +129,7 @@ export function LegacyBanner() {
             }}
             aria-label="Dismiss banner"
             title="Hide for this browser. Comes back if you clear storage. Window closes for everyone after the deadline."
-            className="mono text-[12px] text-white/40 hover:text-white/80 px-2 py-1 transition-colors"
+            className="absolute sm:static top-2 right-2 mono text-[14px] sm:text-[12px] text-white/50 sm:text-white/40 hover:text-white/80 px-2 py-1 transition-colors"
           >
             ×
           </button>

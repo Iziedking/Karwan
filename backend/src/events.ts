@@ -61,6 +61,7 @@ export type KarwanEventType =
   | 'negotiation.near-miss'
   | 'negotiation.near-miss.proceeded'
   | 'negotiation.near-miss.declined'
+  | 'negotiation.near-miss.skipped'
   | 'market.scanned'
   | 'reputation.tier-up'
   | 'feedback.submitted'

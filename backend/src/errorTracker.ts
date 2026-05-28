@@ -23,6 +23,67 @@
 import { bus } from './events.js';
 import { logger } from './logger.js';
 
+/// Optional Sentry forwarding. Activated when SENTRY_DSN is set AND
+/// `@sentry/node` is installed. The package is a soft dependency: the
+/// backend boots and runs cleanly without it. The interface below is the
+/// minimal surface we use, so the project type-checks without the package
+/// in node_modules.
+interface SentryScope {
+  setTag(key: string, value: string): void;
+  setExtras(extras: Record<string, unknown>): void;
+}
+interface SentryLite {
+  init(opts: {
+    dsn: string;
+    environment?: string;
+    release?: string;
+    tracesSampleRate?: number;
+  }): void;
+  captureException(e: Error): void;
+  withScope(cb: (s: SentryScope) => void): void;
+}
+let sentry: SentryLite | null = null;
+let sentryInitAttempted = false;
+
+async function maybeInitSentry(): Promise<void> {
+  if (sentryInitAttempted) return;
+  sentryInitAttempted = true;
+  const dsn = process.env.SENTRY_DSN;
+  if (!dsn) return;
+  try {
+    // Cast to unknown then SentryLite — keeps tsc happy when @sentry/node
+    // is not yet installed (the import resolves at runtime only).
+    const mod = (await import('@sentry/node' as string)) as unknown as SentryLite;
+    mod.init({
+      dsn,
+      environment: process.env.NODE_ENV || 'development',
+      release: process.env.SENTRY_RELEASE,
+      tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+    });
+    sentry = mod;
+    logger.info({ release: process.env.SENTRY_RELEASE }, 'sentry initialised');
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message },
+      'SENTRY_DSN set but @sentry/node missing or init failed; continuing without sentry',
+    );
+  }
+}
+
+function forwardToSentry(scope: string, err: unknown, context?: Record<string, unknown>): void {
+  if (!sentry) return;
+  try {
+    sentry.withScope((s) => {
+      s.setTag('karwan.scope', scope);
+      if (context) s.setExtras(context);
+      const e = err instanceof Error ? err : new Error(extract(err).message);
+      sentry!.captureException(e);
+    });
+  } catch {
+    /* never let sentry forwarding break the original error path */
+  }
+}
+
 export interface CapturedError {
   scope: string;
   message: string;
@@ -97,6 +158,7 @@ export function reportError(
   } catch {
     /* event bus is best-effort; never throw out of error reporting */
   }
+  forwardToSentry(scope, err, context);
 }
 
 /// Wraps an async tick function so a thrown error is captured rather than
@@ -114,8 +176,11 @@ export async function runTick(
 }
 
 /// Installs the global process listeners. Idempotent; safe to call once at
-/// boot. Returns a stop fn so tests can unwire cleanly.
+/// boot. Returns a stop fn so tests can unwire cleanly. Also kicks off the
+/// optional Sentry init (no-op when SENTRY_DSN is unset or the package is
+/// missing).
 export function installProcessErrorHandlers(): () => void {
+  void maybeInitSentry();
   const onUnhandled = (reason: unknown) => {
     reportError('process.unhandledRejection', reason);
   };
