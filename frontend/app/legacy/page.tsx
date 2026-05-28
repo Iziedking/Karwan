@@ -244,7 +244,7 @@ function LegacyStakeCard({
   const [positions, setPositions] = useState<LegacyPosition[]>([]);
   const [totalActive, setTotalActive] = useState('0');
   const [totalCooling, setTotalCooling] = useState('0');
-  const [cooldownDays, setCooldownDays] = useState(7);
+  const [cooldownDaysByGen, setCooldownDaysByGen] = useState<Record<1 | 2, number>>({ 1: 7, 2: 3 });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<StakeBusy>(null);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -259,7 +259,15 @@ function LegacyStakeCard({
       setPositions(r.positions);
       setTotalActive(r.totalActiveUsdc);
       setTotalCooling(r.totalCoolingUsdc);
-      setCooldownDays(r.cooldownDays);
+      // Pre-seed both gens with the contract defaults, then overwrite with
+      // whatever each configured gen actually reports. The contract was
+      // bumped from 7 days (pre-v2.D) to 3 days (v2.D), so the right number
+      // depends on which gen the position lives on.
+      const map: Record<1 | 2, number> = { 1: 7, 2: 3 };
+      for (const g of r.generations) {
+        map[g.index] = g.cooldownDays;
+      }
+      setCooldownDaysByGen(map);
     } catch (err) {
       setLastError((err as Error).message);
     } finally {
@@ -397,16 +405,21 @@ function LegacyStakeCard({
         </Note>
       )}
 
-      {active.length > 0 && (
-        <PositionGroup
-          title="Active. Start cool-down to recover"
-          positions={active}
-          busy={busy}
-          onAction={runAction}
-          actionLabel={`Start ${cooldownDays}-day cool-down`}
-          actionKind="request"
-        />
-      )}
+      {([1, 2] as const).map((gen) => {
+        const groupActive = active.filter((p) => p.generation === gen);
+        if (groupActive.length === 0) return null;
+        return (
+          <PositionGroup
+            key={`active-gen-${gen}`}
+            title={`Gen ${gen} active. Start cool-down to recover`}
+            positions={groupActive}
+            busy={busy}
+            onAction={runAction}
+            actionLabel={`Start ${cooldownDaysByGen[gen]}-day cool-down`}
+            actionKind="request"
+          />
+        );
+      })}
 
       {cooling.length > 0 && (
         <CoolingGroup positions={cooling} busy={busy} onAction={runAction} />
@@ -432,9 +445,14 @@ function LegacyStakeCard({
         title={`Cool ${pendingRequest?.principal ?? ''} USDC?`}
         body={
           <>
-            Starts the {cooldownDays}-day cool-down on this legacy position. Once it elapses you
-            can claim the principal back to your wallet. Cooling stake stops earning reputation
-            until you cancel or claim.
+            Starts the{' '}
+            {pendingRequest
+              ? cooldownDaysByGen[
+                  positions.find((p) => p.positionId === pendingRequest.positionId)?.generation ?? 1
+                ]
+              : 7}
+            -day cool-down on this legacy position. Once it elapses you can claim the principal back
+            to your wallet. Cooling stake stops earning reputation until you cancel or claim.
           </>
         }
         confirmLabel="Start cool-down"

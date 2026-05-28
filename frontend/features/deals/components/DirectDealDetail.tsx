@@ -399,6 +399,47 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </p>
       </Band>
 
+      {deal.legacyEscrow && (
+        <Band tone="light" compact>
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+            style={{
+              background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
+              border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <div className="min-w-0">
+              <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                [:PREVIOUS CONTRACT:]
+              </p>
+              <p className="mt-1 font-sans text-[14px] font-extrabold text-[var(--lp-dark)] leading-snug">
+                This deal lives on an older escrow.
+              </p>
+              <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+                Finalize, refund, or cancel it from the recovery page.
+              </p>
+            </div>
+            <Link
+              href="/legacy"
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors"
+              style={{
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              Open recovery
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </Band>
+      )}
+
       {/* PARTIES + FUNDING */}
       <Band tone="light" compact>
         <div className="grid md:grid-cols-2 gap-5">

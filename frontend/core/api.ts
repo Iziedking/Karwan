@@ -223,6 +223,11 @@ export interface DirectDeal {
   updatedAt: number;
   reviewWindowMs?: number;
   onChain: DirectDealOnChain | null;
+  /// True when the funds are still on a previous escrow contract. The deal
+  /// detail page renders a banner pointing at /legacy so actions don't fail
+  /// silently on the new escrow.
+  legacyEscrow?: boolean;
+  legacyState?: number;
 }
 
 export interface MarketplaceBrief {
