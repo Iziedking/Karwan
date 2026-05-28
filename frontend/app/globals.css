@@ -459,6 +459,10 @@ html[data-theme="dark"] {
 .form-input::placeholder {
   color: var(--lp-text-muted);
 }
+/* Dark theme: --lp-text-muted is too low-contrast against --lp-card. */
+html[data-theme="dark"] .form-input::placeholder {
+  color: var(--lp-text-sub);
+}
 .form-textarea {
   resize: none;
   line-height: 1.5;

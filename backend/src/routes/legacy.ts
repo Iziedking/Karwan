@@ -1,14 +1,15 @@
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
-import { formatUnits } from 'viem';
+import { formatUnits, type Address } from 'viem';
 import { publicClient } from '../chain/client.js';
 import {
-  legacyEscrow,
   legacyEscrowAddress,
-  legacyVault,
   legacyVaultAddress,
+  legacyGenerations,
   readLegacyEscrow,
+  readLegacyEscrowWithGen,
   LEGACY_ESCROW_STATE,
+  type LegacyGeneration,
 } from '../chain/contracts.js';
 import { legacyVaultAbi } from '../chain/abis/legacyVault.js';
 import { getLegacyWindow } from '../chain/legacyWindow.js';
@@ -51,6 +52,10 @@ const proposeCancelSchema = dealActionSchema.extend({
 const positionActionSchema = z.object({
   address: addrSchema,
   positionId: z.union([z.string(), z.number()]),
+  /// Which legacy vault to target. Defaults to Gen 1 for backward compat with
+  /// older clients that don't yet send it; the page sends it explicitly so we
+  /// always hit the right contract.
+  generation: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 const inFlight = new Set<string>();
@@ -72,13 +77,30 @@ function refuseIfClosed(c: Context): Response | null {
 
 export const legacyRoutes = new Hono();
 
-/// Window status — drives the home banner and the /legacy page header.
+/// Window status — drives the home banner and the /legacy page header. The
+/// composite (open / closesAtMs) reflects the soonest still-open deadline
+/// across all generations. `generations` carries per-gen detail + addresses
+/// so the page can render a section per legacy contract bundle.
 legacyRoutes.get('/window', (c) => {
   const w = getLegacyWindow();
+  const generationsWithAddresses = w.generations.map((g) => {
+    const gen = legacyGenerations.find((lg) => lg.index === g.index);
+    return {
+      ...g,
+      legacyVaultAddress: gen?.vaultAddress ?? null,
+      legacyEscrowAddress: gen?.escrowAddress ?? null,
+    };
+  });
   return c.json({
-    ...w,
+    open: w.open,
+    closesAtMs: w.closesAtMs,
+    daysRemaining: w.daysRemaining,
+    hasLegacyEscrow: w.hasLegacyEscrow,
+    hasLegacyVault: w.hasLegacyVault,
+    // Keep the legacy single-slot fields for backward compat with the banner.
     legacyEscrowAddress,
     legacyVaultAddress,
+    generations: generationsWithAddresses,
   });
 });
 
@@ -102,6 +124,9 @@ interface LegacyDealView {
   /// Off-chain createdAt for sorting.
   createdAt: number;
   releasedUsdc: string;
+  /// Which legacy generation this deal lives on (1 or 2). Sent back to the
+  /// client so action routes get tagged with the right gen on follow-up calls.
+  generation: 1 | 2;
 }
 
 function stateLabel(state: number): LegacyDealView['stateLabel'] {
@@ -121,8 +146,8 @@ legacyRoutes.get('/deals', async (c) => {
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
-  if (!legacyEscrow) {
-    return c.json({ deals: [], legacyEscrowAddress: null });
+  if (legacyGenerations.every((g) => !g.escrow)) {
+    return c.json({ deals: [], legacyEscrowAddress: null, generations: [] });
   }
 
   const a = parsed.data.toLowerCase();
@@ -130,11 +155,9 @@ legacyRoutes.get('/deals', async (c) => {
   const out: LegacyDealView[] = [];
 
   for (const d of deals) {
-    const onChain = await readLegacyEscrow(d.jobId);
-    if (!onChain) continue;
-    // None (0) means the legacy contract genuinely doesn't know this jobId
-    // either — the deal was probably never funded. Skip; nothing to recover.
-    if (onChain.state === LEGACY_ESCROW_STATE.None) continue;
+    const hit = await readLegacyEscrowWithGen(d.jobId);
+    if (!hit) continue;
+    const { account: onChain, generation } = hit;
 
     // Lazy tag. Subsequent feed reads on the live surface filter these out.
     if (!d.legacyEscrow || d.legacyState !== onChain.state) {
@@ -167,12 +190,18 @@ legacyRoutes.get('/deals', async (c) => {
       cancellationProposal: d.cancellationProposal,
       createdAt: d.createdAt,
       releasedUsdc: formatUnits(onChain.released, USDC_DECIMALS),
+      generation,
     });
   }
 
   return c.json({
     deals: out.sort((x, y) => y.createdAt - x.createdAt),
+    // Keep this field for backward compat with older clients reading the Gen 1
+    // address; the per-deal `generation` is the source of truth from now on.
     legacyEscrowAddress,
+    generations: legacyGenerations
+      .filter((g) => g.escrowAddress)
+      .map((g) => ({ index: g.index, legacyEscrowAddress: g.escrowAddress })),
   });
 });
 
@@ -181,7 +210,7 @@ async function loadDealForLegacyAction(
   jobId: string,
   body: z.infer<typeof dealActionSchema>,
 ): Promise<
-  | { ok: true; deal: DirectDeal; walletId: string }
+  | { ok: true; deal: DirectDeal; walletId: string; generation: LegacyGeneration }
   | { ok: false; response: Response }
 > {
   const a = body.address.toLowerCase();
@@ -193,17 +222,21 @@ async function loadDealForLegacyAction(
       response: c.json({ error: 'deal not found for this address' }, 404),
     };
   }
-  // The legacy address tag is set lazily by GET /deals. Even if it isn't
-  // tagged yet, the readLegacyEscrow check below confirms the deal is on
-  // the legacy contract before we route the call there.
-  const onChain = await readLegacyEscrow(jobId);
-  if (!onChain || onChain.state === LEGACY_ESCROW_STATE.None) {
+  const hit = await readLegacyEscrowWithGen(jobId);
+  if (!hit) {
     return {
       ok: false,
       response: c.json(
-        { error: 'this deal is not on the legacy escrow contract' },
+        { error: 'this deal is not on any legacy escrow contract' },
         409,
       ),
+    };
+  }
+  const generation = legacyGenerations.find((g) => g.index === hit.generation);
+  if (!generation || !generation.escrow || !generation.escrowAddress) {
+    return {
+      ok: false,
+      response: c.json({ error: 'legacy escrow not configured for this generation' }, 410),
     };
   }
 
@@ -228,7 +261,7 @@ async function loadDealForLegacyAction(
       ),
     };
   }
-  return { ok: true, deal, walletId };
+  return { ok: true, deal, walletId, generation };
 }
 
 async function callLegacyEscrowFn(
@@ -242,12 +275,10 @@ async function callLegacyEscrowFn(
 ): Promise<Response> {
   const closed = refuseIfClosed(c);
   if (closed) return closed;
-  if (!legacyEscrow || !legacyEscrowAddress) {
-    return c.json({ error: 'legacy escrow not configured' }, 410);
-  }
 
   const loaded = await loadDealForLegacyAction(c, jobId, body);
   if (!loaded.ok) return loaded.response;
+  const escrowAddress = loaded.generation.escrowAddress as Address;
 
   const key = `${body.address.toLowerCase()}:legacy:${fn}:${jobId.toLowerCase()}`;
   if (inFlight.has(key)) {
@@ -259,17 +290,17 @@ async function callLegacyEscrowFn(
     const result = await executeContractCall(
       {
         walletId: loaded.walletId,
-        contractAddress: legacyEscrowAddress,
+        contractAddress: escrowAddress,
         abiFunctionSignature: signature,
         abiParameters: args.map((v) => String(v)),
       },
-      `legacy.${fn}(${jobId})`,
+      `legacy.${fn}(gen${loaded.generation.index} ${jobId})`,
     );
     bus.emitEvent({
       type: eventType as Parameters<typeof bus.emitEvent>[0]['type'],
       jobId,
       actor: body.role,
-      payload: { txHash: result.txHash, legacy: true },
+      payload: { txHash: result.txHash, legacy: true, generation: loaded.generation.index },
     });
     logger.info(
       { jobId, fn, txHash: result.txHash, role: body.role, address: body.address },
@@ -295,9 +326,6 @@ async function callLegacyEscrowFn(
 legacyRoutes.post('/deals/:jobId/refund', async (c) => {
   const closed = refuseIfClosed(c);
   if (closed) return closed;
-  if (!legacyEscrow || !legacyEscrowAddress) {
-    return c.json({ error: 'legacy escrow not configured' }, 410);
-  }
 
   let body: z.infer<typeof dealActionSchema>;
   try {
@@ -312,6 +340,7 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
   const jobId = c.req.param('jobId');
   const loaded = await loadDealForLegacyAction(c, jobId, body);
   if (!loaded.ok) return loaded.response;
+  const escrowAddress = loaded.generation.escrowAddress as Address;
 
   const onChain = await readLegacyEscrow(jobId);
   if (!onChain) {
@@ -331,18 +360,18 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
       const disputeResult = await executeContractCall(
         {
           walletId: loaded.walletId,
-          contractAddress: legacyEscrowAddress,
+          contractAddress: escrowAddress,
           abiFunctionSignature: 'dispute(bytes32,string)',
           abiParameters: [jobId, 'Recovery: seller did not deliver by deadline'],
         },
-        `legacy.dispute(${jobId})`,
+        `legacy.dispute(gen${loaded.generation.index} ${jobId})`,
       );
       disputeTxHash = disputeResult.txHash;
       bus.emitEvent({
         type: 'deal.disputed',
         jobId,
         actor: 'buyer',
-        payload: { txHash: disputeTxHash, legacy: true },
+        payload: { txHash: disputeTxHash, legacy: true, generation: loaded.generation.index },
       });
     } else if (onChain.state !== LEGACY_ESCROW_STATE.Disputed) {
       return c.json(
@@ -357,17 +386,17 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
     const refundResult = await executeContractCall(
       {
         walletId: loaded.walletId,
-        contractAddress: legacyEscrowAddress,
+        contractAddress: escrowAddress,
         abiFunctionSignature: 'refund(bytes32)',
         abiParameters: [jobId],
       },
-      `legacy.refund(${jobId})`,
+      `legacy.refund(gen${loaded.generation.index} ${jobId})`,
     );
     bus.emitEvent({
       type: 'deal.cancelled',
       jobId,
       actor: 'buyer',
-      payload: { txHash: refundResult.txHash, legacy: true, disputeTxHash },
+      payload: { txHash: refundResult.txHash, legacy: true, disputeTxHash, generation: loaded.generation.index },
     });
     logger.info(
       { jobId, refundTxHash: refundResult.txHash, disputeTxHash },
@@ -415,9 +444,6 @@ legacyRoutes.post('/deals/:jobId/release-final', async (c) => {
 legacyRoutes.post('/deals/:jobId/cancel-propose', async (c) => {
   const closed = refuseIfClosed(c);
   if (closed) return closed;
-  if (!legacyEscrow || !legacyEscrowAddress) {
-    return c.json({ error: 'legacy escrow not configured' }, 410);
-  }
 
   let body: z.infer<typeof proposeCancelSchema>;
   try {
@@ -432,6 +458,7 @@ legacyRoutes.post('/deals/:jobId/cancel-propose', async (c) => {
     role: body.role,
   });
   if (!loaded.ok) return loaded.response;
+  const escrowAddress = loaded.generation.escrowAddress as Address;
 
   const key = `${body.address.toLowerCase()}:legacy:cancel-propose:${jobId.toLowerCase()}`;
   if (inFlight.has(key)) {
@@ -443,11 +470,11 @@ legacyRoutes.post('/deals/:jobId/cancel-propose', async (c) => {
     const result = await executeContractCall(
       {
         walletId: loaded.walletId,
-        contractAddress: legacyEscrowAddress,
+        contractAddress: escrowAddress,
         abiFunctionSignature: 'proposeCancellation(bytes32,string)',
         abiParameters: [jobId, body.reason],
       },
-      `legacy.proposeCancellation(${jobId})`,
+      `legacy.proposeCancellation(gen${loaded.generation.index} ${jobId})`,
     );
     await patchDeal(jobId, {
       cancellationProposal: {
@@ -461,7 +488,7 @@ legacyRoutes.post('/deals/:jobId/cancel-propose', async (c) => {
       type: 'deal.cancel.proposed',
       jobId,
       actor: body.role,
-      payload: { txHash: result.txHash, legacy: true, reason: body.reason },
+      payload: { txHash: result.txHash, legacy: true, reason: body.reason, generation: loaded.generation.index },
     });
     return c.json({ ok: true, txHash: result.txHash });
   } catch (err) {
@@ -504,6 +531,10 @@ interface LegacyPosition {
   cooldownStartedAt: number;
   claimableAt: number;
   state: 'active' | 'cooling' | 'claimed';
+  /// Which legacy generation this position is on. The client passes it back in
+  /// the action body so we route the request-withdraw / cancel / claim to the
+  /// matching vault contract.
+  generation: 1 | 2;
 }
 
 function vaultStateLabel(state: number): LegacyPosition['state'] {
@@ -512,28 +543,11 @@ function vaultStateLabel(state: number): LegacyPosition['state'] {
   return 'claimed';
 }
 
-legacyRoutes.get('/vault/positions', async (c) => {
-  const address = c.req.query('address');
-  if (!address) return c.json({ error: 'address query param required' }, 400);
-  const parsed = addrSchema.safeParse(address);
-  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
-  if (!legacyVault || !legacyVaultAddress) {
-    return c.json({
-      vaultAddress: null,
-      positions: [],
-      totalActiveUsdc: '0',
-      totalCoolingUsdc: '0',
-      cooldownDays: 7,
-    });
-  }
-
-  const a = parsed.data.toLowerCase();
-  const vaultAddr = legacyVaultAddress as `0x${string}`;
-
-  // The legacy vault exposes nextPositionId even though it lacks
-  // activeStakeOf, so enumerate position 0 through nextId via multicall
-  // and filter by owner. This is the path we verified by hand with cast:
-  // 7 positions for this address come back in one round trip.
+async function readPositionsFromVault(
+  vaultAddr: Address,
+  owner: string,
+  generation: 1 | 2,
+): Promise<{ positions: LegacyPosition[]; cooldownDays: number }> {
   let nextId: bigint;
   try {
     nextId = (await publicClient.readContract({
@@ -543,10 +557,10 @@ legacyRoutes.get('/vault/positions', async (c) => {
     })) as bigint;
   } catch (err) {
     logger.warn(
-      { err: (err as Error).message, vault: vaultAddr },
+      { err: (err as Error).message, vault: vaultAddr, generation },
       'legacy nextPositionId read failed',
     );
-    return c.json({ error: 'legacy vault read failed' }, 502);
+    return { positions: [], cooldownDays: 7 };
   }
 
   let cooldownDays = 7;
@@ -562,21 +576,12 @@ legacyRoutes.get('/vault/positions', async (c) => {
   }
 
   if (nextId === 0n) {
-    return c.json({
-      vaultAddress: vaultAddr,
-      positions: [],
-      totalActiveUsdc: '0',
-      totalCoolingUsdc: '0',
-      cooldownDays,
-    });
+    return { positions: [], cooldownDays };
   }
 
   const positionIds: bigint[] = [];
   for (let i = 0n; i <= nextId; i++) positionIds.push(i);
 
-  // Arc Testnet has no Multicall3 contract, so viem's `multicall()` throws.
-  // Promise.allSettled is portable and the N is small enough that the
-  // round-trip overhead is fine.
   const results = await Promise.allSettled(
     positionIds.map((id) =>
       publicClient.readContract({
@@ -599,7 +604,7 @@ legacyRoutes.get('/vault/positions', async (c) => {
       bigint,
       number,
     ];
-    if (tuple[0].toLowerCase() !== a) continue;
+    if (tuple[0].toLowerCase() !== owner) continue;
     if (tuple[5] === 0) continue;
     const positionId = positionIds[i];
     if (positionId == null) continue;
@@ -610,8 +615,43 @@ legacyRoutes.get('/vault/positions', async (c) => {
       cooldownStartedAt: Number(tuple[3]),
       claimableAt: Number(tuple[4]),
       state: vaultStateLabel(tuple[5]),
+      generation,
     });
   }
+  return { positions, cooldownDays };
+}
+
+legacyRoutes.get('/vault/positions', async (c) => {
+  const address = c.req.query('address');
+  if (!address) return c.json({ error: 'address query param required' }, 400);
+  const parsed = addrSchema.safeParse(address);
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+
+  const configuredGens = legacyGenerations.filter((g) => g.vaultAddress && g.vault);
+  if (configuredGens.length === 0) {
+    return c.json({
+      vaultAddress: null,
+      positions: [],
+      totalActiveUsdc: '0',
+      totalCoolingUsdc: '0',
+      cooldownDays: 7,
+      generations: [],
+    });
+  }
+
+  const a = parsed.data.toLowerCase();
+  const perGen = await Promise.all(
+    configuredGens.map((g) =>
+      readPositionsFromVault(g.vaultAddress as Address, a, g.index).then((r) => ({
+        index: g.index,
+        vaultAddress: g.vaultAddress as Address,
+        positions: r.positions,
+        cooldownDays: r.cooldownDays,
+      })),
+    ),
+  );
+
+  const positions = perGen.flatMap((g) => g.positions);
 
   const sumByState = (s: LegacyPosition['state']) => {
     const total = positions
@@ -621,11 +661,27 @@ legacyRoutes.get('/vault/positions', async (c) => {
   };
 
   return c.json({
+    // Backward compat: surface the Gen 1 vault address at the top level so
+    // older clients still get something sensible. The per-position generation
+    // field is the source of truth from now on.
     vaultAddress: legacyVaultAddress,
-    positions: positions.sort((x, y) => Number(y.positionId) - Number(x.positionId)),
+    positions: positions.sort((x, y) =>
+      x.generation === y.generation
+        ? Number(y.positionId) - Number(x.positionId)
+        : x.generation - y.generation,
+    ),
     totalActiveUsdc: sumByState('active'),
     totalCoolingUsdc: sumByState('cooling'),
-    cooldownDays,
+    // Backward compat. Newer clients should read per-gen cooldownDays from
+    // generations[].cooldownDays since the two contracts can have different
+    // cooldown windows (7d on Gen 1, 3d on Gen 2 after v2.D).
+    cooldownDays: perGen[0]?.cooldownDays ?? 7,
+    generations: perGen.map((g) => ({
+      index: g.index,
+      vaultAddress: g.vaultAddress,
+      cooldownDays: g.cooldownDays,
+      positionCount: g.positions.length,
+    })),
   });
 });
 
@@ -637,9 +693,6 @@ async function callLegacyVaultFn(
 ): Promise<Response> {
   const closed = refuseIfClosed(c);
   if (closed) return closed;
-  if (!legacyVault || !legacyVaultAddress) {
-    return c.json({ error: 'legacy vault not configured' }, 410);
-  }
 
   let body;
   try {
@@ -647,6 +700,16 @@ async function callLegacyVaultFn(
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+
+  const genIndex = body.generation ?? 1;
+  const generation = legacyGenerations.find((g) => g.index === genIndex);
+  if (!generation || !generation.vault || !generation.vaultAddress) {
+    return c.json(
+      { error: `legacy vault for generation ${genIndex} not configured` },
+      410,
+    );
+  }
+  const vaultAddress = generation.vaultAddress as Address;
 
   const user = getUserByAddress(body.address.toLowerCase());
   if (!user) {
@@ -660,7 +723,7 @@ async function callLegacyVaultFn(
   }
 
   const positionIdStr = String(body.positionId);
-  const key = `${body.address.toLowerCase()}:legacy-vault:${fn}:${positionIdStr}`;
+  const key = `${body.address.toLowerCase()}:legacy-vault-g${genIndex}:${fn}:${positionIdStr}`;
   if (inFlight.has(key)) {
     return c.json({ error: 'a legacy vault action is already in progress' }, 409);
   }
@@ -670,11 +733,11 @@ async function callLegacyVaultFn(
     const result = await executeContractCall(
       {
         walletId: user.circleIdentityWalletId,
-        contractAddress: legacyVaultAddress,
+        contractAddress: vaultAddress,
         abiFunctionSignature: signature,
         abiParameters: [positionIdStr],
       },
-      `legacy-vault.${fn}(${body.address}, ${positionIdStr})`,
+      `legacy-vault.${fn}(gen${genIndex} ${body.address}, ${positionIdStr})`,
     );
     bus.emitEvent({
       type: eventType,
@@ -684,12 +747,13 @@ async function callLegacyVaultFn(
         positionId: positionIdStr,
         txHash: result.txHash,
         legacy: true,
+        generation: genIndex,
       },
     });
     return c.json({ ok: true, txHash: result.txHash });
   } catch (err) {
     logger.error(
-      { address: body.address, positionId: positionIdStr, fn, err: (err as Error).message },
+      { address: body.address, positionId: positionIdStr, fn, generation: genIndex, err: (err as Error).message },
       'legacy vault action failed',
     );
     return c.json({ error: `${fn} failed`, detail: (err as Error).message }, 502);

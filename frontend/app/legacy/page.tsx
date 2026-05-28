@@ -27,6 +27,7 @@ import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
   KARWAN_VAULT_LEGACY_ADDRESS,
+  KARWAN_VAULT_LEGACY_ADDRESS_2,
 } from '@/features/profile/config';
 
 /// 30-day recovery surface for the pre-v2.D KarwanEscrow + KarwanVault. One
@@ -219,6 +220,11 @@ interface LegacyPosition {
   cooldownStartedAt: number;
   claimableAt: number;
   state: 'active' | 'cooling' | 'claimed';
+  generation: 1 | 2;
+}
+
+function vaultAddressForGeneration(gen: 1 | 2): `0x${string}` | null {
+  return gen === 1 ? KARWAN_VAULT_LEGACY_ADDRESS : KARWAN_VAULT_LEGACY_ADDRESS_2;
 }
 
 type StakeBusy = { kind: 'request' | 'cancel' | 'claim'; positionId: string } | null;
@@ -289,16 +295,22 @@ function LegacyStakeCard({
       }
       setBusy({ kind, positionId });
       try {
+        const target = positions.find((p) => p.positionId === positionId);
+        const generation = target?.generation ?? 1;
+        const vaultAddrForAction = vaultAddressForGeneration(generation);
         if (isCircleUser) {
           const route =
             kind === 'cancel' ? api.legacyVaultCancelWithdraw : api.legacyVaultClaim;
-          const r = await route({ address, positionId });
+          const r = await route({ address, positionId, generation });
           setLastTx(r.txHash);
         } else {
           if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+          if (!vaultAddrForAction) {
+            throw new Error(`Legacy vault for generation ${generation} is not configured on this build.`);
+          }
           const fnName = kind === 'cancel' ? 'cancelWithdraw' : 'claim';
           const hash = await walletClient.writeContract({
-            address: KARWAN_VAULT_LEGACY_ADDRESS,
+            address: vaultAddrForAction,
             abi: vaultAbi,
             functionName: fnName,
             args: [BigInt(positionId)],
@@ -326,13 +338,19 @@ function LegacyStakeCard({
     setLastTx(null);
     setBusy({ kind: 'request', positionId });
     try {
+      const target = positions.find((p) => p.positionId === positionId);
+      const generation = target?.generation ?? 1;
+      const vaultAddrForAction = vaultAddressForGeneration(generation);
       if (isCircleUser) {
-        const r = await api.legacyVaultRequestWithdraw({ address, positionId });
+        const r = await api.legacyVaultRequestWithdraw({ address, positionId, generation });
         setLastTx(r.txHash);
       } else {
         if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+        if (!vaultAddrForAction) {
+          throw new Error(`Legacy vault for generation ${generation} is not configured on this build.`);
+        }
         const hash = await walletClient.writeContract({
-          address: KARWAN_VAULT_LEGACY_ADDRESS,
+          address: vaultAddrForAction,
           abi: vaultAbi,
           functionName: 'requestWithdraw',
           args: [BigInt(positionId)],
@@ -348,7 +366,7 @@ function LegacyStakeCard({
     } finally {
       setBusy(null);
     }
-  }, [pendingRequest, isCircleUser, walletClient, arcClient, address, refetch]);
+  }, [pendingRequest, positions, isCircleUser, walletClient, arcClient, address, refetch]);
 
   if (loading) {
     return <div className="h-32 bg-black/[0.04] animate-pulse rounded-2xl" />;
@@ -467,7 +485,7 @@ function PositionGroup({
                 <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                   {formatUsdc(p.principalUsdc, { withSuffix: false })}{' '}
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
-                    USDC · #{p.positionId}
+                    USDC · #{p.positionId} · GEN {p.generation}
                   </span>
                 </p>
               </div>
@@ -535,7 +553,7 @@ function CoolingGroup({
                 <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                   {formatUsdc(p.principalUsdc, { withSuffix: false })}{' '}
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] font-normal">
-                    USDC · #{p.positionId}
+                    USDC · #{p.positionId} · GEN {p.generation}
                   </span>
                 </p>
                 <p className="mt-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
@@ -606,6 +624,7 @@ interface LegacyDeal {
   };
   createdAt: number;
   releasedUsdc: string;
+  generation: 1 | 2;
 }
 
 type DealBusy = { jobId: string; kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' } | null;
@@ -929,7 +948,7 @@ function DealRow({
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            [:{deal.role.toUpperCase()} · {deal.stateLabel.toUpperCase()}:] {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
+            [:{deal.role.toUpperCase()} · {deal.stateLabel.toUpperCase()} · GEN {deal.generation}:] {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
           </p>
           <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
             {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}

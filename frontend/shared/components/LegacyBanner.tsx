@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
+import { AUTH_CHANGED_EVENT } from '@/shared/hooks/useAuth';
 import { Countdown } from './Countdown';
 
 interface WindowState {
@@ -9,11 +10,11 @@ interface WindowState {
   closesAtMs: number | null;
 }
 
-/// Single entry point into the 30-day legacy recovery surface. Mounted on
-/// /app (the signed-in home), not the marketing landing — only people with
-/// stake or escrow on the previous contracts need this. Designed bold:
-/// dark band, big lime headline, asymmetric-corner CTA. Lives at the very
-/// top of /app so it can't be missed.
+const DISMISS_KEY = 'karwan.legacy.dismissed';
+
+/// Dismissal is per-login, not permanent. We keep the flag in localStorage so
+/// the banner stays hidden while the user pokes around the app, but we clear
+/// it on every auth transition. Sign in fresh → banner shows again.
 export function LegacyBanner() {
   const [state, setState] = useState<WindowState | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -37,7 +38,20 @@ export function LegacyBanner() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setDismissed(window.localStorage.getItem('karwan.legacy.dismissed') === '1');
+    setDismissed(window.localStorage.getItem(DISMISS_KEY) === '1');
+  }, []);
+
+  // Reset the dismiss on every auth change (sign in or sign out). Without this,
+  // a user who cancels the banner once never sees it again — even after a full
+  // logout + re-login cycle.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onChange = () => {
+      window.localStorage.removeItem(DISMISS_KEY);
+      setDismissed(false);
+    };
+    window.addEventListener(AUTH_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, onChange);
   }, []);
 
   if (!state?.open || dismissed) return null;
@@ -100,10 +114,10 @@ export function LegacyBanner() {
               :]
             </span>
             <p className="font-sans text-[15px] sm:text-[19px] font-extrabold tracking-[-0.01em] leading-tight text-white">
-              Reclaim stake or finalize pending deals from the previous contracts.
+              Migrated to a new contract. Unstake or finalize deals here.
             </p>
             <p className="hidden sm:block mt-1.5 text-[13px] leading-snug text-white/65">
-              We redeployed the escrow and vault. Log in and head to the recovery page to pull anything still locked.
+              Anything you staked or any deal still locked on the previous version stays yours. Open recovery to pull it out before the window closes.
             </p>
           </div>
         </div>

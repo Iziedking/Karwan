@@ -81,7 +81,7 @@ export function ActivityFilters({
           value={jobIdSearch}
           onChange={(e) => onJobIdSearch(e.target.value)}
           placeholder="Filter by job id…"
-          className="activity-search w-full bg-[var(--lp-card)] pl-8 pr-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-muted)] placeholder:normal-case text-[var(--lp-dark)]"
+          className="activity-search w-full bg-[var(--lp-card)] pl-8 pr-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 9,

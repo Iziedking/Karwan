@@ -142,15 +142,16 @@ export async function tenureWeightedStakeUsdc(addressRaw: string): Promise<numbe
     return 0;
   }
 
-  const legacyAddr = (config as unknown as Record<string, string | undefined>)
-    .KARWAN_VAULT_LEGACY_ADDR;
+  const env = config as unknown as Record<string, string | undefined>;
+  const legacyAddrs = [env.KARWAN_VAULT_LEGACY_ADDR, env.KARWAN_VAULT_LEGACY_ADDR_2].filter(
+    (a): a is string => !!a,
+  );
 
-  const [activePositions, legacyPositions] = await Promise.all([
+  const [activePositions, ...legacyPositionsBatches] = await Promise.all([
     readPositionsForOwner(vaultAddr as `0x${string}`, address, false),
-    legacyAddr
-      ? readPositionsForOwner(legacyAddr as `0x${string}`, address, true)
-      : Promise.resolve([] as PositionView[]),
+    ...legacyAddrs.map((addr) => readPositionsForOwner(addr as `0x${string}`, address, true)),
   ]);
+  const legacyPositions = legacyPositionsBatches.flat();
 
   const now = Math.floor(Date.now() / 1000);
   let totalWeighted = 0;
@@ -208,16 +209,17 @@ export async function activeStakeSummary(addressRaw: string): Promise<ActiveStak
     return EMPTY_SUMMARY;
   }
 
-  const legacyAddr = (config as unknown as Record<string, string | undefined>)
-    .KARWAN_VAULT_LEGACY_ADDR;
+  const env = config as unknown as Record<string, string | undefined>;
+  const legacyAddrs = [env.KARWAN_VAULT_LEGACY_ADDR, env.KARWAN_VAULT_LEGACY_ADDR_2].filter(
+    (a): a is string => !!a,
+  );
 
-  const [activePositions, legacyPositions, reservedRaw] = await Promise.all([
+  const [activePositions, reservedRaw, ...legacyPositionsBatches] = await Promise.all([
     readPositionsForOwner(vaultAddr as `0x${string}`, address, false),
-    legacyAddr
-      ? readPositionsForOwner(legacyAddr as `0x${string}`, address, true)
-      : Promise.resolve([] as PositionView[]),
     vault.read.reservedTotal([address as `0x${string}`]).catch(() => 0n),
+    ...legacyAddrs.map((addr) => readPositionsForOwner(addr as `0x${string}`, address, true)),
   ]);
+  const legacyPositions = legacyPositionsBatches.flat();
 
   const now = Math.floor(Date.now() / 1000);
   let stakeUsdc = 0;

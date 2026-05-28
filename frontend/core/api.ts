@@ -866,6 +866,7 @@ export const api = {
   legacyDeals: (address: string) =>
     json<{
       legacyEscrowAddress: string | null;
+      generations: Array<{ index: 1 | 2; legacyEscrowAddress: string }>;
       deals: Array<{
         jobId: string;
         role: 'buyer' | 'seller' | 'both';
@@ -886,6 +887,7 @@ export const api = {
         };
         createdAt: number;
         releasedUsdc: string;
+        generation: 1 | 2;
       }>;
     }>(`/api/legacy/deals?address=${address}`),
   legacyDealRefund: (body: { jobId: string; address: string; role: 'buyer' }) =>
@@ -923,22 +925,29 @@ export const api = {
         cooldownStartedAt: number;
         claimableAt: number;
         state: 'active' | 'cooling' | 'claimed';
+        generation: 1 | 2;
       }>;
       totalActiveUsdc: string;
       totalCoolingUsdc: string;
       cooldownDays: number;
+      generations: Array<{
+        index: 1 | 2;
+        vaultAddress: string;
+        cooldownDays: number;
+        positionCount: number;
+      }>;
     }>(`/api/legacy/vault/positions?address=${address}`),
-  legacyVaultRequestWithdraw: (body: { address: string; positionId: string }) =>
+  legacyVaultRequestWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 }) =>
     json<{ ok: true; txHash: string }>('/api/legacy/vault/request-withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  legacyVaultCancelWithdraw: (body: { address: string; positionId: string }) =>
+  legacyVaultCancelWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 }) =>
     json<{ ok: true; txHash: string }>('/api/legacy/vault/cancel-withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  legacyVaultClaim: (body: { address: string; positionId: string }) =>
+  legacyVaultClaim: (body: { address: string; positionId: string; generation: 1 | 2 }) =>
     json<{ ok: true; txHash: string }>('/api/legacy/vault/claim', {
       method: 'POST',
       body: JSON.stringify(body),

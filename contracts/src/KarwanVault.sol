@@ -117,6 +117,12 @@ contract KarwanVault is ReentrancyGuard {
     address public teller;
     IERC20 public usyc;
 
+    /// Agent → identity wallet binding. Users stake from their identity
+    /// wallet; the seller agent (msg.sender of acceptEscrow) registers its
+    /// owner once via registerOwner so reserve/release/slash resolve to
+    /// the right address. Unmapped addresses pass through unchanged.
+    mapping(address => address) public agentOwner;
+
     /// 3-day cool-down. The reputation engine reads this view dynamically,
     /// so the frontend's copy stays accurate even if a future redeploy
     /// changes it.
@@ -140,6 +146,7 @@ contract KarwanVault is ReentrancyGuard {
     event TellerSet(address indexed teller, address indexed usyc);
     event Wrapped(uint256 usdcAmount, uint256 shares);
     event Unwrapped(uint256 shares, uint256 usdcAmount);
+    event AgentOwnerRegistered(address indexed agent, address indexed owner);
 
     error InvalidPrincipal();
     error NotOwner();
@@ -158,6 +165,7 @@ contract KarwanVault is ReentrancyGuard {
     error InsufficientCoverage();
     error TellerNotSet();
     error TellerStillHoldsUsyc();
+    error AgentOwnerAlreadySet();
 
     constructor(address _usdc) {
         if (_usdc == address(0)) revert ZeroAddress();
@@ -339,18 +347,44 @@ contract KarwanVault is ReentrancyGuard {
     /*                          INSURANCE                               */
     /* =============================================================== */
 
+    /// @notice Agent self-registers its owning identity wallet. Stake lives
+    ///         on the identity wallet (that's where users deposit from), so
+    ///         reserve/release/slash need to resolve agents to their owners.
+    ///         msg.sender is the agent; the agent's signature on this tx
+    ///         attests to the binding. Idempotent on the same owner; reverts
+    ///         on a different owner so an agent can't be re-pointed.
+    function registerOwner(address owner) external {
+        if (owner == address(0)) revert ZeroAddress();
+        address current = agentOwner[msg.sender];
+        if (current != address(0) && current != owner) revert AgentOwnerAlreadySet();
+        agentOwner[msg.sender] = owner;
+        emit AgentOwnerRegistered(msg.sender, owner);
+    }
+
+    /// @notice Resolves an address to its stake-owning identity. Mapped
+    ///         agents return their owner; unmapped addresses pass through.
+    function _resolveOwner(address addr) internal view returns (address) {
+        address mapped = agentOwner[addr];
+        return mapped == address(0) ? addr : mapped;
+    }
+
     /// @notice Reserve `amount` of the seller's stake against a specific
-    ///         deal. Called by KarwanEscrow at acceptEscrow time.
+    ///         deal. Called by KarwanEscrow at acceptEscrow time. The
+    ///         `seller` parameter is the agent address from the escrow
+    ///         record; reservation stores the resolved owner so downstream
+    ///         release/slash work against the identity wallet.
     function reserve(bytes32 jobId, address seller, uint256 amount) external {
         if (msg.sender != escrow) revert NotEscrow();
         if (reservations[jobId].active) revert AlreadyReserved();
         if (seller == address(0)) revert ZeroAddress();
         if (amount == 0) revert InvalidPrincipal();
-        if (freeStakeOf(seller) < amount) revert InsufficientFreeStake();
 
-        reservations[jobId] = Reservation({seller: seller, amount: amount, active: true});
-        reservedTotal[seller] += amount;
-        emit Reserved(jobId, seller, amount);
+        address owner = _resolveOwner(seller);
+        if (freeStakeOf(owner) < amount) revert InsufficientFreeStake();
+
+        reservations[jobId] = Reservation({seller: owner, amount: amount, active: true});
+        reservedTotal[owner] += amount;
+        emit Reserved(jobId, owner, amount);
     }
 
     /// @notice Release a reservation. Idempotent — a second call on the
@@ -453,9 +487,11 @@ contract KarwanVault is ReentrancyGuard {
     }
 
     /// @notice Sum of an owner's Active position principals. O(owner's
-    ///         positions). Used by reserve to check free stake.
+    ///         positions). Used by reserve to check free stake. Resolves
+    ///         agent addresses to their owner so reads work on either.
     function activeStakeOf(address owner) public view returns (uint256 total) {
-        uint256[] storage ids = ownerPositionIds[owner];
+        address resolved = _resolveOwner(owner);
+        uint256[] storage ids = ownerPositionIds[resolved];
         uint256 len = ids.length;
         for (uint256 i = 0; i < len; i++) {
             Position memory p = positions[ids[i]];
@@ -465,12 +501,12 @@ contract KarwanVault is ReentrancyGuard {
         }
     }
 
-    /// @notice Active stake minus current reservations. The portion of an
-    ///         owner's stake that can backstop a new deal. Saturates at
-    ///         zero rather than underflowing.
+    /// @notice Active stake minus current reservations. Resolves agent
+    ///         addresses to their owner so reads work on either.
     function freeStakeOf(address owner) public view returns (uint256) {
-        uint256 active = activeStakeOf(owner);
-        uint256 reserved = reservedTotal[owner];
+        address resolved = _resolveOwner(owner);
+        uint256 active = activeStakeOf(resolved);
+        uint256 reserved = reservedTotal[resolved];
         return active > reserved ? active - reserved : 0;
     }
 

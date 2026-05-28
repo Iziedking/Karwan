@@ -57,6 +57,17 @@ export const legacyVault = legacyVaultAddress
   ? getContract({ address: legacyVaultAddress, abi: vaultAbi, client: publicClient })
   : null;
 
+/// Second-generation legacy KarwanVault. Filled when a redeploy promotes the
+/// previous production vault into a legacy slot. Read alongside Gen 1 so
+/// stakers on either contract surface on the /legacy page.
+export const legacyVault2Address: Address | null = optional(
+  (config as unknown as Record<string, string | undefined>).KARWAN_VAULT_LEGACY_ADDR_2,
+);
+
+export const legacyVault2 = legacyVault2Address
+  ? getContract({ address: legacyVault2Address, abi: vaultAbi, client: publicClient })
+  : null;
+
 /// Pre-v2.D KarwanEscrow. Backs the 30-day recovery surface so buyers can
 /// refund / cancel deals whose USDC is still locked on the legacy contract.
 /// Returns null when KARWAN_ESCROW_LEGACY_ADDR is unset (post-window or
@@ -68,6 +79,44 @@ export const legacyEscrowAddress: Address | null = optional(
 export const legacyEscrow = legacyEscrowAddress
   ? getContract({ address: legacyEscrowAddress, abi: legacyEscrowAbi, client: publicClient })
   : null;
+
+/// Second-generation legacy KarwanEscrow. Same shape as Gen 1.
+export const legacyEscrow2Address: Address | null = optional(
+  (config as unknown as Record<string, string | undefined>).KARWAN_ESCROW_LEGACY_ADDR_2,
+);
+
+export const legacyEscrow2 = legacyEscrow2Address
+  ? getContract({ address: legacyEscrow2Address, abi: legacyEscrowAbi, client: publicClient })
+  : null;
+
+/// Per-generation registry. Each entry binds a generation number to its vault
+/// + escrow addresses. Read this when you need to fan out a read across every
+/// legacy contract (positions, deals, stake sum) or route a write to the right
+/// contract by generation index. Order is Gen 1 first.
+export interface LegacyGeneration {
+  index: 1 | 2;
+  vaultAddress: Address | null;
+  vault: typeof legacyVault;
+  escrowAddress: Address | null;
+  escrow: typeof legacyEscrow;
+}
+
+export const legacyGenerations: LegacyGeneration[] = [
+  {
+    index: 1,
+    vaultAddress: legacyVaultAddress,
+    vault: legacyVault,
+    escrowAddress: legacyEscrowAddress,
+    escrow: legacyEscrow,
+  },
+  {
+    index: 2,
+    vaultAddress: legacyVault2Address,
+    vault: legacyVault2,
+    escrowAddress: legacyEscrow2Address,
+    escrow: legacyEscrow2,
+  },
+];
 
 export { LEGACY_ESCROW_STATE };
 
@@ -85,10 +134,12 @@ export interface LegacyEscrowAccount {
   state: number;
 }
 
-export async function readLegacyEscrow(jobId: string): Promise<LegacyEscrowAccount | null> {
-  if (!legacyEscrow) return null;
+async function readEscrowFrom(
+  contract: NonNullable<typeof legacyEscrow>,
+  jobId: string,
+): Promise<LegacyEscrowAccount | null> {
   try {
-    const raw = (await legacyEscrow.read.escrows([jobId as `0x${string}`])) as readonly [
+    const raw = (await contract.read.escrows([jobId as `0x${string}`])) as readonly [
       `0x${string}`,
       `0x${string}`,
       bigint,
@@ -113,6 +164,35 @@ export async function readLegacyEscrow(jobId: string): Promise<LegacyEscrowAccou
   } catch {
     return null;
   }
+}
+
+/// Read the escrow account for jobId across every configured legacy generation.
+/// Returns the first generation that recognises the jobId (state != None). A
+/// jobId only ever lives on one legacy escrow, so the first hit wins.
+export async function readLegacyEscrow(jobId: string): Promise<LegacyEscrowAccount | null> {
+  for (const gen of legacyGenerations) {
+    if (!gen.escrow) continue;
+    const result = await readEscrowFrom(gen.escrow, jobId);
+    if (result && result.state !== LEGACY_ESCROW_STATE.None) {
+      return result;
+    }
+  }
+  return null;
+}
+
+/// Variant that also tells the caller which generation matched. Used by the
+/// legacy routes when they need to route a write call to the right escrow.
+export async function readLegacyEscrowWithGen(
+  jobId: string,
+): Promise<{ account: LegacyEscrowAccount; generation: 1 | 2 } | null> {
+  for (const gen of legacyGenerations) {
+    if (!gen.escrow) continue;
+    const result = await readEscrowFrom(gen.escrow, jobId);
+    if (result && result.state !== LEGACY_ESCROW_STATE.None) {
+      return { account: result, generation: gen.index };
+    }
+  }
+  return null;
 }
 
 export const usdc = required('USDC_ADDR', config.USDC_ADDR);

@@ -42,12 +42,23 @@ const envSchema = z.object({
   /// pre-v2.D "accepted" but never delivered) can refund / cancel from
   /// the dedicated /legacy page. Unset = recovery surface disabled.
   KARWAN_ESCROW_LEGACY_ADDR: optionalAddr,
+  /// Second-generation legacy escrow. Set during a redeploy that promotes the
+  /// previous production escrow into a legacy slot. Each generation runs its
+  /// own 30-day recovery window via LEGACY_WINDOW_CLOSES_AT_2.
+  KARWAN_ESCROW_LEGACY_ADDR_2: optionalAddr,
   /// Hard cutoff for the legacy recovery surface. Any time after this
   /// instant: home banner hides, /legacy returns 410, /api/legacy/* routes
   /// return 410. Reads still answer for transparency but writes refuse.
   /// ISO 8601 UTC timestamp. Unset = legacy surface disabled entirely
   /// (post-window state).
   LEGACY_WINDOW_CLOSES_AT: z.preprocess(
+    blankToUndefined,
+    z.string().datetime({ offset: true }).optional(),
+  ),
+  /// Hard cutoff for the second-generation legacy recovery (Gen 2). Independent
+  /// from the Gen 1 cutoff so each retired contract gets a fresh 30-day claim
+  /// window from the day it was retired. Unset = Gen 2 surface disabled.
+  LEGACY_WINDOW_CLOSES_AT_2: z.preprocess(
     blankToUndefined,
     z.string().datetime({ offset: true }).optional(),
   ),
@@ -61,10 +72,18 @@ const envSchema = z.object({
   /// staked before the redeploy. Optional — leave blank in fresh
   /// environments or after the legacy vault drains.
   KARWAN_VAULT_LEGACY_ADDR: optionalAddr,
+  /// Second-generation legacy vault. Holds stake from the previous production
+  /// vault that just got retired. Read in addition to (not instead of) the
+  /// original legacy slot so users with positions on either contract can claim.
+  KARWAN_VAULT_LEGACY_ADDR_2: optionalAddr,
   /// Deploy block for the legacy vault. Only consulted when reading from
   /// the legacy vault; otherwise ignored. Same shape as the active
   /// KARWAN_VAULT_DEPLOY_BLOCK.
   KARWAN_VAULT_LEGACY_DEPLOY_BLOCK: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^\d+$/).transform(BigInt).optional(),
+  ),
+  KARWAN_VAULT_LEGACY_DEPLOY_BLOCK_2: z.preprocess(
     blankToUndefined,
     z.string().regex(/^\d+$/).transform(BigInt).optional(),
   ),

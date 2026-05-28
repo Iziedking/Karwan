@@ -16,7 +16,7 @@ import {
 } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { sessionMismatchesClaim } from '../auth/session.js';
-import { usdc as usdcAddress, readUsdcBalance } from '../chain/contracts.js';
+import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -367,6 +367,11 @@ activationRoutes.post('/activate', async (c) => {
       sellerName: cleanName(body.sellerName),
     });
 
+    // Bind each agent → identity on the vault so stake-backed reservations
+    // (acceptEscrow) resolve to the right owner. Fire-and-forget.
+    void registerAgentOwnerOnVault(record.sellerWalletId, record.sellerAddress, userAddress, 'seller');
+    void registerAgentOwnerOnVault(record.buyerWalletId, record.buyerAddress, userAddress, 'buyer');
+
     // Seed both agents from the identity wallet (the one funded at signup), not
     // the faucet: a user may be buyer-only or seller-only, and the identity
     // wallet is the single funding hub. Seller gets a small Arc gas float, buyer
@@ -612,6 +617,40 @@ activationRoutes.post('/fund-agent', async (c) => {
 });
 
 /// Move a starter USDC seed from the user's identity wallet to each freshly
+/// Registers the agent → identity binding on KarwanVault. Lets the seller's
+/// acceptEscrow resolve the agent (msg.sender) to its identity wallet, where
+/// stake actually lives. Fire-and-forget; never blocks activation.
+async function registerAgentOwnerOnVault(
+  walletId: string | undefined,
+  agentAddress: string,
+  userAddress: string,
+  role: 'buyer' | 'seller',
+): Promise<void> {
+  if (!walletId) return;
+  try {
+    await executeContractCall(
+      {
+        walletId,
+        contractAddress: vault.address,
+        abiFunctionSignature: 'registerOwner(address)',
+        abiParameters: [userAddress],
+      },
+      `vault.registerOwner(${role} ${agentAddress})`,
+    );
+    logger.info({ role, agent: agentAddress, owner: userAddress }, 'agent owner registered on vault');
+  } catch (err) {
+    const msg = (err as Error).message;
+    if (msg.toLowerCase().includes('agentowneralreadyset')) {
+      logger.info({ role, agent: agentAddress }, 'agent owner already registered (idempotent)');
+      return;
+    }
+    logger.warn(
+      { role, agent: agentAddress, err: msg },
+      'agent owner registration failed; stake-backed deals may revert until resolved',
+    );
+  }
+}
+
 /// provisioned agent so both can act immediately: the seller agent needs a small
 /// Arc gas float, the buyer agent needs working USDC. Identity stays the funding
 /// hub; bigger top-ups still flow through fund-agent. Circle users only (web3
