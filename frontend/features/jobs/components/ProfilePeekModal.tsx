@@ -120,12 +120,25 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
             <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               [:{role.toUpperCase()}:]
             </span>
-            <p className="mt-1.5 font-sans text-[16px] font-bold tracking-[-0.01em] text-[var(--lp-dark)] truncate">
-              {displayName || shortAddress(address)}
-            </p>
-            <p className="mt-0.5 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
-              {shortAddress(address)}
-            </p>
+            {displayName ? (
+              <>
+                <p className="mt-1.5 font-sans text-[16px] font-bold tracking-[-0.01em] text-[var(--lp-dark)] truncate">
+                  {displayName}
+                </p>
+                <p className="mt-0.5 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
+                  {shortAddress(address)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1.5 font-sans text-[16px] font-bold tracking-[-0.01em] text-[var(--lp-dark)] truncate">
+                  {shortAddress(address)}
+                </p>
+                <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  no display name set
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>,

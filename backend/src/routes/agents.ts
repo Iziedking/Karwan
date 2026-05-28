@@ -35,9 +35,22 @@ agentsRoutes.get('/status', (c) =>
       usdc: config.USDC_ADDR,
       identityRegistry: config.IDENTITY_REGISTRY_ADDR,
     },
+    cctpRelay: {
+      configured: !!config.cctpRelayWalletId,
+      address: config.cctpRelayAddress,
+    },
+    /// Deprecated: present for backward-compat with frontends pre-rename.
+    /// Reads the same resolved value as cctpRelay above. Drop after the
+    /// frontend stops reading this field.
     agents: {
-      buyer: { configured: !!config.BUYER_AGENT_WALLET_ID, address: config.BUYER_AGENT_ADDRESS },
-      seller: { configured: !!config.SELLER_AGENT_WALLET_ID, address: config.SELLER_AGENT_ADDRESS },
+      buyer: {
+        configured: !!config.cctpRelayWalletId,
+        address: config.cctpRelayAddress,
+      },
+      seller: {
+        configured: !!config.SELLER_AGENT_WALLET_ID,
+        address: config.SELLER_AGENT_ADDRESS,
+      },
     },
   }),
 );

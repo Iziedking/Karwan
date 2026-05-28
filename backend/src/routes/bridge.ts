@@ -188,8 +188,11 @@ bridgeRoutes.get('/list', async (c) => {
 });
 
 bridgeRoutes.post('/relay', async (c) => {
-  if (!config.BUYER_AGENT_WALLET_ID) {
-    return c.json({ error: 'BUYER_AGENT_WALLET_ID not configured' }, 500);
+  if (!config.cctpRelayWalletId) {
+    return c.json(
+      { error: 'CCTP_RELAY_WALLET_ID not configured (legacy alias: BUYER_AGENT_WALLET_ID)' },
+      500,
+    );
   }
 
   let body;
@@ -446,7 +449,7 @@ async function relayLoop(input: RelayInput) {
   try {
     const result = await executeContractCall(
       {
-        walletId: config.BUYER_AGENT_WALLET_ID!,
+        walletId: config.cctpRelayWalletId!,
         contractAddress: config.CCTP_MESSAGE_TRANSMITTER_ADDR,
         abiFunctionSignature: 'receiveMessage(bytes,bytes)',
         abiParameters: [attestation.message, attestation.attestation],
@@ -726,8 +729,11 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
 /// event was missed by a closed tab, or where the relay loop ended before
 /// Circle finally posted the attestation.
 bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
-  if (!config.BUYER_AGENT_WALLET_ID) {
-    return c.json({ error: 'BUYER_AGENT_WALLET_ID not configured' }, 500);
+  if (!config.cctpRelayWalletId) {
+    return c.json(
+      { error: 'CCTP_RELAY_WALLET_ID not configured (legacy alias: BUYER_AGENT_WALLET_ID)' },
+      500,
+    );
   }
   const bridgeId = c.req.param('bridgeId');
   const record = await getBridge(bridgeId);
@@ -793,7 +799,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   try {
     const result = await executeContractCall(
       {
-        walletId: config.BUYER_AGENT_WALLET_ID!,
+        walletId: config.cctpRelayWalletId!,
         contractAddress: config.CCTP_MESSAGE_TRANSMITTER_ADDR,
         abiFunctionSignature: 'receiveMessage(bytes,bytes)',
         abiParameters: [attestation.message, attestation.attestation],

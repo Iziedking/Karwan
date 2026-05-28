@@ -424,8 +424,9 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       const reservationBps = await getReservationBps();
       const reservationWei =
         (dealAmountWei * BigInt(reservationBps)) / 10000n;
+      // deal.seller is the identity wallet; stake lives there, not on the agent.
       const sellerFreeWei = (await vault.read.freeStakeOf([
-        sellerAgents.sellerAddress as `0x${string}`,
+        deal.seller as `0x${string}`,
       ])) as bigint;
       if (sellerFreeWei < reservationWei) {
         const reservationUsdc = formatUnits(reservationWei, USDC_DECIMALS);
@@ -672,8 +673,9 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
         const reservationBps = await getReservationBps();
         const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
         const requiredWei = (dealAmountWei * BigInt(reservationBps)) / 10000n;
+        // Stake lives on the identity wallet (deal.seller), not the agent.
         const sellerFreeWei = (await vault.read.freeStakeOf([
-          deal.sellerAgentAddress as `0x${string}`,
+          deal.seller as `0x${string}`,
         ])) as bigint;
         if (sellerFreeWei < requiredWei) {
           const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);

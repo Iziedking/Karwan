@@ -36,6 +36,7 @@ import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { marketHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
+import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -396,11 +397,9 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     });
   }
 
-  // Trusted Match min-stake gate. The buyer asked for a counterparty whose
-  // stake actually backstops the deal. A seller who can't cover the worst-case
-  // insurance reservation has no skin in the game, so we filter them out at
-  // bid time rather than failing later at acceptEscrow. Use the buyer's tolerance
-  // ceiling because the final dealAmount can land anywhere in [budget, ceiling].
+  // Trusted Match: filter sellers whose stake can't cover the worst-case
+  // reservation. freeStakeOf reads against the identity wallet (where stake
+  // lives), not the seller agent.
   if (job.trustedMatch) {
     try {
       const reservationBps = await getReservationBps();
@@ -408,14 +407,14 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       const maxDealUsdc = Number(job.budgetUsdc) * (1 + tolerance / 100);
       const maxDealWei = parseUnits(maxDealUsdc.toFixed(2), USDC_DECIMALS);
       const requiredWei = (maxDealWei * BigInt(reservationBps)) / 10000n;
-      const sellerFreeWei = (await vault.read.freeStakeOf([
-        seller.address as `0x${string}`,
-      ])) as bigint;
+      const sellerWallet = await findAgentWalletByAgentAddress(seller.address);
+      const stakeOwner = (sellerWallet?.userAddress ?? seller.address) as `0x${string}`;
+      const sellerFreeWei = (await vault.read.freeStakeOf([stakeOwner])) as bigint;
       if (sellerFreeWei < requiredWei) {
         const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
         const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
         logger.info(
-          { jobId: job.jobId, seller: seller.address, requiredUsdc, freeUsdc },
+          { jobId: job.jobId, seller: seller.address, stakeOwner, requiredUsdc, freeUsdc },
           'skipping: insufficient free stake for trusted match',
         );
         bus.emitEvent({
@@ -425,7 +424,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
           payload: {
             seller: seller.address,
             reason: 'insufficient-stake-trusted-match',
-            detail: `Trusted Match needs at least ${requiredUsdc} USDC free stake to backstop this deal. Your seller agent has ${freeUsdc} USDC. Top up at /stake to bid on requests like this.`,
+            detail: `Trusted Match needs at least ${requiredUsdc} USDC free stake. You have ${freeUsdc} USDC staked. Top up at /stake to bid on requests like this.`,
             requiredReservationUsdc: requiredUsdc,
             freeStakeUsdc: freeUsdc,
             reservationBps,

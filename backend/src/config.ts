@@ -142,8 +142,22 @@ const envSchema = z.object({
   // pipeline at any time. Default: false (no behavior change until opt-in).
   BRIDGE_USE_APP_KIT: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
 
+  /// CCTP relay wallet. The backend signs `receiveMessage(message, attestation)`
+  /// on Arc with this Circle DCW to land the mint step of every cross-chain
+  /// bridge. Needs Arc USDC for gas (Arc uses USDC as native gas, ~0.005 USDC
+  /// per mint). Unset = bridge mints fail; set the matching ADDRESS too.
+  CCTP_RELAY_WALLET_ID: optionalString,
+  CCTP_RELAY_ADDRESS: optionalAddr,
+
+  /// DEPRECATED aliases for the CCTP relay wallet. Pre-v2.D Karwan ran a
+  /// single buyer agent that doubled as the CCTP relay, so the env keys were
+  /// named after that role. Per-user buyer agents now live in the DB; the
+  /// only remaining job for these vars is the CCTP relay. New deploys should
+  /// use CCTP_RELAY_WALLET_ID / CCTP_RELAY_ADDRESS instead. Kept for one
+  /// release window so existing production deploys don't break mid-flight.
   BUYER_AGENT_WALLET_ID: optionalString,
   BUYER_AGENT_ADDRESS: optionalAddr,
+  /// Genuinely legacy. Nothing in production code reads these. Safe to drop.
   SELLER_AGENT_WALLET_ID: optionalString,
   SELLER_AGENT_ADDRESS: optionalAddr,
 
@@ -220,5 +234,32 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const config = parsed.data;
+// Resolve the CCTP relay wallet identity. New names win; fall back to the
+// deprecated BUYER_AGENT_* aliases for one release window so existing prod
+// deploys don't break the moment this lands. After a release cycle, drop
+// the BUYER_AGENT_* keys from the schema and from .env.
+const cctpRelayWalletId =
+  parsed.data.CCTP_RELAY_WALLET_ID || parsed.data.BUYER_AGENT_WALLET_ID || undefined;
+const cctpRelayAddress =
+  parsed.data.CCTP_RELAY_ADDRESS || parsed.data.BUYER_AGENT_ADDRESS || undefined;
+
+if (
+  !parsed.data.CCTP_RELAY_WALLET_ID &&
+  parsed.data.BUYER_AGENT_WALLET_ID
+) {
+  // Deprecation notice once at boot. Operator-visible in container logs.
+  console.warn(
+    '[config] BUYER_AGENT_WALLET_ID is deprecated. Rename to CCTP_RELAY_WALLET_ID (and BUYER_AGENT_ADDRESS to CCTP_RELAY_ADDRESS). The old keys will keep working for one release.',
+  );
+}
+
+export const config = {
+  ...parsed.data,
+  /// Resolved CCTP relay wallet — read this everywhere bridge mints fire.
+  /// Equivalent to `CCTP_RELAY_WALLET_ID ?? BUYER_AGENT_WALLET_ID` after the
+  /// transitional alias is removed.
+  cctpRelayWalletId,
+  /// Resolved CCTP relay address — used for status surfaces and balance reads.
+  cctpRelayAddress,
+};
 export type Config = typeof config;

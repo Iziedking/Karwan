@@ -485,12 +485,13 @@ async function handleBidSubmitted(log: Log) {
     }
   }
 
-  // Seller free stake at bid time, used as a secondary ranking key in Trusted
-  // Match mode. Best-effort: a failed read leaves stake at 0 (still rankable
-  // by reputation+price, just without the stake tiebreak).
+  // Seller free stake, used as the secondary ranking key in Trusted Match.
+  // freeStakeOf reads against the identity wallet, not the agent.
   let sellerFreeStakeUsdc = 0;
   try {
-    const freeWei = (await vault.read.freeStakeOf([args.seller])) as bigint;
+    const sellerWallet = await findAgentWalletByAgentAddress(args.seller);
+    const stakeOwner = (sellerWallet?.userAddress ?? args.seller) as `0x${string}`;
+    const freeWei = (await vault.read.freeStakeOf([stakeOwner])) as bigint;
     sellerFreeStakeUsdc = Number(formatUnits(freeWei, USDC_DECIMALS));
   } catch {
     /* leave at 0 */
