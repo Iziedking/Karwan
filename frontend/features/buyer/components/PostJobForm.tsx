@@ -29,6 +29,10 @@ export function PostJobForm() {
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
   const [tolerance, setTolerance] = useState<number | ''>('');
+  // Trusted Match: when on, the agent loop weights seller reputation + stake
+  // above price and gates bids on the seller's free stake covering the deal's
+  // insurance reservation. For higher-value or one-shot deals.
+  const [trustedMatch, setTrustedMatch] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +80,7 @@ export function PostJobForm() {
         budgetUsdc: budget,
         deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
+        trustedMatch,
       });
       sfx.send();
       recordAction('post-job');
@@ -325,6 +330,51 @@ export function PostJobForm() {
           </FormLabel>
         </div>
       </FieldSection>
+
+      {/* TRUSTED MATCH toggle. The agent loop flips ranking to reputation +
+          stake first, price second, and gates bids on the seller's free
+          stake covering this deal's insurance reservation. Off by default
+          (Normal mode is fine for sub-$50 day-to-day deals). */}
+      <label
+        className={cn(
+          'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
+          trustedMatch
+            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
+            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+        )}
+        style={{
+          border: '1px solid',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={trustedMatch}
+          onChange={(e) => setTrustedMatch(e.target.checked)}
+          disabled={submitting}
+          className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+          aria-describedby="trusted-match-help"
+        />
+        <div className="min-w-0">
+          <span
+            className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+            style={{ color: trustedMatch ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+          >
+            [:TRUSTED MATCH:]
+          </span>
+          <p
+            id="trusted-match-help"
+            className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
+          >
+            Agent prioritizes seller reputation and stake over price. Sellers
+            with no stake cannot bid. Best for higher-value or one-shot deals
+            you can't redo.
+          </p>
+        </div>
+      </label>
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
           ("I sell..."). User can click submit again to post anyway. */}

@@ -1,8 +1,9 @@
 ﻿'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, ApiError, type MatchProposal } from '@/core/api';
+import { api, ApiError, type MatchProposal, type UserProfile, type Reputation } from '@/core/api';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -11,9 +12,13 @@ import { ProfilePeekModal } from './ProfilePeekModal';
 interface Props {
   proposal: MatchProposal;
   onChange: () => void;
+  /// True when the brief was posted with the Trusted Match flag on. Drives a
+  /// richer counterparty profile card so the human gate has reputation, stake
+  /// proxy (deal count), and identity (X handle + passport) up front.
+  trustedMatch?: boolean;
 }
 
-export function MatchBanner({ proposal, onChange }: Props) {
+export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props) {
   const router = useRouter();
   const { address } = useAuth();
   const [busy, setBusy] = useState<'approve' | 'decline' | null>(null);
@@ -154,35 +159,16 @@ export function MatchBanner({ proposal, onChange }: Props) {
           const counterpartyLabel = viewerIsSeller ? 'Buyer' : 'Seller';
           const canPeek = viewerIsSeller || viewerIsBuyer;
           return (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-                {counterpartyLabel}
-              </span>
-              <span className="mono text-[12px] text-[var(--color-ink-dim)]">
-                {shortAddress(counterpartyAddress)}
-              </span>
-              <ReputationBadge address={counterpartyAddress} size="sm" />
-              {canPeek && (
-                <button
-                  type="button"
-                  onClick={() => setPeekOpen(true)}
-                  className="mono text-[10px] uppercase tracking-[0.14em] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
-                  style={{
-                    color: 'var(--color-ink-dim)',
-                    borderColor: 'var(--color-line-strong)',
-                    borderRadius: 2,
-                  }}
-                >
-                  View profile
-                </button>
-              )}
-              <ProfilePeekModal
-                open={peekOpen}
-                onClose={() => setPeekOpen(false)}
-                address={counterpartyAddress}
-                role={counterpartyRole}
-              />
-            </div>
+            <CounterpartySignal
+              address={counterpartyAddress}
+              role={counterpartyRole}
+              label={counterpartyLabel}
+              canPeek={canPeek}
+              trusted={trustedMatch}
+              onOpenPeek={() => setPeekOpen(true)}
+              peekOpen={peekOpen}
+              onClosePeek={() => setPeekOpen(false)}
+            />
           );
         })()}
       </div>
@@ -331,6 +317,246 @@ export function MatchBanner({ proposal, onChange }: Props) {
       )}
     </BannerFrame>
   );
+}
+
+/// Counterparty profile signal block. Renders inline next to the agreed price
+/// on a match. Fetches the user's profile to surface X avatar + handle + the
+/// Credit Passport link. The reputation hook supplies tier and deal counts.
+/// In Trusted Match mode the block expands into a dedicated card with all the
+/// signals up front so the human gate has the full picture before approving.
+function CounterpartySignal({
+  address,
+  role,
+  label,
+  canPeek,
+  trusted,
+  peekOpen,
+  onOpenPeek,
+  onClosePeek,
+}: {
+  address: string;
+  role: 'buyer' | 'seller';
+  label: string;
+  canPeek: boolean;
+  trusted: boolean;
+  peekOpen: boolean;
+  onOpenPeek: () => void;
+  onClosePeek: () => void;
+}) {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { data: rep } = useReputation(address);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getProfile(address)
+      .then((r) => {
+        if (!cancelled) setProfile(r.profile);
+      })
+      .catch(() => {
+        if (!cancelled) setProfile(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  const avatarUrl = profile?.xProfileImageUrl?.trim() || null;
+  const xHandle = profile?.xHandle?.replace(/^@/, '') || null;
+  const passportHref = `/credit-passport/${address}`;
+  const xHref = xHandle ? `https://x.com/${xHandle}` : null;
+  const recordLine = rep ? formatRecord(rep) : null;
+
+  // Compact row for Normal mode — preserves the existing footprint. Address
+  // always renders as a masked line directly under the avatar so the viewer
+  // can verify the wallet at a glance even when the X handle is bound.
+  if (!trusted) {
+    return (
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+          {label}
+        </span>
+        <div className="flex flex-col items-center gap-0.5 shrink-0">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              width={28}
+              height={28}
+              className="w-7 h-7 rounded-full object-cover"
+              style={{ border: '1px solid var(--color-line)' }}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div
+              className="w-7 h-7 flex items-center justify-center mono text-[9px] font-bold uppercase"
+              style={{
+                background: 'var(--lp-light)',
+                border: '1px solid var(--color-line)',
+                color: 'var(--color-ink-dim)',
+                borderRadius: 999,
+              }}
+              aria-hidden
+            >
+              {address.slice(2, 4).toUpperCase()}
+            </div>
+          )}
+          <span className="mono text-[9px] tabular-nums text-[var(--color-ink-faint)] tracking-tight">
+            {shortAddress(address)}
+          </span>
+        </div>
+        {xHandle && (
+          <span className="mono text-[12px] text-[var(--color-ink-dim)]">@{xHandle}</span>
+        )}
+        <ReputationBadge address={address} size="sm" />
+        {canPeek && (
+          <button
+            type="button"
+            onClick={onOpenPeek}
+            className="mono text-[10px] uppercase tracking-[0.14em] px-2 py-1 border transition-colors hover:bg-[var(--color-surface-2)]"
+            style={{
+              color: 'var(--color-ink-dim)',
+              borderColor: 'var(--color-line-strong)',
+              borderRadius: 2,
+            }}
+          >
+            View profile
+          </button>
+        )}
+        <ProfilePeekModal open={peekOpen} onClose={onClosePeek} address={address} role={role} />
+      </div>
+    );
+  }
+
+  // Trusted Match: a dedicated card with avatar, identity, record, and direct
+  // links. The block runs full-width below the price so the human gate has
+  // all the trust signals up front rather than buried in a modal.
+  return (
+    <div
+      className="basis-full flex items-stretch gap-4 mt-3 px-4 py-3"
+      style={{
+        background: 'color-mix(in oklab, var(--lp-accent) 8%, transparent)',
+        border: '1px solid color-mix(in oklab, var(--lp-accent) 32%, var(--color-line))',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <div className="shrink-0 flex flex-col items-center gap-1">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-full object-cover"
+            style={{ border: '1px solid var(--color-line)' }}
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div
+            className="w-12 h-12 flex items-center justify-center mono text-[14px] font-extrabold uppercase"
+            style={{
+              background: 'var(--lp-light)',
+              border: '1px solid var(--color-line)',
+              color: 'var(--color-ink-dim)',
+              borderRadius: 999,
+            }}
+            aria-hidden
+          >
+            {address.slice(2, 4).toUpperCase()}
+          </div>
+        )}
+        <span
+          className="mono text-[9px] tabular-nums text-[var(--color-ink-faint)] tracking-tight"
+          title={address}
+        >
+          {shortAddress(address)}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            {label}
+          </span>
+          <span className="font-sans text-[15px] font-bold text-[var(--color-ink)]">
+            {profile?.displayName?.trim() || (xHandle ? `@${xHandle}` : shortAddress(address))}
+          </span>
+          {xHandle && profile?.displayName && (
+            <span className="mono text-[11px] text-[var(--color-ink-faint)]">@{xHandle}</span>
+          )}
+          <ReputationBadge address={address} size="sm" />
+        </div>
+        {recordLine && (
+          <div className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)]">
+            {recordLine}
+          </div>
+        )}
+        <div className="flex items-center gap-2 flex-wrap pt-1">
+          <Link
+            href={passportHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 mono text-[10px] uppercase tracking-[0.12em] font-semibold transition-colors"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'var(--lp-band-dark)',
+              borderRadius: 3,
+            }}
+          >
+            Credit passport
+            <span aria-hidden>↗</span>
+          </Link>
+          {xHref && (
+            <a
+              href={xHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 mono text-[10px] uppercase tracking-[0.12em] font-semibold transition-colors"
+              style={{
+                background: 'var(--lp-dark)',
+                color: 'var(--lp-card)',
+                borderRadius: 3,
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                <path d="M12.5 1.5h2L9.8 6.9 15 14.5h-4.3l-3.4-4.9-3.8 4.9H1.4l5-6.4L1.5 1.5h4.4l3.1 4.5 3.5-4.5z" />
+              </svg>
+              On X
+            </a>
+          )}
+          {canPeek && (
+            <button
+              type="button"
+              onClick={onOpenPeek}
+              className="inline-flex items-center gap-1 px-2.5 py-1 mono text-[10px] uppercase tracking-[0.12em] font-semibold border transition-colors hover:bg-[var(--color-surface-2)]"
+              style={{
+                color: 'var(--color-ink-dim)',
+                borderColor: 'var(--color-line-strong)',
+                borderRadius: 3,
+              }}
+            >
+              More
+            </button>
+          )}
+        </div>
+      </div>
+      <ProfilePeekModal open={peekOpen} onClose={onClosePeek} address={address} role={role} />
+    </div>
+  );
+}
+
+function formatRecord(rep: Reputation): string {
+  const total = rep.totalDeals ?? 0;
+  const success = rep.successCount ?? 0;
+  const disputed = rep.disputedCount ?? 0;
+  if (total === 0) return 'no deals yet';
+  const parts = [`${total} deal${total === 1 ? '' : 's'}`, `${success} settled`];
+  if (disputed > 0) parts.push(`${disputed} disputed`);
+  return parts.join(' · ');
 }
 
 function BannerFrame({

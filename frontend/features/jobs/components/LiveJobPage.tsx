@@ -170,9 +170,24 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             >
               <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-accent)' }} />
               <div className="flex-1 px-5 py-4">
-                <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
-                  [:REQUEST:]
-                </p>
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                  <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)]">
+                    [:REQUEST:]
+                  </p>
+                  {job.trustedMatch && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 mono text-[9px] font-bold uppercase tracking-[0.16em]"
+                      style={{
+                        background: 'var(--lp-accent)',
+                        color: 'var(--lp-band-dark)',
+                        borderRadius: 3,
+                      }}
+                      title="Buyer opted into Trusted Match. The agent loop weights seller reputation and stake above price; sellers must hold free stake to bid."
+                    >
+                      ★ TRUSTED MATCH
+                    </span>
+                  )}
+                </div>
                 <p className="text-[14.5px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap break-words">
                   {job.briefText}
                 </p>
@@ -229,7 +244,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         {/* MATCH BANNER */}
         {proposal && !expired && (
           <div className="mt-8 fade-up fade-up-1">
-            <MatchBanner proposal={proposal} onChange={refreshProposal} />
+            <MatchBanner proposal={proposal} onChange={refreshProposal} trustedMatch={job.trustedMatch === true} />
           </div>
         )}
 

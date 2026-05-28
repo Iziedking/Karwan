@@ -4,6 +4,7 @@ import { publicClient, wsClient } from '../chain/client.js';
 import {
   jobBoard,
   escrow,
+  vault,
   usdc as usdcAddress,
   getEscrowFeeBps,
   computeFunding,
@@ -108,6 +109,11 @@ interface Bid {
   /// deterministic price+reputation score alone. This is the dominant ranking
   /// key: a clearly better skill fit beats a higher-reputation weaker fit.
   topicalMatch?: number;
+  /// Free stake (USDC) on the seller agent at bid time. Used as the secondary
+  /// ranking key in Trusted Match mode after reputation tier: skin in the game
+  /// breaks ties between sellers of the same tier. 0 when the vault read failed
+  /// or the seller has no stake.
+  sellerFreeStakeUsdc?: number;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -372,6 +378,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       buyerReputationBps: 5000,
       negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
       keywords: brief?.keywords,
+      trustedMatch: brief?.trustedMatch === true,
     },
     bids: new Map(),
     collectionTimer: null,
@@ -457,6 +464,17 @@ async function handleBidSubmitted(log: Log) {
     }
   }
 
+  // Seller free stake at bid time, used as a secondary ranking key in Trusted
+  // Match mode. Best-effort: a failed read leaves stake at 0 (still rankable
+  // by reputation+price, just without the stake tiebreak).
+  let sellerFreeStakeUsdc = 0;
+  try {
+    const freeWei = (await vault.read.freeStakeOf([args.seller])) as bigint;
+    sellerFreeStakeUsdc = Number(formatUnits(freeWei, USDC_DECIMALS));
+  } catch {
+    /* leave at 0 */
+  }
+
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
@@ -471,6 +489,7 @@ async function handleBidSubmitted(log: Log) {
     completionRate: sellerCompletionRate,
     velocity24h: sellerVelocity24h,
     topicalMatch,
+    sellerFreeStakeUsdc,
   };
 
   const bidContext: BidContext = {
@@ -601,9 +620,33 @@ async function finalizeBidCollection(state: JobState) {
       });
       return { bid: b, deterministicScore: det.score, breakdown: det.breakdown };
     });
+  // Trusted Match flips the ranker: reputation tier first, stake second, price
+  // third. This is the "is reputation good? is price fair?" order the buyer
+  // asked for explicitly when they opted in. Normal mode keeps the existing
+  // band → deterministic-score → reputation-tiebreak path (price-aware match).
+  const TIER_RANK: Record<Tier, number> = {
+    elite: 4,
+    strong: 3,
+    established: 2,
+    cold: 1,
+    new: 0,
+  };
+  const trusted = state.context.trustedMatch === true;
   const rankedEntries = scoredBids.sort((a, b) => {
     const bandDelta = matchBand(b.bid) - matchBand(a.bid);
     if (bandDelta !== 0) return bandDelta;
+
+    if (trusted) {
+      const tierA = TIER_RANK[(a.bid.sellerTier ?? 'established') as Tier];
+      const tierB = TIER_RANK[(b.bid.sellerTier ?? 'established') as Tier];
+      if (tierA !== tierB) return tierB - tierA;
+      const stakeA = a.bid.sellerFreeStakeUsdc ?? 0;
+      const stakeB = b.bid.sellerFreeStakeUsdc ?? 0;
+      if (stakeA !== stakeB) return stakeB - stakeA;
+      // Within the same tier and stake, cheaper wins.
+      return Number(a.bid.priceUsdc) - Number(b.bid.priceUsdc);
+    }
+
     const scoreDelta = b.deterministicScore - a.deterministicScore;
     if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
       const repA = a.bid.sellerReputationBps ?? 5000;
@@ -1110,6 +1153,7 @@ async function handleCounterResponse(log: Log) {
             suggestedCounterPrice: suggestedCounter,
             marketMedianPrice: priceHistorySnapshot()?.median,
             marketSampleCount: priceHistorySnapshot()?.sampleCount,
+            trustedMatch: state.context.trustedMatch === true,
           },
         ),
       }),

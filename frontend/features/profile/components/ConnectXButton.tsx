@@ -25,16 +25,17 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
 
-  // Theme-aware chip colors. `dark` keeps white-on-dark; `light` flips to
-  // black-on-white so the chip is readable on a light Band.
+  // Theme-aware chip colors. `dark` keeps white-on-dark. `light` uses --lp-dark
+  // and --lp-text-sub which both flip under html[data-theme="dark"], so the
+  // chip stays readable in dark mode instead of dark-on-dark.
   const onLight = tone === 'light';
   const chipBase = onLight
-    ? 'border-black/15 text-[var(--lp-band-dark)] hover:bg-black/[0.04] hover:border-black/30'
+    ? 'border-[var(--lp-border)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)]'
     : 'border-white/20 text-white hover:bg-white/[0.06] hover:border-white/35';
   const chipMuted = onLight
-    ? 'border-black/12 text-black/45'
+    ? 'border-[var(--lp-border)] text-[var(--lp-text-sub)]'
     : 'border-white/20 text-white/45';
-  const sublabel = onLight ? 'text-black/55' : 'text-white/55';
+  const sublabel = onLight ? 'text-[var(--lp-text-sub)]' : 'text-white/55';
   const errClass = onLight ? 'text-[#a73a37]' : 'text-[#e8806b]';
   const search = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);

@@ -26,6 +26,10 @@ export interface JobContext {
   buyerRepTier?: 'new' | 'cold' | 'established' | 'strong' | 'elite';
   buyerCompletionRate?: number;
   buyerVelocity24h?: number;
+  /// Buyer opted into Trusted Match. The seller agent gates bids on its own
+  /// free stake covering the deal's insurance reservation, and the buyer
+  /// agent ranks bids by reputation + stake before price.
+  trustedMatch?: boolean;
 }
 
 export interface BidContext {
@@ -195,6 +199,10 @@ export interface NegotiationContext {
   /// 0..1 market demand for the skill (agents/marketDemand.ts). High demand lets
   /// the seller hold firmer and signals the buyer to expect to pay nearer the cap.
   marketHeat?: number;
+  /// Buyer opted into Trusted Match on the brief. Reputation buys restraint:
+  /// neither side grinds for the last few percent on a high-trust deal; both
+  /// converge toward market median faster.
+  trustedMatch?: boolean;
 }
 
 export function buildCounterEvaluationPrompt(
@@ -249,6 +257,9 @@ export function buildCounterEvaluationPrompt(
           ? `- Market demand for this skill: ${
               ctx.marketHeat >= 0.66 ? 'HIGH' : ctx.marketHeat >= 0.4 ? 'MODERATE' : 'LOW'
             }. High demand: the seller holds firmer and the buyer should expect to pay nearer the cap. Low demand: the seller concedes faster and the buyer holds near the budget.`
+          : '',
+        ctx.trustedMatch
+          ? '- TRUSTED MATCH is ON. Buyer chose reputation + stake over price. Reputation buys restraint: do not grind for the last 5%. If both their-price-in-range AND the counterparty tier is ESTABLISHED/STRONG/ELITE, ACCEPT. Anchor toward the market median rather than the cap; the win is the trusted counterparty, not the squeeze.'
           : '',
       ]
         .filter(Boolean)

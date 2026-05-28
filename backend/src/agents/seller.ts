@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, wsClient } from '../chain/client.js';
-import { jobBoard } from '../chain/contracts.js';
+import { jobBoard, vault, getReservationBps } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { llmModel } from '../llm/client.js';
@@ -35,7 +35,7 @@ import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { marketHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
-import { topicalOverlap, extractKeywords } from '../llm/keywords.js';
+import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -249,6 +249,7 @@ async function handleJobPosted(log: Log) {
     briefText: brief?.briefText,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
     keywords: briefKeywords,
+    trustedMatch: brief?.trustedMatch === true,
   };
 
   // Read the buyer's deterministic signals once and share across every seller
@@ -333,33 +334,114 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     return;
   }
 
-  // Deterministic topical guard, applied BEFORE the LLM relevance call. That
-  // call is a single small-model decision and occasionally returns a confident
-  // "bid" on a clearly unrelated brief (a content writer bidding on "need a
-  // burger"). Both the brief and the seller carry synonym-expanded keyword tags
-  // from the same extractor, so zero overlap is a reliable off-topic signal:
-  // skip without burning the LLM call. Only veto when BOTH sides have tags — a
-  // brief with no extractable tags can't be judged this way, so defer to the LLM.
+  // Topical match: substring overlap on the meaningful tokens from both sides.
+  // The keyword extractor is now prompt-tuned to emit related roles + adjacent
+  // skills (a "Backend Engineer" profile tags `api`/`service`; an "API service"
+  // request tags `backend`/`developer`), so the deterministic gate catches most
+  // legitimate matches without an LLM call.
+  //
+  // When the deterministic gate still finds zero overlap, run an LLM relevance
+  // bridge once before skipping. This handles older profiles whose tags were
+  // extracted under the narrow prompt, and any borderline case where the two
+  // sides describe the same thing in non-overlapping language. judgeRelevance
+  // is cached per (briefTags, sellerTags, profile) so a brief that triggers
+  // the bridge across N seller agents costs at most N cache writes, not N×LLM.
   const briefTags = job.keywords ?? [];
   const sellerTags = [...(seller.keywords ?? []), ...(seller.skills ?? [])];
   if (briefTags.length > 0 && sellerTags.length > 0 && topicalOverlap(briefTags, sellerTags) === 0) {
+    const judgement = await judgeRelevance({
+      briefText: job.briefText,
+      briefTags,
+      sellerProfile: `${seller.displayName}: ${seller.bio}`,
+      sellerTags,
+    });
+    if (!judgement.relevant || judgement.confidence < 0.6) {
+      logger.info(
+        { jobId: job.jobId, seller: seller.address, judgement, briefTags, sellerTags },
+        'skipping: deterministic overlap zero + LLM relevance bridge declined',
+      );
+      bus.emitEvent({
+        type: 'agent.skipped',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          reason: 'no-topical-overlap',
+          detail: judgement.reasoning || 'the seller cannot fulfill this brief',
+          briefTags,
+          sellerTags,
+          relevance: judgement,
+        },
+      });
+      return;
+    }
+    // Bridge said yes. Surface the agent's reasoning so the timeline reflects
+    // why a brief and seller with no shared tokens are now being matched.
     logger.info(
-      { jobId: job.jobId, seller: seller.address, briefTags, sellerTags },
-      'skipping: no topical overlap between brief and seller tags',
+      { jobId: job.jobId, seller: seller.address, judgement },
+      'topical overlap zero but LLM relevance bridge confirmed; proceeding',
     );
     bus.emitEvent({
-      type: 'agent.skipped',
+      type: 'agent.decision',
       jobId: job.jobId,
       actor: 'seller',
       payload: {
         seller: seller.address,
-        reason: 'no-topical-overlap',
-        detail: 'the brief shares no topic tags with this seller, so the agent did not bid',
-        briefTags,
-        sellerTags,
+        stage: 'relevance',
+        decision: 'bridged',
+        source: 'llm',
+        detail: judgement.reasoning,
+        signals: { confidence: judgement.confidence, briefTags, sellerTags },
       },
     });
-    return;
+  }
+
+  // Trusted Match min-stake gate. The buyer asked for a counterparty whose
+  // stake actually backstops the deal. A seller who can't cover the worst-case
+  // insurance reservation has no skin in the game, so we filter them out at
+  // bid time rather than failing later at acceptEscrow. Use the buyer's tolerance
+  // ceiling because the final dealAmount can land anywhere in [budget, ceiling].
+  if (job.trustedMatch) {
+    try {
+      const reservationBps = await getReservationBps();
+      const tolerance = job.negotiationMaxIncreasePct ?? 0;
+      const maxDealUsdc = Number(job.budgetUsdc) * (1 + tolerance / 100);
+      const maxDealWei = parseUnits(maxDealUsdc.toFixed(2), USDC_DECIMALS);
+      const requiredWei = (maxDealWei * BigInt(reservationBps)) / 10000n;
+      const sellerFreeWei = (await vault.read.freeStakeOf([
+        seller.address as `0x${string}`,
+      ])) as bigint;
+      if (sellerFreeWei < requiredWei) {
+        const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
+        const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+        logger.info(
+          { jobId: job.jobId, seller: seller.address, requiredUsdc, freeUsdc },
+          'skipping: insufficient free stake for trusted match',
+        );
+        bus.emitEvent({
+          type: 'agent.skipped',
+          jobId: job.jobId,
+          actor: 'seller',
+          payload: {
+            seller: seller.address,
+            reason: 'insufficient-stake-trusted-match',
+            detail: `Trusted Match needs at least ${requiredUsdc} USDC free stake to backstop this deal. Your seller agent has ${freeUsdc} USDC. Top up at /stake to bid on requests like this.`,
+            requiredReservationUsdc: requiredUsdc,
+            freeStakeUsdc: freeUsdc,
+            reservationBps,
+          },
+        });
+        return;
+      }
+    } catch (err) {
+      // Vault read failed. Fall through and let the chain-side acceptEscrow
+      // enforce the rule. Surfacing a clear "couldn't accept" later beats
+      // silently dropping a real bid because of a transient RPC hiccup.
+      logger.warn(
+        { jobId: job.jobId, err: (err as Error).message },
+        'freeStake read failed for trusted-match gate; falling through',
+      );
+    }
   }
 
   let decision;
@@ -570,13 +652,23 @@ function sellerOpeningBid(
   // identical point each time (less robotic, harder to game); the address seed
   // still spreads a multi-seller auction. All clamped within [floor, ceiling].
   const jitter = Math.random();
-  const frac = Math.max(
+  let frac = Math.max(
     0,
     Math.min(
       1,
       0.15 * addrFrac(seller.address) + 0.3 * TIER_BIAS[buyerTier] + 0.4 * h + 0.15 * jitter,
     ),
   );
+  // Trusted Match restraint: when the buyer chose reputation over price, the
+  // seller anchors lower in the band rather than reaching for the ceiling.
+  // Multiplicative (0.7×) plus an absolute cap at 0.55 so opens cluster around
+  // the middle of [floor, ceiling] regardless of buyer tier or skill heat.
+  // The premium the seller gives up here is the price of being chosen as a
+  // trusted counterparty; the negotiation prompt's restraint rule completes
+  // the picture by accepting in-range counters early.
+  if (job.trustedMatch) {
+    frac = Math.min(frac * 0.7, 0.55);
+  }
   return Number((floor + (ceiling - floor) * frac).toFixed(2));
 }
 
@@ -697,6 +789,7 @@ async function runCounterEvaluation(
             marketMedianPrice: priceHistorySnapshot()?.median,
             marketSampleCount: priceHistorySnapshot()?.sampleCount,
             marketHeat: heat,
+            trustedMatch: active.jobContext.trustedMatch === true,
           },
         ),
       }),

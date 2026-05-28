@@ -8,20 +8,38 @@ const keywordSchema = z.object({
   keywords: z
     .array(z.string().min(1).max(40))
     .min(1)
-    .max(8)
+    .max(12)
     .describe(
       'Short canonical tags (1-3 words each), lowercase, no punctuation. ' +
-        'Include category, product names, common abbreviations, and synonyms ' +
-        'a counterparty might write. Example: brief "I want to buy a Morse WL" ' +
-        '→ ["nft", "whitelist", "morse", "wl"].',
+        'Include the literal topic, close synonyms, common abbreviations, AND ' +
+        'related roles or services that can plausibly fulfill or supply the ' +
+        'same thing. Example: brief "I need API service" → ' +
+        '["api", "api service", "backend", "backend engineer", "backend developer", ' +
+        '"software developer", "rest api", "web service"]. Example: profile ' +
+        '"Backend Engineer" → ["backend", "backend engineer", "engineer", ' +
+        '"developer", "software", "api", "rest api", "web service"].',
     ),
 });
 
-const PROMPT_PREFIX =
-  'Extract 3-6 short canonical tags from the input. Tags identify the topic, ' +
-  'product, or service so two parties looking for the same thing can be matched. ' +
-  'Include common synonyms and abbreviations. Lowercase, no punctuation, 1-3 words each. ' +
-  'Do not invent unrelated tags; stay close to the input.';
+const PROMPT_PREFIX = [
+  'Extract 6-12 canonical match tags from the input.',
+  '',
+  'These tags match a BUYER asking for a service with a SELLER who can fulfill it.',
+  'Buyers and sellers often describe the same thing in different words. A buyer says',
+  '"API service"; a seller says "backend engineer". The tags must BRIDGE THAT GAP so',
+  'both sides land on at least one shared token under the substring matcher downstream.',
+  '',
+  'For each input, include:',
+  '  1. The literal topic and close synonyms.',
+  '  2. Common abbreviations and alternate spellings.',
+  '  3. RELATED ROLES, SKILLS, or PRODUCT TYPES that can plausibly fulfill or supply',
+  '     the same thing. A "Backend Engineer" profile expands to "api", "rest api",',
+  '     "web service". An "API service" request expands to "backend", "developer",',
+  '     "engineer", "software".',
+  '',
+  'Stay grounded in the input. Do not invent unrelated industries.',
+  'Lowercase, no punctuation, 1-3 words each, 6-12 tags total.',
+].join('\n');
 
 /// Extract canonical match tags from arbitrary text. On any LLM failure it falls
 /// back to a deterministic keyword pull from the text itself, so the topical
@@ -114,6 +132,94 @@ export function topicalMatchScore(briefTags: string[], sellerTags: string[]): nu
     if (seller.some((s) => s === term || s.includes(term) || term.includes(s))) matched += 1;
   }
   return Math.round((matched / brief.length) * 100);
+}
+
+/// LLM relevance bridge for the topical-zero case. When the deterministic
+/// substring matcher finds no shared tokens between a brief and a seller
+/// profile but they could still be a real fit (buyer asks "API service",
+/// seller says "Backend Engineer", neither token substrings the other), this
+/// asks the LLM in plain English. Cached per (briefTags, sellerTags, profile)
+/// so repeated checks across multiple agents on the same brief are free.
+const relevanceSchema = z.object({
+  relevant: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string().max(200),
+});
+
+interface RelevanceJudgement {
+  relevant: boolean;
+  confidence: number;
+  reasoning: string;
+}
+
+const relevanceCache = new Map<string, { value: RelevanceJudgement; expiresAt: number }>();
+const RELEVANCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const RELEVANCE_CACHE_MAX = 1000;
+
+function relevanceKey(input: {
+  briefTags: string[];
+  sellerTags: string[];
+  sellerProfile: string;
+}): string {
+  const brief = [...input.briefTags].map((t) => t.toLowerCase()).sort().join('|');
+  const seller = [...input.sellerTags].map((t) => t.toLowerCase()).sort().join('|');
+  return `${brief}::${seller}::${input.sellerProfile.slice(0, 80)}`;
+}
+
+export async function judgeRelevance(input: {
+  briefText?: string;
+  briefTags: string[];
+  sellerProfile: string;
+  sellerTags: string[];
+}): Promise<RelevanceJudgement> {
+  const key = relevanceKey(input);
+  const cached = relevanceCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const prompt = [
+    'You decide whether a seller can plausibly fulfill a buyer request.',
+    '',
+    'Buyer request:',
+    `  text: ${input.briefText ?? '(opaque, only the tags below)'}`,
+    `  tags: ${input.briefTags.join(', ')}`,
+    '',
+    'Seller profile:',
+    `  description: ${input.sellerProfile}`,
+    `  tags: ${input.sellerTags.join(', ')}`,
+    '',
+    'Could this seller credibly fulfill this request? Reason in plain English.',
+    'YES examples:',
+    '  - Brief "API service" + profile "Backend Engineer" → YES, backend engineers build APIs.',
+    '  - Brief "logo design" + profile "Brand designer" → YES, brand designers do logos.',
+    'NO examples:',
+    '  - Brief "I need API service" + profile "Crypto trader" → NO, unrelated domains.',
+    '  - Brief "logo design" + profile "Spanish translator" → NO, different skill.',
+    '',
+    'Set relevant: true ONLY if the seller can actually do the work, not because',
+    'a single shared filler word like "service" or "online" appears on both sides.',
+    'Set confidence: 0.85+ when obvious, 0.6-0.85 when reasonable, below 0.6 when shaky.',
+  ].join('\n');
+
+  let value: RelevanceJudgement;
+  try {
+    const r = await withLlmRetry('judgeRelevance', () =>
+      generateObject({ model: llmModel, schema: relevanceSchema, prompt }),
+    );
+    value = r.object;
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message },
+      'judgeRelevance LLM call failed; defaulting to not relevant',
+    );
+    value = { relevant: false, confidence: 0, reasoning: 'relevance check unavailable' };
+  }
+
+  if (relevanceCache.size >= RELEVANCE_CACHE_MAX) {
+    const oldest = relevanceCache.keys().next().value;
+    if (oldest) relevanceCache.delete(oldest);
+  }
+  relevanceCache.set(key, { value, expiresAt: Date.now() + RELEVANCE_CACHE_TTL_MS });
+  return value;
 }
 
 /// Cheap overlap score: count of shared tokens between two tag lists.

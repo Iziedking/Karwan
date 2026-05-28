@@ -60,6 +60,10 @@ const postJobSchema = z
     /** Per-brief tolerance: agent may accept seller counters up to budget * (1 + pct/100).
      * 0 = strict (no negotiation above budget). Capped at 50 to keep agents sane. */
     negotiationMaxIncreasePct: z.number().min(0).max(50).optional(),
+    /** Trusted Match mode. When true, the agent loop weights seller reputation
+     *  and stake above price, and gates bids on the seller's free stake covering
+     *  the deal's insurance reservation. For higher-value or one-shot deals. */
+    trustedMatch: z.boolean().optional(),
   })
   .refine((b) => b.deadlineDays != null || b.deadlineSeconds != null, {
     message: 'deadlineDays or deadlineSeconds required',
@@ -156,6 +160,7 @@ jobsRoutes.get('/:jobId', async (c) => {
     briefText: brief?.briefText ?? null,
     keywords: brief?.keywords ?? null,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct ?? null,
+    trustedMatch: brief?.trustedMatch === true,
   });
 });
 
@@ -219,6 +224,7 @@ jobsRoutes.post('/', async (c) => {
     briefText: body.brief,
     postedBy: body.posterAddress,
     negotiationMaxIncreasePct: body.negotiationMaxIncreasePct,
+    trustedMatch: body.trustedMatch === true,
   });
 
   // Extract canonical match keywords from the brief. Fire-and-forget; if the

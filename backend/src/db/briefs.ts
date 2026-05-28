@@ -19,6 +19,12 @@ export interface Brief {
   /// accepted bid + no approved match proposal. Survives backend restarts so
   /// the buyer agent doesn't restart bid collection for an expired job.
   expiredAt?: number;
+  /// Buyer opted into Trusted Match for this brief. The agent loop weights
+  /// seller reputation + stake above price, and gates bids on seller free
+  /// stake covering the deal's insurance reservation. For higher-value or
+  /// one-shot deals where the buyer can't redo the trade if the seller is a
+  /// no-show. Defaults to false (Normal mode).
+  trustedMatch?: boolean;
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');

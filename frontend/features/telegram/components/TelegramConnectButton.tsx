@@ -39,16 +39,17 @@ export function TelegramConnectButton({
   const [open, setOpen] = useState(false);
 
   // Theme-aware tokens. `dark` keeps the original white-on-dark chip; `light`
-  // flips to black-on-white so the chip stays legible inside a `Band tone="light"`.
+  // uses --lp-dark + --lp-text-sub which both flip under html[data-theme="dark"],
+  // so the chip stays legible in dark mode too instead of dark-on-dark.
   const onLight = tone === 'light';
   const chipClass = onLight
-    ? 'border-black/15 text-[var(--lp-band-dark)] hover:bg-black/[0.04] hover:border-black/30'
+    ? 'border-[var(--lp-border)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)]'
     : 'border-white/20 text-white hover:bg-white/[0.08] hover:border-white/35';
   const chipMuted = onLight
-    ? 'border-black/12 text-black/55'
+    ? 'border-[var(--lp-border)] text-[var(--lp-text-sub)]'
     : 'border-white/20 text-white/60';
   const offPillClass = onLight
-    ? 'bg-black/[0.06] text-black/55'
+    ? 'bg-[var(--lp-light)] text-[var(--lp-text-sub)]'
     : 'bg-white/[0.08] text-white/55';
 
   const linkedLabel = link.status?.linked

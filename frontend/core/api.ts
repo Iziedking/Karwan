@@ -82,6 +82,10 @@ export interface BuyerJob {
   briefText?: string | null;
   keywords?: string[] | null;
   negotiationMaxIncreasePct?: number | null;
+  /// Buyer opted into Trusted Match for this brief. The job-detail page
+  /// surfaces a badge so both parties know the agent loop is weighting
+  /// reputation + stake over price.
+  trustedMatch?: boolean;
   bids: BuyerBid[];
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
@@ -596,6 +600,7 @@ export const api = {
       brief: string;
       budgetUsdc: number;
       negotiationMaxIncreasePct?: number;
+      trustedMatch?: boolean;
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
     json<{ jobId: string; deadlineUnix: number; txHash: string; explorerUrl: string }>(

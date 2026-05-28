@@ -560,7 +560,35 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     return c.json({ error: 'deal already marked delivered' }, 409);
   }
 
-  const account = await readEscrow(jobId);
+  let account = await readEscrow(jobId);
+
+  // v2.D self-heal: if the seller's acceptEscrow never landed (stuck in
+  // Funded), fire it now using the seller's own wallet id. Their off-chain
+  // acceptedAt is already set, so this catches the chain up to the agreed
+  // state. Insufficient stake surfaces a clean error.
+  if (account.state === ESCROW_FUNDED && deal.sellerAgentWalletId) {
+    try {
+      await acceptEscrowOnChain(jobId, deal.sellerAgentWalletId);
+      invalidateEscrowCache(jobId);
+      account = await readEscrow(jobId);
+      logger.info({ jobId }, 'deliver self-healed Funded -> Accepted via acceptEscrow');
+    } catch (err) {
+      const message = (err as Error).message;
+      const lower = message.toLowerCase();
+      const isInsufficientStake =
+        lower.includes('insufficientstake') ||
+        lower.includes('insufficientfreestake');
+      const code = isInsufficientStake
+        ? 'INSUFFICIENT_STAKE'
+        : 'ACCEPT_ESCROW_FAILED';
+      const detail = isInsufficientStake
+        ? `Your seller agent needs more free stake to backstop this deal. Top up at /stake and retry marking delivery.`
+        : `acceptEscrow reverted: ${message}`;
+      logger.error({ jobId, err: message, code }, 'deliver self-heal acceptEscrow failed');
+      return c.json({ error: detail, code, detail: message }, 502);
+    }
+  }
+
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json(
       { error: `escrow state must be Accepted(2), got ${account.state}. The seller must accept the escrow before marking delivery.` },
@@ -612,7 +640,48 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     return c.json({ error: 'a release is already in progress for this deal' }, 409);
   }
 
-  const account = await readEscrow(jobId);
+  let account = await readEscrow(jobId);
+
+  // v2.D self-heal: deals funded under pre-v2.D code paths can sit in Funded
+  // state forever because acceptEscrow never fired. The off-chain deal row
+  // has acceptedAt set (implicit seller consent at accept time), so catch
+  // the chain up by firing acceptEscrow with the seller's stored wallet id
+  // before releasing. If the seller's free stake is short, surface a clean
+  // error pointing them at /stake; the buyer's release call doesn't proceed
+  // until the chain matches.
+  if (account.state === ESCROW_FUNDED) {
+    if (!deal.sellerAgentWalletId) {
+      return c.json(
+        {
+          error:
+            'this deal is funded but the seller agent never accepted on chain, and no seller wallet is on record. Ask the seller to re-accept from their deal page.',
+          code: 'NO_SELLER_WALLET',
+        },
+        409,
+      );
+    }
+    try {
+      await acceptEscrowOnChain(jobId, deal.sellerAgentWalletId);
+      invalidateEscrowCache(jobId);
+      account = await readEscrow(jobId);
+      logger.info({ jobId }, 'release self-healed Funded -> Accepted via acceptEscrow');
+    } catch (err) {
+      const message = (err as Error).message;
+      const lower = message.toLowerCase();
+      const isInsufficientStake =
+        lower.includes('insufficientstake') ||
+        lower.includes('insufficientfreestake');
+      const code = isInsufficientStake
+        ? 'INSUFFICIENT_STAKE'
+        : 'ACCEPT_ESCROW_FAILED';
+      const detail = isInsufficientStake
+        ? `The seller agent needs more free stake to backstop this deal. They top up at /stake and you retry.`
+        : `acceptEscrow reverted: ${message}`;
+      logger.error({ jobId, err: message, code }, 'release self-heal acceptEscrow failed');
+      return c.json({ error: detail, code, detail: message }, 502);
+    }
+  }
+
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json(
       { error: `escrow state must be Accepted(2), got ${account.state}. Releases run after the seller accepts the escrow.` },
