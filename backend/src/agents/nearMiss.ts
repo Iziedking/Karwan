@@ -11,8 +11,11 @@ import {
 
 /// How far beyond a party's limit still counts as a near-miss worth surfacing
 /// for a FUZZY (profile / no-overlap) match. A real near-miss, not a wild
-/// mismatch. Tunable; defaults to 25%.
-const MAX_GAP_PCT = numEnv('NEAR_MISS_MAX_GAP_PCT', 25);
+/// mismatch. Tunable; bumped 2026-05-29 from 25 → 40 so the agent surfaces a
+/// 50 USDC vs 70 USDC ask (40% gap) to the human instead of declining
+/// silently. The buyer authorised their tolerance band; a one-stretch nudge
+/// inside this wider window matches "ask the human" behaviour better.
+const MAX_GAP_PCT = numEnv('NEAR_MISS_MAX_GAP_PCT', 40);
 /// Wider band for a CONFIRMED market match: the agent already verified the
 /// listing is the exact thing the buyer asked for, it is just over budget. When
 /// the right product is sitting in the market, the buyer should hear about it

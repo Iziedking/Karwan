@@ -8,18 +8,48 @@ import { logger } from '../logger.js';
 const TICK_MS = 30_000;
 const processing = new Set<string>();
 
-/// One pass over direct deals. Two timers run here:
-///  1. First-release: the seller has marked delivered but the buyer has not
-///     released the first milestone within the review window. The agent
-///     releases it and opens the final-release window.
-///  2. Final-release: the first milestone is out and the buyer has not released
-///     the final one within the window (plus any "still reviewing" extensions).
-///     The agent releases it and settles. Buyer silence past the window counts
-///     as acceptance.
+/// One pass over direct deals. Only ONE timer auto-releases now:
+///  - First-release: the seller has marked delivered but the buyer has not
+///    released the first milestone within the review window. The agent
+///    releases it and opens the verification stage.
+///
+/// The FINAL release never auto-fires. The buyer must explicitly verify the
+/// work and click release. If they stall, the seller can appeal for delay (a
+/// separate path). This protects buyer funds from silent settlement, which is
+/// the only real safety the escrow gives them at the last gate.
 async function tick() {
   const now = Date.now();
   for (const deal of await listAllDeals()) {
     if (deal.disputed || deal.cancelledAt || deal.settledAt) continue;
+    // Acceptance window expiry. Seller never accepted in time. Mark cancelled
+    // with kind 'pre-accept' so reputation isn't touched on either side; the
+    // buyer is freed up to open a fresh deal elsewhere.
+    if (
+      !deal.acceptedAt &&
+      deal.acceptanceDeadlineUnix &&
+      now > deal.acceptanceDeadlineUnix * 1000
+    ) {
+      await patchDeal(deal.jobId, {
+        cancelledAt: now,
+        cancelKind: 'pre-accept',
+        cancelReason: 'acceptance window expired with no seller acceptance',
+      });
+      bus.emitEvent({
+        type: 'deal.acceptance.expired',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: {
+          buyer: deal.buyer,
+          seller: deal.seller,
+          acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix,
+        },
+      });
+      logger.info(
+        { jobId: deal.jobId, acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix },
+        'acceptance window expired, marking deal cancelled (pre-accept)',
+      );
+      continue;
+    }
     // No escrow exists until the seller accepts, so there is nothing to watch.
     if (!deal.acceptedAt) continue;
     if (!deal.buyerAgentWalletId) continue;
@@ -68,29 +98,31 @@ async function tick() {
         continue;
       }
 
-      // Timer 2: final-release auto.
-      if (deal.reviewWindowStartedAt && account.milestonesReleased >= 1) {
-        const effectiveDeadline =
-          deal.reviewWindowStartedAt +
-          config.DEAL_REVIEW_WINDOW_MS +
-          (deal.reviewExtensionMs ?? 0);
-        if (now <= effectiveDeadline) continue;
-
+      // Final release: buyer-only by default, BUT if the seller raised a
+      // delay appeal and the buyer didn't respond within the window, the
+      // agent auto-releases on the seller's behalf. Protects sellers from
+      // indefinite buyer silence without surprising the buyer mid-review.
+      const responseDeadline =
+        deal.delayAppealRaisedAt && deal.delayAppealRaisedAt > (deal.delayAppealRespondedAt ?? 0)
+          ? deal.delayAppealRaisedAt + config.DEAL_DELAY_APPEAL_RESPONSE_MS
+          : null;
+      if (
+        account.milestonesReleased >= 1 &&
+        responseDeadline !== null &&
+        now > responseDeadline
+      ) {
         await releaseMilestone(deal.jobId, account.milestonesReleased, buyerWalletId);
-        // v2.D: finalizeIfSettled no longer needs a wallet — the escrow's
-        // own releaseProgress / releaseFinal call records reputation on
-        // chain. finalizeIfSettled just emits the settled bus event.
         await finalizeIfSettled(deal.jobId);
         await patchDeal(deal.jobId, { autoReleasedAt: now, settledAt: Date.now() });
         bus.emitEvent({
-          type: 'deal.auto_released',
+          type: 'deal.delay.auto_released',
           jobId: deal.jobId,
           actor: 'buyer',
-          payload: { buyer: deal.buyer, seller: deal.seller },
+          payload: { buyer: deal.buyer, seller: deal.seller, raisedAt: deal.delayAppealRaisedAt },
         });
         logger.info(
-          { jobId: deal.jobId },
-          'final-release window expired, auto-released the final milestone',
+          { jobId: deal.jobId, raisedAt: deal.delayAppealRaisedAt },
+          'delay appeal response window passed, auto-released the final milestone',
         );
       }
     } catch (err) {

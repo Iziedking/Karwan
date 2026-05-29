@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
@@ -10,12 +11,23 @@ export function NotificationBell() {
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  // Panel renders via portal so a transformed ancestor (.fade-up bands) cannot
+  // trap its position:fixed. Track the panel node separately so the
+  // outside-click handler doesn't treat in-panel clicks as outside.
+  const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
     function onPointer(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        (wrapRef.current && wrapRef.current.contains(target)) ||
+        (panelRef.current && panelRef.current.contains(target))
+      ) {
+        return;
+      }
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
@@ -63,9 +75,10 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed sm:absolute inset-x-2 sm:inset-x-auto top-[60px] sm:top-auto sm:right-0 sm:mt-2 sm:w-[340px] max-w-[calc(100vw-1rem)] bg-[var(--lp-card)] z-50 fade-up overflow-hidden"
+          ref={panelRef}
+          className="fixed left-2 right-2 top-[60px] sm:left-auto sm:right-3 sm:w-[340px] max-w-[calc(100vw-1rem)] bg-[var(--lp-card)] z-[60] fade-up overflow-hidden"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 14,
@@ -165,7 +178,8 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

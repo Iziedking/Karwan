@@ -75,7 +75,7 @@ export default function OpengraphImage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#9A9A95', fontSize: 27 }}>
           <div style={{ display: 'flex', width: 12, height: 12, background: ACCENT, borderRadius: 6 }} />
-          <div style={{ display: 'flex' }}>Built on Arc. Powered by Circle. For the MEASA corridor.</div>
+          <div style={{ display: 'flex' }}>Built on Arc. Powered by Circle.</div>
         </div>
       </div>
     ),

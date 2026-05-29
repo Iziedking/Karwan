@@ -22,7 +22,12 @@ export interface DirectDeal {
   sellerAgentAddress?: string;
   dealAmountUsdc: string;
   firstReleasePct: number;
-  deadlineUnix: number;
+  /// Delivery deadline (unix seconds). Optional on direct deals so the buyer
+  /// can leave it open-ended ("deliver when you can"). When unset, the seller
+  /// has no time pressure and the buyer can't unilateral-cancel for late
+  /// delivery — only mutual cancel or appeal. When set, the existing
+  /// post-deadline buyer cancel + reputation slash path stays.
+  deadlineUnix?: number;
   terms: string;
   // The seller has confirmed they agree to the deal terms. A deal cannot be
   // marked delivered until it is accepted.
@@ -67,8 +72,33 @@ export interface DirectDeal {
     reason: string;
     proposedAt: number;
   };
+  /// Acceptance window cutoff. Unix seconds. Deals that pass this point with
+  /// no seller acceptance are expired by dealWatcher and marked cancelled
+  /// (kind 'pre-accept'). Required on every new direct deal so a request never
+  /// sits in limbo indefinitely; the buyer can re-shop the work elsewhere.
+  acceptanceDeadlineUnix?: number;
+  /// Set when the counterparty was invited by email and has not yet claimed
+  /// the link. The corresponding address field (seller for outbound deals,
+  /// buyer for inbound) stays at a placeholder until claim binds it to the
+  /// recipient's real identity wallet. Funding never moves before claim, so
+  /// the buyer is not on the hook for anything during the wait.
+  pendingCounterparty?: {
+    email: string;
+    role: 'buyer' | 'seller';
+    inviteToken: string;
+  };
   // Agent auto-released the final milestone after the window expired silently.
   autoReleasedAt?: number;
+  /// Delay-appeal flow. After the first milestone is released, the seller can
+  /// raise this if the buyer is sitting on the final release without
+  /// responding. Sets a buyer response window; if the buyer doesn't reply with
+  /// a reason in time, the final milestone auto-releases. Protects sellers
+  /// from indefinite buyer silence while keeping the buyer's manual-release
+  /// gate intact during normal flow.
+  delayAppealRaisedAt?: number;
+  delayAppealRespondedAt?: number;
+  delayAppealResponse?: string;
+  delayAppealCount?: number;
   settledAt?: number;
   fundTxHash?: string;
   /// How this deal originated:

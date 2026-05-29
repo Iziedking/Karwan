@@ -17,6 +17,11 @@ function jobUrl(jobId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/jobs/${jobId}`;
 }
 
+function listingUrl(listingId: string | undefined): string | null {
+  if (!listingId || !config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/listings/${listingId}`;
+}
+
 interface NotifySummary {
   text: string;
   url: string | null;
@@ -54,6 +59,7 @@ const RELEVANT = new Set([
   'bid.accepted',
   'reputation.recorded',
   'listing.matched',
+  'listing.match.proactive',
   'chat.message',
   'bridge.minted',
   'bridge.error',
@@ -103,6 +109,12 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'self' }] : [];
   }
+  // Proactive scan: the buyer is the target. They had no open brief, so the
+  // agent surfaces an offer that overlaps their recent history.
+  if (e.type === 'listing.match.proactive') {
+    const buyer = (e.payload?.buyerUser as string | undefined)?.toLowerCase();
+    return buyer ? [{ address: buyer, role: 'self' }] : [];
+  }
   if (e.type === 'chat.message') {
     const jobId = e.jobId;
     if (!jobId) return [];
@@ -143,6 +155,17 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       const link = jobUrl(e.jobId);
       return withLink(
         `*Karwan matched your offer to an open request*${price ? ` at ${price} USDC` : ''}. Tap to review and accept the deal.`,
+        link,
+      );
+    }
+    case 'listing.match.proactive': {
+      const title = (e.payload?.listingTitle as string | undefined) ?? '';
+      const price = (e.payload?.listingAskingPriceUsdc as number | string | undefined) ?? '';
+      const listingId = (e.payload?.listingId as string | undefined) ?? undefined;
+      const link = listingUrl(listingId);
+      const titleSnip = title ? ` "${title.slice(0, 60)}"` : '';
+      return withLink(
+        `*Your agent spotted an offer that fits your past activity*${titleSnip}${price ? ` at ${price} USDC` : ''}. Tap to open a deal from this offer.`,
         link,
       );
     }

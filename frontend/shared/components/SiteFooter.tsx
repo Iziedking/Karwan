@@ -62,6 +62,7 @@ export function SiteFooter() {
                 <FooterLink href="/activity">Activity feed</FooterLink>
                 <FooterLink href="/how-it-works">How it works</FooterLink>
                 <FooterLink href="/docs">Documentation</FooterLink>
+                <FooterLink href="/terms">Terms</FooterLink>
                 <FooterLink href="/feedback">Feedback</FooterLink>
               </FooterCol>
               <FooterCol title="NETWORK">

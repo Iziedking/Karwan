@@ -205,6 +205,19 @@ listingsRoutes.post('/', async (c) => {
     logger.error({ listingId: listing.id, err: (err as Error).message }, 'listing scan failed'),
   );
 
+  // Proactive scan: surface this offer to buyers whose recent history (past
+  // briefs + past deal terms) overlaps topically, even if they have no open
+  // brief right now. They get a bell + Telegram ping with a link to /listings/
+  // and decide whether to open a direct deal from there.
+  import('../agents/buyerHistoryScan.js')
+    .then(({ scanBuyersForListing }) => scanBuyersForListing(listing))
+    .catch((err) =>
+      logger.error(
+        { listingId: listing.id, err: (err as Error).message },
+        'proactive buyer-history scan failed',
+      ),
+    );
+
   return c.json({ listing }, 201);
 });
 
@@ -365,7 +378,12 @@ async function tryMatchListingToJob(
   if (decision) {
     // The LLM answered. Respect an explicit rejection (it also runs the
     // direction check: offer-vs-request).
-    if (!decision.match || decision.confidence < 0.6) {
+    // Trust the LLM's positive match more aggressively. Below 0.4 confidence
+    // is fence-sitting; above is intent. The old 0.6 floor dropped
+    // textbook-clear matches like "API services" vs "I need API services"
+    // when Gemini Flash Lite returned 0.5-0.6 — the topical fallback then
+    // missed because keywords hadn't been extracted yet.
+    if (!decision.match || decision.confidence < 0.4) {
       emitAgentDecision({
         jobId: job.jobId,
         actor: 'seller',

@@ -46,7 +46,7 @@ const PUBLIC_EVENT_TYPES = new Set<string>([
   'escrow.approved', 'escrow.funded', 'escrow.milestone.released', 'escrow.settled',
   'reputation.recorded',
   // listings
-  'listing.posted', 'listing.matched', 'listing.cancelled', 'listing.expired',
+  'listing.posted', 'listing.matched', 'listing.match.proactive', 'listing.cancelled', 'listing.expired',
   'brief.cancelled',
 ]);
 

@@ -176,8 +176,13 @@ export function LoginModal({ open, onClose }: Props) {
         const attResp = await startRegistration({ optionsJSON: options });
         await api.authRegisterVerify(email, attResp);
       }
-      await refresh();
+      // Close optimistically. Verify returned 200, so the cookie is set and the
+      // user is signed in. Awaiting refresh() here would hang the modal on
+      // mobile in-app browsers where /api/auth/me sometimes never resolves.
+      // emitAuthChanged broadcasts to every useAuth instance so they refresh
+      // in the background; this modal's local refresh is fire-and-forget.
       emitAuthChanged();
+      void refresh();
       onClose();
     } catch (err) {
       // The pre-fetched challenge is single-use; warm a fresh one for the retry.

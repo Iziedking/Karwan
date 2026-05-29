@@ -32,6 +32,15 @@ export function DirectDealForm() {
   const initialTerms = search.get('terms') ?? '';
 
   const [seller, setSeller] = useState(initialSeller);
+  /// Counterparty mode. 'wallet' takes a 0x address (existing flow); 'email'
+  /// takes an email and mints a one-shot shareable invite link instead. Funding
+  /// stays parked until the recipient claims the link.
+  const [counterpartyMode, setCounterpartyMode] = useState<'wallet' | 'email'>('wallet');
+  const [counterpartyEmail, setCounterpartyEmail] = useState('');
+  /// Shareable invite URL surfaced after a successful email-mode submit. Stays
+  /// on screen until the user copies it or navigates away.
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   // Numeric fields always start empty; the placeholder "0" renders instead
   // of any autofilled number. The only exception is when the user arrives
   // from a listing's "Make offer" deep link with ?amount= in the URL, which
@@ -39,6 +48,9 @@ export function DirectDealForm() {
   const [amount, setAmount] = useState<number | ''>(initialAmount ?? '');
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
+  /// Seller has this long to accept before the deal auto-expires (pre-accept,
+  /// no rep hit). Buyer picks a preset; 24h is the human default.
+  const [acceptanceHours, setAcceptanceHours] = useState<number>(24);
   const [firstPct, setFirstPct] = useState<number | ''>('');
   const [terms, setTerms] = useState(initialTerms);
   const [submitting, setSubmitting] = useState(false);
@@ -47,22 +59,30 @@ export function DirectDealForm() {
   const sellerValid = ADDR_RE.test(seller.trim());
   const sameWallet =
     sellerValid && address && seller.trim().toLowerCase() === address.toLowerCase();
+  // Loose email pattern. Backend re-validates via zod.
+  const emailValid =
+    counterpartyEmail.trim().length > 3 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(counterpartyEmail.trim());
+  const counterpartyValid =
+    counterpartyMode === 'wallet' ? sellerValid && !sameWallet : emailValid;
   const amountValid = typeof amount === 'number' && amount > 0;
   // Single-input deadline with a min/hr/day unit toggle. Bounds per unit
   // mirror the buyer brief form so behaviour is identical across surfaces.
+  // Empty value = open-ended (no delivery deadline, no unilateral cancel for
+  // the buyer; seller has no time pressure).
   const deadlineMax =
     deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 180;
   const deadlineValid =
-    typeof deadlineValue === 'number' &&
-    deadlineValue >= 1 &&
-    deadlineValue <= deadlineMax;
+    deadlineValue === '' ||
+    (typeof deadlineValue === 'number' &&
+      deadlineValue >= 1 &&
+      deadlineValue <= deadlineMax);
   const pctValid = typeof firstPct === 'number' && firstPct >= 1 && firstPct <= 99;
   const termsValid = terms.trim().length > 0;
 
   const canSubmit =
     isConnected &&
-    sellerValid &&
-    !sameWallet &&
+    counterpartyValid &&
     amountValid &&
     deadlineValid &&
     pctValid &&
@@ -97,14 +117,23 @@ export function DirectDealForm() {
     try {
       const r = await api.createDirectDeal({
         buyerAddress: address!,
-        sellerAddress: seller.trim(),
+        ...(counterpartyMode === 'wallet'
+          ? { sellerAddress: seller.trim() }
+          : { sellerEmail: counterpartyEmail.trim().toLowerCase() }),
         dealAmountUsdc: amount as number,
         deadlineDays: submitDays,
         deadlineHours: submitHours,
+        acceptanceWindowHours: acceptanceHours,
         terms: terms.trim(),
         firstReleasePct: firstPct as number,
       });
       sfx.send();
+      if (r.invite?.url) {
+        // Hold on the form so the user can copy the link before leaving.
+        setInviteUrl(r.invite.url);
+        setSubmitting(false);
+        return;
+      }
       router.push(`/deals/${r.deal.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.detail) setError(String(err.detail));
@@ -188,30 +217,128 @@ export function DirectDealForm() {
       </div>
 
       {/* COUNTERPARTY */}
-      <FieldSection eyebrow="COUNTERPARTY" title="Name the seller wallet.">
-        <FormLabel
-          label="Seller address"
-          hint="Their wallet. They sign in with the same address to accept and deliver."
-        >
-          <input
-            type="text"
-            value={seller}
-            onChange={(e) => setSeller(e.target.value)}
-            placeholder="0x..."
-            disabled={submitting}
-            className="form-input form-input-mono"
-          />
-          {seller.length > 0 && !sellerValid && (
-            <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
-              Not a valid 20-byte address.
+      <FieldSection
+        eyebrow="COUNTERPARTY"
+        title={
+          counterpartyMode === 'wallet'
+            ? 'Name the seller wallet.'
+            : 'Send the seller a shareable link.'
+        }
+      >
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <p className="text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+            {counterpartyMode === 'wallet'
+              ? 'Have their wallet address? Paste it. They sign in to that address to accept.'
+              : 'No wallet to hand? Send a link by email. They claim it, verify their address, and the escrow is ready. No signup needed.'}
+          </p>
+          <label className="inline-flex items-center gap-2 shrink-0 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={counterpartyMode === 'email'}
+              onChange={(e) => setCounterpartyMode(e.target.checked ? 'email' : 'wallet')}
+              disabled={submitting || inviteUrl != null}
+              className="accent-[var(--lp-accent)]"
+            />
+            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+              Send by email
             </span>
-          )}
-          {sameWallet && (
-            <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
-              Seller must differ from your wallet.
-            </span>
-          )}
-        </FormLabel>
+          </label>
+        </div>
+        {counterpartyMode === 'wallet' ? (
+          <FormLabel
+            label="Seller address"
+            hint="Their wallet. They sign in with the same address to accept and deliver."
+          >
+            <input
+              type="text"
+              value={seller}
+              onChange={(e) => setSeller(e.target.value)}
+              placeholder="0x..."
+              disabled={submitting || inviteUrl != null}
+              className="form-input form-input-mono"
+            />
+            {seller.length > 0 && !sellerValid && (
+              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+                Not a valid 20-byte address.
+              </span>
+            )}
+            {sameWallet && (
+              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+                Seller must differ from your wallet.
+              </span>
+            )}
+          </FormLabel>
+        ) : (
+          <FormLabel
+            label="Seller email"
+            hint="We email them a one-shot link. The deal sits idle until they claim. Nothing funds before then."
+          >
+            <input
+              type="email"
+              value={counterpartyEmail}
+              onChange={(e) => setCounterpartyEmail(e.target.value)}
+              placeholder="them@work.com"
+              disabled={submitting || inviteUrl != null}
+              className="form-input"
+            />
+            {counterpartyEmail.length > 3 && !emailValid && (
+              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+                Not a valid email address.
+              </span>
+            )}
+          </FormLabel>
+        )}
+        {inviteUrl && (
+          <div
+            className="mt-4 space-y-3 p-4"
+            style={{
+              background: 'color-mix(in oklab, var(--lp-accent) 12%, transparent)',
+              border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              [:INVITE READY:]
+            </p>
+            <p className="text-[13px] leading-snug text-[var(--lp-dark)]">
+              Send this link to {counterpartyEmail.trim().toLowerCase()}. They open it, verify the
+              email is theirs, and the deal is bound to their wallet. Funding waits on the claim.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="text"
+                value={inviteUrl}
+                readOnly
+                className="form-input form-input-mono flex-1 min-w-0"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(inviteUrl);
+                    setInviteCopied(true);
+                    setTimeout(() => setInviteCopied(false), 1800);
+                  } catch {
+                    // ignore; the user can still select+copy from the input
+                  }
+                }}
+                className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors"
+                style={{
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                {inviteCopied ? 'Copied' : 'Copy link'}
+              </button>
+            </div>
+          </div>
+        )}
       </FieldSection>
 
       {/* TERMS */}
@@ -231,9 +358,9 @@ export function DirectDealForm() {
             />
           </FormLabel>
           <FormLabel
-            label="Deadline"
+            label="Deadline (optional)"
             unit={previewUnitLabel}
-            hint="When the seller must deliver by. Pick min, hr, or days. Max 180 days."
+            hint="When the seller must deliver by. Leave blank for open-ended (no time pressure, no unilateral cancel for late delivery). Max 180 days when set."
           >
             <div className="flex items-stretch gap-2">
               <input
@@ -281,6 +408,44 @@ export function DirectDealForm() {
               placeholder="0"
               className="form-input form-input-num"
             />
+          </FormLabel>
+          <FormLabel
+            label="Seller has to accept within"
+            hint="If they don't, the deal auto-expires with no reputation hit on either side. You're free to re-shop."
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  { label: '1 hr', value: 1 },
+                  { label: '6 hr', value: 6 },
+                  { label: '24 hr', value: 24 },
+                  { label: '3 d', value: 72 },
+                  { label: '7 d', value: 168 },
+                ] as const
+              ).map((opt) => {
+                const active = acceptanceHours === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setAcceptanceHours(opt.value)}
+                    className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: active ? 'var(--lp-dark)' : 'var(--lp-light)',
+                      color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
+                      border: '1px solid var(--lp-border-light)',
+                      borderTopLeftRadius: 7,
+                      borderTopRightRadius: 7,
+                      borderBottomLeftRadius: 7,
+                      borderBottomRightRadius: 2,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </FormLabel>
         </div>
       </FieldSection>

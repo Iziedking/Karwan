@@ -258,6 +258,40 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     }
   }
 
+  async function onRaiseDelayAppeal() {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.raiseDelayAppeal(jobId, address);
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRespondToDelayAppeal(reason: string) {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.respondToDelayAppeal(jobId, address, reason);
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onAppeal() {
     if (!address) return;
     setBusy(true);
@@ -504,7 +538,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 {deal.terms}
               </p>
               <p className="mt-4 pt-4 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                Deadline {relativeTime(deal.deadlineUnix * 1000)}
+                {deal.deadlineUnix
+                  ? `Deadline ${relativeTime(deal.deadlineUnix * 1000)}`
+                  : 'No delivery deadline'}
               </p>
             </div>
           </PageCard>
@@ -592,6 +628,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onStillReviewing={onStillReviewing}
               onAppeal={onAppeal}
               onCancel={onCancel}
+              onRaiseDelayAppeal={onRaiseDelayAppeal}
+              onRespondToDelayAppeal={onRespondToDelayAppeal}
             />
             {canPropose && (
               <div className="mt-5 pt-5 border-t border-white/[0.08]">
@@ -848,6 +886,8 @@ function ActionPanel({
   onStillReviewing,
   onAppeal,
   onCancel,
+  onRaiseDelayAppeal,
+  onRespondToDelayAppeal,
 }: {
   stage: DealStage;
   viewerIsBuyer: boolean;
@@ -864,6 +904,8 @@ function ActionPanel({
   onStillReviewing: () => void;
   onAppeal: () => void;
   onCancel: () => void;
+  onRaiseDelayAppeal: () => void;
+  onRespondToDelayAppeal: (reason: string) => void;
 }) {
   if (stage === 'settled') {
     return (
@@ -955,6 +997,7 @@ function ActionPanel({
             Review terms and the funding split. Accepting agrees to deliver on these terms and
             funds the escrow.
           </Body>
+          <AcceptanceCountdown deal={deal} now={now} viewerIsSeller />
           <div
             className="px-3 py-2 mono text-[11px] leading-snug"
             style={{
@@ -978,9 +1021,17 @@ function ActionPanel({
     return (
       <div className="space-y-4">
         <Body>
-          Waiting for the seller to accept. Nothing is funded yet. You can cancel anytime until
-          they accept.
+          {deal.pendingCounterparty
+            ? `Waiting for ${deal.pendingCounterparty.email} to claim the invite link. Nothing is funded yet.`
+            : 'Waiting for the seller to accept. Nothing is funded yet. You can cancel anytime until they accept.'}
         </Body>
+        {deal.pendingCounterparty && (
+          <PendingInviteCopy
+            token={deal.pendingCounterparty.inviteToken}
+            email={deal.pendingCounterparty.email}
+          />
+        )}
+        <AcceptanceCountdown deal={deal} now={now} viewerIsSeller={false} />
         <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
           {busy ? 'Working…' : 'Cancel deal'}
         </CTAPill>
@@ -1020,12 +1071,15 @@ function ActionPanel({
         </div>
       );
     }
-    const deadlinePassed = now > deal.deadlineUnix * 1000;
+    const hasDeadline = !!deal.deadlineUnix;
+    const deadlinePassed = hasDeadline && now > (deal.deadlineUnix as number) * 1000;
     return (
       <div className="space-y-4">
         <Body>
           Seller accepted. Waiting for delivery.
-          {!deadlinePassed && ' If they miss the deadline, you can cancel and reclaim funds.'}
+          {!hasDeadline &&
+            ' No delivery deadline was set on this deal, so the seller can deliver whenever. Propose a mutual cancellation or open an appeal if you need to call it off.'}
+          {hasDeadline && !deadlinePassed && ' If they miss the deadline, you can cancel and reclaim funds.'}
         </Body>
         {deadlinePassed && (
           <>
@@ -1100,19 +1154,19 @@ function ActionPanel({
   }
 
   const rest = 100 - firstPct;
-  const extensionMs = deal.reviewExtensionMs ?? 0;
-  const extensionCount = deal.reviewExtensionCount ?? 0;
-  const canExtend = extensionCount < MAX_REVIEW_EXTENSIONS;
-  const extensionMins = Math.round(REVIEW_EXTENSION_MS / 60000);
-  const windowEndsAt = deal.reviewWindowStartedAt
-    ? deal.reviewWindowStartedAt + windowMs + extensionMs
+  const delayGraceMs = deal.delayAppealGraceMs ?? 3_600_000;
+  const delayResponseMs = deal.delayAppealResponseWindowMs ?? 300_000;
+  const delayGraceEndsAt = deal.reviewWindowStartedAt
+    ? deal.reviewWindowStartedAt + delayGraceMs
     : null;
-  const msLeft = windowEndsAt ? windowEndsAt - now : 0;
-  const windowOpen = windowEndsAt != null && msLeft > 0;
-  const windowExpired = windowEndsAt != null && msLeft <= 0;
-  const baseWindowPassed = deal.reviewWindowStartedAt
-    ? now > deal.reviewWindowStartedAt + windowMs
-    : false;
+  const graceOpen = delayGraceEndsAt != null && now < delayGraceEndsAt;
+  const sellerCanAppeal = delayGraceEndsAt != null && now >= delayGraceEndsAt;
+  const appealOpen =
+    !!deal.delayAppealRaisedAt &&
+    (deal.delayAppealRaisedAt ?? 0) > (deal.delayAppealRespondedAt ?? 0);
+  const responseDeadline = appealOpen ? (deal.delayAppealRaisedAt ?? 0) + delayResponseMs : null;
+  const responseMsLeft = responseDeadline ? responseDeadline - now : 0;
+  const responseExpired = responseDeadline != null && responseMsLeft <= 0;
 
   if (viewerIsBuyer) {
     return (
@@ -1120,33 +1174,28 @@ function ActionPanel({
         <Body>
           First {firstPct}% released. Verify and release the remaining {rest}% to settle.
         </Body>
-        {windowOpen && (
+        {appealOpen && !responseExpired && (
+          <DelayAppealResponder
+            msLeft={responseMsLeft}
+            rest={rest}
+            busy={busy}
+            onRespond={onRespondToDelayAppeal}
+          />
+        )}
+        {appealOpen && responseExpired && (
           <WindowNote tone="warning">
-            Auto-releases the final {rest}% in{' '}
-            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you don&apos;t
-            act.
-            {canExtend
-              ? ` "Still reviewing" adds ${extensionMins} min.`
-              : ' All extensions used.'}
-            {extensionCount > 0 &&
-              ` (${extensionCount} extension${extensionCount > 1 ? 's' : ''} used)`}
+            Response window passed. The agent will auto-release the final {rest}% to the seller shortly.
           </WindowNote>
         )}
-        {windowExpired && (
+        {!appealOpen && (
           <WindowNote tone="muted">
-            Review window passed. The agent will auto-release the final {rest}% shortly unless
-            you release now.
+            Take your time. The final {rest}% never releases automatically. Click below to verify and release once you&apos;ve checked the work. If you stall too long the seller can raise a delay appeal.
           </WindowNote>
         )}
         <div className="flex flex-wrap gap-2">
           <CTAPill disabled={busy} onClick={onRelease}>
             {busy ? 'Confirming on Arc…' : `Verify & release final ${rest}%`}
           </CTAPill>
-          {windowOpen && canExtend && (
-            <CTAPill variant="secondary" tone="dark" onClick={onStillReviewing} disabled={busy}>
-              Still reviewing (+{extensionMins} min)
-            </CTAPill>
-          )}
           <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
             Appeal this deal
           </CTAPill>
@@ -1161,25 +1210,170 @@ function ActionPanel({
         First {firstPct}% released. Waiting for the buyer to verify and release the final{' '}
         {rest}%.
       </Body>
-      {windowOpen && !baseWindowPassed && (
-        <WindowNote tone="muted">
-          Buyer window:{' '}
-          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left.
+      {appealOpen && !responseExpired && (
+        <WindowNote tone="warning">
+          Delay appeal raised. Buyer has{' '}
+          <span className="mono font-semibold">{fmtCountdown(responseMsLeft)}</span> to respond. If they
+          don&apos;t, the final {rest}% auto-releases to you.
         </WindowNote>
       )}
-      {baseWindowPassed && (
-        <div className="space-y-3">
-          <WindowNote tone="warning">
-            {windowExpired
-              ? `Review window passed. The agent will auto-release the final ${rest}% to you shortly.`
-              : `Buyer extended the window (${fmtCountdown(msLeft)} left). Wait or appeal to move to dispute.`}
+      {appealOpen && responseExpired && (
+        <WindowNote tone="warning">
+          Response window passed. The agent will release the final {rest}% to you shortly.
+        </WindowNote>
+      )}
+      {!appealOpen && deal.delayAppealRespondedAt && deal.delayAppealResponse && (
+        <div className="space-y-2">
+          <WindowNote tone="muted">
+            Buyer responded to your last delay appeal:
           </WindowNote>
+          <p className="text-[13px] leading-relaxed text-white/75 px-3 py-2.5 border border-white/[0.08] rounded-[4px]">
+            “{deal.delayAppealResponse}”
+          </p>
+        </div>
+      )}
+      {!appealOpen && graceOpen && delayGraceEndsAt != null && (
+        <WindowNote tone="muted">
+          Buyer is reviewing. You can raise a delay appeal in{' '}
+          <span className="mono font-semibold">{fmtCountdown(delayGraceEndsAt - now)}</span> if they
+          don&apos;t release.
+        </WindowNote>
+      )}
+      {!appealOpen && sellerCanAppeal && (
+        <div className="flex flex-wrap gap-2">
+          <CTAPill onClick={onRaiseDelayAppeal} disabled={busy}>
+            {busy ? 'Submitting…' : 'Raise delay appeal'}
+          </CTAPill>
           <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
-            Appeal this deal
+            Open dispute instead
           </CTAPill>
         </div>
       )}
     </div>
+  );
+}
+
+function DelayAppealResponder({
+  msLeft,
+  rest,
+  busy,
+  onRespond,
+}: {
+  msLeft: number;
+  rest: number;
+  busy: boolean;
+  onRespond: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const canSubmit = reason.trim().length > 0 && !busy;
+  return (
+    <div className="space-y-3 p-4 border border-[rgba(239,127,99,0.35)]" style={{ background: 'rgba(239,127,99,0.08)', borderRadius: 4 }}>
+      <div className="space-y-1">
+        <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: '#ef7f63' }}>
+          [:SELLER RAISED A DELAY APPEAL:]
+        </p>
+        <p className="text-[13px] leading-relaxed text-white/85">
+          Reply with a reason in{' '}
+          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> or the final {rest}% releases automatically.
+        </p>
+      </div>
+      <textarea
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Why are you still reviewing? Be specific."
+        rows={3}
+        className="w-full bg-black/30 border border-white/[0.12] rounded-[3px] px-3 py-2 text-[13px] text-white placeholder:text-white/35 focus:outline-none focus:border-[rgba(239,127,99,0.6)]"
+      />
+      <CTAPill onClick={() => onRespond(reason.trim())} disabled={!canSubmit}>
+        {busy ? 'Submitting…' : 'Respond to appeal'}
+      </CTAPill>
+    </div>
+  );
+}
+
+function PendingInviteCopy({ token, email }: { token: string; email: string }) {
+  const [copied, setCopied] = useState(false);
+  const inviteUrl =
+    typeof window !== 'undefined' ? `${window.location.origin}/invite/${token}` : `/invite/${token}`;
+  return (
+    <div
+      className="space-y-2 p-3"
+      style={{
+        background: 'rgba(175, 201, 91, 0.10)',
+        border: '1px solid rgba(175, 201, 91, 0.30)',
+        borderRadius: 4,
+      }}
+    >
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+        [:SHARE THE INVITE:]
+      </p>
+      <p className="text-[12.5px] leading-snug text-white/75">
+        Send {email} this link. They open it, verify the email, and the deal binds to their wallet.
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          type="text"
+          value={inviteUrl}
+          readOnly
+          className="flex-1 min-w-0 bg-black/30 border border-white/[0.12] rounded-[3px] px-2.5 py-1.5 text-[12px] mono text-white"
+          onFocus={(e) => e.currentTarget.select()}
+        />
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(inviteUrl);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1800);
+            } catch {
+              // user can still select+copy manually
+            }
+          }}
+          className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+          style={{
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 2,
+          }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AcceptanceCountdown({
+  deal,
+  now,
+  viewerIsSeller,
+}: {
+  deal: DirectDeal;
+  now: number;
+  viewerIsSeller: boolean;
+}) {
+  if (!deal.acceptanceDeadlineUnix) return null;
+  const deadlineMs = deal.acceptanceDeadlineUnix * 1000;
+  const msLeft = deadlineMs - now;
+  const open = msLeft > 0;
+  if (open) {
+    return (
+      <WindowNote tone="warning">
+        {viewerIsSeller
+          ? 'You have'
+          : "Seller's window:"}{' '}
+        <span className="mono font-semibold">{fmtCountdown(msLeft)}</span>{' '}
+        {viewerIsSeller
+          ? 'to accept before the deal auto-expires.'
+          : 'before the deal auto-expires (pre-accept, no rep hit).'}
+      </WindowNote>
+    );
+  }
+  return (
+    <WindowNote tone="muted">
+      Acceptance window passed. The agent will mark this deal cancelled (pre-accept) on the next tick.
+    </WindowNote>
   );
 }
 

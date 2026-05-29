@@ -8,6 +8,7 @@ import { SiteFooter } from '@/shared/components/SiteFooter';
 import { AppProviders } from '@/shared/components/AppProviders';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
 import { GuideWelcome } from '@/shared/guide/GuideWelcome';
+import { TermsModal } from '@/shared/components/TermsModal';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
@@ -49,7 +50,7 @@ const generalSans = localFont({
 const SITE_URL = 'https://karwan.site';
 const TITLE = 'Karwan · cross-border SME settlement';
 const DESCRIPTION =
-  'Agent-mediated, USDC-settled, milestone-escrowed deals on Arc. Built on Circle. For the MEASA corridor.';
+  'Agent-mediated, USDC-settled, milestone-escrowed deals on Arc. Built on Circle.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -96,6 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <SiteFooter />
             <NotificationToasts />
             <GuideWelcome />
+            <TermsModal />
           </div>
         </AppProviders>
         <SpeedInsights />

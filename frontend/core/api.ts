@@ -195,7 +195,10 @@ export interface DirectDeal {
   seller: string;
   dealAmountUsdc: string;
   firstReleasePct: number;
-  deadlineUnix: number;
+  /// Optional delivery deadline (unix seconds). When unset, the deal is
+  /// open-ended: seller has no time pressure and the buyer can't unilateral
+  /// cancel; only mutual cancel or appeal.
+  deadlineUnix?: number;
   terms: string;
   acceptedAt?: number;
   delivered: boolean;
@@ -217,6 +220,32 @@ export interface DirectDeal {
     proposedAt: number;
   };
   autoReleasedAt?: number;
+  /// Acceptance window cutoff (unix seconds). When the seller hasn't accepted
+  /// by this point, the watcher auto-cancels with cancelKind 'pre-accept' and
+  /// no reputation hit. UI shows a countdown on the awaiting-acceptance stage.
+  acceptanceDeadlineUnix?: number;
+  /// Counterparty was invited by email and hasn't claimed the link yet. While
+  /// this is set, the deal's seller (or buyer for inbound) is a sentinel and
+  /// no on-chain funding has moved. The inviter sees a "share invite" CTA.
+  pendingCounterparty?: {
+    email: string;
+    role: 'buyer' | 'seller';
+    inviteToken: string;
+  };
+  /// Seller raised a delay appeal. If `delayAppealRespondedAt` is older, the
+  /// appeal is OPEN and the buyer must respond before
+  /// delayAppealRaisedAt + delayAppealResponseWindowMs or the final 50%
+  /// auto-releases. Once responded, the seller can re-raise later.
+  delayAppealRaisedAt?: number;
+  delayAppealRespondedAt?: number;
+  delayAppealResponse?: string;
+  delayAppealCount?: number;
+  /// Response window in ms surfaced by the backend so the UI can render the
+  /// countdown without hard-coding the env value.
+  delayAppealResponseWindowMs?: number;
+  /// Grace ms until the seller becomes eligible to raise a delay appeal after
+  /// the first milestone is released. Surfaced by the backend.
+  delayAppealGraceMs?: number;
   settledAt?: number;
   fundTxHash?: string;
   createdAt: number;
@@ -959,16 +988,58 @@ export const api = {
     }),
   createDirectDeal: (body: {
     buyerAddress: string;
-    sellerAddress: string;
+    /// Exactly one of sellerAddress (wallet mode) or sellerEmail (share-link
+    /// mode). Email mode mints a one-shot invite token, returns { invite: { url } }
+    /// in the response, and leaves the deal's seller as a sentinel until claim.
+    sellerAddress?: string;
+    sellerEmail?: string;
     dealAmountUsdc: number;
     deadlineDays: number;
     deadlineHours?: number;
+    acceptanceWindowHours?: number;
     terms: string;
     firstReleasePct: number;
   }) =>
-    json<{ deal: DirectDeal; funding: DirectDealFunding }>('/api/deals/direct', {
+    json<{
+      deal: DirectDeal;
+      funding: DirectDealFunding;
+      invite?: { url: string; email: string };
+    }>('/api/deals/direct', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+  getDealInvite: (token: string) =>
+    json<{
+      invite: {
+        token: string;
+        jobId: string;
+        role: 'buyer' | 'seller';
+        email: string;
+        expiresAt: number;
+      };
+      deal: {
+        jobId: string;
+        dealAmountUsdc: string;
+        firstReleasePct: number;
+        terms: string;
+        deadlineUnix?: number;
+        acceptanceDeadlineUnix?: number;
+        inviterMasked: string;
+      };
+    }>(`/api/deals/invite/${token}`),
+  claimDealInvite: (token: string) =>
+    json<{ ok: true; jobId: string; redirectTo: string }>(
+      `/api/deals/invite/${token}/claim`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  termsStatus: (address?: string | null) =>
+    json<{ currentVersion: number; acceptedVersion: number | null }>(
+      `/api/terms/status${address ? `?address=${address}` : ''}`,
+    ),
+  acceptTerms: (version: number) =>
+    json<{ ok: true; version: number }>(`/api/terms/accept`, {
+      method: 'POST',
+      body: JSON.stringify({ version }),
     }),
   directDeals: (address: string) =>
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
@@ -991,6 +1062,16 @@ export const api = {
     json<{ accepted: boolean; jobId: string; txHash: string; settled: boolean }>(
       `/api/deals/direct/${jobId}/release`,
       { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  raiseDelayAppeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; raisedAt: number; responseWindowMs: number }>(
+      `/api/deals/direct/${jobId}/delay-appeal`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  respondToDelayAppeal: (jobId: string, caller: string, reason: string) =>
+    json<{ accepted: boolean; jobId: string; respondedAt: number }>(
+      `/api/deals/direct/${jobId}/delay-appeal-respond`,
+      { method: 'POST', body: JSON.stringify({ caller, reason }) },
     ),
   stillReviewing: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(

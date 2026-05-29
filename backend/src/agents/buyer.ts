@@ -1078,7 +1078,33 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
     await issueCounter(state, next);
     return;
   }
-  // Their bid is outside the effective cap. Skip and try the next.
+  // Their bid is outside the effective cap. Before walking, raise a
+  // near-miss so the buyer can stretch if the gap is small. Confirmed-topical
+  // because the cascade already promoted this candidate as a real match.
+  try {
+    const raised = await maybeRaiseNearMiss({
+      jobId: state.jobId,
+      buyerAgent: state.buyer.address,
+      sellerAgent: next.seller,
+      deadlineUnix: state.context.deadlineUnix,
+      buyerCeilingUsdc: effectiveCap,
+      sellerFloorUsdc: nextPrice,
+      confirmedTopical: true,
+    });
+    if (raised) {
+      state.finalized = true;
+      logger.info(
+        { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, effectiveCap },
+        'next candidate priced above cap; near-miss raised, awaiting human',
+      );
+      return;
+    }
+  } catch (err) {
+    logger.warn(
+      { jobId: state.jobId, err: (err as Error).message },
+      'cascade near-miss raise failed; falling through to next candidate',
+    );
+  }
   logger.info(
     { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, effectiveCap },
     'next candidate priced above effective cap, skipping to next',
@@ -1319,6 +1345,20 @@ async function handleCounterResponse(log: Log) {
   logger.info({ jobId: state.jobId, seller: args.seller, decision }, 'counter-response evaluated');
 
   if (decision.confidence < buyer.confidenceThreshold) {
+    const sellerOfferLowConf = Number(sellerCounterPrice);
+    if (
+      Number.isFinite(sellerOfferLowConf) &&
+      sellerOfferLowConf > 0 &&
+      sellerOfferLowConf <= effectiveMaxAcceptable
+    ) {
+      logger.info(
+        { jobId: state.jobId, seller: args.seller, sellerOffer: sellerOfferLowConf, ceiling: effectiveMaxAcceptable },
+        'tolerance override: low LLM confidence but seller offer is within ceiling, accepting',
+      );
+      const originatingBid = state.bids.get(args.seller);
+      await proposeMatch(state, args.seller, sellerCounterPrice, originatingBid?.pattern);
+      return;
+    }
     logger.info({ jobId: state.jobId }, 'low confidence, trying next candidate');
     await tryNextCandidate(state, args.seller, 'low-confidence');
     return;
@@ -1330,19 +1370,64 @@ async function handleCounterResponse(log: Log) {
     return;
   }
 
+  const sellerOfferN = Number(sellerCounterPrice);
+  const rounds = state.counterRoundsBySeller.get(args.seller) ?? 0;
+  // Tolerance is authoritative. The buyer explicitly signed up to pay up to
+  // effectiveMaxAcceptable; the LLM picks tone within that band but cannot
+  // walk away inside it. Catches LLM-decline AND max-counter-rounds, both
+  // of which used to lose deals like 51.21 vs a 55 ceiling.
+  const inToleranceBand =
+    Number.isFinite(sellerOfferN) &&
+    sellerOfferN <= effectiveMaxAcceptable &&
+    sellerOfferN > 0;
+
   if (decision.decision === 'decline') {
+    if (inToleranceBand) {
+      logger.info(
+        { jobId: state.jobId, seller: args.seller, sellerOffer: sellerOfferN, ceiling: effectiveMaxAcceptable },
+        'tolerance override: LLM declined but seller offer is within ceiling, accepting',
+      );
+      const originatingBid = state.bids.get(args.seller);
+      await proposeMatch(state, args.seller, sellerCounterPrice, originatingBid?.pattern);
+      return;
+    }
+    // Seller's counter is ABOVE ceiling but the gap may still be a near-miss.
+    // Raise it to the human before walking. Confirmed-topical because we
+    // already engaged with rounds of negotiation against this seller.
+    try {
+      const raised = await maybeRaiseNearMiss({
+        jobId: state.jobId,
+        buyerAgent: state.buyer.address,
+        sellerAgent: args.seller,
+        deadlineUnix: state.context.deadlineUnix,
+        buyerCeilingUsdc: effectiveMaxAcceptable,
+        sellerFloorUsdc: sellerOfferN,
+        confirmedTopical: true,
+      });
+      if (raised) {
+        state.finalized = true;
+        logger.info(
+          { jobId: state.jobId, seller: args.seller, sellerOffer: sellerOfferN, ceiling: effectiveMaxAcceptable },
+          'LLM declined and seller offer above ceiling; near-miss raised, awaiting human',
+        );
+        return;
+      }
+    } catch (err) {
+      logger.warn(
+        { jobId: state.jobId, err: (err as Error).message },
+        'mid-walk near-miss raise failed; falling through to decline',
+      );
+    }
     logger.info({ jobId: state.jobId }, 'declined seller counter, trying next candidate');
     await tryNextCandidate(state, args.seller, 'llm-decline');
     return;
   }
 
-  const rounds = state.counterRoundsBySeller.get(args.seller) ?? 0;
   // Final-round acceptance: if the buyer is about to hit the round cap AND
   // the seller's offer is inside the effective ceiling, accept rather than
   // walk away over a single round. Mirrors how a human in the last seat at
   // the negotiating table would close instead of restart.
   if (rounds >= buyer.maxCounterRounds - 1) {
-    const sellerOfferN = Number(sellerCounterPrice);
     if (
       shouldAcceptOnFinalRound({
         role: 'buyer',
@@ -1363,6 +1448,15 @@ async function handleCounterResponse(log: Log) {
     }
   }
   if (rounds >= buyer.maxCounterRounds) {
+    if (inToleranceBand) {
+      logger.info(
+        { jobId: state.jobId, rounds, sellerOffer: sellerOfferN, ceiling: effectiveMaxAcceptable },
+        'tolerance override: rounds exhausted but seller offer is within ceiling, accepting',
+      );
+      const originatingBid = state.bids.get(args.seller);
+      await proposeMatch(state, args.seller, sellerCounterPrice, originatingBid?.pattern);
+      return;
+    }
     logger.info({ jobId: state.jobId, rounds }, 'max counter rounds reached, trying next candidate');
     await tryNextCandidate(state, args.seller, 'max-counter-rounds');
     return;

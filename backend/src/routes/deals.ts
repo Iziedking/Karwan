@@ -39,11 +39,12 @@ import {
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getBrief } from '../db/briefs.js';
+import { createInvite, getInvite, markInviteUsed } from '../db/dealInvites.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
-import { sessionMismatchesClaim, viewerAddress } from '../auth/session.js';
+import { sessionMismatchesClaim, viewerAddress, readSession } from '../auth/session.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -52,23 +53,44 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
+/// Sentinel address recorded in `deal.seller` when the counterparty was
+/// invited by email and has not yet claimed the link. The real address replaces
+/// this on claim. Any route that acts on the seller must check
+/// `pendingCounterparty` first and refuse to act while it is set.
+const PENDING_COUNTERPARTY_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+
 const createSchema = z
   .object({
     buyerAddress: addrSchema,
-    sellerAddress: addrSchema,
+    /// Either a wallet address (existing flow) OR an email (new share-link
+    /// flow). Exactly one. Email mode creates a pending invite and returns a
+    /// shareable URL; no escrow funding happens before the recipient claims.
+    sellerAddress: addrSchema.optional(),
+    sellerEmail: z.string().email().toLowerCase().optional(),
     dealAmountUsdc: z.number().positive(),
-    // Either deadlineDays alone OR deadlineDays + deadlineHours. Hours add
-    // sub-day granularity for tight deadlines (eg "deliver in 6 hours") and
-    // for verification windows on hour-sized work. Total must land between
+    // Optional delivery deadline. When omitted (or both fields = 0) the deal
+    // is open-ended — the seller has no time pressure and the buyer can't
+    // unilateral-cancel for late delivery. When set, total must land between
     // 1 hour and 180 days.
-    deadlineDays: z.number().int().min(0).max(180),
+    deadlineDays: z.number().int().min(0).max(180).optional().default(0),
     deadlineHours: z.number().int().min(0).max(23).optional().default(0),
+    // Acceptance window in hours. How long the seller has to accept this deal
+    // before it auto-expires and the buyer is freed up to re-shop. Default 24h
+    // matches what a human asking "can you take this?" would realistically wait.
+    acceptanceWindowHours: z.number().int().min(1).max(720).optional().default(24),
     terms: z.string().min(1).max(600),
     firstReleasePct: z.number().int().min(1).max(99),
   })
   .refine(
-    (b) => b.deadlineDays * 24 + (b.deadlineHours ?? 0) >= 1,
-    { message: 'deadline must be at least 1 hour', path: ['deadlineHours'] },
+    (b) =>
+      // Either both zero (open-ended) or at least 1 hour total.
+      (b.deadlineDays === 0 && (b.deadlineHours ?? 0) === 0) ||
+      b.deadlineDays * 24 + (b.deadlineHours ?? 0) >= 1,
+    { message: 'when set, deadline must be at least 1 hour', path: ['deadlineHours'] },
+  )
+  .refine(
+    (b) => !!b.sellerAddress !== !!b.sellerEmail,
+    { message: 'provide exactly one of sellerAddress or sellerEmail', path: ['sellerAddress'] },
   );
 
 const callerSchema = z.object({ caller: addrSchema });
@@ -95,7 +117,10 @@ dealsRoutes.post('/direct', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (body.buyerAddress.toLowerCase() === body.sellerAddress.toLowerCase()) {
+  if (
+    body.sellerAddress &&
+    body.buyerAddress.toLowerCase() === body.sellerAddress.toLowerCase()
+  ) {
     return c.json({ error: 'buyer and seller must be different wallets' }, 400);
   }
   // Only the buyer can open a deal as themselves.
@@ -116,18 +141,49 @@ dealsRoutes.post('/direct', async (c) => {
   const { fundedAmount, sellerNet, feeTotal } = computeFunding(dealAmountWei, feeBps);
 
   const totalSeconds = body.deadlineDays * 86400 + (body.deadlineHours ?? 0) * 3600;
-  const deadlineUnix = Math.floor(Date.now() / 1000) + totalSeconds;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const deadlineUnix = totalSeconds > 0 ? nowSeconds + totalSeconds : undefined;
+  const acceptanceDeadlineUnix = nowSeconds + body.acceptanceWindowHours * 3600;
+
+  // Email mode: mint a single-use invite token. The deal records the sentinel
+  // pending address; the recipient binds the real one when they claim. Funding
+  // and on-chain escrow never move before the bind, so the buyer isn't on the
+  // hook during the wait.
+  let inviteUrl: string | undefined;
+  let pendingCounterparty: DirectDeal['pendingCounterparty'] | undefined;
+  if (body.sellerEmail) {
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
+    createInvite({
+      token,
+      jobId,
+      role: 'seller',
+      email: body.sellerEmail,
+      expiresAt,
+    });
+    pendingCounterparty = {
+      email: body.sellerEmail,
+      role: 'seller',
+      inviteToken: token,
+    };
+    const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
+    inviteUrl = `${base}/invite/${token}`;
+  }
+
+  const sellerAddress = body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS;
   const deal = await createDeal({
     jobId,
     buyer: body.buyerAddress,
-    seller: body.sellerAddress,
+    seller: sellerAddress,
     buyerAgentWalletId: buyerAgents.buyerWalletId,
     buyerAgentAddress: buyerAgents.buyerAddress,
     dealAmountUsdc: body.dealAmountUsdc.toString(),
     firstReleasePct: body.firstReleasePct,
     deadlineUnix,
+    acceptanceDeadlineUnix,
     terms: body.terms,
     origin: 'direct',
+    pendingCounterparty,
   });
 
   bus.emitEvent({
@@ -136,14 +192,27 @@ dealsRoutes.post('/direct', async (c) => {
     actor: 'buyer',
     payload: {
       buyer: body.buyerAddress,
-      seller: body.sellerAddress,
+      seller: sellerAddress,
       dealAmountUsdc: body.dealAmountUsdc.toString(),
       firstReleasePct: body.firstReleasePct,
+      ...(pendingCounterparty ? { invitedEmail: pendingCounterparty.email } : {}),
     },
   });
+  if (pendingCounterparty) {
+    bus.emitEvent({
+      type: 'deal.invite.created',
+      jobId,
+      actor: 'buyer',
+      payload: {
+        buyer: body.buyerAddress,
+        invitedEmail: pendingCounterparty.email,
+        expiresAt: Date.now() + config.DEAL_INVITE_TTL_MS,
+      },
+    });
+  }
 
   logger.info(
-    { jobId, buyer: body.buyerAddress, seller: body.sellerAddress },
+    { jobId, buyer: body.buyerAddress, seller: sellerAddress, invited: !!body.sellerEmail },
     'direct deal created, awaiting seller',
   );
   return c.json(
@@ -155,9 +224,117 @@ dealsRoutes.post('/direct', async (c) => {
         sellerNetUsdc: formatUnits(sellerNet, USDC_DECIMALS),
         feeTotalUsdc: formatUnits(feeTotal, USDC_DECIMALS),
       },
+      ...(inviteUrl ? { invite: { url: inviteUrl, email: body.sellerEmail } } : {}),
     },
     200,
   );
+});
+
+/// Public summary of a pending invite. Returns the deal terms in a form safe
+/// to show a logged-out recipient (amount, terms, deadline, the invited email,
+/// the inviter's masked address). The recipient uses this to decide whether
+/// to claim. Returns 404 for unknown tokens, 410 for expired invites, and a
+/// "ready to claim" payload otherwise.
+dealsRoutes.get('/invite/:token', async (c) => {
+  const token = c.req.param('token');
+  const invite = getInvite(token);
+  if (!invite) return c.json({ error: 'invite not found' }, 404);
+  if (invite.usedAt) {
+    return c.json(
+      { error: 'invite already claimed', code: 'CLAIMED', jobId: invite.jobId },
+      410,
+    );
+  }
+  if (invite.expiresAt < Date.now()) {
+    return c.json({ error: 'invite expired', code: 'EXPIRED' }, 410);
+  }
+  const deal = await getDeal(invite.jobId);
+  if (!deal) return c.json({ error: 'underlying deal vanished' }, 404);
+
+  const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
+  return c.json({
+    invite: {
+      token: invite.token,
+      jobId: invite.jobId,
+      role: invite.role,
+      email: invite.email,
+      expiresAt: invite.expiresAt,
+    },
+    deal: {
+      jobId: deal.jobId,
+      dealAmountUsdc: deal.dealAmountUsdc,
+      firstReleasePct: deal.firstReleasePct,
+      terms: deal.terms,
+      deadlineUnix: deal.deadlineUnix,
+      acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix,
+      inviterMasked: maskedInviter,
+    },
+  });
+});
+
+/// Recipient claims the invite. Requires an authenticated session whose email
+/// matches the invite (the recipient ran the standard /api/auth/otp flow on
+/// the invited address right before this). On success the deal's seller (or
+/// buyer for inbound invites) is bound to the session's identity wallet and
+/// the rest of the flow continues normally on /deals/[jobId].
+dealsRoutes.post('/invite/:token/claim', async (c) => {
+  const token = c.req.param('token');
+  const invite = getInvite(token);
+  if (!invite) return c.json({ error: 'invite not found' }, 404);
+  if (invite.usedAt) {
+    return c.json(
+      { error: 'invite already claimed', code: 'CLAIMED', jobId: invite.jobId },
+      410,
+    );
+  }
+  if (invite.expiresAt < Date.now()) {
+    return c.json({ error: 'invite expired', code: 'EXPIRED' }, 410);
+  }
+  const session = readSession(c);
+  if (!session) {
+    return c.json(
+      { error: 'sign in with the invited email before claiming', code: 'NO_SESSION' },
+      401,
+    );
+  }
+  if (!session.email || session.email.toLowerCase() !== invite.email) {
+    return c.json(
+      { error: 'session email does not match the invited address', code: 'EMAIL_MISMATCH' },
+      403,
+    );
+  }
+  const deal = await getDeal(invite.jobId);
+  if (!deal) return c.json({ error: 'underlying deal vanished' }, 404);
+  if (session.address.toLowerCase() === deal.buyer) {
+    return c.json({ error: 'inviter cannot also be the counterparty' }, 409);
+  }
+
+  const patch: Partial<DirectDeal> = invite.role === 'seller'
+    ? { seller: session.address.toLowerCase() }
+    : { buyer: session.address.toLowerCase() };
+  // Clear pendingCounterparty by patching to undefined; the persistence layer
+  // strips undefined values so the field drops out cleanly.
+  await patchDeal(invite.jobId, {
+    ...patch,
+    pendingCounterparty: undefined,
+  });
+  markInviteUsed(token, session.address);
+  bus.emitEvent({
+    type: 'deal.invite.claimed',
+    jobId: invite.jobId,
+    actor: invite.role,
+    payload: {
+      buyer: deal.buyer,
+      seller: invite.role === 'seller' ? session.address.toLowerCase() : deal.seller,
+      claimerEmail: invite.email,
+      claimerAddress: session.address.toLowerCase(),
+    },
+  });
+  logger.info(
+    { jobId: invite.jobId, email: invite.email, address: session.address },
+    'invite claimed, deal counterparty bound',
+  );
+  return c.json({ ok: true, jobId: invite.jobId, redirectTo: `/deals/${invite.jobId}` });
 });
 
 /// Public feed of SETTLED deals only, newest first, enriched + redacted (masked
@@ -816,6 +993,130 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   return c.json({ accepted: true, jobId, reviewExtensionMs }, 200);
 });
 
+/// Seller raises a delay appeal when the buyer is sitting on the final
+/// release without acting. Off-chain only — the on-chain escrow stays
+/// Accepted. The buyer has DEAL_DELAY_APPEAL_RESPONSE_MS to click respond,
+/// otherwise the watcher auto-releases the final milestone.
+dealsRoutes.post('/direct/:jobId/delay-appeal', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.seller) {
+    return c.json({ error: 'only the seller can raise a delay appeal' }, 403);
+  }
+  if (!deal.reviewWindowStartedAt) {
+    return c.json({ error: 'first milestone has not been released yet; nothing to appeal' }, 409);
+  }
+  if (deal.settledAt) {
+    return c.json({ error: 'deal already settled' }, 409);
+  }
+  if (deal.disputed || deal.cancelledAt) {
+    return c.json({ error: 'deal is disputed or cancelled' }, 409);
+  }
+  // Outstanding (un-responded) appeal already raised: refuse so the seller
+  // can't spam the buyer's response window.
+  const lastRaised = deal.delayAppealRaisedAt ?? 0;
+  const lastResponded = deal.delayAppealRespondedAt ?? 0;
+  if (lastRaised > lastResponded) {
+    return c.json({ error: 'a delay appeal is already open; wait for the buyer to respond' }, 409);
+  }
+  const now = Date.now();
+  if (now < deal.reviewWindowStartedAt + config.DEAL_DELAY_APPEAL_GRACE_MS) {
+    const remaining = deal.reviewWindowStartedAt + config.DEAL_DELAY_APPEAL_GRACE_MS - now;
+    return c.json(
+      {
+        error: 'too early to raise a delay appeal; give the buyer the grace period first',
+        code: 'GRACE_PERIOD',
+        msUntilEligible: remaining,
+      },
+      409,
+    );
+  }
+
+  await patchDeal(jobId, {
+    delayAppealRaisedAt: now,
+    delayAppealCount: (deal.delayAppealCount ?? 0) + 1,
+  });
+  bus.emitEvent({
+    type: 'deal.delay.appealed',
+    jobId,
+    actor: 'seller',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      responseWindowMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS,
+      raisedAt: now,
+    },
+  });
+  return c.json({ accepted: true, jobId, raisedAt: now, responseWindowMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS }, 200);
+});
+
+/// Buyer responds to the seller's delay appeal with a reason. Closes the
+/// pending response window; the buyer keeps the manual-release gate. Seller
+/// can raise another appeal later if the buyer still doesn't release.
+dealsRoutes.post('/direct/:jobId/delay-appeal-respond', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = z
+      .object({
+        caller: addrSchema,
+        reason: z.string().trim().min(1).max(600),
+      })
+      .parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.buyer) {
+    return c.json({ error: 'only the buyer can respond to a delay appeal' }, 403);
+  }
+  const lastRaised = deal.delayAppealRaisedAt ?? 0;
+  const lastResponded = deal.delayAppealRespondedAt ?? 0;
+  if (lastRaised <= lastResponded) {
+    return c.json({ error: 'no open delay appeal to respond to' }, 409);
+  }
+  const now = Date.now();
+  if (now > lastRaised + config.DEAL_DELAY_APPEAL_RESPONSE_MS) {
+    return c.json(
+      { error: 'response window already passed; the agent has likely auto-released by now', code: 'WINDOW_PASSED' },
+      409,
+    );
+  }
+
+  await patchDeal(jobId, {
+    delayAppealRespondedAt: now,
+    delayAppealResponse: body.reason,
+  });
+  bus.emitEvent({
+    type: 'deal.delay.responded',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      respondedAt: now,
+      reason: body.reason,
+    },
+  });
+  return c.json({ accepted: true, jobId, respondedAt: now }, 200);
+});
+
 /// Either party appeals: moves the on-chain escrow to Disputed and freezes
 /// movement until both sides reach consensus (via the mutual-cancel propose
 /// flow). The contract's dispute() accepts either buyer or seller as caller,
@@ -966,8 +1267,19 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     return c.json({ accepted: true, jobId }, 200);
   }
 
-  // Once accepted and funded, cancel is gated on the deadline passing without
-  // delivery, and reclaims the escrow on chain.
+  // Once accepted and funded, unilateral cancel is gated on a delivery
+  // deadline passing without delivery. Open-ended deals (no deadline set)
+  // have no unilateral cancel path — only mutual cancel or appeal.
+  if (!deal.deadlineUnix) {
+    return c.json(
+      {
+        error:
+          'this deal has no delivery deadline, so unilateral cancel is not available. Propose a mutual cancellation or open a dispute appeal instead.',
+        code: 'NO_DEADLINE',
+      },
+      409,
+    );
+  }
   if (Date.now() < deal.deadlineUnix * 1000) {
     return c.json({ error: 'the deadline has not passed yet' }, 409);
   }
@@ -1311,7 +1623,12 @@ function redactDeal(d: EnrichedDeal): EnrichedDeal {
 }
 
 async function enrich(deal: DirectDeal) {
-  const base = { ...deal, reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS };
+  const base = {
+    ...deal,
+    reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
+    delayAppealResponseWindowMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS,
+    delayAppealGraceMs: config.DEAL_DELAY_APPEAL_GRACE_MS,
+  };
   // No escrow exists on chain until the seller accepts.
   if (!deal.acceptedAt) return { ...base, onChain: null };
   try {

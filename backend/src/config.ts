@@ -114,6 +114,21 @@ const envSchema = z.object({
   DEAL_REVIEW_EXTENSION_MS: z.coerce.number().int().positive().default(600_000),
   // Most times the buyer can extend the final-release window.
   DEAL_MAX_REVIEW_EXTENSIONS: z.coerce.number().int().positive().default(3),
+  // Shareable invite-link TTL. The recipient has this long to claim the link
+  // before it expires. 7 days default matches a normal "I'll get to it" cadence.
+  DEAL_INVITE_TTL_MS: z.coerce.number().int().positive().default(7 * 86_400_000),
+  // Current Terms and Conditions version. Bumping this re-prompts every user
+  // on next protected action; their previous acceptance row stays for audit.
+  // Bump the integer when docs/terms-and-conditions.md changes materially.
+  TERMS_CURRENT_VERSION: z.coerce.number().int().positive().default(1),
+  // Delay-appeal grace: how long after the first milestone is released before
+  // the seller can raise a delay appeal. Gives the buyer a normal review
+  // window before any pressure. 1 hour default; longer on mainnet.
+  DEAL_DELAY_APPEAL_GRACE_MS: z.coerce.number().int().positive().default(3_600_000),
+  // Delay-appeal response window: once the seller raises a delay appeal, the
+  // buyer has this long to respond with a reason. Silence triggers final
+  // auto-release. 5 min demo default.
+  DEAL_DELAY_APPEAL_RESPONSE_MS: z.coerce.number().int().positive().default(300_000),
 
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,
