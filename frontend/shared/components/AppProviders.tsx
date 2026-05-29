@@ -7,6 +7,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { wagmiConfig } from '@/core/wagmi';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
+import { SiweGate } from '@/shared/components/SiweGate';
 
 type Mode = 'light' | 'dark';
 
@@ -43,6 +44,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
+            <SiweGate />
             <GuideProvider>{children}</GuideProvider>
           </RainbowKitProvider>
         </QueryClientProvider>

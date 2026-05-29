@@ -99,14 +99,17 @@ export function useAuth(): AuthState & {
     // keyed per account address, so a different account that signs in next won't
     // see it, and the same account that returns keeps its read/unread state.
     // (Account deletion purges it explicitly — see SettingsBand.)
-    if (circle) {
-      try {
-        await api.authLogout();
-      } catch {
-        /* clear local state regardless */
-      }
-      setCircle(null);
+    //
+    // Clear the backend session cookie regardless of method. Both Circle users
+    // and post-SIWE web3 users carry a karwan_session cookie; if we only call
+    // logout for Circle, a web3 user's session sticks around server-side after
+    // they disconnect their wallet and confuses the next visitor on the device.
+    try {
+      await api.authLogout();
+    } catch {
+      /* clear local state regardless */
     }
+    if (circle) setCircle(null);
     if (wagmiConnected) {
       try {
         await disconnectAsync();

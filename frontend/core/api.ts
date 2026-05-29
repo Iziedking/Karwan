@@ -748,6 +748,18 @@ export const api = {
       '/api/auth/otp/verify',
       { method: 'POST', body: JSON.stringify({ email, code }) },
     ),
+
+  // ── SIWE (Sign-In With Ethereum) for web3 wallet users ────────────────────
+  siweNonce: (address: string, chainId?: number) =>
+    json<{ nonce: string; message: string }>('/api/siwe/nonce', {
+      method: 'POST',
+      body: JSON.stringify({ address, chainId }),
+    }),
+  siweVerify: (address: string, signature: string) =>
+    json<{ user: { address: string; method: 'web3' } }>('/api/siwe/verify', {
+      method: 'POST',
+      body: JSON.stringify({ address, signature }),
+    }),
   activity: (limit = 100, jobId?: string, caller?: string) => {
     const q = new URLSearchParams();
     q.set('limit', String(limit));

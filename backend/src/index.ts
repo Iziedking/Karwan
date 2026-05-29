@@ -28,6 +28,7 @@ import { adminRoutes } from './routes/admin.js';
 import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
+import { siweRoutes } from './routes/siwe.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { circleWebhookRoutes } from './routes/circle-webhook.js';
 import {
@@ -116,6 +117,7 @@ app.route('/api/listings', listingsRoutes);
 app.route('/api/terms', termsRoutes);
 app.route('/api/x', xRoutes);
 app.route('/api/auth', authRoutes);
+app.route('/api/siwe', siweRoutes);
 app.route('/api/feedback', feedbackRoutes);
 app.route('/api/circle', circleWebhookRoutes);
 
