@@ -259,7 +259,11 @@ function LegacyStakeCard({
   const [busy, setBusy] = useState<StakeBusy>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
-  const [pendingRequest, setPendingRequest] = useState<{ positionId: string; principal: string } | null>(null);
+  const [pendingRequest, setPendingRequest] = useState<{
+    positionId: string;
+    generation: 1 | 2 | 3;
+    principal: string;
+  } | null>(null);
 
   const onWrongChain = !isCircleUser && chainId !== ARC_CHAIN_ID;
 
@@ -292,7 +296,11 @@ function LegacyStakeCard({
   }, [refetch]);
 
   const runAction = useCallback(
-    async (kind: 'request' | 'cancel' | 'claim', positionId: string) => {
+    async (
+      kind: 'request' | 'cancel' | 'claim',
+      positionId: string,
+      actionGeneration: 1 | 2 | 3,
+    ) => {
       setLastError(null);
       setLastTx(null);
       if (onWrongChain) {
@@ -304,17 +312,22 @@ function LegacyStakeCard({
         return;
       }
       if (kind === 'request') {
-        const target = positions.find((p) => p.positionId === positionId);
+        const target = positions.find(
+          (p) => p.positionId === positionId && p.generation === actionGeneration,
+        );
         setPendingRequest({
           positionId,
+          generation: actionGeneration,
           principal: target?.principalUsdc ?? '0',
         });
         return;
       }
       setBusy({ kind, positionId });
       try {
-        const target = positions.find((p) => p.positionId === positionId);
-        const generation = target?.generation ?? 1;
+        const target = positions.find(
+          (p) => p.positionId === positionId && p.generation === actionGeneration,
+        );
+        const generation = target?.generation ?? actionGeneration;
         const vaultAddrForAction = vaultAddressForGeneration(generation);
         if (isCircleUser) {
           const route =
@@ -351,13 +364,12 @@ function LegacyStakeCard({
   const confirmRequest = useCallback(async () => {
     if (!pendingRequest) return;
     const positionId = pendingRequest.positionId;
+    const generation = pendingRequest.generation;
     setPendingRequest(null);
     setLastError(null);
     setLastTx(null);
     setBusy({ kind: 'request', positionId });
     try {
-      const target = positions.find((p) => p.positionId === positionId);
-      const generation = target?.generation ?? 1;
       const vaultAddrForAction = vaultAddressForGeneration(generation);
       if (isCircleUser) {
         const r = await api.legacyVaultRequestWithdraw({ address, positionId, generation });
@@ -384,7 +396,7 @@ function LegacyStakeCard({
     } finally {
       setBusy(null);
     }
-  }, [pendingRequest, positions, isCircleUser, walletClient, arcClient, address, refetch]);
+  }, [pendingRequest, isCircleUser, walletClient, arcClient, address, refetch]);
 
   if (loading) {
     return <div className="h-32 bg-black/[0.04] animate-pulse rounded-2xl" />;
@@ -456,11 +468,7 @@ function LegacyStakeCard({
         body={
           <>
             Starts the{' '}
-            {pendingRequest
-              ? cooldownDaysByGen[
-                  positions.find((p) => p.positionId === pendingRequest.positionId)?.generation ?? 1
-                ]
-              : 7}
+            {pendingRequest ? cooldownDaysByGen[pendingRequest.generation] : 7}
             -day cool-down on this legacy position. Once it elapses you can claim the principal back
             to your wallet. Cooling stake stops earning reputation until you cancel or claim.
           </>
@@ -484,7 +492,11 @@ function PositionGroup({
   title: string;
   positions: LegacyPosition[];
   busy: StakeBusy;
-  onAction: (kind: 'request' | 'cancel' | 'claim', positionId: string) => void;
+  onAction: (
+    kind: 'request' | 'cancel' | 'claim',
+    positionId: string,
+    generation: 1 | 2 | 3,
+  ) => void;
   actionLabel: string;
   actionKind: 'request';
 }) {
@@ -519,7 +531,7 @@ function PositionGroup({
               </div>
               <button
                 type="button"
-                onClick={() => onAction(actionKind, p.positionId)}
+                onClick={() => onAction(actionKind, p.positionId, p.generation)}
                 disabled={isBusy}
                 className={cn(
                   'shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em]',
@@ -550,7 +562,11 @@ function CoolingGroup({
 }: {
   positions: LegacyPosition[];
   busy: StakeBusy;
-  onAction: (kind: 'request' | 'cancel' | 'claim', positionId: string) => void;
+  onAction: (
+    kind: 'request' | 'cancel' | 'claim',
+    positionId: string,
+    generation: 1 | 2 | 3,
+  ) => void;
 }) {
   return (
     <div className="space-y-2.5">
@@ -592,7 +608,7 @@ function CoolingGroup({
                 {!claimable && (
                   <button
                     type="button"
-                    onClick={() => onAction('cancel', p.positionId)}
+                    onClick={() => onAction('cancel', p.positionId, p.generation)}
                     disabled={isBusy}
                     className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
                   >
@@ -602,7 +618,7 @@ function CoolingGroup({
                 {claimable && (
                   <button
                     type="button"
-                    onClick={() => onAction('claim', p.positionId)}
+                    onClick={() => onAction('claim', p.positionId, p.generation)}
                     disabled={isBusy}
                     className={cn(
                       'px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em]',
