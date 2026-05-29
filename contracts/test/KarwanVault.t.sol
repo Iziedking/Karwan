@@ -427,4 +427,82 @@ contract KarwanVaultTest is Test {
         // operators can call it speculatively without risk.
         vault.adminRelease(keccak256("never-reserved"));
     }
+
+    /* ====================== v2.E resolveOwner view ===================== */
+
+    function test_v2E_ResolveOwner_PassThroughDefault() public {
+        address rando = makeAddr("rando");
+        assertEq(vault.resolveOwner(rando), rando, "unmapped passes through");
+    }
+
+    function test_v2E_ResolveOwner_ReturnsRegisteredIdentity() public {
+        address agent = makeAddr("agent");
+        address identity = makeAddr("identity");
+        vm.prank(agent);
+        vault.registerOwner(identity);
+        assertEq(vault.resolveOwner(agent), identity);
+    }
+
+    /* =================== v2.E entitlement-agnostic yield ================ */
+
+    function test_v2E_WithdrawForYield_OnlyOperator() public {
+        _deposit(alice, 100 * ONE_USDC);
+        address rando = makeAddr("rando");
+        vm.prank(rando);
+        vm.expectRevert(KarwanVault.NotOperator.selector);
+        vault.withdrawForYield(10 * ONE_USDC);
+    }
+
+    function test_v2E_WithdrawForYield_TracksOutstanding() public {
+        _deposit(alice, 100 * ONE_USDC);
+        uint256 balBefore = usdc.balanceOf(address(vault));
+        // Operator is `address(this)` per the v2.D constructor default.
+        vault.withdrawForYield(40 * ONE_USDC);
+        assertEq(vault.outForYield(), 40 * ONE_USDC);
+        assertEq(usdc.balanceOf(address(vault)), balBefore - 40 * ONE_USDC);
+        assertEq(usdc.balanceOf(address(this)), 40 * ONE_USDC);
+    }
+
+    function test_v2E_WithdrawForYield_RevertsOnInsufficientLiquidity() public {
+        // Only 10 USDC held; trying to pull 100 reverts.
+        _deposit(alice, 10 * ONE_USDC);
+        vm.expectRevert(KarwanVault.InsufficientLiquidUsdc.selector);
+        vault.withdrawForYield(100 * ONE_USDC);
+    }
+
+    function test_v2E_DepositFromYield_ClearsOutForYield() public {
+        _deposit(alice, 100 * ONE_USDC);
+        vault.withdrawForYield(40 * ONE_USDC);
+        assertEq(vault.outForYield(), 40 * ONE_USDC);
+
+        // Operator returns the 40 USDC.
+        usdc.approve(address(vault), 40 * ONE_USDC);
+        vault.depositFromYield(40 * ONE_USDC);
+        assertEq(vault.outForYield(), 0);
+        // No surplus; total stays at original 100 USDC.
+        assertEq(usdc.balanceOf(address(vault)), 100 * ONE_USDC);
+    }
+
+    function test_v2E_DepositFromYield_BooksSurplusAsYield() public {
+        _deposit(alice, 100 * ONE_USDC);
+        vault.withdrawForYield(40 * ONE_USDC);
+
+        // Operator returns 45 USDC (5 USDC of simulated yield earned).
+        // We need to top up the test contract first since it only has the
+        // 40 USDC pulled from the vault.
+        usdc.mint(address(this), 5 * ONE_USDC);
+        usdc.approve(address(vault), 45 * ONE_USDC);
+        vault.depositFromYield(45 * ONE_USDC);
+
+        assertEq(vault.outForYield(), 0);
+        // Vault now holds 60 (untouched) + 45 (returned + yield) = 105 USDC.
+        assertEq(usdc.balanceOf(address(vault)), 105 * ONE_USDC);
+    }
+
+    function test_v2E_TotalReserves_IncludesOutForYield() public {
+        _deposit(alice, 100 * ONE_USDC);
+        vault.withdrawForYield(40 * ONE_USDC);
+        // totalReserves: 60 held + 40 outstanding = 100. (No USYC wired.)
+        assertEq(vault.totalReserves(), 100 * ONE_USDC);
+    }
 }

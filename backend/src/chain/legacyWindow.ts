@@ -7,7 +7,7 @@ import { legacyGenerations } from './contracts.js';
 /// deadline so the banner pushes toward the soonest cutoff).
 
 export interface LegacyGenerationWindow {
-  index: 1 | 2;
+  index: 1 | 2 | 3;
   /// True between today and this generation's CLOSES_AT, AND only when at
   /// least one of its contracts (vault or escrow) is configured.
   open: boolean;
@@ -35,9 +35,14 @@ function envAsRecord(): Record<string, string | undefined> {
   return config as unknown as Record<string, string | undefined>;
 }
 
-function closesAtForGeneration(index: 1 | 2): number | null {
+function closesAtForGeneration(index: 1 | 2 | 3): number | null {
   const env = envAsRecord();
-  const iso = index === 1 ? env.LEGACY_WINDOW_CLOSES_AT : env.LEGACY_WINDOW_CLOSES_AT_2;
+  const iso =
+    index === 1
+      ? env.LEGACY_WINDOW_CLOSES_AT
+      : index === 2
+        ? env.LEGACY_WINDOW_CLOSES_AT_2
+        : env.LEGACY_WINDOW_CLOSES_AT_3;
   return iso ? new Date(iso).getTime() : null;
 }
 

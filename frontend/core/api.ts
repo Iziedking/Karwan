@@ -257,6 +257,14 @@ export interface DirectDeal {
   /// silently on the new escrow.
   legacyEscrow?: boolean;
   legacyState?: number;
+  /// Buyer marked this as a trusted-match deal at create time. Surfaces stake
+  /// requirement copy on the seller's accept panel. Chain-side enforcement
+  /// arrives with the next escrow redeploy; flag is captured today so old
+  /// deals already carry it when on-chain gating lands.
+  requireStake?: boolean;
+  /// Stake percentage chosen by the buyer for this deal (50..100). Only
+  /// meaningful when requireStake is true.
+  requireStakePct?: number;
 }
 
 export interface MarketplaceBrief {
@@ -1011,6 +1019,13 @@ export const api = {
     acceptanceWindowHours?: number;
     terms: string;
     firstReleasePct: number;
+    /// Trusted-match opt-in. When true, the seller's accept panel surfaces a
+    /// stake requirement and they are expected to back the deal with insurance.
+    /// Default false (casual deal, no stake messaging).
+    requireStake?: boolean;
+    /// Stake percentage when requireStake is true. 50-100 in 5% steps.
+    /// Translates to on-chain reservationBps = pct * 100.
+    requireStakePct?: number;
   }) =>
     json<{
       deal: DirectDeal;

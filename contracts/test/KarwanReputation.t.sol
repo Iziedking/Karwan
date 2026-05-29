@@ -93,4 +93,67 @@ contract KarwanReputationTest is Test {
         vm.expectRevert(KarwanReputation.InvalidOutcome.selector);
         rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.None);
     }
+
+    /* ==================== v2.E recordPenalty + signer =================== */
+
+    function test_v2E_RecordPenalty_RevertsWhenSignerUnset() public {
+        // Default state: signer slot is empty. Any call reverts.
+        vm.expectRevert(KarwanReputation.SignerNotSet.selector);
+        rep.recordPenalty(seller, 1, keccak256("reason"));
+    }
+
+    function test_v2E_SetSecurityAgentSigner_OneShot() public {
+        address signer = makeAddr("security-signer");
+        rep.setSecurityAgentSigner(signer);
+        assertEq(rep.securityAgentSigner(), signer);
+        // penaltyAdmin self-zeroed after binding.
+        assertEq(rep.penaltyAdmin(), address(0));
+        // Second call reverts.
+        vm.expectRevert(KarwanReputation.NotPenaltyAdmin.selector);
+        rep.setSecurityAgentSigner(signer);
+    }
+
+    function test_v2E_SetSecurityAgentSigner_OnlyPenaltyAdmin() public {
+        address rando = makeAddr("rando");
+        vm.prank(rando);
+        vm.expectRevert(KarwanReputation.NotPenaltyAdmin.selector);
+        rep.setSecurityAgentSigner(rando);
+    }
+
+    function test_v2E_RecordPenalty_OnlyFromSigner() public {
+        address signer = makeAddr("security-signer");
+        rep.setSecurityAgentSigner(signer);
+        address rando = makeAddr("rando");
+        vm.prank(rando);
+        vm.expectRevert(KarwanReputation.NotSecurityAgentSigner.selector);
+        rep.recordPenalty(seller, 1, keccak256("reason"));
+    }
+
+    function test_v2E_RecordPenalty_IncrementsSeverity() public {
+        address signer = makeAddr("security-signer");
+        rep.setSecurityAgentSigner(signer);
+        assertEq(rep.penaltySeverity(seller), 0);
+        vm.prank(signer);
+        rep.recordPenalty(seller, 2, keccak256("malicious-delivery"));
+        assertEq(rep.penaltySeverity(seller), 2);
+        vm.prank(signer);
+        rep.recordPenalty(seller, 1, keccak256("repeat"));
+        assertEq(rep.penaltySeverity(seller), 3);
+    }
+
+    function test_v2E_RecordPenalty_RevertsOnZeroSeverity() public {
+        address signer = makeAddr("security-signer");
+        rep.setSecurityAgentSigner(signer);
+        vm.prank(signer);
+        vm.expectRevert(KarwanReputation.InvalidSeverity.selector);
+        rep.recordPenalty(seller, 0, keccak256("zero-severity"));
+    }
+
+    function test_v2E_RecordPenalty_RevertsOnZeroSubject() public {
+        address signer = makeAddr("security-signer");
+        rep.setSecurityAgentSigner(signer);
+        vm.prank(signer);
+        vm.expectRevert(KarwanReputation.ZeroAddress.selector);
+        rep.recordPenalty(address(0), 1, keccak256("zero-subj"));
+    }
 }

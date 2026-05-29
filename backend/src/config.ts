@@ -46,6 +46,9 @@ const envSchema = z.object({
   /// previous production escrow into a legacy slot. Each generation runs its
   /// own 30-day recovery window via LEGACY_WINDOW_CLOSES_AT_2.
   KARWAN_ESCROW_LEGACY_ADDR_2: optionalAddr,
+  /// Third-generation legacy escrow. The v2.D escrow that v2.E displaces.
+  /// Same recovery semantics; window cuts off via LEGACY_WINDOW_CLOSES_AT_3.
+  KARWAN_ESCROW_LEGACY_ADDR_3: optionalAddr,
   /// Hard cutoff for the legacy recovery surface. Any time after this
   /// instant: home banner hides, /legacy returns 410, /api/legacy/* routes
   /// return 410. Reads still answer for transparency but writes refuse.
@@ -59,6 +62,12 @@ const envSchema = z.object({
   /// from the Gen 1 cutoff so each retired contract gets a fresh 30-day claim
   /// window from the day it was retired. Unset = Gen 2 surface disabled.
   LEGACY_WINDOW_CLOSES_AT_2: z.preprocess(
+    blankToUndefined,
+    z.string().datetime({ offset: true }).optional(),
+  ),
+  /// Hard cutoff for the v2.D legacy recovery (Gen 3). Set this to today+30d
+  /// when v2.E goes live so v2.D holders get a clean unwind window.
+  LEGACY_WINDOW_CLOSES_AT_3: z.preprocess(
     blankToUndefined,
     z.string().datetime({ offset: true }).optional(),
   ),
@@ -76,6 +85,8 @@ const envSchema = z.object({
   /// vault that just got retired. Read in addition to (not instead of) the
   /// original legacy slot so users with positions on either contract can claim.
   KARWAN_VAULT_LEGACY_ADDR_2: optionalAddr,
+  /// Third-generation legacy vault. The v2.D vault that v2.E displaces.
+  KARWAN_VAULT_LEGACY_ADDR_3: optionalAddr,
   /// Deploy block for the legacy vault. Only consulted when reading from
   /// the legacy vault; otherwise ignored. Same shape as the active
   /// KARWAN_VAULT_DEPLOY_BLOCK.
@@ -87,6 +98,14 @@ const envSchema = z.object({
     blankToUndefined,
     z.string().regex(/^\d+$/).transform(BigInt).optional(),
   ),
+  KARWAN_VAULT_LEGACY_DEPLOY_BLOCK_3: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^\d+$/).transform(BigInt).optional(),
+  ),
+  /// Third-generation legacy reputation contract (the v2.D reputation that
+  /// v2.E displaces). The off-chain composite reads all generations so a
+  /// seller's tier doesn't appear to reset when v2.E launches.
+  KARWAN_REPUTATION_LEGACY_ADDR_3: optionalAddr,
   // Block at which KarwanVault was deployed. When set, the paginated event
   // reader starts here instead of `latest - 9500` (which only covered ~5h of
   // Arc testnet history at 2s blocks and made older positions disappear).

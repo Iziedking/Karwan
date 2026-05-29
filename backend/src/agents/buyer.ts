@@ -1926,6 +1926,11 @@ export async function declineAgentMatch(
   return { ok: true };
 }
 
+/// Default reservationBps on agent-flow trusted-match deals. The buyer brief
+/// doesn't carry a stake-pct slider today; trustedMatch is a single bool. Map
+/// it to 50% (the form default) on chain. Casual briefs pass 0.
+const AGENT_FLOW_TRUSTED_BPS = 5000;
+
 async function fundEscrow(
   state: JobState,
   seller: `0x${string}`,
@@ -1963,14 +1968,24 @@ async function fundEscrow(
     payload: { amountWei: fundedAmount.toString(), txHash: approveResult.txHash },
   });
 
+  // Trusted-match briefs gate the seller on stake; casual briefs don't.
+  // Pull the flag off the JobState (carried over from the BuyerJob brief).
+  const reservationBps = state.context.trustedMatch === true ? AGENT_FLOW_TRUSTED_BPS : 0;
+
   let fundResult;
   try {
     fundResult = await executeContractCall(
       {
         walletId: buyer.walletId,
         contractAddress: escrow.address,
-        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
-        abiParameters: [state.jobId, seller, priceWei.toString(), buyer.milestonePcts],
+        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16)',
+        abiParameters: [
+          state.jobId,
+          seller,
+          priceWei.toString(),
+          buyer.milestonePcts,
+          reservationBps,
+        ],
       },
       `fundEscrow(${state.jobId})`,
     );

@@ -80,6 +80,23 @@ const createSchema = z
     acceptanceWindowHours: z.number().int().min(1).max(720).optional().default(24),
     terms: z.string().min(1).max(600),
     firstReleasePct: z.number().int().min(1).max(99),
+    /// Trusted-match flag. When true, this deal is high-trust: the seller
+    /// must hold enough free stake to cover the per-deal reservation, which
+    /// gets slashed if they lose a dispute. When false, the deal is casual
+    /// — v2.E+ escrows pass reservationBps=0 to fundEscrow, the vault is
+    /// never touched, and the seller can accept without any stake.
+    requireStake: z.boolean().optional().default(false),
+    /// Stake percentage chosen by the buyer when requireStake is true. The
+    /// frontend slider runs 50..100 in 5% steps. Coerced to a multiple of 5,
+    /// floored at 50, capped at 100. Ignored when requireStake is false.
+    requireStakePct: z
+      .number()
+      .int()
+      .min(50)
+      .max(100)
+      .optional()
+      .default(50)
+      .refine((v) => v % 5 === 0, { message: 'requireStakePct must be a multiple of 5' }),
   })
   .refine(
     (b) =>
@@ -184,6 +201,8 @@ dealsRoutes.post('/direct', async (c) => {
     terms: body.terms,
     origin: 'direct',
     pendingCounterparty,
+    requireStake: body.requireStake,
+    requireStakePct: body.requireStake ? body.requireStakePct : undefined,
   });
 
   bus.emitEvent({
@@ -543,16 +562,24 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       },
       `usdc.approve(escrow, direct ${jobId})`,
     );
+    // Per-deal reservationBps. Casual deals (default) pass 0 so the v2.E
+    // escrow's acceptEscrow skips vault.reserve entirely. Trusted-match
+    // deals translate the buyer's slider pct to bps (50% = 5000, 100% =
+    // 10000). The contract enforces the [5000, 10000] band on values > 0.
+    const reservationBps = deal.requireStake
+      ? Math.round((deal.requireStakePct ?? 50) * 100)
+      : 0;
     const fundResult = await executeContractCall(
       {
         walletId: deal.buyerAgentWalletId,
         contractAddress: escrow.address,
-        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[])',
+        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16)',
         abiParameters: [
           jobId,
           sellerAgents.sellerAddress,
           dealAmountWei.toString(),
           milestonePcts,
+          reservationBps,
         ],
       },
       `fundEscrow(direct ${jobId})`,
@@ -745,6 +772,44 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   // acceptedAt is already set, so this catches the chain up to the agreed
   // state. Insufficient stake surfaces a clean error.
   if (account.state === ESCROW_FUNDED && deal.sellerAgentWalletId) {
+    // Pre-flight the seller's free stake. acceptEscrow → vault.reserve()
+    // reverts with InsufficientStake when freeStake < dealAmount × reservationBps,
+    // but the Circle SDK collapses that revert into a bare "tx FAILED" message
+    // so the catch-block string match below never recognises it. Reading the
+    // numbers off chain lets us short-circuit with a clean INSUFFICIENT_STAKE
+    // 409 that points the seller to /stake.
+    try {
+      const reservationBps = await getReservationBps();
+      const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
+      const requiredWei = (dealAmountWei * BigInt(reservationBps)) / 10000n;
+      const sellerFreeWei = (await vault.read.freeStakeOf([
+        deal.seller as `0x${string}`,
+      ])) as bigint;
+      if (sellerFreeWei < requiredWei) {
+        const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
+        const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+        logger.warn(
+          { jobId, requiredUsdc, freeUsdc },
+          'deliver self-heal blocked: seller free stake below reservation',
+        );
+        return c.json(
+          {
+            error: `Your free stake is ${freeUsdc} USDC but this deal needs ${requiredUsdc} USDC reserved as insurance. Top up at /stake and retry, or ask the buyer to refund via Propose Cancellation.`,
+            code: 'INSUFFICIENT_STAKE',
+            detail: { requiredUsdc, freeUsdc, reservationBps },
+          },
+          409,
+        );
+      }
+    } catch (err) {
+      // Vault read failed (not the stake check itself). Fall through to the
+      // chain call so the contract revert is still the source of truth.
+      logger.warn(
+        { jobId, err: (err as Error).message },
+        'deliver self-heal: free stake pre-check failed, proceeding to chain',
+      );
+    }
+
     try {
       await acceptEscrowOnChain(jobId, deal.sellerAgentWalletId);
       invalidateEscrowCache(jobId);
@@ -761,7 +826,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
         : 'ACCEPT_ESCROW_FAILED';
       const detail = isInsufficientStake
         ? `Your seller agent needs more free stake to backstop this deal. Top up at /stake and retry marking delivery.`
-        : `acceptEscrow reverted: ${message}`;
+        : `acceptEscrow reverted: ${message}. Most often this is stake or gas — top up at /stake and retry, or ask the buyer to refund via Propose Cancellation.`;
       logger.error({ jobId, err: message, code }, 'deliver self-heal acceptEscrow failed');
       return c.json({ error: detail, code, detail: message }, 502);
     }

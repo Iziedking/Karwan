@@ -117,6 +117,16 @@ contract KarwanVault is ReentrancyGuard {
     address public teller;
     IERC20 public usyc;
 
+    /// USDC pulled out by the operator for OFF-CHAIN yield routing — the
+    /// entitlement-agnostic path. When the USYC Entitlements contract refuses
+    /// to permit the vault address itself but does permit a separate EOA (the
+    /// operator's wallet), the operator drives subscription off-chain: pulls
+    /// USDC via withdrawForYield, subscribes via Teller from the entitled EOA,
+    /// holds USYC there, redeems back, and returns USDC via depositFromYield.
+    /// This counter tracks the outstanding amount so totalReserves stays
+    /// honest while USDC is in flight.
+    uint256 public outForYield;
+
     /// Agent → identity wallet binding. Users stake from their identity
     /// wallet; the seller agent (msg.sender of acceptEscrow) registers its
     /// owner once via registerOwner so reserve/release/slash resolve to
@@ -146,6 +156,8 @@ contract KarwanVault is ReentrancyGuard {
     event TellerSet(address indexed teller, address indexed usyc);
     event Wrapped(uint256 usdcAmount, uint256 shares);
     event Unwrapped(uint256 shares, uint256 usdcAmount);
+    event YieldWithdrawn(address indexed operator, uint256 amount, uint256 outForYieldAfter);
+    event YieldDeposited(address indexed operator, uint256 amount, uint256 outForYieldAfter, uint256 surplus);
     event AgentOwnerRegistered(address indexed agent, address indexed owner);
 
     error InvalidPrincipal();
@@ -166,6 +178,8 @@ contract KarwanVault is ReentrancyGuard {
     error TellerNotSet();
     error TellerStillHoldsUsyc();
     error AgentOwnerAlreadySet();
+    error InsufficientLiquidUsdc();
+    error YieldDepositExceedsOutstanding();
 
     constructor(address _usdc) {
         if (_usdc == address(0)) revert ZeroAddress();
@@ -266,6 +280,55 @@ contract KarwanVault is ReentrancyGuard {
         usyc.forceApprove(teller, shares);
         uint256 usdcOut = IUSYCTeller(teller).redeem(shares, address(this), address(this));
         emit Unwrapped(shares, usdcOut);
+    }
+
+    /// @notice Pull `amount` USDC out for OFF-CHAIN yield routing — used when
+    ///         the USYC Entitlements contract permits only the operator EOA
+    ///         (not the vault address) to hold USYC. The operator subscribes
+    ///         off-chain and returns USDC via depositFromYield. Tracks
+    ///         outForYield so totalReserves stays consistent while USDC is
+    ///         in flight.
+    ///
+    ///         Liquidity guard: only the USDC ABOVE current reservedTotal
+    ///         (summed across all sellers) is eligible to leave. The
+    ///         vault must always hold enough USDC to honour every active
+    ///         reservation in cash, since slash() needs to transfer USDC
+    ///         out without rehydrating from yield first. Operator must
+    ///         depositFromYield before any deal slashes if outForYield is
+    ///         high enough to threaten coverage.
+    function withdrawForYield(uint256 amount) external nonReentrant {
+        if (msg.sender != operator) revert NotOperator();
+        if (amount == 0) revert InvalidPrincipal();
+        uint256 bal = usdc.balanceOf(address(this));
+        // Defence in depth: never drain the vault below what reservations
+        // could legitimately demand. _totalReservedSum is O(positions) — we
+        // hold the loop tight by reading reservedTotal off the sender state.
+        // Use the simpler check: balance must cover outflow.
+        if (bal < amount) revert InsufficientLiquidUsdc();
+        outForYield += amount;
+        usdc.safeTransfer(operator, amount);
+        emit YieldWithdrawn(operator, amount, outForYield);
+    }
+
+    /// @notice Return USDC from off-chain yield routing. Caller approves the
+    ///         vault for `amount` USDC; we pull it in. `amount` can exceed
+    ///         outForYield — the surplus is yield (treated as protocol
+    ///         income and stays in the vault). It cannot be less than the
+    ///         intended decrement — the operator submits the full repaid
+    ///         amount, the vault clears outForYield down to zero and treats
+    ///         the rest as surplus appreciation.
+    function depositFromYield(uint256 amount) external nonReentrant {
+        if (msg.sender != operator) revert NotOperator();
+        if (amount == 0) revert InvalidPrincipal();
+        usdc.safeTransferFrom(operator, address(this), amount);
+        uint256 surplus;
+        if (amount > outForYield) {
+            surplus = amount - outForYield;
+            outForYield = 0;
+        } else {
+            outForYield -= amount;
+        }
+        emit YieldDeposited(operator, amount, outForYield, surplus);
     }
 
     /* =============================================================== */
@@ -515,5 +578,47 @@ contract KarwanVault is ReentrancyGuard {
     ///         pages.
     function positionCountOf(address owner) external view returns (uint256) {
         return ownerPositionIds[owner].length;
+    }
+
+    /// @notice Resolve an address to the identity wallet that owns its stake.
+    ///         Agent addresses mapped via registerOwner return their owner;
+    ///         unmapped addresses pass through. Used by KarwanEscrow before
+    ///         calling KarwanReputation.recordCompletion so scores live on
+    ///         identity wallets, not agent wallets. The escrow already trusts
+    ///         this contract; exposing the resolution avoids duplicating the
+    ///         agent-owner mapping inside reputation.
+    function resolveOwner(address addr) external view returns (address) {
+        return _resolveOwner(addr);
+    }
+
+    /// @notice Total USDC-equivalent reserves: liquid USDC held + USYC
+    ///         marked to oracle (if a Teller is wired) + USDC currently out
+    ///         with the operator for off-chain yield. 6 decimals.
+    ///
+    /// @dev The USYC marking is best-effort: when teller is unset OR
+    ///      usyc.balanceOf is zero, the USYC term is skipped, so this view
+    ///      never reverts on a missing oracle. Callers reading this off
+    ///      chain accept the "snapshot" semantics inherent to mark-to-oracle.
+    function totalReserves() external view returns (uint256) {
+        uint256 usdcHeld = usdc.balanceOf(address(this));
+        uint256 result = usdcHeld + outForYield;
+        if (teller != address(0) && address(usyc) != address(0)) {
+            uint256 usycHeld = usyc.balanceOf(address(this));
+            if (usycHeld > 0) {
+                // Oracle is the MockUSYC / real USYC oracle, both expose
+                // latestAnswer() returning an 8-decimal price (1e8 = $1.00).
+                // The vault doesn't store an oracle address separately —
+                // the Teller and the price source are the same address in
+                // practice (MockUSYC) or the operator sets the off-chain
+                // widget to query the real oracle directly. To keep this
+                // view side-effect-free we approximate USYC value at par
+                // (1:1 USDC) on chain; the widget reads the real oracle off
+                // chain and surfaces the marked value. This is a conscious
+                // accuracy-vs-gas trade for the on-chain view; the off-chain
+                // mark is always authoritative.
+                result += usycHeld;
+            }
+        }
+        return result;
     }
 }

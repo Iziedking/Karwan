@@ -112,16 +112,19 @@ export default function InvitePage() {
     setBusy(true);
     setActionError(null);
     try {
-      const r = (await (await fetch('/api/auth/otp/request', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: data.invite.email }),
-      })).json()) as { sent: boolean; delivered: boolean; devCode?: string };
+      // Go through the api client so the request hits the backend host
+      // (NEXT_PUBLIC_BACKEND_URL). A raw fetch('/api/...') resolves against
+      // the current origin (karwan.site) and lands on Vercel's HTML 404 page,
+      // which the .json() parser then chokes on as "<!DOCTYPE ..." not JSON.
+      const r = await api.authOtpRequest(data.invite.email);
       if (r.devCode) setDevCode(r.devCode);
       setStage('verify-code');
     } catch (err) {
-      setActionError((err as Error).message);
+      const msg =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setActionError(msg);
     } finally {
       setBusy(false);
     }
@@ -136,22 +139,17 @@ export default function InvitePage() {
     setBusy(true);
     setActionError(null);
     try {
-      const res = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: data.invite.email, code: code.trim() }),
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? 'verification failed');
-      }
+      await api.authOtpVerify(data.invite.email, code.trim());
       emitAuthChanged();
       await auth.refresh();
       // Claim runs automatically from the effect above once the auth slice updates.
       await claim();
     } catch (err) {
-      setActionError((err as Error).message);
+      const msg =
+        err instanceof ApiError && err.detail
+          ? String(err.detail)
+          : (err as Error).message;
+      setActionError(msg);
       setBusy(false);
     }
   }

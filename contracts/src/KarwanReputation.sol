@@ -3,14 +3,19 @@ pragma solidity ^0.8.24;
 
 /// @title KarwanReputation
 /// @notice Records deal-completion outcomes. Companion to ERC-8004
-///         ReputationRegistry. After the v2.D redeploy:
-///           - Only the KarwanEscrow contract can write (C.4). Removes the
-///             "any counterparty agent can write its own deal outcome"
-///             vector that mattered once users could self-host agents.
+///         ReputationRegistry. v2.E bundle adds:
+///           - recordPenalty(subject, severity, reasonHash) for confirmed
+///             malicious behaviour (delivery scams, dispute fraud). Gated to
+///             a separate securityAgentSigner role wired via a one-shot
+///             setter so the SecurityAgent can ship later without another
+///             reputation redeploy. See [[karwan_security_agent]].
+///           - cumulative penaltySeverity per subject so the off-chain
+///             composite engine can apply a slash multiplier without a
+///             second on-chain lookup.
+///
+///         Already-shipped in v2.D (kept for context):
+///           - Only the KarwanEscrow contract can write outcomes (audit C.4).
 ///           - Outcome credit is SYMMETRIC across both parties (#210).
-///             Today only one side accumulates credits per deal; v2 mirrors
-///             both so a buyer who's done 50 clean deals has on-chain
-///             evidence equal to a seller with the same record.
 contract KarwanReputation {
     enum Outcome {
         None,
@@ -28,19 +33,36 @@ contract KarwanReputation {
     /// @notice The KarwanEscrow contract authorised to record outcomes.
     ///         Set once after deploy via setEscrow (deployer-only, one-shot)
     ///         so the contract can be deployed before the escrow address is
-    ///         known. KarwanEscrow's constructor needs this contract's
-    ///         address, so we can't make escrow immutable without a CREATE2
-    ///         dance. The one-shot setter is the simpler pattern and
-    ///         matches KarwanVault.
+    ///         known. The escrow constructor needs this contract's address,
+    ///         so we can't make `escrow` immutable without a CREATE2 dance.
     address public escrow;
     /// @notice Holds the right to call setEscrow exactly once. Zeroed after
     ///         binding so the escrow address becomes effectively immutable
     ///         post-setup.
     address public deployer;
 
+    /// @notice Address authorised to call recordPenalty. The SecurityAgent
+    ///         service (off-chain) signs from this key after confirming a
+    ///         delivery as malicious. Set once via setSecurityAgentSigner so
+    ///         we can ship the contract today and wire the signer when the
+    ///         agent service is built.
+    address public securityAgentSigner;
+    /// @notice Holds the right to call setSecurityAgentSigner exactly once.
+    ///         Distinct from `deployer` so the operational dance is separable:
+    ///         the deployer self-zeros after escrow binding (which is
+    ///         atomic with deploy), while the signer slot can stay armable
+    ///         for as long as it takes to ship the SecurityAgent service.
+    address public penaltyAdmin;
+
     mapping(address => Score) public scores;
-    /// @dev jobId -> already-recorded marker. One record per deal, ever.
+    /// @dev jobId -> already-recorded marker. One outcome record per deal.
     mapping(bytes32 => bool) public recorded;
+
+    /// @notice Cumulative severity per subject. Increments on every
+    ///         recordPenalty by the severity of the call (1=held-for-review
+    ///         confirmed malicious, 2=repeat offender, 3=active campaign).
+    ///         The off-chain composite engine consumes this directly.
+    mapping(address => uint256) public penaltySeverity;
 
     event CompletionRecorded(
         bytes32 indexed jobId,
@@ -49,6 +71,18 @@ contract KarwanReputation {
         Outcome outcome
     );
     event EscrowSet(address indexed escrow);
+    event SecurityAgentSignerSet(address indexed signer);
+    /// @notice Emitted on confirmed malicious behaviour.
+    /// @param subject the address being slashed
+    /// @param severity 1..255 — higher is worse; off-chain engine multiplies
+    /// @param reasonHash sha256 of a JSON {jobId, engines, verdicts, ts}.
+    ///                   On-chain trail without leaking the original URL.
+    event PenaltyRecorded(
+        address indexed subject,
+        uint8 severity,
+        bytes32 indexed reasonHash,
+        uint64 timestamp
+    );
 
     error AlreadyRecorded();
     error InvalidOutcome();
@@ -56,14 +90,21 @@ contract KarwanReputation {
     error NotDeployer();
     error EscrowAlreadySet();
     error ZeroAddress();
+    error NotPenaltyAdmin();
+    error SignerAlreadySet();
+    error SignerNotSet();
+    error NotSecurityAgentSigner();
+    error InvalidSeverity();
 
     constructor() {
         deployer = msg.sender;
+        // penaltyAdmin starts as the deployer too; deployer self-zeros after
+        // setEscrow but penaltyAdmin lives on until setSecurityAgentSigner.
+        penaltyAdmin = msg.sender;
     }
 
     /// @notice Bind the escrow that's allowed to call recordCompletion.
-    ///         One-shot. Reverts on a second call so the linkage is
-    ///         effectively immutable after deployment.
+    ///         One-shot.
     function setEscrow(address _escrow) external {
         if (msg.sender != deployer) revert NotDeployer();
         if (escrow != address(0)) revert EscrowAlreadySet();
@@ -73,14 +114,28 @@ contract KarwanReputation {
         emit EscrowSet(_escrow);
     }
 
-    /// @notice Record a deal outcome against BOTH parties. Symmetric:
+    /// @notice Bind the SecurityAgent signer wallet. One-shot. Reverts on a
+    ///         second call so the signer slot becomes effectively immutable
+    ///         after binding. Use a Circle DCW or multi-sig here — anything
+    ///         that can sign the recordPenalty calls when the off-chain
+    ///         engine flags a malicious delivery.
+    function setSecurityAgentSigner(address _signer) external {
+        if (msg.sender != penaltyAdmin) revert NotPenaltyAdmin();
+        if (securityAgentSigner != address(0)) revert SignerAlreadySet();
+        if (_signer == address(0)) revert ZeroAddress();
+        securityAgentSigner = _signer;
+        penaltyAdmin = address(0);
+        emit SecurityAgentSignerSet(_signer);
+    }
+
+    /// @notice Record a deal outcome against BOTH parties.
     ///           Success         -> buyer.successCount++,   seller.successCount++
     ///           DisputeResolved -> buyer.disputedCount++,  seller.disputedCount++
     ///           Failed          -> buyer.successCount++,   seller.failedCount++
     /// @dev    Failed semantics: the buyer paid in good faith and got their
     ///         money back via refund; they did nothing wrong. The seller is
     ///         the one who didn't deliver, so they alone take the failure
-    ///         credit. This matches the credit-bureau intuition where the
+    ///         credit. This matches credit-bureau intuition where the
     ///         honoring party gets a check mark even when the deal goes
     ///         sideways.
     function recordCompletion(bytes32 jobId, address buyer, address seller, Outcome outcome)
@@ -107,11 +162,31 @@ contract KarwanReputation {
         emit CompletionRecorded(jobId, buyer, seller, outcome);
     }
 
+    /// @notice Record a confirmed-malicious penalty against a subject. Only
+    ///         callable by the SecurityAgent signer. Subject is typically a
+    ///         seller's identity wallet flagged for shipping a phishing URL
+    ///         or similar.
+    ///
+    /// @param subject     identity wallet of the slashed party
+    /// @param severity    1=held-for-review confirmed, 2=repeat, 3=campaign
+    /// @param reasonHash  sha256 of a JSON {jobId, engines, verdicts, ts}
+    ///                    so a third party can verify off-chain
+    function recordPenalty(address subject, uint8 severity, bytes32 reasonHash) external {
+        if (securityAgentSigner == address(0)) revert SignerNotSet();
+        if (msg.sender != securityAgentSigner) revert NotSecurityAgentSigner();
+        if (subject == address(0)) revert ZeroAddress();
+        if (severity == 0) revert InvalidSeverity();
+
+        penaltySeverity[subject] += severity;
+        emit PenaltyRecorded(subject, severity, reasonHash, uint64(block.timestamp));
+    }
+
     /// @notice Composite reputation: success-weighted, dispute neutral,
     ///         failure penalty. Returns a score in basis points (0–10000).
     ///         5000 = neutral. Kept for backward-compat with the legacy
     ///         frontend badge; the v2 engine uses the raw counts via the
-    ///         scores() getter and runs its own composite.
+    ///         scores() getter and runs its own composite that also folds
+    ///         in penaltySeverity.
     function getReputationScore(address party) external view returns (uint256) {
         Score memory s = scores[party];
         uint256 total = s.successCount + s.disputedCount + s.failedCount;

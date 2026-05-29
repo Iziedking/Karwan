@@ -126,7 +126,7 @@ interface LegacyDealView {
   releasedUsdc: string;
   /// Which legacy generation this deal lives on (1 or 2). Sent back to the
   /// client so action routes get tagged with the right gen on follow-up calls.
-  generation: 1 | 2;
+  generation: 1 | 2 | 3;
 }
 
 function stateLabel(state: number): LegacyDealView['stateLabel'] {
@@ -534,7 +534,7 @@ interface LegacyPosition {
   /// Which legacy generation this position is on. The client passes it back in
   /// the action body so we route the request-withdraw / cancel / claim to the
   /// matching vault contract.
-  generation: 1 | 2;
+  generation: 1 | 2 | 3;
 }
 
 function vaultStateLabel(state: number): LegacyPosition['state'] {
@@ -546,7 +546,7 @@ function vaultStateLabel(state: number): LegacyPosition['state'] {
 async function readPositionsFromVault(
   vaultAddr: Address,
   owner: string,
-  generation: 1 | 2,
+  generation: 1 | 2 | 3,
 ): Promise<{ positions: LegacyPosition[]; cooldownDays: number }> {
   let nextId: bigint;
   try {

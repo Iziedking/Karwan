@@ -406,7 +406,15 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     'disputed',
   ];
   const canPropose =
-    !proposal && proposableStages.includes(stage) && viewerRole !== null && !deal.cancelledAt;
+    !proposal &&
+    proposableStages.includes(stage) &&
+    viewerRole !== null &&
+    !deal.cancelledAt &&
+    // Legacy-escrow deals can only be cancelled / refunded from the /legacy
+    // recovery surface; the v2.D cancel/accept route calls dispute() + refund()
+    // on the current escrow contract, which doesn't hold this deal's funds and
+    // reverts InvalidState. The banner above already points users to /legacy.
+    !deal.legacyEscrow;
 
   return (
     <FullBleed>
@@ -609,6 +617,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   firstReleasePct={deal.firstReleasePct}
                   onAccept={onAcceptCancel}
                   onDecline={onDeclineCancel}
+                  legacyEscrow={!!deal.legacyEscrow}
                 />
               </div>
             )}
@@ -979,14 +988,12 @@ function ActionPanel({
 
   if (stage === 'awaiting-acceptance') {
     if (viewerIsSeller) {
-      // v2.D insurance reservation: 50% of deal value locks against the
-      // seller's free vault stake on accept. Surface the exact number so
-      // the seller knows what'll be locked before they click. The number
-      // is computed off `deal.dealAmountUsdc` × the protocol's
-      // reservationBps; the value 50% is hardcoded here as a hint —
-      // the contract is the source of truth and will revert with
-      // InsufficientStake if the seller's free stake doesn't cover it.
-      const RESERVATION_PCT = 50;
+      // Stake messaging is shown only on trusted-match deals. The per-deal
+      // requireStakePct is what the buyer picked on the slider (50..100, in 5%
+      // steps); fall back to 50 for older deals stored before the slider
+      // shipped. The v2.E escrow honours this exact percentage at acceptEscrow
+      // via the per-deal reservationBps stored at fund time.
+      const RESERVATION_PCT = deal.requireStakePct ?? 50;
       const reservedAmount = (
         (Number(deal.dealAmountUsdc) * RESERVATION_PCT) /
         100
@@ -998,20 +1005,22 @@ function ActionPanel({
             funds the escrow.
           </Body>
           <AcceptanceCountdown deal={deal} now={now} viewerIsSeller />
-          <div
-            className="px-3 py-2 mono text-[11px] leading-snug"
-            style={{
-              background: 'color-mix(in oklab, var(--lp-accent) 10%, transparent)',
-              borderLeft: '2px solid var(--lp-accent)',
-              color: 'var(--lp-band-dark)',
-            }}
-          >
-            On accept,{' '}
-            <span className="font-bold tabular-nums">{reservedAmount} USDC</span>{' '}
-            ({RESERVATION_PCT}% of {deal.dealAmountUsdc}) reserves from your
-            stake as buyer-side deal insurance. It releases back when the
-            deal settles, or slashes to the buyer if you lose a dispute.
-          </div>
+          {deal.requireStake && (
+            <div
+              className="px-3 py-2 mono text-[11px] leading-snug"
+              style={{
+                background: 'color-mix(in oklab, var(--lp-accent) 10%, transparent)',
+                borderLeft: '2px solid var(--lp-accent)',
+                color: 'var(--lp-band-dark)',
+              }}
+            >
+              Trusted match. You need{' '}
+              <span className="font-bold tabular-nums">{reservedAmount} USDC</span>{' '}
+              free in your stake to accept ({RESERVATION_PCT}% of {deal.dealAmountUsdc}).
+              It releases back when the deal settles, or slashes to the buyer if
+              you lose a dispute.
+            </div>
+          )}
           <CTAPill disabled={busy} onClick={onAccept}>
             {busy ? 'Confirming on Arc…' : 'Accept deal'}
           </CTAPill>
@@ -1494,6 +1503,7 @@ function CancelProposalBanner({
   firstReleasePct,
   onAccept,
   onDecline,
+  legacyEscrow,
 }: {
   proposal: NonNullable<DirectDeal['cancellationProposal']>;
   viewerIsCounterparty: boolean;
@@ -1503,6 +1513,10 @@ function CancelProposalBanner({
   firstReleasePct: number;
   onAccept: () => void;
   onDecline: () => void;
+  /// Deal lives on a pre-v2.D escrow. The accept/decline buttons here would
+  /// route to v2.D endpoints that don't hold the funds, so swap them for a
+  /// link to /legacy where the legacy-aware routes handle the refund.
+  legacyEscrow: boolean;
 }) {
   const remainPct = 100 - firstReleasePct;
   const kindLabel =
@@ -1551,7 +1565,27 @@ function CancelProposalBanner({
             return `${prefix} ${outcome}`;
           })()}
         </p>
-        {viewerIsCounterparty && (
+        {viewerIsCounterparty && legacyEscrow && (
+          <div className="pt-2 flex flex-wrap items-center gap-2">
+            <Link
+              href="/legacy"
+              className="inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors"
+              style={{
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              Accept on recovery
+              <span aria-hidden>→</span>
+            </Link>
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              this deal is on an older contract
+            </p>
+          </div>
+        )}
+        {viewerIsCounterparty && !legacyEscrow && (
           <div className="pt-2 flex flex-wrap items-center gap-2">
             <CTAPill onClick={onAccept} disabled={busy}>
               {/* Both buttons trigger the SAME on-chain action — refund() —

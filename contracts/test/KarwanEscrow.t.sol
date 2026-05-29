@@ -52,7 +52,12 @@ contract KarwanEscrowTest is Test {
     bytes32 constant JOB_ID = keccak256("job-1");
 
     uint16 constant FEE_BPS = 150; // 1.5%
-    uint16 constant RESERVATION_BPS = 5000; // 50%
+    /// Per-deal reservation actually used by most tests (50%). The
+    /// constructor's _maxReservationBps is the ceiling on what a buyer can
+    /// pick at fund time; setting it to 10000 lets us also test the full-
+    /// stake-reservation case without redeploying the escrow per test.
+    uint16 constant RESERVATION_BPS = 5000;
+    uint16 constant MAX_RESERVATION_BPS = 10000;
 
     function setUp() public {
         usdc = new MockUSDC();
@@ -64,7 +69,7 @@ contract KarwanEscrowTest is Test {
             treasury,
             address(vault),
             address(rep),
-            RESERVATION_BPS
+            MAX_RESERVATION_BPS
         );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
@@ -90,7 +95,7 @@ contract KarwanEscrowTest is Test {
 
     function _fundAndAccept(uint256 amount) internal {
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, amount, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, amount, _twoMilestones(50, 50), RESERVATION_BPS);
         vm.prank(seller);
         escrow.acceptEscrow(JOB_ID);
     }
@@ -99,23 +104,27 @@ contract KarwanEscrowTest is Test {
 
     function test_FundEscrow_PullsDealAmountPlusBuyerFeeHalf() public {
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
         // 500e18 + 0.75% (half of 1.5%) = 503.75e18.
         assertEq(usdc.balanceOf(address(escrow)), 503.75e18);
     }
 
     function test_FundEscrow_LeavesStateAsFunded() public {
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
         // 10 fields in the auto-getter (milestonePcts dropped); state is last.
-        (, , , , , , , , , KarwanEscrow.EscrowState state) = escrow.escrows(JOB_ID);
+        // Struct order in auto-getter (milestonePcts dropped):
+        // buyer, seller, dealAmount, sellerNet, feeTotal, released,
+        // feeReleased, reservedAmount, milestonesReleased, state, reservationBps.
+        // 11 fields total.
+        (, , , , , , , , , KarwanEscrow.EscrowState state, ) = escrow.escrows(JOB_ID);
         assertEq(uint8(state), uint8(KarwanEscrow.EscrowState.Funded));
     }
 
     function test_ReleaseProgress_RevertsBeforeAccept() public {
         // Buyer funds, seller has not accepted yet. Releasing must fail.
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
         vm.prank(buyer);
         vm.expectRevert(KarwanEscrow.InvalidState.selector);
         escrow.releaseProgress(JOB_ID, 0);
@@ -125,7 +134,7 @@ contract KarwanEscrowTest is Test {
 
     function test_AcceptEscrow_ReservesStake() public {
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
 
         uint256 freeBefore = vault.freeStakeOf(seller);
         vm.prank(seller);
@@ -137,9 +146,9 @@ contract KarwanEscrowTest is Test {
         // Struct order: buyer, seller, dealAmount, sellerNet, feeTotal,
         // released, feeReleased, reservedAmount, milestonePcts (DROPPED by
         // Solidity's auto-getter since it's a dynamic array),
-        // milestonesReleased, state. So the destructured tuple is 10 fields
-        // and reservedAmount is the 8th.
-        (, , , , , , , uint256 reservedAmount, , KarwanEscrow.EscrowState state) =
+        // milestonesReleased, state, reservationBps. So the destructured
+        // tuple is 11 fields and reservedAmount is the 8th.
+        (, , , , , , , uint256 reservedAmount, , KarwanEscrow.EscrowState state, ) =
             escrow.escrows(JOB_ID);
         assertEq(reservedAmount, 250e18);
         assertEq(uint8(state), uint8(KarwanEscrow.EscrowState.Accepted));
@@ -150,7 +159,7 @@ contract KarwanEscrowTest is Test {
         address poorSeller = makeAddr("poor");
         bytes32 jobId = keccak256("poor-job");
         vm.prank(buyer);
-        escrow.fundEscrow(jobId, poorSeller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(jobId, poorSeller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
         vm.prank(poorSeller);
         vm.expectRevert(KarwanEscrow.InsufficientStake.selector);
         escrow.acceptEscrow(jobId);
@@ -158,7 +167,7 @@ contract KarwanEscrowTest is Test {
 
     function test_AcceptEscrow_OnlySeller() public {
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
         vm.prank(buyer);
         vm.expectRevert(KarwanEscrow.NotSeller.selector);
         escrow.acceptEscrow(JOB_ID);
@@ -234,7 +243,7 @@ contract KarwanEscrowTest is Test {
     function test_Dispute_FromFunded_RefundsWithoutSlash() public {
         // Buyer funds, seller never accepts, buyer disputes + refunds.
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
         vm.prank(buyer);
         escrow.dispute(JOB_ID, "buyer-bailing");
 
@@ -301,12 +310,12 @@ contract KarwanEscrowTest is Test {
 
     function test_Constructor_RevertsOnZeroTreasury() public {
         vm.expectRevert(KarwanEscrow.InvalidTreasury.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, address(0), address(vault), address(rep), RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), FEE_BPS, address(0), address(vault), address(rep), MAX_RESERVATION_BPS);
     }
 
     function test_Constructor_RevertsOnFeeTooHigh() public {
         vm.expectRevert(KarwanEscrow.FeeTooHigh.selector);
-        new KarwanEscrow(address(usdc), 1001, treasury, address(vault), address(rep), RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), 1001, treasury, address(vault), address(rep), MAX_RESERVATION_BPS);
     }
 
     function test_Constructor_RevertsOnReservationTooHigh() public {
@@ -316,12 +325,12 @@ contract KarwanEscrowTest is Test {
 
     function test_Constructor_RevertsOnZeroVault() public {
         vm.expectRevert(KarwanEscrow.InvalidVault.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(0), address(rep), RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(0), address(rep), MAX_RESERVATION_BPS);
     }
 
     function test_Constructor_RevertsOnZeroReputation() public {
         vm.expectRevert(KarwanEscrow.InvalidReputation.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(vault), address(0), RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(vault), address(0), MAX_RESERVATION_BPS);
     }
 
     /* ====================== AUDIT FIX REGRESSIONS ======================= */
@@ -332,7 +341,7 @@ contract KarwanEscrowTest is Test {
     /// initial test write is exactly what this method prevents.
     function test_AuditM3_GetEscrowReturnsMilestonePcts() public {
         vm.prank(buyer);
-        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(40, 60));
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(40, 60), RESERVATION_BPS);
         KarwanEscrow.EscrowAccount memory e = escrow.getEscrow(JOB_ID);
         assertEq(e.dealAmount, 500e18);
         assertEq(e.milestonePcts.length, 2);
@@ -366,5 +375,179 @@ contract KarwanEscrowTest is Test {
         KarwanEscrow.EscrowAccount memory e = escrow.getEscrow(JOB_ID);
         assertEq(uint8(e.state), uint8(KarwanEscrow.EscrowState.Refunded));
         assertEq(e.reservedAmount, 0, "reservedAmount cleared before slash side-effect");
+    }
+
+    /* ==================== v2.E PER-DEAL reservationBps ================== */
+
+    /// Casual deal (bps=0) accepts without touching the vault. Seller can
+    /// accept with zero stake. State still moves to Accepted; reservedAmount
+    /// stays 0; freeStake unchanged.
+    function test_v2E_CasualDeal_AcceptsWithoutStake() public {
+        address freshSeller = makeAddr("fresh"); // no stake at all
+        bytes32 jobId = keccak256("casual-1");
+        vm.prank(buyer);
+        escrow.fundEscrow(jobId, freshSeller, 500e18, _twoMilestones(50, 50), 0);
+        // Seller with zero free stake CAN accept on a casual deal.
+        vm.prank(freshSeller);
+        escrow.acceptEscrow(jobId);
+
+        KarwanEscrow.EscrowAccount memory e = escrow.getEscrow(jobId);
+        assertEq(uint8(e.state), uint8(KarwanEscrow.EscrowState.Accepted));
+        assertEq(e.reservedAmount, 0);
+        assertEq(e.reservationBps, 0);
+        assertEq(vault.freeStakeOf(freshSeller), 0);
+    }
+
+    /// Casual deal settles cleanly with both parties credited Success.
+    /// The vault.release path is gated on reservedAmount > 0 so it no-ops.
+    function test_v2E_CasualDeal_SettlesWithRepCredit() public {
+        address freshSeller = makeAddr("fresh-settle");
+        bytes32 jobId = keccak256("casual-settle");
+        vm.prank(buyer);
+        escrow.fundEscrow(jobId, freshSeller, 500e18, _twoMilestones(50, 50), 0);
+        vm.prank(freshSeller);
+        escrow.acceptEscrow(jobId);
+        vm.prank(buyer);
+        escrow.releaseFinal(jobId);
+
+        (uint256 buyerSuccess, , ) = rep.scores(buyer);
+        (uint256 sellerSuccess, , ) = rep.scores(freshSeller);
+        assertEq(buyerSuccess, 1);
+        assertEq(sellerSuccess, 1);
+    }
+
+    /// Casual deal disputed + refunded: no slash, no rep credit either way.
+    /// Pre-accept disputes already worked this way; we assert the new
+    /// post-accept casual path behaves the same.
+    function test_v2E_CasualDeal_Refund_NoSlashNoRep() public {
+        address freshSeller = makeAddr("fresh-refund");
+        bytes32 jobId = keccak256("casual-refund");
+        vm.prank(buyer);
+        escrow.fundEscrow(jobId, freshSeller, 500e18, _twoMilestones(50, 50), 0);
+        vm.prank(freshSeller);
+        escrow.acceptEscrow(jobId);
+        vm.prank(buyer);
+        escrow.dispute(jobId, "casual-bail");
+        vm.prank(buyer);
+        escrow.refund(jobId);
+
+        (uint256 buyerSuccess, , uint256 buyerFailed) = rep.scores(buyer);
+        (uint256 sellerSuccess, , uint256 sellerFailed) = rep.scores(freshSeller);
+        // No reservation existed, so no slash and no rep mark.
+        assertEq(buyerSuccess + buyerFailed + sellerSuccess + sellerFailed, 0);
+    }
+
+    /// Per-deal bps below MIN_TRUSTED_BPS (5000), but not zero, reverts.
+    function test_v2E_FundEscrow_RevertsOnBpsBelowFloor() public {
+        vm.prank(buyer);
+        vm.expectRevert(KarwanEscrow.InvalidReservation.selector);
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), 4999);
+    }
+
+    /// Per-deal bps above maxReservationBps reverts.
+    function test_v2E_FundEscrow_RevertsOnBpsAboveCeiling() public {
+        vm.prank(buyer);
+        vm.expectRevert(KarwanEscrow.InvalidReservation.selector);
+        escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), 10001);
+    }
+
+    /// Per-deal bps exactly at maxReservationBps (100%) works: seller reserves
+    /// the full deal value. With 400e18 stake the seller can accept up to
+    /// a 400e18 deal at 100%.
+    function test_v2E_AcceptEscrow_FullStakeReservation() public {
+        bytes32 jobId = keccak256("hundred-pct");
+        vm.prank(buyer);
+        escrow.fundEscrow(jobId, seller, 400e18, _twoMilestones(50, 50), 10000);
+        vm.prank(seller);
+        escrow.acceptEscrow(jobId);
+
+        KarwanEscrow.EscrowAccount memory e = escrow.getEscrow(jobId);
+        assertEq(e.reservedAmount, 400e18);
+        assertEq(vault.freeStakeOf(seller), 0);
+    }
+
+    /// Different deals with different reservationBps coexist. The per-deal
+    /// reservedAmount is independently tracked.
+    function test_v2E_MultipleDeals_IndependentReservations() public {
+        bytes32 j1 = keccak256("trusted");
+        bytes32 j2 = keccak256("casual");
+        vm.prank(buyer);
+        escrow.fundEscrow(j1, seller, 200e18, _twoMilestones(50, 50), 5000);
+        vm.prank(buyer);
+        escrow.fundEscrow(j2, seller, 200e18, _twoMilestones(50, 50), 0);
+
+        vm.prank(seller);
+        escrow.acceptEscrow(j1);
+        vm.prank(seller);
+        escrow.acceptEscrow(j2);
+
+        // Only j1 reserved against the seller's stake.
+        assertEq(escrow.getEscrow(j1).reservedAmount, 100e18);
+        assertEq(escrow.getEscrow(j2).reservedAmount, 0);
+        assertEq(vault.reservedTotal(seller), 100e18);
+    }
+
+    /// EscrowRefunded event includes priorReleased (audit D.6). After a
+    /// partial release + dispute + refund, the event surfaces both the
+    /// remaining refund amount AND what had already been released to the
+    /// seller before the dispute. Indexers reconstruct partial state.
+    function test_v2E_EscrowRefunded_IncludesPriorReleased() public {
+        _fundAndAccept(500e18);
+        vm.prank(buyer);
+        escrow.releaseProgress(JOB_ID, 0); // first 50% out: sellerNet * 50% = 248.125e18
+        vm.prank(seller);
+        escrow.dispute(JOB_ID, "stalled-after-first");
+
+        // Expect EscrowRefunded with priorReleased reflecting the first
+        // milestone. sellerNet = 496.25e18, first release = 248.125e18.
+        // remaining = (sellerNet - released) + (feeTotal - feeReleased)
+        //           = (496.25 - 248.125) + (7.5 - 3.75)
+        //           = 248.125 + 3.75 = 251.875e18
+        vm.expectEmit(true, false, false, true);
+        emit KarwanEscrow.EscrowRefunded(JOB_ID, 251.875e18, 248.125e18);
+        vm.prank(buyer);
+        escrow.refund(JOB_ID);
+    }
+
+    /// Reputation credits route through vault.resolveOwner so the on-chain
+    /// scores live on identity wallets. When seller is unmapped (no
+    /// registerOwner call), it falls through as itself — backwards-
+    /// compatible default.
+    function test_v2E_ReputationKeyedByIdentity_PassThrough() public {
+        // No agent → owner mapping registered, so seller resolves to itself.
+        _fundAndAccept(500e18);
+        vm.prank(buyer);
+        escrow.releaseFinal(JOB_ID);
+        (uint256 sellerSuccess, , ) = rep.scores(seller);
+        assertEq(sellerSuccess, 1, "rep credited to seller itself when unmapped");
+    }
+
+    function test_v2E_ReputationKeyedByIdentity_ResolvesAgent() public {
+        // Mock the agent → owner mapping. The seller in our setUp is the
+        // identity wallet. Create a fresh "sellerAgent" address, register
+        // it as an agent for seller, then fund + accept FROM the agent.
+        // The vault's identity-resolved freeStakeOf reads stake from the
+        // owner so the agent passes the stake check using the owner's
+        // 400e18 deposit. Reputation should credit `seller` (the identity)
+        // when the deal settles, not the agent.
+        address sellerAgent = makeAddr("seller-agent");
+        bytes32 jobId = keccak256("agent-flow");
+
+        // Agent registers itself as owned by `seller`.
+        vm.prank(sellerAgent);
+        vault.registerOwner(seller);
+
+        vm.prank(buyer);
+        escrow.fundEscrow(jobId, sellerAgent, 200e18, _twoMilestones(50, 50), RESERVATION_BPS);
+        vm.prank(sellerAgent);
+        escrow.acceptEscrow(jobId);
+        vm.prank(buyer);
+        escrow.releaseFinal(jobId);
+
+        // Success credit should land on the IDENTITY wallet, not the agent.
+        (uint256 identitySuccess, , ) = rep.scores(seller);
+        (uint256 agentSuccess, , ) = rep.scores(sellerAgent);
+        assertEq(identitySuccess, 1, "rep on identity wallet");
+        assertEq(agentSuccess, 0, "rep NOT on agent wallet");
     }
 }

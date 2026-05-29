@@ -119,6 +119,18 @@ export interface DirectDeal {
   /// without re-querying the chain. Pre-v2.D state enum:
   /// None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
   legacyState?: number;
+  /// Trusted-match flag chosen by the buyer at create time. When true, the
+  /// seller's accept panel surfaces a "you must stake X USDC" requirement and
+  /// the seller is expected to back the deal with slashable insurance. When
+  /// false or undefined, the deal is casual: no stake messaging and no
+  /// vault.reserve call on accept (on v2.E+ escrows).
+  requireStake?: boolean;
+  /// Per-deal stake percentage when requireStake is true. 50..100 in 5%
+  /// steps from the buyer's slider. Translates to on-chain reservationBps:
+  ///   requireStakePct * 100, e.g. 75 → 7500.
+  /// Unset when requireStake is false; default 50 when requireStake is true
+  /// and the slider was not surfaced (older clients).
+  requireStakePct?: number;
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

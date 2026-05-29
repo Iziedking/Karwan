@@ -37,10 +37,12 @@ export function DirectDealForm() {
   /// stays parked until the recipient claims the link.
   const [counterpartyMode, setCounterpartyMode] = useState<'wallet' | 'email'>('wallet');
   const [counterpartyEmail, setCounterpartyEmail] = useState('');
-  /// Shareable invite URL surfaced after a successful email-mode submit. Stays
-  /// on screen until the user copies it or navigates away.
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [inviteCopied, setInviteCopied] = useState(false);
+  /// Trusted-match opt-in. When true, the seller's accept panel will surface a
+  /// stake requirement. Default off — most casual deals don't need it.
+  const [requireStake, setRequireStake] = useState(false);
+  /// Stake percentage when requireStake is on. Slider 50..100 in 5% steps,
+  /// default 50%. Translates to on-chain reservationBps = pct * 100.
+  const [requireStakePct, setRequireStakePct] = useState(50);
   // Numeric fields always start empty; the placeholder "0" renders instead
   // of any autofilled number. The only exception is when the user arrives
   // from a listing's "Make offer" deep link with ?amount= in the URL, which
@@ -126,14 +128,16 @@ export function DirectDealForm() {
         acceptanceWindowHours: acceptanceHours,
         terms: terms.trim(),
         firstReleasePct: firstPct as number,
+        requireStake,
+        requireStakePct: requireStake ? requireStakePct : undefined,
       });
       sfx.send();
-      if (r.invite?.url) {
-        // Hold on the form so the user can copy the link before leaving.
-        setInviteUrl(r.invite.url);
-        setSubmitting(false);
-        return;
-      }
+      // Land on the deal page in both modes. The detail page surfaces
+      // PendingInviteCopy when the deal has a pending email counterparty, so
+      // the buyer sees the same copy-link affordance — but at a real URL they
+      // can revisit and bookmark instead of a one-off form state. The
+      // form-bound invite banner was easy to scroll past on a long-form page
+      // so the buyer would tap Open Deal and never realise the link existed.
       router.push(`/deals/${r.deal.jobId}`);
     } catch (err) {
       if (err instanceof ApiError && err.detail) setError(String(err.detail));
@@ -236,7 +240,7 @@ export function DirectDealForm() {
               type="checkbox"
               checked={counterpartyMode === 'email'}
               onChange={(e) => setCounterpartyMode(e.target.checked ? 'email' : 'wallet')}
-              disabled={submitting || inviteUrl != null}
+              disabled={submitting}
               className="accent-[var(--lp-accent)]"
             />
             <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
@@ -254,7 +258,7 @@ export function DirectDealForm() {
               value={seller}
               onChange={(e) => setSeller(e.target.value)}
               placeholder="0x..."
-              disabled={submitting || inviteUrl != null}
+              disabled={submitting}
               className="form-input form-input-mono"
             />
             {seller.length > 0 && !sellerValid && (
@@ -278,7 +282,7 @@ export function DirectDealForm() {
               value={counterpartyEmail}
               onChange={(e) => setCounterpartyEmail(e.target.value)}
               placeholder="them@work.com"
-              disabled={submitting || inviteUrl != null}
+              disabled={submitting}
               className="form-input"
             />
             {counterpartyEmail.length > 3 && !emailValid && (
@@ -287,57 +291,6 @@ export function DirectDealForm() {
               </span>
             )}
           </FormLabel>
-        )}
-        {inviteUrl && (
-          <div
-            className="mt-4 space-y-3 p-4"
-            style={{
-              background: 'color-mix(in oklab, var(--lp-accent) 12%, transparent)',
-              border: '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
-            }}
-          >
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              [:INVITE READY:]
-            </p>
-            <p className="text-[13px] leading-snug text-[var(--lp-dark)]">
-              Send this link to {counterpartyEmail.trim().toLowerCase()}. They open it, verify the
-              email is theirs, and the deal is bound to their wallet. Funding waits on the claim.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <input
-                type="text"
-                value={inviteUrl}
-                readOnly
-                className="form-input form-input-mono flex-1 min-w-0"
-                onFocus={(e) => e.currentTarget.select()}
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(inviteUrl);
-                    setInviteCopied(true);
-                    setTimeout(() => setInviteCopied(false), 1800);
-                  } catch {
-                    // ignore; the user can still select+copy from the input
-                  }
-                }}
-                className="px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors"
-                style={{
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                {inviteCopied ? 'Copied' : 'Copy link'}
-              </button>
-            </div>
-          </div>
         )}
       </FieldSection>
 
@@ -493,6 +446,80 @@ export function DirectDealForm() {
           </div>
         </div>
       )}
+
+      {/* TRUSTED MATCH toggle. When on, the seller will see a stake
+          requirement on their accept panel. Off-default — most direct deals
+          are casual and don't need slashable insurance. Chain-side gating
+          arrives in the next escrow redeploy; the flag is captured today
+          so old deals already carry it then. */}
+      <label
+        className={cn(
+          'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
+          requireStake
+            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
+            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+        )}
+        style={{
+          border: '1px solid',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={requireStake}
+          onChange={(e) => setRequireStake(e.target.checked)}
+          disabled={submitting}
+          className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+          aria-describedby="require-stake-help"
+        />
+        <div className="min-w-0">
+          <span
+            className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+            style={{ color: requireStake ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+          >
+            [:TRUSTED MATCH:]
+          </span>
+          <p
+            id="require-stake-help"
+            className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
+          >
+            Seller has to stake USDC to accept. Slashed if they lose a dispute.
+            Best for higher-value or one-shot deals you can&apos;t redo. Leave off
+            for casual deals.
+          </p>
+          {requireStake && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <input
+                type="range"
+                min={50}
+                max={100}
+                step={5}
+                value={requireStakePct}
+                onChange={(e) => setRequireStakePct(Number(e.target.value))}
+                disabled={submitting}
+                className="flex-1 min-w-[180px] accent-[var(--lp-accent)]"
+                aria-label="Required stake percentage"
+              />
+              <div className="flex items-baseline gap-1.5 shrink-0">
+                <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+                  {requireStakePct}
+                </span>
+                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  % OF DEAL
+                </span>
+              </div>
+              {typeof amount === 'number' && amount > 0 && (
+                <p className="basis-full mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+                  ↳ seller must stake {((amount * requireStakePct) / 100).toFixed(2)} USDC to accept
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </label>
 
       {/* SUBMIT */}
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
