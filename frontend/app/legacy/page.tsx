@@ -28,6 +28,7 @@ import {
   ARC_EXPLORER_TX,
   KARWAN_VAULT_LEGACY_ADDRESS,
   KARWAN_VAULT_LEGACY_ADDRESS_2,
+  KARWAN_VAULT_LEGACY_ADDRESS_3,
 } from '@/features/profile/config';
 
 /// 30-day recovery surface for the pre-v2.D KarwanEscrow + KarwanVault. One
@@ -220,11 +221,13 @@ interface LegacyPosition {
   cooldownStartedAt: number;
   claimableAt: number;
   state: 'active' | 'cooling' | 'claimed';
-  generation: 1 | 2;
+  generation: 1 | 2 | 3;
 }
 
-function vaultAddressForGeneration(gen: 1 | 2): `0x${string}` | null {
-  return gen === 1 ? KARWAN_VAULT_LEGACY_ADDRESS : KARWAN_VAULT_LEGACY_ADDRESS_2;
+function vaultAddressForGeneration(gen: 1 | 2 | 3): `0x${string}` | null {
+  if (gen === 1) return KARWAN_VAULT_LEGACY_ADDRESS;
+  if (gen === 2) return KARWAN_VAULT_LEGACY_ADDRESS_2;
+  return KARWAN_VAULT_LEGACY_ADDRESS_3;
 }
 
 type StakeBusy = { kind: 'request' | 'cancel' | 'claim'; positionId: string } | null;
@@ -244,7 +247,14 @@ function LegacyStakeCard({
   const [positions, setPositions] = useState<LegacyPosition[]>([]);
   const [totalActive, setTotalActive] = useState('0');
   const [totalCooling, setTotalCooling] = useState('0');
-  const [cooldownDaysByGen, setCooldownDaysByGen] = useState<Record<1 | 2, number>>({ 1: 7, 2: 3 });
+  // Gen 1 was 7 days; Gen 2 + Gen 3 (v2.D vault) ship with 3 days. Each gen's
+  // actual cooldown comes from the backend at fetch time; these are seeds for
+  // pre-render before /api/legacy/vault answers.
+  const [cooldownDaysByGen, setCooldownDaysByGen] = useState<Record<1 | 2 | 3, number>>({
+    1: 7,
+    2: 3,
+    3: 3,
+  });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<StakeBusy>(null);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -263,7 +273,7 @@ function LegacyStakeCard({
       // whatever each configured gen actually reports. The contract was
       // bumped from 7 days (pre-v2.D) to 3 days (v2.D), so the right number
       // depends on which gen the position lives on.
-      const map: Record<1 | 2, number> = { 1: 7, 2: 3 };
+      const map: Record<1 | 2 | 3, number> = { 1: 7, 2: 3, 3: 3 };
       for (const g of r.generations) {
         map[g.index] = g.cooldownDays;
       }
@@ -405,7 +415,7 @@ function LegacyStakeCard({
         </Note>
       )}
 
-      {([1, 2] as const).map((gen) => {
+      {([1, 2, 3] as const).map((gen) => {
         const groupActive = active.filter((p) => p.generation === gen);
         if (groupActive.length === 0) return null;
         return (
@@ -642,7 +652,7 @@ interface LegacyDeal {
   };
   createdAt: number;
   releasedUsdc: string;
-  generation: 1 | 2;
+  generation: 1 | 2 | 3;
 }
 
 type DealBusy = { jobId: string; kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' } | null;

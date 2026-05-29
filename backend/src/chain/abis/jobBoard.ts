@@ -420,7 +420,17 @@ export const jobBoardAbi = [
   },
   {
     "type": "error",
+    "name": "BidExpired",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidBid",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidJob",
     "inputs": []
   },
   {

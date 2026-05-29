@@ -28,7 +28,7 @@ import {
   OUTCOME_FAILED,
   OUTCOME_DISPUTE_RESOLVED,
 } from '../chain/settlement.js';
-import { vault, getReservationBps } from '../chain/contracts.js';
+import { vault } from '../chain/contracts.js';
 import {
   createDeal,
   getDeal,
@@ -618,39 +618,38 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       );
     }
 
-    // v2.D: pre-flight the seller agent's free stake on the vault. The
-    // reservation amount = dealAmount * reservationBps / 10000 must be
-    // covered by the seller agent's `freeStakeOf` (active stake minus any
-    // existing reservations). Catching the shortfall here lets us give
-    // the user a clean message rather than a raw chain revert. The
-    // contract still gates with the same check (defence in depth).
-    try {
-      const reservationBps = await getReservationBps();
-      const reservationWei =
-        (dealAmountWei * BigInt(reservationBps)) / 10000n;
-      // deal.seller is the identity wallet; stake lives there, not on the agent.
-      const sellerFreeWei = (await vault.read.freeStakeOf([
-        deal.seller as `0x${string}`,
-      ])) as bigint;
-      if (sellerFreeWei < reservationWei) {
-        const reservationUsdc = formatUnits(reservationWei, USDC_DECIMALS);
-        const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
-        const message = `Your seller agent has ${freeUsdc} USDC free stake but this deal needs ${reservationUsdc} USDC reserved (${reservationBps / 100}% of ${deal.dealAmountUsdc}). Stake more in /stake before accepting.`;
-        bus.emitEvent({
-          type: 'agent.error',
-          jobId,
-          actor: 'seller',
-          payload: { scope: 'acceptEscrow.preflight', message, code: 'INSUFFICIENT_STAKE' },
-        });
-        return c.json({ error: message, code: 'INSUFFICIENT_STAKE' }, 409);
+    // Pre-flight the seller's free stake on the vault. v2.E: the bps in
+    // scope above (set at fundEscrow time) is the per-deal value that the
+    // contract will enforce on acceptEscrow. Casual deals (bps=0) skip
+    // vault.reserve entirely so no stake is required.
+    if (reservationBps > 0) {
+      try {
+        const reservationWei =
+          (dealAmountWei * BigInt(reservationBps)) / 10000n;
+        // deal.seller is the identity wallet; stake lives there, not on the agent.
+        const sellerFreeWei = (await vault.read.freeStakeOf([
+          deal.seller as `0x${string}`,
+        ])) as bigint;
+        if (sellerFreeWei < reservationWei) {
+          const reservationUsdc = formatUnits(reservationWei, USDC_DECIMALS);
+          const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+          const message = `You need ${reservationUsdc} USDC staked to accept this deal (${reservationBps / 100}% of ${deal.dealAmountUsdc}). You currently have ${freeUsdc} USDC free. Top up at /stake and retry.`;
+          bus.emitEvent({
+            type: 'agent.error',
+            jobId,
+            actor: 'seller',
+            payload: { scope: 'acceptEscrow.preflight', message, code: 'INSUFFICIENT_STAKE' },
+          });
+          return c.json({ error: message, code: 'INSUFFICIENT_STAKE' }, 409);
+        }
+      } catch (err) {
+        // Read failure on the vault is not blocking — fall through to the
+        // chain call which will revert with the same constraint if needed.
+        logger.warn(
+          { jobId, err: (err as Error).message },
+          'freeStake preflight read failed; proceeding to acceptEscrow',
+        );
       }
-    } catch (err) {
-      // Read failure on the vault is not blocking — fall through to the
-      // chain call which will revert with the same constraint if needed.
-      logger.warn(
-        { jobId, err: (err as Error).message },
-        'freeStake preflight read failed; proceeding to acceptEscrow',
-      );
     }
 
     // v2.D: the seller agent signs acceptEscrow which transitions the
@@ -661,7 +660,41 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     // "insufficient stake" if the seller agent hasn't deposited enough.
     try {
       const acceptTx = await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
-      logger.info({ jobId, acceptTx }, 'seller accepted escrow on chain (v2.D)');
+      logger.info({ jobId, acceptTx }, 'seller accepted escrow on chain (v2.E)');
+      // ERC-4337 inner-revert guard: handleOps can land as a successful tx
+      // even when the inner acceptEscrow userOp reverted (eg vault.reserve
+      // fails because the seller's stake check on chain disagrees with our
+      // off-chain pre-flight — race condition or stale vault read). Without
+      // this verify step, off-chain acceptedAt would be set even though
+      // on-chain state is still Funded — exactly the bug that made the
+      // seller see "tx FAILED" later on Mark Delivered.
+      invalidateEscrowCache(jobId);
+      const acceptedAccount = await readEscrow(jobId);
+      if (acceptedAccount.state !== ESCROW_ACCEPTED) {
+        const reservationUsdc = formatUnits(
+          (dealAmountWei * BigInt(reservationBps)) / 10000n,
+          USDC_DECIMALS,
+        );
+        const message =
+          reservationBps > 0
+            ? `Accept didn't land on chain. This usually means your stake check failed — you need ${reservationUsdc} USDC free in your stake. Top up at /stake and retry.`
+            : `Accept didn't land on chain. Retry; if the second attempt also fails, ask the buyer to refund via Propose Cancellation.`;
+        bus.emitEvent({
+          type: 'agent.error',
+          jobId,
+          actor: 'seller',
+          payload: {
+            scope: 'acceptEscrow.verify',
+            message,
+            code: 'ACCEPT_NOT_CONFIRMED',
+            chainState: acceptedAccount.state,
+          },
+        });
+        return c.json(
+          { error: message, code: 'ACCEPT_NOT_CONFIRMED' },
+          502,
+        );
+      }
     } catch (err) {
       const message = (err as Error).message;
       const lower = message.toLowerCase();
@@ -778,28 +811,33 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     // so the catch-block string match below never recognises it. Reading the
     // numbers off chain lets us short-circuit with a clean INSUFFICIENT_STAKE
     // 409 that points the seller to /stake.
+    //
+    // v2.E: reservationBps is now PER-DEAL on the EscrowAccount. Casual deals
+    // (bps=0) skip vault.reserve entirely, so the pre-flight is a no-op too.
     try {
-      const reservationBps = await getReservationBps();
-      const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
-      const requiredWei = (dealAmountWei * BigInt(reservationBps)) / 10000n;
-      const sellerFreeWei = (await vault.read.freeStakeOf([
-        deal.seller as `0x${string}`,
-      ])) as bigint;
-      if (sellerFreeWei < requiredWei) {
-        const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
-        const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
-        logger.warn(
-          { jobId, requiredUsdc, freeUsdc },
-          'deliver self-heal blocked: seller free stake below reservation',
-        );
-        return c.json(
-          {
-            error: `Your free stake is ${freeUsdc} USDC but this deal needs ${requiredUsdc} USDC reserved as insurance. Top up at /stake and retry, or ask the buyer to refund via Propose Cancellation.`,
-            code: 'INSUFFICIENT_STAKE',
-            detail: { requiredUsdc, freeUsdc, reservationBps },
-          },
-          409,
-        );
+      const reservationBps = account.reservationBps;
+      if (reservationBps > 0) {
+        const requiredWei =
+          (account.dealAmount * BigInt(reservationBps)) / 10000n;
+        const sellerFreeWei = (await vault.read.freeStakeOf([
+          deal.seller as `0x${string}`,
+        ])) as bigint;
+        if (sellerFreeWei < requiredWei) {
+          const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
+          const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+          logger.warn(
+            { jobId, requiredUsdc, freeUsdc },
+            'deliver self-heal blocked: seller free stake below reservation',
+          );
+          return c.json(
+            {
+              error: `Your free stake is ${freeUsdc} USDC but this deal needs ${requiredUsdc} USDC reserved as insurance. Top up at /stake and retry, or ask the buyer to refund via Propose Cancellation.`,
+              code: 'INSUFFICIENT_STAKE',
+              detail: { requiredUsdc, freeUsdc, reservationBps },
+            },
+            409,
+          );
+        }
       }
     } catch (err) {
       // Vault read failed (not the stake check itself). Fall through to the
@@ -912,28 +950,32 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     // when the seller's stake can't be made whole.
     if (deal.sellerAgentAddress) {
       try {
-        const reservationBps = await getReservationBps();
-        const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
-        const requiredWei = (dealAmountWei * BigInt(reservationBps)) / 10000n;
-        // Stake lives on the identity wallet (deal.seller), not the agent.
-        const sellerFreeWei = (await vault.read.freeStakeOf([
-          deal.seller as `0x${string}`,
-        ])) as bigint;
-        if (sellerFreeWei < requiredWei) {
-          const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
-          const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
-          logger.warn(
-            { jobId, requiredUsdc, freeUsdc },
-            'release self-heal blocked: seller free stake below reservation',
-          );
-          return c.json(
-            {
-              error: `Can't release yet. The seller's free stake is ${freeUsdc} USDC but this deal needs ${requiredUsdc} USDC reserved as insurance. Ask the seller to top up at /stake, or call the deal off via Propose Cancellation or Appeal This Deal to refund your USDC now.`,
-              code: 'INSUFFICIENT_STAKE',
-              detail: { requiredUsdc, freeUsdc, reservationBps },
-            },
-            409,
-          );
+        // v2.E: per-deal reservationBps from the on-chain account.
+        // Casual deals (bps=0) skip vault.reserve so no pre-flight needed.
+        const reservationBps = account.reservationBps;
+        if (reservationBps > 0) {
+          const requiredWei =
+            (account.dealAmount * BigInt(reservationBps)) / 10000n;
+          // Stake lives on the identity wallet (deal.seller), not the agent.
+          const sellerFreeWei = (await vault.read.freeStakeOf([
+            deal.seller as `0x${string}`,
+          ])) as bigint;
+          if (sellerFreeWei < requiredWei) {
+            const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
+            const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+            logger.warn(
+              { jobId, requiredUsdc, freeUsdc },
+              'release self-heal blocked: seller free stake below reservation',
+            );
+            return c.json(
+              {
+                error: `Can't release yet. The seller's free stake is ${freeUsdc} USDC but this deal needs ${requiredUsdc} USDC reserved as insurance. Ask the seller to top up at /stake, or call the deal off via Propose Cancellation or Appeal This Deal to refund your USDC now.`,
+                code: 'INSUFFICIENT_STAKE',
+                detail: { requiredUsdc, freeUsdc, reservationBps },
+              },
+              409,
+            );
+          }
         }
       } catch (err) {
         // Vault read failed. Don't block here — fall through to the chain

@@ -1,5 +1,3 @@
-// Auto-generated from forge inspect KarwanEscrow abi --json
-// Source contract: contracts/src/KarwanEscrow.sol
 export const escrowAbi = [
   {
     "type": "constructor",
@@ -30,12 +28,25 @@ export const escrowAbi = [
         "internalType": "address"
       },
       {
-        "name": "_reservationBps",
+        "name": "_maxReservationBps",
         "type": "uint16",
         "internalType": "uint16"
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "MIN_TRUSTED_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -128,6 +139,11 @@ export const escrowAbi = [
         "name": "state",
         "type": "uint8",
         "internalType": "enum KarwanEscrow.EscrowState"
+      },
+      {
+        "name": "reservationBps",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -168,6 +184,11 @@ export const escrowAbi = [
         "name": "milestonePcts",
         "type": "uint8[]",
         "internalType": "uint8[]"
+      },
+      {
+        "name": "_reservationBps",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "outputs": [],
@@ -243,8 +264,26 @@ export const escrowAbi = [
             "name": "state",
             "type": "uint8",
             "internalType": "enum KarwanEscrow.EscrowState"
+          },
+          {
+            "name": "reservationBps",
+            "type": "uint16",
+            "internalType": "uint16"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxReservationBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -315,19 +354,6 @@ export const escrowAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract IKarwanReputation"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "reservationBps",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -460,6 +486,12 @@ export const escrowAbi = [
         "type": "uint8[]",
         "indexed": false,
         "internalType": "uint8[]"
+      },
+      {
+        "name": "reservationBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
       }
     ],
     "anonymous": false
@@ -476,6 +508,12 @@ export const escrowAbi = [
       },
       {
         "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "priorReleased",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -648,6 +686,11 @@ export const escrowAbi = [
   {
     "type": "error",
     "name": "InvalidReputation",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidReservation",
     "inputs": []
   },
   {

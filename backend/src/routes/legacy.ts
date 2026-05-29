@@ -296,6 +296,23 @@ async function callLegacyEscrowFn(
       },
       `legacy.${fn}(gen${loaded.generation.index} ${jobId})`,
     );
+    // Patch the off-chain deal record on terminal transitions so the deal
+    // drops out of the buyer's "deals awaiting you" feed and the seller's
+    // active list. Without this the on-chain refund / settle would land but
+    // the off-chain state would stay open, and the feed would keep prompting.
+    if (fn === 'releaseFinal') {
+      await patchDeal(jobId, { settledAt: Date.now() });
+    } else if (fn === 'refund' || fn === 'acceptCancellation') {
+      await patchDeal(jobId, {
+        cancelledAt: Date.now(),
+        cancelKind: fn === 'acceptCancellation' ? 'mutual' : 'unilateral',
+        cancelReason:
+          fn === 'acceptCancellation'
+            ? 'Mutual cancellation accepted via legacy recovery.'
+            : 'Buyer refund via legacy recovery surface.',
+        cancellationProposal: undefined,
+      });
+    }
     bus.emitEvent({
       type: eventType as Parameters<typeof bus.emitEvent>[0]['type'],
       jobId,
@@ -392,6 +409,16 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
       },
       `legacy.refund(gen${loaded.generation.index} ${jobId})`,
     );
+    // Patch the off-chain deal record so the deal drops out of the buyer's
+    // "deals awaiting you" feed. Without this, a successfully refunded legacy
+    // deal still shows as open because the deal feed filters on cancelledAt /
+    // settledAt only. Marked as unilateral since the buyer drove the recovery
+    // alone; legacy state is already None / Refunded on chain after this tx.
+    await patchDeal(jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: 'unilateral',
+      cancelReason: 'Buyer refund via legacy recovery surface.',
+    });
     bus.emitEvent({
       type: 'deal.cancelled',
       jobId,

@@ -319,6 +319,11 @@ export interface EscrowAccount {
   milestonePcts: number[];
   milestonesReleased: number;
   state: number;
+  /// Per-deal stake gate captured at fund time (v2.E+). 0 = casual deal, no
+  /// vault.reserve fires on acceptEscrow. 5000..maxReservationBps = trusted
+  /// match, that pct of dealAmount must be reserved against the seller's
+  /// free stake. Zero on legacy (pre-v2.E) deals since the field didn't exist.
+  reservationBps: number;
 }
 
 // feeBps and reservationBps are immutable on the escrow contract; cache safe.
@@ -332,11 +337,27 @@ export async function getEscrowFeeBps(): Promise<number> {
   return _feeBpsCache;
 }
 
-export async function getReservationBps(): Promise<number> {
+/// Hard ceiling on per-deal reservationBps (v2.E+). Replaces the v2.D
+/// protocol-wide `reservationBps()` view — actual deal gating now uses
+/// the per-deal value on EscrowAccount. The ceiling is read once and
+/// cached; it's set in the constructor and never changes.
+export async function getMaxReservationBps(): Promise<number> {
   if (_reservationBpsCache === null) {
-    _reservationBpsCache = Number(await escrow.read.reservationBps());
+    _reservationBpsCache = Number(
+      await escrow.read.maxReservationBps(),
+    );
   }
   return _reservationBpsCache;
+}
+
+/// Back-compat shim. Pre-v2.E code called this to get the protocol-wide
+/// reservation rate; on v2.E it returns the maxReservationBps ceiling
+/// instead. Prefer reading account.reservationBps directly from readEscrow
+/// — the per-deal value is what acceptEscrow actually enforces.
+///
+/// @deprecated read account.reservationBps from readEscrow instead.
+export async function getReservationBps(): Promise<number> {
+  return getMaxReservationBps();
 }
 
 export interface FundingBreakdown {
@@ -407,6 +428,7 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     milestonePcts: readonly number[];
     milestonesReleased: number;
     state: number;
+    reservationBps: number;
   };
   const value: EscrowAccount = {
     buyer: raw.buyer,
@@ -420,6 +442,7 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     milestonePcts: [...raw.milestonePcts],
     milestonesReleased: raw.milestonesReleased,
     state: raw.state,
+    reservationBps: raw.reservationBps ?? 0,
   };
   escrowCache.set(key, { value, expiresAt: now + READ_ESCROW_TTL_MS });
   return value;

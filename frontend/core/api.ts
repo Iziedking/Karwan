@@ -991,17 +991,17 @@ export const api = {
         positionCount: number;
       }>;
     }>(`/api/legacy/vault/positions?address=${address}`),
-  legacyVaultRequestWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 }) =>
+  legacyVaultRequestWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 | 3 }) =>
     json<{ ok: true; txHash: string }>('/api/legacy/vault/request-withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  legacyVaultCancelWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 }) =>
+  legacyVaultCancelWithdraw: (body: { address: string; positionId: string; generation: 1 | 2 | 3 }) =>
     json<{ ok: true; txHash: string }>('/api/legacy/vault/cancel-withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  legacyVaultClaim: (body: { address: string; positionId: string; generation: 1 | 2 }) =>
+  legacyVaultClaim: (body: { address: string; positionId: string; generation: 1 | 2 | 3 }) =>
     json<{ ok: true; txHash: string }>('/api/legacy/vault/claim', {
       method: 'POST',
       body: JSON.stringify(body),

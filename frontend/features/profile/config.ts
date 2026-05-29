@@ -22,7 +22,12 @@ export const ARC_USDC_DECIMALS = 6;
 // Active KarwanVault (v2.D-prime bundle, deployed 2026-05-28). Mirrors the
 // backend KARWAN_VAULT_ADDR. Web3 users sign deposit / withdraw / claim
 // against this. Previous v2.D vault (0xAb26...368E) is now the Gen 2 legacy.
-export const KARWAN_VAULT_ADDRESS = '0x3Fe7bdDea2b1D5255a0e865222dAE00eEefC45DA' as const;
+// Active KarwanVault. Env-driven so a redeploy doesn't need a frontend code
+// change. Fallback is the v2.E live address (the current production contract
+// at time of writing). Set NEXT_PUBLIC_KARWAN_VAULT_ADDRESS on Vercel to
+// the new value when the next vault redeploy happens.
+export const KARWAN_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_KARWAN_VAULT_ADDRESS ??
+  '0x2d4506284B2D778365b4B295100EF099F35973c5') as `0x${string}`;
 
 // Gen 1 legacy KarwanVault (the original pre-v2.D contract). Read-only on the
 // /legacy page so existing stakers can request-withdraw / claim USDC parked
@@ -41,3 +46,10 @@ export const KARWAN_VAULT_LEGACY_ADDRESS_2 =
   (process.env.NEXT_PUBLIC_KARWAN_VAULT_LEGACY_ADDRESS_2 as `0x${string}` | undefined) ?? null;
 export const KARWAN_ESCROW_LEGACY_ADDRESS_2 =
   (process.env.NEXT_PUBLIC_KARWAN_ESCROW_LEGACY_ADDRESS_2 as `0x${string}` | undefined) ?? null;
+
+// Gen 3 legacy contracts. The v2.D vault + escrow that v2.E displaces. Read
+// from NEXT_PUBLIC_* so a future redeploy is an env swap, not a code change.
+export const KARWAN_VAULT_LEGACY_ADDRESS_3 =
+  (process.env.NEXT_PUBLIC_KARWAN_VAULT_LEGACY_ADDRESS_3 as `0x${string}` | undefined) ?? null;
+export const KARWAN_ESCROW_LEGACY_ADDRESS_3 =
+  (process.env.NEXT_PUBLIC_KARWAN_ESCROW_LEGACY_ADDRESS_3 as `0x${string}` | undefined) ?? null;
