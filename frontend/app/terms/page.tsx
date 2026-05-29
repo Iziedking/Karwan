@@ -20,7 +20,7 @@ export default function TermsPage() {
       <Band tone="dark" overlay={<GridOverlay />}>
         <SectionTag tone="dark">TERMS</SectionTag>
         <HeroHeadline size="md">
-          What you sign up for, in <Accent>plain</Accent> English<Punc>.</Punc>
+          What you sign up <Accent>for</Accent><Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 text-[15px] text-[var(--lp-text-muted)] leading-relaxed max-w-[58ch]">
           The product is testnet today. The terms cover the shape of the work, the risks of
