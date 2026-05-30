@@ -10,15 +10,36 @@ export function ChatPanel({
   jobId,
   caller,
   counterpartyLabel,
+  draftSeed,
+  draftSeedKey,
 }: {
   jobId: string;
   caller: string;
   counterpartyLabel: string;
+  /// Optional pre-filled message. Useful for action buttons that want to
+  /// drop the user into chat with a starter line (e.g. "Request extension").
+  draftSeed?: string;
+  /// Bump this to re-apply draftSeed even when the text hasn't changed.
+  /// React state only fires on prop change, so a counter beats sending the
+  /// same string twice in a row.
+  draftSeedKey?: number;
 }) {
   const { messages, fetchState, send, sending } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
   const me = caller.toLowerCase();
   const listRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!draftSeed) return;
+    setDraft(draftSeed);
+    // Focus + scroll the input into view so the seller sees the message
+    // they're about to send. Delay one frame so the layout has settled.
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [draftSeed, draftSeedKey]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -134,6 +155,7 @@ export function ChatPanel({
         className="px-6 py-4 border-t border-[var(--lp-border-light)] flex items-center gap-2"
       >
         <input
+          ref={inputRef}
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

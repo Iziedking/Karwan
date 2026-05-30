@@ -1100,6 +1100,24 @@ export const api = {
       `/api/deals/direct/${jobId}/delay-appeal-respond`,
       { method: 'POST', body: JSON.stringify({ caller, reason }) },
     ),
+  /// Post-settlement cashout: read the per-deal context.
+  cashoutInfo: (jobId: string) =>
+    json<{
+      jobId: string;
+      sellerAddress: string;
+      dealAmountUsdc: string;
+      settledAt: number | null;
+      legacyEscrow: boolean;
+      accountKind: 'circle' | 'wallet';
+      arcBalanceUsdc: string | null;
+    }>(`/api/cashout/${jobId}`),
+  /// Direct USDC.transfer on Arc from the seller's Circle identity DCW.
+  /// Use api.bridgeOut for non-Arc destinations.
+  cashoutArc: (input: { jobId: string; recipient: string; amountUsdc: number }) =>
+    json<{ ok: true; txHash: string; explorerUrl: string }>(
+      '/api/cashout/arc-withdraw',
+      { method: 'POST', body: JSON.stringify(input) },
+    ),
   stillReviewing: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/still-reviewing`,

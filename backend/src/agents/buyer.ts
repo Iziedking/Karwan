@@ -1875,6 +1875,20 @@ async function persistApprovedMatch(
     if (state.buyer.milestonePcts.length !== 2) return;
 
     const now = Date.now();
+    // Re-anchor the delivery deadline to ACCEPTANCE time, not brief-posting
+    // time. The auction may have taken hours or days; without this the seller
+    // wins the bid but inherits a clock that's been ticking since the brief
+    // went live. Use the same "window from brief.createdAt" derivation as
+    // the direct-deal re-anchors so behaviour stays consistent across flows.
+    const brief = getBrief(proposal.jobId);
+    let dealDeadlineUnix = proposal.deadlineUnix;
+    if (brief) {
+      const briefCreatedSeconds = Math.floor(brief.createdAt / 1000);
+      const negotiatedWindowSeconds = proposal.deadlineUnix - briefCreatedSeconds;
+      if (negotiatedWindowSeconds > 0) {
+        dealDeadlineUnix = Math.floor(now / 1000) + negotiatedWindowSeconds;
+      }
+    }
     await createDeal({
       jobId: proposal.jobId,
       buyer: buyerWallets.userAddress,
@@ -1885,7 +1899,7 @@ async function persistApprovedMatch(
       sellerAgentAddress: sellerWallets.sellerAddress,
       dealAmountUsdc: proposal.agreedPriceUsdc,
       firstReleasePct,
-      deadlineUnix: proposal.deadlineUnix,
+      deadlineUnix: dealDeadlineUnix,
       terms: proposal.termsHash,
       acceptedAt: now,
       fundTxHash,

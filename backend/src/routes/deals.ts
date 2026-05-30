@@ -45,6 +45,7 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { sessionMismatchesClaim, viewerAddress, readSession } from '../auth/session.js';
+import { sendDealInviteEmail, formatExpiresLabel } from '../emails/dealInvite.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -168,15 +169,16 @@ dealsRoutes.post('/direct', async (c) => {
   // hook during the wait.
   let inviteUrl: string | undefined;
   let pendingCounterparty: DirectDeal['pendingCounterparty'] | undefined;
+  let inviteExpiresAt: number | undefined;
   if (body.sellerEmail) {
     const token = randomBytes(32).toString('hex');
-    const expiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
+    inviteExpiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
     createInvite({
       token,
       jobId,
       role: 'seller',
       email: body.sellerEmail,
-      expiresAt,
+      expiresAt: inviteExpiresAt,
     });
     pendingCounterparty = {
       email: body.sellerEmail,
@@ -225,9 +227,27 @@ dealsRoutes.post('/direct', async (c) => {
       payload: {
         buyer: body.buyerAddress,
         invitedEmail: pendingCounterparty.email,
-        expiresAt: Date.now() + config.DEAL_INVITE_TTL_MS,
+        expiresAt: inviteExpiresAt ?? Date.now() + config.DEAL_INVITE_TTL_MS,
       },
     });
+    // Notify the recipient over Resend. Fire-and-forget so a transient mail
+    // failure never blocks the deal-creation HTTP response; the buyer still
+    // gets the inviteUrl in the response body and can share it manually.
+    if (inviteUrl && inviteExpiresAt) {
+      const maskedInviter = `${body.buyerAddress.slice(0, 6)}…${body.buyerAddress.slice(-4)}`;
+      void sendDealInviteEmail({
+        to: pendingCounterparty.email,
+        claimUrl: inviteUrl,
+        dealAmountUsdc: body.dealAmountUsdc.toString(),
+        inviterMasked: maskedInviter,
+        expiresLabel: formatExpiresLabel(inviteExpiresAt),
+      }).catch((err) => {
+        logger.warn(
+          { err: (err as Error).message, to: pendingCounterparty?.email, jobId },
+          'deal invite email send threw',
+        );
+      });
+    }
   }
 
   logger.info(
@@ -331,10 +351,37 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   const patch: Partial<DirectDeal> = invite.role === 'seller'
     ? { seller: session.address.toLowerCase() }
     : { buyer: session.address.toLowerCase() };
+
+  // Re-anchor both deadlines so they start counting from CLAIM time, not
+  // creation time. Without this, a buyer who sets a 24h delivery deadline
+  // and a 24h acceptance window has both windows pinned to deal creation —
+  // by the time the recipient claims 5 days later, both have long expired.
+  //
+  // We don't store the configured deltas, but they're recoverable: the
+  // gap between createdAt and the absolute deadlines IS the configured
+  // window. Re-add that same gap to now.
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const createdSeconds = Math.floor(deal.createdAt / 1000);
+  const reanchor: Partial<DirectDeal> = {};
+  if (deal.acceptanceDeadlineUnix != null) {
+    const acceptanceWindowSeconds =
+      deal.acceptanceDeadlineUnix - createdSeconds;
+    if (acceptanceWindowSeconds > 0) {
+      reanchor.acceptanceDeadlineUnix = nowSeconds + acceptanceWindowSeconds;
+    }
+  }
+  if (deal.deadlineUnix != null) {
+    const deliveryWindowSeconds = deal.deadlineUnix - createdSeconds;
+    if (deliveryWindowSeconds > 0) {
+      reanchor.deadlineUnix = nowSeconds + deliveryWindowSeconds;
+    }
+  }
+
   // Clear pendingCounterparty by patching to undefined; the persistence layer
   // strips undefined values so the field drops out cleanly.
   await patchDeal(invite.jobId, {
     ...patch,
+    ...reanchor,
     pendingCounterparty: undefined,
   });
   markInviteUsed(token, session.address);
@@ -726,11 +773,27 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     }
     invalidateEscrowCache(jobId);
 
+    // Re-anchor the delivery deadline so the seller's window starts NOW,
+    // not when the buyer originally opened the deal. The configured window
+    // is recoverable from (deadlineUnix - createdAt) on the existing record.
+    // Same logic as the invite-claim re-anchor (deals.ts ~line 350).
+    const nowMs = Date.now();
+    const nowSeconds = Math.floor(nowMs / 1000);
+    const createdSeconds = Math.floor(deal.createdAt / 1000);
+    const reanchor: Partial<DirectDeal> = {};
+    if (deal.deadlineUnix != null) {
+      const deliveryWindowSeconds = deal.deadlineUnix - createdSeconds;
+      if (deliveryWindowSeconds > 0) {
+        reanchor.deadlineUnix = nowSeconds + deliveryWindowSeconds;
+      }
+    }
+
     await patchDeal(jobId, {
-      acceptedAt: Date.now(),
+      acceptedAt: nowMs,
       sellerAgentWalletId: sellerAgents.sellerWalletId,
       sellerAgentAddress: sellerAgents.sellerAddress,
       fundTxHash: fundResult.txHash,
+      ...reanchor,
     });
     bus.emitEvent({
       type: 'deal.accepted',

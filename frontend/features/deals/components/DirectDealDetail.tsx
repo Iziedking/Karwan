@@ -78,6 +78,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
+  // Drives the "Request extension" button on the awaiting-delivery seller view.
+  // The seed seeds the chat input; the key forces ChatPanel to re-apply it
+  // even if the seller clicks twice in a row with the same text.
+  const [chatDraftSeed, setChatDraftSeed] = useState<string | undefined>(undefined);
+  const [chatDraftSeedKey, setChatDraftSeedKey] = useState(0);
+  function onRequestExtension() {
+    setChatDraftSeed(
+      'Requesting a few more days to deliver. Could we extend the deadline?',
+    );
+    setChatDraftSeedKey((k) => k + 1);
+  }
   // Hoisted above the conditional early returns below to satisfy the React
   // rules of hooks. must be called on every render in the same order.
   const [proposeOpen, setProposeOpen] = useState(false);
@@ -639,6 +650,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onCancel={onCancel}
               onRaiseDelayAppeal={onRaiseDelayAppeal}
               onRespondToDelayAppeal={onRespondToDelayAppeal}
+              onRequestExtension={onRequestExtension}
             />
             {canPropose && (
               <div className="mt-5 pt-5 border-t border-white/[0.08]">
@@ -705,6 +717,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     ? `seller ${shortAddress(deal.seller)}`
                     : `buyer ${shortAddress(deal.buyer)}`
                 }
+                draftSeed={chatDraftSeed}
+                draftSeedKey={chatDraftSeedKey}
               />
             </PageCard>
           </div>
@@ -897,6 +911,7 @@ function ActionPanel({
   onCancel,
   onRaiseDelayAppeal,
   onRespondToDelayAppeal,
+  onRequestExtension,
 }: {
   stage: DealStage;
   viewerIsBuyer: boolean;
@@ -915,14 +930,22 @@ function ActionPanel({
   onCancel: () => void;
   onRaiseDelayAppeal: () => void;
   onRespondToDelayAppeal: (reason: string) => void;
+  onRequestExtension: () => void;
 }) {
   if (stage === 'settled') {
     return (
-      <Body>
-        {deal.autoReleasedAt
-          ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
-          : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
-      </Body>
+      <div className="space-y-4">
+        <Body>
+          {deal.autoReleasedAt
+            ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
+            : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
+        </Body>
+        {viewerIsSeller && (
+          <Link href={`/cashout/${deal.jobId}`}>
+            <CTAPill>Cash out {formatUsdc(deal.dealAmountUsdc)} USDC →</CTAPill>
+          </Link>
+        )}
+      </div>
     );
   }
   if (stage === 'cancelled') {
@@ -1074,9 +1097,21 @@ function ActionPanel({
               }}
             />
           </label>
-          <CTAPill disabled={busy} onClick={onMarkDelivered}>
-            {busy ? 'Confirming on Arc…' : 'Mark delivered'}
-          </CTAPill>
+          <div className="flex flex-wrap gap-2">
+            <CTAPill disabled={busy} onClick={onMarkDelivered}>
+              {busy ? 'Confirming on Arc…' : 'Mark delivered'}
+            </CTAPill>
+            <span title="Ask the buyer for more time.">
+              <CTAPill
+                variant="secondary"
+                tone="dark"
+                onClick={onRequestExtension}
+                disabled={busy}
+              >
+                Request extension
+              </CTAPill>
+            </span>
+          </div>
         </div>
       );
     }
