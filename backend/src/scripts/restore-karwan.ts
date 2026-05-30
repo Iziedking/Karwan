@@ -5,9 +5,15 @@
 ///   docker compose exec -T karwan-api node dist/scripts/restore-karwan.js
 ///
 /// Behavior:
-///   - Lists the bucket, picks the most recent db/ and data/ snapshot.
+///   - Lists the bucket, picks the most recent db/, data/, and env/ snapshot.
 ///   - Streams the db snapshot into psql.
 ///   - Extracts the data snapshot over /app/backend/data.
+///   - Writes the env snapshot to /app/backend/.env-restored (the host's
+///     /app/backend mount, which surfaces as ~/karwan/.env-restored on the
+///     VPS). The operator manually moves it to ~/karwan/.env after eyeballing.
+///     Refusing to overwrite the live .env automatically is intentional — env
+///     restore is a "human in the loop" step since secrets may have rotated
+///     between the snapshot and now.
 ///
 /// Safety:
 ///   - Refuses to run unless KARWAN_RESTORE_CONFIRM=yes is set in env. The
@@ -132,6 +138,31 @@ async function restoreDb(dumpGzPath: string): Promise<void> {
   log.info('psql restore ok');
 }
 
+/// Gunzip the env snapshot to /app/backend/.env-restored. The host bind-mount
+/// for /app/backend/data lands this file at ~/karwan/data/.env-restored if
+/// the operator hasn't added a separate mount for the parent directory.
+/// To make this land on the host, the user binds /app/backend → ~/karwan in
+/// docker-compose, OR copies the file out via `docker cp`. The fallback
+/// instruction in the log covers the docker cp case.
+async function restoreEnv(envGzPath: string): Promise<void> {
+  const outPath = '/app/backend/.env-restored';
+  log.info({ envGzPath, outPath }, 'env restore start');
+  const gunzip = spawn('gunzip', ['-c', envGzPath], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const out = await import('node:fs').then((m) => m.createWriteStream(outPath));
+  await pipeline(gunzip.stdout, out);
+  const code: number = await new Promise((res, rej) => {
+    gunzip.on('error', rej);
+    gunzip.on('exit', (c) => res(c ?? -1));
+  });
+  if (code !== 0) throw new Error(`gunzip exited ${code}`);
+  log.info(
+    { outPath },
+    'env restore ok. Copy to host: docker compose cp karwan-api:/app/backend/.env-restored ~/karwan/.env',
+  );
+}
+
 async function restoreData(tarGzPath: string): Promise<void> {
   log.info({ tarGzPath, dataDir: DATA_DIR }, 'tar restore start');
   // Extract to /app/backend so the archive's data/ lands at /app/backend/data.
@@ -175,6 +206,17 @@ async function main(): Promise<void> {
       const dataFile = join(dir, 'restore.tar.gz');
       await downloadToFile(dataKey, dataFile);
       await restoreData(dataFile);
+    }
+
+    const envKey = await listLatestKey('env/');
+    if (!envKey) {
+      log.warn(
+        'no env snapshots found in bucket; restore your .env from your password manager instead',
+      );
+    } else {
+      const envGzFile = join(dir, 'restore.env.gz');
+      await downloadToFile(envKey, envGzFile);
+      await restoreEnv(envGzFile);
     }
 
     log.info({ bucket: B2_BUCKET }, 'restore complete');

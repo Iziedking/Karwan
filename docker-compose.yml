@@ -39,6 +39,12 @@ services:
       # When DATABASE_URL is set, most of these files stay empty; the dir is
       # still needed for bridge state + briefs that haven't migrated.
       - ./data:/app/backend/data
+      # Read-only mount of .env so the in-container backup script can tar
+      # it alongside data/. Without this the backup misses the file that
+      # holds CIRCLE_ENTITY_SECRET, DATABASE_URL, contract addresses, and
+      # the B2 credentials themselves. Mounted read-only so a compromised
+      # container can't rewrite your secrets file.
+      - ./.env:/app/backend/.env-snapshot:ro
     # The container listens on 8787 internally. We DON'T publish to host —
     # only Caddy talks to it over the internal network.
     expose:

@@ -4,6 +4,12 @@
 /// Snapshots:
 ///   1. Postgres dump (pg_dump --no-owner --no-privileges | gzip)
 ///   2. Tar.gz of /app/backend/data (the mounted flat-file fallback)
+///   3. Gzip of /app/backend/.env-snapshot (the host's .env mounted read-only
+///      via docker-compose). Holds CIRCLE_ENTITY_SECRET + contract addresses
+///      + B2 credentials. Without this the backup is unrestorable in
+///      isolation. Also keep a separate copy in a password manager so the
+///      B2 credentials needed to download the backup don't live ONLY in
+///      the backup.
 ///
 /// Uploads both to a Backblaze B2 bucket via B2's S3-compatible API. The
 /// AWS SDK works against any S3-compatible endpoint, so swapping to a
@@ -29,7 +35,14 @@
 ///   KARWAN_BACKUP_DATA_DIR          Default /app/backend/data
 ///   KARWAN_BACKUP_HEARTBEAT_URL     Healthchecks.io / Better Stack ping URL
 import { spawn } from 'node:child_process';
-import { createReadStream, statSync, mkdtempSync, rmSync, createWriteStream } from 'node:fs';
+import {
+  createReadStream,
+  statSync,
+  mkdtempSync,
+  rmSync,
+  createWriteStream,
+  existsSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -64,6 +77,7 @@ const B2_REGION = required('B2_REGION');
 
 const RETENTION_DAYS = Number(env.KARWAN_BACKUP_RETENTION_DAYS ?? '28');
 const DATA_DIR = env.KARWAN_BACKUP_DATA_DIR ?? '/app/backend/data';
+const ENV_SNAPSHOT_PATH = env.KARWAN_BACKUP_ENV_PATH ?? '/app/backend/.env-snapshot';
 const HEARTBEAT_URL = env.KARWAN_BACKUP_HEARTBEAT_URL ?? '';
 
 const s3 = new S3Client({
@@ -137,6 +151,41 @@ async function tarData(outPath: string): Promise<void> {
   log.info({ size }, 'tar ok');
 }
 
+/// Gzip the .env snapshot to its own blob. We don't tar it — it's a single
+/// file, gzip alone is faster + still decompresses cleanly via `gunzip`.
+/// Missing snapshot = a soft warning, not a failure: the operator may not
+/// have the mount wired yet on first deploy.
+async function gzipEnv(outPath: string): Promise<boolean> {
+  if (!existsSync(ENV_SNAPSHOT_PATH)) {
+    log.warn(
+      { ENV_SNAPSHOT_PATH },
+      'env snapshot not mounted; skipping. Add `./.env:/app/backend/.env-snapshot:ro` to docker-compose.yml',
+    );
+    return false;
+  }
+  log.info({ outPath, src: ENV_SNAPSHOT_PATH }, 'gzip env start');
+  const gz = spawn('gzip', ['-c', ENV_SNAPSHOT_PATH], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const stderr: string[] = [];
+  gz.stderr.on('data', (c) => stderr.push(c.toString()));
+  const out = createWriteStream(outPath);
+  const piped = pipeline(gz.stdout, out);
+  const gzExit = new Promise<number>((res, rej) => {
+    gz.on('error', rej);
+    gz.on('exit', (c) => res(c ?? -1));
+  });
+  await piped;
+  const code = await gzExit;
+  if (code !== 0) {
+    log.error({ code, stderr: stderr.join('') }, 'gzip env failed');
+    throw new Error(`gzip exited ${code}`);
+  }
+  const size = statSync(outPath).size;
+  log.info({ size }, 'gzip env ok');
+  return true;
+}
+
 async function upload(key: string, filePath: string): Promise<void> {
   const body = createReadStream(filePath);
   const size = statSync(filePath).size;
@@ -197,15 +246,19 @@ async function main(): Promise<void> {
   try {
     const dbFile = join(dir, `karwan-db-${stamp}.sql.gz`);
     const dataFile = join(dir, `karwan-data-${stamp}.tar.gz`);
+    const envFile = join(dir, `karwan-env-${stamp}.gz`);
 
     await dumpPostgres(dbFile);
     await tarData(dataFile);
+    const envOk = await gzipEnv(envFile);
 
     await upload(`db/${stamp}.sql.gz`, dbFile);
     await upload(`data/${stamp}.tar.gz`, dataFile);
+    if (envOk) await upload(`env/${stamp}.env.gz`, envFile);
 
     await pruneOld('db/');
     await pruneOld('data/');
+    await pruneOld('env/');
 
     await pingHeartbeat();
     log.info({ stamp, bucket: B2_BUCKET }, 'backup complete');
