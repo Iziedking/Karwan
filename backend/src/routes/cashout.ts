@@ -1,18 +1,22 @@
-/// Post-settlement withdraw for the seller. Two surfaces today:
+/// Post-settlement withdraw for the seller.
 ///
-///   POST /api/cashout/arc-withdraw     — direct USDC.transfer on Arc to any
-///                                        address. Same-chain, fast path.
-///   POST /api/bridge/circle-bridge-out — existing CCTP bridge-out for the
-///                                        Arc → Solana/Eth/Polygon path. The
-///                                        frontend calls it directly when
-///                                        the user picks a non-Arc chain.
+/// Two wallets matter on the seller side:
+///   - identity wallet         : the address recipients see; staking, login,
+///                               cashout-routing dashboards belong here.
+///   - seller agent wallet     : the on-chain `seller` address the escrow
+///                               actually pays out to. Released USDC lands
+///                               here, NOT on identity.
 ///
-/// Both surfaces share the same guard: the caller must be the seller of a
-/// settled deal that lives on the v2.E escrow (legacy generations cash out
-/// through their own /legacy surface). Web3-wallet sellers can't use the
-/// Arc-withdraw route — their USDC already landed in their connected wallet
-/// when the escrow released, so they have no Circle DCW to spend from. The
-/// frontend renders that path as "coming soon" today.
+/// The cashout page lets the seller pick which wallet to spend from. By default
+/// they pick the deal wallet because that's where the money lives. The seller
+/// can also send their identity-wallet balance if they previously swept funds
+/// into it. Both wallets are Circle DCWs we already control via the entity
+/// secret, so a transfer is one executeContractCall regardless.
+///
+/// Endpoints:
+///   GET  /api/cashout/:jobId            page context + both balances
+///   POST /api/cashout/arc-withdraw      direct USDC.transfer on Arc
+///   (cross-chain bridge-out goes through /api/bridge/circle-bridge-out)
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { parseUnits, formatUnits } from 'viem';
@@ -29,13 +33,50 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
+const walletKindSchema = z.enum(['identity', 'sellerAgent']);
+type WalletKind = z.infer<typeof walletKindSchema>;
+
 const arcWithdrawSchema = z.object({
   jobId: z.string().min(1),
   recipient: addrSchema,
   amountUsdc: z.number().positive().max(1_000_000),
+  /// Which wallet the USDC leaves from. 'sellerAgent' is the default that
+  /// makes sense post-settlement (escrow paid the agent). 'identity' is for
+  /// sellers who already swept into their identity wallet.
+  walletKind: walletKindSchema.default('sellerAgent'),
 });
 
 export const cashoutRoutes = new Hono();
+
+interface ResolvedWallet {
+  kind: WalletKind;
+  address: string;
+  walletId: string;
+}
+
+/// Look up the wallet ID + address for the requested kind. Returns null when
+/// the user has no Circle wallet of that kind (e.g. a web3-account user with
+/// no Circle identity, or a deal that predates per-user agent wallets).
+function resolveWallet(
+  kind: WalletKind,
+  user: ReturnType<typeof getUserByAddress>,
+  deal: NonNullable<Awaited<ReturnType<typeof getDeal>>>,
+): ResolvedWallet | null {
+  if (kind === 'identity') {
+    if (!user?.circleIdentityWalletId) return null;
+    return {
+      kind,
+      address: user.address,
+      walletId: user.circleIdentityWalletId,
+    };
+  }
+  if (!deal.sellerAgentWalletId || !deal.sellerAgentAddress) return null;
+  return {
+    kind,
+    address: deal.sellerAgentAddress,
+    walletId: deal.sellerAgentWalletId,
+  };
+}
 
 cashoutRoutes.post('/arc-withdraw', async (c) => {
   let body;
@@ -71,15 +112,25 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   }
 
   const user = getUserByAddress(session.address);
-  if (!user?.circleIdentityWalletId) {
-    // Web3-wallet sellers: USDC has already landed in their connected wallet
-    // when the escrow released. They have no Circle DCW to spend from.
+  const source = resolveWallet(body.walletKind, user, deal);
+  if (!source) {
+    if (body.walletKind === 'identity') {
+      return c.json(
+        {
+          error: 'wallet-account withdraw is coming soon',
+          detail:
+            'Your USDC already landed in your connected wallet on Arc. Bridge it out from your wallet for now; in-product wallet withdraw is on the roadmap.',
+          code: 'WALLET_ACCOUNT',
+        },
+        409,
+      );
+    }
     return c.json(
       {
-        error: 'wallet-account withdraw is coming soon',
+        error: 'deal wallet not available on this deal',
         detail:
-          'Your USDC already landed in your connected wallet on Arc. Bridge it out from your wallet for now; in-product wallet withdraw is on the roadmap.',
-        code: 'WALLET_ACCOUNT',
+          'This deal was opened before per-user agent wallets existed. Use identity wallet instead.',
+        code: 'NO_DEAL_WALLET',
       },
       409,
     );
@@ -87,15 +138,15 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
 
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
-  // Preflight against the live Arc balance so we don't burn a Circle tx
-  // submission on a deal whose funds the seller already moved.
+  // Preflight against the live balance of the chosen wallet so we don't burn
+  // a Circle tx submission with insufficient funds.
   let bal: bigint;
   try {
-    bal = await readUsdcBalance(session.address);
+    bal = await readUsdcBalance(source.address);
   } catch (err) {
     return c.json(
       {
-        error: 'could not read your Arc balance',
+        error: 'could not read the source wallet Arc balance',
         detail: (err as Error).message,
       },
       503,
@@ -105,7 +156,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
     return c.json(
       {
         error: 'insufficient balance',
-        detail: `Your Arc balance is ${formatUnits(bal, USDC_DECIMALS)} USDC, less than the ${body.amountUsdc} you want to withdraw.`,
+        detail: `The ${body.walletKind === 'identity' ? 'identity' : 'deal'} wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to withdraw.`,
         code: 'INSUFFICIENT_BALANCE',
       },
       409,
@@ -115,7 +166,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   try {
     const { txHash, explorerUrl } = await executeContractCall(
       {
-        walletId: user.circleIdentityWalletId,
+        walletId: source.walletId,
         contractAddress: ARC_USDC,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [body.recipient, amountWei.toString()],
@@ -130,6 +181,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
         recipient: body.recipient,
         amountUsdc: body.amountUsdc.toString(),
         txHash,
+        walletKind: body.walletKind,
       },
     });
     logger.info(
@@ -137,6 +189,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
         jobId: body.jobId,
         recipient: body.recipient,
         amount: body.amountUsdc,
+        walletKind: body.walletKind,
         txHash,
       },
       'cashout Arc transfer ok',
@@ -145,17 +198,13 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   } catch (err) {
     const message = (err as Error).message;
     logger.warn(
-      { jobId: body.jobId, err: message },
+      { jobId: body.jobId, walletKind: body.walletKind, err: message },
       'cashout Arc transfer failed',
     );
     return c.json({ error: 'withdraw failed', detail: message }, 502);
   }
 });
 
-/// Lightweight "can this user use cashout?" probe the frontend calls on the
-/// /cashout/[jobId] page mount. Returns the per-deal context the page needs
-/// to render without hitting the chain on every keystroke (eligible paths,
-/// arc balance, deal amount, seller identity).
 cashoutRoutes.get('/:jobId', async (c) => {
   const jobId = c.req.param('jobId');
   const session = readSession(c);
@@ -172,14 +221,24 @@ cashoutRoutes.get('/:jobId', async (c) => {
     ? 'circle'
     : 'wallet';
 
-  let arcBalanceUsdc: string | null = null;
-  try {
-    const bal = await readUsdcBalance(session.address);
-    arcBalanceUsdc = formatUnits(bal, USDC_DECIMALS);
-  } catch {
-    // Non-fatal — the page renders with arcBalanceUsdc null and the form
-    // resolves the balance again on submit.
+  // Read both Arc balances so the form can show each wallet's spendable
+  // amount alongside the picker. Either read can fail (transient RPC) and
+  // the page still renders — null tells the form to defer to the live read
+  // on submit.
+  async function readArc(address: string | undefined): Promise<string | null> {
+    if (!address) return null;
+    try {
+      const bal = await readUsdcBalance(address);
+      return formatUnits(bal, USDC_DECIMALS);
+    } catch {
+      return null;
+    }
   }
+
+  const [identityBalance, sellerAgentBalance] = await Promise.all([
+    readArc(session.address),
+    readArc(deal.sellerAgentAddress),
+  ]);
 
   return c.json({
     jobId: deal.jobId,
@@ -188,6 +247,18 @@ cashoutRoutes.get('/:jobId', async (c) => {
     settledAt: deal.settledAt ?? null,
     legacyEscrow: !!deal.legacyEscrow,
     accountKind,
-    arcBalanceUsdc,
+    /// Identity wallet (the address the rest of Karwan shows for this user).
+    identityWallet: {
+      address: session.address,
+      arcBalanceUsdc: identityBalance,
+      available: !!user?.circleIdentityWalletId,
+    },
+    /// Per-deal seller agent wallet. The escrow paid out to this address;
+    /// this is the default source for cashout.
+    sellerAgentWallet: {
+      address: deal.sellerAgentAddress ?? null,
+      arcBalanceUsdc: sellerAgentBalance,
+      available: !!deal.sellerAgentAddress && !!deal.sellerAgentWalletId,
+    },
   });
 });

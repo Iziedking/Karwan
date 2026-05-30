@@ -1517,6 +1517,12 @@ const bridgeOutSchema = z.object({
   amountUsdc: z.number().positive(),
   /// Where the minted USDC lands on the destination chain.
   recipient: z.string().startsWith('0x'),
+  /// Optional: which Karwan wallet on Arc burns. Defaults to the identity
+  /// wallet (the standard /bridge surface). The cashout page passes
+  /// 'sellerAgent' with a `sourceJobId` so the deal's seller-agent wallet
+  /// burns instead — that's where released escrow USDC actually lives.
+  sourceKind: z.enum(['identity', 'sellerAgent']).optional(),
+  sourceJobId: z.string().min(1).optional(),
 });
 
 const outInFlight = new Set<string>();
@@ -1539,18 +1545,57 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
       409,
     );
   }
+
+  // Decide which wallet on Arc will burn. Default is the identity wallet
+  // (the standard /bridge experience). Cashout pages pass 'sellerAgent' so
+  // released escrow USDC can be bridged out directly without an interstitial
+  // sweep.
+  let sourceWalletId = user.circleIdentityWalletId;
+  let sourceWalletAddress = userAddress;
+  if (body.sourceKind === 'sellerAgent') {
+    if (!body.sourceJobId) {
+      return c.json(
+        { error: 'sourceJobId required when sourceKind is sellerAgent' },
+        400,
+      );
+    }
+    const { getDeal } = await import('../db/deals.js');
+    const deal = await getDeal(body.sourceJobId);
+    if (!deal) return c.json({ error: 'deal not found' }, 404);
+    if (deal.seller.toLowerCase() !== userAddress) {
+      return c.json(
+        { error: 'only the seller of this deal can use its agent wallet as source' },
+        403,
+      );
+    }
+    if (!deal.sellerAgentWalletId || !deal.sellerAgentAddress) {
+      return c.json(
+        {
+          error: 'deal has no seller-agent wallet',
+          detail:
+            'This deal was opened before per-user agent wallets existed. Use identity wallet instead.',
+          code: 'NO_DEAL_WALLET',
+        },
+        409,
+      );
+    }
+    sourceWalletId = deal.sellerAgentWalletId;
+    sourceWalletAddress = deal.sellerAgentAddress.toLowerCase();
+  }
+
   const dest = CCTP_CHAINS[body.destChainKey];
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
-  // Preflight: the identity wallet must hold enough Arc USDC (which is also the
-  // Arc gas token, so a little extra is consumed by the burn itself).
+  // Preflight: the chosen source wallet must hold enough Arc USDC (which is
+  // also the Arc gas token, so a little extra is consumed by the burn).
   try {
-    const bal = await readUsdcBalance(userAddress);
+    const bal = await readUsdcBalance(sourceWalletAddress);
     if (bal < amountWei) {
+      const which = body.sourceKind === 'sellerAgent' ? 'The deal wallet' : 'Your identity wallet';
       return c.json(
         {
           error: 'insufficient balance',
-          detail: `Your identity wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to bridge out.`,
+          detail: `${which} holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to bridge out.`,
         },
         409,
       );
@@ -1609,7 +1654,7 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
 
   startOutPipeline({
     bridgeId: body.bridgeId,
-    identityWalletId: user.circleIdentityWalletId,
+    identityWalletId: sourceWalletId,
     destChainKey: body.destChainKey,
     amountUsdc: body.amountUsdc.toString(),
     recipient: body.recipient,

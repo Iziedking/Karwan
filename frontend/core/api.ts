@@ -1163,11 +1163,25 @@ export const api = {
       settledAt: number | null;
       legacyEscrow: boolean;
       accountKind: 'circle' | 'wallet';
-      arcBalanceUsdc: string | null;
+      identityWallet: {
+        address: string;
+        arcBalanceUsdc: string | null;
+        available: boolean;
+      };
+      sellerAgentWallet: {
+        address: string | null;
+        arcBalanceUsdc: string | null;
+        available: boolean;
+      };
     }>(`/api/cashout/${jobId}`),
-  /// Direct USDC.transfer on Arc from the seller's Circle identity DCW.
-  /// Use api.bridgeOut for non-Arc destinations.
-  cashoutArc: (input: { jobId: string; recipient: string; amountUsdc: number }) =>
+  /// Direct USDC.transfer on Arc from the chosen Karwan wallet (identity
+  /// or the deal's seller-agent). Use api.bridgeOut for non-Arc.
+  cashoutArc: (input: {
+    jobId: string;
+    recipient: string;
+    amountUsdc: number;
+    walletKind: 'identity' | 'sellerAgent';
+  }) =>
     json<{ ok: true; txHash: string; explorerUrl: string }>(
       '/api/cashout/arc-withdraw',
       { method: 'POST', body: JSON.stringify(input) },
@@ -1288,6 +1302,11 @@ export const api = {
     destChainKey: BridgeChainKey;
     amountUsdc: number;
     recipient: string;
+    /// Source wallet on Arc that will burn. Defaults to 'identity' on the
+    /// backend if absent. Cashout pages pass 'sellerAgent' + sourceJobId to
+    /// burn from the deal's seller-agent wallet (where released USDC lives).
+    sourceKind?: 'identity' | 'sellerAgent';
+    sourceJobId?: string;
   }) =>
     json<{ accepted: true; bridgeId: string; status: string; direction: 'out' }>(
       '/api/bridge/circle-bridge-out',

@@ -16,13 +16,10 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { SignInGate } from '@/shared/components/SignInGate';
-import { formatUsdc, shortHash } from '@/shared/utils/format';
+import { formatUsdc, shortAddress, shortHash } from '@/shared/utils/format';
 
-/// Destinations available to the seller on the cashout page. Arc is the
-/// fast same-chain path (direct USDC transfer); the rest fan out via the
-/// existing CCTP bridge-out pipeline. Order matches what the bridge UI
-/// surfaces elsewhere so a user reading both sees the same list.
 type DestKey = 'arc' | AppKitBridgeChainKey;
+type WalletKind = 'identity' | 'sellerAgent';
 
 const DESTINATIONS: { key: DestKey; name: string; short: string }[] = [
   { key: 'arc', name: 'Arc Testnet', short: 'Arc' },
@@ -35,7 +32,6 @@ const DESTINATIONS: { key: DestKey; name: string; short: string }[] = [
 ];
 
 const EVM_RE = /^0x[a-fA-F0-9]{40}$/;
-// Loose base58 length check for Solana addresses (32-44 chars, base58 alphabet).
 const SOL_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 function isValidForChain(addr: string, chain: DestKey): boolean {
@@ -45,6 +41,12 @@ function isValidForChain(addr: string, chain: DestKey): boolean {
   return EVM_RE.test(v);
 }
 
+interface WalletSlice {
+  address: string | null;
+  arcBalanceUsdc: string | null;
+  available: boolean;
+}
+
 interface CashoutInfo {
   jobId: string;
   sellerAddress: string;
@@ -52,7 +54,8 @@ interface CashoutInfo {
   settledAt: number | null;
   legacyEscrow: boolean;
   accountKind: 'circle' | 'wallet';
-  arcBalanceUsdc: string | null;
+  identityWallet: WalletSlice;
+  sellerAgentWallet: WalletSlice;
 }
 
 export default function CashoutPage() {
@@ -113,7 +116,7 @@ export default function CashoutPage() {
           </HeroHeadline>
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
             {info
-              ? `You earned ${formatUsdc(info.dealAmountUsdc)} USDC on this deal. Send it to any wallet on Arc, or bridge to another chain.`
+              ? `You earned ${formatUsdc(info.dealAmountUsdc)} on this deal. Send it to any wallet on Arc, or bridge to another chain.`
               : 'Loading your earnings…'}
           </p>
           <div className="mt-7 flex flex-wrap gap-2 mono text-[10px] uppercase tracking-[0.14em] text-white/55">
@@ -142,9 +145,7 @@ export default function CashoutPage() {
             </p>
           </PageCard>
         )}
-        {fetchState === 'ready' && info && (
-          <CashoutContent info={info} jobId={jobId} />
-        )}
+        {fetchState === 'ready' && info && <CashoutContent info={info} jobId={jobId} />}
       </Band>
 
       <Band tone="light" compact>
@@ -170,7 +171,7 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
       <PageCard>
         <SectionTag>NOT READY</SectionTag>
         <HeroHeadline size="md">
-          Deal isn't <Accent>settled</Accent> yet
+          Deal isn&apos;t <Accent>settled</Accent> yet
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
@@ -192,8 +193,7 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
       <PageCard>
         <SectionTag>LEGACY ESCROW</SectionTag>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          This deal settled on a legacy escrow contract. Cash out from the
-          legacy surface.
+          This deal settled on a legacy escrow contract. Cash out from the legacy surface.
         </p>
         <div className="mt-7">
           <Link href="/legacy">
@@ -206,9 +206,7 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
     );
   }
 
-  if (info.accountKind === 'wallet') {
-    return <WalletAccountState />;
-  }
+  if (info.accountKind === 'wallet') return <WalletAccountState />;
   return <CircleWithdrawForm info={info} />;
 }
 
@@ -221,8 +219,8 @@ function WalletAccountState() {
         <Punc>.</Punc>
       </HeroHeadline>
       <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        The escrow released straight to your connected wallet on Arc. Use your
-        wallet to bridge or send it elsewhere.
+        The escrow released straight to your connected wallet on Arc. Use your wallet to bridge
+        or send it elsewhere.
       </p>
       <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
         In-product wallet withdraw is on the roadmap.
@@ -236,6 +234,18 @@ function WalletAccountState() {
 }
 
 function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
+  // The wallet picker defaults to the deal wallet because that's where the
+  // escrow released to. Sellers who already swept funds into identity can
+  // flip the switch.
+  const sellerAgentAvail = info.sellerAgentWallet.available;
+  const identityAvail = info.identityWallet.available;
+  const defaultWallet: WalletKind = sellerAgentAvail ? 'sellerAgent' : 'identity';
+  const [walletKind, setWalletKind] = useState<WalletKind>(defaultWallet);
+
+  const activeWallet = walletKind === 'identity' ? info.identityWallet : info.sellerAgentWallet;
+  const balanceNum = Number(activeWallet.arcBalanceUsdc ?? 0);
+  const balance = Number.isFinite(balanceNum) ? balanceNum : 0;
+
   const [dest, setDest] = useState<DestKey>('arc');
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
@@ -244,13 +254,8 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
   const [bridgeResult, setBridgeResult] = useState<{ bridgeId: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const arcBalance = useMemo(() => {
-    const n = Number(info.arcBalanceUsdc ?? 0);
-    return Number.isFinite(n) ? n : 0;
-  }, [info.arcBalanceUsdc]);
-
-  const amountNum = Number(amount);
-  const amountValid = Number.isFinite(amountNum) && amountNum > 0 && amountNum <= arcBalance;
+  const amountNum = useMemo(() => Number(amount), [amount]);
+  const amountValid = Number.isFinite(amountNum) && amountNum > 0 && amountNum <= balance;
   const recipientValid = isValidForChain(recipient, dest);
   const canSubmit = amountValid && recipientValid && !submitting;
 
@@ -266,11 +271,10 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           jobId: info.jobId,
           recipient: recipient.trim(),
           amountUsdc: amountNum,
+          walletKind,
         });
         setResult({ txHash: r.txHash, explorerUrl: r.explorerUrl });
       } else if (dest === 'solanaDevnet') {
-        // Solana goes via App Kit; bridge-out for App Kit chains is on the
-        // roadmap and not yet wired into this surface.
         setError(
           'Solana withdraw is on the roadmap. Use Ethereum Sepolia or another EVM chain for now.',
         );
@@ -282,6 +286,8 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           destChainKey: dest as BridgeChainKey,
           amountUsdc: amountNum,
           recipient: recipient.trim(),
+          sourceKind: walletKind,
+          ...(walletKind === 'sellerAgent' ? { sourceJobId: info.jobId } : {}),
         });
         setBridgeResult({ bridgeId: r.bridgeId });
       }
@@ -340,8 +346,8 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Burn on Arc submitted. Mint lands on {destLabel(dest)} once the
-          attestation clears (about a minute on testnet).
+          Burn on Arc submitted. Mint lands on {destLabel(dest)} once the attestation clears
+          (about a minute on testnet).
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <Link href="/bridge">
@@ -362,18 +368,53 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
         <Punc>.</Punc>
       </HeroHeadline>
       <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        Pick a destination chain, paste the receiving address, set the amount.
+        Pick the source wallet, the destination chain, paste the address, set the amount.
       </p>
 
-      <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Stat label="Arc balance">
-          <span className="tabular-nums">
-            {info.arcBalanceUsdc ? formatUsdc(info.arcBalanceUsdc) : '—'} USDC
+      <div className="mt-7">
+        <FieldLabel>
+          From wallet{' '}
+          <span
+            className="normal-case text-[var(--lp-text-muted)] cursor-help"
+            title="Released escrow USDC lands on the deal wallet (your per-deal seller agent). Identity wallet is your main address. Switch to whichever currently holds the USDC you want to send."
+          >
+            (what is this?)
           </span>
-        </Stat>
-        <Stat label="From deal">
-          <span className="tabular-nums">{formatUsdc(info.dealAmountUsdc)} USDC</span>
-        </Stat>
+        </FieldLabel>
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <WalletPickerTile
+            kind="sellerAgent"
+            active={walletKind === 'sellerAgent'}
+            disabled={!sellerAgentAvail}
+            address={info.sellerAgentWallet.address}
+            balanceUsdc={info.sellerAgentWallet.arcBalanceUsdc}
+            label="Deal wallet"
+            sub="Where the escrow released"
+            onClick={() => setWalletKind('sellerAgent')}
+          />
+          <WalletPickerTile
+            kind="identity"
+            active={walletKind === 'identity'}
+            disabled={!identityAvail}
+            address={info.identityWallet.address}
+            balanceUsdc={info.identityWallet.arcBalanceUsdc}
+            label="Identity wallet"
+            sub="Your main address"
+            onClick={() => setWalletKind('identity')}
+          />
+        </div>
+      </div>
+
+      <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Stat
+          label="Source balance"
+          value={
+            activeWallet.arcBalanceUsdc
+              ? formatUsdc(activeWallet.arcBalanceUsdc)
+              : '—'
+          }
+        />
+        <Stat label="From deal" value={formatUsdc(info.dealAmountUsdc)} />
       </div>
 
       <div className="mt-7">
@@ -437,7 +478,8 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
         />
         {recipient && !recipientValid && (
           <p className="mt-1.5 text-[12px] text-[#b03d3a]">
-            That doesn't look like a valid {dest === 'solanaDevnet' ? 'Solana' : 'EVM'} address.
+            That doesn&apos;t look like a valid {dest === 'solanaDevnet' ? 'Solana' : 'EVM'}{' '}
+            address.
           </p>
         )}
       </div>
@@ -447,7 +489,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           <FieldLabel>Amount (USDC)</FieldLabel>
           <button
             type="button"
-            onClick={() => setAmount(arcBalance.toString())}
+            onClick={() => setAmount(balance.toString())}
             className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             Max
@@ -473,9 +515,9 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
             borderBottomRightRadius: 3,
           }}
         />
-        {amount && Number(amount) > arcBalance && (
+        {amount && Number(amount) > balance && (
           <p className="mt-1.5 text-[12px] text-[#b03d3a]">
-            Over your Arc balance of {arcBalance} USDC.
+            Over the source wallet balance of {balance} USDC.
           </p>
         )}
       </div>
@@ -512,6 +554,64 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
   );
 }
 
+function WalletPickerTile({
+  active,
+  disabled,
+  address,
+  balanceUsdc,
+  label,
+  sub,
+  onClick,
+}: {
+  kind: WalletKind;
+  active: boolean;
+  disabled: boolean;
+  address: string | null;
+  balanceUsdc: string | null;
+  label: string;
+  sub: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="text-left p-4 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+      style={{
+        background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
+        border: active
+          ? '1px solid rgba(175, 201, 91,0.55)'
+          : '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+          {label}
+        </p>
+        {active && (
+          <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+            ACTIVE
+          </span>
+        )}
+      </div>
+      <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+        {sub}
+      </p>
+      <p className="mt-2 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
+        {address ? shortAddress(address) : 'Not provisioned'}
+      </p>
+      <p className="mt-1.5 font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
+        {balanceUsdc ? formatUsdc(balanceUsdc) : '—'}
+      </p>
+    </button>
+  );
+}
+
 function destLabel(k: DestKey): string {
   return DESTINATIONS.find((d) => d.key === k)?.short ?? k;
 }
@@ -524,7 +624,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Stat({ label, children }: { label: string; children: React.ReactNode }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div
       className="px-4 py-3"
@@ -540,8 +640,8 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {label}
       </p>
-      <p className="mt-1.5 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-        {children}
+      <p className="mt-1.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
+        {value}
       </p>
     </div>
   );
