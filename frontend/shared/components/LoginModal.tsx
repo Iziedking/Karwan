@@ -530,7 +530,6 @@ export function LoginModal({ open, onClose }: Props) {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   disabled={busy}
-                  placeholder="000000"
                   className="form-input mono text-[18px] tabular-nums tracking-[0.4em]"
                   autoFocus
                 />

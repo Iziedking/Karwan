@@ -280,7 +280,6 @@ export default function InvitePage() {
                 inputMode="numeric"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="123456"
                 className="form-input form-input-mono w-[180px] tracking-[0.4em] text-center text-[18px]"
               />
               <div className="flex flex-wrap gap-2">

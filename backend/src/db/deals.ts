@@ -72,6 +72,30 @@ export interface DirectDeal {
     reason: string;
     proposedAt: number;
   };
+  /// Pending delivery-deadline extension request, raised by the seller while
+  /// awaiting-delivery. Buyer sees a banner + Approve / Decline. Approve adds
+  /// `additionalSeconds` to `deadlineUnix` and clears the request; Decline
+  /// just clears it. Resolved requests stay on the deal under a separate log
+  /// (`extensionHistory`) so the dispute path can reference them later.
+  extensionRequest?: {
+    requestedBy: 'seller';
+    requestedAt: number;
+    additionalSeconds: number;
+    reason?: string;
+  };
+  /// Settled extension activity for audit. Each entry captures who asked,
+  /// for how much, the buyer's decision, and the resulting deadline.
+  extensionHistory?: {
+    requestedBy: 'seller';
+    requestedAt: number;
+    additionalSeconds: number;
+    reason?: string;
+    decidedAt: number;
+    decision: 'approved' | 'declined';
+    /// The new deadline written to the deal after an approve, in unix seconds.
+    /// Absent on declines.
+    newDeadlineUnix?: number;
+  }[];
   /// Acceptance window cutoff. Unix seconds. Deals that pass this point with
   /// no seller acceptance are expired by dealWatcher and marked cancelled
   /// (kind 'pre-accept'). Required on every new direct deal so a request never

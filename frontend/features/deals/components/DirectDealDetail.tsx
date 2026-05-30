@@ -10,6 +10,7 @@ import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { ExtensionRequestModal } from './ExtensionRequestModal';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
 import {
@@ -78,16 +79,30 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
-  // Drives the "Request extension" button on the awaiting-delivery seller view.
-  // The seed seeds the chat input; the key forces ChatPanel to re-apply it
-  // even if the seller clicks twice in a row with the same text.
-  const [chatDraftSeed, setChatDraftSeed] = useState<string | undefined>(undefined);
-  const [chatDraftSeedKey, setChatDraftSeedKey] = useState(0);
+  // Optional pre-filled chat draft, used by a couple of softer surfaces. The
+  // formal extension flow no longer touches it; this stays for future hooks.
+  const [chatDraftSeed] = useState<string | undefined>(undefined);
+  const [chatDraftSeedKey] = useState(0);
+  // Real extension flow: modal opens from the seller's awaiting-delivery panel.
+  const [showExtensionModal, setShowExtensionModal] = useState(false);
   function onRequestExtension() {
-    setChatDraftSeed(
-      'Requesting a few more days to deliver. Could we extend the deadline?',
-    );
-    setChatDraftSeedKey((k) => k + 1);
+    setShowExtensionModal(true);
+  }
+  async function onRespondExtension(decision: 'approved' | 'declined') {
+    if (!deal || !address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.respondExtension({ jobId, caller: address, decision });
+      await refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
   }
   // Hoisted above the conditional early returns below to satisfy the React
   // rules of hooks. must be called on every render in the same order.
@@ -651,6 +666,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onRaiseDelayAppeal={onRaiseDelayAppeal}
               onRespondToDelayAppeal={onRespondToDelayAppeal}
               onRequestExtension={onRequestExtension}
+              onRespondExtension={onRespondExtension}
             />
             {canPropose && (
               <div className="mt-5 pt-5 border-t border-white/[0.08]">
@@ -730,6 +746,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           busy={busy}
           onConfirm={doAccept}
           onClose={() => setShowAcceptConsent(false)}
+        />
+      )}
+
+      {showExtensionModal && address && (
+        <ExtensionRequestModal
+          jobId={jobId}
+          callerAddress={address}
+          onClose={() => setShowExtensionModal(false)}
+          onSubmitted={() => {
+            void refresh();
+          }}
         />
       )}
 
@@ -912,6 +939,7 @@ function ActionPanel({
   onRaiseDelayAppeal,
   onRespondToDelayAppeal,
   onRequestExtension,
+  onRespondExtension,
 }: {
   stage: DealStage;
   viewerIsBuyer: boolean;
@@ -931,6 +959,7 @@ function ActionPanel({
   onRaiseDelayAppeal: () => void;
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
+  onRespondExtension: (decision: 'approved' | 'declined') => void;
 }) {
   if (stage === 'settled') {
     return (
@@ -1072,9 +1101,19 @@ function ActionPanel({
   }
 
   if (stage === 'awaiting-delivery') {
+    const ext = deal.extensionRequest;
+    const extPendingForSeller = !!ext;
     if (viewerIsSeller) {
       return (
         <div className="space-y-4">
+          {extPendingForSeller && ext && (
+            <ExtensionPendingNote
+              additionalSeconds={ext.additionalSeconds}
+              reason={ext.reason}
+              tone="dark"
+              role="seller"
+            />
+          )}
           <Body>
             Mark the work delivered when it&apos;s done. The buyer then releases the first{' '}
             {firstPct}%, and the rest once verified.
@@ -1101,14 +1140,20 @@ function ActionPanel({
             <CTAPill disabled={busy} onClick={onMarkDelivered}>
               {busy ? 'Confirming on Arc…' : 'Mark delivered'}
             </CTAPill>
-            <span title="Ask the buyer for more time.">
+            <span
+              title={
+                extPendingForSeller
+                  ? 'Already requested. Waiting on the buyer.'
+                  : 'Ask the buyer for more time.'
+              }
+            >
               <CTAPill
                 variant="secondary"
                 tone="dark"
                 onClick={onRequestExtension}
-                disabled={busy}
+                disabled={busy || extPendingForSeller}
               >
-                Request extension
+                {extPendingForSeller ? 'Extension pending' : 'Request extension'}
               </CTAPill>
             </span>
           </div>
@@ -1119,6 +1164,16 @@ function ActionPanel({
     const deadlinePassed = hasDeadline && now > (deal.deadlineUnix as number) * 1000;
     return (
       <div className="space-y-4">
+        {ext && (
+          <ExtensionBuyerBanner
+            additionalSeconds={ext.additionalSeconds}
+            reason={ext.reason}
+            currentDeadlineUnix={deal.deadlineUnix}
+            busy={busy}
+            onApprove={() => onRespondExtension('approved')}
+            onDecline={() => onRespondExtension('declined')}
+          />
+        )}
         <Body>
           Seller accepted. Waiting for delivery.
           {!hasDeadline &&
@@ -1468,6 +1523,114 @@ function WindowNote({
     >
       {children}
     </p>
+  );
+}
+
+function formatExtensionDuration(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  if (days >= 1) {
+    const rem = seconds - days * 86400;
+    if (rem === 0) return `${days} day${days === 1 ? '' : 's'}`;
+  }
+  const hours = Math.round(seconds / 3600);
+  return `${hours} hour${hours === 1 ? '' : 's'}`;
+}
+
+/// Seller-side note shown above the deliver form when the buyer has an
+/// open extension request to act on. Quiet so it doesn't compete with the
+/// primary action.
+function ExtensionPendingNote({
+  additionalSeconds,
+  reason,
+  tone,
+}: {
+  additionalSeconds: number;
+  reason?: string;
+  tone: 'dark' | 'light';
+  role: 'seller';
+}) {
+  const isDark = tone === 'dark';
+  return (
+    <div
+      className="px-3.5 py-2.5"
+      style={{
+        background: isDark ? 'rgba(255,255,255,0.05)' : 'var(--lp-light)',
+        color: isDark ? 'rgba(255,255,255,0.78)' : 'var(--lp-text-sub)',
+        border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <p className="mono text-[10px] uppercase tracking-[0.18em] opacity-70">
+        [:EXTENSION REQUEST PENDING:]
+      </p>
+      <p className="mt-1.5 text-[13px] leading-relaxed">
+        You asked the buyer for{' '}
+        <span className="font-semibold">+{formatExtensionDuration(additionalSeconds)}</span>.
+        {reason ? ` Reason: ${reason}` : ''}
+      </p>
+    </div>
+  );
+}
+
+/// Buyer-side banner with Approve / Decline. Lives at the top of the
+/// awaiting-delivery action panel; clearing the request (either decision)
+/// returns the deal to its normal awaiting-delivery state.
+function ExtensionBuyerBanner({
+  additionalSeconds,
+  reason,
+  currentDeadlineUnix,
+  busy,
+  onApprove,
+  onDecline,
+}: {
+  additionalSeconds: number;
+  reason?: string;
+  currentDeadlineUnix?: number;
+  busy: boolean;
+  onApprove: () => void;
+  onDecline: () => void;
+}) {
+  const newDeadline =
+    currentDeadlineUnix != null ? currentDeadlineUnix + additionalSeconds : null;
+  const newDeadlineLabel = newDeadline ? new Date(newDeadline * 1000).toLocaleString() : null;
+  return (
+    <div
+      className="px-4 py-3.5"
+      style={{
+        background: 'rgba(175, 201, 91,0.10)',
+        border: '1px solid rgba(175, 201, 91,0.32)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+        [:SELLER ASKED FOR MORE TIME:]
+      </p>
+      <p className="mt-2 text-[14px] leading-relaxed text-white">
+        Seller is requesting{' '}
+        <span className="font-semibold">+{formatExtensionDuration(additionalSeconds)}</span>{' '}
+        to deliver.
+        {reason ? <> Reason: <span className="opacity-80">{reason}</span></> : null}
+      </p>
+      {newDeadlineLabel && (
+        <p className="mt-1.5 text-[12.5px] text-white/70">
+          New deadline if approved: <span className="tabular-nums">{newDeadlineLabel}</span>
+        </p>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <CTAPill onClick={onApprove} disabled={busy}>
+          {busy ? 'Working…' : 'Approve'}
+        </CTAPill>
+        <CTAPill variant="secondary" tone="dark" onClick={onDecline} disabled={busy}>
+          Decline
+        </CTAPill>
+      </div>
+    </div>
   );
 }
 

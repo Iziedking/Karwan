@@ -1163,6 +1163,158 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
   return c.json({ accepted: true, jobId, reviewExtensionMs }, 200);
 });
 
+/// Seller asks the buyer for more delivery time. Off-chain only: the on-chain
+/// escrow doesn't track deadlines, so this is a structured handshake stored
+/// on the deal. Buyer responds via the matching /extension/respond route.
+/// One pending request at a time; a second call replaces the first.
+const extensionRequestSchema = z.object({
+  caller: addrSchema,
+  additionalSeconds: z.number().int().positive().max(30 * 86400),
+  reason: z.string().trim().max(280).optional(),
+});
+
+dealsRoutes.post('/direct/:jobId/extension/request', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = extensionRequestSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.seller) {
+    return c.json({ error: 'only the seller can request an extension' }, 403);
+  }
+  if (!deal.acceptedAt) {
+    return c.json({ error: 'deal not accepted yet' }, 409);
+  }
+  if (deal.delivered) {
+    return c.json({ error: 'already delivered' }, 409);
+  }
+  if (deal.cancelledAt || deal.disputed) {
+    return c.json({ error: 'deal is closed' }, 409);
+  }
+  if (deal.deadlineUnix == null) {
+    return c.json(
+      { error: 'this deal has no delivery deadline, so nothing to extend' },
+      409,
+    );
+  }
+
+  const requestedAt = Date.now();
+  await patchDeal(jobId, {
+    extensionRequest: {
+      requestedBy: 'seller',
+      requestedAt,
+      additionalSeconds: body.additionalSeconds,
+      ...(body.reason ? { reason: body.reason } : {}),
+    },
+  });
+  bus.emitEvent({
+    type: 'deal.extension.requested',
+    jobId,
+    actor: 'seller',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      additionalSeconds: body.additionalSeconds,
+      reason: body.reason ?? null,
+      currentDeadlineUnix: deal.deadlineUnix,
+    },
+  });
+  logger.info(
+    { jobId, additionalSeconds: body.additionalSeconds },
+    'extension requested by seller',
+  );
+  return c.json({ accepted: true, jobId, requestedAt }, 200);
+});
+
+const extensionRespondSchema = z.object({
+  caller: addrSchema,
+  decision: z.enum(['approved', 'declined']),
+});
+
+dealsRoutes.post('/direct/:jobId/extension/respond', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = extensionRespondSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.buyer) {
+    return c.json({ error: 'only the buyer can respond to an extension request' }, 403);
+  }
+  const req = deal.extensionRequest;
+  if (!req) {
+    return c.json({ error: 'no extension request pending' }, 409);
+  }
+  if (deal.deadlineUnix == null) {
+    // Edge case: the deal lost its deadline between request and respond.
+    return c.json({ error: 'deal no longer has a deadline' }, 409);
+  }
+
+  const decidedAt = Date.now();
+  const historyEntry: NonNullable<DirectDeal['extensionHistory']>[number] = {
+    requestedBy: req.requestedBy,
+    requestedAt: req.requestedAt,
+    additionalSeconds: req.additionalSeconds,
+    ...(req.reason ? { reason: req.reason } : {}),
+    decidedAt,
+    decision: body.decision,
+  };
+
+  const patch: Partial<DirectDeal> = {
+    extensionRequest: undefined,
+    extensionHistory: [...(deal.extensionHistory ?? []), historyEntry],
+  };
+
+  if (body.decision === 'approved') {
+    const newDeadline = deal.deadlineUnix + req.additionalSeconds;
+    patch.deadlineUnix = newDeadline;
+    historyEntry.newDeadlineUnix = newDeadline;
+  }
+
+  await patchDeal(jobId, patch);
+  bus.emitEvent({
+    type: body.decision === 'approved' ? 'deal.extension.approved' : 'deal.extension.declined',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      additionalSeconds: req.additionalSeconds,
+      ...(body.decision === 'approved' ? { newDeadlineUnix: patch.deadlineUnix } : {}),
+    },
+  });
+  logger.info(
+    { jobId, decision: body.decision, additionalSeconds: req.additionalSeconds },
+    'extension response recorded',
+  );
+  return c.json(
+    {
+      accepted: true,
+      jobId,
+      decision: body.decision,
+      ...(body.decision === 'approved'
+        ? { newDeadlineUnix: patch.deadlineUnix }
+        : {}),
+    },
+    200,
+  );
+});
+
 /// Seller raises a delay appeal when the buyer is sitting on the final
 /// release without acting. Off-chain only — the on-chain escrow stays
 /// Accepted. The buyer has DEAL_DELAY_APPEAL_RESPONSE_MS to click respond,

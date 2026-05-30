@@ -265,6 +265,25 @@ export interface DirectDeal {
   /// Stake percentage chosen by the buyer for this deal (50..100). Only
   /// meaningful when requireStake is true.
   requireStakePct?: number;
+  /// Pending delivery-deadline extension request from the seller. Buyer sees
+  /// a banner with Approve / Decline; the request clears either way.
+  extensionRequest?: {
+    requestedBy: 'seller';
+    requestedAt: number;
+    additionalSeconds: number;
+    reason?: string;
+  };
+  /// Settled extension activity. Each entry is a finalized request the buyer
+  /// either approved (deadlineUnix bumped) or declined.
+  extensionHistory?: {
+    requestedBy: 'seller';
+    requestedAt: number;
+    additionalSeconds: number;
+    reason?: string;
+    decidedAt: number;
+    decision: 'approved' | 'declined';
+    newDeadlineUnix?: number;
+  }[];
 }
 
 export interface MarketplaceBrief {
@@ -1090,6 +1109,41 @@ export const api = {
       `/api/deals/direct/${jobId}/release`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  /// Seller asks the buyer for more delivery time. Off-chain handshake; stored
+  /// as deal.extensionRequest until the buyer responds via respondExtension.
+  requestExtension: (input: {
+    jobId: string;
+    caller: string;
+    additionalSeconds: number;
+    reason?: string;
+  }) =>
+    json<{ accepted: true; jobId: string; requestedAt: number }>(
+      `/api/deals/direct/${input.jobId}/extension/request`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          caller: input.caller,
+          additionalSeconds: input.additionalSeconds,
+          ...(input.reason ? { reason: input.reason } : {}),
+        }),
+      },
+    ),
+  /// Buyer approves or declines a pending extension request. Approve bumps
+  /// deal.deadlineUnix by the requested seconds.
+  respondExtension: (input: {
+    jobId: string;
+    caller: string;
+    decision: 'approved' | 'declined';
+  }) =>
+    json<{
+      accepted: true;
+      jobId: string;
+      decision: 'approved' | 'declined';
+      newDeadlineUnix?: number;
+    }>(`/api/deals/direct/${input.jobId}/extension/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ caller: input.caller, decision: input.decision }),
+    }),
   raiseDelayAppeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string; raisedAt: number; responseWindowMs: number }>(
       `/api/deals/direct/${jobId}/delay-appeal`,

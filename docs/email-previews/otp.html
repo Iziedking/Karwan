@@ -1,73 +1,11 @@
-/// Shared brand chrome for every Karwan transactional email. Auth OTP, deal
-/// invites, and anything that ships next pulls from here so a future palette
-/// change is one file. Light cream + ink black, mono accent — no lime in
-/// email surfaces (lime is the in-product attention color; mail clients render
-/// it badly on dark headers).
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
-
-function loadLogoBuffer(): Buffer | null {
-  const candidates = [
-    resolve(process.cwd(), 'docs/bot-assets/karwan-bot-pic.png'),
-    resolve(process.cwd(), '../docs/bot-assets/karwan-bot-pic.png'),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) {
-      try {
-        return readFileSync(p);
-      } catch {
-        // try next candidate
-      }
-    }
-  }
-  return null;
-}
-
-export const LOGO_BUFFER = loadLogoBuffer();
-export const LOGO_CID = 'karwan-logo';
-
-export interface BrandShellOptions {
-  /// Small caps eyebrow line under the wordmark, e.g. "SIGN-IN CODE" or
-  /// "DEAL INVITE". Kept short — 1-3 words reads cleanest in mail clients.
-  eyebrow: string;
-  /// Subject-line text, for the <title> tag.
-  title: string;
-  /// Body of the email — already-formatted HTML rendered inside the cream card.
-  inner: string;
-  /// Optional footer note above the wordmark strip. Defaults to the standard
-  /// "didn't request this" line for auth-style flows; pass a custom string for
-  /// deal-related mail.
-  footerNote?: string;
-}
-
-const DEFAULT_FOOTER_NOTE =
-  "Didn't request this? Ignore the email. No account changes happen until a code is entered.";
-
-/// Wraps caller-provided inner HTML in the Karwan email shell: dark header
-/// band with brand mark + eyebrow, cream card body, footer hr + wordmark.
-/// Returns a full <!doctype html> document ready to hand to Resend.
-export function brandedEmailHtml({
-  eyebrow,
-  title,
-  inner,
-  footerNote = DEFAULT_FOOTER_NOTE,
-}: BrandShellOptions): string {
-  const logoCell = LOGO_BUFFER
-    ? `<img src="cid:${LOGO_CID}" width="36" height="36" alt="Karwan" style="display:block;border-radius:6px;" />`
-    : '';
-  // Gmail and Apple Mail aggressively auto-invert "light" emails when the
-  // recipient is in dark mode, which kills the cream + lime brand entirely.
-  // The combo below tells supporting clients "this email has its own light
-  // theme; do not re-paint it" and gives Outlook a fallback. !important on
-  // critical bg/fg colors covers the clients that ignore color-scheme.
-  return `<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="color-scheme" content="light only" />
 <meta name="supported-color-schemes" content="light" />
-<title>${escapeHtml(title)}</title>
+<title>Karwan sign-in code</title>
 <style>
   :root { color-scheme: light only; supported-color-schemes: light; }
   body, table, td, div, p, a, span { color-scheme: light only !important; }
@@ -102,14 +40,10 @@ export function brandedEmailHtml({
             <td class="k-header" style="background:#0e0e0e;padding:24px 28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  ${
-                    LOGO_BUFFER
-                      ? `<td style="vertical-align:middle;padding-right:12px;">${logoCell}</td>`
-                      : ''
-                  }
+                  <td style="vertical-align:middle;padding-right:12px;"><img src="cid:karwan-logo" width="36" height="36" alt="Karwan" style="display:block;border-radius:6px;" /></td>
                   <td style="vertical-align:middle;">
                     <div style="font-size:18px;font-weight:800;letter-spacing:0.04em;color:#ffffff;text-transform:uppercase;line-height:1;">Karwan<span class="k-lime" style="color:#afc95b;">.</span></div>
-                    <div style="margin-top:4px;font-size:10px;letter-spacing:0.18em;color:rgba(255,255,255,0.55);text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(eyebrow)}</div>
+                    <div style="margin-top:4px;font-size:10px;letter-spacing:0.18em;color:rgba(255,255,255,0.55);text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">SIGN-IN CODE</div>
                   </td>
                 </tr>
               </table>
@@ -121,13 +55,33 @@ export function brandedEmailHtml({
             </td>
           </tr>
 
-          ${inner}
+          
+          <tr>
+            <td style="padding:36px 28px 12px 28px;text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Your code</div>
+              <div style="display:inline-block;padding:18px 28px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:14px 14px 14px 4px;">
+                <div style="font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:36px;font-weight:800;letter-spacing:0.32em;color:#0e0e0e;line-height:1;padding-right:0.32em;">447301</div>
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:18px 28px 8px 28px;text-align:center;">
+              <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
+                Enter this code in the sign-in modal to access your Karwan account.
+              </p>
+              <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
+                Expires in 10 minutes. Five wrong tries voids it.
+              </p>
+            </td>
+          </tr>
+  
 
           <tr>
             <td style="padding:24px 28px 24px 28px;">
               <hr class="k-divider" style="border:none;border-top:1px solid #e6e2d8;margin:0 0 16px 0;" />
               <p class="k-muted" style="margin:0;font-size:12px;line-height:1.5;color:#8a8478;">
-                ${escapeHtml(footerNote)}
+                Didn&#39;t request this? Ignore the email. No account changes happen until a code is entered.
               </p>
               <p class="k-muted" style="margin:14px 0 0 0;font-size:10px;letter-spacing:0.18em;color:#b8b0a0;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">
                 Karwan&nbsp;&middot;&nbsp;Agentic settlement on Arc
@@ -139,16 +93,4 @@ export function brandedEmailHtml({
     </tr>
   </table>
 </body>
-</html>`;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-export { escapeHtml };
+</html>
