@@ -44,6 +44,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8787
 
+# postgresql-client gives us pg_dump + psql for the in-container backup
+# script (dist/scripts/backup-karwan.js + restore-karwan.js). tar + gzip
+# are built into the alpine base. The combined footprint is ~15 MB —
+# negligible vs the cost of needing a separate backup container or
+# host-side tooling. The script also runs as a one-shot via
+# `docker compose exec`, so the binaries stay idle until cron fires.
+RUN apk add --no-cache postgresql-client
+
 # Install ONLY production deps. Smaller image, no tsc/tsx at runtime.
 COPY package.json package-lock.json ./
 COPY backend/package.json backend/
