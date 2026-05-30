@@ -35,7 +35,6 @@ export default function InvitePage() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [devCode, setDevCode] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -116,8 +115,7 @@ export default function InvitePage() {
       // (NEXT_PUBLIC_BACKEND_URL). A raw fetch('/api/...') resolves against
       // the current origin (karwan.site) and lands on Vercel's HTML 404 page,
       // which the .json() parser then chokes on as "<!DOCTYPE ..." not JSON.
-      const r = await api.authOtpRequest(data.invite.email);
-      if (r.devCode) setDevCode(r.devCode);
+      await api.authOtpRequest(data.invite.email);
       setStage('verify-code');
     } catch (err) {
       const msg =
@@ -285,11 +283,6 @@ export default function InvitePage() {
                 placeholder="123456"
                 className="form-input form-input-mono w-[180px] tracking-[0.4em] text-center text-[18px]"
               />
-              {devCode && (
-                <p className="mono text-[12px] text-[var(--lp-text-muted)]">
-                  Dev mode code: <strong className="text-[var(--lp-dark)]">{devCode}</strong>
-                </p>
-              )}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"

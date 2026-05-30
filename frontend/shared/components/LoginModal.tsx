@@ -211,7 +211,15 @@ export function LoginModal({ open, onClose }: Props) {
       const r = await api.authOtpRequest(email);
       setOtpSent(true);
       setOtpCode('');
-      setOtpDevHint(r.devCode ?? null);
+      // Only ever surface the dev autofill chip on localhost. The backend
+      // gates devCode on isDev() && !delivered, but if NODE_ENV is misconfigured
+      // on a deployed environment that gate fails open. Hostname check makes
+      // the UI strictly local-only.
+      const isLocalhost =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1');
+      setOtpDevHint(isLocalhost ? r.devCode ?? null : null);
     } catch (err) {
       const detail =
         err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;

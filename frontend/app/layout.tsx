@@ -6,6 +6,7 @@ import { TopNav } from '@/shared/components/TopNav';
 import { ProfileNudge } from '@/shared/components/ProfileNudge';
 import { SiteFooter } from '@/shared/components/SiteFooter';
 import { AppProviders } from '@/shared/components/AppProviders';
+import { ChromeFrame } from '@/shared/components/ChromeFrame';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
 import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { TermsModal } from '@/shared/components/TermsModal';
@@ -90,15 +91,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               zoom, and leaving overflow visible lets the page show a real
               horizontal scrollbar when zoomed in far enough to clip content, so
               nothing is ever unreachable. */}
-          <div className="min-h-screen flex flex-col">
-            <TopNav />
-            <ProfileNudge />
-            <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>
-            <SiteFooter />
-            <NotificationToasts />
-            <GuideWelcome />
-            <TermsModal />
-          </div>
+          <ChromeFrame
+            topNav={<TopNav />}
+            profileNudge={<ProfileNudge />}
+            footer={<SiteFooter />}
+            notifications={<NotificationToasts />}
+            guide={<GuideWelcome />}
+            terms={<TermsModal />}
+          >
+            {children}
+          </ChromeFrame>
         </AppProviders>
         <SpeedInsights />
       </body>
