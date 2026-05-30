@@ -132,14 +132,14 @@ export default function CashoutPage() {
 
       <Band tone="light" compact>
         {fetchState === 'loading' && (
-          <PageCard>
+          <PageCard className="p-6 sm:p-8">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               Loading…
             </p>
           </PageCard>
         )}
         {fetchState === 'error' && (
-          <PageCard>
+          <PageCard className="p-6 sm:p-8">
             <p className="text-[14px] text-[var(--lp-text-sub)]">
               Could not load this deal. {loadError ?? ''}
             </p>
@@ -168,7 +168,7 @@ export default function CashoutPage() {
 function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   if (!info.settledAt) {
     return (
-      <PageCard>
+      <PageCard className="p-6 sm:p-8">
         <SectionTag>NOT READY</SectionTag>
         <HeroHeadline size="md">
           Deal isn&apos;t <Accent>settled</Accent> yet
@@ -190,7 +190,7 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
 
   if (info.legacyEscrow) {
     return (
-      <PageCard>
+      <PageCard className="p-6 sm:p-8">
         <SectionTag>LEGACY ESCROW</SectionTag>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
           This deal settled on a legacy escrow contract. Cash out from the legacy surface.
@@ -212,7 +212,7 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
 
 function WalletAccountState() {
   return (
-    <PageCard>
+    <PageCard className="p-6 sm:p-8">
       <SectionTag>WALLET ACCOUNT</SectionTag>
       <HeroHeadline size="md">
         Your USDC <Accent>already landed</Accent>
@@ -306,7 +306,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
 
   if (result) {
     return (
-      <PageCard>
+      <PageCard className="p-6 sm:p-8">
         <SectionTag>SENT</SectionTag>
         <HeroHeadline size="md">
           {amount} USDC <Accent>on its way</Accent>
@@ -339,29 +339,21 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
 
   if (bridgeResult) {
     return (
-      <PageCard>
-        <SectionTag>BRIDGING</SectionTag>
-        <HeroHeadline size="md">
-          {amount} USDC <Accent>bridging</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Burn on Arc submitted. Mint lands on {destLabel(dest)} once the attestation clears
-          (about a minute on testnet).
-        </p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link href="/bridge">
-            <CTAPill variant="secondary" tone="light">
-              Track on /bridge
-            </CTAPill>
-          </Link>
-        </div>
-      </PageCard>
+      <BridgeProgressCard
+        bridgeId={bridgeResult.bridgeId}
+        amount={amount}
+        destLabel={destLabel(dest)}
+        onSendMore={() => {
+          setBridgeResult(null);
+          setAmount('');
+          setRecipient('');
+        }}
+      />
     );
   }
 
   return (
-    <PageCard>
+    <PageCard className="p-6 sm:p-8">
       <SectionTag>WITHDRAW</SectionTag>
       <HeroHeadline size="md">
         Send your <Accent>USDC</Accent>
@@ -552,6 +544,175 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
       </div>
     </PageCard>
   );
+}
+
+/// Maps backend bridge.status strings to a human progress copy. The pipeline
+/// goes: burning -> burned -> attested -> minted. Anything else is errored
+/// or terminal.
+function bridgeStageCopy(status: string): { label: string; pct: number; done: boolean; failed: boolean } {
+  switch (status) {
+    case 'burning':
+      return { label: 'Burning on Arc', pct: 25, done: false, failed: false };
+    case 'burned':
+      return { label: 'Waiting on Circle attestation', pct: 50, done: false, failed: false };
+    case 'attested':
+      return { label: 'Attested. Minting on destination', pct: 75, done: false, failed: false };
+    case 'minted':
+      return { label: 'Minted on destination', pct: 100, done: true, failed: false };
+    case 'error':
+      return { label: 'Bridge errored', pct: 100, done: false, failed: true };
+    default:
+      return { label: status, pct: 10, done: false, failed: false };
+  }
+}
+
+interface BridgeProgressCardProps {
+  bridgeId: string;
+  amount: string;
+  destLabel: string;
+  onSendMore: () => void;
+}
+
+/// Live, inline bridge progress for the email-claim seller. Polls every 4s
+/// until the bridge settles. Surfaces the burn + mint tx hashes when they
+/// land. No /bridge redirect; the experience stays in /cashout.
+function BridgeProgressCard({
+  bridgeId,
+  amount,
+  destLabel,
+  onSendMore,
+}: BridgeProgressCardProps) {
+  const [status, setStatus] = useState<Awaited<ReturnType<typeof api.bridgeStatus>> | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    async function tick() {
+      try {
+        const r = await api.bridgeStatus(bridgeId);
+        if (!alive) return;
+        setStatus(r);
+        setPollError(null);
+        if (r.status !== 'minted' && r.status !== 'error') {
+          timer = setTimeout(tick, 4000);
+        }
+      } catch (err) {
+        if (!alive) return;
+        setPollError(err instanceof Error ? err.message : 'Could not check status.');
+        timer = setTimeout(tick, 8000);
+      }
+    }
+    void tick();
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [bridgeId]);
+
+  const stage = bridgeStageCopy(status?.status ?? 'burning');
+
+  return (
+    <PageCard className="p-6 sm:p-8">
+      <SectionTag>{stage.done ? 'BRIDGED' : stage.failed ? 'BRIDGE FAILED' : 'BRIDGING'}</SectionTag>
+      <HeroHeadline size="md">
+        {amount} USDC{' '}
+        <Accent>{stage.done ? 'arrived' : stage.failed ? 'errored' : 'bridging'}</Accent>
+        <Punc>.</Punc>
+      </HeroHeadline>
+      <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
+        {stage.done
+          ? `Mint confirmed on ${destLabel}. The USDC is in the recipient address.`
+          : stage.failed
+            ? 'Something went wrong on the way. The funds are still on the source side. Take a screenshot of this page and ping support.'
+            : `Burn on Arc submitted. Mint will land on ${destLabel} once Circle's attestation clears, usually under a minute on testnet.`}
+      </p>
+
+      <div className="mt-7">
+        <div
+          className="h-2 w-full overflow-hidden"
+          style={{
+            background: 'rgba(0,0,0,0.06)',
+            borderRadius: 999,
+          }}
+        >
+          <div
+            className="h-full transition-[width] duration-500"
+            style={{
+              width: `${stage.pct}%`,
+              background: stage.failed ? '#b03d3a' : 'var(--lp-accent)',
+              borderRadius: 999,
+            }}
+          />
+        </div>
+        <p className="mt-2 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          {stage.label}
+        </p>
+      </div>
+
+      <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <BridgeFact
+          label="Burn (Arc)"
+          value={status?.sourceTxHash ? shortHash(status.sourceTxHash) : '—'}
+          href={status?.sourceTxHash ? `https://testnet.arcscan.app/tx/${status.sourceTxHash}` : undefined}
+        />
+        <BridgeFact
+          label={`Mint (${destLabel})`}
+          value={status?.mintTxHash ? shortHash(status.mintTxHash) : stage.done ? '—' : 'pending'}
+          href={status?.mintTxHash ? undefined : undefined}
+        />
+      </dl>
+
+      {pollError && (
+        <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          Retrying status check… {pollError}
+        </p>
+      )}
+
+      {(stage.done || stage.failed) && (
+        <div className="mt-7 flex flex-wrap gap-3">
+          <CTAPill onClick={onSendMore}>{stage.done ? 'Send more' : 'Try again'}</CTAPill>
+        </div>
+      )}
+    </PageCard>
+  );
+}
+
+function BridgeFact({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) {
+  const body = (
+    <div
+      className="px-4 py-3"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        {label}
+      </p>
+      <p className="mt-1.5 mono text-[13px] tabular-nums text-[var(--lp-dark)]">{value}</p>
+    </div>
+  );
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className="block hover:opacity-85">
+        {body}
+      </a>
+    );
+  }
+  return body;
 }
 
 function WalletPickerTile({

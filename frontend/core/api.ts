@@ -1315,6 +1315,24 @@ export const api = {
   /// Resume a Circle bridge stuck mid source-pipeline (approving/burning) or
   /// waiting on the mint relay. Idempotent. Used by retry + auto-recheck for
   /// Circle bridges, where re-POSTing circle-bridge would 409 on the existing id.
+  /// Polled by the cashout page's inline bridge progress card. Returns the
+  /// current status of a bridge by id.
+  bridgeStatus: (bridgeId: string) =>
+    json<{
+      bridgeId: string;
+      direction: 'in' | 'out';
+      status: string;
+      amountUsdc: string;
+      sourceChainKey: string | null;
+      destChainKey: string | null;
+      sourceTxHash: string | null;
+      mintTxHash: string | null;
+      approveTxId: string | null;
+      burnTxId: string | null;
+      error: string | null;
+      createdAt: number;
+      updatedAt: number;
+    }>(`/api/bridge/${bridgeId}`),
   bridgeCircleResume: (bridgeId: string) =>
     json<{ status: string; mintTxHash?: string | null; error?: string }>(
       `/api/bridge/circle-bridge/${bridgeId}/resume`,

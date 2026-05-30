@@ -1293,6 +1293,31 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
 /// waiting on the mint relay. Idempotent: safe to call repeatedly. Used by the
 /// frontend retry/auto-recheck for Circle bridges and as a manual nudge. Web3
 /// bridges should use /:bridgeId/recheck instead.
+/// Lightweight status read used by surfaces that want to render a live
+/// progress card without polling /list. Returns the same shape /list does,
+/// just for one bridge. Public read: anyone with the bridgeId can poll,
+/// since the id itself is the capability.
+bridgeRoutes.get('/:bridgeId', async (c) => {
+  const bridgeId = c.req.param('bridgeId');
+  const record = await getBridge(bridgeId);
+  if (!record) return c.json({ error: 'bridge not found' }, 404);
+  return c.json({
+    bridgeId: record.bridgeId,
+    direction: record.direction ?? 'in',
+    status: record.status,
+    amountUsdc: record.amountUsdc,
+    sourceChainKey: record.sourceChainKey ?? null,
+    destChainKey: record.destChainKey ?? null,
+    sourceTxHash: record.sourceTxHash || null,
+    mintTxHash: record.mintTxHash ?? null,
+    approveTxId: record.approveTxId ?? null,
+    burnTxId: record.burnTxId ?? null,
+    error: record.error ?? null,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  });
+});
+
 bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   const bridgeId = c.req.param('bridgeId');
   const record = await getBridge(bridgeId);
