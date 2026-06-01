@@ -9,6 +9,7 @@ import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 import { NetworkTicker } from '@/features/activity/components/NetworkTicker';
+import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -312,6 +313,11 @@ export default function AppHome() {
           </div>
         </div>
       </Band>
+
+      {/* ON-CHAIN PROOF. Numbers and a 30-day chart read directly from contract
+          events on the current production deploy. Provable by anyone who curls
+          /api/network/onchain or hits the contract addresses on Arc Explorer. */}
+      <OnChainProofBand />
 
       {/* NETWORK PULSE. sliding evidence ticker. Pure read-only proof that
           deals are flowing; never links anywhere, never asks for action. */}

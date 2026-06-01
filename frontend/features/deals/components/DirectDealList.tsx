@@ -272,10 +272,21 @@ function SwipeableRow({
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startXRef = useRef<number | null>(null);
-  const dismissedRef = useRef(false);
+  const startYRef = useRef<number | null>(null);
+  // Direction-lock: once a touch resolves as a horizontal drag, we own it and
+  // suppress the wrapped <Link> click; once it resolves as vertical scroll we
+  // bail out for the rest of the gesture.
+  const axisRef = useRef<'none' | 'horizontal' | 'vertical'>('none');
+  // True until the next touchstart resets it. Used to swallow the click that
+  // Safari/Chrome fires after a touchend on a tappable element.
+  const draggedRef = useRef(false);
+  const DIRECTION_LOCK_PX = 8;
+  const DISMISS_THRESHOLD_PX = 100;
 
   const reset = useCallback(() => {
     startXRef.current = null;
+    startYRef.current = null;
+    axisRef.current = 'none';
     setDragging(false);
     setDragX(0);
   }, []);
@@ -286,6 +297,9 @@ function SwipeableRow({
       const t = e.touches[0];
       if (!t) return;
       startXRef.current = t.clientX;
+      startYRef.current = t.clientY;
+      axisRef.current = 'none';
+      draggedRef.current = false;
       setDragging(true);
     },
     [dismissable],
@@ -293,37 +307,67 @@ function SwipeableRow({
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent<HTMLLIElement>) => {
-      if (!dismissable || startXRef.current === null) return;
+      if (!dismissable) return;
+      if (startXRef.current === null || startYRef.current === null) return;
       const t = e.touches[0];
       if (!t) return;
-      const delta = t.clientX - startXRef.current;
-      // Only respond to leftward drag. Clamp so the row can't slide off
-      // forever; the dismiss threshold is the natural stop.
-      const clamped = Math.max(-180, Math.min(0, delta));
+      const dx = t.clientX - startXRef.current;
+      const dy = t.clientY - startYRef.current;
+
+      if (axisRef.current === 'none') {
+        // Lock to whichever axis crosses the threshold first.
+        if (Math.abs(dx) < DIRECTION_LOCK_PX && Math.abs(dy) < DIRECTION_LOCK_PX) return;
+        axisRef.current = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+      }
+      if (axisRef.current === 'vertical') {
+        // Let the page scroll; we will not interfere this gesture.
+        return;
+      }
+
+      // Horizontal drag: respond to leftward motion, clamp, and own the gesture
+      // so the browser doesn't try to scroll the page sideways.
+      draggedRef.current = true;
+      if (e.cancelable) e.preventDefault();
+      const clamped = Math.max(-180, Math.min(0, dx));
       setDragX(clamped);
     },
     [dismissable],
   );
 
   const handleTouchEnd = useCallback(() => {
-    if (!dismissable) return;
-    if (dragX <= -100) {
-      dismissedRef.current = true;
+    if (!dismissable) {
+      reset();
+      return;
+    }
+    if (axisRef.current === 'horizontal' && dragX <= -DISMISS_THRESHOLD_PX) {
+      // Past the threshold: slide off and dismiss after the animation lands.
       setDragX(-window.innerWidth);
-      // Animate out then dismiss so the row clears the list cleanly.
       window.setTimeout(() => onDismiss(), 180);
       return;
     }
     reset();
   }, [dismissable, dragX, onDismiss, reset]);
 
+  // The browser fires a click immediately after a touchend on a tappable
+  // element. When we just handled a drag, swallow that click so the wrapped
+  // <Link> does not navigate.
+  const handleClickCapture = useCallback((e: React.MouseEvent<HTMLLIElement>) => {
+    if (draggedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      draggedRef.current = false;
+    }
+  }, []);
+
   return (
     <li
       className="group relative overflow-hidden"
+      style={{ touchAction: dismissable ? 'pan-y' : undefined }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={reset}
+      onClickCapture={handleClickCapture}
     >
       {/* Rail indicator. Stays at the row's left edge regardless of drag. */}
       <span

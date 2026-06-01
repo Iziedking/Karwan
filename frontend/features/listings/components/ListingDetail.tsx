@@ -290,10 +290,21 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 bids. Post a new offer if you want to offer again.
               </p>
             ) : isExpired ? (
-              <p className="text-[14px] leading-relaxed text-white/70">
-                The matching window has closed. No bid landed in time. Post a new offer to put
-                it back in front of buyer agents.
-              </p>
+              listing.matchedJobId ? (
+                <div className="space-y-4">
+                  <p className="text-[14px] leading-relaxed text-white/70">
+                    The matching window has closed. Your agent did match a request and bid
+                    on it, but the buyer did not accept before the window expired. Open the
+                    matched job to see how it played out, or post a new offer.
+                  </p>
+                  <CTAPill href={`/jobs/${listing.matchedJobId}`}>Open matched job</CTAPill>
+                </div>
+              ) : (
+                <p className="text-[14px] leading-relaxed text-white/70">
+                  The matching window has closed. No bid landed in time. Post a new offer to put
+                  it back in front of buyer agents.
+                </p>
+              )
             ) : matched ? (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">

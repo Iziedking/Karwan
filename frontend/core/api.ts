@@ -382,6 +382,48 @@ export interface ActivationStatus {
   agents?: { buyer: string; seller: string; buyerName?: string; sellerName?: string };
 }
 
+export interface NetworkOnchainDayPoint {
+  ts: number;
+  funded: number;
+  settled: number;
+  disputed: number;
+  refunded: number;
+}
+
+export interface NetworkOnchainStats {
+  fromBlock: string;
+  toBlock: string;
+  contracts: {
+    escrow: string;
+    vault: string;
+    treasury: string;
+    reputation: string;
+    jobBoard: string;
+  };
+  totals: {
+    jobsPosted: number;
+    escrowsFunded: number;
+    escrowsSettled: number;
+    escrowsDisputed: number;
+    escrowsRefunded: number;
+    milestoneReleases: number;
+    vaultDeposits: number;
+    vaultClaims: number;
+    vaultSlashes: number;
+    reputationRecords: number;
+  };
+  volumes: {
+    fundedUsdc: string;
+    releasedUsdc: string;
+    refundedUsdc: string;
+    slashedUsdc: string;
+    feesCollectedUsdc: string;
+    vaultDepositsUsdc: string;
+  };
+  series: NetworkOnchainDayPoint[];
+  scannedAt: number;
+}
+
 /// Optional custom names for the agent pair. Blank/omitted means the UI shows
 /// the default "Buyer agent" / "Seller agent".
 export interface AgentNames {
@@ -642,6 +684,9 @@ export const api = {
     json<{ total: number; direct: number; agent: number; settled: number; volumeUsdc: number }>(
       '/api/deals/stats',
     ),
+  /// Provable on-chain stats scanned from current contract events. Counts,
+  /// USDC volumes, and a 30-day daily series of funded/settled/disputed/refunded.
+  networkOnchain: () => json<NetworkOnchainStats>('/api/network/onchain'),
   submitFeedback: (body: {
     category: 'bug' | 'improvement' | 'other' | 'praise';
     title: string;

@@ -492,7 +492,7 @@ function SuccessCard({ onReset }: { onReset: () => void }) {
               Send another
             </button>
             <Link
-              href="/"
+              href="/app"
               className="mono text-[12px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
             >
               Back to app

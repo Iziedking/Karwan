@@ -69,6 +69,17 @@ const DIRECT_TYPES = new Set([
 // payload and surface on the profile (where balances live).
 const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
 
+// Events whose target is the deal action card. Tapping them should land on
+// /deals/[id]#action so the user scrolls straight to Mark Delivered / Release /
+// Accept rather than the top of the page.
+const ACTION_TYPES = new Set([
+  'deal.match.approved',
+  'deal.direct.created',
+  'deal.delivered',
+  'deal.review.started',
+  'deal.fund.insufficient',
+]);
+
 const NOTIFY_TYPES = new Set([...MANAGED_TYPES, ...DIRECT_TYPES, ...WALLET_TYPES]);
 
 // High-signal events that should also trigger a toast.
@@ -121,6 +132,9 @@ function hrefForType(type: string, jobId: string): string {
   // surface. Once a proposal exists, deal.matched routes them to /jobs/[id].
   if (type === 'listing.matched') return '/seller';
   if (WALLET_TYPES.has(type)) return '/profile';
+  // Action events land on the deal page's action card so the user reaches
+  // Mark Delivered / Release / Accept without a second scroll.
+  if (ACTION_TYPES.has(type)) return `/deals/${jobId}#action`;
   return MANAGED_TYPES.has(type) ? `/jobs/${jobId}` : `/deals/${jobId}`;
 }
 

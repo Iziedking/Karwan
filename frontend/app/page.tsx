@@ -80,7 +80,7 @@ export default function HomePage() {
               </CTAPill>
             </div>
             <p className="mono text-[12px] text-[var(--lp-text-sub)]">
-              Free on Arc Testnet. No mainnet funds, no signup.
+              Free on Arc Testnet. No mainnet funds.
             </p>
           </div>
           <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">

@@ -77,6 +77,21 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [busy, setBusy] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ code?: string; message: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
+
+  // Notifications append #action when they want the user to land on the action
+  // card (e.g. "Match accepted, deliver when ready"). Scroll once the deal data
+  // is on the page so the section is sized and the anchor lands cleanly.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !deal) return;
+    if (window.location.hash !== '#action') return;
+    const el = document.getElementById('action');
+    if (!el) return;
+    // Defer one frame so layout settles after data hydration.
+    const id = window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [deal]);
   const [deliveryProof, setDeliveryProof] = useState('');
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
   // Optional pre-filled chat draft, used by a couple of softer surfaces. The
@@ -621,6 +636,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </HeroHeadline>
           </div>
           <div
+            id="action"
             data-guide="deal-actions"
             className="overflow-hidden p-6 md:p-7"
             style={{
@@ -630,6 +646,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               borderTopRightRadius: 22,
               borderBottomLeftRadius: 22,
               borderBottomRightRadius: 5,
+              scrollMarginTop: 96,
             }}
           >
             {proposal && (
