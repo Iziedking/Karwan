@@ -51,9 +51,8 @@ export function OnChainProofBand() {
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-pretty text-[15px] leading-relaxed text-white/65 max-w-[44ch]">
-            Numbers below are read straight from the current contract events.
-            Past contract generations are not aggregated; only what the active
-            deployment has done counts here.
+            Every number below is read straight from the live contract events
+            on Arc Testnet.
           </p>
         </div>
         {stats && (

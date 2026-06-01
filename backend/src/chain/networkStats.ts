@@ -11,10 +11,9 @@ const USDC_DECIMALS = 6;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SERIES_DAYS = 30;
 const CACHE_TTL_MS = 60_000;
-// Cap scan window so a first request after a long quiet period does not pull
-// every event since deploy. Arc averages roughly 780 ms per block; 200_000
-// blocks back covers about 43 hours of activity.
-const MAX_LOOKBACK_BLOCKS = 200_000n;
+// Arc public RPC silently returns empty on overly wide getLogs windows.
+// Chunk into 10k-block windows so the full deploy-to-head range comes back.
+const SCAN_CHUNK_BLOCKS = 10_000n;
 
 const EVENT_ESCROW_FUNDED = parseAbiItem(
   'event EscrowFunded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint256 dealAmount, uint256 fundedAmount, uint16 reservationBps, uint64 deadlineUnix, uint8 milestoneCount)',
@@ -136,29 +135,47 @@ async function safeScan(
 ): Promise<
   Array<{ args: Record<string, unknown>; blockNumber: bigint; blockHash: `0x${string}` | null }>
 > {
-  if (!inputs.address) return [];
-  try {
-    const logs = await publicClient.getLogs({
-      address: inputs.address,
-      event: inputs.event,
-      fromBlock,
-      toBlock,
-    });
-    return logs.map((l) => ({
-      args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
-        string,
-        unknown
-      >,
-      blockNumber: l.blockNumber ?? 0n,
-      blockHash: l.blockHash ?? null,
-    }));
-  } catch (err) {
-    logger.warn(
-      { err: (err as Error).message, address: inputs.address },
-      'network stats scan failed for one event',
-    );
-    return [];
+  if (!inputs.address || fromBlock > toBlock) return [];
+  const out: Array<{
+    args: Record<string, unknown>;
+    blockNumber: bigint;
+    blockHash: `0x${string}` | null;
+  }> = [];
+  let cursor = fromBlock;
+  while (cursor <= toBlock) {
+    const end = cursor + SCAN_CHUNK_BLOCKS - 1n;
+    const windowEnd = end > toBlock ? toBlock : end;
+    try {
+      const logs = await publicClient.getLogs({
+        address: inputs.address,
+        event: inputs.event,
+        fromBlock: cursor,
+        toBlock: windowEnd,
+      });
+      for (const l of logs) {
+        out.push({
+          args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
+            string,
+            unknown
+          >,
+          blockNumber: l.blockNumber ?? 0n,
+          blockHash: l.blockHash ?? null,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        {
+          err: (err as Error).message,
+          address: inputs.address,
+          fromBlock: cursor.toString(),
+          toBlock: windowEnd.toString(),
+        },
+        'network stats scan failed for one chunk; continuing',
+      );
+    }
+    cursor = windowEnd + 1n;
   }
+  return out;
 }
 
 /// Resolves event block timestamps for a window. One eth_getBlockByNumber per
@@ -210,10 +227,7 @@ async function build(): Promise<NetworkStats> {
   const deployBlock = config.KARWAN_VAULT_DEPLOY_BLOCK
     ? BigInt(config.KARWAN_VAULT_DEPLOY_BLOCK)
     : 0n;
-  const fromBlock = deployBlock > head - MAX_LOOKBACK_BLOCKS
-    ? deployBlock
-    : head - MAX_LOOKBACK_BLOCKS;
-  const lowerBound = fromBlock < 0n ? 0n : fromBlock;
+  const lowerBound = deployBlock < 0n ? 0n : deployBlock;
 
   const escrowAddr = (config.KARWAN_ESCROW_ADDR ?? null) as `0x${string}` | null;
   const vaultAddr = (config.KARWAN_VAULT_ADDR ?? null) as `0x${string}` | null;
