@@ -1,22 +1,8 @@
-/// Post-settlement withdraw for the seller.
-///
-/// Two wallets matter on the seller side:
-///   - identity wallet         : the address recipients see; staking, login,
-///                               cashout-routing dashboards belong here.
-///   - seller agent wallet     : the on-chain `seller` address the escrow
-///                               actually pays out to. Released USDC lands
-///                               here, NOT on identity.
-///
-/// The cashout page lets the seller pick which wallet to spend from. By default
-/// they pick the deal wallet because that's where the money lives. The seller
-/// can also send their identity-wallet balance if they previously swept funds
-/// into it. Both wallets are Circle DCWs we already control via the entity
-/// secret, so a transfer is one executeContractCall regardless.
-///
-/// Endpoints:
-///   GET  /api/cashout/:jobId            page context + both balances
-///   POST /api/cashout/arc-withdraw      direct USDC.transfer on Arc
-///   (cross-chain bridge-out goes through /api/bridge/circle-bridge-out)
+// Post-settlement withdraw for the seller. Two seller-side wallets exist:
+// the identity wallet (login + staking) and the per-deal seller agent wallet
+// that the escrow pays out to. The cashout page picks one of these as the
+// source; both are Circle DCWs we already control. Cross-chain withdraws
+// go through /api/bridge/circle-bridge-out.
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { parseUnits, formatUnits } from 'viem';
@@ -40,9 +26,7 @@ const arcWithdrawSchema = z.object({
   jobId: z.string().min(1),
   recipient: addrSchema,
   amountUsdc: z.number().positive().max(1_000_000),
-  /// Which wallet the USDC leaves from. 'sellerAgent' is the default that
-  /// makes sense post-settlement (escrow paid the agent). 'identity' is for
-  /// sellers who already swept into their identity wallet.
+  /// Source wallet. Default sellerAgent because that's where escrow paid out.
   walletKind: walletKindSchema.default('sellerAgent'),
 });
 
@@ -54,9 +38,8 @@ interface ResolvedWallet {
   walletId: string;
 }
 
-/// Look up the wallet ID + address for the requested kind. Returns null when
-/// the user has no Circle wallet of that kind (e.g. a web3-account user with
-/// no Circle identity, or a deal that predates per-user agent wallets).
+/// Resolve the wallet ID and address for `kind`. Returns null for web3-only
+/// users (no Circle identity) or deals that predate per-user agent wallets.
 function resolveWallet(
   kind: WalletKind,
   user: ReturnType<typeof getUserByAddress>,

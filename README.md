@@ -65,4 +65,4 @@ Headline item first, then the smaller follow-throughs.
 - **Full UI string extraction and RTL audit** so Arabic isn't a fallback to English layout.
 - **GitBook handbook** covering buyer, seller, financier, and agent-operator workflows.
 
-Anything not in the trust story, the SME story, or the agentic story lives in `todo.md`.
+

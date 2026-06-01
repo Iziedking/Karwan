@@ -7,20 +7,15 @@ import { Band, SectionTag, HeroHeadline, Punc } from '@/shared/components/Bands'
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 
 interface Props {
-  /// Tone of the surrounding band. light for cream pages (/app, /profile,
-  /// /seller), dark when dropped between dark sections.
   tone?: 'light' | 'dark';
   headline?: string;
 }
 
 const FALLBACK_HEADLINE = 'Open deals';
 
-/// Surface label for a deal at a given stage from the viewer's side.
-/// Active rows are "ACTION" (this viewer must move) or "WAIT" (the
-/// counterparty must move). Both kinds render in the band so a seller waiting
-/// on a release still sees the deal here, just chipped differently.
-/// Returns null only on terminal states (settled / cancelled / disputed) so
-/// finished deals don't clutter the surface.
+/// Chip label for a deal stage from the viewer's side: either an action this
+/// viewer owns or a wait on the counterparty. Null on terminal stages so
+/// finished deals do not render here.
 function labelFor(
   stage: DealStage,
   isBuyer: boolean,
@@ -54,12 +49,10 @@ function fmtUsdc(raw: string): string {
   return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-/// Surfaces every live direct deal on the user's book on /app, /profile, and
-/// /seller. Action chips (green) call out deals where the viewer must move;
-/// wait chips (grey) show deals where the counterparty owes the next move so a
-/// seller waiting on a buyer release still sees the deal here. Terminal stages
-/// (settled, cancelled, disputed) drop off. Agent-match proposals live in a
-/// separate band (PendingMatchesBand). Polls every 10s.
+/// Live direct deals on the viewer's book. Used on /app, /profile, /seller.
+/// Green chips mark deals where the viewer must move; grey chips mark deals
+/// waiting on the counterparty. Terminal stages drop off. Match proposals
+/// surface in PendingMatchesBand. Polls every 10s.
 export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE }: Props) {
   const auth = useAuth();
   const address = auth.address;
@@ -128,9 +121,8 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
           const role = isBuyer ? 'BUYER' : 'SELLER';
           const counterRole = isBuyer ? 'SELLER' : 'BUYER';
           const isAction = label.kind === 'action';
-          // Green for "this is on you" chips so they read as a call to action.
-          // Neutral for "waiting on them" chips so the page surfaces the deal
-          // without making the seller think they need to do something.
+          // Green action chips read as a call to action; grey wait chips
+          // surface the deal without implying the viewer owes a move.
           const chipBg = isAction
             ? (dark ? 'var(--lp-card)' : 'rgba(10,117,83,0.10)')
             : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)');

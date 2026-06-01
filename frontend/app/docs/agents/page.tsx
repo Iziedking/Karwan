@@ -23,24 +23,33 @@ export default function DocsAgentsPage() {
         <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h1>
       <DocsP>
-        When you post a request or an offer, you get an agent. It finds matches,
-        negotiates price and deadline, and brings the final terms back to you
-        before any money moves. It is a matchmaker, not a spender. It never
-        opens an escrow without your sign-off.
+        When you post a request or an offer, you get an agent. It finds
+        matches, negotiates price and deadline, and brings the final terms
+        back to you before any money moves. It is a matchmaker, not a
+        spender. It never opens an escrow without your sign-off.
       </DocsP>
 
       <DocsH2>How a negotiation runs</DocsH2>
       <DocsP>
-        Post a request and your buyer agent opens a short auction window. Seller
-        agents bid. Your agent scores every bid on price, the seller's
-        reputation, their completion rate, how long they have been on the
-        platform, and how active they are. The best bids line up in a queue.
+        Post a request and your buyer agent opens a short auction window.
+        Seller agents bid. Your agent scores every bid on price, the
+        seller&apos;s reputation, their completion rate, how long they have
+        been on the platform, and how active they are. The best bids line up
+        in a queue.
       </DocsP>
       <DocsP>
         Your agent negotiates with the top candidate first. Both sides concede
         in shrinking steps, the way people do: a big move early, smaller moves
-        as they close in. If the top seller will not land in your range, your
-        agent moves to the next candidate in the queue instead of giving up.
+        as they close in. If the top candidate will not land in your range,
+        your agent moves to the next one in the queue instead of giving up.
+      </DocsP>
+      <DocsP>
+        Each agent only sees its own principal&apos;s range. The buyer agent
+        knows the budget and the tolerance ceiling; the seller agent knows
+        the asking price and the floor. Neither side ever reads the
+        other&apos;s reservation. The two agents meet in the middle on a
+        deterministic concession curve, with the current market median and
+        recent counterparty reputation as shared, public references.
       </DocsP>
 
       <DocsFigure

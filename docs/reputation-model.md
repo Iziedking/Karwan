@@ -47,7 +47,7 @@ TVL and buys trust regardless of tier:
 | `volume` | 0.13 | `√(min(1, lifetimeVolumeUsdc / VOLUME_CAP))` |
 | `tenure` | 0.12 | `min(1, daysRegistered / TENURE_FULL_DAYS)` |
 | `activity` | 0.12 | `satLog(activeDays, ACTIVE_CAP)` |
-| `referral` | 0.08 | `satLog(referredUsers, REFERRAL_CAP)` |
+| `referral` | 0.08 | `satLog(referredUsers, REFERRAL_CAP)` — **input is 0 today; attribution rail ships with mainnet** |
 
 where `satLog(n, cap) = log10(1+n) / log10(1+cap)`, `successRate = (completed+1)/(started+2)`,
 and `FLOOR = REP_STAKE_FLOOR_CREDIT` (default 0.4 — staking is worth 40% the day you
@@ -63,11 +63,12 @@ first stake / deal / day is worth far more than your hundredth), and the additiv
 structure means climbing STRONG→ELITE needs *several* factors high at once, not one
 maxed. So early points come fast in NEW and the last 200 are the hardest.
 
-**Earning factors (how points grow):** lock more USDC and keep it staked longer
+**Earning factors (how points grow today):** lock more USDC and keep it staked longer
 (`stake`); settle more deals cleanly (`completion`); move more value through escrow
-(`volume`); stay registered (`tenure`); show up on more distinct days (`activity`);
-bring in users who register via a deal with you (`referral`). Each is concave and
-weighted as above.
+(`volume`); stay registered (`tenure`); show up on more distinct days (`activity`).
+Each is concave and weighted as above. A sixth signal, `referral`, is wired in the
+config but its input is hardcoded to 0 today and ships as a mainnet marketing rail
+once attribution is in place.
 
 **Testnet vs mainnet = the caps, not the breakpoints.** Testnet defaults reach tiers
 in days (`DEALS_CAP=10, STAKE_CAP=100, *_FULL_DAYS=14`). Mainnet raises them so tiers
@@ -192,7 +193,7 @@ A new contract `KarwanVault.sol` separate from `KarwanEscrow`. It is a **flexibl
 
 ```solidity
 function deposit(uint256 amount) external returns (uint256 positionId);
-function requestWithdraw(uint256 positionId) external;   // starts 7-day cool-down
+function requestWithdraw(uint256 positionId) external;   // starts 3-day cool-down
 function cancelWithdraw(uint256 positionId) external;    // resume Active, keep tenure
 function claim(uint256 positionId) external;             // pay out after cool-down
 
@@ -203,17 +204,17 @@ function tenureSeconds(uint256 positionId) external view returns (uint256);
 
 A `Position` is `{owner, principal, depositedAt, cooldownStartedAt, claimableAt, state}` where `state ∈ {Active, Cooling, Withdrawn}`. The contract exposes view helpers so the backend reputation engine can compute `tenureWeightedStakeUsdc` per address by summing across that user's Active positions.
 
-### 3.0 The 7-day cool-down
+### 3.0 The 3-day cool-down
 
-A withdrawal request transitions the position from `Active` to `Cooling` and freezes a `claimableAt = now + 7 days`. While in Cooling:
+A withdrawal request transitions the position from `Active` to `Cooling` and freezes a `claimableAt = now + 3 days`. While in Cooling:
 - The position contributes **zero** to the stake signal (`activePrincipal` and `tenureSeconds` return 0).
 - The USDC remains in the vault. The user cannot rug it.
-- The backend has a 7-day window to run fraud detection over burst deposits, suspicious counterparty patterns, and match-and-cancel correlation. If a flag fires, the backend can pause the user's score or surface a human review prompt.
+- The backend has a 3-day window to run fraud detection over burst deposits, suspicious counterparty patterns, and match-and-cancel correlation. If a flag fires, the backend can pause the user's score or surface a human review prompt.
 - The user can `cancelWithdraw` to restore `Active`. Their `depositedAt` is preserved, so all accrued tenure carries forward. Honest users who change their mind lose nothing.
 
-After 7 days the user calls `claim` and the principal is returned. The position becomes `Withdrawn`.
+After 3 days the user calls `claim` and the principal is returned. The position becomes `Withdrawn`.
 
-This is the platform's commitment device. A user cannot deposit, spike their reputation, take a deal, then withdraw the same day. They lose a week of stake signal during cool-down, and the backend sees the request before any funds move.
+This is the platform's commitment device. A user cannot deposit, spike their reputation, take a deal, then withdraw the same day. They lose three days of stake signal during cool-down, and the backend sees the request before any funds move. Cool-down was 7 days in v1 of the vault; the production contract runs at 3 days to keep honest users mobile while still gating the rug-and-run attack.
 
 ### 3.1 Mainnet path: USYC integration
 
@@ -231,9 +232,9 @@ We do not implement that wiring this pass. The vault and reputation model arrive
 
 ### 3.3 What we ship today
 
-- Solidity: `KarwanVault.sol` deployed to Arc Testnet. Flexible balance, 7-day cool-down on withdrawal, plain USDC holding.
+- Solidity: `KarwanVault.sol` deployed to Arc Testnet. Flexible balance, 3-day cool-down on withdrawal, plain USDC holding.
 - Backend: indexer that reads `Deposited`, `WithdrawalRequested`, `WithdrawalCancelled`, `Claimed`. Maintains per-address `tenureWeightedStakeUsdc` in the DB, feeds into reputation computation. Hooks the cool-down window into the fraud detection pipeline.
-- Frontend: a "Stake to grow reputation" panel on `/profile` showing each open position with its tenure, current contribution to the score, and a "Request withdraw" button. After a request, the row shows the 7-day countdown and a "Cancel withdrawal" affordance.
+- Frontend: a "Stake to grow reputation" panel on `/profile` showing each open position with its tenure, current contribution to the score, and a "Request withdraw" button. After a request, the row shows the 3-day countdown and a "Cancel withdrawal" affordance.
 - Copy: each surface that mentions stake also notes "On mainnet this deposit routes through USYC for ~5% APY."
 
 ## 4. Spam detection
@@ -306,7 +307,7 @@ The composite score is computed server-side and published via `GET /api/reputati
 
 - **ReputationBadge** keeps its current dot-and-number format, now sourced from the composite score.
 - **/profile** gains a new band: **"Reputation"** showing the score, the tier, the four input terms broken out (activity, completion, stake, time), and the penalty bar if any.
-- **Stake card** on `/profile`: deposit amount field, "Reputation lift +N" preview, and a list of open positions. Each position shows tenure, current contribution to the score, and a "Request withdraw" button that opens the 7-day cool-down with a countdown and a "Cancel withdrawal" affordance.
+- **Stake card** on `/profile`: deposit amount field, "Reputation lift +N" preview, and a list of open positions. Each position shows tenure, current contribution to the score, and a "Request withdraw" button that opens the 3-day cool-down with a countdown and a "Cancel withdrawal" affordance.
 - **Marketplace cards** show the tier dot next to every party so users can glance at counterparty quality.
 - **Mainnet badge** next to the stake card: small mono `// on mainnet this stake routes to USYC for ~5% APY`. No marketing, just the architectural note.
 
@@ -342,4 +343,4 @@ Tuning happens via env, no redeploy. The formula itself stays version-pinned (`R
 ---
 
 **One-paragraph framing for README / pitch:**
-On Karwan, reputation is the platform's golden ticket. It is a composite score in [0, 1000] across five terms: activity, completion, stake, time, and a negative penalty term for spam, cancellations, abandoned negotiations, and lost disputes. Users grow reputation by completing deals and locking USDC in the KarwanVault, with no forced lock period and a 7-day cool-down on withdrawal. On Arc Testnet the vault holds plain USDC. On mainnet the same vault routes deposits through Hashnote USYC so the same stake also earns ~5% APY. The agent loop reads reputation directly. ELITE counterparties get first-look pricing, NEW counterparties get countered hard and routed to human review. Spam and griefing patterns are detected on rolling windows and shrink the score in days, not months. The score is a number you can grow, lose, and rebuild, which is the only way trust on a marketplace ever works.
+On Karwan, reputation is the platform's golden ticket. It is a composite score in [0, 1000] across five terms: activity, completion, stake, time, and a negative penalty term for spam, cancellations, abandoned negotiations, and lost disputes. Users grow reputation by completing deals and locking USDC in the KarwanVault, with no forced lock period and a 3-day cool-down on withdrawal. On Arc Testnet the vault holds plain USDC. On mainnet the same vault routes deposits through Hashnote USYC so the same stake also earns ~5% APY. The agent loop reads reputation directly. ELITE counterparties get first-look pricing, NEW counterparties get countered hard and routed to human review. Spam and griefing patterns are detected on rolling windows and shrink the score in days, not months. The score is a number you can grow, lose, and rebuild, which is the only way trust on a marketplace ever works.

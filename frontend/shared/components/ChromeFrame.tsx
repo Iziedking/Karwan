@@ -1,11 +1,9 @@
 'use client';
 import { usePathname } from 'next/navigation';
 
-/// Routes that render bare: no TopNav, no Footer, no ProfileNudge, no
-/// GuideWelcome, no Terms modal, no padded main wrapper. The page is the
-/// whole experience. Used by invite-only links so a first-time recipient
-/// isn't dumped into the rest of the product before they've decided to
-/// engage with it.
+// Path prefixes that render bare: no TopNav, ProfileNudge, Footer, Guide,
+// Terms modal, or padded main wrapper. Used by invite links so a first-time
+// recipient is not dropped into the full product before they accept.
 const NO_CHROME_PREFIXES = ['/invite/'];
 
 interface ChromeFrameProps {

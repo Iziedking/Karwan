@@ -5,15 +5,16 @@ escrow form on Arc.
 
 ## In one paragraph
 
-Karwan is an on-chain settlement platform for cross-border SME trade. Two
-parties open a deal; USDC sits in milestone escrow on Arc while the work gets
-done; the buyer releases in tranches; the deal settles. The differentiator is
-the layer above the escrow: a pair of LLM-driven agents that find each other,
-negotiate price and deadline like humans do, hand the final terms back to
-their principals for sign-off, and follow the deal through to settlement.
-Reputation is on-chain and portable. Treasury idle USDC routes through
-Hashnote USYC on mainnet. The whole product is localized into five
-languages of the trade corridors it serves.
+Karwan is an on-chain settlement platform for cross-border service deals.
+Two parties open a deal; USDC sits in milestone escrow on Arc while the
+work gets done; the buyer releases in tranches; the deal settles. The
+differentiator is the layer above the escrow: a pair of LLM-driven agents
+that find each other, negotiate price and deadline like humans do, hand
+the final terms back to their principals for sign-off, and follow the
+deal through to settlement. Reputation is on-chain and portable. Treasury
+idle USDC routes through Hashnote USYC on mainnet. The product ships in
+five languages today and is built for global service trade, with early
+focus on corridors where bank rails are slowest.
 
 ## What makes Karwan different
 
@@ -100,7 +101,7 @@ Karwan ships two principal contracts, not one.
   split evenly between buyer and seller, release in tranches, review-window
   auto-release, dispute path, mutual-cancel taxonomy.
 - **`KarwanVault`** runs the reputation stake. Users deposit USDC to lift
-  their tier; deposits are withdrawable anytime with a 7-day cooling window
+  their tier; deposits are withdrawable anytime with a 3-day cooling window
   for fraud checks. On mainnet, the same vault routes USDC through Hashnote
   USYC so the locked principal also earns ~5% APY in tokenized T-bills.
   Treasury fees walk the same path on mainnet, so platform revenue compounds
@@ -157,9 +158,10 @@ Settings page, top navigation, onboarding language step, Telegram
 notifications, and email templates are localized today. The RTL layout
 audit and full string-extraction sweep ride v2.
 
-The five languages are chosen for the MEASA trade corridors Karwan targets:
-the Gulf, Francophone West Africa, the Indian subcontinent, East Africa, the
-Levant.
+The five languages cover several of the trade corridors where bank rails
+are slowest today, including the Gulf, North and West Africa, the Indian
+subcontinent, and East Africa. The product itself is global; the language
+roster grows with where the deals are coming from.
 
 ## What we explicitly do not claim
 
@@ -242,13 +244,13 @@ DB caches signals that feed the strategy core. The frontend is a Next.js
 
 ## The five-line summary
 
-> Karwan turns an on-chain milestone escrow into an SME trade-finance
-> platform by adding LLM-driven asymmetric negotiation agents, an ERC-8004
-> reputation registry that gates agent behavior, a yield-bearing reputation
-> stake that funds itself on mainnet via Hashnote USYC, multi-chain USDC
-> ingress via CCTP V2, and a five-language front door for the MEASA
-> corridors it serves. The agents cascade through the candidate pool when
-> the first negotiation fails, accept on the final round when the offer is
-> inside tolerance, and apply tier-aware concession decay so the price walk
-> looks human. Two parties trade across a border with one click and a
-> passkey.
+> Karwan turns an on-chain milestone escrow into a cross-border service
+> settlement product by adding LLM-driven asymmetric negotiation agents,
+> an ERC-8004 reputation registry that gates agent behavior, a
+> yield-bearing reputation stake that funds itself on mainnet via Hashnote
+> USYC, multi-chain USDC ingress via CCTP V2, and a multi-language front
+> door for the trade corridors it serves first. The agents cascade through
+> the candidate pool when the first negotiation fails, accept on the final
+> round when the offer is inside tolerance, and apply tier-aware concession
+> decay so the price walk looks human. Two parties trade across a border
+> with one click and a passkey.

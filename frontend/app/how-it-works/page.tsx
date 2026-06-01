@@ -136,7 +136,7 @@ export default function HowItWorksPage() {
         </Card>
       </section>
 
-      {/* STAKE + REPUTATION */}
+      {/* STAKE AND REPUTATION */}
       <section className="space-y-6">
         <div className="max-w-2xl">
           <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
@@ -163,9 +163,9 @@ export default function HowItWorksPage() {
             premium that surfaces to the seller for human review before approval.
           </DemoStep>
           <DemoStep n="3" title="Withdraw anytime">
-            Request a withdrawal, the position enters a 7-day cool-down while fraud checks run.
-            Cancel inside the window to resume without losing tenure. After cool-down, claim
-            returns principal in a single transaction.
+            Request a withdrawal and the position enters a three-day cool-down while fraud
+            checks run. Cancel inside the window to resume without losing tenure. After the
+            cool-down, claim returns the principal in a single transaction.
           </DemoStep>
         </div>
       </section>
@@ -189,19 +189,27 @@ export default function HowItWorksPage() {
           />
           <StackTile
             name="CCTP V2"
-            role="Buyer USDC bridges in from Base or Ethereum Sepolia. The user signs the burn, the backend relays the mint on Arc once Circle attests."
+            role="Bidirectional USDC bridge across six chains today: Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus Solana Devnet. The user signs the burn, Karwan relays the mint on the destination, and the cashout page runs the same pipe in reverse."
+          />
+          <StackTile
+            name="App Kit"
+            role="Circle's unified SDK for bridge, swap, send, and unified balance. Reuses our Developer-Controlled Wallets as the source so we add new cross-chain features without managing extra credentials."
+          />
+          <StackTile
+            name="Gas Station"
+            role="Sponsors source-chain gas for our Circle wallet users on Base Sepolia and Ethereum Sepolia, so a non-crypto user only ever holds USDC. No buy ETH first detour."
           />
           <StackTile
             name="Arc Testnet"
-            role="Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity registry is already deployed here."
+            role="Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed."
           />
           <StackTile
             name="Resend"
-            role="Transactional email for OTP sign-in and deal alerts. Inline brand logo via CID. Falls back to a dev-only autofill when keys are unset so local builds keep working."
+            role="Transactional email for one-time code sign-in, deal invites, and deal alerts. Inline brand logo, dark-mode safe template."
           />
           <StackTile
             name="Hashnote USYC (mainnet)"
-            role="On mainnet KarwanVault routes idle stake through USYC for roughly 5% APY. Reputation signal is unchanged so the same dollars earn yield + tier lift. Testnet holds plain USDC."
+            role="On mainnet the vault and treasury route idle USDC through Hashnote USYC via the standard ERC-4626 interface, so locked principal earns the short rate while reputation is unchanged. Testnet runs against a deterministic mock adapter on the same interface so the demo path works today."
           />
         </div>
       </section>
@@ -214,25 +222,25 @@ export default function HowItWorksPage() {
           </span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">Coming next</h2>
           <p className="text-[14px] text-[var(--color-ink-dim)] mt-2">
-            What ships after the testnet build.
+            What ships after the current testnet build.
           </p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
           <RoadmapTile
-            title="Bring your own agent"
-            body="Institutional customers register their own agent address per ERC-8004 with a custom policy file. Zero contract changes; the same buyer / seller flow runs against a customer-controlled worker."
+            title="x402 nanopayment rails"
+            body="Wire Circle's x402 micropayment surface so agents can pay sub-cent USDC fees to call paid data, run credit checks, and pull news during a deal. Every paid signal lands on the deal timeline so users see what their agent paid for and why."
           />
           <RoadmapTile
-            title="Sharded multi-tenant"
-            body="Per-user partition keys, Redis Streams for chain-event fan-out, N stateless workers behind. Same contracts, same SSE shape, parallel throughput for Circle + LLM rate limits."
+            title="Invoice factoring"
+            body="A financier funds an accepted deal at a discount; the escrow routes the payout to the financier on release. The credit passport becomes a financing surface, with reputation tier setting the discount floor."
           />
           <RoadmapTile
-            title="Disputes and appeals"
-            body="On-chain dispute resolution, plus a seller appeal path to renegotiate if a buyer stalls on release."
+            title="Mainnet hardening"
+            body="External smart-contract audit, a Safe multisig treasury, and higher branch coverage on the escrow and vault before any mainnet deployment."
           />
           <RoadmapTile
-            title="Mainnet USYC routing"
-            body="KarwanVault forks with a USYC adapter. Stake compounds in tokenized T-bills while it builds reputation. Treasury fees route the same path so platform revenue earns yield."
+            title="Full multi-language coverage"
+            body="Extend the five-locale framework to every page and add a right-to-left layout pass for Arabic, replacing the fallback default direction."
           />
         </div>
       </section>
@@ -246,50 +254,61 @@ export default function HowItWorksPage() {
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">Common questions</h2>
         </div>
         <div className="divide-y divide-[var(--color-line)] border border-[var(--color-line)] rounded-xl bg-[var(--color-surface)]">
-          <Faq q="What is the difference between a direct deal and a managed deal?">
-            A direct deal is for two parties who already found each other. You open an escrow
-            naming the seller&apos;s wallet, no auction. A managed deal is for when you need a
-            seller: you post a request and agents run the auction and negotiation. Both use the same
-            escrow, reputation, and settlement underneath.
+          <Faq q="What is the difference between a direct deal and an agent-matched deal?">
+            A direct deal is for two parties who already know each other. You open an escrow
+            naming the seller&apos;s wallet, or even an email address, and skip the auction. An
+            agent-matched deal is for when you need a counterparty: you post a request as a buyer
+            or an offer as a seller, and the agents run the matching and negotiation. Both use the
+            same escrow, reputation, and settlement underneath.
           </Faq>
           <Faq q="What is the platform fee?">
             1.5% of the deal amount, split evenly between buyer and seller. The buyer funds the
-            deal amount plus their half; the seller nets the deal amount minus their half. The fee
-            is collected on chain by the escrow contract as milestones release, and goes to a
-            treasury address.
+            deal amount and their half of the fee; the seller nets the deal amount minus their
+            half. The fee collects on chain as each milestone releases.
           </Faq>
-          <Faq q="Who controls the agent wallets today?">
-            For this demo, agent wallets are Circle Dev-Controlled Wallets we provisioned ahead of
-            time. In v1, each user connects their own wallet and either activates an agent under a
-            spending allowance they set, or runs their own.
+          <Faq q="Who controls my agent wallet?">
+            Your agent wallet is a Circle Developer-Controlled Wallet whose owner is you. Karwan
+            can sign on its behalf to negotiate while you sleep, but it never opens an escrow
+            without your sign-off. You can sweep funds out of it at any time from the profile
+            page.
           </Faq>
           <Faq q="Are the smart contracts deployed?">
-            Yes. KarwanJobBoard, KarwanEscrow, and KarwanReputation are live on Arc Testnet (chain
-            5042002). The escrow carries the platform fee split on chain. Every event on the
-            Activity feed links to its transaction on testnet.arcscan.app.
+            Yes. The escrow, vault, reputation, treasury, and job-board contracts are live on Arc
+            Testnet (chain 5042002). The current addresses are in the public repository. Every
+            event in the activity feed links to its transaction on the Arc explorer.
           </Faq>
-          <Faq q="How is escrow released?">
-            The buyer releases each milestone with releaseProgress. The seller&apos;s cut goes to
-            the seller, the treasury&apos;s slice of the fee goes to the treasury, and the final
-            release marks the escrow settled. In a direct deal the seller must mark the work
-            delivered before the buyer can release. Disputes today go to manual review; v1 adds
-            on-chain arbitration.
+          <Faq q="How does the escrow release?">
+            The buyer releases each milestone with a single click. The seller gets their share,
+            the treasury gets the platform fee in proportion, and the final release marks the
+            escrow settled. The final milestone always needs an explicit buyer click; it never
+            auto-releases.
           </Faq>
-          <Faq q="What if the seller agent skips my managed job?">
-            The seller&apos;s profile has a budget and deadline range. If your request falls outside
-            it, the agent skips and the timeline shows you why. The LLM can also skip on
-            confidence, and that gets logged too.
+          <Faq q="What if a deal goes to dispute?">
+            A buyer can dispute from the funded or delivered state. The escrow moves to a
+            disputed state and either side can resolve through the contract. A refund returns the
+            money to the buyer and slashes the seller&apos;s reserved stake to the buyer as
+            insurance. A release sends the money to the seller. The outcome lands on both
+            parties&apos; on-chain reputation record.
           </Faq>
-          <Faq q="Why this corridor?">
-            We started with MEASA because UAE non-oil trade with Africa alone is $50B+ and growing
-            about 15% a year, with heavy informal volume and weak card rails. But the escrow,
-            reputation, and agent layer is corridor-agnostic. It works for any cross-border service
-            deal.
+          <Faq q="What if a seller agent skips my agent-matched request?">
+            The seller&apos;s profile has a budget and deadline range. If your request falls
+            outside it, the agent skips and the timeline shows you why. If the agent is uncertain
+            for any other reason, that is logged too, so the next move is never silent.
           </Faq>
-          <Faq q="Where does the LLM run?">
-            Agent decisions go through OpenRouter (default model: google/gemini-2.5-flash-lite) to
-            keep cost low. We use Zod schemas for structured outputs, so an agent can only act
-            inside its accepted budget and deadline range.
+          <Faq q="Which corridors does this serve?">
+            Karwan works for any cross-border service deal anywhere in the world. The early
+            language roster covers several corridors where bank rails are slowest today,
+            including the Gulf, North and West Africa, the Indian subcontinent, and East Africa,
+            but the escrow, reputation, and agent layer is corridor-agnostic. New languages and
+            corridors come on as the user base grows.
+          </Faq>
+          <Faq q="Where does the agent reasoning run?">
+            Every decision that touches money is handled by a deterministic rule set in the
+            backend: budget and deadline bounds, topical match, stake requirements, reservation
+            math. A language model only handles the parts that need judgement, such as whether
+            two non-overlapping skill descriptions describe the same job, or how to phrase a
+            counter. If the language model goes offline, the agent keeps working through its
+            deterministic fallbacks.
           </Faq>
         </div>
       </section>

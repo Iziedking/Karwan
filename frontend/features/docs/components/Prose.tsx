@@ -22,9 +22,15 @@ export function DocsH2({ children }: { children: ReactNode }) {
 }
 
 /// Sub-heading inside a section. Smaller, weighted, no accent dot.
-export function DocsH3({ children }: { children: ReactNode }) {
+/// Optional `id` to make the heading a deep-link target. Set `scrollMarginTop`
+/// so anchor jumps land below the sticky top nav rather than under it.
+export function DocsH3({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <h3 className="mt-7 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+    <h3
+      id={id}
+      style={id ? { scrollMarginTop: 96 } : undefined}
+      className="mt-7 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]"
+    >
       {children}
     </h3>
   );

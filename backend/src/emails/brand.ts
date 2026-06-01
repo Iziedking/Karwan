@@ -1,8 +1,6 @@
-/// Shared brand chrome for every Karwan transactional email. Auth OTP, deal
-/// invites, and anything that ships next pulls from here so a future palette
-/// change is one file. Light cream + ink black, mono accent — no lime in
-/// email surfaces (lime is the in-product attention color; mail clients render
-/// it badly on dark headers).
+// Shared shell for Karwan transactional email. OTP, deal invites, and
+// anything that ships next renders inside this so a palette change stays
+// in one file.
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -27,25 +25,20 @@ export const LOGO_BUFFER = loadLogoBuffer();
 export const LOGO_CID = 'karwan-logo';
 
 export interface BrandShellOptions {
-  /// Small caps eyebrow line under the wordmark, e.g. "SIGN-IN CODE" or
-  /// "DEAL INVITE". Kept short — 1-3 words reads cleanest in mail clients.
+  /// Small-caps eyebrow under the wordmark, e.g. "SIGN-IN CODE", "DEAL INVITE".
   eyebrow: string;
-  /// Subject-line text, for the <title> tag.
+  /// Subject-line text used for the document title.
   title: string;
-  /// Body of the email — already-formatted HTML rendered inside the cream card.
+  /// Pre-formatted HTML rendered inside the card body.
   inner: string;
-  /// Optional footer note above the wordmark strip. Defaults to the standard
-  /// "didn't request this" line for auth-style flows; pass a custom string for
-  /// deal-related mail.
+  /// Override the default "didn't request this" footer note.
   footerNote?: string;
 }
 
 const DEFAULT_FOOTER_NOTE =
   "Didn't request this? Ignore the email. No account changes happen until a code is entered.";
 
-/// Wraps caller-provided inner HTML in the Karwan email shell: dark header
-/// band with brand mark + eyebrow, cream card body, footer hr + wordmark.
-/// Returns a full <!doctype html> document ready to hand to Resend.
+/// Wraps caller HTML in the Karwan email shell. Returns a full document.
 export function brandedEmailHtml({
   eyebrow,
   title,
@@ -55,11 +48,9 @@ export function brandedEmailHtml({
   const logoCell = LOGO_BUFFER
     ? `<img src="cid:${LOGO_CID}" width="36" height="36" alt="Karwan" style="display:block;border-radius:6px;" />`
     : '';
-  // Gmail and Apple Mail aggressively auto-invert "light" emails when the
-  // recipient is in dark mode, which kills the cream + lime brand entirely.
-  // The combo below tells supporting clients "this email has its own light
-  // theme; do not re-paint it" and gives Outlook a fallback. !important on
-  // critical bg/fg colors covers the clients that ignore color-scheme.
+  // Gmail and Apple Mail auto-invert "light" emails under dark mode and kill
+  // the brand colors. The color-scheme meta + !important fills below opt out
+  // for clients that respect them; the @media dark fallback covers the rest.
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -79,9 +70,8 @@ export function brandedEmailHtml({
   .k-sub { color: #3a352c !important; }
   .k-muted { color: #8a8478 !important; }
   .k-lime { color: #afc95b !important; }
-  /* When a client DOES force dark mode regardless, flip to a brand-aware
-     dark palette (cream-on-ink) so the email still reads as Karwan rather
-     than as an unstyled message. */
+  /* Dark-mode fallback for clients that ignore color-scheme. Cream-on-ink
+     keeps the brand legible instead of an inverted mess. */
   @media (prefers-color-scheme: dark) {
     .k-canvas { background: #1c1a16 !important; }
     .k-card { background: #1c1a16 !important; }
@@ -96,8 +86,8 @@ export function brandedEmailHtml({
     <tr>
       <td align="center">
         <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" class="k-card" style="max-width:520px;width:100%;background:#ffffff;border:1px solid #e6e2d8;border-radius:18px 18px 18px 5px;overflow:hidden;">
-          <!-- Header: ink band + lime accent strip below for brand recognition
-               even when a stubborn client neutralises the bg color. -->
+          <!-- Header band. The lime strip below survives clients that drop
+               the background color. -->
           <tr>
             <td class="k-header" style="background:#0e0e0e;padding:24px 28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">

@@ -1,28 +1,22 @@
-/// Outbound email telling a recipient that someone has opened a Karwan deal
-/// with them and asking them to claim the link. Wraps the shared brand shell
-/// from emails/brand.ts so the invite reads as the same Karwan as the auth
-/// flow. Falls back to a log line when RESEND_API_KEY isn't set so dev still
-/// works without provider config.
+// Branded email asking a recipient to claim a deal invite. Wraps the shared
+// brand shell so the look matches the auth flow. Logs and returns delivered:
+// false when RESEND_API_KEY is unset.
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
 import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
 
 export interface DealInviteEmailInput {
-  /// Lower-cased recipient address — the same address the invite is keyed to.
+  /// Lower-cased recipient email address. Same address the invite is keyed to.
   to: string;
-  /// Absolute URL of the claim page, e.g. https://karwan.site/invite/<token>.
+  /// Absolute URL of the claim page.
   claimUrl: string;
-  /// USDC amount as a string ("100" or "100.5"), already formatted to the
-  /// decimals the rest of the app surfaces.
+  /// USDC amount, pre-formatted as a string ("100", "100.5").
   dealAmountUsdc: string;
-  /// Wallet that opened the deal, masked to "0xab12…cdef" for the email body.
-  /// The recipient sees this enough to recognise it; we don't reveal the full
-  /// address so a typo-ed invite doesn't dox the buyer.
+  /// Buyer wallet shortened to "0xab12…cdef". A typoed invite should not
+  /// reveal the full buyer address to the wrong recipient.
   inviterMasked: string;
-  /// Time the invite link expires, expressed as a short human label like
-  /// "Expires in 7 days" or "Expires Mon, Jun 6". Pre-formatted by the caller
-  /// so we don't carry a date library into the email module.
+  /// Pre-formatted relative or absolute expiry string ("Expires in 7 days").
   expiresLabel: string;
 }
 
@@ -117,8 +111,7 @@ export async function sendDealInviteEmail(
   }
 }
 
-/// Cheap human label for "expires in N days" / "expires in N hours". Falls
-/// back to a date string when the window is too long for a relative tag.
+/// Render "Expires in N days" or "Expires in N hours" from an epoch-ms input.
 export function formatExpiresLabel(expiresAtMs: number): string {
   const deltaMs = expiresAtMs - Date.now();
   if (deltaMs <= 0) return 'Already expired';

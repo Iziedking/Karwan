@@ -9,7 +9,7 @@ import {
 
 export const metadata = {
   title: 'Documentation · Karwan',
-  description: 'How Karwan works: agents, escrow, reputation, and the bridge.',
+  description: 'How Karwan works: agents, escrow, reputation, the bridge, and what is shipping next.',
 };
 
 export default function DocsOverviewPage() {
@@ -21,11 +21,11 @@ export default function DocsOverviewPage() {
         <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h1>
       <DocsP>
-        Karwan settles cross-border deals on chain. Money sits in a milestone
-        escrow on Arc while the work gets done and releases in tranches as it
-        lands. Two LLM agents handle the matching and the negotiation, then
-        hand the final terms back to you for sign-off. This guide walks you
-        through every part you will touch.
+        Karwan settles cross-border service deals on chain. USDC sits in a
+        milestone escrow on Arc while the work gets done, and releases as the
+        buyer signs off. Two agents handle the matching and the negotiation,
+        then bring the final terms back to you for sign-off before any money
+        moves. This guide walks every part you will touch.
       </DocsP>
 
       <DocsH2>The two ways to trade</DocsH2>
@@ -35,13 +35,14 @@ export default function DocsOverviewPage() {
       <DocsList>
         <DocsListItem>
           <strong>Direct deal.</strong> You already know who you are trading
-          with. Name their wallet, set the amount and terms, and the escrow
-          funds the moment they accept. The fastest path.
+          with. Name their wallet or even just their email, set the amount,
+          terms, and deadline, and the escrow funds the moment they accept.
+          The fastest path.
         </DocsListItem>
         <DocsListItem>
           <strong>Agent-matched deal.</strong> You do not have a counterparty
-          yet. Post a request (as a buyer) or an offer (as a seller). Your agent
-          watches the marketplace, negotiates on your behalf, and surfaces a
+          yet. Post a request as a buyer or an offer as a seller. Your agent
+          watches the market, negotiates on your behalf, and surfaces a
           proposal you approve before any money moves.
         </DocsListItem>
       </DocsList>
@@ -49,16 +50,19 @@ export default function DocsOverviewPage() {
       <DocsH2>Get started in three steps</DocsH2>
       <DocsList>
         <DocsListItem>
-          <strong>Sign in.</strong> Use email with a passkey, an email code, or
-          your own web3 wallet. No seed phrase needed for the email path.
+          <strong>Sign in.</strong> Use email with a passkey, an email code,
+          or your own web3 wallet through Sign-In with Ethereum. No seed
+          phrase needed for the email paths.
         </DocsListItem>
         <DocsListItem>
-          <strong>Fund your balance.</strong> Bring USDC to Arc from Base or
-          Ethereum via the bridge, or use the Arc faucet for testnet USDC.
+          <strong>Fund your balance.</strong> Bring USDC to Arc from any of
+          the supported source chains through the bridge, or use the Arc
+          faucet for testnet USDC.
         </DocsListItem>
         <DocsListItem>
-          <strong>Open a deal.</strong> Post a request, name a counterparty, or
-          browse offers. The escrow does the rest.
+          <strong>Open a deal.</strong> Post a request, name a counterparty
+          by wallet or email, or browse offers on the market. The escrow does
+          the rest.
         </DocsListItem>
       </DocsList>
 
@@ -74,23 +78,23 @@ export default function DocsOverviewPage() {
         />
         <DocsCardLink
           href="/docs/deals"
-          title="Deals & Escrow"
-          blurb="The deal lifecycle from acceptance to settlement."
+          title="Deals and Escrow"
+          blurb="The deal lifecycle from acceptance to settlement, plus cashout."
         />
         <DocsCardLink
           href="/docs/reputation"
-          title="Reputation & Stake"
-          blurb="How your score is built and how staking lifts your tier."
+          title="Reputation and Stake"
+          blurb="How your score is built, how it resists gaming, and how staking lifts your tier."
         />
         <DocsCardLink
           href="/docs/bridge"
           title="Bridge"
-          blurb="Bringing USDC to Arc from other chains with CCTP."
+          blurb="Moving USDC in and out of Arc using Circle CCTP."
         />
         <DocsCardLink
           href="/docs/roadmap"
           title="Roadmap"
-          blurb="The strong functionality shipping next, by theme."
+          blurb="What is live today and what is shipping next."
         />
         <DocsCardLink
           href="/docs/faq"

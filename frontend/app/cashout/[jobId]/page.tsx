@@ -546,9 +546,8 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
   );
 }
 
-/// Maps backend bridge.status strings to a human progress copy. The pipeline
-/// goes: burning -> burned -> attested -> minted. Anything else is errored
-/// or terminal.
+/// Maps backend bridge status to a user-facing label and progress percent.
+/// Pipeline: burning -> burned -> attested -> minted.
 function bridgeStageCopy(status: string): { label: string; pct: number; done: boolean; failed: boolean } {
   switch (status) {
     case 'burning':
@@ -573,9 +572,8 @@ interface BridgeProgressCardProps {
   onSendMore: () => void;
 }
 
-/// Live, inline bridge progress for the email-claim seller. Polls every 4s
-/// until the bridge settles. Surfaces the burn + mint tx hashes when they
-/// land. No /bridge redirect; the experience stays in /cashout.
+/// Inline bridge progress card. Polls every 4s, exposes the burn and mint
+/// tx hashes as they land. Keeps the cashout flow on a single page.
 function BridgeProgressCard({
   bridgeId,
   amount,
