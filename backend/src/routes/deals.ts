@@ -1670,7 +1670,12 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
 const cancelProposeSchema = z.object({
   caller: addrSchema,
   reason: z.string().min(3).max(400),
-  kind: z.enum(['mutual', 'platform-attributed']).default('mutual'),
+  /// 'mutual' / 'platform-attributed' are pre-dispute, rep-neutral resolutions.
+  /// 'refund-from-dispute' / 'release-from-dispute' are Disputed-state
+  /// resolutions; whichever party concedes takes a reputation hit on accept.
+  kind: z
+    .enum(['mutual', 'platform-attributed', 'refund-from-dispute', 'release-from-dispute'])
+    .default('mutual'),
 });
 
 /// Mutual / platform-attributed cancel proposal flow.
@@ -1809,13 +1814,29 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
 
   inFlight.add(jobId);
   try {
-    const chainReason = `${proposal.kind === 'platform-attributed' ? 'platform' : 'mutual'} cancel: ${proposal.reason}`;
-    // Skip the dispute() call if the escrow is already in Disputed state
-    // (eg. seller previously appealed). The contract reverts InvalidState
-    // when dispute() is called from Disputed, so re-firing would block the
-    // refund path that the parties have now agreed to. Both Funded and
-    // Accepted are valid dispute() starting states on v2.D.
+    const isReleaseFromDispute = proposal.kind === 'release-from-dispute';
+    const isRefundFromDispute = proposal.kind === 'refund-from-dispute';
+    const isDisputeResolution = isReleaseFromDispute || isRefundFromDispute;
+
+    const chainReason = isReleaseFromDispute
+      ? `release from dispute: ${proposal.reason}`
+      : isRefundFromDispute
+        ? `refund from dispute: ${proposal.reason}`
+        : `${proposal.kind === 'platform-attributed' ? 'platform' : 'mutual'} cancel: ${proposal.reason}`;
+
+    // Disputed-state resolutions must already have the escrow in Disputed;
+    // 'release-from-dispute' would not be a sensible request otherwise.
+    // Pre-dispute proposals (mutual / platform-attributed) drive the escrow
+    // through dispute() first so refund() can run, unless the seller already
+    // appealed (Disputed state) — in which case skip dispute() to avoid
+    // InvalidState.
     if (account.state !== ESCROW_DISPUTED) {
+      if (isReleaseFromDispute) {
+        return c.json(
+          { error: 'release-from-dispute requires the escrow to be in Disputed state' },
+          409,
+        );
+      }
       await executeContractCall(
         {
           walletId: deal.buyerAgentWalletId,
@@ -1826,23 +1847,56 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
         `dispute(${proposal.kind}-cancel ${jobId})`,
       );
     }
-    const refundResult = await executeContractCall(
-      {
-        walletId: deal.buyerAgentWalletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'refund(bytes32)',
-        abiParameters: [jobId],
-      },
-      `refund(${jobId})`,
-    );
+
+    /// 'release-from-dispute' → releaseFromDispute(jobId); seller is paid in
+    /// full and the chain records DisputeResolved (when reservation existed).
+    /// Everything else → refund(jobId); buyer is refunded and the chain
+    /// records Failed against the seller (when reservation existed).
+    /// Both contract paths are buyer-only, so the buyer agent must sign.
+    const txResult = isReleaseFromDispute
+      ? await executeContractCall(
+          {
+            walletId: deal.buyerAgentWalletId,
+            contractAddress: escrow.address,
+            abiFunctionSignature: 'releaseFromDispute(bytes32)',
+            abiParameters: [jobId],
+          },
+          `releaseFromDispute(${jobId})`,
+        )
+      : await executeContractCall(
+          {
+            walletId: deal.buyerAgentWalletId,
+            contractAddress: escrow.address,
+            abiFunctionSignature: 'refund(bytes32)',
+            abiParameters: [jobId],
+          },
+          `refund(${jobId})`,
+        );
+
+    /// Identify the loser for the off-chain reputation signal. On a refund
+    /// the seller concedes; on a release the buyer concedes. Pre-dispute
+    /// kinds stay rep-neutral.
+    const disputeLoser: 'buyer' | 'seller' | undefined = isReleaseFromDispute
+      ? 'buyer'
+      : isRefundFromDispute
+        ? 'seller'
+        : undefined;
+
+    /// release-from-dispute lands the seller in Settled on chain — mirror
+    /// that off-chain by setting settledAt (NOT cancelledAt) so the deal card
+    /// reads "settled via dispute resolution". cancelKind still carries the
+    /// resolution kind so the UI body can be honest about how it ended.
+    /// All other resolutions are cancellations (refund flow).
+    const now = Date.now();
     await patchDeal(jobId, {
-      cancelledAt: Date.now(),
+      ...(isReleaseFromDispute ? { settledAt: now } : { cancelledAt: now }),
       cancelKind: proposal.kind,
       cancelReason: proposal.reason,
       cancellationProposal: undefined,
+      ...(disputeLoser ? { disputeLoser } : {}),
     });
     bus.emitEvent({
-      type: 'deal.cancelled',
+      type: isReleaseFromDispute ? 'escrow.settled' : 'deal.cancelled',
       jobId,
       actor: callerRole,
       payload: {
@@ -1852,12 +1906,18 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
         reason: proposal.reason,
         proposedBy: proposal.proposedBy,
         acceptedBy: callerRole,
-        txHash: refundResult.txHash,
+        ...(disputeLoser ? { disputeLoser } : {}),
+        txHash: txResult.txHash,
       },
     });
-    // Both 'mutual' and 'platform-attributed' are reputation-neutral by design.
-    // No recordReputation() call here.
-    return c.json({ accepted: true, jobId, txHash: refundResult.txHash }, 200);
+    // 'mutual' and 'platform-attributed' stay rep-neutral. Dispute-state
+    // resolutions carry a reputation hit applied off-chain via signals.ts
+    // reading disputeLoser; on-chain rep for trusted (reservation > 0) deals
+    // is already recorded by the escrow contract.
+    return c.json(
+      { accepted: true, jobId, txHash: txResult.txHash, ...(isDisputeResolution ? { disputeLoser } : {}) },
+      200,
+    );
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'cancel-accept failed');

@@ -101,20 +101,23 @@ export function NetworkTicker() {
       className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden"
       style={{ background: 'var(--lp-band-dark)' }}
     >
+      {/* Side fades use --lp-band-dark (always #0e0e0e) so they match the band
+          in both light + dark themes. --lp-dark flips to #ededed in dark mode,
+          which painted a bright veil over the cards (tester feedback). */}
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 z-10 w-24 pointer-events-none"
+        className="absolute inset-y-0 left-0 z-10 w-16 pointer-events-none"
         style={{
           background:
-            'linear-gradient(90deg, var(--lp-dark) 0%, rgba(14,14,14,0) 100%)',
+            'linear-gradient(90deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
         }}
       />
       <span
         aria-hidden
-        className="absolute inset-y-0 right-0 z-10 w-24 pointer-events-none"
+        className="absolute inset-y-0 right-0 z-10 w-16 pointer-events-none"
         style={{
           background:
-            'linear-gradient(270deg, var(--lp-dark) 0%, rgba(14,14,14,0) 100%)',
+            'linear-gradient(270deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
         }}
       />
       <div

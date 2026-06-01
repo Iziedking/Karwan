@@ -79,6 +79,13 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   let firstActionAt = 0;
   let lastActionAt = 0;
   let lifetimeVolumeUsdc = 0;
+  /// Dispute resolutions where this wallet was the loser. Drives an off-chain
+  /// rep penalty that matches the on-chain Failed signal for trusted deals.
+  /// For casual deals (no reservation), the chain records nothing — this is
+  /// the only signal that exists. For trusted deals the on-chain failedCount
+  /// already covers refund losses; we still count releases here so the buyer's
+  /// concession on a release-from-dispute lands somewhere.
+  let disputeLossesOffchain = 0;
   // Distinct UTC day buckets the wallet touched a deal. Proxy for "active days"
   // until a dedicated action tracker lands (see todo.md).
   const activeDayBuckets = new Set<number>();
@@ -91,6 +98,26 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     if (d.settledAt) {
       completedDeals += 1;
       lifetimeVolumeUsdc += Number(d.dealAmountUsdc) || 0;
+    }
+    /// Dispute-state resolutions credit a loss to whichever side conceded.
+    /// 'refund-from-dispute' marks seller; 'release-from-dispute' marks buyer.
+    /// The route writes disputeLoser at accept time; trust it here.
+    ///
+    /// Avoid double-counting against the on-chain failedCount:
+    /// - Seller loss on a TRUSTED deal already lands on chain via refund() →
+    ///   recordCompletion(Failed). Skip it off-chain.
+    /// - Seller loss on a CASUAL deal has no on-chain hit. Count it here.
+    /// - Buyer loss (release-from-dispute) is never on-chain — the contract
+    ///   records DisputeResolved for both, never Failed against the buyer.
+    ///   Always count it off-chain.
+    const loserRole = d.disputeLoser;
+    if (loserRole) {
+      const loserAddress = loserRole === 'buyer' ? buyer : seller;
+      if (loserAddress === address) {
+        const isTrusted = !!d.requireStake;
+        const alreadyOnChain = loserRole === 'seller' && isTrusted;
+        if (!alreadyOnChain) disputeLossesOffchain += 1;
+      }
     }
     // Only rep-affecting cancels count toward the penalty. Per the cancellation
     // taxonomy (db/deals.ts), 'mutual', 'platform-attributed' and 'pre-accept'
@@ -154,11 +181,20 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   // accrues tenure.
   const registeredAt = profile?.createdAt ?? wallets?.createdAt ?? firstActionAt;
 
+  /// Roll off-chain dispute losses into the same failedCount the engine
+  /// already penalises. The per-deal loop above skips losses already
+  /// recorded on-chain (trusted-deal seller refunds), so adding the two
+  /// counts here does not double-count. What lives off-chain:
+  ///   - Casual-deal seller refunds (no reservation, no chain hit).
+  ///   - All buyer release-from-dispute concessions (chain never records
+  ///     Failed against a buyer).
+  const failedCountTotal = chain.failedCount + disputeLossesOffchain;
+
   return {
     address,
     successCount: chain.successCount,
     disputedCount: chain.disputedCount,
-    failedCount: chain.failedCount,
+    failedCount: failedCountTotal,
     totalStarted,
     completedDeals,
     cancelsLast90d,

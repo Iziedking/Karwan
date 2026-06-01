@@ -211,11 +211,25 @@ export interface DirectDeal {
   disputed?: boolean;
   disputedAt?: number;
   cancelledAt?: number;
-  cancelKind?: 'mutual' | 'platform-attributed' | 'unilateral' | 'pre-accept';
+  cancelKind?:
+    | 'mutual'
+    | 'platform-attributed'
+    | 'refund-from-dispute'
+    | 'release-from-dispute'
+    | 'unilateral'
+    | 'pre-accept';
   cancelReason?: string;
+  /// When set, the loser of a Disputed-state resolution. 'seller' is set on a
+  /// refund acceptance (seller conceded); 'buyer' is set on a release
+  /// acceptance (buyer conceded). Drives the off-chain reputation penalty.
+  disputeLoser?: 'buyer' | 'seller';
   cancellationProposal?: {
     proposedBy: 'buyer' | 'seller';
-    kind: 'mutual' | 'platform-attributed';
+    kind:
+      | 'mutual'
+      | 'platform-attributed'
+      | 'refund-from-dispute'
+      | 'release-from-dispute';
     reason: string;
     proposedAt: number;
   };
@@ -1250,14 +1264,22 @@ export const api = {
     jobId: string,
     caller: string,
     reason: string,
-    kind: 'mutual' | 'platform-attributed' = 'mutual',
+    kind:
+      | 'mutual'
+      | 'platform-attributed'
+      | 'refund-from-dispute'
+      | 'release-from-dispute' = 'mutual',
   ) =>
     json<{
       accepted: boolean;
       jobId: string;
       proposal: {
         proposedBy: 'buyer' | 'seller';
-        kind: 'mutual' | 'platform-attributed';
+        kind:
+          | 'mutual'
+          | 'platform-attributed'
+          | 'refund-from-dispute'
+          | 'release-from-dispute';
         reason: string;
         proposedAt: number;
       };

@@ -21,16 +21,25 @@ export function OnChainProofBand() {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .networkOnchain()
-      .then((s) => {
-        if (!cancelled) setStats(s);
-      })
-      .catch(() => {
-        if (!cancelled) setErrored(true);
-      });
+    const fetchOnce = () =>
+      api
+        .networkOnchain()
+        .then((s) => {
+          if (!cancelled) {
+            setStats(s);
+            setErrored(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setErrored(true);
+        });
+    fetchOnce();
+    // Re-poll every 60s so funding/settle events show up without a refresh.
+    // The backend caches for 60s, so this lands at most ~2 cache windows behind.
+    const id = setInterval(fetchOnce, 60_000);
     return () => {
       cancelled = true;
+      clearInterval(id);
     };
   }, []);
 
@@ -181,13 +190,16 @@ interface DailyAreaChartProps {
 
 /// Pure-SVG area chart. Three layered series (Funded, Settled, Disputes
 /// + Refunds combined). Renders gridlines, a y-axis max marker, and a couple
-/// of x-axis day markers so the eye has anchors without clutter.
+/// of x-axis day markers so the eye has anchors without clutter. A hover
+/// layer reads the cursor x and surfaces a day-detail card so a reader can
+/// pull exact counts without us crowding the chart with labels.
 function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
   const VIEW_W = 1000;
   const VIEW_H = 280;
-  const PAD = { top: 16, right: 16, bottom: 28, left: 16 };
+  const PAD = { top: 28, right: 16, bottom: 28, left: 16 };
   const chartW = VIEW_W - PAD.left - PAD.right;
   const chartH = VIEW_H - PAD.top - PAD.bottom;
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const { funded, settled, badEvents, maxY } = useMemo(() => {
     if (!series || series.length === 0) {
@@ -247,6 +259,29 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
   const yFor = (v: number) =>
     PAD.top + chartH - (v / Math.max(1, maxY)) * chartH;
 
+  /// Converts a pointer's client x into the nearest data index. Reads the
+  /// SVG's rendered bounds at event time so the math survives any container
+  /// resize. The +PAD.left offset accounts for the chart's inset from the
+  /// SVG edge.
+  function indexFromClientX(clientX: number, svg: SVGSVGElement): number {
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const xView = ((clientX - rect.left) / rect.width) * VIEW_W;
+    const stride = chartW / Math.max(1, n - 1);
+    const raw = Math.round((xView - PAD.left) / Math.max(1, stride));
+    return Math.max(0, Math.min(n - 1, raw));
+  }
+
+  function onPointerMove(e: React.MouseEvent<SVGSVGElement>) {
+    setHoverIdx(indexFromClientX(e.clientX, e.currentTarget));
+  }
+
+  function onTouchPick(e: React.TouchEvent<SVGSVGElement>) {
+    const t = e.touches[0];
+    if (!t) return;
+    setHoverIdx(indexFromClientX(t.clientX, e.currentTarget));
+  }
+
   const areaPath = (values: number[]) => {
     if (values.length === 0) return '';
     const pts = values.map((v, i) => `${xFor(i)},${yFor(v)}`).join(' L ');
@@ -276,7 +311,24 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
           borderBottomRightRadius: 4,
         }}
       >
-        <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="block w-full h-auto">
+        <div className="flex items-center justify-between px-5 pt-4">
+          <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+            [:30-DAY ACTIVITY:]
+          </p>
+          <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/55 tabular-nums">
+            MAX {maxY} / DAY
+          </p>
+        </div>
+        <svg
+          viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+          className="block w-full h-auto"
+          onMouseMove={onPointerMove}
+          onMouseLeave={() => setHoverIdx(null)}
+          onTouchStart={onTouchPick}
+          onTouchMove={onTouchPick}
+          onTouchEnd={() => setHoverIdx(null)}
+          style={{ cursor: 'crosshair', touchAction: 'pan-y' }}
+        >
           <defs>
             <linearGradient id="fundedFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
@@ -307,20 +359,6 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
               />
             );
           })}
-
-          {/* Y-axis max marker. Reads "max N / day" with the bigger of the
-              series, so the chart anchors to a real number. */}
-          <text
-            x={PAD.left + chartW}
-            y={PAD.top + 12}
-            textAnchor="end"
-            fill="rgba(255,255,255,0.45)"
-            fontSize={10}
-            fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
-            letterSpacing="0.12em"
-          >
-            MAX {maxY} / DAY
-          </text>
 
           {/* Funded area (muted white). */}
           <path d={areaPath(funded)} fill="url(#fundedFill)" />
@@ -369,7 +407,58 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
               </text>
             );
           })}
+
+          {/* Hover guide + per-series dots at the active day. */}
+          {hoverIdx !== null && (
+            <g pointerEvents="none">
+              <line
+                x1={xFor(hoverIdx)}
+                x2={xFor(hoverIdx)}
+                y1={PAD.top}
+                y2={PAD.top + chartH}
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth={1}
+                strokeDasharray="2 3"
+              />
+              <circle
+                cx={xFor(hoverIdx)}
+                cy={yFor(funded[hoverIdx])}
+                r={4}
+                fill="rgba(255,255,255,0.95)"
+                stroke="rgba(14,14,14,0.85)"
+                strokeWidth={1.5}
+              />
+              <circle
+                cx={xFor(hoverIdx)}
+                cy={yFor(settled[hoverIdx])}
+                r={4}
+                fill="var(--lp-accent, #afc95b)"
+                stroke="rgba(14,14,14,0.85)"
+                strokeWidth={1.5}
+              />
+              {badEvents[hoverIdx] > 0 && (
+                <circle
+                  cx={xFor(hoverIdx)}
+                  cy={yFor(badEvents[hoverIdx])}
+                  r={4}
+                  fill="#c96030"
+                  stroke="rgba(14,14,14,0.85)"
+                  strokeWidth={1.5}
+                />
+              )}
+            </g>
+          )}
         </svg>
+
+        {/* HTML tooltip card with the exact day breakdown. Positioned in
+            percent so it scales with the SVG and flips left near the right
+            edge so the right-most day (today) reads without clipping. */}
+        {hoverIdx !== null && (
+          <HoverTooltip
+            point={series[hoverIdx]}
+            xPct={(xFor(hoverIdx) / VIEW_W) * 100}
+          />
+        )}
       </div>
       <figcaption className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
         <LegendDot color="rgba(255,255,255,0.55)" label="Funded" />
@@ -378,6 +467,70 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
       </figcaption>
     </figure>
   );
+}
+
+/// Floating card surfaced on hover. Flips to the cursor's left when the
+/// reader is near the right edge so the tooltip can't clip out of the
+/// container. `pointer-events: none` keeps it from stealing mouse events
+/// from the SVG underneath, so the cursor can keep tracking.
+function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: number }) {
+  const flipLeft = xPct > 72;
+  const bad = point.disputed + point.refunded;
+  return (
+    <div
+      role="tooltip"
+      className="absolute pointer-events-none px-3 py-2.5"
+      style={{
+        top: 36,
+        left: `${xPct}%`,
+        transform: flipLeft ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
+        background: 'rgba(14,14,14,0.96)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 2,
+        boxShadow: '0 4px 18px rgba(0,0,0,0.55)',
+        minWidth: 156,
+        zIndex: 2,
+      }}
+    >
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+        {formatTooltipDate(point.ts)}
+      </p>
+      <div className="mt-2 space-y-1.5">
+        <TipRow color="rgba(255,255,255,0.85)" label="Funded" value={point.funded} />
+        <TipRow color="var(--lp-accent, #afc95b)" label="Settled" value={point.settled} />
+        {bad > 0 && (
+          <TipRow color="#c96030" label="Disputed / refunded" value={bad} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TipRow({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        aria-hidden
+        className="inline-block w-2 h-2 shrink-0"
+        style={{ background: color, borderRadius: 1 }}
+      />
+      <span className="mono text-[10px] uppercase tracking-[0.1em] text-white/55 flex-1">
+        {label}
+      </span>
+      <span className="font-sans text-[13px] font-extrabold tabular-nums text-white">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function formatTooltipDate(tsMs: number): string {
+  const d = new Date(tsMs);
+  const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][d.getUTCMonth()];
+  return `${month} ${d.getUTCDate()} · ${d.getUTCFullYear()}`;
 }
 
 function LegendDot({ color, label }: { color: string; label: string }) {

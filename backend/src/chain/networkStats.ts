@@ -16,7 +16,7 @@ const CACHE_TTL_MS = 60_000;
 const SCAN_CHUNK_BLOCKS = 10_000n;
 
 const EVENT_ESCROW_FUNDED = parseAbiItem(
-  'event EscrowFunded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint256 dealAmount, uint256 fundedAmount, uint16 reservationBps, uint64 deadlineUnix, uint8 milestoneCount)',
+  'event EscrowFunded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint256 dealAmount, uint256 fundedAmount, uint256 feeTotal, uint8[] milestonePcts, uint16 reservationBps)',
 ) as AbiEvent;
 const EVENT_ESCROW_SETTLED = parseAbiItem(
   'event EscrowSettled(bytes32 indexed jobId, uint256 sellerTotal, uint256 feeTotal)',
@@ -43,7 +43,7 @@ const EVENT_VAULT_SLASHED = parseAbiItem(
   'event Slashed(bytes32 indexed jobId, address indexed seller, address indexed beneficiary, uint256 amount)',
 ) as AbiEvent;
 const EVENT_REP_COMPLETION = parseAbiItem(
-  'event CompletionRecorded(address indexed recorder, address indexed subject, uint8 outcome)',
+  'event CompletionRecorded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint8 outcome)',
 ) as AbiEvent;
 const EVENT_JOB_POSTED = parseAbiItem(
   'event JobPosted(bytes32 indexed jobId, address indexed buyer, uint256 budgetUsdc, uint256 deadline, string brief)',

@@ -53,22 +53,43 @@ export interface DirectDeal {
   // The escrow is moved Disputed then Refunded on chain.
   cancelledAt?: number;
   /// How the cancellation happened. Drives reputation:
-  /// - 'mutual'             — counterparty agreed to a proposed cancel; rep-neutral.
-  /// - 'platform-attributed'— agent misroute, both parties agreed; rep-neutral.
-  /// - 'unilateral'         — buyer cancel after deadline passed without delivery;
-  ///                          rep against the seller (the existing /cancel path).
-  /// - 'pre-accept'         — buyer withdrew before the seller accepted; no escrow, no rep.
-  cancelKind?: 'mutual' | 'platform-attributed' | 'unilateral' | 'pre-accept';
+  /// - 'mutual'              — counterparty agreed to a proposed cancel pre-dispute; rep-neutral.
+  /// - 'platform-attributed' — agent misroute, both parties agreed; rep-neutral.
+  /// - 'refund-from-dispute' — counterparty accepted a refund proposal raised on a
+  ///                           Disputed deal; seller's reputation takes the hit.
+  ///                           Contract path is dispute()+refund(); when a
+  ///                           reservation existed the chain auto-records Failed.
+  /// - 'release-from-dispute'— counterparty accepted a release proposal raised on a
+  ///                           Disputed deal; buyer's reputation takes the hit.
+  ///                           Contract path is releaseFromDispute().
+  /// - 'unilateral'          — buyer cancel after deadline passed without delivery;
+  ///                           rep against the seller (the existing /cancel path).
+  /// - 'pre-accept'          — buyer withdrew before the seller accepted; no escrow, no rep.
+  cancelKind?:
+    | 'mutual'
+    | 'platform-attributed'
+    | 'refund-from-dispute'
+    | 'release-from-dispute'
+    | 'unilateral'
+    | 'pre-accept';
   /// Free-text reason captured at cancellation. Optional for unilateral and
   /// pre-accept (we synthesize a default); required for mutual / platform-attributed.
   cancelReason?: string;
-  /// Pending mutual / platform-attributed cancellation proposal. Cleared on
-  /// accept (deal becomes cancelled) or decline (deal continues). Only one
-  /// proposal at a time; a second propose call overwrites the first if it's
-  /// from the same party, otherwise rejects.
+  /// Set when a Disputed-state proposal was accepted. Identifies which party
+  /// conceded the dispute so the off-chain reputation signal can apply the
+  /// loss. 'seller' on refund-from-dispute, 'buyer' on release-from-dispute.
+  disputeLoser?: 'buyer' | 'seller';
+  /// Pending cancellation / dispute-resolution proposal. Cleared on accept
+  /// (deal becomes cancelled) or decline (deal continues). Only one proposal
+  /// at a time; a second propose call overwrites the first if it's from the
+  /// same party, otherwise rejects.
   cancellationProposal?: {
     proposedBy: 'buyer' | 'seller';
-    kind: 'mutual' | 'platform-attributed';
+    kind:
+      | 'mutual'
+      | 'platform-attributed'
+      | 'refund-from-dispute'
+      | 'release-from-dispute';
     reason: string;
     proposedAt: number;
   };

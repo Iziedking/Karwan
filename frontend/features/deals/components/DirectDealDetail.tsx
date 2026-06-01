@@ -367,7 +367,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     }
   }
 
-  async function onProposeCancel(reason: string, kind: 'mutual' | 'platform-attributed') {
+  async function onProposeCancel(
+    reason: string,
+    kind: 'mutual' | 'platform-attributed' | 'refund-from-dispute' | 'release-from-dispute',
+  ) {
     if (!address) return;
     setBusy(true);
     setErrorInfo(null);
@@ -691,8 +694,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   [:OR:]
                 </p>
                 <p className="mt-2 text-[13px] leading-relaxed text-white/65">
-                  Need to call it off? Propose a cancellation. Your counterparty has to agree;
-                  no reputation hit if they do.
+                  {stage === 'disputed'
+                    ? 'Propose how this dispute resolves. Refund the buyer or release to the seller. Whoever ends up conceding takes the reputation hit.'
+                    : 'Need to call it off? Propose a cancellation. Your counterparty has to agree; no reputation hit if they do.'}
                 </p>
                 <div className="mt-3">
                   <CTAPill
@@ -701,7 +705,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     onClick={() => setProposeOpen(true)}
                     disabled={busy}
                   >
-                    Propose cancellation
+                    {stage === 'disputed' ? 'Propose resolution' : 'Propose cancellation'}
                   </CTAPill>
                 </div>
               </div>
@@ -782,6 +786,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           busy={busy}
           firstReleased={!!deal.reviewWindowStartedAt}
           firstReleasePct={deal.firstReleasePct}
+          disputed={stage === 'disputed'}
+          hasReservation={!!deal.requireStake}
           onConfirm={onProposeCancel}
           onClose={() => setProposeOpen(false)}
         />
@@ -979,12 +985,15 @@ function ActionPanel({
   onRespondExtension: (decision: 'approved' | 'declined') => void;
 }) {
   if (stage === 'settled') {
+    const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
     return (
       <div className="space-y-4">
         <Body>
-          {deal.autoReleasedAt
-            ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
-            : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
+          {releasedFromDispute
+            ? "Settled via dispute resolution. The buyer conceded and released the escrow to the seller. The buyer's reputation took the hit."
+            : deal.autoReleasedAt
+              ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
+              : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
         </Body>
         {viewerIsSeller && (
           <Link href={`/cashout/${deal.jobId}`}>
@@ -1017,6 +1026,15 @@ function ActionPanel({
         return 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.';
       }
 
+      // Dispute-state refund accepted by either side. Seller concedes; rep hit
+      // lands on the seller.
+      if (deal.cancelKind === 'refund-from-dispute') {
+        const tail = firstReleased
+          ? `The first ${firstPct}% had already been released; the remaining ${remainPct}% refunded to the buyer.`
+          : 'The full escrow refunded to the buyer.';
+        return `Closed via dispute resolution. ${tail} The seller's reputation took the hit.`;
+      }
+
       // Mutual / platform-attributed branches. Two cases based on prior release.
       const wording =
         deal.cancelKind === 'platform-attributed'
@@ -1045,13 +1063,34 @@ function ActionPanel({
     );
   }
   if (stage === 'disputed') {
+    const hasReservation = !!deal.requireStake;
     return (
-      <Body tone="critical">
-        This deal is in dispute. The escrow is frozen on chain so neither party can
-        move funds unilaterally. Either side can still propose a mutual cancel
-        below. If the counterparty accepts, the escrow refunds the buyer in full
-        and the deal closes with no reputation hit.
-      </Body>
+      <div className="space-y-3">
+        <Body tone="critical">
+          This deal is in dispute. The escrow is frozen on chain. To unfreeze it,
+          one side proposes a resolution and the counterparty accepts.
+        </Body>
+        <Body>
+          <span className="font-semibold text-white/85">Refund the buyer.</span>{' '}
+          Unreleased escrow returns to the buyer. The seller&apos;s reputation
+          takes the hit{hasReservation
+            ? ', and their reserved stake slashes to the buyer'
+            : ''}.
+        </Body>
+        <Body>
+          <span className="font-semibold text-white/85">Release to seller.</span>{' '}
+          The seller is paid in full. The buyer&apos;s reputation takes the hit
+          for the disputed-then-conceded call.
+        </Body>
+        {!hasReservation && (
+          <Body>
+            <span className="opacity-75">
+              This is a casual deal. No stake is at risk on either side, but the
+              reputation hit still lands on whoever concedes.
+            </span>
+          </Body>
+        )}
+      </div>
     );
   }
 
@@ -1734,8 +1773,17 @@ function CancelProposalBanner({
   legacyEscrow: boolean;
 }) {
   const remainPct = 100 - firstReleasePct;
-  const kindLabel =
-    proposal.kind === 'platform-attributed' ? 'PLATFORM MISROUTE' : 'MUTUAL CANCEL';
+  const isReleaseFromDispute = proposal.kind === 'release-from-dispute';
+  const isRefundFromDispute = proposal.kind === 'refund-from-dispute';
+  const isDisputeResolution = isReleaseFromDispute || isRefundFromDispute;
+  const kindLabel = isReleaseFromDispute
+    ? 'RELEASE TO SELLER'
+    : isRefundFromDispute
+      ? 'REFUND THE BUYER'
+      : proposal.kind === 'platform-attributed'
+        ? 'PLATFORM MISROUTE'
+        : 'MUTUAL CANCEL';
+  const acceptLabel = isReleaseFromDispute ? 'Agree & release' : 'Accept & refund';
   return (
     <div
       className="overflow-hidden"
@@ -1770,6 +1818,14 @@ function CancelProposalBanner({
         </p>
         <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
           {(() => {
+            if (isReleaseFromDispute) {
+              return "Accepting releases the full escrow to the seller. Buyer's reputation takes the hit for conceding the dispute.";
+            }
+            if (isRefundFromDispute) {
+              return firstReleased
+                ? `Accepting refunds the remaining ${remainPct}% to the buyer. Seller's reputation takes the hit.`
+                : "Accepting refunds the full escrow to the buyer. Seller's reputation takes the hit.";
+            }
             const prefix =
               proposal.kind === 'platform-attributed'
                 ? 'Both sides agree the agent misrouted.'
@@ -1803,14 +1859,10 @@ function CancelProposalBanner({
         {viewerIsCounterparty && !legacyEscrow && (
           <div className="pt-2 flex flex-wrap items-center gap-2">
             <CTAPill onClick={onAccept} disabled={busy}>
-              {/* Both buttons trigger the SAME on-chain action — refund() —
-                  because v1's escrow has no Disputed-to-Settled transition.
-                  v2.D (B.2) adds releaseFromDispute() and then we can
-                  distinguish the two outcomes. Until then, label honestly. */}
-              {busy ? 'Confirming…' : 'Accept & refund'}
+              {busy ? 'Confirming…' : acceptLabel}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onDecline} disabled={busy}>
-              Decline · keep the deal
+              {isDisputeResolution ? 'Decline · stay in dispute' : 'Decline · keep the deal'}
             </CTAPill>
           </div>
         )}
@@ -1824,23 +1876,57 @@ function CancelProposalBanner({
   );
 }
 
+type ProposeKind =
+  | 'mutual'
+  | 'platform-attributed'
+  | 'refund-from-dispute'
+  | 'release-from-dispute';
+
 function ProposeCancelModal({
   busy,
   firstReleased,
   firstReleasePct,
+  disputed,
+  hasReservation,
   onConfirm,
   onClose,
 }: {
   busy: boolean;
   firstReleased: boolean;
   firstReleasePct: number;
-  onConfirm: (reason: string, kind: 'mutual' | 'platform-attributed') => void;
+  disputed: boolean;
+  hasReservation: boolean;
+  onConfirm: (reason: string, kind: ProposeKind) => void;
   onClose: () => void;
 }) {
   const [reason, setReason] = useState('');
-  const [kind, setKind] = useState<'mutual' | 'platform-attributed'>('mutual');
+  const defaultKind: ProposeKind = disputed ? 'refund-from-dispute' : 'mutual';
+  const [kind, setKind] = useState<ProposeKind>(defaultKind);
   const valid = reason.trim().length >= 3;
   const remainPct = 100 - firstReleasePct;
+
+  const slashSuffix = hasReservation ? ' and their reserved stake slashes to you' : '';
+  const KIND_OPTIONS: ReadonlyArray<{ key: ProposeKind; label: string; body: string }> = disputed
+    ? [
+        {
+          key: 'refund-from-dispute',
+          label: 'Refund the buyer',
+          body: `Unreleased escrow returns to the buyer. Seller's reputation takes the hit${slashSuffix}.`,
+        },
+        {
+          key: 'release-from-dispute',
+          label: 'Release to seller',
+          body: "Seller is paid in full. Buyer's reputation takes the hit for conceding the dispute.",
+        },
+      ]
+    : [
+        { key: 'mutual', label: 'Mutual', body: "We've both decided to walk." },
+        {
+          key: 'platform-attributed',
+          label: 'Platform misroute',
+          body: 'The agent matched us wrong.',
+        },
+      ];
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1865,37 +1951,30 @@ function ProposeCancelModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:PROPOSE CANCELLATION:]
+            [:{disputed ? 'PROPOSE RESOLUTION' : 'PROPOSE CANCELLATION'}:]
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
-            Call it off
+            {disputed ? 'Resolve the dispute' : 'Call it off'}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-5">
           <p className="text-[13.5px] text-[var(--lp-text-sub)] leading-relaxed">
-            Your counterparty has to agree. If they accept,{' '}
-            {firstReleased
-              ? `the first ${firstReleasePct}% already paid stays with the seller and the remaining ${remainPct}% refunds to the buyer`
-              : 'the full escrow refunds to the buyer'}
-            , with no reputation hit on either side. If they decline, the deal continues normally.
+            {disputed
+              ? 'Your counterparty has to accept. Whichever side concedes takes the reputation hit; the off-chain score drops by a small amount that compounds with repeats.'
+              : `Your counterparty has to agree. If they accept, ${
+                  firstReleased
+                    ? `the first ${firstReleasePct}% already paid stays with the seller and the remaining ${remainPct}% refunds to the buyer`
+                    : 'the full escrow refunds to the buyer'
+                }, with no reputation hit on either side. If they decline, the deal continues normally.`}
           </p>
 
           <div className="space-y-2">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:KIND:]
+              [:{disputed ? 'RESOLUTION' : 'KIND'}:]
             </span>
             <div className="grid grid-cols-2 gap-2">
-              {(
-                [
-                  { key: 'mutual', label: 'Mutual', body: "We've both decided to walk." },
-                  {
-                    key: 'platform-attributed',
-                    label: 'Platform misroute',
-                    body: 'The agent matched us wrong.',
-                  },
-                ] as const
-              ).map((opt) => {
+              {KIND_OPTIONS.map((opt) => {
                 const active = kind === opt.key;
                 return (
                   <button
