@@ -26,12 +26,12 @@ Four things, in order of how much they shape the user experience.
 
 ### 1. Agent reasoning loop with cascading fallback
 
-When a buyer posts a brief, the buyer agent collects bids during an auction
-window. Each bid is scored with a **deterministic 0-100 function** combining
-price, reputation tier, completion rate, deal count, account age, and recent
-activity. The LLM still writes per-bid reasoning so the audit trail reads
-like a human took notes. The ranking comes from the function, so two
-evaluations of the same bid pool can never disagree.
+When a buyer posts a request, the buyer agent collects bids during an
+auction window. Each bid is scored with a **deterministic 0-100 function**
+combining price, reputation tier, completion rate, deal count, account age,
+and recent activity. The LLM still writes per-bid reasoning so the audit
+trail reads like a human took notes. The ranking comes from the function,
+so two evaluations of the same bid pool can never disagree.
 
 The top three bids become a candidate queue. The buyer agent attempts a full
 negotiation with the head candidate first. If that negotiation fails for any
@@ -121,12 +121,15 @@ the bridge surface.
 ## Two ways to open a deal
 
 - **Direct deal.** Buyer already has a counterparty. Name their wallet, set
-  amount and terms, the escrow funds on seller accept. The fast path.
-- **Agent-matched deal.** Buyer doesn't have a counterparty. Post a brief or
-  a listing; the agent watches the marketplace, scores both sides, weighs
-  reputation, and surfaces a proposal. The agent never opens an escrow
-  without the human's sign-off. New or low-reputation counterparties route
-  to human review regardless.
+  amount and terms, the escrow funds on seller accept. The fast path. Buyers
+  can also point a deal at a plain email address. Karwan sends a branded
+  invite, the recipient claims with a one-time code, and a Circle wallet
+  provisions in their browser. No signup form.
+- **Agent-matched deal.** Buyer doesn't have a counterparty. Post a request
+  (the work you need) or an offer (what you sell). The agent watches the
+  marketplace, scores both sides, weighs reputation, and surfaces a proposal.
+  The agent never opens an escrow without the human's sign-off. New or
+  low-reputation counterparties route to human review regardless.
 
 The agent is a matchmaker, not a spender. Every escrow funding tx requires
 explicit human approval of a `MatchProposal`.
@@ -161,38 +164,67 @@ Levant.
 ## What we explicitly do not claim
 
 - **The current contracts are not externally audited.** They have a Foundry
-  test suite and an internal review. A professional audit is on the roadmap
-  before any deployment holding live USDC.
-- **The buyer-dispute-refund attack vector exists in v1.** A buyer can call
-  dispute and refund after the seller delivers; the seller has no on-chain
-  recourse beyond the reputation slash that follows. v2.D fixes this by
-  hardening the vault stake as deal insurance. A portion of a seller's
-  active stake reserves against each deal they accept; failed-by-seller
-  outcomes transfer the reservation to the buyer.
+  test suite and an internal review that caught and fixed six findings before
+  the v2.D redeploy. A professional audit is the gate before any deployment
+  holding live USDC.
 - **Standard CCTP V2 attestation takes 10-19 minutes** on Sepolia testnets.
-  Fast Transfer would cut this to seconds, but at a fee Circle takes. Karwan
+  Fast Transfer would cut this to seconds, at a fee Circle takes. Karwan
   uses Standard Transfer for now to keep the relay path simple.
+- **The buyer-dispute-refund vector is closed.** A seller's active stake
+  reserves against every accepted deal; a failed dispute outcome slashes
+  the reservation to the buyer. Insurance, not just a reputation hit.
+  Logged here as historical because it shaped v2.D.
 
-## What's next (v2)
+## What is shipped today (v2.A through v2.E)
 
-- v2.A: Security & Verification agent that scans delivered URLs before the
-  buyer sees them. Three-engine vote. Reputation slash on confirmed-bad.
-- v2.B: Authoritative reputation rules doc with worked examples and a
-  speed-bonus signal that pays sellers who deliver early.
-- v2.C: Versioned Terms and Conditions surface with first-signup consent.
-- v2.D: Hardened staking as deal insurance + bundled audit fixes B.1, B.2,
-  C.1, C.4. Single escrow + reputation redeploy.
-- v2.E: Agent intelligence upgrade with trending-skill price aggregator, per-
-  skill social-proof signal in negotiation prompts, opening-bid anchoring.
-- v2.F: GitBook handbook for buyers, sellers, financiers, and agent
+The bundle that was scoped for v2 is mostly live on Arc Testnet.
+
+- **v2.C: Versioned Terms and Conditions** with first-signup consent and a
+  re-prompt when the version bumps.
+- **v2.D: Hardened staking as deal insurance.** `acceptEscrow` reserves
+  `dealAmount × reservationBps` from the seller's free stake; a `Failed`
+  outcome slashes the reservation to the buyer. Bundled with audit fixes
+  B.1, B.2, C.1, C.4 in a single redeploy. The reservation slider lives on
+  the per-deal accept panel; the default is 30% but the buyer sets it per
+  deal.
+- **v2.E: Agent intelligence upgrade.** Asymmetric negotiation walk with
+  per-side prompts, trending-skill price aggregator feeding the LLM
+  reasoning, opening-bid anchoring, cascading candidate queue. Trusted
+  Match mode is the strict variant that gates bidding on stake and on
+  reputation tier.
+- **Phase 2 d3-5: MockUSYC + KarwanTreasury (ERC-4626) + Vault USYC
+  adapter.** The mainnet path is wired through the same Teller interface
+  Hashnote USYC speaks. Testnet uses a deterministic mock adapter so the
+  demo is not gated on Circle's USYC entitlement.
+- **Phase 2 d6-7: Credit Passport public page.** Every wallet has a
+  public reputation surface at `/credit-passport/0x...` rendering tier,
+  score, term breakdown, deal count, success ratio, stake position, and
+  the on-chain anchor. No login.
+- **SIWE + Settings + i18n framework + guided coachmark tours + shareable
+  deal links + cashout + extension requests** all shipped on the same
+  release train.
+
+## What's next
+
+- **x402 nanopayment rails for agents** (headline). Wire Circle's x402
+  micropayment surface so the agents can pay sub-cent fees for live data
+  during a negotiation: market medians from paid APIs, skill demand
+  snapshots, credit-feed reads against a passport, news during a
+  delivery review window. Every round can pull a fresh outside signal for
+  thousandths of a cent. Result: richer match decisions and pricing that
+  tracks the real world.
+- **Invoice factoring.** Financier funds an accepted deal at a discount;
+  the escrow's payee slot switches to the financier for that release; the
+  seller gets paid early. Reputation tier sets the discount floor.
+- **Symmetric reputation crediting** so both buyer and seller earn an
+  on-chain Success record on a clean settlement, not just the seller.
+- **External smart-contract audit** as the gate before mainnet.
+- **Safe multisig treasury** replacing the deployer EOA before mainnet.
+- **Foundry coverage above 80%** on the escrow and vault branches.
+- **v2.H: Full UI string extraction and RTL audit.** Five locales get
+  full coverage; Arabic gets a real RTL layout pass.
+- **v2.F: GitBook handbook** for buyers, sellers, financiers, and agent
   operators.
-- v2.G/H: Full string extraction and Arabic RTL layout audit; complete the
-  i18n started at launch.
-
-Phase 2 (Track 2 surface): MockUSYC adapter on testnet so the mainnet vault
-swap is a one-line constructor flag; Credit Passport public page per wallet;
-invoice factoring micro-flow where financiers fund receivables against
-STRONG and ELITE sellers' reputation.
 
 ## Technical approach in one paragraph
 

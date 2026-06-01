@@ -13,18 +13,35 @@ interface Props {
   headline?: string;
 }
 
-/// Action label when a deal needs THIS viewer to move now. Returns null when the
-/// viewer is just waiting on the counterparty, so we only surface real to-dos.
-function actionFor(stage: DealStage, isBuyer: boolean): string | null {
+const FALLBACK_HEADLINE = 'Open deals';
+
+/// Surface label for a deal at a given stage from the viewer's side.
+/// Active rows are "ACTION" (this viewer must move) or "WAIT" (the
+/// counterparty must move). Both kinds render in the band so a seller waiting
+/// on a release still sees the deal here, just chipped differently.
+/// Returns null only on terminal states (settled / cancelled / disputed) so
+/// finished deals don't clutter the surface.
+function labelFor(
+  stage: DealStage,
+  isBuyer: boolean,
+): { kind: 'action' | 'wait'; text: string } | null {
   switch (stage) {
     case 'awaiting-acceptance':
-      return isBuyer ? null : 'ACCEPT TO FUND';
+      return isBuyer
+        ? { kind: 'wait', text: 'WAITING ON SELLER' }
+        : { kind: 'action', text: 'ACCEPT TO FUND' };
     case 'awaiting-delivery':
-      return isBuyer ? null : 'MARK DELIVERED';
+      return isBuyer
+        ? { kind: 'wait', text: 'WAITING ON SELLER' }
+        : { kind: 'action', text: 'MARK DELIVERED' };
     case 'awaiting-first-release':
-      return isBuyer ? 'RELEASE FIRST' : null;
+      return isBuyer
+        ? { kind: 'action', text: 'RELEASE FIRST' }
+        : { kind: 'wait', text: 'WAITING ON BUYER' };
     case 'awaiting-final-release':
-      return isBuyer ? 'RELEASE FINAL' : null;
+      return isBuyer
+        ? { kind: 'action', text: 'RELEASE FINAL' }
+        : { kind: 'wait', text: 'WAITING ON BUYER' };
     default:
       return null;
   }
@@ -37,11 +54,13 @@ function fmtUsdc(raw: string): string {
   return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-/// Surfaces direct deals that need THIS user's action (a buyer opened a deal on
-/// your listing, so accept it; a delivery is in, so release it) on /app,
-/// /profile, and /seller, so a pending deal is never missed. Agent-match
-/// proposals are surfaced separately by PendingMatchesBand. Polls every 10s.
-export function PendingDealsBand({ tone = 'light', headline = 'Deals awaiting you' }: Props) {
+/// Surfaces every live direct deal on the user's book on /app, /profile, and
+/// /seller. Action chips (green) call out deals where the viewer must move;
+/// wait chips (grey) show deals where the counterparty owes the next move so a
+/// seller waiting on a buyer release still sees the deal here. Terminal stages
+/// (settled, cancelled, disputed) drop off. Agent-match proposals live in a
+/// separate band (PendingMatchesBand). Polls every 10s.
+export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE }: Props) {
   const auth = useAuth();
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
@@ -70,22 +89,28 @@ export function PendingDealsBand({ tone = 'light', headline = 'Deals awaiting yo
   }, [address, isAuthed]);
 
   const me = address?.toLowerCase() ?? '';
-  const actionable = deals
+  const rows = deals
     .map((deal) => {
       const isBuyer = deal.buyer.toLowerCase() === me;
-      const action = actionFor(stageOf(deal), isBuyer);
-      return action ? { deal, isBuyer, action } : null;
+      const label = labelFor(stageOf(deal), isBuyer);
+      return label ? { deal, isBuyer, label } : null;
     })
-    .filter((x): x is { deal: DirectDeal; isBuyer: boolean; action: string } => x !== null);
+    .filter(
+      (x): x is {
+        deal: DirectDeal;
+        isBuyer: boolean;
+        label: { kind: 'action' | 'wait'; text: string };
+      } => x !== null,
+    );
 
-  if (actionable.length === 0) return null;
+  if (rows.length === 0) return null;
 
   const dark = tone === 'dark';
 
   return (
     <Band tone={tone} compact>
       <SectionTag tone={tone} dot="live">
-        DEALS AWAITING YOU
+        OPEN DEALS
       </SectionTag>
       <HeroHeadline size="md">
         {headline}
@@ -95,13 +120,29 @@ export function PendingDealsBand({ tone = 'light', headline = 'Deals awaiting yo
         className="mt-5 text-pretty text-[15px] leading-relaxed max-w-[52ch]"
         style={{ color: dark ? 'var(--lp-text-muted)' : 'var(--lp-text-sub)' }}
       >
-        These deals need a move from you. Open one to act.
+        Live deals on your book. Green chips need a move from you. Grey chips are waiting on the other side.
       </p>
       <ul className="mt-8 space-y-3">
-        {actionable.map(({ deal, isBuyer, action }) => {
+        {rows.map(({ deal, isBuyer, label }) => {
           const counterparty = isBuyer ? deal.seller : deal.buyer;
           const role = isBuyer ? 'BUYER' : 'SELLER';
           const counterRole = isBuyer ? 'SELLER' : 'BUYER';
+          const isAction = label.kind === 'action';
+          // Green for "this is on you" chips so they read as a call to action.
+          // Neutral for "waiting on them" chips so the page surfaces the deal
+          // without making the seller think they need to do something.
+          const chipBg = isAction
+            ? (dark ? 'var(--lp-card)' : 'rgba(10,117,83,0.10)')
+            : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)');
+          const chipFg = isAction
+            ? '#0a7553'
+            : (dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)');
+          const chipBorder = isAction
+            ? 'rgba(10,117,83,0.35)'
+            : (dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)');
+          const chipBlinkBg = isAction
+            ? '#0a7553'
+            : (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)');
           return (
             <li
               key={deal.jobId}
@@ -165,9 +206,9 @@ export function PendingDealsBand({ tone = 'light', headline = 'Deals awaiting yo
                     <span
                       className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
                       style={{
-                        background: dark ? 'var(--lp-card)' : 'rgba(10,117,83,0.10)',
-                        color: '#0a7553',
-                        border: '1px solid rgba(10,117,83,0.35)',
+                        background: chipBg,
+                        color: chipFg,
+                        border: `1px solid ${chipBorder}`,
                         borderTopLeftRadius: 5,
                         borderTopRightRadius: 5,
                         borderBottomLeftRadius: 5,
@@ -177,7 +218,7 @@ export function PendingDealsBand({ tone = 'light', headline = 'Deals awaiting yo
                       <span
                         aria-hidden
                         className="flex items-center justify-center px-1.5"
-                        style={{ background: '#0a7553' }}
+                        style={{ background: chipBlinkBg }}
                       >
                         <span
                           aria-hidden
@@ -186,7 +227,7 @@ export function PendingDealsBand({ tone = 'light', headline = 'Deals awaiting yo
                           style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
                         />
                       </span>
-                      <span className="px-2 py-[6px]">{action}</span>
+                      <span className="px-2 py-[6px]">{label.text}</span>
                     </span>
                     <p
                       className="mt-2 mono text-[10px] uppercase tracking-[0.12em]"

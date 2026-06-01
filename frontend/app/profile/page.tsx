@@ -20,6 +20,7 @@ import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCar
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
+import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import { PageTour } from '@/shared/guide/PageTour';
 import { PROFILE_TOUR_ID, buildProfileSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -197,8 +198,29 @@ export default function ProfilePage() {
 
       {/* PENDING MATCHES. high-priority surface; renders nothing when empty. */}
       <PendingMatchesBand tone="light" headline="Pending matches" />
-      {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
+      {/* DEALS AWAITING ACTION. direct deals needing accept/release. Action-gated:
+          renders nothing for a seller whose deal is in a release window because
+          the buyer holds the action. The full deals band below picks those up. */}
       <PendingDealsBand tone="light" />
+
+      {/* YOUR DEALS. full book, both sides, every stage. Mirrors what /buyer
+          and /seller show on their own dashboards, but role-agnostic so a
+          seller waiting on the buyer to release still sees the deal here. */}
+      <Band tone="light" compact>
+        <SectionTag>YOUR DEALS</SectionTag>
+        <HeroHeadline size="md">
+          Your <Accent>book</Accent>
+          <Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          Every direct deal where your wallet is buyer or seller, with its live escrow state.
+        </p>
+        <div className="mt-10">
+          <PageCard>
+            <DirectDealList />
+          </PageCard>
+        </div>
+      </Band>
 
       {/* IDENTITY section anchor. Also contains ACTIVATION + ROLE blocks below. */}
       <div id="identity" aria-hidden style={{ scrollMarginTop: 80 }} />

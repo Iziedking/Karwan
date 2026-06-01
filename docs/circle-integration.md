@@ -37,22 +37,70 @@ the state is `COMPLETE` or a failure state.
 
 ### CCTP V2
 
-Buyers bring USDC to Arc from Base Sepolia or Ethereum Sepolia. The user signs
-the burn on the source chain from their own wallet. The backend polls Circle's
-IRIS attestation API, then relays `receiveMessage` on Arc using the buyer agent
-wallet, so the user does not need Arc gas to receive the mint.
+USDC moves into and out of Arc through CCTP V2. The bridge is bidirectional
+and runs across six chains today: Base, Ethereum, Arbitrum, Optimism, and
+Polygon Sepolia, plus Solana Devnet. Adding more is a config entry, not
+new integration code.
 
-CCTP V2 deploys the same canonical `TokenMessengerV2` and `MessageTransmitterV2`
-addresses across testnets, so only the source domain and USDC address vary per
-chain.
+The ingress path: the user signs the burn on the source chain from their
+own wallet (or from their Circle DCW if they signed in via passkey or
+email). The backend polls Circle's IRIS attestation API, then relays
+`receiveMessage` on Arc with a relay wallet. The user never needs Arc gas
+to receive the mint.
+
+The cashout path runs the same pipe in reverse. After a deal settles, the
+seller picks the destination chain on the cashout page. The backend burns
+on Arc, polls the attestation, relays the mint on the destination. An
+inline progress card on `/cashout/[jobId]` shows burning, burned, attested,
+minted as it happens.
+
+CCTP V2 deploys the same canonical `TokenMessengerV2` and
+`MessageTransmitterV2` addresses across testnets, so only the source
+domain and USDC address vary per chain.
+
+### Gas Station
+
+Source-chain gas is the friction we never want a user to feel. Karwan's
+Gas Station policy sponsors the burn and approve transactions on Base
+Sepolia and Ethereum Sepolia for Circle wallet users, so a user funding
+their first escrow only ever holds USDC. No "buy ETH first" detour.
+
+### App Kit
+
+`@circle-fin/app-kit` is the unified SDK that covers bridge, swap, send,
+and unified-balance reads behind one entry point. Karwan uses App Kit for
+the cashout bridge-out flow and reaches the same surface for the unified
+balance reads on the profile holdings panel. The mainnet path for vault
+yield routes through the same SDK. Less code, fewer ways for the
+integration to drift as we ship the next feature.
+
+We use App Kit server-side, not in the browser, so user keys never leave
+the backend.
+
+### USYC (Hashnote, via ERC-4626 Teller)
+
+On mainnet, `KarwanVault` routes idle stake principal into Hashnote USYC,
+the tokenized T-bill product, through the standard ERC-4626 Teller
+interface. The principal earns the short rate while it waits, and stays
+available to release back to free stake on demand.
+
+On testnet we ship a `MockUSYC` adapter speaking the same subscribe and
+redeem surface. The mainnet flip is a constructor flag on the vault
+deploy. The integration is real production wiring with a deterministic
+adapter; we did this so the demo is not gated on Circle's USYC
+entitlement, which is still pending on our Arc Testnet wallets.
+
+`KarwanTreasury` follows the same pattern for collected fees.
 
 ## Wallet topology
 
-- **Buyer agent wallet** — funds escrows, releases milestones, records
+- **Buyer agent wallet.** Funds escrows, releases milestones, records
   reputation, relays CCTP mints, files disputes on a buyer cancel.
-- **Seller agent wallet** — submits bids and counter-responses in managed deals.
-- **User's connected wallet** — identifies the user, and signs the CCTP burn.
-  It does not sign Karwan's business transactions.
+- **Seller agent wallet.** Submits bids and counter-responses in managed deals,
+  receives the milestone payouts on settlement.
+- **User's identity wallet.** Signs in via passkey, email OTP, or SIWE on a
+  web3 wallet. Identifies the user, signs the CCTP burn on bridge ingress,
+  and holds any USDC the seller sweeps out of the deal wallet after settlement.
 
 ## Anti-self-dealing (ERC-8004)
 
@@ -61,8 +109,15 @@ Karwan the buyer and seller are different principals, and `recordCompletion`
 rates the counterparty of the caller, so the constraint holds without an extra
 validator wallet. The platform never writes its own reputation.
 
-## Not used in v0
+## On the roadmap
 
-The original plan listed Nanopayments and Gateway. Neither is wired. Agent
-micro-payments are deferred to a future x402 rail, and treasury aggregation
-across chains is post-v0. The docs here only describe what runs.
+- **x402 nanopayment rails for agents.** Plug Circle's x402 micropayment
+  surface into the agent loop. The buyer and seller agents pay sub-cent
+  fees for live data during a negotiation: market medians from paid APIs,
+  skill demand snapshots, deeper credit checks against a credit passport,
+  news during a delivery review window. Each round can pull a fresh
+  outside signal for a few thousandths of a cent. Logged to the deal
+  timeline as `agent.signal.purchased` so the human sees what the agent
+  paid for and why.
+- **Gateway.** Treasury aggregation across chains. Tracks behind x402;
+  worth picking up once the cross-corridor financier flow lands.
