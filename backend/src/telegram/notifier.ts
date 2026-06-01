@@ -63,6 +63,8 @@ const RELEVANT = new Set([
   'chat.message',
   'bridge.minted',
   'bridge.error',
+  'wallet.credited',
+  'wallet.debited',
 ]);
 
 interface Recipient {
@@ -77,6 +79,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type.startsWith('bridge.')) {
     const r = (e.payload?.mintRecipient as string | undefined)?.toLowerCase();
     return r ? [{ address: r, role: 'self' }] : [];
+  }
+  // Balance changes carry the owner address in the payload so route directly.
+  if (e.type === 'wallet.credited' || e.type === 'wallet.debited') {
+    const owner = (e.payload?.owner as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
   }
   // Match-proposal events fire before any deal row exists, so resolve recipients
   // straight from the payload (the agent already resolved both user addresses).
@@ -332,9 +339,35 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       return withLink('*Bridge complete*. USDC minted on Arc.', null);
     case 'bridge.error':
       return withLink('*Bridge failed*. Check the activity feed.', null);
+    case 'wallet.credited': {
+      const credited = (e.payload?.amountUsdc as string | undefined) ?? '0';
+      const label = (e.payload?.walletLabel as string | undefined) ?? 'wallet';
+      const credit = trimUsdcLabel(credited);
+      return withLink(
+        `*+${credit} USDC* landed in your ${label}.`,
+        null,
+      );
+    }
+    case 'wallet.debited': {
+      const debited = (e.payload?.amountUsdc as string | undefined) ?? '0';
+      const label = (e.payload?.walletLabel as string | undefined) ?? 'wallet';
+      const debit = trimUsdcLabel(debited);
+      return withLink(
+        `*-${debit} USDC* left your ${label}.`,
+        null,
+      );
+    }
     default:
       return null;
   }
+}
+
+/// Trim trailing zeros and a dangling decimal point so a 30.000000 amount
+/// reads as "30" rather than "30.000000" in a chat message.
+function trimUsdcLabel(raw: string): string {
+  if (!raw.includes('.')) return raw;
+  const trimmed = raw.replace(/\.?0+$/, '');
+  return trimmed.length === 0 ? '0' : trimmed;
 }
 
 export function startTelegramNotifier(): () => void {

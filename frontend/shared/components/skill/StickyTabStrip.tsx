@@ -109,11 +109,13 @@ export function StickyTabStrip({
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset',
                 )}
                 style={{
-                  // Active uses the theme-aware ink token so the label stays
-                  // readable whether the strip sits on a light or dark body.
-                  // Inactive stays muted via the existing onDark/light split.
+                  // Active must read against the actual surface. On a dark
+                  // strip the ink-black token disappears; use the primary
+                  // light-on-dark token instead.
                   color: isActive
-                    ? 'var(--lp-dark)'
+                    ? onDark
+                      ? 'var(--ink-1)'
+                      : 'var(--lp-dark)'
                     : onDark
                       ? 'var(--ink-2)'
                       : 'var(--ink-inv-2)',
@@ -148,7 +150,9 @@ export function StickyTabStrip({
                   className="hidden md:inline transition-transform duration-[var(--dur-fast)]"
                   style={{
                     color: isActive
-                      ? 'var(--lp-dark)'
+                      ? onDark
+                        ? 'var(--ink-1)'
+                        : 'var(--lp-dark)'
                       : onDark
                         ? 'var(--ink-3)'
                         : 'var(--ink-inv-2)',

@@ -80,6 +80,8 @@ export type KarwanEventType =
   | 'vault.withdraw.cancelled'
   | 'vault.claimed'
   | 'cashout.arc.completed'
+  | 'wallet.credited'
+  | 'wallet.debited'
   | 'circle.webhook'
   | 'system.error';
 

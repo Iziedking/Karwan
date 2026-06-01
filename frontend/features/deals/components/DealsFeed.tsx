@@ -26,6 +26,10 @@ export function DealsFeed() {
   const [deals, setDeals] = useState<DirectDeal[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [filter, setFilter] = useState<Filter>('all');
+  const [page, setPage] = useState(0);
+  // Rows per page. The book grows over time; pagination keeps the home page
+  // from becoming a scroll trap.
+  const PAGE_SIZE = 6;
 
   useEffect(() => {
     if (!address) {
@@ -61,6 +65,13 @@ export function DealsFeed() {
     if (filter === 'completed') return x.stage === 'settled';
     return true;
   });
+  const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  // Clamp the cursor if a filter switch puts it past the end.
+  const safePage = Math.min(page, pageCount - 1);
+  const pageStart = safePage * PAGE_SIZE;
+  const pageRows = shown.slice(pageStart, pageStart + PAGE_SIZE);
+  const canPrev = safePage > 0;
+  const canNext = safePage < pageCount - 1;
 
   const tabs: Array<{ key: Filter; label: string; count: number }> = [
     { key: 'all', label: 'All', count: withStage.length },
@@ -88,7 +99,10 @@ export function DealsFeed() {
               <button
                 key={t.key}
                 type="button"
-                onClick={() => setFilter(t.key)}
+                onClick={() => {
+                  setFilter(t.key);
+                  setPage(0);
+                }}
                 aria-pressed={active}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
@@ -146,8 +160,9 @@ export function DealsFeed() {
           </p>
         </div>
       ) : (
+        <>
         <ul className="divide-y divide-[var(--lp-border-light)]">
-          {shown.map(({ deal, stage }) => {
+          {pageRows.map(({ deal, stage }) => {
             const meta = STAGE_META[stage];
             return (
               <li key={deal.jobId} className="relative">
@@ -215,7 +230,70 @@ export function DealsFeed() {
             );
           })}
         </ul>
+        {pageCount > 1 && (
+          <div className="px-6 md:px-8 py-5 flex items-center justify-between gap-4 border-t border-[var(--lp-border-light)]">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+              Page {safePage + 1} of {pageCount}
+              <span className="mx-2 opacity-50">·</span>
+              {shown.length} {shown.length === 1 ? 'deal' : 'deals'}
+            </p>
+            <div className="flex items-center gap-2">
+              <PagerButton
+                direction="prev"
+                disabled={!canPrev}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              />
+              <PagerButton
+                direction="next"
+                disabled={!canNext}
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              />
+            </div>
+          </div>
+        )}
+        </>
       )}
     </div>
+  );
+}
+
+/// Round pager button used on the book footer. Lime-rimmed on hover, faded
+/// when at the start/end of the range.
+function PagerButton({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: 'prev' | 'next';
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={direction === 'prev' ? 'Previous page' : 'Next page'}
+      className={cn(
+        'group inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
+        'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+        disabled
+          ? 'cursor-not-allowed opacity-30'
+          : 'cursor-pointer hover:bg-[var(--lp-light)] hover:border-[var(--lp-accent)] hover:-translate-y-0.5',
+      )}
+      style={{
+        background: 'var(--lp-card)',
+        borderColor: 'var(--lp-border-light)',
+        boxShadow: disabled ? 'none' : '0 1px 0 rgba(0,0,0,0.04), 0 6px 16px -12px rgba(0,0,0,0.12)',
+      }}
+    >
+      <span
+        aria-hidden
+        className="text-[14px] leading-none transition-transform duration-150"
+        style={{ color: 'var(--lp-dark)' }}
+      >
+        {direction === 'prev' ? '‹' : '›'}
+      </span>
+    </button>
   );
 }

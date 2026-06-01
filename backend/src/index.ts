@@ -39,6 +39,7 @@ import {
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
+import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
@@ -193,6 +194,14 @@ function bootAgents() {
     appLogger.warn(
       { err: (err as Error).message },
       'reputation reconciler not started',
+    );
+  }
+  try {
+    stopFns.push(startBalanceWatcher());
+  } catch (err) {
+    appLogger.warn(
+      { err: (err as Error).message },
+      'balance watcher not started',
     );
   }
 }

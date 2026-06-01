@@ -65,7 +65,11 @@ const DIRECT_TYPES = new Set([
   'deal.cancel.declined',
 ]);
 
-const NOTIFY_TYPES = new Set([...MANAGED_TYPES, ...DIRECT_TYPES]);
+// Wallet-level events carry no jobId. They route to the owner address in the
+// payload and surface on the profile (where balances live).
+const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
+
+const NOTIFY_TYPES = new Set([...MANAGED_TYPES, ...DIRECT_TYPES, ...WALLET_TYPES]);
 
 // High-signal events that should also trigger a toast.
 const TOAST_TYPES = new Set([
@@ -75,6 +79,8 @@ const TOAST_TYPES = new Set([
   'deal.fund.insufficient',
   'negotiation.near-miss',
   'job.expired',
+  'wallet.credited',
+  'wallet.debited',
 ]);
 
 // Which party should receive each event. This is the fix for notifications
@@ -114,7 +120,24 @@ function hrefForType(type: string, jobId: string): string {
   // Send them to their own dashboard, where the bid and any resulting match
   // surface. Once a proposal exists, deal.matched routes them to /jobs/[id].
   if (type === 'listing.matched') return '/seller';
+  if (WALLET_TYPES.has(type)) return '/profile';
   return MANAGED_TYPES.has(type) ? `/jobs/${jobId}` : `/deals/${jobId}`;
+}
+
+function walletLabelFromPayload(payload: Record<string, unknown> | undefined): string {
+  const label = (payload?.walletLabel as string | undefined) ?? '';
+  if (label) return label;
+  const role = (payload?.walletRole as string | undefined) ?? '';
+  if (role === 'identity') return 'identity wallet';
+  if (role === 'buyerAgent') return 'buyer agent wallet';
+  if (role === 'sellerAgent') return 'seller agent wallet';
+  return 'wallet';
+}
+
+function trimUsdcLabel(raw: string): string {
+  if (!raw.includes('.')) return raw;
+  const trimmed = raw.replace(/\.?0+$/, '');
+  return trimmed.length === 0 ? '0' : trimmed;
 }
 
 /// Resolves the viewer's role in this event's deal. Prefers the payload (which
@@ -247,6 +270,18 @@ function summaryFor(
         : 'Cancellation proposed by your counterparty.';
     case 'deal.cancel.declined':
       return 'Your cancellation proposal was declined.';
+    case 'wallet.credited': {
+      const credited = (payload?.amountUsdc as string | undefined) ?? '0';
+      const credit = trimUsdcLabel(credited);
+      const label = walletLabelFromPayload(payload);
+      return `+${credit} USDC landed in your ${label}.`;
+    }
+    case 'wallet.debited': {
+      const debited = (payload?.amountUsdc as string | undefined) ?? '0';
+      const debit = trimUsdcLabel(debited);
+      const label = walletLabelFromPayload(payload);
+      return `-${debit} USDC left your ${label}.`;
+    }
     default:
       return 'Deal update';
   }
@@ -348,9 +383,28 @@ export function useNotifications() {
       const { events } = await api.activity(200, undefined, me);
       const fresh: AppNotification[] = [];
       for (const e of events) {
-        if (!NOTIFY_TYPES.has(e.type) || !e.jobId) continue;
-        // Respect a prior "clear all": anything dismissed then stays dismissed.
+        if (!NOTIFY_TYPES.has(e.type)) continue;
         if (e.ts <= clearedBeforeRef.current) continue;
+        // Wallet events carry no jobId; route by owner directly and skip the
+        // deal-role machinery.
+        if (WALLET_TYPES.has(e.type)) {
+          const owner = (e.payload?.owner as string | undefined)?.toLowerCase();
+          if (owner !== me) continue;
+          const tx = (e.payload?.txHash as string | undefined) ?? '';
+          const wallet = (e.payload?.walletAddress as string | undefined) ?? '';
+          const id = `${e.type}-${tx || e.ts}-${wallet}`;
+          fresh.push({
+            id,
+            jobId: '',
+            type: e.type,
+            summary: summaryFor(e.type, e.payload, null),
+            ts: e.ts,
+            read: readIdsRef.current.has(id),
+            href: hrefForType(e.type, ''),
+          });
+          continue;
+        }
+        if (!e.jobId) continue;
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
         const id = `${e.jobId}-${e.type}-${e.ts}`;
@@ -416,9 +470,49 @@ export function useNotifications() {
     const me = address.toLowerCase();
 
     return subscribeLiveEvents((e) => {
-      if (!NOTIFY_TYPES.has(e.type) || !e.jobId) return;
+      if (!NOTIFY_TYPES.has(e.type)) return;
       // A live event older than the last "clear all" was already dismissed.
       if (e.ts <= clearedBeforeRef.current) return;
+
+      // Wallet credit / debit: route by the owner address in the payload.
+      // Skip the deal-routing machinery so a credit landing in a brand-new
+      // wallet shows up even before any deal exists.
+      if (WALLET_TYPES.has(e.type)) {
+        const owner = (e.payload?.owner as string | undefined)?.toLowerCase();
+        if (owner !== me) return;
+        const tx = (e.payload?.txHash as string | undefined) ?? '';
+        const wallet = (e.payload?.walletAddress as string | undefined) ?? '';
+        const id = `${e.type}-${tx || e.ts}-${wallet}`;
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = {
+          id,
+          jobId: '',
+          type: e.type,
+          summary: summaryFor(e.type, e.payload, null),
+          ts: e.ts,
+          read: readIdsRef.current.has(id),
+          href: hrefForType(e.type, ''),
+          toast: TOAST_TYPES.has(e.type),
+        };
+        setNotifications((list) => {
+          if (list.some((n) => n.id === id)) return list;
+          return [next, ...list].slice(0, MAX_STORED);
+        });
+        if (initialHydrateRef.current) {
+          try {
+            sfx.send();
+          } catch {
+            /* ignore */
+          }
+          if (next.toast) {
+            toastListeners.forEach((fn) => fn(next));
+          }
+        }
+        return;
+      }
+
+      if (!e.jobId) return;
 
       // Learn this user's role on a freshly-started deal so later events that
       // only carry a jobId still route to the right side.

@@ -163,7 +163,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         width: 296,
         height: 144,
         background: 'var(--surface-1)',
-        border: '1px solid var(--rule-dark)',
+        border: '1px solid rgba(255,255,255,0.06)',
         borderTopLeftRadius: 14,
         borderTopRightRadius: 14,
         borderBottomLeftRadius: 14,
@@ -221,7 +221,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
           className="font-mono text-[11px] tabular-nums leading-snug"
           style={{ color: 'var(--ink-2)' }}
         >
-          <span style={{ color: 'var(--ink-0)' }}>{shortAddress(card.actor)}</span>{' '}
+          <span style={{ color: 'var(--ink-1)' }}>{shortAddress(card.actor)}</span>{' '}
           <span style={{ color: 'var(--ink-3)' }}>{verb}</span>
         </p>
         <div className="mt-2 flex items-baseline gap-2">
@@ -229,7 +229,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
             className="font-sans font-bold tabular-nums tracking-[-0.03em] leading-none"
             style={{
               fontSize: 'clamp(32px, 3.6vw, 40px)',
-              color: 'var(--ink-0)',
+              color: 'var(--ink-1)',
             }}
           >
             {formatUsdc(card.amountUsdc, { withSuffix: false })}

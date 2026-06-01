@@ -8,7 +8,6 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { PostListingForm } from '@/features/seller/components/PostListingForm';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
-import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -194,23 +193,6 @@ export default function SellerPage() {
             </div>
           </div>
           <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
-        </div>
-      </Band>
-
-      {/* DIRECT DEALS */}
-      <Band tone="light" compact>
-        <SectionTag>DIRECT DEALS</SectionTag>
-        <HeroHeadline size="md">
-          Deals <Accent>for you</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Direct deals where your wallet is the named seller, with their live escrow state.
-        </p>
-        <div className="mt-10">
-          <PageCard>
-            <DirectDealList role="seller" />
-          </PageCard>
         </div>
       </Band>
 

@@ -1,5 +1,6 @@
 ﻿'use client';
 import Link from 'next/link';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import type { DirectDeal } from '@/core/api';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { useDismissed } from '@/shared/hooks/useDismissed';
@@ -172,7 +173,12 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
         const meta = STAGE_META[stage];
         const dismissable = stage === 'cancelled' || stage === 'settled' || stage === 'disputed';
         return (
-          <li key={deal.jobId} className="group relative">
+          <SwipeableRow
+            key={deal.jobId}
+            dismissable={dismissable}
+            onDismiss={() => dismiss(deal.jobId)}
+            railColor={meta.rail}
+          >
             <Link
               href={`/deals/${deal.jobId}`}
               className={cn(
@@ -180,11 +186,6 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                 'focus-visible:outline-none focus-visible:bg-[var(--lp-light)]',
               )}
             >
-              <span
-                aria-hidden
-                className="absolute left-0 top-3 bottom-3 w-[3px] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
-                style={{ background: meta.rail }}
-              />
               <div className="flex items-center justify-between gap-6">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2.5 flex-wrap">
@@ -245,24 +246,141 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                 </span>
               </div>
             </Link>
-            {dismissable && (
-              <button
-                type="button"
-                title="Dismiss"
-                aria-label="Dismiss this deal from the list"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  dismiss(deal.jobId);
-                }}
-                className="absolute top-2.5 right-2.5 inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-              >
-                ×
-              </button>
-            )}
-          </li>
+          </SwipeableRow>
         );
       })}
     </ul>
+  );
+}
+
+/// Row wrapper for DirectDealList. Renders the deal link plus, when the deal
+/// is in a terminal state:
+///   - a large always-visible dismiss button at top-right on desktop / mobile
+///   - a swipe-left-to-dismiss interaction backed by a red reveal layer
+/// Non-dismissable rows pass through with no wrapper overhead beyond the rail.
+function SwipeableRow({
+  dismissable,
+  onDismiss,
+  railColor,
+  children,
+}: {
+  dismissable: boolean;
+  onDismiss: () => void;
+  railColor: string;
+  children: ReactNode;
+}) {
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startXRef = useRef<number | null>(null);
+  const dismissedRef = useRef(false);
+
+  const reset = useCallback(() => {
+    startXRef.current = null;
+    setDragging(false);
+    setDragX(0);
+  }, []);
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLLIElement>) => {
+      if (!dismissable) return;
+      const t = e.touches[0];
+      if (!t) return;
+      startXRef.current = t.clientX;
+      setDragging(true);
+    },
+    [dismissable],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLLIElement>) => {
+      if (!dismissable || startXRef.current === null) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const delta = t.clientX - startXRef.current;
+      // Only respond to leftward drag. Clamp so the row can't slide off
+      // forever; the dismiss threshold is the natural stop.
+      const clamped = Math.max(-180, Math.min(0, delta));
+      setDragX(clamped);
+    },
+    [dismissable],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    if (!dismissable) return;
+    if (dragX <= -100) {
+      dismissedRef.current = true;
+      setDragX(-window.innerWidth);
+      // Animate out then dismiss so the row clears the list cleanly.
+      window.setTimeout(() => onDismiss(), 180);
+      return;
+    }
+    reset();
+  }, [dismissable, dragX, onDismiss, reset]);
+
+  return (
+    <li
+      className="group relative overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={reset}
+    >
+      {/* Rail indicator. Stays at the row's left edge regardless of drag. */}
+      <span
+        aria-hidden
+        className="absolute left-0 top-3 bottom-3 w-[3px] z-[1] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
+        style={{ background: railColor }}
+      />
+      {/* Red reveal layer behind the row; fades in as the row slides left. */}
+      {dismissable && (
+        <div
+          aria-hidden
+          className="absolute inset-0 flex items-center justify-end pr-6 pointer-events-none"
+          style={{
+            background: '#9c3735',
+            opacity: Math.min(1, Math.abs(dragX) / 100),
+          }}
+        >
+          <span className="mono text-[11px] uppercase tracking-[0.18em] font-bold text-white">
+            Dismiss
+          </span>
+        </div>
+      )}
+      <div
+        className="relative bg-[var(--lp-card)]"
+        style={{
+          transform: `translateX(${dragX}px)`,
+          transition: dragging ? 'none' : 'transform 200ms cubic-bezier(0.16,1,0.3,1)',
+        }}
+      >
+        {children}
+      </div>
+      {dismissable && (
+        <button
+          type="button"
+          title="Dismiss"
+          aria-label="Dismiss this deal from the list"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDismiss();
+          }}
+          className={cn(
+            'absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full mono text-[16px]',
+            'transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+            'opacity-60 md:opacity-40 md:group-hover:opacity-100 hover:opacity-100',
+            'hover:-translate-y-0.5 hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] hover:border-[var(--lp-accent)]',
+          )}
+          style={{
+            background: 'var(--lp-card)',
+            border: '1px solid var(--lp-border-light)',
+            color: 'var(--lp-text-muted)',
+            boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 6px 16px -12px rgba(0,0,0,0.12)',
+          }}
+        >
+          ×
+        </button>
+      )}
+    </li>
   );
 }

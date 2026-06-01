@@ -6,7 +6,6 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
-import { DirectDealList } from '@/features/deals/components/DirectDealList';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -140,23 +139,6 @@ export default function BuyerPage() {
           <div className="space-y-4">
             <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
           </div>
-        </div>
-      </Band>
-
-      {/* DIRECT DEALS */}
-      <Band tone="light" compact>
-        <SectionTag>DIRECT DEALS</SectionTag>
-        <HeroHeadline size="md">
-          Deals you <Accent>opened</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Direct deals with you as the buyer.
-        </p>
-        <div className="mt-10">
-          <PageCard>
-            <DirectDealList role="buyer" />
-          </PageCard>
         </div>
       </Band>
 
