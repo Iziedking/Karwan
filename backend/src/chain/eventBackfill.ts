@@ -4,7 +4,7 @@ import { config } from '../config.js';
 import { bus, type KarwanEvent, type KarwanEventType } from '../events.js';
 import { logger } from '../logger.js';
 import { jobBoardAbi } from './abis/jobBoard.js';
-import { v2dEscrowAbi } from './abis/v2dEscrow.js';
+import { escrowAbi } from './abis/escrow.js';
 import { reputationAbi } from './abis/reputation.js';
 
 /// Resolve an event definition by name from a contract ABI. Using the actual
@@ -35,15 +35,37 @@ const USDC_DECIMALS = 6;
 const SCAN_CHUNK_BLOCKS = 10_000n;
 const HISTORY_CAPACITY = 500;
 
-const EVENT_JOB_POSTED = eventByName(jobBoardAbi, 'JobPosted');
-const EVENT_BID_SUBMITTED = eventByName(jobBoardAbi, 'BidSubmitted');
-const EVENT_BID_ACCEPTED = eventByName(jobBoardAbi, 'BidAccepted');
-const EVENT_ESCROW_FUNDED = eventByName(v2dEscrowAbi, 'EscrowFunded');
-const EVENT_PROGRESS_RELEASED = eventByName(v2dEscrowAbi, 'ProgressReleased');
-const EVENT_ESCROW_SETTLED = eventByName(v2dEscrowAbi, 'EscrowSettled');
-const EVENT_ESCROW_DISPUTED = eventByName(v2dEscrowAbi, 'EscrowDisputed');
-const EVENT_ESCROW_REFUNDED = eventByName(v2dEscrowAbi, 'EscrowRefunded');
-const EVENT_REP_COMPLETION = eventByName(reputationAbi, 'CompletionRecorded');
+/// Resolve every event the backfill needs up front. A missing name is logged
+/// and the corresponding scan is skipped (the rest still run) so an ABI
+/// trim or rename never crashes the boot, just degrades coverage.
+interface EventSpec {
+  key: string;
+  abi: readonly unknown[];
+  name: string;
+}
+const EVENT_SPECS: EventSpec[] = [
+  { key: 'JobPosted', abi: jobBoardAbi, name: 'JobPosted' },
+  { key: 'BidSubmitted', abi: jobBoardAbi, name: 'BidSubmitted' },
+  { key: 'BidAccepted', abi: jobBoardAbi, name: 'BidAccepted' },
+  { key: 'EscrowFunded', abi: escrowAbi, name: 'EscrowFunded' },
+  { key: 'ProgressReleased', abi: escrowAbi, name: 'ProgressReleased' },
+  { key: 'EscrowSettled', abi: escrowAbi, name: 'EscrowSettled' },
+  { key: 'EscrowDisputed', abi: escrowAbi, name: 'EscrowDisputed' },
+  { key: 'EscrowRefunded', abi: escrowAbi, name: 'EscrowRefunded' },
+  { key: 'CompletionRecorded', abi: reputationAbi, name: 'CompletionRecorded' },
+];
+
+function resolveEvent(spec: EventSpec): AbiEvent | null {
+  try {
+    return eventByName(spec.abi, spec.name);
+  } catch {
+    logger.warn(
+      { spec: spec.key },
+      'event backfill: event missing from ABI, skipping its scan',
+    );
+    return null;
+  }
+}
 
 interface LogRow {
   args: Record<string, unknown>;
@@ -303,6 +325,27 @@ export async function backfillBusFromChain(): Promise<{ scanned: number; injecte
   const jobBoardAddr = (config.KARWAN_JOBBOARD_ADDR ?? null) as `0x${string}` | null;
   const repAddr = (config.KARWAN_REPUTATION_ADDR ?? null) as `0x${string}` | null;
 
+  /// Resolve each event once. A null result means the ABI doesn't have it
+  /// (logged in resolveEvent); the corresponding scan is skipped and the
+  /// rest still run. This is what stops a renamed event from crashing boot.
+  const evJobPosted = resolveEvent(EVENT_SPECS[0]!);
+  const evBidSubmitted = resolveEvent(EVENT_SPECS[1]!);
+  const evBidAccepted = resolveEvent(EVENT_SPECS[2]!);
+  const evEscrowFunded = resolveEvent(EVENT_SPECS[3]!);
+  const evProgressReleased = resolveEvent(EVENT_SPECS[4]!);
+  const evEscrowSettled = resolveEvent(EVENT_SPECS[5]!);
+  const evEscrowDisputed = resolveEvent(EVENT_SPECS[6]!);
+  const evEscrowRefunded = resolveEvent(EVENT_SPECS[7]!);
+  const evRepCompletion = resolveEvent(EVENT_SPECS[8]!);
+
+  async function scanIf(
+    addr: `0x${string}` | null,
+    event: AbiEvent | null,
+  ): Promise<LogRow[]> {
+    if (!event) return [];
+    return scanLogs(addr, event, lowerBound, head);
+  }
+
   const [
     jobPosted,
     bidSubmitted,
@@ -314,15 +357,15 @@ export async function backfillBusFromChain(): Promise<{ scanned: number; injecte
     escrowRefunded,
     repCompletion,
   ] = await Promise.all([
-    scanLogs(jobBoardAddr, EVENT_JOB_POSTED, lowerBound, head),
-    scanLogs(jobBoardAddr, EVENT_BID_SUBMITTED, lowerBound, head),
-    scanLogs(jobBoardAddr, EVENT_BID_ACCEPTED, lowerBound, head),
-    scanLogs(escrowAddr, EVENT_ESCROW_FUNDED, lowerBound, head),
-    scanLogs(escrowAddr, EVENT_PROGRESS_RELEASED, lowerBound, head),
-    scanLogs(escrowAddr, EVENT_ESCROW_SETTLED, lowerBound, head),
-    scanLogs(escrowAddr, EVENT_ESCROW_DISPUTED, lowerBound, head),
-    scanLogs(escrowAddr, EVENT_ESCROW_REFUNDED, lowerBound, head),
-    scanLogs(repAddr, EVENT_REP_COMPLETION, lowerBound, head),
+    scanIf(jobBoardAddr, evJobPosted),
+    scanIf(jobBoardAddr, evBidSubmitted),
+    scanIf(jobBoardAddr, evBidAccepted),
+    scanIf(escrowAddr, evEscrowFunded),
+    scanIf(escrowAddr, evProgressReleased),
+    scanIf(escrowAddr, evEscrowSettled),
+    scanIf(escrowAddr, evEscrowDisputed),
+    scanIf(escrowAddr, evEscrowRefunded),
+    scanIf(repAddr, evRepCompletion),
   ]);
 
   const groups: ScanGroup[] = [
