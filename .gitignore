@@ -58,6 +58,11 @@ docs/deploy.md
 docs/images
 docs/social
 docs/email-previews
+docs/sme-research.md
+docs/sme-design.md
+docs/research/
+docs/learning/
+docs/assets/
 .claude/
 SESSION_STATE.md
 presentation.md

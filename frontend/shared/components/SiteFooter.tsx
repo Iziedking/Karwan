@@ -95,8 +95,14 @@ export function SiteFooter() {
             </div>
           </div>
 
+          {/* Brand swatch strip. A quiet visual signature at the bottom of the
+              inner card. Three chips show the brand constants (lime, ink,
+              cream) so press or partners scrolling to the bottom for brand
+              basics get them without leaving the page. */}
+          <BrandSwatches />
+
           {/* Hairline + bottom strip with operational pill */}
-          <div className="mt-12 lg:mt-16 pt-5 border-t border-[var(--lp-border-light)] flex flex-wrap items-center justify-between gap-4">
+          <div className="mt-6 pt-5 border-t border-[var(--lp-border-light)] flex flex-wrap items-center justify-between gap-4">
             <OperationalPill />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mono text-[11px] uppercase tracking-[0.06em] text-[var(--lp-text-muted)]">
               <span>© 2026 KARWAN</span>
@@ -132,6 +138,44 @@ function SectionTag({ children }: { children: ReactNode }) {
       <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
       [:{children}:]
     </span>
+  );
+}
+
+function BrandSwatches() {
+  /// Three chips with the three brand constants. The caption mirrors the
+  /// internal brand-kit doc (docs/assets/brand-kit.md) without exposing it.
+  const swatches: ReadonlyArray<{ label: string; hex: string; border?: boolean }> = [
+    { label: 'lime', hex: '#AFC95B' },
+    { label: 'ink', hex: '#0E0E0E' },
+    { label: 'cream', hex: '#FAF8F2', border: true },
+  ];
+  return (
+    <div className="mt-12 lg:mt-16 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:BRAND:]
+      </span>
+      <div className="flex items-center gap-3">
+        {swatches.map((s) => (
+          <div key={s.label} className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="inline-block w-4 h-4"
+              style={{
+                background: s.hex,
+                border: s.border ? '1px solid rgba(0,0,0,0.08)' : 'none',
+                borderTopLeftRadius: 4,
+                borderTopRightRadius: 4,
+                borderBottomLeftRadius: 4,
+                borderBottomRightRadius: 1,
+              }}
+            />
+            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)] tabular-nums">
+              {s.hex}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
