@@ -151,6 +151,53 @@ export const fr: Messages = {
     cancelDefault: 'Annuler',
     backdropAria: 'Annuler',
   },
+  activation: {
+    notice: {
+      tag: 'NON ACTIVÉ',
+      headlines: {
+        seller: 'Activer pour enchérir',
+        buyer: 'Activer pour publier',
+        both: 'Activer pour commencer',
+      },
+      bodies: {
+        seller: "Un profil vendeur enregistré ne démarre pas un agent. Activez pour que votre agent vendeur enchérisse sur les demandes qui correspondent.",
+        buyer: "Un profil acheteur enregistré ne démarre pas un agent. Activez pour publier des demandes et lancer des enchères.",
+        both: "Un profil enregistré ne démarre pas un agent. Activez pour que vos agents enchérissent et publient pour vous.",
+      },
+      cta: 'Activer les agents',
+    },
+    gate: {
+      loading: 'Vérification de vos portefeuilles d’agent…',
+      title: 'Activer pour ouvrir des deals directs',
+      body: "Les deals directs passent par vos propres portefeuilles d'agent Circle. Activez une fois pour provisionner un agent acheteur et un agent vendeur pour ce portefeuille.",
+      cta: 'Activer les agents',
+    },
+    modal: {
+      eyebrow: 'Portefeuilles Circle',
+      titleNew: 'Activez vos agents',
+      titleActivated: 'Vos agents',
+      namedBody: 'Donnez un nom à vos agents pour que les deals ressemblent à votre propre bureau. Laissez un champ vide pour utiliser la valeur par défaut.',
+      provisionBody: "Karwan provisionne deux portefeuilles Circle Developer-Controlled pour ce portefeuille : un agent acheteur qui finance les séquestres et signe les libérations par jalons, et un agent vendeur qui reçoit les paiements et peut déposer un appel. Ils signent chaque action on-chain, vous n'avez ni gaz à détenir ni transactions à approuver une par une.",
+      setupHint: "Configuration unique. Vous pouvez renommer vos agents à tout moment et les financer depuis votre solde Arc sur la page de profil.",
+      fields: {
+        buyerNameOptional: "Nom de l'agent acheteur (optionnel)",
+        sellerNameOptional: "Nom de l'agent vendeur (optionnel)",
+        buyerName: "Nom de l'agent acheteur",
+        sellerName: "Nom de l'agent vendeur",
+        buyerPlaceholder: 'Agent acheteur',
+        sellerPlaceholder: 'Agent vendeur',
+      },
+      saveButton: 'Enregistrer les noms',
+      savingButton: 'Enregistrement…',
+      savedNote: 'Enregistré. Vos agents sont nommés.',
+      activateButton: 'Activer les agents',
+      activatingButton: 'Provisionnement des portefeuilles…',
+      doneButton: 'Terminé',
+      notNowButton: 'Pas maintenant',
+      errorSavePrefix: "Impossible d'enregistrer",
+      errorActivatePrefix: "Échec de l'activation",
+    },
+  },
   terms: {
     modal: {
       aria: 'Conditions générales de Karwan',

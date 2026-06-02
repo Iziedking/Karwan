@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { shortAddress } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { AgentNames } from '@/core/api';
 
 interface ActivationModalProps {
@@ -28,6 +29,7 @@ export function ActivationModal({
   activated,
   agents,
 }: ActivationModalProps) {
+  const t = useTranslations().activation.modal;
   const [buyerName, setBuyerName] = useState('');
   const [sellerName, setSellerName] = useState('');
   const [saved, setSaved] = useState(false);
@@ -78,22 +80,21 @@ export function ActivationModal({
         className="w-full max-w-md rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden"
       >
         <div className="px-6 pt-6 pb-4">
-          <p className="eyebrow">Circle wallets</p>
+          <p className="eyebrow">{t.eyebrow}</p>
           <h2 className="display text-[26px] leading-tight mt-1">
-            {activated ? 'Your agents' : 'Activate your agents'}
+            {activated ? t.titleActivated : t.titleNew}
           </h2>
         </div>
 
         {activated && agents ? (
           <div className="px-6 pb-6 space-y-4">
             <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-              Give your agents names so deals read like your own desk. Leave a field blank to use
-              the default.
+              {t.namedBody}
             </p>
             <div className="space-y-3">
               <NameField
-                label="Buyer agent name"
-                placeholder="Buyer agent"
+                label={t.fields.buyerName}
+                placeholder={t.fields.buyerPlaceholder}
                 value={buyerName}
                 onChange={(v) => {
                   setBuyerName(v);
@@ -103,8 +104,8 @@ export function ActivationModal({
                 disabled={activating}
               />
               <NameField
-                label="Seller agent name"
-                placeholder="Seller agent"
+                label={t.fields.sellerName}
+                placeholder={t.fields.sellerPlaceholder}
                 value={sellerName}
                 onChange={(v) => {
                   setSellerName(v);
@@ -114,7 +115,7 @@ export function ActivationModal({
                 disabled={activating}
               />
             </div>
-            {error && <ErrorNote message={error} prefix="Couldn't save" />}
+            {error && <ErrorNote message={error} prefix={t.errorSavePrefix} />}
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -124,7 +125,7 @@ export function ActivationModal({
                 className="flex-1 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity inline-flex items-center justify-center gap-2"
               >
                 {activating && <Spinner />}
-                {activating ? 'Saving…' : 'Save names'}
+                {activating ? t.savingButton : t.saveButton}
               </button>
               <button
                 type="button"
@@ -132,42 +133,38 @@ export function ActivationModal({
                 disabled={activating}
                 className="px-4 py-2.5 rounded-md text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] disabled:opacity-50 transition-colors"
               >
-                Done
+                {t.doneButton}
               </button>
             </div>
             {saved && (
-              <p className="text-[12px] text-[var(--color-positive)]">Saved. Your agents are named.</p>
+              <p className="text-[12px] text-[var(--color-positive)]">{t.savedNote}</p>
             )}
           </div>
         ) : (
           <div className="px-6 pb-6 space-y-4">
             <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-              Karwan provisions two Circle Developer-Controlled wallets for this wallet: a buyer
-              agent that funds escrows and signs milestone releases, and a seller agent that
-              receives payouts and can file an appeal. They sign every on-chain action, so you
-              never have to hold gas or approve transactions one by one.
+              {t.provisionBody}
             </p>
             <div className="space-y-3">
               <NameField
-                label="Buyer agent name (optional)"
-                placeholder="Buyer agent"
+                label={t.fields.buyerNameOptional}
+                placeholder={t.fields.buyerPlaceholder}
                 value={buyerName}
                 onChange={setBuyerName}
                 disabled={activating}
               />
               <NameField
-                label="Seller agent name (optional)"
-                placeholder="Seller agent"
+                label={t.fields.sellerNameOptional}
+                placeholder={t.fields.sellerPlaceholder}
                 value={sellerName}
                 onChange={setSellerName}
                 disabled={activating}
               />
             </div>
             <p className="text-[12px] text-[var(--color-ink-faint)] leading-relaxed">
-              One-time setup. You can rename your agents any time, and fund them from your Arc
-              balance on the profile page.
+              {t.setupHint}
             </p>
-            {error && <ErrorNote message={error} prefix="Activation failed" />}
+            {error && <ErrorNote message={error} prefix={t.errorActivatePrefix} />}
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -177,7 +174,7 @@ export function ActivationModal({
                 className="flex-1 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity inline-flex items-center justify-center gap-2"
               >
                 {activating && <Spinner />}
-                {activating ? 'Provisioning wallets…' : 'Activate agents'}
+                {activating ? t.activatingButton : t.activateButton}
               </button>
               <button
                 type="button"
@@ -185,7 +182,7 @@ export function ActivationModal({
                 disabled={activating}
                 className="px-4 py-2.5 rounded-md text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] disabled:opacity-50 transition-colors"
               >
-                Not now
+                {t.notNowButton}
               </button>
             </div>
           </div>

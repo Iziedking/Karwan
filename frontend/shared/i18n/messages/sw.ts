@@ -151,6 +151,53 @@ export const sw: Messages = {
     cancelDefault: 'Ghairi',
     backdropAria: 'Ghairi',
   },
+  activation: {
+    notice: {
+      tag: 'HAIJAANZISHWA',
+      headlines: {
+        seller: 'Anzisha ili kuweka zabuni',
+        buyer: 'Anzisha ili kuchapisha',
+        both: 'Anzisha ili kuanza',
+      },
+      bodies: {
+        seller: 'Wasifu wa muuzaji uliohifadhiwa hauanzishi wakala. Anzisha ili wakala wako wa muuzaji aweke zabuni kwenye maombi yanayolingana.',
+        buyer: 'Wasifu wa mnunuzi uliohifadhiwa hauanzishi wakala. Anzisha ili kuchapisha maombi na kuendesha minada.',
+        both: 'Wasifu uliohifadhiwa hauanzishi wakala. Anzisha ili mawakala wako waweke zabuni na kuchapisha kwa niaba yako.',
+      },
+      cta: 'Anzisha mawakala',
+    },
+    gate: {
+      loading: 'Inakagua mikoba ya mawakala wako…',
+      title: 'Anzisha ili kufungua biashara za moja kwa moja',
+      body: 'Biashara za moja kwa moja huendeshwa kwa mikoba yako ya mawakala wa Circle. Anzisha mara moja kutoa wakala wa mnunuzi na wakala wa muuzaji kwa mkoba huu.',
+      cta: 'Anzisha mawakala',
+    },
+    modal: {
+      eyebrow: 'Mikoba ya Circle',
+      titleNew: 'Anzisha mawakala wako',
+      titleActivated: 'Mawakala wako',
+      namedBody: 'Wape mawakala wako majina ili biashara zisikike kama dawati lako mwenyewe. Acha sehemu wazi kutumia chaguo-msingi.',
+      provisionBody: 'Karwan huandaa mikoba miwili ya Circle Developer-Controlled kwa mkoba huu: wakala wa mnunuzi anayefadhili escrow na kusaini mitoaji ya hatua, na wakala wa muuzaji anayepokea malipo na anaweza kuwasilisha rufaa. Wanasaini kila kitendo kwenye blockchain, hivyo huna haja ya kuhifadhi gesi au kuidhinisha shughuli moja baada ya nyingine.',
+      setupHint: 'Usanidi wa mara moja. Unaweza kubadilisha majina ya mawakala wako wakati wowote na kuwafadhili kutoka kwa salio lako la Arc kwenye ukurasa wa wasifu.',
+      fields: {
+        buyerNameOptional: 'Jina la wakala wa mnunuzi (hiari)',
+        sellerNameOptional: 'Jina la wakala wa muuzaji (hiari)',
+        buyerName: 'Jina la wakala wa mnunuzi',
+        sellerName: 'Jina la wakala wa muuzaji',
+        buyerPlaceholder: 'Wakala wa mnunuzi',
+        sellerPlaceholder: 'Wakala wa muuzaji',
+      },
+      saveButton: 'Hifadhi majina',
+      savingButton: 'Inahifadhi…',
+      savedNote: 'Imehifadhiwa. Mawakala wako wamepata majina.',
+      activateButton: 'Anzisha mawakala',
+      activatingButton: 'Inaandaa mikoba…',
+      doneButton: 'Imekamilika',
+      notNowButton: 'Si sasa',
+      errorSavePrefix: 'Haikuweza kuhifadhi',
+      errorActivatePrefix: 'Uanzishaji umeshindwa',
+    },
+  },
   terms: {
     modal: {
       aria: 'Masharti na hali za Karwan',

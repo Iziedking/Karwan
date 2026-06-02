@@ -152,6 +152,45 @@ interface MessagesShape {
     cancelDefault: string;
     backdropAria: string;
   };
+  activation: {
+    notice: {
+      tag: string;
+      headlines: { seller: string; buyer: string; both: string };
+      bodies: { seller: string; buyer: string; both: string };
+      cta: string;
+    };
+    gate: {
+      loading: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
+    modal: {
+      eyebrow: string;
+      titleNew: string;
+      titleActivated: string;
+      namedBody: string;
+      provisionBody: string;
+      setupHint: string;
+      fields: {
+        buyerNameOptional: string;
+        sellerNameOptional: string;
+        buyerName: string;
+        sellerName: string;
+        buyerPlaceholder: string;
+        sellerPlaceholder: string;
+      };
+      saveButton: string;
+      savingButton: string;
+      savedNote: string;
+      activateButton: string;
+      activatingButton: string;
+      doneButton: string;
+      notNowButton: string;
+      errorSavePrefix: string;
+      errorActivatePrefix: string;
+    };
+  };
   terms: {
     modal: {
       aria: string;
@@ -401,6 +440,53 @@ export const en: MessagesShape = {
     eyebrow: 'CONFIRM',
     cancelDefault: 'Cancel',
     backdropAria: 'Cancel',
+  },
+  activation: {
+    notice: {
+      tag: 'NOT ACTIVATED',
+      headlines: {
+        seller: 'Activate to bid',
+        buyer: 'Activate to post',
+        both: 'Activate to begin',
+      },
+      bodies: {
+        seller: 'A saved seller profile does not start an agent. Activate to let your seller agent bid on matching requests.',
+        buyer: 'A saved buyer profile does not start an agent. Activate to post requests and run auctions.',
+        both: 'A saved profile does not start an agent. Activate to let your agents bid and post on your behalf.',
+      },
+      cta: 'Activate agents',
+    },
+    gate: {
+      loading: 'Checking your agent wallets…',
+      title: 'Activate to open direct deals',
+      body: 'Direct deals run on your own Circle agent wallets. Activate once to provision a buyer agent and a seller agent for this wallet.',
+      cta: 'Activate agents',
+    },
+    modal: {
+      eyebrow: 'Circle wallets',
+      titleNew: 'Activate your agents',
+      titleActivated: 'Your agents',
+      namedBody: 'Give your agents names so deals read like your own desk. Leave a field blank to use the default.',
+      provisionBody: 'Karwan provisions two Circle Developer-Controlled wallets for this wallet: a buyer agent that funds escrows and signs milestone releases, and a seller agent that receives payouts and can file an appeal. They sign every on-chain action, so you never have to hold gas or approve transactions one by one.',
+      setupHint: 'One-time setup. You can rename your agents any time, and fund them from your Arc balance on the profile page.',
+      fields: {
+        buyerNameOptional: 'Buyer agent name (optional)',
+        sellerNameOptional: 'Seller agent name (optional)',
+        buyerName: 'Buyer agent name',
+        sellerName: 'Seller agent name',
+        buyerPlaceholder: 'Buyer agent',
+        sellerPlaceholder: 'Seller agent',
+      },
+      saveButton: 'Save names',
+      savingButton: 'Saving…',
+      savedNote: 'Saved. Your agents are named.',
+      activateButton: 'Activate agents',
+      activatingButton: 'Provisioning wallets…',
+      doneButton: 'Done',
+      notNowButton: 'Not now',
+      errorSavePrefix: "Couldn't save",
+      errorActivatePrefix: 'Activation failed',
+    },
   },
   terms: {
     modal: {

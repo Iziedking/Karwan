@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ActivationModal } from './ActivationModal';
 import { Band, SectionTag, HeroHeadline, Punc, CTAPill } from './Bands';
 
@@ -21,24 +22,19 @@ interface Props {
 export function ActivateAgentsNotice({ role = 'both', tone = 'light' }: Props) {
   const { isConnected, activated, loading, activate, renameAgents, activating, error, agents } =
     useActivation();
+  const t = useTranslations().activation.notice;
   const [open, setOpen] = useState(false);
 
   if (!isConnected || loading || activated) return null;
 
   const dark = tone === 'dark';
-  const headline =
-    role === 'seller' ? 'Activate to bid' : role === 'buyer' ? 'Activate to post' : 'Activate to begin';
-  const body =
-    role === 'seller'
-      ? 'A saved seller profile does not start an agent. Activate to let your seller agent bid on matching requests.'
-      : role === 'buyer'
-        ? 'A saved buyer profile does not start an agent. Activate to post requests and run auctions.'
-        : 'A saved profile does not start an agent. Activate to let your agents bid and post on your behalf.';
+  const headline = t.headlines[role];
+  const body = t.bodies[role];
 
   return (
     <>
       <Band tone={tone} compact>
-        <SectionTag tone={tone}>NOT ACTIVATED</SectionTag>
+        <SectionTag tone={tone}>{t.tag}</SectionTag>
         <HeroHeadline size="md">
           {headline}
           <Punc>.</Punc>
@@ -50,7 +46,7 @@ export function ActivateAgentsNotice({ role = 'both', tone = 'light' }: Props) {
           {body}
         </p>
         <div className="mt-7">
-          <CTAPill onClick={() => setOpen(true)}>Activate agents</CTAPill>
+          <CTAPill onClick={() => setOpen(true)}>{t.cta}</CTAPill>
         </div>
       </Band>
       <ActivationModal
