@@ -57,6 +57,85 @@ interface MessagesShape {
       description: string;
     };
   };
+  auth: {
+    signInGate: {
+      defaultTag: string;
+      heroTitle: string;
+      pageTitle: string;
+      heroBody: string;
+      pageBody: string;
+      button: string;
+    };
+    modal: {
+      aria: {
+        dialog: string;
+        close: string;
+        back: string;
+      };
+      eyebrow: {
+        welcome: string;
+        email: string;
+        signIn: string;
+        createAccount: string;
+      };
+      title: {
+        signIn: string;
+        askEmail: string;
+        welcomeBack: string;
+        createAccount: string;
+        checkInbox: string;
+      };
+      subtitle: {
+        pickMethod: string;
+        lookup: string;
+        signingInAs: string;
+        creatingAccount: string;
+        codeSentTo: string;
+      };
+      pickMethod: {
+        continueEmail: string;
+        connectWallet: string;
+        or: string;
+        emailNotConfigured: string;
+      };
+      enterEmail: {
+        label: string;
+        placeholder: string;
+        submit: string;
+        submitBusy: string;
+      };
+      authStep: {
+        passkeySignIn: string;
+        passkeyCreate: string;
+        passkeyVerifying: string;
+        passkeySettingUp: string;
+        sendCode: string;
+        sendingCode: string;
+        useCodeInstead: string;
+        noPasskeyHint: string;
+        noWebAuthnHint: string;
+      };
+      otp: {
+        label: string;
+        devChip: string;
+        devTapToAutofill: string;
+        devTooltip: string;
+        resend: string;
+        verify: string;
+        verifyBusy: string;
+      };
+      errors: {
+        invalidEmail: string;
+        lookupFailed: string;
+        passkeyCancelledSignIn: string;
+        passkeyCancelledCreate: string;
+        passkeyGeneric: string;
+        otpSendFailed: string;
+        codeMustBeSixDigits: string;
+        codeRejected: string;
+      };
+    };
+  };
 }
 
 export const en: MessagesShape = {
@@ -113,6 +192,85 @@ export const en: MessagesShape = {
       eyebrow: 'STEP 1',
       title: 'Pick your language',
       description: 'You can change this any time from Settings.',
+    },
+  },
+  auth: {
+    signInGate: {
+      defaultTag: 'SIGN IN',
+      heroTitle: 'Log in to enter',
+      pageTitle: 'Sign in to continue',
+      heroBody: 'Karwan identifies you by a wallet. Pick one via an EVM connector or have Circle provision one for you. The rest of the app unlocks.',
+      pageBody: 'This page is keyed to your wallet. Sign in once and every surface picks you up.',
+      button: 'Log in',
+    },
+    modal: {
+      aria: {
+        dialog: 'Sign in to Karwan',
+        close: 'Close',
+        back: 'Back',
+      },
+      eyebrow: {
+        welcome: 'WELCOME',
+        email: 'EMAIL',
+        signIn: 'SIGN IN',
+        createAccount: 'CREATE ACCOUNT',
+      },
+      title: {
+        signIn: 'Sign in to Karwan',
+        askEmail: "What's your email?",
+        welcomeBack: 'Welcome back',
+        createAccount: 'Create your account',
+        checkInbox: 'Check your inbox',
+      },
+      subtitle: {
+        pickMethod: 'Karwan identifies you by a wallet. Pick a path. We provision the rest.',
+        lookup: "We'll check if you already have an account and pick the right sign-in path.",
+        signingInAs: 'Signing in as',
+        creatingAccount: 'Your wallet is provisioned automatically.',
+        codeSentTo: 'Code sent. Enter the 6 digits.',
+      },
+      pickMethod: {
+        continueEmail: 'Continue with email',
+        connectWallet: 'Connect a wallet',
+        or: 'OR',
+        emailNotConfigured: 'Email login is not configured on this backend.',
+      },
+      enterEmail: {
+        label: 'Email',
+        placeholder: 'you@example.com',
+        submit: 'Continue',
+        submitBusy: 'Checking…',
+      },
+      authStep: {
+        passkeySignIn: 'Sign in with Passkey',
+        passkeyCreate: 'Set up Passkey',
+        passkeyVerifying: 'Verifying…',
+        passkeySettingUp: 'Setting up…',
+        sendCode: 'Send a code',
+        sendingCode: 'Sending…',
+        useCodeInstead: 'Use an email code instead',
+        noPasskeyHint: 'No passkey on this account yet. Sign in with a code, set one up after.',
+        noWebAuthnHint: "This browser doesn't support passkeys.",
+      },
+      otp: {
+        label: '6-digit code',
+        devChip: 'DEV',
+        devTapToAutofill: 'Tap to autofill',
+        devTooltip: 'Dev mode only. Hidden in production.',
+        resend: 'Resend',
+        verify: 'Verify',
+        verifyBusy: 'Verifying…',
+      },
+      errors: {
+        invalidEmail: 'Enter a valid email.',
+        lookupFailed: "Couldn't check that email.",
+        passkeyCancelledSignIn: 'Passkey prompt cancelled. Try again, or use a code.',
+        passkeyCancelledCreate: 'Passkey setup cancelled. Try again, or use a code.',
+        passkeyGeneric: 'Passkey ceremony failed.',
+        otpSendFailed: "Couldn't send a code. Try again.",
+        codeMustBeSixDigits: 'Code is 6 digits.',
+        codeRejected: 'Code rejected.',
+      },
     },
   },
 };
