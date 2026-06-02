@@ -15,7 +15,7 @@ export default function ActivityLoading() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className={`px-5 py-4 space-y-2.5 ${i < 3 ? 'md:border-r border-[var(--color-line)]' : ''} ${
+              className={`px-5 py-4 space-y-2.5 ${i < 3 ? 'md:border-e border-[var(--color-line)]' : ''} ${
                 i < 2 ? 'border-b md:border-b-0 border-[var(--color-line)]' : ''
               }`}
             >

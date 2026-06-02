@@ -82,7 +82,7 @@ export function FlowStepper({
             {!isLast && (
               <span
                 aria-hidden
-                className="absolute left-[13px] top-[26px] w-px"
+                className="absolute start-[13px] top-[26px] w-px"
                 style={{
                   bottom: 0,
                   background: done ? POSITIVE : 'var(--lp-border-light)',

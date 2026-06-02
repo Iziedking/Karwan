@@ -71,7 +71,7 @@ export function ActivityFilters({
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)]"
+          className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)]"
         >
           <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
           <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -81,7 +81,7 @@ export function ActivityFilters({
           value={jobIdSearch}
           onChange={(e) => onJobIdSearch(e.target.value)}
           placeholder="Filter by job id…"
-          className="activity-search w-full bg-[var(--lp-card)] pl-8 pr-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
+          className="activity-search w-full bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 9,
@@ -94,7 +94,7 @@ export function ActivityFilters({
           <button
             type="button"
             onClick={() => onJobIdSearch('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute end-2.5 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
             aria-label="Clear"
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none">

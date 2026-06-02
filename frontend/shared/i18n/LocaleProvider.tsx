@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_LOCALE, isLocale, type Locale } from './locales';
+import { DEFAULT_LOCALE, isLocale, isRtl, type Locale } from './locales';
 import { MESSAGES, type Messages } from './messages';
 
 const LOCALE_COOKIE = 'karwan-locale';
@@ -50,17 +50,18 @@ export function LocaleProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reflect locale on <html lang> for accessibility. We do NOT flip the
-  // document direction yet: components throughout the app use directional
-  // utilities (ml-/mr-, text-left, flex-row) that were not authored with RTL
-  // in mind, and a global dir="rtl" breaks every header, nav, and band.
-  // Arabic text still renders right-to-left within text nodes (browser bidi
-  // handles per-character direction automatically). Full RTL layout is a v2
-  // task that ships with a logical-property + spacing audit.
+  /// Reflect locale on <html lang> and flip <html dir> for RTL locales. The
+  /// v2.H audit pass migrated directional Tailwind utilities to logical
+  /// equivalents (ms-/me-/ps-/pe-/text-start/text-end/start-/end-/border-s/
+  /// border-e) across app/, features/, and shared/, so the layout mirrors
+  /// cleanly under dir="rtl". Intentional brand asymmetric corners (Karwan's
+  /// 14/14/14/4 and 28/28/28/6 grammar) stay physical via inline styles, so
+  /// the small notch remains in its design-canonical spot in either
+  /// direction.
   useEffect(() => {
     if (typeof document === 'undefined') return;
     document.documentElement.lang = locale;
-    document.documentElement.dir = 'ltr';
+    document.documentElement.dir = isRtl(locale) ? 'rtl' : 'ltr';
   }, [locale]);
 
   const setLocale = useCallback((next: Locale) => {

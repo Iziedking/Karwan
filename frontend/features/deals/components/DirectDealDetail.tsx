@@ -1794,7 +1794,7 @@ function CancelProposalBanner({
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
           {kindLabel} PROPOSED
         </span>
-        <span className="ml-auto mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-dark)]/70">
+        <span className="ms-auto mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-dark)]/70">
           BY {proposal.proposedBy.toUpperCase()}
         </span>
       </div>
@@ -1971,7 +1971,7 @@ function ProposeCancelModal({
                     key={opt.key}
                     type="button"
                     onClick={() => setKind(opt.key)}
-                    className="relative overflow-hidden text-left p-3 transition-colors"
+                    className="relative overflow-hidden text-start p-3 transition-colors"
                     style={{
                       background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
                       color: 'var(--lp-dark)',
@@ -1987,7 +1987,7 @@ function ProposeCancelModal({
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        className="absolute start-0 top-0 bottom-0 w-[3px]"
                         style={{ background: 'var(--lp-accent)' }}
                       />
                     )}

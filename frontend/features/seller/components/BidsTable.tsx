@@ -25,12 +25,12 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
-            <th className="text-left font-medium px-5 py-3">Job</th>
-            <th className="text-left font-medium px-5 py-3">Buyer</th>
-            <th className="text-left font-medium px-5 py-3">Bid</th>
-            <th className="text-left font-medium px-5 py-3">Rounds</th>
-            <th className="text-left font-medium px-5 py-3">Status</th>
-            <th className="text-right font-medium px-5 py-3">Open</th>
+            <th className="text-start font-medium px-5 py-3">Job</th>
+            <th className="text-start font-medium px-5 py-3">Buyer</th>
+            <th className="text-start font-medium px-5 py-3">Bid</th>
+            <th className="text-start font-medium px-5 py-3">Rounds</th>
+            <th className="text-start font-medium px-5 py-3">Status</th>
+            <th className="text-end font-medium px-5 py-3">Open</th>
           </tr>
         </thead>
         <tbody>
@@ -73,7 +73,7 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
                     </Tag>
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-right">
+                <td className="px-5 py-3.5 text-end">
                   <span className="inline-flex items-center gap-2 justify-end">
                     {b.finalized && (
                       <button

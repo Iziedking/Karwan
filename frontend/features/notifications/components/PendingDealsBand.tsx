@@ -152,12 +152,12 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
             >
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                className="absolute start-0 top-0 bottom-0 w-[3px]"
                 style={{ background: 'var(--lp-accent)' }}
               />
               <Link
                 href={`/deals/${deal.jobId}`}
-                className="block px-5 py-4 pl-6 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                className="block px-5 py-4 ps-6 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
@@ -194,7 +194,7 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
                       {counterRole} {counterparty.slice(0, 8)}…{counterparty.slice(-6)}
                     </p>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-end shrink-0">
                     <span
                       className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
                       style={{

@@ -187,7 +187,7 @@ export default function StakePage() {
             return (
               <Reveal key={t} delay={i * 0.05}>
                 <li
-                  className="relative overflow-hidden flex items-start gap-4 px-5 py-4 pl-6"
+                  className="relative overflow-hidden flex items-start gap-4 px-5 py-4 ps-6"
                   style={{
                     background: here ? 'rgba(175, 201, 91,0.08)' : 'var(--lp-card)',
                     border: here ? '1px solid var(--lp-accent)' : '1px solid var(--lp-border-light)',
@@ -199,7 +199,7 @@ export default function StakePage() {
                 >
                   <span
                     aria-hidden
-                    className="absolute left-0 top-0 bottom-0 w-[3px]"
+                    className="absolute start-0 top-0 bottom-0 w-[3px]"
                     style={{ background: TIER_HUE[t] }}
                   />
                   <span
@@ -213,7 +213,7 @@ export default function StakePage() {
                         {t}
                         {here && (
                           <span
-                            className="ml-2 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5 align-middle"
+                            className="ms-2 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5 align-middle"
                             style={{
                               background: 'rgba(175, 201, 91,0.18)',
                               color: 'var(--lp-band-dark)',

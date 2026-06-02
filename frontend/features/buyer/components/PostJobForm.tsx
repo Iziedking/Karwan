@@ -204,7 +204,7 @@ export function PostJobForm() {
             <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
               USDC
             </span>
-            <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-white/20" />
+            <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-white/20" />
             <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
               {previewDeadline}
             </span>

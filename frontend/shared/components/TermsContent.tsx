@@ -215,5 +215,5 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Bullets({ children }: { children: ReactNode }) {
-  return <ul className="space-y-2 list-disc pl-5 marker:text-[var(--lp-text-muted)]">{children}</ul>;
+  return <ul className="space-y-2 list-disc ps-5 marker:text-[var(--lp-text-muted)]">{children}</ul>;
 }

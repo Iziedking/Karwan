@@ -152,11 +152,11 @@ export function TopNav() {
           </nav>
         )}
 
-        {/* RIGHT. control cluster */}
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
+        {/* INLINE-END. control cluster */}
+        <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {isApp ? (
             <>
-              <div className="hidden lg:inline-flex items-center pl-3 pr-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono shrink-0 whitespace-nowrap">
+              <div className="hidden lg:inline-flex items-center px-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono shrink-0 whitespace-nowrap">
                 <BalanceRail />
               </div>
               <div className="hidden md:inline-flex">
@@ -193,7 +193,7 @@ export function TopNav() {
 
       {isApp && menuOpen && (
         <div
-          className="md:hidden absolute left-0 right-0 top-full bg-[var(--color-surface)] border-b border-[var(--color-line)] shadow-sm fade-up"
+          className="md:hidden absolute start-0 end-0 top-full bg-[var(--color-surface)] border-b border-[var(--color-line)] shadow-sm fade-up"
           onClick={() => setMenuOpen(false)}
         >
           <nav className="px-4 py-3 flex flex-col text-[14px]">
@@ -505,7 +505,7 @@ function QuickControls({
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full pt-2 z-40">
+        <div className="absolute end-0 top-full pt-2 z-40">
           <div
             className="w-[224px] p-2 border bg-[var(--color-surface)] fade-up"
             style={{

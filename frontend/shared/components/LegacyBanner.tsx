@@ -81,7 +81,7 @@ export function LegacyBanner() {
         }}
       />
       <div className="relative mx-auto max-w-[1440px] px-[clamp(16px,5vw,72px)] py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-8">
-        <div className="min-w-0 flex-1 flex items-start sm:items-center gap-3 sm:gap-5 pr-8 sm:pr-0">
+        <div className="min-w-0 flex-1 flex items-start sm:items-center gap-3 sm:gap-5 pe-8 sm:pe-0">
           <span
             className="hidden sm:flex shrink-0 items-center justify-center w-12 h-12 mono text-[18px] font-extrabold"
             style={{
@@ -143,7 +143,7 @@ export function LegacyBanner() {
             }}
             aria-label="Dismiss banner"
             title="Hide for this browser. Comes back if you clear storage. Window closes for everyone after the deadline."
-            className="absolute sm:static top-2 right-2 mono text-[14px] sm:text-[12px] text-white/50 sm:text-white/40 hover:text-white/80 px-2 py-1 transition-colors"
+            className="absolute sm:static top-2 end-2 mono text-[14px] sm:text-[12px] text-white/50 sm:text-white/40 hover:text-white/80 px-2 py-1 transition-colors"
           >
             ×
           </button>

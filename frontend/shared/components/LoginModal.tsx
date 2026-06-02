@@ -10,6 +10,7 @@ import {
 } from '@simplewebauthn/browser';
 import { api, ApiError } from '@/core/api';
 import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 interface Props {
   open: boolean;
@@ -39,6 +40,8 @@ interface AuthPlan {
 export function LoginModal({ open, onClose }: Props) {
   const { refresh, isAuthenticated } = useAuth();
   const router = useRouter();
+  const tAll = useTranslations();
+  const t = tAll.auth.modal;
   const [stage, setStage] = useState<Stage>('pick-method');
   const [email, setEmail] = useState('');
   const [plan, setPlan] = useState<AuthPlan | null>(null);
@@ -129,7 +132,7 @@ export function LoginModal({ open, onClose }: Props) {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
     if (!EMAIL_RE.test(trimmed)) {
-      setError('Enter a valid email.');
+      setError(t.errors.invalidEmail);
       return;
     }
     setBusy(true);
@@ -148,7 +151,7 @@ export function LoginModal({ open, onClose }: Props) {
     } catch (err) {
       const detail =
         err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail || "Couldn't check that email.");
+      setError(detail || t.errors.lookupFailed);
     } finally {
       setBusy(false);
     }
@@ -191,13 +194,13 @@ export function LoginModal({ open, onClose }: Props) {
       if (e.name === 'NotAllowedError' || /timed out|not allowed/i.test(e.message ?? '')) {
         setError(
           plan.exists
-            ? 'Passkey prompt cancelled. Try again, or use a code.'
-            : 'Passkey setup cancelled. Try again, or use a code.',
+            ? t.errors.passkeyCancelledSignIn
+            : t.errors.passkeyCancelledCreate,
         );
       } else {
         const detail =
           err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-        setError(detail || 'Passkey ceremony failed.');
+        setError(detail || t.errors.passkeyGeneric);
       }
     } finally {
       setBusy(false);
@@ -223,7 +226,7 @@ export function LoginModal({ open, onClose }: Props) {
     } catch (err) {
       const detail =
         err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail || "Couldn't send a code. Try again.");
+      setError(detail || t.errors.otpSendFailed);
     } finally {
       setBusy(false);
     }
@@ -233,7 +236,7 @@ export function LoginModal({ open, onClose }: Props) {
     e.preventDefault();
     const code = otpCode.trim();
     if (!/^\d{6}$/.test(code)) {
-      setError('Code is 6 digits.');
+      setError(t.errors.codeMustBeSixDigits);
       return;
     }
     setBusy(true);
@@ -246,7 +249,7 @@ export function LoginModal({ open, onClose }: Props) {
     } catch (err) {
       const detail =
         err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail || 'Code rejected.');
+      setError(detail || t.errors.codeRejected);
     } finally {
       setBusy(false);
     }
@@ -261,7 +264,7 @@ export function LoginModal({ open, onClose }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Sign in to Karwan"
+        aria-label={t.aria.dialog}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[420px] overflow-hidden fade-up"
         style={{
@@ -296,7 +299,7 @@ export function LoginModal({ open, onClose }: Props) {
                   setStage('pick-method');
                   setError(null);
                 }}
-                aria-label="Back"
+                aria-label={t.aria.back}
                 className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -311,15 +314,15 @@ export function LoginModal({ open, onClose }: Props) {
               </button>
             )}
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] truncate">
-              {stage === 'pick-method' && 'WELCOME'}
-              {stage === 'enter-email' && 'EMAIL'}
-              {stage === 'auth' && (plan?.exists ? 'SIGN IN' : 'CREATE ACCOUNT')}
+              {stage === 'pick-method' && t.eyebrow.welcome}
+              {stage === 'enter-email' && t.eyebrow.email}
+              {stage === 'auth' && (plan?.exists ? t.eyebrow.signIn : t.eyebrow.createAccount)}
             </p>
           </div>
           <button
             type="button"
             onClick={() => !busy && onClose()}
-            aria-label="Close"
+            aria-label={t.aria.close}
             className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -336,22 +339,22 @@ export function LoginModal({ open, onClose }: Props) {
         {/* Title block — fixed height keeps the modal from jumping between stages */}
         <div className="px-6 pt-2 pb-5">
           <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)] leading-tight">
-            {stage === 'pick-method' && 'Sign in to Karwan'}
-            {stage === 'enter-email' && "What's your email?"}
-            {stage === 'auth' && plan?.exists && (otpSent ? 'Check your inbox' : 'Welcome back')}
-            {stage === 'auth' && !plan?.exists && (otpSent ? 'Check your inbox' : 'Create your account')}
+            {stage === 'pick-method' && t.title.signIn}
+            {stage === 'enter-email' && t.title.askEmail}
+            {stage === 'auth' && plan?.exists && (otpSent ? t.title.checkInbox : t.title.welcomeBack)}
+            {stage === 'auth' && !plan?.exists && (otpSent ? t.title.checkInbox : t.title.createAccount)}
           </h2>
           <p className="mt-2 text-[13px] leading-snug text-[var(--lp-text-sub)] max-w-[36ch]">
-            {stage === 'pick-method' && 'Karwan identifies you by a wallet. Pick a path. We provision the rest.'}
-            {stage === 'enter-email' && "We'll check if you already have an account and pick the right sign-in path."}
+            {stage === 'pick-method' && t.subtitle.pickMethod}
+            {stage === 'enter-email' && t.subtitle.lookup}
             {stage === 'auth' && plan?.exists && !otpSent && (
-              <>Signing in as <span className="mono text-[var(--lp-dark)]">{email}</span>.</>
+              <>{t.subtitle.signingInAs} <span className="mono text-[var(--lp-dark)]">{email}</span>.</>
             )}
             {stage === 'auth' && !plan?.exists && !otpSent && (
-              <>Creating <span className="mono text-[var(--lp-dark)]">{email}</span>. Your wallet is provisioned automatically.</>
+              <><span className="mono text-[var(--lp-dark)]">{email}</span>. {t.subtitle.creatingAccount}</>
             )}
             {stage === 'auth' && otpSent && (
-              <>Code sent to <span className="mono text-[var(--lp-dark)]">{email}</span>. Enter the 6 digits.</>
+              <><span className="mono text-[var(--lp-dark)]">{email}</span>. {t.subtitle.codeSentTo}</>
             )}
           </p>
         </div>
@@ -377,20 +380,20 @@ export function LoginModal({ open, onClose }: Props) {
               >
                 <span className="inline-flex items-center gap-2.5">
                   <EmailIcon />
-                  Continue with email
+                  {t.pickMethod.continueEmail}
                 </span>
                 <span aria-hidden>→</span>
               </button>
               {passkeyConfigured === false && (
                 <p className="mono text-[11px] text-[#b25425] leading-snug">
-                  Email login is not configured on this backend.
+                  {t.pickMethod.emailNotConfigured}
                 </p>
               )}
 
               <div className="flex items-center gap-3 py-1">
                 <span className="flex-1 h-px bg-[var(--lp-border-light)]" />
                 <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  OR
+                  {t.pickMethod.or}
                 </span>
                 <span className="flex-1 h-px bg-[var(--lp-border-light)]" />
               </div>
@@ -412,7 +415,7 @@ export function LoginModal({ open, onClose }: Props) {
                   >
                     <span className="inline-flex items-center gap-2.5">
                       <WalletIcon />
-                      Connect a wallet
+                      {t.pickMethod.connectWallet}
                     </span>
                     <span aria-hidden>→</span>
                   </button>
@@ -425,7 +428,7 @@ export function LoginModal({ open, onClose }: Props) {
             <form onSubmit={handleLookup} className="space-y-4">
               <label className="block space-y-1.5">
                 <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  Email
+                  {t.enterEmail.label}
                 </span>
                 <input
                   type="email"
@@ -434,7 +437,7 @@ export function LoginModal({ open, onClose }: Props) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={busy}
-                  placeholder="you@example.com"
+                  placeholder={t.enterEmail.placeholder}
                   className="form-input"
                   autoFocus
                 />
@@ -450,7 +453,7 @@ export function LoginModal({ open, onClose }: Props) {
                   borderBottomRightRadius: 3,
                 }}
               >
-                {busy ? 'Checking…' : 'Continue →'}
+                {busy ? t.enterEmail.submitBusy : `${t.enterEmail.submit} →`}
               </button>
             </form>
           )}
@@ -471,8 +474,8 @@ export function LoginModal({ open, onClose }: Props) {
               >
                 <PasskeyIcon />
                 {busy
-                  ? plan.exists ? 'Verifying…' : 'Setting up…'
-                  : plan.exists ? 'Sign in with Passkey' : 'Set up Passkey'}
+                  ? plan.exists ? t.authStep.passkeyVerifying : t.authStep.passkeySettingUp
+                  : plan.exists ? t.authStep.passkeySignIn : t.authStep.passkeyCreate}
               </button>
               <button
                 type="button"
@@ -480,7 +483,7 @@ export function LoginModal({ open, onClose }: Props) {
                 disabled={busy}
                 className="w-full mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50 transition-colors"
               >
-                Use an email code instead
+                {t.authStep.useCodeInstead}
               </button>
             </div>
           )}
@@ -489,7 +492,7 @@ export function LoginModal({ open, onClose }: Props) {
             <div className="space-y-3">
               {!plan.supportsWebAuthn && (
                 <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-                  This browser doesn't support passkeys.
+                  {t.authStep.noWebAuthnHint}
                 </p>
               )}
               <button
@@ -505,11 +508,11 @@ export function LoginModal({ open, onClose }: Props) {
                 }}
               >
                 <EmailIcon />
-                {busy ? 'Sending…' : 'Send a code'}
+                {busy ? t.authStep.sendingCode : t.authStep.sendCode}
               </button>
               {plan.supportsWebAuthn && plan.exists && !plan.hasPasskey && (
                 <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-                  No passkey on this account yet. Sign in with a code, set one up after.
+                  {t.authStep.noPasskeyHint}
                 </p>
               )}
             </div>
@@ -519,7 +522,7 @@ export function LoginModal({ open, onClose }: Props) {
             <form onSubmit={verifyOtp} className="space-y-4">
               <label className="block space-y-1.5">
                 <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  6-digit code
+                  {t.otp.label}
                 </span>
                 <input
                   type="text"
@@ -538,7 +541,7 @@ export function LoginModal({ open, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => setOtpCode(otpDevHint)}
-                  className="group w-full inline-flex items-center justify-between gap-2 px-3 py-2 text-left transition-colors"
+                  className="group w-full inline-flex items-center justify-between gap-2 px-3 py-2 text-start transition-colors"
                   style={{
                     background: 'rgba(175, 201, 91,0.12)',
                     border: '1px dashed rgba(175, 201, 91,0.55)',
@@ -547,7 +550,7 @@ export function LoginModal({ open, onClose }: Props) {
                     borderBottomLeftRadius: 8,
                     borderBottomRightRadius: 2,
                   }}
-                  title="Dev mode only. Hidden in production."
+                  title={t.otp.devTooltip}
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <span
@@ -561,10 +564,10 @@ export function LoginModal({ open, onClose }: Props) {
                         borderBottomRightRadius: 1,
                       }}
                     >
-                      DEV
+                      {t.otp.devChip}
                     </span>
                     <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-                      Tap to autofill
+                      {t.otp.devTapToAutofill}
                     </span>
                   </span>
                   <span className="mono text-[14px] font-bold tabular-nums tracking-[0.18em] text-[var(--lp-dark)] group-hover:opacity-80 transition-opacity">
@@ -579,7 +582,7 @@ export function LoginModal({ open, onClose }: Props) {
                   disabled={busy}
                   className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
                 >
-                  Resend
+                  {t.otp.resend}
                 </button>
                 <button
                   type="submit"
@@ -592,7 +595,7 @@ export function LoginModal({ open, onClose }: Props) {
                     borderBottomRightRadius: 3,
                   }}
                 >
-                  {busy ? 'Verifying…' : 'Verify →'}
+                  {busy ? t.otp.verifyBusy : `${t.otp.verify} →`}
                 </button>
               </div>
             </form>

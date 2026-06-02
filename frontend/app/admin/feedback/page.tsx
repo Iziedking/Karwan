@@ -274,7 +274,7 @@ function FeedbackCard({
         >
           {item.status}
         </span>
-        <span className="ml-auto mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+        <span className="ms-auto mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
           {new Date(item.createdAt).toLocaleString()}
         </span>
       </div>

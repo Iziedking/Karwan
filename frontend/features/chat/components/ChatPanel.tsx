@@ -86,7 +86,7 @@ export function ChatPanel({
               }}
             />
             <div
-              className="h-10 w-1/2 ml-auto bg-black/[0.05] animate-pulse motion-reduce:animate-none"
+              className="h-10 w-1/2 ms-auto bg-black/[0.05] animate-pulse motion-reduce:animate-none"
               style={{
                 borderTopLeftRadius: 12,
                 borderTopRightRadius: 12,

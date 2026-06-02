@@ -34,11 +34,11 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
-            <th className="text-left font-medium px-5 py-3">Job</th>
-            <th className="text-left font-medium px-5 py-3">Budget</th>
-            <th className="text-left font-medium px-5 py-3">Deadline</th>
-            <th className="text-left font-medium px-5 py-3">Status</th>
-            <th className="text-right font-medium px-5 py-3">Open</th>
+            <th className="text-start font-medium px-5 py-3">Job</th>
+            <th className="text-start font-medium px-5 py-3">Budget</th>
+            <th className="text-start font-medium px-5 py-3">Deadline</th>
+            <th className="text-start font-medium px-5 py-3">Status</th>
+            <th className="text-end font-medium px-5 py-3">Open</th>
           </tr>
         </thead>
         <tbody>
@@ -79,7 +79,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                     <Tag tone={s.tone}>{s.label}</Tag>
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-right">
+                <td className="px-5 py-3.5 text-end">
                   <span className="inline-flex items-center gap-2 justify-end">
                     {(j.cancelledAt || j.expiredAt || j.escrowFunded) && (
                       <button

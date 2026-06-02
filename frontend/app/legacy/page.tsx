@@ -1008,7 +1008,7 @@ function DealRow({
 
       {deal.hasCancellationProposal && deal.cancellationProposal && (
         <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mr-2">
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] me-2">
             cancel proposed by {deal.cancellationProposal.proposedBy}:
           </span>
           {deal.cancellationProposal.reason}

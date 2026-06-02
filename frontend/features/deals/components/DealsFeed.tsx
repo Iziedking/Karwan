@@ -172,7 +172,7 @@ export function DealsFeed() {
                 >
                   <span
                     aria-hidden
-                    className="absolute left-0 top-2 bottom-2 w-[3px] opacity-60 transition-opacity duration-150 group-hover:opacity-100"
+                    className="absolute start-0 top-2 bottom-2 w-[3px] opacity-60 transition-opacity duration-150 group-hover:opacity-100"
                     style={{ background: meta.rail }}
                   />
 
@@ -207,7 +207,7 @@ export function DealsFeed() {
 
                   {/* Mobile row 2 / desktop col 3: parties (left) + chevron (right) */}
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-5 md:shrink-0">
-                    <div className="text-left md:text-right min-w-0">
+                    <div className="text-start md:text-end min-w-0">
                       <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-none truncate">
                         {shortAddress(deal.buyer)}
                         <span className="mx-1 text-[var(--lp-text-muted)]">→</span>

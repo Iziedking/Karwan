@@ -206,7 +206,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                     {deal.terms}
                   </p>
                 </div>
-                <div className="text-right shrink-0 space-y-1.5">
+                <div className="text-end shrink-0 space-y-1.5">
                   <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
                     {isBuyer ? 'SELLER' : 'BUYER'}
                   </p>
@@ -372,14 +372,14 @@ function SwipeableRow({
       {/* Rail indicator. Stays at the row's left edge regardless of drag. */}
       <span
         aria-hidden
-        className="absolute left-0 top-3 bottom-3 w-[3px] z-[1] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
+        className="absolute start-0 top-3 bottom-3 w-[3px] z-[1] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
         style={{ background: railColor }}
       />
       {/* Red reveal layer behind the row; fades in as the row slides left. */}
       {dismissable && (
         <div
           aria-hidden
-          className="absolute inset-0 flex items-center justify-end pr-6 pointer-events-none"
+          className="absolute inset-0 flex items-center justify-end pe-6 pointer-events-none"
           style={{
             background: '#9c3735',
             opacity: Math.min(1, Math.abs(dragX) / 100),
@@ -410,7 +410,7 @@ function SwipeableRow({
             onDismiss();
           }}
           className={cn(
-            'absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full mono text-[16px]',
+            'absolute top-3 end-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full mono text-[16px]',
             'transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
             'opacity-60 md:opacity-40 md:group-hover:opacity-100 hover:opacity-100',
             'hover:-translate-y-0.5 hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] hover:border-[var(--lp-accent)]',

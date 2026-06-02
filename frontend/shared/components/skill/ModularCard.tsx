@@ -77,7 +77,7 @@ export function ModularCard({
       />
 
       {topRight && (
-        <div className="absolute top-4 right-4 z-10">{topRight}</div>
+        <div className="absolute top-4 end-4 z-10">{topRight}</div>
       )}
 
       {/* visual ~60% of card height */}

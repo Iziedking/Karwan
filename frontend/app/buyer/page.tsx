@@ -102,7 +102,7 @@ export default function BuyerPage() {
                 Open a deal ↓
               </a>
               {address && (
-                <span className="ml-1">
+                <span className="ms-1">
                   <AddressPill address={shortAddress(address)} tone="dark" />
                 </span>
               )}
@@ -154,7 +154,7 @@ export default function BuyerPage() {
               {sortedJobs.length > 0 && (
                 <>
                   <Punc>.</Punc>
-                  <span className="ml-3 text-white/55 font-sans font-extrabold">
+                  <span className="ms-3 text-white/55 font-sans font-extrabold">
                     {sortedJobs.length}
                   </span>
                 </>

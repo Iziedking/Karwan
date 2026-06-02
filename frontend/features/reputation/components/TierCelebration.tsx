@@ -192,11 +192,11 @@ export function TierCelebration({ address }: { address?: string | null }) {
         {/* Left tone rail in the tier hue. */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 z-10 w-[5px]"
+          className="absolute start-0 top-0 bottom-0 z-10 w-[5px]"
           style={{ background: hue }}
         />
 
-        <div className="relative z-10 flex items-center gap-4 px-5 py-5 pl-6 sm:gap-5">
+        <div className="relative z-10 flex items-center gap-4 px-5 py-5 ps-6 sm:gap-5">
           <span
             aria-hidden
             className="hidden sm:inline-flex shrink-0 items-center justify-center font-sans text-[22px] font-extrabold"

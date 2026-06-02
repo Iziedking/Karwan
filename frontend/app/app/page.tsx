@@ -192,7 +192,7 @@ export default function AppHome() {
               <CTAPill href="/activity" variant="secondary" tone="dark">
                 View activity →
               </CTAPill>
-              <span className="ml-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
+              <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
                 {shortAddress(profile.address)}
               </span>
@@ -614,7 +614,7 @@ function BriefVignette() {
         <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           USDC
         </span>
-        <span className="ml-2 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
+        <span className="ms-2 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
           · 5d · {bids} bids
         </span>
       </div>
@@ -798,7 +798,7 @@ function StreamVignette() {
       </div>
       <span
         aria-hidden
-        className="absolute left-[27px] top-[44px] bottom-[18px] w-px"
+        className="absolute start-[27px] top-[44px] bottom-[18px] w-px"
         style={{ background: 'rgba(0,0,0,0.18)' }}
       />
       <ol key={head} className="space-y-1.5">

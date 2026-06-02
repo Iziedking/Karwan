@@ -141,7 +141,7 @@ export function BridgeOutCard() {
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
-                className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
+                className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors"
                 style={{
                   background: 'var(--lp-card)',
                   border: '1px solid var(--lp-border-light)',
@@ -170,7 +170,7 @@ export function BridgeOutCard() {
               </button>
               {open && (
                 <ul
-                  className="absolute z-20 left-0 right-0 mt-2 p-1.5 fade-up"
+                  className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up"
                   style={{
                     background: 'var(--lp-card)',
                     border: '1px solid var(--lp-border-light)',
@@ -189,7 +189,7 @@ export function BridgeOutCard() {
                           setDestKey(k);
                           setOpen(false);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start"
                       >
                         <ChainLogo chain={k} size={22} />
                         <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
@@ -198,7 +198,7 @@ export function BridgeOutCard() {
                         {k === destKey && (
                           <span
                             aria-hidden
-                            className="ml-auto inline-block w-[6px] h-[6px]"
+                            className="ms-auto inline-block w-[6px] h-[6px]"
                             style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
                           />
                         )}
@@ -362,7 +362,7 @@ function OutRow({
     tone === 'positive' ? '#0a7553' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';
   return (
     <li
-      className="relative overflow-hidden p-3 pl-4"
+      className="relative overflow-hidden p-3 ps-4"
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
@@ -372,7 +372,7 @@ function OutRow({
         borderBottomRightRadius: 3,
       }}
     >
-      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: rail }} />
+      <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: rail }} />
       <div className="flex items-center gap-3">
         <span className="inline-flex items-center gap-1.5">
           <ChainLogo chain="arc" size={20} />
@@ -397,7 +397,7 @@ function OutRow({
                 href={dest.explorerTx(bridge.mintTxHash)}
                 target="_blank"
                 rel="noreferrer"
-                className="ml-2 underline-offset-2 hover:underline text-[var(--lp-text-muted)]"
+                className="ms-2 underline-offset-2 hover:underline text-[var(--lp-text-muted)]"
               >
                 {shortHash(bridge.mintTxHash)}
               </a>

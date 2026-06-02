@@ -136,7 +136,7 @@ function DocsCardLink({
         </span>
         <span
           aria-hidden
-          className="ml-auto text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-0.5"
+          className="ms-auto text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-0.5"
         >
           →
         </span>

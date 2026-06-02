@@ -105,7 +105,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-2 right-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute top-2 end-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
@@ -172,7 +172,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
             tier (grey NEW, amber COLD, lime ESTABLISHED, green STRONG/ELITE). */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-[4px]"
+          className="absolute start-0 top-0 bottom-0 w-[4px]"
           style={{ background: tierHue }}
         />
         <div className="relative px-6 pt-7 pb-5">
@@ -180,7 +180,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-3 right-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute top-3 end-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path

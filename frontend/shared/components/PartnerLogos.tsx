@@ -6,7 +6,7 @@ export function PartnerLogos() {
   // stay a server component.
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 text-[var(--color-ink-dim)]">
-      <span className="text-[11px] uppercase tracking-[0.2em] text-[var(--color-ink-faint)] mr-2">
+      <span className="text-[11px] uppercase tracking-[0.2em] text-[var(--color-ink-faint)] me-2">
         Built on
       </span>
       <LogoSlot delay="0s">

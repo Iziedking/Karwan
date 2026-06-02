@@ -221,7 +221,7 @@ function HowItWorksSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: dur.slow, ease: ease.out, delay: i * 0.08 }}
-            className="relative pt-6 px-6 first:pl-0 last:pr-0"
+            className="relative pt-6 px-6 first:ps-0 last:pe-0"
             style={{ borderTop: '1px solid var(--lp-border-light)' }}
           >
             <span
@@ -327,7 +327,7 @@ function FlowSection() {
                 {i < steps.length - 1 && (
                   <span
                     aria-hidden
-                    className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2"
+                    className="hidden lg:block absolute end-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-2 h-2"
                     style={{
                       background: 'var(--lp-accent)',
                       borderRadius: 1,
@@ -490,13 +490,13 @@ function TradeLanesSection() {
               {l.to}
             </span>
             <span
-              className="md:text-right mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
+              className="md:text-end mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
               {l.vol} USDC
             </span>
             <span
-              className="md:text-right mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
+              className="md:text-end mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
               AVG {l.avg}
@@ -661,7 +661,7 @@ function GetStartedSection() {
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : s.n)}
-                className="w-full grid grid-cols-[100px_1fr_auto] gap-6 items-baseline py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+                className="w-full grid grid-cols-[100px_1fr_auto] gap-6 items-baseline py-6 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
               >
                 <span
                   className="mono text-[11px] font-semibold uppercase tracking-[0.1em]"
@@ -698,7 +698,7 @@ function GetStartedSection() {
                     className="overflow-hidden"
                   >
                     <p
-                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ml-[100px]"
+                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ms-[100px]"
                       style={{ color: 'var(--lp-text-sub)' }}
                     >
                       {s.body}

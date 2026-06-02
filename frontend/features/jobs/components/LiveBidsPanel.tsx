@@ -92,7 +92,7 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
       {isLead && (
         <span
           aria-hidden
-          className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
+          className="absolute start-0 top-3 bottom-3 w-[2px] rounded-full"
           style={{ background: 'var(--color-accent)' }}
         />
       )}

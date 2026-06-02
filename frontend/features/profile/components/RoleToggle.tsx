@@ -90,7 +90,7 @@ export function RoleToggle({
               disabled={busy || active}
               title={!eligibility.ok ? eligibility.reason : undefined}
               className={cn(
-                'group relative overflow-hidden text-left p-5 min-h-[112px] transition-all duration-200 text-[var(--lp-dark)]',
+                'group relative overflow-hidden text-start p-5 min-h-[112px] transition-all duration-200 text-[var(--lp-dark)]',
                 !active && eligibility.ok && 'hover:-translate-y-0.5',
               )}
               style={{
@@ -115,13 +115,13 @@ export function RoleToggle({
                 <>
                   <span
                     aria-hidden
-                    className="absolute left-0 top-0 bottom-0 w-[3px]"
+                    className="absolute start-0 top-0 bottom-0 w-[3px]"
                     style={{ background: 'var(--lp-accent)' }}
                   />
                   <span
                     aria-hidden
                     data-instrument-blink
-                    className="absolute top-3.5 right-3.5 inline-block w-[7px] h-[7px]"
+                    className="absolute top-3.5 end-3.5 inline-block w-[7px] h-[7px]"
                     style={{
                       background: 'var(--lp-accent)',
                       animation: 'instrumentBlink 1.6s ease-in-out infinite',

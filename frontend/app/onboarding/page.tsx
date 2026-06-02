@@ -555,7 +555,7 @@ function RoleCard({
       type="button"
       onClick={() => onSelect(role)}
       className={cn(
-        'group block w-full text-left relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'group block w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',

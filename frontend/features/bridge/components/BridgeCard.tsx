@@ -411,7 +411,7 @@ export function BridgeCard({
                     key={c.key}
                     onClick={() => setSourceKey(c.key)}
                     aria-pressed={active}
-                    className="relative overflow-hidden text-left pl-4 pr-3.5 py-3 transition-colors"
+                    className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors"
                     style={{
                       background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
                       color: 'var(--lp-dark)',
@@ -428,7 +428,7 @@ export function BridgeCard({
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        className="absolute start-0 top-0 bottom-0 w-[3px]"
                         style={{ background: 'var(--lp-accent)' }}
                       />
                     )}
@@ -436,7 +436,7 @@ export function BridgeCard({
                       <span
                         aria-hidden
                         data-instrument-blink
-                        className="absolute top-2 right-2 inline-block w-[6px] h-[6px]"
+                        className="absolute top-2 end-2 inline-block w-[6px] h-[6px]"
                         style={{
                           background: 'var(--lp-accent)',
                           animation: 'instrumentBlink 1.6s ease-in-out infinite',
@@ -481,7 +481,7 @@ export function BridgeCard({
                         ? 'Solana bridge runs through Circle App Kit. Sign in with a Circle account to use it.'
                         : undefined
                     }
-                    className="relative overflow-hidden text-left pl-4 pr-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
                       background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
                       color: 'var(--lp-dark)',
@@ -498,7 +498,7 @@ export function BridgeCard({
                     {active && (
                       <span
                         aria-hidden
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        className="absolute start-0 top-0 bottom-0 w-[3px]"
                         style={{ background: 'var(--lp-accent)' }}
                       />
                     )}
@@ -757,13 +757,13 @@ function BridgeRow({
     >
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: railColor }}
       />
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-left p-3 pl-4 flex items-center gap-3"
+        className="w-full text-start p-3 ps-4 flex items-center gap-3"
       >
         <RouteGlyph from={bridge.sourceChainKey} size={22} />
         <div className="flex-1 min-w-0">
@@ -955,7 +955,7 @@ function SegmentedProgress({ idx, tone }: { idx: number; tone: 'live' | 'positiv
             {active && (
               <span
                 aria-hidden
-                className="absolute inset-y-0 left-0 w-1/2"
+                className="absolute inset-y-0 start-0 w-1/2"
                 style={{
                   background: `linear-gradient(90deg, transparent 0%, ${fillColor} 50%, transparent 100%)`,
                   animation: 'bridgeShimmer 1.6s ease-in-out infinite',
@@ -1015,7 +1015,7 @@ function BridgeSteps({ bridge }: { bridge: BridgeRecord }) {
             {!isLast && (
               <span
                 aria-hidden
-                className="absolute left-[13px] top-[26px] w-px"
+                className="absolute start-[13px] top-[26px] w-px"
                 style={{
                   bottom: 0,
                   background: done ? TONE_HEX.positive : 'var(--lp-border-light)',
@@ -1252,10 +1252,10 @@ function CircleSourceFundBanner({
     >
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: accent }}
       />
-      <div className="px-4 py-3 pl-5">
+      <div className="px-4 py-3 ps-5">
         <div className="flex items-center gap-3 flex-wrap">
           <span
             className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
@@ -1285,7 +1285,7 @@ function CircleSourceFundBanner({
             </p>
             <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {wallet?.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
-              <span className="ml-1 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              <span className="ms-1 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
@@ -1421,7 +1421,7 @@ function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
 
   return (
     <div
-      className="relative mb-4 overflow-hidden px-4 py-3 pl-5"
+      className="relative mb-4 overflow-hidden px-4 py-3 ps-5"
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
@@ -1433,7 +1433,7 @@ function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
     >
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: 'var(--lp-accent)' }}
       />
       <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
@@ -1514,7 +1514,7 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
 
   return (
     <div
-      className="relative mb-4 overflow-hidden px-4 py-3 pl-5"
+      className="relative mb-4 overflow-hidden px-4 py-3 ps-5"
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
@@ -1526,7 +1526,7 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
     >
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: 'var(--lp-accent)' }}
       />
       <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">

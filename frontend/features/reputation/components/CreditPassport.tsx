@@ -250,7 +250,7 @@ export function CreditPassport({ address }: { address: string }) {
               </p>
             </div>
             {distanceToNext != null && nextTierTarget && (
-              <div className="ml-auto pb-1 text-right">
+              <div className="ms-auto pb-1 text-end">
                 <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
                   Next tier
                 </p>
@@ -302,14 +302,14 @@ export function CreditPassport({ address }: { address: string }) {
           metadata so the eye lands on outcomes first. */}
       <section className="mt-4 flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--color-ink-dim)] px-1">
         <span>
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] mr-1.5">
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] me-1.5">
             Settled
           </span>
           <span className="tabular-nums">{total}</span>
         </span>
         {tenureDays != null && (
           <span>
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] mr-1.5">
+            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] me-1.5">
               Tenure
             </span>
             <span className="tabular-nums">{tenureDays}d</span>
@@ -384,7 +384,7 @@ function ScoreBand({ score, tier }: { score: number; tier: CompositeTier }) {
     <div className="mt-5">
       <div className="relative h-2 rounded-full" style={{ background: 'var(--color-surface-2)' }}>
         <div
-          className="absolute inset-y-0 left-0 rounded-full"
+          className="absolute inset-y-0 start-0 rounded-full"
           style={{ width: `${pct}%`, background: TIER_HUE[tier] }}
         />
         {TIER_BANDS.slice(1).map((b) => (

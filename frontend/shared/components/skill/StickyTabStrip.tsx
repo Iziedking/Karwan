@@ -125,7 +125,7 @@ export function StickyTabStrip({
                   <motion.span
                     layoutId={LAYOUT_ID}
                     aria-hidden
-                    className="absolute left-0 right-0 top-0 h-[2px]"
+                    className="absolute start-0 end-0 top-0 h-[2px]"
                     style={{ background: 'var(--accent)' }}
                     transition={{ duration: dur.base, ease: ease.out }}
                   />

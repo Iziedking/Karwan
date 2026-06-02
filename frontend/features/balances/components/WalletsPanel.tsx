@@ -49,7 +49,7 @@ function Row({
 }) {
   return (
     <li
-      className="relative overflow-hidden px-5 py-4 pl-6"
+      className="relative overflow-hidden px-5 py-4 ps-6"
       style={{
         background: 'var(--lp-light)',
         border: '1px solid var(--lp-border-light)',
@@ -62,7 +62,7 @@ function Row({
       {/* The identity wallet is the funding hub: give it the one lime rail. */}
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: hub ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
       />
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -82,7 +82,7 @@ function Row({
             </p>
           )}
         </div>
-        <div className="text-right shrink-0">
+        <div className="text-end shrink-0">
           <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
             {primary}
           </p>

@@ -251,7 +251,7 @@ export function BalancesCard({
                   {m.sub}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 <p className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
                   {num === null ? '-' : <AnimatedNumber value={num} decimals={2} />}
                 </p>

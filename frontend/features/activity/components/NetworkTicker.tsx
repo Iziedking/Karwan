@@ -106,7 +106,7 @@ export function NetworkTicker() {
           which painted a bright veil over the cards (tester feedback). */}
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 z-10 w-16 pointer-events-none"
+        className="absolute inset-y-0 start-0 z-10 w-16 pointer-events-none"
         style={{
           background:
             'linear-gradient(90deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
@@ -114,7 +114,7 @@ export function NetworkTicker() {
       />
       <span
         aria-hidden
-        className="absolute inset-y-0 right-0 z-10 w-16 pointer-events-none"
+        className="absolute inset-y-0 end-0 z-10 w-16 pointer-events-none"
         style={{
           background:
             'linear-gradient(270deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
@@ -178,7 +178,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
       {/* state rail on the left edge per skill grammar */}
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: railColor }}
       />
       {/* faint corner grid pattern, brightens on hover */}
@@ -205,7 +205,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         }}
       />
 
-      <div className="relative px-5 pt-4 pl-6 flex items-center justify-between">
+      <div className="relative px-5 pt-4 ps-6 flex items-center justify-between">
         <BracketTag variant={variant} onDark>
           {eyebrow}
         </BracketTag>
@@ -219,7 +219,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         )}
       </div>
 
-      <div className="relative px-5 pb-5 pl-6">
+      <div className="relative px-5 pb-5 ps-6">
         <p
           className="font-mono text-[11px] tabular-nums leading-snug"
           style={{ color: 'var(--ink-2)' }}

@@ -495,7 +495,7 @@ function AgentBlock({
                 {r.label}
               </span>
               <span
-                className={`text-right text-[13px] text-[var(--lp-dark)] truncate ${
+                className={`text-end text-[13px] text-[var(--lp-dark)] truncate ${
                   r.mono ? 'mono tabular-nums font-medium' : 'font-sans'
                 }`}
               >

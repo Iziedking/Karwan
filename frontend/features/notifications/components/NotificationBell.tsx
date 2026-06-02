@@ -67,7 +67,7 @@ export function NotificationBell() {
         {unreadCount > 0 && (
           <span
             aria-hidden
-            className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-1 rounded-full mono text-[9px] font-bold flex items-center justify-center text-[var(--lp-dark)]"
+            className="absolute -top-0.5 -end-0.5 min-w-[14px] h-[14px] px-1 rounded-full mono text-[9px] font-bold flex items-center justify-center text-[var(--lp-dark)]"
             style={{ background: 'var(--lp-accent)' }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -78,7 +78,7 @@ export function NotificationBell() {
       {open && typeof document !== 'undefined' && createPortal(
         <div
           ref={panelRef}
-          className="fixed left-2 right-2 top-[60px] sm:left-auto sm:right-3 sm:w-[340px] max-w-[calc(100vw-1rem)] bg-[var(--lp-card)] z-[60] fade-up overflow-hidden"
+          className="fixed start-2 end-2 top-[60px] sm:start-auto sm:end-3 sm:w-[340px] max-w-[calc(100vw-1rem)] bg-[var(--lp-card)] z-[60] fade-up overflow-hidden"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 14,
@@ -138,7 +138,7 @@ export function NotificationBell() {
                       setOpen(false);
                       router.push(n.href);
                     }}
-                    className="w-full text-left px-4 py-3 hover:bg-[var(--lp-light)] transition-colors flex items-start gap-3"
+                    className="w-full text-start px-4 py-3 hover:bg-[var(--lp-light)] transition-colors flex items-start gap-3"
                   >
                     <span
                       aria-hidden

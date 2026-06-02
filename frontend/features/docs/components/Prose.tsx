@@ -53,10 +53,10 @@ export function DocsList({ children }: { children: ReactNode }) {
 
 export function DocsListItem({ children }: { children: ReactNode }) {
   return (
-    <li className="relative pl-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+    <li className="relative ps-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
       <span
         aria-hidden
-        className="absolute left-0 top-[10px] w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]"
+        className="absolute start-0 top-[10px] w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]"
       />
       {children}
     </li>
@@ -152,7 +152,7 @@ export function DocsCallout({
   const accent = tone === 'warn' ? '#c96030' : 'var(--lp-accent)';
   return (
     <aside
-      className="mt-6 max-w-[64ch] pl-5 py-1"
+      className="mt-6 max-w-[64ch] ps-5 py-1"
       style={{ borderLeft: `3px solid ${accent}` }}
     >
       <p

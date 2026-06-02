@@ -88,7 +88,7 @@ export function DataRow({
 
       {/* value column */}
       {value !== undefined && (
-        <div className="shrink-0 text-right">
+        <div className="shrink-0 text-end">
           <div
             className={cn(
               'font-sans text-[18px] font-bold tabular-nums tracking-[-0.015em] leading-none',
@@ -139,7 +139,7 @@ export function DataRow({
       <button
         type="button"
         onClick={onClick}
-        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset"
+        className="block w-full text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset"
       >
         {body}
       </button>

@@ -116,7 +116,7 @@ export function MoneyStrip() {
           >
             <span
               aria-hidden
-              className="absolute left-0 top-0 bottom-0 w-[3px]"
+              className="absolute start-0 top-0 bottom-0 w-[3px]"
               style={{ background: c.rail }}
             />
             <p className="font-sans text-[clamp(1.2rem,4.5vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">

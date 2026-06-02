@@ -239,7 +239,7 @@ export function EventList({
             <>
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                className="absolute start-0 top-0 bottom-0 w-[3px]"
                 style={{ background: rail }}
               />
               <div className="flex items-baseline justify-between gap-3">
@@ -312,7 +312,7 @@ export function EventList({
                 {href && (
                   <span
                     aria-hidden
-                    className="ml-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
+                    className="ms-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
                   >
                     OPEN →
                   </span>
@@ -336,13 +336,13 @@ export function EventList({
               {href ? (
                 <Link
                   href={href}
-                  className="group relative overflow-hidden block p-4 pl-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-px hover:shadow-[0_1px_0_rgba(0,0,0,0.04),0_10px_24px_-14px_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                  className="group relative overflow-hidden block p-4 ps-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-px hover:shadow-[0_1px_0_rgba(0,0,0,0.04),0_10px_24px_-14px_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
                   style={cardStyle}
                 >
                   {body}
                 </Link>
               ) : (
-                <div className="group relative overflow-hidden p-4 pl-5" style={cardStyle}>
+                <div className="group relative overflow-hidden p-4 ps-5" style={cardStyle}>
                   {body}
                 </div>
               )}
@@ -357,7 +357,7 @@ export function EventList({
     <ol className="relative -my-3">
       <span
         aria-hidden
-        className="absolute left-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
+        className="absolute start-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
       />
       {events.map((e, i) => {
         const meta = labels[e.type];
@@ -382,8 +382,8 @@ export function EventList({
         const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
         const chips = chipsFor(e.payload);
         return (
-          <li key={`${e.ts}-${i}`} className="slide-in py-3 pl-6 relative">
-            <span className="absolute left-0 top-[14px]">
+          <li key={`${e.ts}-${i}`} className="slide-in py-3 ps-6 relative">
+            <span className="absolute start-0 top-[14px]">
               <StatusDot tone={dotTone} />
             </span>
             <div className="flex items-baseline justify-between gap-3">

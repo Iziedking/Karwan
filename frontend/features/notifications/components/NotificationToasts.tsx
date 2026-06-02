@@ -49,7 +49,7 @@ export function NotificationToasts() {
 
   return (
     <div
-      className="fixed top-[80px] right-4 sm:right-6 z-[60] flex flex-col gap-2 pointer-events-none"
+      className="fixed top-[80px] end-4 sm:end-6 z-[60] flex flex-col gap-2 pointer-events-none"
       role="status"
       aria-live="polite"
     >
@@ -61,7 +61,7 @@ export function NotificationToasts() {
             dismiss(t.id);
             router.push(t.href);
           }}
-          className="group pointer-events-auto fade-up text-left overflow-hidden block w-[320px] max-w-[80vw]"
+          className="group pointer-events-auto fade-up text-start overflow-hidden block w-[320px] max-w-[80vw]"
           style={{
             background: 'var(--lp-card)',
             border: '1px solid var(--lp-border-light)',
@@ -87,7 +87,7 @@ export function NotificationToasts() {
             </span>
             <span
               aria-hidden
-              className="ml-auto mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/60"
+              className="ms-auto mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/60"
             >
               {t.jobId.slice(0, 6)}...{t.jobId.slice(-4)}
             </span>

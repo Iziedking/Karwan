@@ -156,7 +156,7 @@ export function AgentWithdrawCard({
                   disabled={disabled}
                   aria-pressed={active}
                   className={cn(
-                    'relative overflow-hidden text-left p-4 transition-colors text-[var(--lp-dark)]',
+                    'relative overflow-hidden text-start p-4 transition-colors text-[var(--lp-dark)]',
                     !active && !disabled && 'hover:-translate-y-0.5',
                   )}
                   style={{
@@ -181,13 +181,13 @@ export function AgentWithdrawCard({
                     <>
                       <span
                         aria-hidden
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        className="absolute start-0 top-0 bottom-0 w-[3px]"
                         style={{ background: 'var(--lp-accent)' }}
                       />
                       <span
                         aria-hidden
                         data-instrument-blink
-                        className="absolute top-2.5 right-2.5 inline-block w-[6px] h-[6px]"
+                        className="absolute top-2.5 end-2.5 inline-block w-[6px] h-[6px]"
                         style={{
                           background: 'var(--lp-accent)',
                           animation: 'instrumentBlink 1.6s ease-in-out infinite',
@@ -301,7 +301,7 @@ export function AgentWithdrawCard({
           />
           {dest.length > 0 && !destValid && (
             <p
-              className="relative pl-3 pr-2.5 py-2 text-[11.5px] inline-flex items-center gap-2 overflow-hidden"
+              className="relative ps-3 pe-2.5 py-2 text-[11.5px] inline-flex items-center gap-2 overflow-hidden"
               style={{
                 background: 'var(--lp-card)',
                 color: 'var(--lp-dark)',
@@ -314,7 +314,7 @@ export function AgentWithdrawCard({
             >
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                className="absolute start-0 top-0 bottom-0 w-[3px]"
                 style={{ background: TONE_COLOR.critical }}
               />
               <span
@@ -377,7 +377,7 @@ export function AgentWithdrawCard({
 
         {phase === 'done' && txHash && (
           <div
-            className="relative flex items-center justify-between gap-3 pl-4 pr-3 py-2.5 overflow-hidden"
+            className="relative flex items-center justify-between gap-3 ps-4 pe-3 py-2.5 overflow-hidden"
             style={{
               background: 'var(--lp-card)',
               color: 'var(--lp-dark)',
@@ -390,7 +390,7 @@ export function AgentWithdrawCard({
           >
             <span
               aria-hidden
-              className="absolute left-0 top-0 bottom-0 w-[3px]"
+              className="absolute start-0 top-0 bottom-0 w-[3px]"
               style={{ background: TONE_COLOR.positive }}
             />
             <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold">

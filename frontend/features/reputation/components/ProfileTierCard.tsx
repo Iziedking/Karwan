@@ -70,7 +70,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
       {/* Position bar across the full 0-1000 scale with tier breakpoint ticks. */}
       <div className="relative mt-3 h-[6px] w-full rounded-full bg-white/[0.08] overflow-hidden">
         <div
-          className="absolute left-0 top-0 bottom-0 rounded-full"
+          className="absolute start-0 top-0 bottom-0 rounded-full"
           style={{ width: `${pct}%`, background: color }}
         />
         {BREAKS.slice(1, -1).map((b) => (

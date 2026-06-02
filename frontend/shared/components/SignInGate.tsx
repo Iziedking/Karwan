@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, type ReactNode } from 'react';
 import { LoginModal } from '@/shared/components/LoginModal';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   FullBleed,
   Band,
@@ -18,10 +19,10 @@ import {
 /// gate in its own words.
 export function SignInGate({
   variant = 'page',
-  tag = 'SIGN IN',
+  tag,
   title,
   body,
-  buttonLabel = 'Log in',
+  buttonLabel,
 }: {
   variant?: 'hero' | 'page';
   tag?: string;
@@ -29,28 +30,28 @@ export function SignInGate({
   body?: ReactNode;
   buttonLabel?: string;
 }) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const isHero = variant === 'hero';
+  const resolvedTag = tag ?? t.auth.signInGate.defaultTag;
+  const resolvedButton = buttonLabel ?? t.auth.signInGate.button;
 
   const titleNode: ReactNode =
     title ??
     (isHero ? (
       <>
-        Log in to enter
+        {t.auth.signInGate.heroTitle}
         <Punc>.</Punc>
       </>
     ) : (
       <>
-        Sign in to continue
+        {t.auth.signInGate.pageTitle}
         <Punc>.</Punc>
       </>
     ));
 
   const bodyText: ReactNode =
-    body ??
-    (isHero
-      ? 'Karwan identifies you by a wallet. Pick one via an EVM connector or have Circle provision one for you. The rest of the app unlocks.'
-      : 'This page is keyed to your wallet. Sign in once and every surface picks you up.');
+    body ?? (isHero ? t.auth.signInGate.heroBody : t.auth.signInGate.pageBody);
 
   return (
     <FullBleed>
@@ -58,7 +59,7 @@ export function SignInGate({
         <div className={isHero ? '' : 'max-w-[52ch]'}>
           <div className="fade-up">
             <SectionTag tone="dark" dot="live">
-              {tag}
+              {resolvedTag}
             </SectionTag>
           </div>
           <div className="fade-up fade-up-1">
@@ -89,7 +90,7 @@ export function SignInGate({
                 borderBottomRightRadius: isHero ? 4 : 3,
               }}
             >
-              {buttonLabel}
+              {resolvedButton}
               <span aria-hidden>→</span>
             </button>
           </div>

@@ -165,7 +165,7 @@ export function PostListingForm() {
               <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-band-dark)]/65">
                 USDC
               </span>
-              <span aria-hidden className="ml-2 mb-1 w-px h-7 bg-[var(--lp-band-dark)]/20" />
+              <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-[var(--lp-band-dark)]/20" />
               <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
                 −{previewTol}%
               </span>
@@ -525,7 +525,7 @@ export function PostListingForm() {
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-white">
                         {l.askingPriceUsdc}
-                        <span className="ml-1 mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                        <span className="ms-1 mono text-[10px] uppercase tracking-[0.12em] text-white/45">
                           USDC
                         </span>
                       </span>
@@ -553,7 +553,7 @@ export function PostListingForm() {
                         {label}
                         <span
                           aria-hidden
-                          className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
+                          className="ms-1 inline-block transition-transform duration-200 group-hover:translate-x-0.5"
                         >
                           {arrow}
                         </span>

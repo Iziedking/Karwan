@@ -269,7 +269,7 @@ export function ArcFundCard({
                   disabled={disabled}
                   aria-pressed={active}
                   className={cn(
-                    'relative overflow-hidden text-left p-4 transition-colors text-[var(--lp-dark)]',
+                    'relative overflow-hidden text-start p-4 transition-colors text-[var(--lp-dark)]',
                     !active && !disabled && 'hover:-translate-y-0.5',
                   )}
                   style={{
@@ -294,13 +294,13 @@ export function ArcFundCard({
                     <>
                       <span
                         aria-hidden
-                        className="absolute left-0 top-0 bottom-0 w-[3px]"
+                        className="absolute start-0 top-0 bottom-0 w-[3px]"
                         style={{ background: 'var(--lp-accent)' }}
                       />
                       <span
                         aria-hidden
                         data-instrument-blink
-                        className="absolute top-2.5 right-2.5 inline-block w-[6px] h-[6px]"
+                        className="absolute top-2.5 end-2.5 inline-block w-[6px] h-[6px]"
                         style={{
                           background: 'var(--lp-accent)',
                           animation: 'instrumentBlink 1.6s ease-in-out infinite',
@@ -555,13 +555,13 @@ function FundRow({
     >
       <span
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: railColor }}
       />
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-left p-3 pl-4 flex items-center gap-3"
+        className="w-full text-start p-3 ps-4 flex items-center gap-3"
       >
         <WalletAvatar address={record.agentAddress} size={26} />
         <div className="flex-1 min-w-0">

@@ -30,7 +30,7 @@ export function ActivityStats({
             type="button"
             onClick={() => onToggleGroup(g)}
             className={cn(
-              'group relative overflow-hidden text-left p-5 transition-[transform,border-color,box-shadow] duration-300 ease-out',
+              'group relative overflow-hidden text-start p-5 transition-[transform,border-color,box-shadow] duration-300 ease-out',
               'hover:-translate-y-1 card-shimmer',
               `fade-up fade-up-${i + 1}`,
             )}

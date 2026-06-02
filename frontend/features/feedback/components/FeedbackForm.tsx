@@ -211,7 +211,7 @@ export function FeedbackForm() {
                           key={c.key}
                           type="button"
                           onClick={() => setCategory(c.key)}
-                          className="text-left px-3 py-2.5 transition-colors"
+                          className="text-start px-3 py-2.5 transition-colors"
                           style={{
                             background: on ? 'var(--lp-band-dark)' : 'var(--lp-light)',
                             border: `1px solid ${on ? 'var(--lp-band-dark)' : 'var(--lp-border-light)'}`,
@@ -335,7 +335,7 @@ export function FeedbackForm() {
                             type="button"
                             onClick={() => removeShot(i)}
                             aria-label="Remove screenshot"
-                            className="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 text-white bg-black/55 hover:bg-black/80 transition-colors"
+                            className="absolute top-1 end-1 inline-flex items-center justify-center w-6 h-6 text-white bg-black/55 hover:bg-black/80 transition-colors"
                             style={{ borderRadius: 6 }}
                           >
                             <span aria-hidden className="text-[14px] leading-none">×</span>

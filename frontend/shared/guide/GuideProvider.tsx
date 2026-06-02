@@ -376,7 +376,7 @@ function FloatingActions() {
         <button
           type="button"
           onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
-          className={`fixed bottom-4 sm:bottom-5 left-4 sm:left-5 ${pill}`}
+          className={`fixed bottom-4 sm:bottom-5 start-4 sm:start-5 ${pill}`}
           style={corner}
           title={`Take a guided tour: ${currentTour.label}`}
           aria-label={`Take a guided tour: ${currentTour.label}`}
@@ -394,7 +394,7 @@ function FloatingActions() {
 
       <Link
         href="/feedback"
-        className={`fixed bottom-4 sm:bottom-5 right-4 sm:right-5 ${pill}`}
+        className={`fixed bottom-4 sm:bottom-5 end-4 sm:end-5 ${pill}`}
         style={corner}
         title="Send feedback or report a bug"
         aria-label="Send feedback or report a bug"

@@ -33,7 +33,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
             type="button"
             onClick={() => handle(l)}
             aria-pressed={active}
-            className="relative overflow-hidden text-left pl-4 pr-3.5 py-3 transition-colors"
+            className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors"
             style={{
               background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
               color: 'var(--lp-dark)',
@@ -49,7 +49,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
             {active && (
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                className="absolute start-0 top-0 bottom-0 w-[3px]"
                 style={{ background: 'var(--lp-accent)' }}
               />
             )}

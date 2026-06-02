@@ -78,7 +78,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
             type="button"
             onClick={() => !busy && onClose()}
             aria-label="Close"
-            className="absolute top-3 right-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute top-3 end-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path

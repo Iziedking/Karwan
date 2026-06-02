@@ -736,7 +736,7 @@ function WalletPickerTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="text-left p-4 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+      className="text-start p-4 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
       style={{
         background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
         border: active
