@@ -403,6 +403,28 @@ async function positionActionRoute(
   }
 
   inFlight.add(key);
+  /// Read the position before the contract call so the event payload can
+  /// carry the principal. The notifier needs the amount to write "Cooldown
+  /// started on 50 USDC" rather than asking the user to open the app.
+  /// requestWithdraw and cancelWithdraw leave the principal unchanged; claim
+  /// transitions the state to Withdrawn but the amount we paid out is the
+  /// same value we read here.
+  let principalUsdc: string | null = null;
+  try {
+    const tuple = (await publicClient.readContract({
+      address: vault,
+      abi: vaultAbi,
+      functionName: 'positions',
+      args: [BigInt(positionIdStr)],
+    })) as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
+    principalUsdc = formatUnits(tuple[1], USDC_DECIMALS);
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message, positionId: positionIdStr },
+      'vault action: principal read failed, payload will omit principalUsdc',
+    );
+  }
+
   try {
     const result = await executeContractCall(
       {
@@ -421,6 +443,7 @@ async function positionActionRoute(
         address: body.address.toLowerCase(),
         positionId: positionIdStr,
         txHash: result.txHash,
+        ...(principalUsdc !== null ? { principalUsdc } : {}),
       },
     });
     logger.info(

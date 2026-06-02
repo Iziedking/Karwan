@@ -63,11 +63,27 @@ const DIRECT_TYPES = new Set([
   'deal.cancelled',
   'deal.cancel.proposed',
   'deal.cancel.declined',
+  // Seller cashes out after settlement; the banner lives on the deal page.
+  'cashout.arc.completed',
 ]);
 
 // Wallet-level events carry no jobId. They route to the owner address in the
 // payload and surface on the profile (where balances live).
 const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
+
+// Money-movement events that carry no jobId. Each one names the owner under
+// a different payload key depending on the surface that emitted it. The map
+// keeps the routing local to one place.
+const MONEY_DIRECT_OWNER_KEY: Record<string, 'address' | 'user'> = {
+  'vault.deposit': 'address',
+  'vault.withdraw.requested': 'address',
+  'vault.withdraw.cancelled': 'address',
+  'vault.claimed': 'address',
+  'vault.cooldown.completed': 'address',
+  'agent.funded': 'user',
+  'agent.withdrawal': 'user',
+};
+const MONEY_DIRECT_TYPES = new Set(Object.keys(MONEY_DIRECT_OWNER_KEY));
 
 // Events whose target is the deal action card. Tapping them should land on
 // /deals/[id]#action so the user scrolls straight to Mark Delivered / Release /
@@ -80,9 +96,16 @@ const ACTION_TYPES = new Set([
   'deal.fund.insufficient',
 ]);
 
-const NOTIFY_TYPES = new Set([...MANAGED_TYPES, ...DIRECT_TYPES, ...WALLET_TYPES]);
+const NOTIFY_TYPES = new Set([
+  ...MANAGED_TYPES,
+  ...DIRECT_TYPES,
+  ...WALLET_TYPES,
+  ...MONEY_DIRECT_TYPES,
+]);
 
-// High-signal events that should also trigger a toast.
+// High-signal events that should also trigger a toast. Cooldown finishing is
+// the rare actionable money event, so it earns a toast; the rest of the vault
+// and agent events sit quietly in the bell.
 const TOAST_TYPES = new Set([
   'deal.matched',
   'deal.match.approved',
@@ -92,6 +115,7 @@ const TOAST_TYPES = new Set([
   'job.expired',
   'wallet.credited',
   'wallet.debited',
+  'vault.cooldown.completed',
 ]);
 
 // Which party should receive each event. This is the fix for notifications
@@ -121,6 +145,8 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.cancelled': 'both',
   'deal.cancel.proposed': 'both', // special-cased to the counterparty below
   'deal.cancel.declined': 'both', // special-cased to the proposer below
+  // The seller pulls funds out after settlement; banner lives on the deal page.
+  'cashout.arc.completed': 'seller',
 };
 
 function hrefForType(type: string, jobId: string): string {
@@ -132,6 +158,8 @@ function hrefForType(type: string, jobId: string): string {
   // surface. Once a proposal exists, deal.matched routes them to /jobs/[id].
   if (type === 'listing.matched') return '/seller';
   if (WALLET_TYPES.has(type)) return '/profile';
+  if (type.startsWith('vault.')) return '/stake';
+  if (type.startsWith('agent.')) return '/profile';
   // Action events land on the deal page's action card so the user reaches
   // Mark Delivered / Release / Accept without a second scroll.
   if (ACTION_TYPES.has(type)) return `/deals/${jobId}#action`;
@@ -296,6 +324,47 @@ function summaryFor(
       const label = walletLabelFromPayload(payload);
       return `-${debit} USDC left your ${label}.`;
     }
+    case 'vault.deposit': {
+      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
+      return `Staked ${trimUsdcLabel(raw)} USDC.`;
+    }
+    case 'vault.withdraw.requested': {
+      const raw = (payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
+      return `Cooldown started on ${amount}. Claimable in 3 days.`;
+    }
+    case 'vault.withdraw.cancelled': {
+      const raw = (payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'the position';
+      return `Cooldown cancelled. ${amount} back to active stake.`;
+    }
+    case 'vault.claimed': {
+      const raw = (payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your stake';
+      return `Withdrew ${amount} from the vault.`;
+    }
+    case 'vault.cooldown.completed': {
+      const raw = (payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
+      return `Cooldown finished. ${amount} ready to claim.`;
+    }
+    case 'cashout.arc.completed': {
+      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
+      return `Cashed out ${trimUsdcLabel(raw)} USDC to your wallet.`;
+    }
+    case 'agent.funded': {
+      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
+      const which = (payload?.agent as string | undefined) ?? 'agent';
+      const seed = payload?.seed === true;
+      return seed
+        ? `Seeded ${trimUsdcLabel(raw)} USDC into your ${which} agent.`
+        : `Funded ${trimUsdcLabel(raw)} USDC into your ${which} agent.`;
+    }
+    case 'agent.withdrawal': {
+      const raw = (payload?.amountUsdc as string | undefined) ?? '0';
+      const which = (payload?.agent as string | undefined) ?? 'agent';
+      return `Pulled ${trimUsdcLabel(raw)} USDC out of your ${which} agent.`;
+    }
     default:
       return 'Deal update';
   }
@@ -418,6 +487,26 @@ export function useNotifications() {
           });
           continue;
         }
+        // Vault and agent money events carry no jobId either. The owner key
+        // varies by event family so look it up before filtering.
+        if (MONEY_DIRECT_TYPES.has(e.type)) {
+          const key = MONEY_DIRECT_OWNER_KEY[e.type];
+          const owner = (e.payload?.[key] as string | undefined)?.toLowerCase();
+          if (owner !== me) continue;
+          const tx = (e.payload?.txHash as string | undefined) ?? '';
+          const positionId = (e.payload?.positionId as string | undefined) ?? '';
+          const id = `${e.type}-${tx || positionId || e.ts}`;
+          fresh.push({
+            id,
+            jobId: '',
+            type: e.type,
+            summary: summaryFor(e.type, e.payload, null),
+            ts: e.ts,
+            read: readIdsRef.current.has(id),
+            href: hrefForType(e.type, ''),
+          });
+          continue;
+        }
         if (!e.jobId) continue;
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
@@ -497,6 +586,44 @@ export function useNotifications() {
         const tx = (e.payload?.txHash as string | undefined) ?? '';
         const wallet = (e.payload?.walletAddress as string | undefined) ?? '';
         const id = `${e.type}-${tx || e.ts}-${wallet}`;
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = {
+          id,
+          jobId: '',
+          type: e.type,
+          summary: summaryFor(e.type, e.payload, null),
+          ts: e.ts,
+          read: readIdsRef.current.has(id),
+          href: hrefForType(e.type, ''),
+          toast: TOAST_TYPES.has(e.type),
+        };
+        setNotifications((list) => {
+          if (list.some((n) => n.id === id)) return list;
+          return [next, ...list].slice(0, MAX_STORED);
+        });
+        if (initialHydrateRef.current) {
+          try {
+            sfx.send();
+          } catch {
+            /* ignore */
+          }
+          if (next.toast) {
+            toastListeners.forEach((fn) => fn(next));
+          }
+        }
+        return;
+      }
+
+      // Vault and agent money events. Same shape as the wallet branch above
+      // but the owner key varies, so the lookup is data-driven.
+      if (MONEY_DIRECT_TYPES.has(e.type)) {
+        const key = MONEY_DIRECT_OWNER_KEY[e.type];
+        const owner = (e.payload?.[key] as string | undefined)?.toLowerCase();
+        if (owner !== me) return;
+        const tx = (e.payload?.txHash as string | undefined) ?? '';
+        const positionId = (e.payload?.positionId as string | undefined) ?? '';
+        const id = `${e.type}-${tx || positionId || e.ts}`;
         if (seenNotificationIdsRef.current.has(id)) return;
         seenNotificationIdsRef.current.add(id);
         const next: AppNotification = {

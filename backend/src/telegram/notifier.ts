@@ -22,6 +22,16 @@ function listingUrl(listingId: string | undefined): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/listings/${listingId}`;
 }
 
+function stakeUrl(): string | null {
+  if (!config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/stake`;
+}
+
+function profileUrl(): string | null {
+  if (!config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/profile`;
+}
+
 interface NotifySummary {
   text: string;
   url: string | null;
@@ -65,6 +75,16 @@ const RELEVANT = new Set([
   'bridge.error',
   'wallet.credited',
   'wallet.debited',
+  // Money-movement events. Each one is the user's own action or, in the
+  // cooldown case, a time-based transition surfaced by the watcher.
+  'vault.deposit',
+  'vault.withdraw.requested',
+  'vault.withdraw.cancelled',
+  'vault.claimed',
+  'vault.cooldown.completed',
+  'cashout.arc.completed',
+  'agent.funded',
+  'agent.withdrawal',
 ]);
 
 interface Recipient {
@@ -84,6 +104,24 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'wallet.credited' || e.type === 'wallet.debited') {
     const owner = (e.payload?.owner as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
+  }
+  // Vault money events carry the position owner under `address`.
+  if (e.type.startsWith('vault.')) {
+    const owner = (e.payload?.address as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
+  }
+  // Agent fund / withdraw routes carry the identity address under `user`.
+  if (e.type === 'agent.funded' || e.type === 'agent.withdrawal') {
+    const owner = (e.payload?.user as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
+  }
+  // Cashout has a jobId and the seller is the cash-out party; fall through to
+  // the deal lookup below would over-notify the buyer. Resolve the seller from
+  // the deal and route only to them.
+  if (e.type === 'cashout.arc.completed') {
+    if (!e.jobId) return [];
+    const deal = await getDeal(e.jobId);
+    return deal ? [{ address: deal.seller, role: 'self' }] : [];
   }
   // Match-proposal events fire before any deal row exists, so resolve recipients
   // straight from the payload (the agent already resolved both user addresses).
@@ -355,6 +393,75 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       return withLink(
         `*-${debit} USDC* left your ${label}.`,
         null,
+      );
+    }
+    case 'vault.deposit': {
+      const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
+      const amount = trimUsdcLabel(raw);
+      return withLink(
+        `*Staked ${amount} USDC.* Your reputation tier may rise as the position matures.`,
+        stakeUrl(),
+      );
+    }
+    case 'vault.withdraw.requested': {
+      const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
+      return withLink(
+        `*Cooldown started on ${amount}.* Claimable in 3 days.`,
+        stakeUrl(),
+      );
+    }
+    case 'vault.withdraw.cancelled': {
+      const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'the position';
+      return withLink(
+        `*Cooldown cancelled.* ${amount} is back to active stake.`,
+        stakeUrl(),
+      );
+    }
+    case 'vault.claimed': {
+      const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your stake';
+      return withLink(
+        `*Withdrew ${amount} from the vault.*`,
+        stakeUrl(),
+      );
+    }
+    case 'vault.cooldown.completed': {
+      const raw = (e.payload?.principalUsdc as string | undefined) ?? '';
+      const amount = raw ? `${trimUsdcLabel(raw)} USDC` : 'your position';
+      return withLink(
+        `*Cooldown finished.* ${amount} is ready to claim.`,
+        stakeUrl(),
+      );
+    }
+    case 'cashout.arc.completed': {
+      const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
+      const amount = trimUsdcLabel(raw);
+      return withLink(
+        `*Cashed out ${amount} USDC* to your wallet on Arc.`,
+        url,
+      );
+    }
+    case 'agent.funded': {
+      const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
+      const amount = trimUsdcLabel(raw);
+      const which = (e.payload?.agent as string | undefined) ?? 'agent';
+      const seed = e.payload?.seed === true;
+      return withLink(
+        seed
+          ? `*Seeded ${amount} USDC* into your ${which} agent wallet.`
+          : `*Funded ${amount} USDC* into your ${which} agent wallet.`,
+        profileUrl(),
+      );
+    }
+    case 'agent.withdrawal': {
+      const raw = (e.payload?.amountUsdc as string | undefined) ?? '0';
+      const amount = trimUsdcLabel(raw);
+      const which = (e.payload?.agent as string | undefined) ?? 'agent';
+      return withLink(
+        `*Pulled ${amount} USDC* out of your ${which} agent wallet.`,
+        profileUrl(),
       );
     }
     default:

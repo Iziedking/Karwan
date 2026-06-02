@@ -79,6 +79,7 @@ export type KarwanEventType =
   | 'vault.withdraw.requested'
   | 'vault.withdraw.cancelled'
   | 'vault.claimed'
+  | 'vault.cooldown.completed'
   | 'cashout.arc.completed'
   | 'wallet.credited'
   | 'wallet.debited'
