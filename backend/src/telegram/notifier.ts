@@ -32,6 +32,18 @@ function profileUrl(): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/profile`;
 }
 
+function passportUrl(address: string | undefined): string | null {
+  if (!config.FRONTEND_BASE_URL || !address) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/credit-passport/${address.toLowerCase()}`;
+}
+
+const TIER_BLURB: Record<string, string> = {
+  COLD: 'Your track record is taking shape.',
+  ESTABLISHED: 'A solid, trusted profile.',
+  STRONG: 'A preferred counterparty. agents move faster for you.',
+  ELITE: 'Top tier. agents accept first-look within range, no auction.',
+};
+
 interface NotifySummary {
   text: string;
   url: string | null;
@@ -85,6 +97,8 @@ const RELEVANT = new Set([
   'cashout.arc.completed',
   'agent.funded',
   'agent.withdrawal',
+  // Reputation-tier celebration. Fires once per all-time-high tier.
+  'reputation.tier-up',
 ]);
 
 interface Recipient {
@@ -113,6 +127,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // Agent fund / withdraw routes carry the identity address under `user`.
   if (e.type === 'agent.funded' || e.type === 'agent.withdrawal') {
     const owner = (e.payload?.user as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
+  }
+  // Reputation tier-up carries the subject address. Same shape as vault events.
+  if (e.type === 'reputation.tier-up') {
+    const owner = (e.payload?.address as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
   }
   // Cashout has a jobId and the seller is the cash-out party; fall through to
@@ -463,6 +482,15 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         `*Pulled ${amount} USDC* out of your ${which} agent wallet.`,
         profileUrl(),
       );
+    }
+    case 'reputation.tier-up': {
+      const toTier = (e.payload?.toTier as string | undefined) ?? '';
+      const addr = e.payload?.address as string | undefined;
+      const blurb = TIER_BLURB[toTier] ?? '';
+      const body = blurb
+        ? `*Tier up. you reached ${toTier} on Karwan.*\n${blurb}`
+        : `*Tier up.* You reached ${toTier} on Karwan.`;
+      return withLink(body, passportUrl(addr));
     }
     default:
       return null;

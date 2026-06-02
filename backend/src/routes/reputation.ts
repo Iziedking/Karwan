@@ -7,23 +7,12 @@ import { tierRank, type Tier } from '../reputation/config.js';
 import { getTierState, saveTierState } from '../db/tierState.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { bus } from '../events.js';
-import { getTelegramLink } from '../db/telegramLinks.js';
-import { sendTelegramMessage, telegramEnabled } from '../telegram/bot.js';
-import { logger } from '../logger.js';
 
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
 const CELEBRATE_MS = 12 * 60 * 60 * 1000;
-
-const TIER_BLURB: Record<Tier, string> = {
-  NEW: 'Welcome aboard.',
-  COLD: 'Your track record is taking shape.',
-  ESTABLISHED: 'A solid, trusted profile.',
-  STRONG: 'A preferred counterparty. agents move faster for you.',
-  ELITE: 'Top tier. agents accept first-look within range, no auction.',
-};
 
 /// Detect a tier-up on a reputation read and fire the one-shot celebration:
 /// persist the new tier, set a 12h profile-card window, emit an event, and
@@ -52,24 +41,17 @@ async function maybeCelebrateTierUp(
     // tier and climbing back into one you already reached never re-fires it.
     const celebrateUntil = now + CELEBRATE_MS;
     saveTierState(address, { tier, maxRank: rank, celebrateUntil, updatedAt: now });
+    /// One emission, two delivery paths. The telegram notifier and the
+    /// in-app feed both subscribe and format their own copy from the same
+    /// payload. Previously this route fired a direct telegram message which
+    /// bypassed the notifier, so the in-app bell never saw the event and
+    /// users only learned about the tier change if they had connected
+    /// telegram or happened to visit the profile within the celebrate window.
     bus.emitEvent({
       type: 'reputation.tier-up',
       actor: 'platform',
       payload: { address, fromTier: prev.tier, toTier: tier },
     });
-    if (telegramEnabled()) {
-      void getTelegramLink(address)
-        .then((link) => {
-          if (!link) return;
-          return sendTelegramMessage(
-            link.chatId,
-            `*Tier up. you reached ${tier} on Karwan.*\n${TIER_BLURB[tier]}`,
-          );
-        })
-        .catch((err) =>
-          logger.warn({ err: (err as Error).message, address }, 'tier-up telegram failed'),
-        );
-    }
     return { tier, until: celebrateUntil };
   }
 

@@ -82,6 +82,8 @@ const MONEY_DIRECT_OWNER_KEY: Record<string, 'address' | 'user'> = {
   'vault.cooldown.completed': 'address',
   'agent.funded': 'user',
   'agent.withdrawal': 'user',
+  // Reputation tier-up routes to the subject address, same shape as vault.
+  'reputation.tier-up': 'address',
 };
 const MONEY_DIRECT_TYPES = new Set(Object.keys(MONEY_DIRECT_OWNER_KEY));
 
@@ -116,6 +118,7 @@ const TOAST_TYPES = new Set([
   'wallet.credited',
   'wallet.debited',
   'vault.cooldown.completed',
+  'reputation.tier-up',
 ]);
 
 // Which party should receive each event. This is the fix for notifications
@@ -160,6 +163,9 @@ function hrefForType(type: string, jobId: string): string {
   if (WALLET_TYPES.has(type)) return '/profile';
   if (type.startsWith('vault.')) return '/stake';
   if (type.startsWith('agent.')) return '/profile';
+  // Tier-up lands on the profile, where the 12h celebrate card renders the
+  // full breakdown alongside the user's stake, agents, and identity wallet.
+  if (type === 'reputation.tier-up') return '/profile';
   // Action events land on the deal page's action card so the user reaches
   // Mark Delivered / Release / Accept without a second scroll.
   if (ACTION_TYPES.has(type)) return `/deals/${jobId}#action`;
@@ -364,6 +370,13 @@ function summaryFor(
       const raw = (payload?.amountUsdc as string | undefined) ?? '0';
       const which = (payload?.agent as string | undefined) ?? 'agent';
       return `Pulled ${trimUsdcLabel(raw)} USDC out of your ${which} agent.`;
+    }
+    case 'reputation.tier-up': {
+      const toTier = (payload?.toTier as string | undefined) ?? '';
+      const fromTier = (payload?.fromTier as string | undefined) ?? '';
+      if (toTier && fromTier) return `Tier up. You reached ${toTier}, up from ${fromTier}.`;
+      if (toTier) return `Tier up. You reached ${toTier} on Karwan.`;
+      return 'You hit a new reputation tier.';
     }
     default:
       return 'Deal update';
