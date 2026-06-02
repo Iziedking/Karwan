@@ -1,10 +1,21 @@
 'use client';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { HeroFlow } from '@/features/activity/components/HeroFlow';
+/// HeroFlow drives the landing hero animation; StatsTicker lives below the
+/// fold. Dynamically imported so the motion-heavy bundles do not block first
+/// paint on `/`. SSR off because both run animation effects only on the
+/// client.
+const HeroFlow = dynamic(
+  () => import('@/features/activity/components/HeroFlow').then((m) => m.HeroFlow),
+  { ssr: false },
+);
+const StatsTicker = dynamic(
+  () => import('@/features/activity/components/StatsTicker').then((m) => m.StatsTicker),
+  { ssr: false },
+);
 import { PartnerLogos } from '@/shared/components/PartnerLogos';
-import { StatsTicker } from '@/features/activity/components/StatsTicker';
 import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';

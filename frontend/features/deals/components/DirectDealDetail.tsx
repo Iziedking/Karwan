@@ -695,7 +695,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 </p>
                 <p className="mt-2 text-[13px] leading-relaxed text-white/65">
                   {stage === 'disputed'
-                    ? 'Propose how this dispute resolves. Refund the buyer or release to the seller. Whoever ends up conceding takes the reputation hit.'
+                    ? 'Propose how this dispute resolves. Refund the buyer or release to the seller.'
                     : 'Need to call it off? Propose a cancellation. Your counterparty has to agree; no reputation hit if they do.'}
                 </p>
                 <div className="mt-3">
@@ -990,7 +990,7 @@ function ActionPanel({
       <div className="space-y-4">
         <Body>
           {releasedFromDispute
-            ? "Settled via dispute resolution. The buyer conceded and released the escrow to the seller. The buyer's reputation took the hit."
+            ? 'Settled via dispute resolution. The buyer released the escrow to the seller.'
             : deal.autoReleasedAt
               ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
               : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
@@ -1026,13 +1026,13 @@ function ActionPanel({
         return 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.';
       }
 
-      // Dispute-state refund accepted by either side. Seller concedes; rep hit
-      // lands on the seller.
+      // Dispute-state refund accepted by either side. Seller takes the rep
+      // hit off-chain via signals.ts; the UI stays neutral about it.
       if (deal.cancelKind === 'refund-from-dispute') {
         const tail = firstReleased
           ? `The first ${firstPct}% had already been released; the remaining ${remainPct}% refunded to the buyer.`
           : 'The full escrow refunded to the buyer.';
-        return `Closed via dispute resolution. ${tail} The seller's reputation took the hit.`;
+        return `Closed via dispute resolution. ${tail}`;
       }
 
       // Mutual / platform-attributed branches. Two cases based on prior release.
@@ -1072,24 +1072,13 @@ function ActionPanel({
         </Body>
         <Body>
           <span className="font-semibold text-white/85">Refund the buyer.</span>{' '}
-          Unreleased escrow returns to the buyer. The seller&apos;s reputation
-          takes the hit{hasReservation
-            ? ', and their reserved stake slashes to the buyer'
-            : ''}.
+          Unreleased escrow returns to the buyer
+          {hasReservation ? '. Reserved stake slashes to the buyer too.' : '.'}
         </Body>
         <Body>
           <span className="font-semibold text-white/85">Release to seller.</span>{' '}
-          The seller is paid in full. The buyer&apos;s reputation takes the hit
-          for the disputed-then-conceded call.
+          The seller is paid the full escrow.
         </Body>
-        {!hasReservation && (
-          <Body>
-            <span className="opacity-75">
-              This is a casual deal. No stake is at risk on either side, but the
-              reputation hit still lands on whoever concedes.
-            </span>
-          </Body>
-        )}
       </div>
     );
   }
@@ -1736,7 +1725,7 @@ function AcceptConsentModal({
           </p>
           <div className="flex items-center gap-3">
             <CTAPill onClick={onConfirm} disabled={busy}>
-              {busy ? 'Working…' : 'Proceed & accept'}
+              {busy ? 'Setting up your wallet…' : 'Proceed & accept'}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
               Not now
@@ -1819,12 +1808,12 @@ function CancelProposalBanner({
         <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
           {(() => {
             if (isReleaseFromDispute) {
-              return "Accepting releases the full escrow to the seller. Buyer's reputation takes the hit for conceding the dispute.";
+              return 'Accepting releases the full escrow to the seller.';
             }
             if (isRefundFromDispute) {
               return firstReleased
-                ? `Accepting refunds the remaining ${remainPct}% to the buyer. Seller's reputation takes the hit.`
-                : "Accepting refunds the full escrow to the buyer. Seller's reputation takes the hit.";
+                ? `Accepting refunds the remaining ${remainPct}% to the buyer.`
+                : 'Accepting refunds the full escrow to the buyer.';
             }
             const prefix =
               proposal.kind === 'platform-attributed'
@@ -1905,18 +1894,19 @@ function ProposeCancelModal({
   const valid = reason.trim().length >= 3;
   const remainPct = 100 - firstReleasePct;
 
-  const slashSuffix = hasReservation ? ' and their reserved stake slashes to you' : '';
   const KIND_OPTIONS: ReadonlyArray<{ key: ProposeKind; label: string; body: string }> = disputed
     ? [
         {
           key: 'refund-from-dispute',
           label: 'Refund the buyer',
-          body: `Unreleased escrow returns to the buyer. Seller's reputation takes the hit${slashSuffix}.`,
+          body: hasReservation
+            ? 'Unreleased escrow returns to the buyer. Reserved stake slashes to the buyer too.'
+            : 'Unreleased escrow returns to the buyer.',
         },
         {
           key: 'release-from-dispute',
           label: 'Release to seller',
-          body: "Seller is paid in full. Buyer's reputation takes the hit for conceding the dispute.",
+          body: 'Seller is paid the full escrow.',
         },
       ]
     : [
@@ -1961,7 +1951,7 @@ function ProposeCancelModal({
         <div className="px-6 pb-6 space-y-5">
           <p className="text-[13.5px] text-[var(--lp-text-sub)] leading-relaxed">
             {disputed
-              ? 'Your counterparty has to accept. Whichever side concedes takes the reputation hit; the off-chain score drops by a small amount that compounds with repeats.'
+              ? 'Your counterparty has to accept. If they decline, the deal stays in dispute.'
               : `Your counterparty has to agree. If they accept, ${
                   firstReleased
                     ? `the first ${firstReleasePct}% already paid stays with the seller and the remaining ${remainPct}% refunds to the buyer`

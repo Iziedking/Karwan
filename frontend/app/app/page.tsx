@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { api, type ApiStatus } from '@/core/api';
@@ -8,10 +9,28 @@ import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
-import { NetworkTicker } from '@/features/activity/components/NetworkTicker';
-import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
-import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
-import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
+/// Below-the-fold bands. Dynamically imported so motion (NetworkTicker) and
+/// the in-house SVG chart (OnChainProofBand) do not ship in the initial
+/// /app bundle. Both render purely client-side, so SSR is off; the bands
+/// fade in once the route is interactive.
+const NetworkTicker = dynamic(
+  () => import('@/features/activity/components/NetworkTicker').then((m) => m.NetworkTicker),
+  { ssr: false },
+);
+const OnChainProofBand = dynamic(
+  () => import('@/features/network/components/OnChainProofBand').then((m) => m.OnChainProofBand),
+  { ssr: false },
+);
+/// Auth-only bands. Unauthenticated visitors never see them; keep their
+/// code out of the initial bundle to save the round trip for the first paint.
+const PendingMatchesBand = dynamic(
+  () => import('@/features/notifications/components/PendingMatchesBand').then((m) => m.PendingMatchesBand),
+  { ssr: false },
+);
+const PendingDealsBand = dynamic(
+  () => import('@/features/notifications/components/PendingDealsBand').then((m) => m.PendingDealsBand),
+  { ssr: false },
+);
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
