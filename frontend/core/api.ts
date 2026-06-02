@@ -646,6 +646,11 @@ export const api = {
       `/api/jobs/${jobId}/cancel`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  editBrief: (jobId: string, caller: string, briefText: string) =>
+    json<{ brief: { jobId: string; briefText: string; postedBy: string } }>(
+      `/api/jobs/${jobId}/edit`,
+      { method: 'POST', body: JSON.stringify({ caller, briefText }) },
+    ),
   nearMiss: (jobId: string, caller?: string | null) =>
     json<{ nearMiss: NearMissApproval | null }>(
       withCaller(`/api/jobs/${jobId}/near-miss`, caller),

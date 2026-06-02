@@ -32,5 +32,17 @@ export function useJobSnapshot(initial: BuyerJob) {
     return () => clearTimeout(t);
   }, [events, initial.jobId]);
 
-  return { job, events };
+  /// Force a fresh fetch from the backend. Caller-triggered (eg after the
+  /// buyer edits the brief text, since the edit does not fire one of the
+  /// REFRESH_TRIGGERS events).
+  async function refresh(): Promise<void> {
+    try {
+      const next = await api.job(initial.jobId);
+      setJob(next);
+    } catch {
+      // Stay on the last good snapshot if the fetch fails.
+    }
+  }
+
+  return { job, events, refresh };
 }

@@ -29,7 +29,7 @@ import {
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
-  const { job } = useJobSnapshot(initial);
+  const { job, refresh: refreshJob } = useJobSnapshot(initial);
   const { events, active, completed, declined, ended } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
   const { nearMiss, refresh: refreshNearMiss } = useNearMiss(initial.jobId);
@@ -279,6 +279,14 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             </div>
 
             <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
+            <EditBriefSection
+              job={job}
+              declined={declined}
+              matchPending={!!matchPending}
+              viewerIsSeller={viewerIsSeller}
+              callerAddress={address ?? undefined}
+              onEdited={refreshJob}
+            />
             <CancelBriefSection
               job={job}
               declined={declined}
@@ -510,6 +518,203 @@ function SettleSection({
 /// the agent finalizes (a match is pending, escrow is funding, or escrow has
 /// funded). Routes through POST /api/jobs/:jobId/cancel which marks the brief
 /// expired in-memory so no further bids land.
+/// Buyer-only inline edit on the request text. Mirrors the listing edit
+/// shape: a button that opens a modal with one textarea. Saving routes
+/// through POST /api/jobs/:jobId/edit, which patches the off-chain brief
+/// (the on-chain termsHash stays at its post-time value) and re-extracts
+/// keywords fire-and-forget so the agent's next match round uses the new
+/// copy. Disabled when a match proposal is in flight or the request is
+/// already finalized, expired, or cancelled — backend enforces the same.
+function EditBriefSection({
+  job,
+  declined,
+  matchPending,
+  viewerIsSeller,
+  callerAddress,
+  onEdited,
+}: {
+  job: BuyerJob;
+  declined: boolean;
+  matchPending: boolean;
+  viewerIsSeller: boolean;
+  callerAddress: string | undefined;
+  onEdited: () => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const viewerIsBuyer =
+    !!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase();
+  const editable =
+    viewerIsBuyer &&
+    !viewerIsSeller &&
+    !job.finalized &&
+    !job.escrowFunded &&
+    !job.expiredAt &&
+    !job.cancelledAt &&
+    !matchPending &&
+    !declined &&
+    !!job.briefText;
+
+  if (!editable || !callerAddress) return null;
+
+  async function handleSave(briefText: string) {
+    if (!callerAddress) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.editBrief(job.jobId, callerAddress, briefText);
+      await onEdited();
+      setOpen(false);
+    } catch (err) {
+      const detail =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setError(detail);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <PageCard>
+        <div className="px-6 pt-6 pb-3">
+          <SectionTag>EDIT</SectionTag>
+          <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+            Fix the request text
+          </h3>
+        </div>
+        <div className="px-6 pb-6 space-y-3">
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            Spotted a typo or want to clarify what you need? Update the text now,
+            before a seller agent locks in a match. The agent re-reads the new
+            copy on its next scan.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setOpen(true);
+            }}
+            className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)] underline underline-offset-2"
+          >
+            Edit request
+          </button>
+        </div>
+      </PageCard>
+      {open && (
+        <EditBriefModal
+          initialBriefText={job.briefText ?? ''}
+          busy={busy}
+          error={error}
+          onSave={handleSave}
+          onClose={() => {
+            setOpen(false);
+            setError(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function EditBriefModal({
+  initialBriefText,
+  busy,
+  error,
+  onSave,
+  onClose,
+}: {
+  initialBriefText: string;
+  busy: boolean;
+  error: string | null;
+  onSave: (briefText: string) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(initialBriefText);
+  const trimmed = text.trim();
+  const dirty = trimmed !== initialBriefText.trim();
+  const valid = trimmed.length >= 5 && trimmed.length <= 2000 && dirty;
+
+  function submit() {
+    if (!valid || busy) return;
+    onSave(trimmed);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(14,14,14,0.55)' }}
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg overflow-hidden"
+        style={{
+          background: 'var(--lp-card)',
+          color: 'var(--lp-dark)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div className="px-6 pt-6 pb-3">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:EDIT REQUEST:]
+          </span>
+          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
+            Update the text
+            <span style={{ color: 'var(--lp-accent)' }}>.</span>
+          </h2>
+        </div>
+        <div className="px-6 pb-6 space-y-4">
+          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
+            The off-chain text updates right away. Keywords re-extract for the
+            agent&apos;s next scan. Other fields (budget, deadline, tolerance)
+            stay locked because the auction relies on them.
+          </p>
+
+          <label className="block space-y-1.5">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:REQUEST TEXT:]
+            </span>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={busy}
+              rows={8}
+              className="form-input form-textarea"
+              maxLength={2000}
+            />
+            <span className="mono text-[10px] text-[var(--lp-text-muted)]">
+              {text.length}/2000
+            </span>
+          </label>
+
+          {error && (
+            <p className="mono text-[11px] text-[#b03d3a]">{error}</p>
+          )}
+
+          <div className="flex items-center gap-3 pt-2">
+            <CTAPill onClick={submit} disabled={!valid || busy}>
+              {busy ? 'Saving...' : 'Save changes'}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
+              Cancel
+            </CTAPill>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CancelBriefSection({
   job,
   declined,

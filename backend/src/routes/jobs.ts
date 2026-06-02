@@ -32,6 +32,14 @@ const addrSchema = z
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 const callerSchema = z.object({ caller: addrSchema });
 const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).max(400).optional() });
+/// Minimal-scope edit. Only the briefText is mutable. Price ceiling
+/// (negotiationMaxIncreasePct), keywords, and trustedMatch toggle stay locked
+/// because changing them mid-walk would desync the seller agent's scoring
+/// against an already-running auction.
+const editBriefSchema = z.object({
+  caller: addrSchema,
+  briefText: z.string().min(5).max(2000),
+});
 const inFlight = new Set<string>();
 
 const USDC_DECIMALS = 6;
@@ -335,6 +343,72 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
 /// Buyer cancels their own managed brief BEFORE a match has been approved.
 /// After a match + escrow is funded the cancel lives on /deals/[id] (mutual
 /// cancel + refund flow); this route only covers the pre-match window.
+/// Buyer edits their own request. Minimal scope: briefText only. The on-chain
+/// termsHash stays at its post-time value because updating it would require a
+/// new on-chain transaction; the agent uses the off-chain briefText for
+/// matching, so the live negotiation sees the latest copy. Gating: brief must
+/// exist, caller must be the buyer, brief must not be expired, no active
+/// match proposal (a text change mid-walk would invalidate the agent's
+/// scoring), no funded deal (acceptance is the point of no return).
+jobsRoutes.post('/:jobId/edit', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = editBriefSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const brief = getBrief(jobId);
+  if (!brief) return c.json({ error: 'brief not found' }, 404);
+  if (body.caller.toLowerCase() !== brief.postedBy) {
+    return c.json({ error: 'only the buyer can edit this request' }, 403);
+  }
+  if (brief.expiredAt) {
+    return c.json({ error: 'this request has expired' }, 409);
+  }
+  const proposal = await getMatchProposal(jobId);
+  if (proposal && !proposal.declinedAt) {
+    return c.json(
+      { error: 'a match proposal is in flight; decline it before editing the request' },
+      409,
+    );
+  }
+  const deal = await getDeal(jobId);
+  if (deal && deal.acceptedAt) {
+    return c.json(
+      { error: 'this request has already accepted a match; edits live on the deal page' },
+      409,
+    );
+  }
+  if (brief.briefText === body.briefText) {
+    return c.json({ error: 'no change to the request text' }, 400);
+  }
+
+  const next = patchBrief(jobId, { briefText: body.briefText });
+  logger.info({ jobId, postedBy: brief.postedBy }, 'brief edited by buyer');
+
+  /// Keywords were extracted at post time. The agent scans them for topical
+  /// match against incoming listings, so a text change should re-extract.
+  /// Fire-and-forget; the API responds immediately and the agent picks up the
+  /// new keywords on the next match round.
+  extractKeywords(body.briefText, `brief-edit:${jobId}`)
+    .then((keywords) => {
+      patchBrief(jobId, { keywords });
+      logger.info({ jobId, keywords }, 'brief keywords re-extracted after edit');
+    })
+    .catch((err) => {
+      logger.warn(
+        { err: (err as Error).message, jobId },
+        'brief keyword re-extraction failed; stale keywords will be used',
+      );
+    });
+
+  return c.json({ brief: next });
+});
+
 jobsRoutes.post('/:jobId/cancel', async (c) => {
   const jobId = c.req.param('jobId');
   let body;
