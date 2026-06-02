@@ -30,6 +30,9 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
 
   useEffect(() => {
     let cancelledFetch = false;
@@ -64,6 +67,25 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       setCancelError((err as Error).message);
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleEdit(patch: {
+    title?: string;
+    description?: string;
+    askingPriceUsdc?: number;
+  }) {
+    if (!address || !listing) return;
+    setEditing(true);
+    setEditError(null);
+    try {
+      const r = await api.editListing(listing.id, address, patch);
+      setListing(r.listing);
+      setShowEdit(false);
+    } catch (err) {
+      setEditError((err as Error).message);
+    } finally {
+      setEditing(false);
     }
   }
 
@@ -320,13 +342,22 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                   notification the moment that happens.
                 </p>
                 {!confirmCancel ? (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmCancel(true)}
-                    className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-white/55 hover:text-white underline underline-offset-2"
-                  >
-                    Cancel this offer
-                  </button>
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowEdit(true)}
+                      className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)] underline underline-offset-2"
+                    >
+                      Edit this offer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmCancel(true)}
+                      className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-white/55 hover:text-white underline underline-offset-2"
+                    >
+                      Cancel this offer
+                    </button>
+                  </div>
                 ) : (
                   <div
                     className="px-4 py-3 space-y-3"
@@ -386,7 +417,168 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           </div>
         </div>
       </Band>
+      {showEdit && (
+        <EditListingModal
+          initialTitle={listing.title}
+          initialDescription={listing.description}
+          initialAskingPriceUsdc={listing.askingPriceUsdc}
+          busy={editing}
+          error={editError}
+          onSave={handleEdit}
+          onClose={() => {
+            setShowEdit(false);
+            setEditError(null);
+          }}
+        />
+      )}
     </FullBleed>
+  );
+}
+
+function EditListingModal({
+  initialTitle,
+  initialDescription,
+  initialAskingPriceUsdc,
+  busy,
+  error,
+  onSave,
+  onClose,
+}: {
+  initialTitle: string;
+  initialDescription: string;
+  initialAskingPriceUsdc: number;
+  busy: boolean;
+  error: string | null;
+  onSave: (patch: { title?: string; description?: string; askingPriceUsdc?: number }) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
+  const [price, setPrice] = useState<number | ''>(initialAskingPriceUsdc);
+  const titleChanged = title.trim() !== initialTitle;
+  const descChanged = description.trim() !== initialDescription;
+  const priceChanged = typeof price === 'number' && price !== initialAskingPriceUsdc;
+  const dirty = titleChanged || descChanged || priceChanged;
+  const titleValid = title.trim().length >= 3 && title.trim().length <= 120;
+  const descValid = description.trim().length >= 5 && description.trim().length <= 500;
+  const priceValid = typeof price === 'number' && price > 0 && price <= 5_000_000;
+  const valid = titleValid && descValid && priceValid && dirty;
+
+  function submit() {
+    if (!valid || busy) return;
+    const patch: { title?: string; description?: string; askingPriceUsdc?: number } = {};
+    if (titleChanged) patch.title = title.trim();
+    if (descChanged) patch.description = description.trim();
+    if (priceChanged && typeof price === 'number') patch.askingPriceUsdc = price;
+    onSave(patch);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(14,14,14,0.55)' }}
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden"
+        style={{
+          background: 'var(--lp-card)',
+          color: 'var(--lp-dark)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
+        }}
+      >
+        <div className="px-6 pt-6 pb-3">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:EDIT OFFER:]
+          </span>
+          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
+            Fix the details
+            <span style={{ color: 'var(--lp-accent)' }}>.</span>
+          </h2>
+        </div>
+        <div className="px-6 pb-6 space-y-4">
+          <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
+            Edits apply right away. Active match scans use the new copy on their next pass.
+          </p>
+
+          <label className="block space-y-1.5">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:TITLE:]
+            </span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={busy}
+              className="form-input"
+              maxLength={120}
+            />
+            <span className="mono text-[10px] text-[var(--lp-text-muted)]">
+              {title.length}/120
+            </span>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:DESCRIPTION:]
+            </span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={busy}
+              rows={4}
+              className="form-input form-textarea"
+              maxLength={500}
+            />
+            <span className="mono text-[10px] text-[var(--lp-text-muted)]">
+              {description.length}/500
+            </span>
+          </label>
+
+          <label className="block space-y-1.5">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:ASKING PRICE USDC:]
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={5_000_000}
+              step={1}
+              value={price === '' ? '' : price}
+              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+              disabled={busy}
+              className="form-input form-input-num"
+            />
+            {priceChanged && (
+              <span className="mono text-[10px] text-[var(--lp-text-sub)]">
+                was {initialAskingPriceUsdc} USDC
+              </span>
+            )}
+          </label>
+
+          {error && (
+            <p className="mono text-[11px] text-[#b03d3a]">{error}</p>
+          )}
+
+          <div className="flex items-center gap-3 pt-2">
+            <CTAPill onClick={submit} disabled={!valid || busy}>
+              {busy ? 'Saving...' : 'Save changes'}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
+              Cancel
+            </CTAPill>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

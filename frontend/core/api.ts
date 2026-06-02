@@ -677,6 +677,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ caller }),
     }),
+  editListing: (
+    id: string,
+    caller: string,
+    patch: { title?: string; description?: string; askingPriceUsdc?: number },
+  ) =>
+    json<{ listing: Listing }>(`/api/listings/${id}/edit`, {
+      method: 'POST',
+      body: JSON.stringify({ caller, ...patch }),
+    }),
   marketplaceBriefs: () =>
     json<{ briefs: MarketplaceBrief[] }>(`/api/jobs/marketplace`),
   postListing: (body: {

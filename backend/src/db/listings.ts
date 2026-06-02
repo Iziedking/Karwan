@@ -144,6 +144,26 @@ export function markListingMatched(id: string, jobId: string): void {
   persist();
 }
 
+/// Seller edits limited fields on their own listing. Caller checks ownership
+/// and lifecycle state BEFORE calling. Only title, description, and
+/// askingPriceUsdc are mutable; tolerance, ttl, and agent address stay locked
+/// because the seller agent's bidding loop reads them at post time and a
+/// mid-loop change would invalidate in-flight matches without a clean signal
+/// back to the buyer side.
+export function patchListing(
+  id: string,
+  patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc'>>,
+): Listing | null {
+  const l = store.get(id);
+  if (!l) return null;
+  if (patch.title !== undefined) l.title = patch.title;
+  if (patch.description !== undefined) l.description = patch.description;
+  if (patch.askingPriceUsdc !== undefined) l.askingPriceUsdc = patch.askingPriceUsdc;
+  store.set(id, l);
+  persist();
+  return l;
+}
+
 /// Seller-initiated cancel. Caller checks ownership BEFORE calling.
 /// Idempotent: cancelling an already-cancelled listing is a no-op.
 export function cancelListing(id: string): Listing | null {

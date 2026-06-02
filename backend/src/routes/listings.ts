@@ -13,6 +13,7 @@ import {
   listingStatus,
   markListingMatched,
   listingFloor,
+  patchListing,
   type Listing,
 } from '../db/listings.js';
 import { resolveSellerProfile } from '../agents/agent-registry.js';
@@ -46,6 +47,16 @@ const createSchema = z.object({
 });
 
 const cancelSchema = z.object({ caller: addrSchema });
+
+/// Same validation as the create schema but every editable field is optional.
+/// Tolerance, ttl, and agent address are intentionally excluded; those move
+/// the seller agent's bidding logic and need a re-scan we do not yet support.
+const editSchema = z.object({
+  caller: addrSchema,
+  title: z.string().min(3).max(120).optional(),
+  description: z.string().min(5).max(500).optional(),
+  askingPriceUsdc: z.number().positive().max(5_000_000).optional(),
+});
 
 const matchDecisionSchema = z.object({
   match: z.boolean(),
@@ -143,6 +154,56 @@ listingsRoutes.post('/:id/cancel', async (c) => {
     },
   });
   logger.info({ listingId: id, seller: listing.sellerUser }, 'listing cancelled by seller');
+  return c.json({ listing: next });
+});
+
+/// Seller edits their own listing. Allowed while the listing is open: not
+/// matched into a deal, not cancelled, not past its expiry. Only title,
+/// description, and askingPriceUsdc move; other fields would mid-cycle the
+/// seller agent's bidding loop.
+listingsRoutes.post('/:id/edit', async (c) => {
+  const id = c.req.param('id');
+  let body;
+  try {
+    body = editSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const listing = getListing(id);
+  if (!listing) return c.json({ error: 'listing not found' }, 404);
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== listing.sellerUser) {
+    return c.json({ error: 'only the seller can edit this listing' }, 403);
+  }
+  if (listing.matchedAt) {
+    return c.json(
+      { error: 'this listing already matched a brief; edits live on the deal page' },
+      409,
+    );
+  }
+  if (listing.cancelledAt) {
+    return c.json({ error: 'this listing is cancelled' }, 409);
+  }
+  if (listing.expiresAt < Date.now()) {
+    return c.json({ error: 'this listing has expired' }, 409);
+  }
+
+  const patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc'>> = {};
+  if (body.title !== undefined) patch.title = body.title;
+  if (body.description !== undefined) patch.description = body.description;
+  if (body.askingPriceUsdc !== undefined) patch.askingPriceUsdc = body.askingPriceUsdc;
+
+  if (Object.keys(patch).length === 0) {
+    return c.json({ error: 'no editable fields provided' }, 400);
+  }
+
+  const next = patchListing(id, patch);
+  logger.info(
+    { listingId: id, seller: listing.sellerUser, changed: Object.keys(patch) },
+    'listing edited by seller',
+  );
   return c.json({ listing: next });
 });
 
