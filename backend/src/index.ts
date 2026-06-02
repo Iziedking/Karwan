@@ -42,6 +42,7 @@ import { startDealWatcher } from './agents/dealWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
+import { startVaultScanWatcher } from './chain/vaultScanCache.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
@@ -213,6 +214,19 @@ function bootAgents() {
     appLogger.warn(
       { err: (err as Error).message },
       'cooldown watcher not started',
+    );
+  }
+  /// Boot prefetch + periodic refresh of the shared vault scan cache.
+  /// Without this, each `/api/vault/positions` request did its own full
+  /// positionId walk on chain. The watcher hydrates the cache from disk
+  /// (the prior process's snapshot) and kicks off a fresh scan in the
+  /// background, so the first reader after a restart serves warm.
+  try {
+    stopFns.push(startVaultScanWatcher());
+  } catch (err) {
+    appLogger.warn(
+      { err: (err as Error).message },
+      'vault scan watcher not started',
     );
   }
 }

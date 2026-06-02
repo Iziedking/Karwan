@@ -5,6 +5,11 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
+import {
+  getPositionsByOwner,
+  refreshVaultScan,
+  type PositionRow,
+} from '../chain/vaultScanCache.js';
 import { getUserByAddress } from '../db/users.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -109,86 +114,39 @@ interface ReadPositionsResult {
   synced: boolean;
 }
 
-/// Multicall-enumerated read across positionId 1..nextPositionId. Replaces
-/// the previous Deposited-event scan, which silently lost positions when
-/// the Arc RPC dropped pages mid-walk. The vault's positionId counter only
-/// monotonically increases (it auto-increments on every deposit and never
-/// rewinds on withdraw/claim), so enumerating up to nextPositionId is exact.
+/// Format a cached row into the API-facing `Position` shape. The cache holds
+/// raw on-chain values; UI fields like `principalUsdc` and `tenureDays` derive
+/// from the cached `depositedAt`/`principalWei` at format time so the same row
+/// can serve many requests without recomputing the chain read.
+function formatRow(row: PositionRow, now: number): Position {
+  return {
+    positionId: row.positionId,
+    principalUsdc: formatUnits(BigInt(row.principalWei), USDC_DECIMALS),
+    principalWei: row.principalWei,
+    depositedAt: row.depositedAt,
+    cooldownStartedAt: row.cooldownStartedAt,
+    claimableAt: row.claimableAt,
+    state: stateLabelFor(row.state),
+    tenureDays: Math.max(0, (now - row.depositedAt) / 86_400),
+  };
+}
+
+/// Read positions for one address from the shared vault scan cache. The
+/// cache is refreshed by a periodic watcher (see `vaultScanCache.ts`) and
+/// persisted to `data/vaultScan.json` so a process restart serves warm
+/// before the first new scan completes. Before this, every request did its
+/// own full positionId walk on chain.
 async function readPositions(addressRaw: string): Promise<ReadPositionsResult> {
   const vault = vaultAddress();
   if (!vault) {
     logger.warn({ addressRaw }, 'vault.readPositions: KARWAN_VAULT_ADDR unset');
     return { positions: [], synced: true };
   }
-  const address = addressRaw.toLowerCase();
-
-  let nextId: bigint;
-  try {
-    nextId = (await publicClient.readContract({
-      address: vault,
-      abi: vaultAbi,
-      functionName: 'nextPositionId',
-    })) as bigint;
-  } catch (err) {
-    logger.warn(
-      { err: (err as Error).message, vault },
-      'vault.readPositions: nextPositionId read failed',
-    );
-    return { positions: [], synced: false };
-  }
-
-  if (nextId < 0n) return { positions: [], synced: true };
-
-  // Walk position 0 through nextId inclusive. allowFailure on the multicall
-  // catches None slots so the +/- 1 ambiguity around the contract counter
-  // can't drop a real position. Owner-mismatch and None-state checks below
-  // filter out anything that isn't a real active or cooling row.
-  // Arc Testnet has no Multicall3 contract, so viem's `multicall()` throws.
-  // Promise.allSettled with individual eth_call requests works on any chain
-  // and the N is small (max ~21 positions per address), so the cost is
-  // negligible. Same pattern used for the legacy vault.
-  const positionIds: bigint[] = [];
-  for (let i = 0n; i <= nextId; i++) positionIds.push(i);
-
-  const results = await Promise.allSettled(
-    positionIds.map((id) =>
-      publicClient.readContract({
-        address: vault,
-        abi: vaultAbi,
-        functionName: 'positions',
-        args: [id],
-      }),
-    ),
-  );
-
+  const { positions: rows, synced } = await getPositionsByOwner(addressRaw);
   const now = Math.floor(Date.now() / 1000);
-  const out: Position[] = [];
-  let anyFailed = false;
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (!r || r.status !== 'fulfilled') {
-      anyFailed = true;
-      continue;
-    }
-    const tuple = r.value as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
-    if (tuple[0].toLowerCase() !== address) continue;
-    const [, principal, depositedAt, cooldownStartedAt, claimableAt, state] = tuple;
-    if (state === 0) continue;
-    const positionId = i.toString();
-    out.push({
-      positionId,
-      principalUsdc: formatUnits(principal, USDC_DECIMALS),
-      principalWei: principal.toString(),
-      depositedAt: Number(depositedAt),
-      cooldownStartedAt: Number(cooldownStartedAt),
-      claimableAt: Number(claimableAt),
-      state: stateLabelFor(state),
-      tenureDays: Math.max(0, (now - Number(depositedAt)) / 86_400),
-    });
-  }
   return {
-    positions: out.sort((a, b) => Number(b.positionId) - Number(a.positionId)),
-    synced: !anyFailed,
+    positions: rows.map((r) => formatRow(r, now)),
+    synced,
   };
 }
 
@@ -350,6 +308,12 @@ vaultRoutes.post('/deposit', async (c) => {
       { address: body.address, amountUsdc: body.amountUsdc, depositTxHash: depositResult.txHash },
       'vault deposit confirmed (Circle identity DCW)',
     );
+    /// Refresh the shared scan cache so the next /positions read for this
+    /// address reflects the new principal immediately, instead of waiting
+    /// out the 5-minute periodic refresh in vaultScanCache.
+    void refreshVaultScan().catch((err) =>
+      logger.warn({ err: (err as Error).message }, 'post-deposit vault scan refresh failed'),
+    );
 
     return c.json({
       ok: true,
@@ -446,6 +410,12 @@ async function positionActionRoute(
         ...(principalUsdc !== null ? { principalUsdc } : {}),
       },
     });
+    /// Refresh the shared scan cache so the next /positions read reflects
+    /// the new position state immediately (Active -> Cooling on request,
+    /// Cooling -> Active on cancel, Cooling -> Withdrawn on claim).
+    void refreshVaultScan().catch((err) =>
+      logger.warn({ err: (err as Error).message }, 'post-action vault scan refresh failed'),
+    );
     logger.info(
       { address: body.address, positionId: positionIdStr, fn, txHash: result.txHash },
       'vault action confirmed (Circle identity DCW)',
