@@ -1,4 +1,10 @@
-import { escrow, reputation, readEscrow, ESCROW_STATE } from './contracts.js';
+import {
+  escrow,
+  reputation,
+  readEscrow,
+  invalidateEscrowCache,
+  ESCROW_STATE,
+} from './contracts.js';
 import { executeContractCall } from './txs.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -27,6 +33,33 @@ export const ESCROW_SETTLED = ESCROW_STATE.Settled;
 export const ESCROW_DISPUTED = ESCROW_STATE.Disputed;
 export const ESCROW_REFUNDED = ESCROW_STATE.Refunded;
 
+/// Every wrapper in this file talks to KarwanEscrow through a Circle SCA
+/// (DCW) wallet, which routes the call through ERC-4337 handleOps. Circle
+/// reports COMPLETE the moment handleOps lands on chain, even when the inner
+/// userOp reverted — see karwan_erc4337_innerrevert.md for the original
+/// "escrow got 0" repro. Without an on-chain state read after every COMPLETE,
+/// the wrappers would emit `escrow.accepted` / `escrow.milestone.released` /
+/// `escrow.released_from_dispute` (and the dispute/refund equivalents) on a
+/// userOp that never touched escrow state — falsely advancing off-chain
+/// `deal.disputed` / `cancelledAt` / `settledAt` while funds stay locked.
+/// Each wrapper now re-reads the escrow after the COMPLETE, asserts the
+/// expected post-state, and only THEN emits the bus event. A mismatch throws
+/// so the caller's catch surfaces the inner-revert to the user.
+async function assertEscrowState(
+  jobId: string,
+  expected: number,
+  label: string,
+  txHash: string,
+): Promise<void> {
+  invalidateEscrowCache(jobId);
+  const account = await readEscrow(jobId);
+  if (account.state !== expected) {
+    const message = `${label} inner-reverted: tx ${txHash} returned COMPLETE but escrow state is ${account.state}, expected ${expected}.`;
+    logger.error({ jobId, txHash, expected, actual: account.state }, message);
+    throw new Error(message);
+  }
+}
+
 /// Seller acceptance is a new on-chain step in v2.D. The seller agent
 /// signs acceptEscrow(jobId), which transitions the escrow to Accepted and
 /// locks the insurance reservation on the vault. Without this, releases
@@ -42,6 +75,7 @@ export async function acceptEscrow(jobId: string, sellerAgentWalletId: string): 
     },
     `acceptEscrow(${jobId})`,
   );
+  await assertEscrowState(jobId, ESCROW_STATE.Accepted, 'acceptEscrow', result.txHash);
   bus.emitEvent({
     type: 'escrow.accepted',
     jobId,
@@ -69,6 +103,21 @@ export async function releaseMilestone(
     },
     `releaseProgress(${jobId}, ${index})`,
   );
+  /// Releases don't end in a single target state — a non-final milestone
+  /// leaves the escrow in Accepted (with the counter advanced), and the
+  /// final milestone lands in Settled. So instead of asserting state, read
+  /// milestonesReleased and ensure it moved past `index`. A stuck counter
+  /// is the inner-revert tell.
+  invalidateEscrowCache(jobId);
+  const account = await readEscrow(jobId);
+  if (account.milestonesReleased <= index) {
+    const message = `releaseProgress inner-reverted: tx ${result.txHash} returned COMPLETE but milestonesReleased=${account.milestonesReleased}, expected >${index}.`;
+    logger.error(
+      { jobId, txHash: result.txHash, expectedGt: index, actual: account.milestonesReleased },
+      message,
+    );
+    throw new Error(message);
+  }
   bus.emitEvent({
     type: 'escrow.milestone.released',
     jobId,
@@ -96,12 +145,54 @@ export async function releaseFromDispute(
     },
     `releaseFromDispute(${jobId})`,
   );
+  await assertEscrowState(jobId, ESCROW_STATE.Settled, 'releaseFromDispute', result.txHash);
   bus.emitEvent({
     type: 'escrow.released_from_dispute',
     jobId,
     actor: 'buyer',
     payload: { txHash: result.txHash },
   });
+  return result.txHash;
+}
+
+/// Buyer or seller raises a dispute, freezing the escrow until resolved.
+/// Transitions Accepted -> Disputed. Either party's agent wallet can sign;
+/// the contract gates msg.sender to the escrow's buyer or seller.
+export async function disputeEscrow(
+  jobId: string,
+  walletId: string,
+  reason: string,
+): Promise<string> {
+  if (!walletId) throw new Error('disputeEscrow requires a signer wallet id');
+  const result = await executeContractCall(
+    {
+      walletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'dispute(bytes32,string)',
+      abiParameters: [jobId, reason],
+    },
+    `dispute(${jobId})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Disputed, 'dispute', result.txHash);
+  return result.txHash;
+}
+
+/// Refund the buyer from a Disputed escrow. Buyer-only on chain. Transitions
+/// Disputed -> Refunded, releases the reservation on the vault (slashing it
+/// when the seller breached, or returning it to free stake when not), and
+/// records the on-chain reputation outcome.
+export async function refundEscrow(jobId: string, buyerAgentWalletId: string): Promise<string> {
+  if (!buyerAgentWalletId) throw new Error('refundEscrow requires a buyer agent wallet id');
+  const result = await executeContractCall(
+    {
+      walletId: buyerAgentWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'refund(bytes32)',
+      abiParameters: [jobId],
+    },
+    `refund(${jobId})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Refunded, 'refund', result.txHash);
   return result.txHash;
 }
 

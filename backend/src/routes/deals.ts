@@ -21,6 +21,9 @@ import {
   releaseMilestone,
   finalizeIfSettled,
   acceptEscrow as acceptEscrowOnChain,
+  disputeEscrow,
+  refundEscrow,
+  releaseFromDispute as releaseFromDisputeOnChain,
   recordReputation,
   ESCROW_FUNDED,
   ESCROW_ACCEPTED,
@@ -1498,25 +1501,20 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     // the on-chain parties to the escrow.
     const signerWalletId =
       callerRole === 'seller' ? deal.sellerAgentWalletId : deal.buyerAgentWalletId;
-    const result = await executeContractCall(
-      {
-        walletId: signerWalletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'dispute(bytes32,string)',
-        abiParameters: [jobId, reasonHash],
-      },
-      `dispute(${jobId})`,
-    );
+    /// disputeEscrow re-reads escrow state after the COMPLETE and throws if the
+    /// inner userOp reverted, so the off-chain `disputed=true` patch below only
+    /// runs when the chain actually moved to Disputed.
+    const disputeTxHash = await disputeEscrow(jobId, signerWalletId, reasonHash);
     await patchDeal(jobId, { disputed: true, disputedAt: Date.now() });
     bus.emitEvent({
       type: 'deal.disputed',
       jobId,
       actor: callerRole,
-      payload: { seller: deal.seller, buyer: deal.buyer, reason: reasonHash, txHash: result.txHash },
+      payload: { seller: deal.seller, buyer: deal.buyer, reason: reasonHash, txHash: disputeTxHash },
     });
     // A dispute is a neutral marker on the record until it is resolved.
     await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_DISPUTE_RESOLVED);
-    return c.json({ accepted: true, jobId, txHash: result.txHash }, 200);
+    return c.json({ accepted: true, jobId, txHash: disputeTxHash }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'appeal failed');
@@ -1620,24 +1618,14 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   inFlight.add(jobId);
   try {
     const reason = 'buyer cancel: seller did not deliver by deadline';
-    await executeContractCall(
-      {
-        walletId: deal.buyerAgentWalletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'dispute(bytes32,string)',
-        abiParameters: [jobId, reason],
-      },
-      `dispute(cancel ${jobId})`,
-    );
-    const refundResult = await executeContractCall(
-      {
-        walletId: deal.buyerAgentWalletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'refund(bytes32)',
-        abiParameters: [jobId],
-      },
-      `refund(${jobId})`,
-    );
+    /// Two SCA calls in sequence. Both go through the inner-revert guard in
+    /// settlement.ts, so either a stuck Disputed state (dispute reverted) or
+    /// a stuck Disputed-but-not-Refunded state (refund reverted) throws here
+    /// before any off-chain `cancelledAt` write. Without this, a refund inner
+    /// revert would mark the deal cancelled in DB while the buyer's USDC is
+    /// still escrowed on chain.
+    await disputeEscrow(jobId, deal.buyerAgentWalletId, reason);
+    const refundTxHash = await refundEscrow(jobId, deal.buyerAgentWalletId);
     await patchDeal(jobId, {
       cancelledAt: Date.now(),
       cancelKind: 'unilateral',
@@ -1652,12 +1640,12 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
         seller: deal.seller,
         kind: 'unilateral',
         reason,
-        txHash: refundResult.txHash,
+        txHash: refundTxHash,
       },
     });
     // The seller never delivered by the deadline: record a failure against them.
     await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
-    return c.json({ accepted: true, jobId, txHash: refundResult.txHash }, 200);
+    return c.json({ accepted: true, jobId, txHash: refundTxHash }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'cancel failed');
@@ -1837,15 +1825,8 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
           409,
         );
       }
-      await executeContractCall(
-        {
-          walletId: deal.buyerAgentWalletId,
-          contractAddress: escrow.address,
-          abiFunctionSignature: 'dispute(bytes32,string)',
-          abiParameters: [jobId, chainReason],
-        },
-        `dispute(${proposal.kind}-cancel ${jobId})`,
-      );
+      /// Inner-revert guarded; throws if escrow didn't actually move to Disputed.
+      await disputeEscrow(jobId, deal.buyerAgentWalletId, chainReason);
     }
 
     /// 'release-from-dispute' → releaseFromDispute(jobId); seller is paid in
@@ -1853,25 +1834,12 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     /// Everything else → refund(jobId); buyer is refunded and the chain
     /// records Failed against the seller (when reservation existed).
     /// Both contract paths are buyer-only, so the buyer agent must sign.
-    const txResult = isReleaseFromDispute
-      ? await executeContractCall(
-          {
-            walletId: deal.buyerAgentWalletId,
-            contractAddress: escrow.address,
-            abiFunctionSignature: 'releaseFromDispute(bytes32)',
-            abiParameters: [jobId],
-          },
-          `releaseFromDispute(${jobId})`,
-        )
-      : await executeContractCall(
-          {
-            walletId: deal.buyerAgentWalletId,
-            contractAddress: escrow.address,
-            abiFunctionSignature: 'refund(bytes32)',
-            abiParameters: [jobId],
-          },
-          `refund(${jobId})`,
-        );
+    /// Both wrappers verify the expected post-state (Settled / Refunded)
+    /// before returning, so the off-chain patchDeal below only runs when
+    /// the chain actually moved.
+    const finalTxHash = isReleaseFromDispute
+      ? await releaseFromDisputeOnChain(jobId, deal.buyerAgentWalletId)
+      : await refundEscrow(jobId, deal.buyerAgentWalletId);
 
     /// Identify the loser for the off-chain reputation signal. On a refund
     /// the seller concedes; on a release the buyer concedes. Pre-dispute
@@ -1907,7 +1875,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
         proposedBy: proposal.proposedBy,
         acceptedBy: callerRole,
         ...(disputeLoser ? { disputeLoser } : {}),
-        txHash: txResult.txHash,
+        txHash: finalTxHash,
       },
     });
     // 'mutual' and 'platform-attributed' stay rep-neutral. Dispute-state
@@ -1915,7 +1883,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     // reading disputeLoser; on-chain rep for trusted (reservation > 0) deals
     // is already recorded by the escrow contract.
     return c.json(
-      { accepted: true, jobId, txHash: txResult.txHash, ...(isDisputeResolution ? { disputeLoser } : {}) },
+      { accepted: true, jobId, txHash: finalTxHash, ...(isDisputeResolution ? { disputeLoser } : {}) },
       200,
     );
   } catch (err) {
