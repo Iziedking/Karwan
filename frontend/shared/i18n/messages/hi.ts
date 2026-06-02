@@ -146,7 +146,30 @@ export const hi: Messages = {
       },
     },
   },
+  confirm: {
+    eyebrow: 'पुष्टि करें',
+    cancelDefault: 'रद्द करें',
+    backdropAria: 'रद्द करें',
+  },
+  terms: {
+    modal: {
+      aria: 'कारवाँ के नियम और शर्तें',
+      eyebrow: 'एक बार का गेट',
+      title: 'इसे एक बार पढ़ें। फिर शुरू करें।',
+      openInTab: 'टैब में खोलें',
+      scrollPrompt: 'सहमत होने के लिए अंत तक स्क्रॉल करें',
+      canAccept: 'अब आप स्वीकार कर सकते हैं',
+      accept: 'संस्करण स्वीकार करें',
+      accepting: 'रिकॉर्ड हो रहा है…',
+    },
+  },
   auth: {
+    walletPill: {
+      logIn: 'साइन इन',
+      wrongNetwork: 'गलत नेटवर्क',
+      networkTooltip: '{chain} पर। बदलने या प्रबंधित करने के लिए टैप करें।',
+      fallbackChain: 'अज्ञात नेटवर्क',
+    },
     signInGate: {
       defaultTag: 'साइन इन',
       heroTitle: 'प्रवेश करने के लिए साइन इन करें',

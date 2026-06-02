@@ -147,7 +147,30 @@ interface MessagesShape {
       };
     };
   };
+  confirm: {
+    eyebrow: string;
+    cancelDefault: string;
+    backdropAria: string;
+  };
+  terms: {
+    modal: {
+      aria: string;
+      eyebrow: string;
+      title: string;
+      openInTab: string;
+      scrollPrompt: string;
+      canAccept: string;
+      accept: string;
+      accepting: string;
+    };
+  };
   auth: {
+    walletPill: {
+      logIn: string;
+      wrongNetwork: string;
+      networkTooltip: string;
+      fallbackChain: string;
+    };
     signInGate: {
       defaultTag: string;
       heroTitle: string;
@@ -374,7 +397,30 @@ export const en: MessagesShape = {
       },
     },
   },
+  confirm: {
+    eyebrow: 'CONFIRM',
+    cancelDefault: 'Cancel',
+    backdropAria: 'Cancel',
+  },
+  terms: {
+    modal: {
+      aria: 'Karwan terms and conditions',
+      eyebrow: 'ONE-TIME GATE',
+      title: 'Read this once. Then start.',
+      openInTab: 'Open in tab',
+      scrollPrompt: 'Scroll to the end to accept',
+      canAccept: 'You can accept now',
+      accept: 'Accept version',
+      accepting: 'Recording…',
+    },
+  },
   auth: {
+    walletPill: {
+      logIn: 'Log in',
+      wrongNetwork: 'Wrong network',
+      networkTooltip: 'On {chain}. Tap to switch or manage.',
+      fallbackChain: 'unknown network',
+    },
     signInGate: {
       defaultTag: 'SIGN IN',
       heroTitle: 'Log in to enter',

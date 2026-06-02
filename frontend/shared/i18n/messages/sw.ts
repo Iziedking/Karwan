@@ -146,7 +146,30 @@ export const sw: Messages = {
       },
     },
   },
+  confirm: {
+    eyebrow: 'THIBITISHA',
+    cancelDefault: 'Ghairi',
+    backdropAria: 'Ghairi',
+  },
+  terms: {
+    modal: {
+      aria: 'Masharti na hali za Karwan',
+      eyebrow: 'LANGO LA MARA MOJA',
+      title: 'Soma hii mara moja. Kisha anza.',
+      openInTab: 'Fungua kwenye kichupo',
+      scrollPrompt: 'Sogeza hadi mwisho ili kukubali',
+      canAccept: 'Unaweza kukubali sasa',
+      accept: 'Kubali toleo',
+      accepting: 'Inarekodi…',
+    },
+  },
   auth: {
+    walletPill: {
+      logIn: 'Ingia',
+      wrongNetwork: 'Mtandao usio sahihi',
+      networkTooltip: 'Kwenye {chain}. Gusa kubadilisha au kusimamia.',
+      fallbackChain: 'mtandao usiojulikana',
+    },
     signInGate: {
       defaultTag: 'INGIA',
       heroTitle: 'Ingia ili kuendelea',

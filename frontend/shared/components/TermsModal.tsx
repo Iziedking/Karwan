@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TermsContent } from './TermsContent';
 import { cn } from '@/shared/utils/cn';
 
@@ -15,6 +16,7 @@ import { cn } from '@/shared/utils/cn';
 export function TermsModal() {
   const { isAuthenticated } = useAuth();
   const terms = useTerms();
+  const t = useTranslations().terms.modal;
   const [submitting, setSubmitting] = useState(false);
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -53,7 +55,7 @@ export function TermsModal() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Karwan terms and conditions"
+      aria-label={t.aria}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
       style={{ background: 'rgba(10, 10, 11, 0.78)' }}
     >
@@ -75,10 +77,10 @@ export function TermsModal() {
         >
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:ONE-TIME GATE:]
+              [:{t.eyebrow}:]
             </p>
             <h2 className="mt-1.5 font-sans text-[22px] font-extrabold tracking-[-0.02em]">
-              Read this once. Then start.
+              {t.title}
             </h2>
           </div>
           <Link
@@ -86,7 +88,7 @@ export function TermsModal() {
             target="_blank"
             className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 shrink-0"
           >
-            Open in tab
+            {t.openInTab}
           </Link>
         </div>
 
@@ -104,7 +106,7 @@ export function TermsModal() {
           style={{ borderTop: '1px solid var(--lp-border-light)' }}
         >
           <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {scrolledToEnd ? 'You can accept now' : 'Scroll to the end to accept'}
+            {scrolledToEnd ? t.canAccept : t.scrollPrompt}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
             {terms.error && (
@@ -127,8 +129,8 @@ export function TermsModal() {
               }}
             >
               {submitting
-                ? 'Recording…'
-                : `Accept version ${terms.currentVersion ?? ''}`.trim()}
+                ? t.accepting
+                : `${t.accept} ${terms.currentVersion ?? ''}`.trim()}
             </button>
           </div>
         </div>

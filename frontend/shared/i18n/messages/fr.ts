@@ -146,7 +146,30 @@ export const fr: Messages = {
       },
     },
   },
+  confirm: {
+    eyebrow: 'CONFIRMER',
+    cancelDefault: 'Annuler',
+    backdropAria: 'Annuler',
+  },
+  terms: {
+    modal: {
+      aria: 'Conditions générales de Karwan',
+      eyebrow: 'PASSAGE UNIQUE',
+      title: 'Lisez ceci une fois. Puis commencez.',
+      openInTab: 'Ouvrir dans un onglet',
+      scrollPrompt: 'Faites défiler jusqu’en bas pour accepter',
+      canAccept: 'Vous pouvez accepter maintenant',
+      accept: 'Accepter la version',
+      accepting: 'Enregistrement…',
+    },
+  },
   auth: {
+    walletPill: {
+      logIn: 'Se connecter',
+      wrongNetwork: 'Mauvais réseau',
+      networkTooltip: 'Sur {chain}. Cliquez pour changer ou gérer.',
+      fallbackChain: 'réseau inconnu',
+    },
     signInGate: {
       defaultTag: 'CONNEXION',
       heroTitle: 'Connectez-vous pour entrer',

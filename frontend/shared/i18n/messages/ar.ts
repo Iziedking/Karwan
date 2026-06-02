@@ -146,7 +146,30 @@ export const ar: Messages = {
       },
     },
   },
+  confirm: {
+    eyebrow: 'تأكيد',
+    cancelDefault: 'إلغاء',
+    backdropAria: 'إلغاء',
+  },
+  terms: {
+    modal: {
+      aria: 'شروط وأحكام كروان',
+      eyebrow: 'بوابة لمرة واحدة',
+      title: 'اقرأ هذا مرة واحدة. ثم ابدأ.',
+      openInTab: 'فتح في علامة تبويب',
+      scrollPrompt: 'مرّر إلى النهاية للموافقة',
+      canAccept: 'يمكنك الموافقة الآن',
+      accept: 'موافقة على الإصدار',
+      accepting: 'جارٍ التسجيل…',
+    },
+  },
   auth: {
+    walletPill: {
+      logIn: 'تسجيل الدخول',
+      wrongNetwork: 'شبكة خاطئة',
+      networkTooltip: 'على {chain}. انقر للتبديل أو الإدارة.',
+      fallbackChain: 'شبكة غير معروفة',
+    },
     signInGate: {
       defaultTag: 'تسجيل الدخول',
       heroTitle: 'سجّل الدخول للمتابعة',

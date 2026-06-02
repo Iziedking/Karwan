@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { LoginModal } from './LoginModal';
 import { CircleAccountModal } from './CircleAccountModal';
 import { ChainLogo, type ChainKey } from './ChainLogo';
@@ -36,6 +37,7 @@ function chainKeyFromId(id: number): ChainKey | null {
 ///      with both paths visible.
 export function ConnectWalletButton() {
   const auth = useAuth();
+  const t = useTranslations().auth.walletPill;
   const [loginOpen, setLoginOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   // Backward-compat: old code referenced a single `open` state. Keep one
@@ -133,7 +135,7 @@ export function ConnectWalletButton() {
                           strokeLinecap="round"
                         />
                       </svg>
-                      Log in
+                      {t.logIn}
                     </button>
                   );
                 }
@@ -150,7 +152,7 @@ export function ConnectWalletButton() {
                         border: '1.5px solid #b03d3a',
                       }}
                     >
-                      Wrong network
+                      {t.wrongNetwork}
                     </button>
                   );
                 }
@@ -160,7 +162,7 @@ export function ConnectWalletButton() {
                     onClick={openAccountModal}
                     type="button"
                     suppressHydrationWarning
-                    title={`On ${chain.name ?? 'unknown network'}. Tap to switch or manage.`}
+                    title={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
                   >
                     {/* Current chain mark; updates the moment the wallet switches

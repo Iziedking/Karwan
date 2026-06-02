@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -26,13 +27,15 @@ export function ConfirmDialog({
   body,
   reasonPrompt,
   confirmLabel,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   tone = 'primary',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const t = useTranslations().confirm;
   const [mounted, setMounted] = useState(false);
   const [reason, setReason] = useState('');
+  const resolvedCancel = cancelLabel ?? t.cancelDefault;
 
   useEffect(() => setMounted(true), []);
 
@@ -74,7 +77,7 @@ export function ConfirmDialog({
     >
       <button
         type="button"
-        aria-label="Cancel"
+        aria-label={t.backdropAria}
         onClick={onCancel}
         className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
       />
@@ -99,7 +102,7 @@ export function ConfirmDialog({
             borderRadius: 3,
           }}
         >
-          [:CONFIRM:]
+          [:{t.eyebrow}:]
         </span>
         <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.01em] leading-tight">
           {title}
@@ -137,7 +140,7 @@ export function ConfirmDialog({
               borderBottomRightRadius: 2,
             }}
           >
-            {cancelLabel}
+            {resolvedCancel}
           </button>
           <button
             type="button"
