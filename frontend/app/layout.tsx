@@ -53,10 +53,29 @@ const TITLE = 'Karwan · cross-border SME settlement';
 const DESCRIPTION =
   'Agent-mediated, USDC-settled, milestone-escrowed deals on Arc. Built on Circle.';
 
+/// Viewport tag lives in its own export per the Next.js 15 metadata split.
+/// themeColor reads as #0e0e0e so Android Chrome paints the address bar in
+/// brand ink rather than the default white.
+export const viewport: import('next').Viewport = {
+  themeColor: '#0e0e0e',
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: TITLE,
   description: DESCRIPTION,
+  /// Web app manifest covers the PWA install icons (192 and 512) that Next.js
+  /// does not generate from app/icon.svg automatically. Browser favicon and
+  /// Apple touch icon are still picked up from app/icon.svg and
+  /// app/apple-icon.png.
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/icon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   openGraph: {
     type: 'website',
     url: SITE_URL,
