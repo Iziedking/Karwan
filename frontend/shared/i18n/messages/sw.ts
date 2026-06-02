@@ -56,6 +56,65 @@ export const sw: Messages = {
       description: 'Unaweza kubadilisha wakati wowote kwenye Mipangilio.',
     },
   },
+  footer: {
+    tagline: 'Reli za malipo na sifa kwenye blockchain kwa biashara ya kupita mipaka ya SMEs. USDC inakaa kwenye escrow ya hatua kwenye Arc wakati kazi inafanyika.',
+    builtFor: 'IMEUNDWA KWA NJIA YA BIASHARA',
+    columns: {
+      product: 'BIDHAA',
+      network: 'MTANDAO',
+      socials: 'MITANDAO YA KIJAMII',
+    },
+    productLinks: {
+      buyer: 'Dawati la mnunuzi',
+      seller: 'Dawati la muuzaji',
+      activity: 'Mkondo wa shughuli',
+      howItWorks: 'Jinsi inavyofanya kazi',
+      docs: 'Nyaraka',
+      brand: 'Vyombo vya habari na chapa',
+      terms: 'Masharti',
+      feedback: 'Maoni',
+    },
+    networkLinks: {
+      arcDocs: 'Nyaraka za Arc',
+      circleDocs: 'Nyaraka za Circle',
+      explorer: 'Kichunguzi cha Arc Testnet',
+      faucet: 'Bomba la USDC',
+    },
+    brand: {
+      label: 'CHAPA',
+    },
+    status: {
+      operational: 'Inafanya kazi',
+    },
+    copyright: {
+      entity: '© 2026 KARWAN',
+      tagline: 'malipo ya kupita mipaka kwa USDC',
+    },
+    heroClose: 'lipa kwa muda halisi',
+  },
+  notifications: {
+    bell: {
+      aria: 'Arifa',
+      sectionTag: 'ARIFA',
+      markRead: 'Weka kama imesomwa',
+      clear: 'Futa',
+      emptyTitle: 'BADO HAKUNA KITU',
+      emptyBody: 'Ulinganifu wa biashara, matukio ya escrow, na mapendekezo ya kughairi yataonekana hapa wanapotokea.',
+      openAction: 'FUNGUA',
+    },
+    toast: {
+      openAction: 'FUNGUA',
+      labels: {
+        matchFound: 'ULINGANIFU UMEPATIKANA',
+        escrowFunded: 'ESCROW IMEFADHILIWA',
+        cancelProposed: 'KUGHAIRI KUMEPENDEKEZWA',
+        topUpNeeded: 'INAHITAJI KUONGEZA',
+        nearMatch: 'KARIBU ULINGANIFU',
+        briefExpired: 'OMBI LIMEISHA',
+        defaultLabel: 'SASISHO',
+      },
+    },
+  },
   auth: {
     signInGate: {
       defaultTag: 'INGIA',

@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
 import { relativeTime } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function NotificationBell() {
   const { isAuthenticated: isConnected } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
+  const t = useTranslations().notifications.bell;
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   // Panel renders via portal so a transformed ancestor (.fade-up bands) cannot
@@ -47,7 +49,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        aria-label="Notifications"
+        aria-label={t.aria}
         className="relative inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -94,7 +96,7 @@ export function NotificationBell() {
             style={{ borderBottom: '1px solid var(--lp-border-light)' }}
           >
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:NOTIFICATIONS:]
+              [:{t.sectionTag}:]
             </span>
             {notifications.length > 0 && (
               <div className="flex items-center gap-3">
@@ -104,7 +106,7 @@ export function NotificationBell() {
                     onClick={markAllRead}
                     className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                   >
-                    Mark read
+                    {t.markRead}
                   </button>
                 )}
                 <button
@@ -112,7 +114,7 @@ export function NotificationBell() {
                   onClick={clearAll}
                   className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                 >
-                  Clear
+                  {t.clear}
                 </button>
               </div>
             )}
@@ -121,10 +123,10 @@ export function NotificationBell() {
           {notifications.length === 0 ? (
             <div className="px-4 py-10 text-center space-y-1.5">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                NOTHING YET
+                {t.emptyTitle}
               </p>
               <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug max-w-[28ch] mx-auto">
-                Deal matches, escrow events, and cancellation proposals land here as they happen.
+                {t.emptyBody}
               </p>
             </div>
           ) : (
@@ -171,7 +173,7 @@ export function NotificationBell() {
                       aria-hidden
                       className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1 shrink-0"
                     >
-                      OPEN →
+                      {t.openAction} →
                     </span>
                   </button>
                 </li>

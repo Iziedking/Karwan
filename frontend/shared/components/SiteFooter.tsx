@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Phantom-grade footer: cream backdrop, big white inner card with asymmetric
 /// rounded corners, logo+tagline block left of a three-column link grid,
@@ -10,6 +11,7 @@ import { cn } from '@/shared/utils/cn';
 /// the landing-page palette so the bottom of every route resolves to the
 /// same visual chord.
 export function SiteFooter() {
+  const t = useTranslations().footer;
   return (
     <footer className="bg-[var(--lp-light)] text-[var(--lp-dark)]">
       <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] pt-[clamp(40px,6vw,80px)] pb-[clamp(28px,4vw,52px)]">
@@ -47,40 +49,38 @@ export function SiteFooter() {
                 </span>
               </Link>
               <p className="text-pretty text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
-                On-chain settlement and reputation rails for cross-border SME
-                trade. USDC sits in milestone escrow on Arc while the work
-                gets done.
+                {t.tagline}
               </p>
-              <SectionTag>BUILT FOR THE TRADE LANE</SectionTag>
+              <SectionTag>{t.builtFor}</SectionTag>
             </div>
 
             {/* RIGHT. three columns of links */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-10">
-              <FooterCol title="PRODUCT">
-                <FooterLink href="/buyer">Buyer desk</FooterLink>
-                <FooterLink href="/seller">Seller desk</FooterLink>
-                <FooterLink href="/activity">Activity feed</FooterLink>
-                <FooterLink href="/how-it-works">How it works</FooterLink>
-                <FooterLink href="/docs">Documentation</FooterLink>
-                <FooterLink href="/brand">Press and brand</FooterLink>
-                <FooterLink href="/terms">Terms</FooterLink>
-                <FooterLink href="/feedback">Feedback</FooterLink>
+              <FooterCol title={t.columns.product}>
+                <FooterLink href="/buyer">{t.productLinks.buyer}</FooterLink>
+                <FooterLink href="/seller">{t.productLinks.seller}</FooterLink>
+                <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
+                <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
+                <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
+                <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
+                <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
+                <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
               </FooterCol>
-              <FooterCol title="NETWORK">
+              <FooterCol title={t.columns.network}>
                 <FooterLink href="https://docs.arc.network" external>
-                  Arc Docs
+                  {t.networkLinks.arcDocs}
                 </FooterLink>
                 <FooterLink href="https://developers.circle.com" external>
-                  Circle Docs
+                  {t.networkLinks.circleDocs}
                 </FooterLink>
                 <FooterLink href="https://testnet.arcscan.app" external>
-                  Arc Testnet Explorer
+                  {t.networkLinks.explorer}
                 </FooterLink>
                 <FooterLink href="https://faucet.circle.com" external>
-                  USDC Faucet
+                  {t.networkLinks.faucet}
                 </FooterLink>
               </FooterCol>
-              <FooterCol title="SOCIALS">
+              <FooterCol title={t.columns.socials}>
                 <FooterSocialLink href="https://x.com/karwanBuild" label="X" glyph={<XGlyph />} />
                 <FooterSocialLink
                   href="https://www.linkedin.com"
@@ -106,9 +106,9 @@ export function SiteFooter() {
           <div className="mt-6 pt-5 border-t border-[var(--lp-border-light)] flex flex-wrap items-center justify-between gap-4">
             <OperationalPill />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mono text-[11px] uppercase tracking-[0.06em] text-[var(--lp-text-muted)]">
-              <span>© 2026 KARWAN</span>
+              <span>{t.copyright.entity}</span>
               <span aria-hidden className="hidden sm:inline-block w-px h-3 bg-[var(--lp-border-light)]" />
-              <span>cross-border settlement on USDC</span>
+              <span>{t.copyright.tagline}</span>
             </div>
           </div>
         </div>
@@ -116,7 +116,7 @@ export function SiteFooter() {
         {/* Heroic wordmark. closes the page like a Phantom move */}
         <div className="mt-12 lg:mt-16">
           <p className="text-center mono text-[10px] uppercase tracking-[0.22em] text-[var(--lp-text-muted)]">
-            [:settle in real time:]
+            [:{t.heroClose}:]
           </p>
           <p
             aria-hidden
@@ -143,6 +143,7 @@ function SectionTag({ children }: { children: ReactNode }) {
 }
 
 function BrandSwatches() {
+  const t = useTranslations().footer;
   /// Three chips with the three brand constants. The caption mirrors the
   /// internal brand-kit doc (docs/assets/brand-kit.md) without exposing it.
   const swatches: ReadonlyArray<{ label: string; hex: string; border?: boolean }> = [
@@ -153,7 +154,7 @@ function BrandSwatches() {
   return (
     <div className="mt-12 lg:mt-16 flex flex-wrap items-center gap-x-6 gap-y-3">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:BRAND:]
+        [:{t.brand.label}:]
       </span>
       <div className="flex items-center gap-3">
         {swatches.map((s) => (
@@ -181,6 +182,7 @@ function BrandSwatches() {
 }
 
 function OperationalPill() {
+  const t = useTranslations().footer;
   return (
     <span
       className="inline-flex items-center gap-2 px-3 py-1.5 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)] bg-[var(--lp-light)] border border-[var(--lp-border-light)]"
@@ -196,7 +198,7 @@ function OperationalPill() {
           style={{ background: 'var(--lp-accent)' }}
         />
       </span>
-      Operational
+      {t.status.operational}
     </span>
   );
 }

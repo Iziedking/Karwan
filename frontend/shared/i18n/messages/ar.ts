@@ -56,6 +56,65 @@ export const ar: Messages = {
       description: 'يمكنك تغيير ذلك في أي وقت من الإعدادات.',
     },
   },
+  footer: {
+    tagline: 'بنية تحتية للتسوية والسمعة على السلسلة لتجارة الشركات الصغيرة والمتوسطة عبر الحدود. تظل USDC في ضمان المراحل على Arc حتى يكتمل العمل.',
+    builtFor: 'مصمَّم لخط التجارة',
+    columns: {
+      product: 'المنتج',
+      network: 'الشبكة',
+      socials: 'مواقع التواصل',
+    },
+    productLinks: {
+      buyer: 'مكتب المشتري',
+      seller: 'مكتب البائع',
+      activity: 'موجز النشاط',
+      howItWorks: 'كيف يعمل',
+      docs: 'التوثيق',
+      brand: 'الصحافة والعلامة التجارية',
+      terms: 'الشروط',
+      feedback: 'الملاحظات',
+    },
+    networkLinks: {
+      arcDocs: 'وثائق Arc',
+      circleDocs: 'وثائق Circle',
+      explorer: 'مستكشف Arc Testnet',
+      faucet: 'صنبور USDC',
+    },
+    brand: {
+      label: 'العلامة',
+    },
+    status: {
+      operational: 'يعمل',
+    },
+    copyright: {
+      entity: '© 2026 كروان',
+      tagline: 'تسوية عبر الحدود باستخدام USDC',
+    },
+    heroClose: 'تسوية فورية',
+  },
+  notifications: {
+    bell: {
+      aria: 'الإشعارات',
+      sectionTag: 'الإشعارات',
+      markRead: 'تمييز كمقروء',
+      clear: 'مسح',
+      emptyTitle: 'لا شيء بعد',
+      emptyBody: 'تظهر هنا مطابقات الصفقات، أحداث الضمان، واقتراحات الإلغاء فور حدوثها.',
+      openAction: 'فتح',
+    },
+    toast: {
+      openAction: 'فتح',
+      labels: {
+        matchFound: 'تم العثور على تطابق',
+        escrowFunded: 'تم تمويل الضمان',
+        cancelProposed: 'اقترح الإلغاء',
+        topUpNeeded: 'يلزم شحن الرصيد',
+        nearMatch: 'تطابق قريب',
+        briefExpired: 'انتهى الطلب',
+        defaultLabel: 'تحديث',
+      },
+    },
+  },
   auth: {
     signInGate: {
       defaultTag: 'تسجيل الدخول',

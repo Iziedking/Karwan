@@ -5,6 +5,8 @@ import {
   subscribeToToasts,
   type AppNotification,
 } from '../hooks/useNotifications';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages';
 
 interface ActiveToast extends AppNotification {
   /// Timestamp the toast was queued. Used for the 6s auto-dismiss.
@@ -20,6 +22,8 @@ const MAX_VISIBLE = 3;
 export function NotificationToasts() {
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
   const router = useRouter();
+  const trToast = useTranslations().notifications.toast;
+  const toastLabels = trToast.labels;
 
   useEffect(() => {
     const unsub = subscribeToToasts((n) => {
@@ -83,7 +87,7 @@ export function NotificationToasts() {
               style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
             />
             <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
-              {labelFor(t.type)}
+              {labelFor(t.type, toastLabels)}
             </span>
             <span
               aria-hidden
@@ -100,7 +104,7 @@ export function NotificationToasts() {
               aria-hidden
               className="shrink-0 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
             >
-              OPEN →
+              {trToast.openAction} →
             </span>
           </div>
         </button>
@@ -109,21 +113,23 @@ export function NotificationToasts() {
   );
 }
 
-function labelFor(type: string): string {
+type ToastLabels = Messages['notifications']['toast']['labels'];
+
+function labelFor(type: string, labels: ToastLabels): string {
   switch (type) {
     case 'deal.matched':
-      return 'MATCH FOUND';
+      return labels.matchFound;
     case 'deal.match.approved':
-      return 'ESCROW FUNDED';
+      return labels.escrowFunded;
     case 'deal.cancel.proposed':
-      return 'CANCEL PROPOSED';
+      return labels.cancelProposed;
     case 'deal.fund.insufficient':
-      return 'TOP UP NEEDED';
+      return labels.topUpNeeded;
     case 'negotiation.near-miss':
-      return 'NEAR MATCH';
+      return labels.nearMatch;
     case 'job.expired':
-      return 'BRIEF EXPIRED';
+      return labels.briefExpired;
     default:
-      return 'UPDATE';
+      return labels.defaultLabel;
   }
 }

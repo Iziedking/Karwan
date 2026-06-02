@@ -56,6 +56,65 @@ export const hi: Messages = {
       description: 'आप इसे सेटिंग्स से किसी भी समय बदल सकते हैं।',
     },
   },
+  footer: {
+    tagline: 'सीमा-पार SME व्यापार के लिए ऑन-चेन निपटान और प्रतिष्ठा रेल। काम पूरा होने तक USDC Arc पर माइलस्टोन एस्क्रो में रहता है।',
+    builtFor: 'व्यापार पथ के लिए बना',
+    columns: {
+      product: 'उत्पाद',
+      network: 'नेटवर्क',
+      socials: 'सोशल',
+    },
+    productLinks: {
+      buyer: 'क्रेता डेस्क',
+      seller: 'विक्रेता डेस्क',
+      activity: 'गतिविधि फीड',
+      howItWorks: 'यह कैसे काम करता है',
+      docs: 'दस्तावेज़',
+      brand: 'प्रेस और ब्रांड',
+      terms: 'शर्तें',
+      feedback: 'फीडबैक',
+    },
+    networkLinks: {
+      arcDocs: 'Arc दस्तावेज़',
+      circleDocs: 'Circle दस्तावेज़',
+      explorer: 'Arc टेस्टनेट एक्सप्लोरर',
+      faucet: 'USDC फॉसेट',
+    },
+    brand: {
+      label: 'ब्रांड',
+    },
+    status: {
+      operational: 'चालू',
+    },
+    copyright: {
+      entity: '© 2026 कारवाँ',
+      tagline: 'USDC पर सीमा-पार निपटान',
+    },
+    heroClose: 'वास्तविक समय में निपटान',
+  },
+  notifications: {
+    bell: {
+      aria: 'सूचनाएँ',
+      sectionTag: 'सूचनाएँ',
+      markRead: 'पठित चिह्नित करें',
+      clear: 'साफ़ करें',
+      emptyTitle: 'अभी कुछ नहीं',
+      emptyBody: 'डील मैच, एस्क्रो घटनाएँ, और रद्दीकरण प्रस्ताव जैसे ही होते हैं यहाँ दिखाई देते हैं।',
+      openAction: 'खोलें',
+    },
+    toast: {
+      openAction: 'खोलें',
+      labels: {
+        matchFound: 'मैच मिला',
+        escrowFunded: 'एस्क्रो फंड हो गया',
+        cancelProposed: 'रद्द करने का प्रस्ताव',
+        topUpNeeded: 'टॉप-अप चाहिए',
+        nearMatch: 'लगभग मैच',
+        briefExpired: 'ब्रीफ समाप्त',
+        defaultLabel: 'अपडेट',
+      },
+    },
+  },
   auth: {
     signInGate: {
       defaultTag: 'साइन इन',

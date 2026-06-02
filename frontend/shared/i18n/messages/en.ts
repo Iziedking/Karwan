@@ -57,6 +57,65 @@ interface MessagesShape {
       description: string;
     };
   };
+  footer: {
+    tagline: string;
+    builtFor: string;
+    columns: {
+      product: string;
+      network: string;
+      socials: string;
+    };
+    productLinks: {
+      buyer: string;
+      seller: string;
+      activity: string;
+      howItWorks: string;
+      docs: string;
+      brand: string;
+      terms: string;
+      feedback: string;
+    };
+    networkLinks: {
+      arcDocs: string;
+      circleDocs: string;
+      explorer: string;
+      faucet: string;
+    };
+    brand: {
+      label: string;
+    };
+    status: {
+      operational: string;
+    };
+    copyright: {
+      entity: string;
+      tagline: string;
+    };
+    heroClose: string;
+  };
+  notifications: {
+    bell: {
+      aria: string;
+      sectionTag: string;
+      markRead: string;
+      clear: string;
+      emptyTitle: string;
+      emptyBody: string;
+      openAction: string;
+    };
+    toast: {
+      openAction: string;
+      labels: {
+        matchFound: string;
+        escrowFunded: string;
+        cancelProposed: string;
+        topUpNeeded: string;
+        nearMatch: string;
+        briefExpired: string;
+        defaultLabel: string;
+      };
+    };
+  };
   auth: {
     signInGate: {
       defaultTag: string;
@@ -192,6 +251,65 @@ export const en: MessagesShape = {
       eyebrow: 'STEP 1',
       title: 'Pick your language',
       description: 'You can change this any time from Settings.',
+    },
+  },
+  footer: {
+    tagline: 'On-chain settlement and reputation rails for cross-border SME trade. USDC sits in milestone escrow on Arc while the work gets done.',
+    builtFor: 'BUILT FOR THE TRADE LANE',
+    columns: {
+      product: 'PRODUCT',
+      network: 'NETWORK',
+      socials: 'SOCIALS',
+    },
+    productLinks: {
+      buyer: 'Buyer desk',
+      seller: 'Seller desk',
+      activity: 'Activity feed',
+      howItWorks: 'How it works',
+      docs: 'Documentation',
+      brand: 'Press and brand',
+      terms: 'Terms',
+      feedback: 'Feedback',
+    },
+    networkLinks: {
+      arcDocs: 'Arc Docs',
+      circleDocs: 'Circle Docs',
+      explorer: 'Arc Testnet Explorer',
+      faucet: 'USDC Faucet',
+    },
+    brand: {
+      label: 'BRAND',
+    },
+    status: {
+      operational: 'Operational',
+    },
+    copyright: {
+      entity: '© 2026 KARWAN',
+      tagline: 'cross-border settlement on USDC',
+    },
+    heroClose: 'settle in real time',
+  },
+  notifications: {
+    bell: {
+      aria: 'Notifications',
+      sectionTag: 'NOTIFICATIONS',
+      markRead: 'Mark read',
+      clear: 'Clear',
+      emptyTitle: 'NOTHING YET',
+      emptyBody: 'Deal matches, escrow events, and cancellation proposals land here as they happen.',
+      openAction: 'OPEN',
+    },
+    toast: {
+      openAction: 'OPEN',
+      labels: {
+        matchFound: 'MATCH FOUND',
+        escrowFunded: 'ESCROW FUNDED',
+        cancelProposed: 'CANCEL PROPOSED',
+        topUpNeeded: 'TOP UP NEEDED',
+        nearMatch: 'NEAR MATCH',
+        briefExpired: 'BRIEF EXPIRED',
+        defaultLabel: 'UPDATE',
+      },
     },
   },
   auth: {

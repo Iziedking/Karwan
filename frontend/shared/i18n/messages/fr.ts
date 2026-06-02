@@ -56,6 +56,65 @@ export const fr: Messages = {
       description: 'Vous pouvez la modifier à tout moment dans Paramètres.',
     },
   },
+  footer: {
+    tagline: "Rails de règlement et de réputation on-chain pour le commerce transfrontalier des PME. L'USDC reste dans un séquestre par jalons sur Arc pendant que le travail se fait.",
+    builtFor: 'CONÇU POUR LA ROUTE COMMERCIALE',
+    columns: {
+      product: 'PRODUIT',
+      network: 'RÉSEAU',
+      socials: 'RÉSEAUX SOCIAUX',
+    },
+    productLinks: {
+      buyer: 'Espace acheteur',
+      seller: 'Espace vendeur',
+      activity: "Flux d'activité",
+      howItWorks: 'Comment ça marche',
+      docs: 'Documentation',
+      brand: 'Presse et marque',
+      terms: 'Conditions',
+      feedback: 'Retours',
+    },
+    networkLinks: {
+      arcDocs: 'Docs Arc',
+      circleDocs: 'Docs Circle',
+      explorer: 'Explorateur Arc Testnet',
+      faucet: 'Robinet USDC',
+    },
+    brand: {
+      label: 'MARQUE',
+    },
+    status: {
+      operational: 'Opérationnel',
+    },
+    copyright: {
+      entity: '© 2026 KARWAN',
+      tagline: 'règlement transfrontalier en USDC',
+    },
+    heroClose: 'régler en temps réel',
+  },
+  notifications: {
+    bell: {
+      aria: 'Notifications',
+      sectionTag: 'NOTIFICATIONS',
+      markRead: 'Marquer comme lu',
+      clear: 'Effacer',
+      emptyTitle: 'RIEN POUR L’INSTANT',
+      emptyBody: "Les correspondances de deals, événements de séquestre et propositions d'annulation s'affichent ici dès qu'ils se produisent.",
+      openAction: 'OUVRIR',
+    },
+    toast: {
+      openAction: 'OUVRIR',
+      labels: {
+        matchFound: 'CORRESPONDANCE TROUVÉE',
+        escrowFunded: 'SÉQUESTRE FINANCÉ',
+        cancelProposed: 'ANNULATION PROPOSÉE',
+        topUpNeeded: 'RECHARGE REQUISE',
+        nearMatch: 'PRESQUE TROUVÉ',
+        briefExpired: 'BRIEF EXPIRÉ',
+        defaultLabel: 'MISE À JOUR',
+      },
+    },
+  },
   auth: {
     signInGate: {
       defaultTag: 'CONNEXION',
