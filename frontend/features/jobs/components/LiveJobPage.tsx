@@ -24,6 +24,7 @@ import {
   HeroHeadline,
   Punc,
   PageCard,
+  CTAPill,
 } from '@/shared/components/Bands';
 
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';

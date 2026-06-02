@@ -251,7 +251,7 @@ export function PostJobForm() {
             }}
             rows={4}
             disabled={submitting}
-            placeholder="e.g. Spanish → Arabic legal translation. 14 pages. Sworn translator preferred."
+            placeholder="e.g. 200 bags arabica green coffee, Lagos to Dubai. CIF, net 30. BoL on dispatch."
             className="form-input form-textarea"
           />
         </FormLabel>
