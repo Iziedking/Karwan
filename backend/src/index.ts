@@ -43,6 +43,7 @@ import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
 import { startVaultScanWatcher } from './chain/vaultScanCache.js';
+import { backfillBusFromChain } from './chain/eventBackfill.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
@@ -263,6 +264,16 @@ async function boot() {
   // Resume any bridge that burned but never minted, e.g. across a restart.
   resumePendingBridges().catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'bridge resume failed'),
+  );
+  /// One-shot replay of historical chain events into the bus when the disk
+  /// snapshot (data/events.json) is missing or empty. Without this, a fresh
+  /// deploy or VPS restore comes up with /activity showing zero events even
+  /// though the chain has full history. Fire-and-forget: the boot path
+  /// completes immediately, the replay populates the bus in the background,
+  /// and the next /api/activity read after it finishes returns the seeded
+  /// history. Skips itself if the bus already loaded from disk.
+  backfillBusFromChain().catch((err) =>
+    appLogger.error({ err: (err as Error).message }, 'event backfill failed'),
   );
 }
 

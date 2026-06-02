@@ -135,6 +135,43 @@ class KarwanBus extends EventEmitter {
     return filtered.slice(-limit).reverse();
   }
 
+  /// Seed the ring buffer with historical events without firing live
+  /// subscribers. Used by the chain backfill on boot: a fresh deploy lands
+  /// with no data/events.json and the activity feed would be empty until live
+  /// traffic accumulated. Replaying through `emitEvent` would re-fire
+  /// Telegram + SSE for every historical event, so this path bypasses the
+  /// EventEmitter and writes straight to the history array.
+  ///
+  /// Events are inserted in caller-supplied order, merged with the existing
+  /// history, deduped by (type|jobId|ts), and sorted ascending by ts before
+  /// the slice to capacity. A single persist is scheduled at the end so
+  /// hundreds of backfilled events become one fsync.
+  injectHistorical(events: KarwanEvent[]): number {
+    if (events.length === 0) return 0;
+    const seen = new Set<string>(this.history.map((e) => `${e.type}|${e.jobId ?? ''}|${e.ts}`));
+    let added = 0;
+    for (const e of events) {
+      const key = `${e.type}|${e.jobId ?? ''}|${e.ts}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      this.history.push(e);
+      added += 1;
+    }
+    this.history.sort((a, b) => a.ts - b.ts);
+    if (this.history.length > HISTORY_CAPACITY) {
+      this.history = this.history.slice(-HISTORY_CAPACITY);
+    }
+    if (added > 0) this.schedulePersist();
+    return added;
+  }
+
+  /// Snapshot the current history length. Used by the boot backfill to skip
+  /// the chain scan when a persisted snapshot already loaded events from
+  /// disk; running the scan again would be wasted RPCs.
+  historyLength(): number {
+    return this.history.length;
+  }
+
   /// Debounced flush to data/events.json. We accept losing the trailing window
   /// (~1s) of events on a hard crash — full per-event fsync would be wasteful
   /// since one auction emits ~10 events back to back. Postgres-backed in a
