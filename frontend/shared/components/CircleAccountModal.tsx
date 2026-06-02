@@ -7,6 +7,7 @@ import { arcTestnet } from '@/core/wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 interface Props {
   open: boolean;
@@ -18,6 +19,7 @@ interface Props {
 /// copy-to-clipboard, the live Arc USDC balance, and a sign-out chip.
 export function CircleAccountModal({ open, onClose }: Props) {
   const auth = useAuth();
+  const t = useTranslations().account.modal;
   const { copied, copy } = useClipboard();
   const { data } = useBalance({
     address: auth.address as `0x${string}` | undefined,
@@ -60,7 +62,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Account"
+        aria-label={t.ariaDialog}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm overflow-hidden fade-up"
         style={{
@@ -77,7 +79,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={() => !busy && onClose()}
-            aria-label="Close"
+            aria-label={t.ariaClose}
             className="absolute top-3 end-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -117,8 +119,8 @@ export function CircleAccountModal({ open, onClose }: Props) {
           </h2>
           <p className="mt-2 mono text-[12px] tabular-nums text-[var(--lp-text-muted)]">
             {human != null
-              ? `${formatUsdc(human, { withSuffix: false })} USDC on Arc`
-              : ',  USDC on Arc'}
+              ? `${formatUsdc(human, { withSuffix: false })} ${t.balanceSuffix}`
+              : `${t.balanceUnknownPrefix}  ${t.balanceSuffix}`}
           </p>
         </div>
 
@@ -154,7 +156,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
                 strokeLinecap="round"
               />
             </svg>
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? t.copied : t.copy}
           </button>
           <button
             type="button"
@@ -187,12 +189,12 @@ export function CircleAccountModal({ open, onClose }: Props) {
                 strokeLinejoin="round"
               />
             </svg>
-            {busy ? 'Working' : 'Sign out'}
+            {busy ? t.signingOut : t.signOut}
           </button>
         </div>
 
         <p className="px-6 pb-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center leading-relaxed">
-          Send testnet USDC to this address to fund your agent.
+          {t.fundHint}
         </p>
       </div>
     </div>,

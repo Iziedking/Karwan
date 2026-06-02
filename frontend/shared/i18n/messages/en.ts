@@ -57,44 +57,35 @@ interface MessagesShape {
       description: string;
     };
   };
-  landing: {
-    hero: {
-      tag: string;
-      headlinePart1: string;
-      headlineAccent: string;
-      subtitle: string;
-      ctaPrimary: string;
-      ctaSecondary: string;
-      testnetCaption: string;
+  account: {
+    modal: {
+      ariaDialog: string;
+      ariaClose: string;
+      balanceSuffix: string;
+      balanceUnknownPrefix: string;
+      copy: string;
+      copied: string;
+      signOut: string;
+      signingOut: string;
+      fundHint: string;
     };
-    ecosystem: {
-      tag: string;
+  };
+  banners: {
+    migration: {
+      ariaLabel: string;
+      eyebrow: string;
+      openProfile: string;
+      dismissAria: string;
     };
-    directDeals: {
-      tag: string;
+    legacy: {
+      ariaLabel: string;
+      eyebrowPrefix: string;
+      closesSoonFallback: string;
       title: string;
-      subtitle: string;
-      tile1Title: string;
-      tile1Body: string;
-      tile2Title: string;
-      tile2Body: string;
-    };
-    managedDeals: {
-      tag: string;
-      title: string;
-      subtitle: string;
-      tile1Title: string;
-      tile1Body: string;
-      tile2Title: string;
-      tile2Body: string;
-    };
-    finalCta: {
-      tag: string;
-      tagSrOnly: string;
-      title: string;
-      subtitle: string;
-      ctaPrimary: string;
-      ctaSecondary: string;
+      body: string;
+      openRecovery: string;
+      dismissAria: string;
+      dismissTooltip: string;
     };
   };
   footer: {
@@ -293,44 +284,35 @@ export const en: MessagesShape = {
       description: 'You can change this any time from Settings.',
     },
   },
-  landing: {
-    hero: {
-      tag: 'SETTLEMENT NETWORK',
-      headlinePart1: 'Agree. Escrow. Deliver.',
-      headlineAccent: 'Settle.',
-      subtitle: 'On-chain settlement rails for cross-border SME trade. USDC sits in milestone escrow on Arc. Releases as the work lands.',
-      ctaPrimary: 'Launch app',
-      ctaSecondary: 'How it works',
-      testnetCaption: 'Free on Arc Testnet. No mainnet funds.',
+  account: {
+    modal: {
+      ariaDialog: 'Account',
+      ariaClose: 'Close',
+      balanceSuffix: 'USDC on Arc',
+      balanceUnknownPrefix: ',',
+      copy: 'Copy',
+      copied: 'Copied',
+      signOut: 'Sign out',
+      signingOut: 'Working',
+      fundHint: 'Send testnet USDC to this address to fund your agent.',
     },
-    ecosystem: {
-      tag: 'BUILT ON',
+  },
+  banners: {
+    migration: {
+      ariaLabel: 'Infrastructure migration notice',
+      eyebrow: 'HEADS UP',
+      openProfile: 'Open profile',
+      dismissAria: 'Dismiss banner',
     },
-    directDeals: {
-      tag: 'DIRECT DEALS',
-      title: 'Bring your own counterparty.',
-      subtitle: 'You already agreed off-platform. Name the wallet, set the amount, fund the escrow. No auction.',
-      tile1Title: 'Name the wallet',
-      tile1Body: 'Point the escrow at your counterparty. They sign in with that wallet, accept the terms, and deliver.',
-      tile2Title: 'Release in tranches',
-      tile2Body: 'A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet.',
-    },
-    managedDeals: {
-      tag: 'MANAGED DEALS',
-      title: 'Or let an agent find one.',
-      subtitle: 'Post the request. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.',
-      tile1Title: 'Agents negotiate',
-      tile1Body: 'Buyer and seller agents bid and counter on chain, on their own, inside the ranges you set in your profile.',
-      tile2Title: 'Escrow on acceptance',
-      tile2Body: 'When terms land, the buyer agent funds the milestone escrow. Releases follow the same spine as a direct deal.',
-    },
-    finalCta: {
-      tag: 'OPEN A DEAL',
-      tagSrOnly: 'Get started',
-      title: 'Open your first deal in about a minute.',
-      subtitle: 'Direct or agent-run, your call. Every step is a real transaction on Arc Testnet.',
-      ctaPrimary: 'Launch app',
-      ctaSecondary: 'Read how it works',
+    legacy: {
+      ariaLabel: 'Legacy contract recovery window',
+      eyebrowPrefix: 'LEGACY · CLOSES IN',
+      closesSoonFallback: 'soon',
+      title: 'Migrated to a new contract. Unstake or finalize deals here.',
+      body: 'Anything you staked or any deal still locked on the previous version stays yours. Open recovery to pull it out before the window closes.',
+      openRecovery: 'Open recovery',
+      dismissAria: 'Dismiss banner',
+      dismissTooltip: 'Hide for this browser. Comes back if you clear storage. Window closes for everyone after the deadline.',
     },
   },
   footer: {

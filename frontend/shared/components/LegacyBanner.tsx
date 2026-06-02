@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
 import { AUTH_CHANGED_EVENT } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Countdown } from './Countdown';
 
 interface WindowState {
@@ -16,6 +17,7 @@ const DISMISS_KEY = 'karwan.legacy.dismissed';
 /// the banner stays hidden while the user pokes around the app, but we clear
 /// it on every auth transition. Sign in fresh → banner shows again.
 export function LegacyBanner() {
+  const t = useTranslations().banners.legacy;
   const [state, setState] = useState<WindowState | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -59,7 +61,7 @@ export function LegacyBanner() {
   return (
     <section
       role="status"
-      aria-label="Legacy contract recovery window"
+      aria-label={t.ariaLabel}
       className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden"
       style={{ background: 'var(--lp-band-dark)' }}
     >
@@ -105,19 +107,19 @@ export function LegacyBanner() {
                 borderRadius: 3,
               }}
             >
-              [:LEGACY · CLOSES IN{' '}
+              [:{t.eyebrowPrefix}{' '}
               {state.closesAtMs ? (
                 <Countdown targetMs={state.closesAtMs} />
               ) : (
-                'soon'
+                t.closesSoonFallback
               )}
               :]
             </span>
             <p className="font-sans text-[15px] sm:text-[19px] font-extrabold tracking-[-0.01em] leading-tight text-white">
-              Migrated to a new contract. Unstake or finalize deals here.
+              {t.title}
             </p>
             <p className="hidden sm:block mt-1.5 text-[13px] leading-snug text-white/65">
-              Anything you staked or any deal still locked on the previous version stays yours. Open recovery to pull it out before the window closes.
+              {t.body}
             </p>
           </div>
         </div>
@@ -132,7 +134,7 @@ export function LegacyBanner() {
               borderBottomRightRadius: 3,
             }}
           >
-            Open recovery
+            {t.openRecovery}
             <span aria-hidden>→</span>
           </Link>
           <button
@@ -141,8 +143,8 @@ export function LegacyBanner() {
               window.localStorage.setItem('karwan.legacy.dismissed', '1');
               setDismissed(true);
             }}
-            aria-label="Dismiss banner"
-            title="Hide for this browser. Comes back if you clear storage. Window closes for everyone after the deadline."
+            aria-label={t.dismissAria}
+            title={t.dismissTooltip}
             className="absolute sm:static top-2 end-2 mono text-[14px] sm:text-[12px] text-white/50 sm:text-white/40 hover:text-white/80 px-2 py-1 transition-colors"
           >
             ×

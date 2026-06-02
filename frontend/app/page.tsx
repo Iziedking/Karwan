@@ -19,7 +19,6 @@ import { PartnerLogos } from '@/shared/components/PartnerLogos';
 import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const TABS: Tab[] = [
   { id: 'overview', label: 'OVERVIEW', hash: 'overview' },
@@ -29,7 +28,6 @@ const TABS: Tab[] = [
 ];
 
 export default function HomePage() {
-  const t = useTranslations().landing;
   const [active, setActive] = useState<string>('overview');
 
   // Drive sticky tab active state from scroll position.
@@ -78,22 +76,22 @@ export default function HomePage() {
       >
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="space-y-7">
-            <SectionTag tone="dark">{t.hero.tag}</SectionTag>
+            <SectionTag tone="dark">SETTLEMENT NETWORK</SectionTag>
             <h1 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]">
-              {t.hero.headlinePart1}{' '}
-              <span className="text-[var(--lp-accent)]">{t.hero.headlineAccent}</span>
+              Agree. Escrow.<br />Deliver.{' '}
+              <span className="text-[var(--lp-accent)]">Settle.</span>
             </h1>
             <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
-              {t.hero.subtitle}
+              On-chain settlement rails for cross-border SME trade. USDC sits in milestone escrow on Arc. Releases as the work lands.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <CTAPill href="/app">{t.hero.ctaPrimary} ↓</CTAPill>
+              <CTAPill href="/app">Launch app ↓</CTAPill>
               <CTAPill href="/how-it-works" variant="secondary" tone="dark">
-                {t.hero.ctaSecondary} →
+                How it works →
               </CTAPill>
             </div>
             <p className="mono text-[12px] text-[var(--lp-text-sub)]">
-              {t.hero.testnetCaption}
+              Free on Arc Testnet. No mainnet funds.
             </p>
           </div>
           <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">
@@ -105,55 +103,55 @@ export default function HomePage() {
       {/* ECOSYSTEM. light */}
       <Band tone="light" compact>
         <div className="space-y-6">
-          <SectionTag>{t.ecosystem.tag}</SectionTag>
+          <SectionTag>BUILT ON</SectionTag>
           <PartnerLogos />
         </div>
       </Band>
 
       {/* DIRECT DEALS. light */}
       <Band tone="light">
-        <SectionTag>{t.directDeals.tag}</SectionTag>
+        <SectionTag>DIRECT DEALS</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          {t.directDeals.title}
+          Bring your own counterparty.
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
-          {t.directDeals.subtitle}
+          You already agreed off-platform. Name the wallet, set the amount, fund the escrow. No auction.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
             glyph={<GlyphWallet />}
-            title={t.directDeals.tile1Title}
-            body={t.directDeals.tile1Body}
+            title="Name the wallet"
+            body="Point the escrow at your counterparty. They sign in with that wallet, accept the terms, and deliver."
           />
           <FeatureTile
             glyph={<GlyphTranches />}
-            title={t.directDeals.tile2Title}
-            body={t.directDeals.tile2Body}
+            title="Release in tranches"
+            body="A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet."
           />
         </div>
       </Band>
 
       {/* MANAGED DEALS. dark */}
       <Band tone="dark">
-        <SectionTag tone="dark">{t.managedDeals.tag}</SectionTag>
+        <SectionTag tone="dark">MANAGED DEALS</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          {t.managedDeals.title}
+          Or let an agent find one.
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-          {t.managedDeals.subtitle}
+          Post the request. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
             tone="dark"
             glyph={<GlyphAuction />}
-            title={t.managedDeals.tile1Title}
-            body={t.managedDeals.tile1Body}
+            title="Agents negotiate"
+            body="Buyer and seller agents bid and counter on chain, on their own, inside the ranges you set in your profile."
           />
           <FeatureTile
             tone="dark"
             glyph={<GlyphSettle />}
-            title={t.managedDeals.tile2Title}
-            body={t.managedDeals.tile2Body}
+            title="Escrow on acceptance"
+            body="When terms land, the buyer agent funds the milestone escrow. Releases follow the same spine as a direct deal."
           />
         </div>
       </Band>
@@ -168,18 +166,18 @@ export default function HomePage() {
       <Band tone="dark" className="text-center">
         <div className="mx-auto max-w-2xl space-y-6">
           <SectionTag tone="dark">
-            <span className="sr-only">{t.finalCta.tagSrOnly}</span>{t.finalCta.tag}
+            <span className="sr-only">Get started</span>OPEN A DEAL
           </SectionTag>
           <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[1.02] text-balance text-[clamp(1.75rem,3.6vw,3rem)]">
-            {t.finalCta.title}
+            Open your first deal in about a minute.
           </h2>
           <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-            {t.finalCta.subtitle}
+            Direct or agent-run, your call. Every step is a real transaction on Arc Testnet.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-            <CTAPill href="/app">{t.finalCta.ctaPrimary} ↓</CTAPill>
+            <CTAPill href="/app">Launch app ↓</CTAPill>
             <CTAPill href="/how-it-works" variant="secondary" tone="dark">
-              {t.finalCta.ctaSecondary} →
+              Read how it works →
             </CTAPill>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Env-gated infra-migration banner. Surfaces on /app whenever
 /// `NEXT_PUBLIC_MIGRATION_NOTICE` is set in Vercel env. The value IS the
@@ -10,6 +11,7 @@ import Link from 'next/link';
 /// Dismissal is keyed by a hash of the notice text so changing the message
 /// re-surfaces the banner for everyone who already dismissed an older one.
 export function MigrationBanner() {
+  const t = useTranslations().banners.migration;
   const notice = process.env.NEXT_PUBLIC_MIGRATION_NOTICE ?? '';
   const noticeKey = useMemo(() => (notice ? hash(notice) : null), [notice]);
   const [dismissed, setDismissed] = useState(true);
@@ -25,7 +27,7 @@ export function MigrationBanner() {
   return (
     <section
       role="status"
-      aria-label="Infrastructure migration notice"
+      aria-label={t.ariaLabel}
       className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden"
       style={{ background: '#7a1f1a' }}
     >
@@ -58,7 +60,7 @@ export function MigrationBanner() {
               className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-2"
               style={{ background: '#ffb800', color: '#3a0e0a', borderRadius: 3 }}
             >
-              [:HEADS UP:]
+              [:{t.eyebrow}:]
             </span>
             <p className="font-sans text-[15px] sm:text-[16px] font-semibold leading-snug text-white whitespace-pre-line">
               {notice}
@@ -76,7 +78,7 @@ export function MigrationBanner() {
               borderBottomRightRadius: 3,
             }}
           >
-            Open profile
+            {t.openProfile}
             <span aria-hidden>→</span>
           </Link>
           <button
@@ -86,7 +88,7 @@ export function MigrationBanner() {
               window.localStorage.setItem('karwan.migration.dismissed', noticeKey);
               setDismissed(true);
             }}
-            aria-label="Dismiss banner"
+            aria-label={t.dismissAria}
             className="mono text-[12px] text-white/60 hover:text-white px-2 py-1 transition-colors"
           >
             ×
