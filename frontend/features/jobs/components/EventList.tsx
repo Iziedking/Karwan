@@ -3,6 +3,8 @@ import Link from 'next/link';
 import type { ChainEvent } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 /// Direct-deal events live on /deals/[id]; everything else with a jobId lives
 /// on /jobs/[id]. Returns null for events that don't have a navigable target.
@@ -17,44 +19,46 @@ function hrefForEvent(e: ChainEvent): string | null {
   return `/jobs/${e.jobId}`;
 }
 
-const labels: Record<string, { text: string; tone: 'buyer' | 'seller' | 'system' | 'error' }> = {
-  'job.tracked': { text: 'Job posted on chain', tone: 'system' },
-  'job.expired': { text: 'Request expired with no match', tone: 'error' },
-  'bid.scored': { text: 'Buyer agent scored the bid', tone: 'buyer' },
-  'bid.submitted': { text: 'Seller submitted a bid', tone: 'seller' },
-  'counter.issued': { text: 'Buyer agent issued a counter', tone: 'buyer' },
-  'counter.response.submitted': { text: 'Seller responded to the counter', tone: 'seller' },
-  'bid.accepted': { text: 'Buyer accepted final terms', tone: 'buyer' },
-  'escrow.approved': { text: 'USDC approved for escrow', tone: 'buyer' },
-  'escrow.funded': { text: 'Escrow funded', tone: 'buyer' },
-  'escrow.milestone.released': { text: 'Milestone released', tone: 'buyer' },
-  'escrow.settled': { text: 'Deal settled', tone: 'system' },
-  'agent.skipped': { text: 'Seller skipped this request', tone: 'seller' },
-  'agent.declined': { text: 'Agent ended negotiation', tone: 'error' },
-  'agent.error': { text: 'Agent hit an error', tone: 'error' },
-  'agent.fallback': { text: 'Agent used a backup decision', tone: 'system' },
-  'agent.decision': { text: 'Agent decision', tone: 'system' },
-  'market.scanned': { text: 'Market scanned', tone: 'buyer' },
-  'deal.matched': { text: 'Match found · awaiting approval', tone: 'buyer' },
-  'deal.match.approved': { text: 'Match approved · escrow funded', tone: 'buyer' },
-  'deal.match.declined': { text: 'Match declined', tone: 'error' },
-  'listing.posted': { text: 'Offer posted', tone: 'seller' },
-  'listing.matched': { text: 'Offer matched a request', tone: 'seller' },
-  'bridge.burned': { text: 'USDC burned on source chain', tone: 'system' },
-  'bridge.attested': { text: 'Circle attestation received', tone: 'system' },
-  'bridge.minted': { text: 'USDC minted on Arc', tone: 'system' },
-  'bridge.error': { text: 'Bridge hit an error', tone: 'error' },
-  'reputation.recorded': { text: 'Reputation recorded on chain', tone: 'system' },
-  'deal.direct.created': { text: 'Direct deal opened and funded', tone: 'buyer' },
-  'deal.accepted': { text: 'Seller accepted the deal terms', tone: 'seller' },
-  'deal.delivered': { text: 'Seller marked the work delivered', tone: 'seller' },
-  'deal.review.started': { text: 'Buyer review window opened', tone: 'buyer' },
-  'deal.review.heartbeat': { text: 'Buyer is still reviewing', tone: 'buyer' },
-  'deal.auto_released': { text: 'Final milestone auto-released', tone: 'system' },
-  'deal.disputed': { text: 'Deal moved to dispute', tone: 'error' },
-  'deal.cancelled': { text: 'Deal cancelled and refunded', tone: 'system' },
-  'deal.cancel.proposed': { text: 'Cancellation proposed', tone: 'system' },
-  'deal.cancel.declined': { text: 'Cancellation declined', tone: 'error' },
+/// Tone map for every known event type. Keeps the visual style at module scope
+/// (locale-independent) while the human-readable label lives in i18n.
+const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
+  'job.tracked': 'system',
+  'job.expired': 'error',
+  'bid.scored': 'buyer',
+  'bid.submitted': 'seller',
+  'counter.issued': 'buyer',
+  'counter.response.submitted': 'seller',
+  'bid.accepted': 'buyer',
+  'escrow.approved': 'buyer',
+  'escrow.funded': 'buyer',
+  'escrow.milestone.released': 'buyer',
+  'escrow.settled': 'system',
+  'agent.skipped': 'seller',
+  'agent.declined': 'error',
+  'agent.error': 'error',
+  'agent.fallback': 'system',
+  'agent.decision': 'system',
+  'market.scanned': 'buyer',
+  'deal.matched': 'buyer',
+  'deal.match.approved': 'buyer',
+  'deal.match.declined': 'error',
+  'listing.posted': 'seller',
+  'listing.matched': 'seller',
+  'bridge.burned': 'system',
+  'bridge.attested': 'system',
+  'bridge.minted': 'system',
+  'bridge.error': 'error',
+  'reputation.recorded': 'system',
+  'deal.direct.created': 'buyer',
+  'deal.accepted': 'seller',
+  'deal.delivered': 'seller',
+  'deal.review.started': 'buyer',
+  'deal.review.heartbeat': 'buyer',
+  'deal.auto_released': 'system',
+  'deal.disputed': 'error',
+  'deal.cancelled': 'system',
+  'deal.cancel.proposed': 'system',
+  'deal.cancel.declined': 'error',
 };
 
 interface Chip {
@@ -63,94 +67,104 @@ interface Chip {
   value: string;
 }
 
-/// Translates internal agent reason codes into UI copy. Falls back to the raw
+/// Translates an internal agent reason code into UI copy. Falls back to the raw
 /// code if unmapped so we still see something rather than blank.
-const REASON_LABELS: Record<string, string> = {
-  'llm-counter-over-budget': 'Price above ceiling',
-  'no-keyword-match': 'Outside skills',
-  'no-topical-overlap': 'Outside skills',
-  'not-a-match': 'Not a match',
-  'low-confidence-or-skip': 'Not a topical match',
-  'buyer-reputation-too-low': 'Buyer reputation too low',
-  'llm-price-out-of-range': 'Price out of range',
-  'no-bids': 'No bids received',
-  'no-counter-suggestion': 'No counter prepared',
-  'price-gap-uncrossable': 'Price gap too wide',
-  'budget-out-of-range': 'Outside budget range',
-  'budget-below-seller-floor': 'Outside budget range',
-  'deadline-out-of-range': 'Outside delivery window',
-  'own-auction': 'Your own seller',
-};
-
-function reasonLabel(code: string): string {
-  return REASON_LABELS[code] ?? code;
+function reasonLabel(code: string, copy: Messages['eventList']['reasonLabels']): string {
+  return copy[code] ?? code;
 }
 
-/// Maps internal agent.error scope codes to a short, user-readable label.
+/// Maps an internal agent.error scope code to a short, user-readable label.
 /// Falls back to the raw code so a new scope still shows something.
-const SCOPE_LABELS: Record<string, string> = {
-  counterEvaluation: 'LLM counter-eval failed',
-  bidEvaluation: 'LLM bid-eval failed',
-  submitBid: 'On-chain submitBid failed',
-  respondToCounter: 'On-chain counter-response failed',
-  acceptBid: 'On-chain acceptBid failed',
-  fundEscrow: 'On-chain fundEscrow failed',
-  recordCompletion: 'Reputation record failed',
-  JobPosted: 'JobPosted handler crashed',
-  CounterOfferIssued: 'CounterOfferIssued handler crashed',
-  BidSubmitted: 'BidSubmitted handler crashed',
-};
-function scopeLabel(code: string): string {
-  return SCOPE_LABELS[code] ?? code;
+function scopeLabel(code: string, copy: Messages['eventList']['scopeLabels']): string {
+  return copy[code] ?? code;
 }
 
-function chipsFor(payload: Record<string, unknown>): Chip[] {
+function chipsFor(
+  payload: Record<string, unknown>,
+  copy: Messages['eventList'],
+): Chip[] {
   const out: Chip[] = [];
   const price = payload.priceUsdc ?? payload.agreedPriceUsdc;
   if (price != null) {
-    out.push({ key: 'price', label: 'Price', value: `${formatUsdc(String(price), { withSuffix: false })} USDC` });
+    out.push({
+      key: 'price',
+      label: copy.chipLabels.price,
+      value: `${formatUsdc(String(price), { withSuffix: false })} USDC`,
+    });
   }
   const counter = payload.counterPriceUsdc ?? payload.counterPrice;
   if (counter != null) {
-    out.push({ key: 'counter', label: 'Counter', value: `${formatUsdc(String(counter), { withSuffix: false })} USDC` });
+    out.push({
+      key: 'counter',
+      label: copy.chipLabels.counter,
+      value: `${formatUsdc(String(counter), { withSuffix: false })} USDC`,
+    });
   }
   if (payload.confidence != null) {
     const pct = Math.round(Number(payload.confidence) * 100);
-    out.push({ key: 'confidence', label: 'Confidence', value: `${pct}%` });
+    out.push({ key: 'confidence', label: copy.chipLabels.confidence, value: `${pct}%` });
   }
   if (payload.score != null) {
-    out.push({ key: 'score', label: 'Score', value: `${payload.score}/100` });
+    out.push({ key: 'score', label: copy.chipLabels.score, value: `${payload.score}/100` });
   }
   // Skill match: how well the seller's skills/keywords cover the brief. This is
   // the dominant ranking key, so it's worth showing next to the bid score.
   if (payload.topicalMatch != null) {
-    out.push({ key: 'skillMatch', label: 'Skill match', value: `${payload.topicalMatch}%` });
+    out.push({
+      key: 'skillMatch',
+      label: copy.chipLabels.skillMatch,
+      value: `${payload.topicalMatch}%`,
+    });
   }
   if (payload.scanned != null) {
-    out.push({ key: 'scanned', label: 'Offers', value: String(payload.scanned) });
+    out.push({
+      key: 'scanned',
+      label: copy.chipLabels.offers,
+      value: String(payload.scanned),
+    });
   }
   if (payload.matched != null) {
-    out.push({ key: 'matched', label: 'Matched', value: String(payload.matched) });
+    out.push({
+      key: 'matched',
+      label: copy.chipLabels.matched,
+      value: String(payload.matched),
+    });
   }
   if (payload.tier != null) {
-    out.push({ key: 'tier', label: 'Reputation', value: String(payload.tier).toUpperCase() });
+    out.push({
+      key: 'tier',
+      label: copy.chipLabels.reputation,
+      value: String(payload.tier).toUpperCase(),
+    });
   }
   if (payload.topTier != null) {
-    out.push({ key: 'topTier', label: 'Best rep', value: String(payload.topTier).toUpperCase() });
+    out.push({
+      key: 'topTier',
+      label: copy.chipLabels.bestRep,
+      value: String(payload.topTier).toUpperCase(),
+    });
   }
   if (payload.milestoneIndex != null) {
     out.push({
       key: 'milestone',
-      label: 'Milestone',
+      label: copy.chipLabels.milestone,
       value: `#${Number(payload.milestoneIndex) + 1}`,
     });
   }
   if (payload.decision != null && typeof payload.decision === 'string') {
-    out.push({ key: 'decision', label: 'Call', value: String(payload.decision) });
+    out.push({
+      key: 'decision',
+      label: copy.chipLabels.call,
+      value: String(payload.decision),
+    });
   }
   if (payload.reason != null) {
     const code = String(payload.reason);
-    out.push({ key: 'reason', label: 'Reason', value: reasonLabel(code) });
+    out.push({
+      key: 'reason',
+      label: copy.chipLabels.reason,
+      value: reasonLabel(code, copy.reasonLabels),
+    });
   }
   // Surface scope on agent.error events so the user can tell which step
   // failed (LLM eval, on-chain tx, etc.) without digging through backend
@@ -158,21 +172,25 @@ function chipsFor(payload: Record<string, unknown>): Chip[] {
   if (payload.scope != null) {
     out.push({
       key: 'scope',
-      label: 'Where',
-      value: scopeLabel(String(payload.scope)),
+      label: copy.chipLabels.where,
+      value: scopeLabel(String(payload.scope), copy.scopeLabels),
     });
   }
   if (payload.amountUsdc != null) {
-    out.push({ key: 'amount', label: 'Amount', value: `${payload.amountUsdc} USDC` });
+    out.push({
+      key: 'amount',
+      label: copy.chipLabels.amount,
+      value: `${payload.amountUsdc} USDC`,
+    });
   }
   if (payload.sourceDomain != null) {
     const sourceName =
       payload.sourceDomain === 0
-        ? 'Ethereum Sepolia'
+        ? copy.sourceDomains.ethereumSepolia
         : payload.sourceDomain === 6
-        ? 'Base Sepolia'
-        : `domain ${payload.sourceDomain}`;
-    out.push({ key: 'source', label: 'From', value: sourceName });
+          ? copy.sourceDomains.baseSepolia
+          : copy.sourceDomains.unknownTemplate.replace('{n}', String(payload.sourceDomain));
+    out.push({ key: 'source', label: copy.chipLabels.from, value: sourceName });
   }
   return out;
 }
@@ -197,25 +215,25 @@ export function EventList({
   showJobId?: boolean;
   variant?: 'timeline' | 'card';
 }) {
+  const el = useTranslations().eventList;
   if (events.length === 0) {
     if (variant === 'card') {
       return (
         <div className="py-12 text-center space-y-2">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            TIMELINE EMPTY
+            {el.empty.cardTag}
           </p>
           <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed max-w-[40ch] mx-auto">
-            Awaiting the first on-chain event. Bids and matches will land here.
+            {el.empty.cardBody}
           </p>
         </div>
       );
     }
     return (
       <div className="py-8 text-center space-y-1.5">
-        <p className="eyebrow">Timeline empty</p>
+        <p className="eyebrow">{el.empty.timelineTag}</p>
         <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed max-w-[40ch] mx-auto">
-          Awaiting the first on-chain event. Seller scoring and bids will land here as the auction
-          opens.
+          {el.empty.timelineBody}
         </p>
       </div>
     );
@@ -225,12 +243,11 @@ export function EventList({
     return (
       <ol className="space-y-2.5">
         {events.map((e, i) => {
-          const meta = labels[e.type];
-          const text = meta?.text ?? e.type;
-          const tone: Tone = meta?.tone ?? 'system';
+          const text = el.eventTexts[e.type] ?? e.type;
+          const tone: Tone = EVENT_TONES[e.type] ?? 'system';
           const rail = RAIL_COLOR[tone];
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
-          const chips = chipsFor(e.payload);
+          const chips = chipsFor(e.payload, el);
           const href = hrefForEvent(e);
           // Full message stays in backend logs. The [:WHERE:] scope chip
           // (added by chipsFor) gives users enough context to ask for
@@ -270,7 +287,7 @@ export function EventList({
                 <ActorChip tone={tone} actor={e.actor} />
                 {showJobId && e.jobId && (
                   <span className="inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                    JOB
+                    {el.jobLabelCard}
                     <span className="tabular-nums text-[var(--lp-text-sub)] normal-case tracking-normal">
                       {shortHash(e.jobId, 6, 4)}
                     </span>
@@ -287,7 +304,7 @@ export function EventList({
                     onClick={(ev) => ev.stopPropagation()}
                     className="group inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-colors relative z-10"
                     style={{ color: 'var(--lp-dark)' }}
-                    title="Open on Arc Testnet explorer"
+                    title={el.explorerTitle}
                   >
                     <span className="tabular-nums normal-case tracking-normal">
                       {shortHash(txHash, 6, 4)}
@@ -314,7 +331,7 @@ export function EventList({
                     aria-hidden
                     className="ms-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
                   >
-                    OPEN →
+                    {el.openLink}
                   </span>
                 )}
               </div>
@@ -360,9 +377,8 @@ export function EventList({
         className="absolute start-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
       />
       {events.map((e, i) => {
-        const meta = labels[e.type];
-        const text = meta?.text ?? e.type;
-        const tone = meta?.tone ?? 'system';
+        const text = el.eventTexts[e.type] ?? e.type;
+        const tone: Tone = EVENT_TONES[e.type] ?? 'system';
         const dotTone =
           tone === 'buyer'
             ? 'accent'
@@ -380,7 +396,7 @@ export function EventList({
             ? 'critical'
             : 'muted';
         const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
-        const chips = chipsFor(e.payload);
+        const chips = chipsFor(e.payload, el);
         return (
           <li key={`${e.ts}-${i}`} className="slide-in py-3 ps-6 relative">
             <span className="absolute start-0 top-[14px]">
@@ -396,7 +412,7 @@ export function EventList({
               <Tag tone={tagTone}>{e.actor}</Tag>
               {showJobId && e.jobId && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-ink-faint)]">
-                  job
+                  {el.jobLabelTimeline}
                   <span className="mono">{shortHash(e.jobId, 6, 4)}</span>
                 </span>
               )}
@@ -409,7 +425,7 @@ export function EventList({
                   target="_blank"
                   rel="noreferrer"
                   className="group inline-flex items-center gap-1 text-[11px] mono text-[var(--color-accent)] hover:underline decoration-dotted underline-offset-2"
-                  title="Open on Arc Testnet explorer"
+                  title={el.explorerTitle}
                 >
                   <span>{shortHash(txHash, 6, 4)}</span>
                   <svg

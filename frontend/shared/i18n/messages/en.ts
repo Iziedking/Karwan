@@ -1082,6 +1082,43 @@ interface MessagesShape {
     save: string;
     cancel: string;
   };
+  eventList: {
+    empty: {
+      cardTag: string;
+      cardBody: string;
+      timelineTag: string;
+      timelineBody: string;
+    };
+    jobLabelCard: string;
+    jobLabelTimeline: string;
+    openLink: string;
+    explorerTitle: string;
+    chipLabels: {
+      price: string;
+      counter: string;
+      confidence: string;
+      score: string;
+      skillMatch: string;
+      offers: string;
+      matched: string;
+      reputation: string;
+      bestRep: string;
+      milestone: string;
+      call: string;
+      reason: string;
+      where: string;
+      amount: string;
+      from: string;
+    };
+    sourceDomains: {
+      ethereumSepolia: string;
+      baseSepolia: string;
+      unknownTemplate: string;
+    };
+    eventTexts: Record<string, string>;
+    reasonLabels: Record<string, string>;
+    scopeLabels: Record<string, string>;
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2603,6 +2640,107 @@ export const en: MessagesShape = {
     saving: 'Saving...',
     save: 'Save changes',
     cancel: 'Cancel',
+  },
+  eventList: {
+    empty: {
+      cardTag: 'TIMELINE EMPTY',
+      cardBody: 'Awaiting the first on-chain event. Bids and matches will land here.',
+      timelineTag: 'Timeline empty',
+      timelineBody: 'Awaiting the first on-chain event. Seller scoring and bids will land here as the auction opens.',
+    },
+    jobLabelCard: 'JOB',
+    jobLabelTimeline: 'job',
+    openLink: 'OPEN →',
+    explorerTitle: 'Open on Arc Testnet explorer',
+    chipLabels: {
+      price: 'Price',
+      counter: 'Counter',
+      confidence: 'Confidence',
+      score: 'Score',
+      skillMatch: 'Skill match',
+      offers: 'Offers',
+      matched: 'Matched',
+      reputation: 'Reputation',
+      bestRep: 'Best rep',
+      milestone: 'Milestone',
+      call: 'Call',
+      reason: 'Reason',
+      where: 'Where',
+      amount: 'Amount',
+      from: 'From',
+    },
+    sourceDomains: {
+      ethereumSepolia: 'Ethereum Sepolia',
+      baseSepolia: 'Base Sepolia',
+      unknownTemplate: 'domain {n}',
+    },
+    eventTexts: {
+      'job.tracked': 'Job posted on chain',
+      'job.expired': 'Request expired with no match',
+      'bid.scored': 'Buyer agent scored the bid',
+      'bid.submitted': 'Seller submitted a bid',
+      'counter.issued': 'Buyer agent issued a counter',
+      'counter.response.submitted': 'Seller responded to the counter',
+      'bid.accepted': 'Buyer accepted final terms',
+      'escrow.approved': 'USDC approved for escrow',
+      'escrow.funded': 'Escrow funded',
+      'escrow.milestone.released': 'Milestone released',
+      'escrow.settled': 'Deal settled',
+      'agent.skipped': 'Seller skipped this request',
+      'agent.declined': 'Agent ended negotiation',
+      'agent.error': 'Agent hit an error',
+      'agent.fallback': 'Agent used a backup decision',
+      'agent.decision': 'Agent decision',
+      'market.scanned': 'Market scanned',
+      'deal.matched': 'Match found · awaiting approval',
+      'deal.match.approved': 'Match approved · escrow funded',
+      'deal.match.declined': 'Match declined',
+      'listing.posted': 'Offer posted',
+      'listing.matched': 'Offer matched a request',
+      'bridge.burned': 'USDC burned on source chain',
+      'bridge.attested': 'Circle attestation received',
+      'bridge.minted': 'USDC minted on Arc',
+      'bridge.error': 'Bridge hit an error',
+      'reputation.recorded': 'Reputation recorded on chain',
+      'deal.direct.created': 'Direct deal opened and funded',
+      'deal.accepted': 'Seller accepted the deal terms',
+      'deal.delivered': 'Seller marked the work delivered',
+      'deal.review.started': 'Buyer review window opened',
+      'deal.review.heartbeat': 'Buyer is still reviewing',
+      'deal.auto_released': 'Final milestone auto-released',
+      'deal.disputed': 'Deal moved to dispute',
+      'deal.cancelled': 'Deal cancelled and refunded',
+      'deal.cancel.proposed': 'Cancellation proposed',
+      'deal.cancel.declined': 'Cancellation declined',
+    },
+    reasonLabels: {
+      'llm-counter-over-budget': 'Price above ceiling',
+      'no-keyword-match': 'Outside skills',
+      'no-topical-overlap': 'Outside skills',
+      'not-a-match': 'Not a match',
+      'low-confidence-or-skip': 'Not a topical match',
+      'buyer-reputation-too-low': 'Buyer reputation too low',
+      'llm-price-out-of-range': 'Price out of range',
+      'no-bids': 'No bids received',
+      'no-counter-suggestion': 'No counter prepared',
+      'price-gap-uncrossable': 'Price gap too wide',
+      'budget-out-of-range': 'Outside budget range',
+      'budget-below-seller-floor': 'Outside budget range',
+      'deadline-out-of-range': 'Outside delivery window',
+      'own-auction': 'Your own seller',
+    },
+    scopeLabels: {
+      counterEvaluation: 'LLM counter-eval failed',
+      bidEvaluation: 'LLM bid-eval failed',
+      submitBid: 'On-chain submitBid failed',
+      respondToCounter: 'On-chain counter-response failed',
+      acceptBid: 'On-chain acceptBid failed',
+      fundEscrow: 'On-chain fundEscrow failed',
+      recordCompletion: 'Reputation record failed',
+      JobPosted: 'JobPosted handler crashed',
+      CounterOfferIssued: 'CounterOfferIssued handler crashed',
+      BidSubmitted: 'BidSubmitted handler crashed',
+    },
   },
   jobPage: {
     loading: {
