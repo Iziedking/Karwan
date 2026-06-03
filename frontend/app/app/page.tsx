@@ -32,6 +32,7 @@ const PendingDealsBand = dynamic(
   { ssr: false },
 );
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { LegacyBanner } from '@/shared/components/LegacyBanner';
@@ -58,6 +59,7 @@ interface NetStats {
 }
 
 export default function AppHome() {
+  const t = useTranslations().appHome;
   const router = useRouter();
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   const [status, setStatus] = useState<ApiStatus | null>(null);
@@ -102,7 +104,7 @@ export default function AppHome() {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">SETTLEMENT DESK</SectionTag>
+          <SectionTag tone="dark">{t.settlementDeskEyebrow}</SectionTag>
           <div className="mt-7 space-y-4">
             <div className="h-14 w-3/4 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
             <div className="h-4 w-1/2 rounded-md bg-white/[0.04] animate-pulse motion-reduce:animate-none" />
@@ -116,14 +118,14 @@ export default function AppHome() {
     return (
       <FullBleed>
         <Band tone="light">
-          <SectionTag>BACKEND</SectionTag>
+          <SectionTag>{t.backendOffline.eyebrow}</SectionTag>
           <HeroHeadline>
-            Backend offline<Punc>.</Punc>
+            {t.backendOffline.title}<Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-md">
-            Couldn&apos;t reach the API at{' '}
-            <span className="mono text-[var(--lp-dark)]">{api.baseUrl}</span>. This page picks up
-            the moment it&apos;s back.
+            {t.backendOffline.bodyPrefix}
+            <span className="mono text-[var(--lp-dark)]">{api.baseUrl}</span>
+            {t.backendOffline.bodySuffix}
           </p>
         </Band>
       </FullBleed>
@@ -138,7 +140,7 @@ export default function AppHome() {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">SETTLEMENT DESK</SectionTag>
+          <SectionTag tone="dark">{t.settlementDeskEyebrow}</SectionTag>
           <div className="mt-7 space-y-4">
             <div className="h-14 w-3/4 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
             <div className="h-4 w-1/2 rounded-md bg-white/[0.04] animate-pulse motion-reduce:animate-none" />
@@ -159,26 +161,26 @@ export default function AppHome() {
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot="live">
-                SETTLEMENT DESK
+                {t.settlementDeskEyebrow}
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
               <HeroHeadline>
-                Welcome back,
+                {t.hero.welcomeBack}
                 <br />
                 {profile.displayName}
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              Agents run the auction. You approve the terms.
+              {t.hero.description}
             </p>
             <div
               data-guide="home-start"
               className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3"
             >
               {(profile.role === 'buyer' || profile.role === 'both') && (
-                <CTAPill href="/buyer">Post a request →</CTAPill>
+                <CTAPill href="/buyer">{t.hero.postRequestCta}</CTAPill>
               )}
               {(profile.role === 'seller' || profile.role === 'both') && (
                 <CTAPill
@@ -186,11 +188,11 @@ export default function AppHome() {
                   variant={profile.role === 'seller' ? 'primary' : 'secondary'}
                   tone="dark"
                 >
-                  Post an offer →
+                  {t.hero.postOfferCta}
                 </CTAPill>
               )}
               <CTAPill href="/activity" variant="secondary" tone="dark">
-                View activity →
+                {t.hero.viewActivityCta}
               </CTAPill>
               <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
@@ -217,28 +219,28 @@ export default function AppHome() {
       {/* PENDING MATCHES. surfaces here so users see them from the home page
           without having to navigate to /seller. Renders nothing when there
           are none, so the layout stays clean for buyers / fresh users. */}
-      <PendingMatchesBand tone="light" headline="Pending matches" />
+      <PendingMatchesBand tone="light" />
       <PendingDealsBand tone="light" />
 
       {/* THREE DOORS */}
       <Band tone="light">
-        <SectionTag>WHERE TO START</SectionTag>
+        <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-          One spine<Punc>.</Punc>
+          {t.threeDoors.headlineTop}<Punc>.</Punc>
           <br />
-          Three doors.
+          {t.threeDoors.headlineBottom}
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Same escrow. Same reputation. Three entry points.
+          {t.threeDoors.description}
         </p>
         <div data-guide="home-doors" className="mt-12 grid md:grid-cols-3 gap-5">
           <div className="fade-up fade-up-1">
             <FeatureCard
               href="/buyer"
               tone="cream"
-              eyebrow="BUYER"
-              title="Post a request"
-              body="Say what you need. Agents collect bids and you choose."
+              eyebrow={t.threeDoors.buyerCard.eyebrow}
+              title={t.threeDoors.buyerCard.title}
+              body={t.threeDoors.buyerCard.body}
               vignette={<BriefVignette />}
             />
           </div>
@@ -246,9 +248,9 @@ export default function AppHome() {
             <FeatureCard
               href="/seller"
               tone="dark"
-              eyebrow="SELLER"
-              title="Take work"
-              body="List what you offer and accept the deals that fit."
+              eyebrow={t.threeDoors.sellerCard.eyebrow}
+              title={t.threeDoors.sellerCard.title}
+              body={t.threeDoors.sellerCard.body}
               vignette={<BidVignette />}
             />
           </div>
@@ -256,9 +258,9 @@ export default function AppHome() {
             <FeatureCard
               href="/activity"
               tone="accent"
-              eyebrow="ACTIVITY"
-              title="Track deals"
-              body="Watch every deal settle live on Arc."
+              eyebrow={t.threeDoors.activityCard.eyebrow}
+              title={t.threeDoors.activityCard.title}
+              body={t.threeDoors.activityCard.body}
               vignette={<StreamVignette />}
             />
           </div>
@@ -270,12 +272,12 @@ export default function AppHome() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[42ch]">
             <SectionTag tone="dark" dot="live">
-              LIVE NETWORK
+              {t.liveNetwork.sectionTag}
             </SectionTag>
             <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-              Settled in
+              {t.liveNetwork.headlineTop}
               <br />
-              real <Accent>time</Accent>
+              {t.liveNetwork.headlineBottomPrefix}<Accent>{t.liveNetwork.headlineBottomAccent}</Accent>
               <Punc>.</Punc>
             </HeroHeadline>
           </div>
@@ -283,7 +285,7 @@ export default function AppHome() {
             href="/activity"
             className="group inline-flex items-center gap-1.5 mono text-[12px] uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
           >
-            Full feed
+            {t.liveNetwork.fullFeed}
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
               →
             </span>
@@ -292,43 +294,43 @@ export default function AppHome() {
         <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="fade-up fade-up-1">
             <BigStatTile
-              label="Total deals"
+              label={t.liveNetwork.stats.totalDeals}
               value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} />}
-              hint="Direct plus agent"
+              hint={t.liveNetwork.stats.directPlusAgent}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-2">
             <BigStatTile
-              label="Direct deals"
+              label={t.liveNetwork.stats.directDeals}
               value={<AnimatedNumber value={stats?.direct ?? 0} decimals={0} />}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-3">
             <BigStatTile
-              label="Agent deals"
+              label={t.liveNetwork.stats.agentDeals}
               value={<AnimatedNumber value={stats?.agent ?? 0} decimals={0} />}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-4">
             <BigStatTile
-              label="Settled in full"
+              label={t.liveNetwork.stats.settled}
               value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} />}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-4">
             <BigStatTile
-              label="USDC through escrow"
+              label={t.liveNetwork.stats.usdcThrough}
               value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} />}
               unit="USDC"
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-4">
-            <BigStatTile label="Chain" value="5042002" hint="Arc Testnet" />
+            <BigStatTile label={t.liveNetwork.stats.chain} value="5042002" hint={t.liveNetwork.stats.arcTestnet} />
           </div>
         </div>
       </Band>
@@ -344,10 +346,10 @@ export default function AppHome() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[44ch]">
             <SectionTag tone="dark" dot="live">
-              NETWORK PULSE
+              {t.networkPulse.sectionTag}
             </SectionTag>
             <HeroHeadline size="md">
-              Trades, as they <Accent>land</Accent>
+              {t.networkPulse.headlinePrefix}<Accent>{t.networkPulse.headlineAccent}</Accent>
               <Punc>.</Punc>
             </HeroHeadline>
           </div>
@@ -357,9 +359,9 @@ export default function AppHome() {
 
       {/* DEALS ACROSS KARWAN */}
       <Band tone="light">
-        <SectionTag>YOUR DEALS</SectionTag>
+        <SectionTag>{t.yourBook.sectionTag}</SectionTag>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-          Your <Accent>book</Accent><Punc>.</Punc>
+          {t.yourBook.headlinePrefix}<Accent>{t.yourBook.headlineAccent}</Accent><Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
@@ -391,6 +393,7 @@ function HeroAgentCard({
   settled: number | null;
   usdcThrough: number | null;
 }) {
+  const t = useTranslations().appHome.heroAgentCard;
   return (
     <div
       className="relative overflow-hidden"
@@ -406,7 +409,7 @@ function HeroAgentCard({
       <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
         <div className="flex items-center justify-between">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            Agent control
+            {t.eyebrow}
           </span>
           <span
             aria-hidden
@@ -419,17 +422,17 @@ function HeroAgentCard({
           />
         </div>
         <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
-          Buyer agent <span className="text-[var(--lp-accent)]">active</span>
+          {t.statePrefix} <span className="text-[var(--lp-accent)]">{t.stateActive}</span>
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
-          Scoring bids. One counter per round. Funding on accept.
+          {t.stateBody}
         </p>
       </div>
       <div className="grid grid-cols-3 divide-x divide-white/[0.08]">
-        <MiniStat label="Running" value={dealsRunning} />
-        <MiniStat label="Settled" value={settled} />
+        <MiniStat label={t.miniLabels.running} value={dealsRunning} />
+        <MiniStat label={t.miniLabels.settled} value={settled} />
         <MiniStat
-          label="Volume"
+          label={t.miniLabels.volume}
           value={usdcThrough}
           decimals={2}
           unit="USDC"
@@ -580,6 +583,7 @@ function BriefVignette() {
   // Progress ticks fill one by one, hold, then reset. 7 ticks + 2-step pause.
   const total = 7;
   const cycle = total + 3;
+  const t = useTranslations().appHome.briefVignette;
   const [step, setStep] = useState(0);
   const [bids, setBids] = useState(4);
 
@@ -600,12 +604,12 @@ function BriefVignette() {
     <div className="px-4 py-4 space-y-3 flex-1 flex flex-col">
       <div className="flex items-center justify-between">
         <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          REQUEST · 0x12ab
+          {t.eyebrowPrefix} 0x12ab
         </span>
-        <span className="mono text-[10px] tabular-nums text-[var(--lp-text-sub)]">2 min</span>
+        <span className="mono text-[10px] tabular-nums text-[var(--lp-text-sub)]">{t.timeStamp}</span>
       </div>
       <p className="text-[13px] font-semibold leading-snug text-[var(--lp-dark)]">
-        Spanish → Arabic legal translation. 14 pages.
+        {t.sampleBrief}
       </p>
       <div className="flex items-baseline gap-1.5">
         <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
@@ -615,7 +619,7 @@ function BriefVignette() {
           USDC
         </span>
         <span className="ms-2 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
-          · 5d · {bids} bids
+          {t.daysBids.replace('{bids}', String(bids))}
         </span>
       </div>
       <div className="flex gap-[2px] pt-1">
@@ -645,6 +649,7 @@ function BriefVignette() {
 function BidVignette() {
   // Re-trigger score ramp every cycle so the card always has visible motion.
   // The "season" counter forces the requestAnimationFrame ramp to restart.
+  const t = useTranslations().appHome.bidVignette;
   const [score, setScore] = useState(0);
   const [price, setPrice] = useState(30);
   const [season, setSeason] = useState(0);
@@ -687,7 +692,7 @@ function BidVignette() {
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5">
           <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-accent)]">
-            LEAD
+            {t.eyebrow}
           </span>
           <span className="mono text-[10px] text-white/70">0x1d36...35Ce</span>
         </span>
@@ -701,7 +706,7 @@ function BidVignette() {
               animation: 'instrumentBlink 1.6s ease-in-out infinite',
             }}
           />
-          live
+          {t.live}
         </span>
       </div>
       <div className="flex items-baseline justify-between gap-3">
@@ -718,7 +723,7 @@ function BidVignette() {
           >
             {score}
           </span>
-          <span className="mono text-[9px] tracking-[0.08em] text-white/45">/100</span>
+          <span className="mono text-[9px] tracking-[0.08em] text-white/45">{t.scoreSuffix}</span>
         </div>
       </div>
       <div className="flex gap-[2px]">
@@ -735,8 +740,8 @@ function BidVignette() {
         ))}
       </div>
       <div className="flex justify-between text-[10px] mono text-white/55 pt-1">
-        <span>counter 27 USDC</span>
-        <span>ETA 4d</span>
+        <span>{t.counter.replace('{price}', '27')}</span>
+        <span>{t.eta}</span>
       </div>
     </div>
   );
@@ -745,6 +750,7 @@ function BidVignette() {
 function StreamVignette() {
   // A rotating window of 3 visible events out of a pool. Every ~3 seconds a new
   // event arrives at the top and the older rows shift down; the bottom row drops.
+  const t = useTranslations().appHome.streamVignette;
   const pool = useMemo(
     () =>
       [
@@ -767,7 +773,7 @@ function StreamVignette() {
 
   const window = [0, 1, 2].map((i) => ({
     ...pool[(head + i) % pool.length],
-    age: i === 0 ? 'now' : i === 1 ? '12s' : '38s',
+    age: i === 0 ? t.now : i === 1 ? '12s' : '38s',
   }));
 
   const toneColor = (tone: 'buyer' | 'seller' | 'system') =>
@@ -781,7 +787,7 @@ function StreamVignette() {
     <div className="px-4 py-4 relative flex-1 flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-dark)]/70">
-          EVENT STREAM
+          {t.eyebrow}
         </span>
         <span className="inline-flex items-center gap-1.5 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-dark)]/70">
           <span
@@ -793,7 +799,7 @@ function StreamVignette() {
               animation: 'instrumentBlink 1.6s ease-in-out infinite',
             }}
           />
-          live
+          {t.live}
         </span>
       </div>
       <span

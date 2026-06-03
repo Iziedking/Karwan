@@ -431,6 +431,87 @@ interface MessagesShape {
       body: string;
     };
   };
+  appHome: {
+    settlementDeskEyebrow: string;
+    backendOffline: {
+      eyebrow: string;
+      title: string;
+      bodyPrefix: string;
+      bodySuffix: string;
+    };
+    hero: {
+      welcomeBack: string;
+      description: string;
+      postRequestCta: string;
+      postOfferCta: string;
+      viewActivityCta: string;
+    };
+    heroAgentCard: {
+      eyebrow: string;
+      statePrefix: string;
+      stateActive: string;
+      stateBody: string;
+      miniLabels: {
+        running: string;
+        settled: string;
+        volume: string;
+      };
+    };
+    threeDoors: {
+      sectionTag: string;
+      headlineTop: string;
+      headlineBottom: string;
+      description: string;
+      buyerCard: { eyebrow: string; title: string; body: string };
+      sellerCard: { eyebrow: string; title: string; body: string };
+      activityCard: { eyebrow: string; title: string; body: string };
+    };
+    liveNetwork: {
+      sectionTag: string;
+      headlineTop: string;
+      headlineBottomPrefix: string;
+      headlineBottomAccent: string;
+      fullFeed: string;
+      stats: {
+        totalDeals: string;
+        directDeals: string;
+        agentDeals: string;
+        settled: string;
+        usdcThrough: string;
+        chain: string;
+        directPlusAgent: string;
+        arcTestnet: string;
+      };
+    };
+    networkPulse: {
+      sectionTag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+    };
+    yourBook: {
+      sectionTag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+    };
+    briefVignette: {
+      eyebrowPrefix: string;
+      timeStamp: string;
+      sampleBrief: string;
+      daysBids: string;
+    };
+    bidVignette: {
+      eyebrow: string;
+      live: string;
+      scoreSuffix: string;
+      counter: string;
+      eta: string;
+    };
+    streamVignette: {
+      eyebrow: string;
+      live: string;
+      now: string;
+    };
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -1062,6 +1143,99 @@ export const en: MessagesShape = {
       tag: 'PREFERENCES',
       headline: 'Reach pipes',
       body: 'Connect Telegram and X so the agent can ping you when a deal needs you.',
+    },
+  },
+  appHome: {
+    settlementDeskEyebrow: 'SETTLEMENT DESK',
+    backendOffline: {
+      eyebrow: 'BACKEND',
+      title: 'Backend offline',
+      bodyPrefix: "Couldn't reach the API at ",
+      bodySuffix: ". This page picks up the moment it's back.",
+    },
+    hero: {
+      welcomeBack: 'Welcome back,',
+      description: 'Agents run the auction. You approve the terms.',
+      postRequestCta: 'Post a request →',
+      postOfferCta: 'Post an offer →',
+      viewActivityCta: 'View activity →',
+    },
+    heroAgentCard: {
+      eyebrow: 'Agent control',
+      statePrefix: 'Buyer agent',
+      stateActive: 'active',
+      stateBody: 'Scoring bids. One counter per round. Funding on accept.',
+      miniLabels: {
+        running: 'Running',
+        settled: 'Settled',
+        volume: 'Volume',
+      },
+    },
+    threeDoors: {
+      sectionTag: 'WHERE TO START',
+      headlineTop: 'One spine',
+      headlineBottom: 'Three doors.',
+      description: 'Same escrow. Same reputation. Three entry points.',
+      buyerCard: {
+        eyebrow: 'BUYER',
+        title: 'Post a request',
+        body: 'Say what you need. Agents collect bids and you choose.',
+      },
+      sellerCard: {
+        eyebrow: 'SELLER',
+        title: 'Take work',
+        body: 'List what you offer and accept the deals that fit.',
+      },
+      activityCard: {
+        eyebrow: 'ACTIVITY',
+        title: 'Track deals',
+        body: 'Watch every deal settle live on Arc.',
+      },
+    },
+    liveNetwork: {
+      sectionTag: 'LIVE NETWORK',
+      headlineTop: 'Settled in',
+      headlineBottomPrefix: 'real ',
+      headlineBottomAccent: 'time',
+      fullFeed: 'Full feed',
+      stats: {
+        totalDeals: 'Total deals',
+        directDeals: 'Direct deals',
+        agentDeals: 'Agent deals',
+        settled: 'Settled in full',
+        usdcThrough: 'USDC through escrow',
+        chain: 'Chain',
+        directPlusAgent: 'Direct plus agent',
+        arcTestnet: 'Arc Testnet',
+      },
+    },
+    networkPulse: {
+      sectionTag: 'NETWORK PULSE',
+      headlinePrefix: 'Trades, as they ',
+      headlineAccent: 'land',
+    },
+    yourBook: {
+      sectionTag: 'YOUR DEALS',
+      headlinePrefix: 'Your ',
+      headlineAccent: 'book',
+    },
+    briefVignette: {
+      eyebrowPrefix: 'REQUEST ·',
+      timeStamp: '2 min',
+      sampleBrief: 'Spanish → Arabic legal translation. 14 pages.',
+      daysBids: '· 5d · {bids} bids',
+    },
+    bidVignette: {
+      eyebrow: 'LEAD',
+      live: 'live',
+      scoreSuffix: '/100',
+      counter: 'counter {price} USDC',
+      eta: 'ETA 4d',
+    },
+    streamVignette: {
+      eyebrow: 'EVENT STREAM',
+      live: 'live',
+      now: 'now',
     },
   },
   tierCelebration: {
