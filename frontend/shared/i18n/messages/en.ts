@@ -628,6 +628,86 @@ interface MessagesShape {
       nextAria: string;
     };
   };
+  directDeal: {
+    notConnected: string;
+    preview: {
+      eyebrow: string;
+      unitMin: string;
+      unitHr: string;
+      unitDays: string;
+      deliveryPctTemplate: string;
+      verificationPctTemplate: string;
+      directEscrow: string;
+    };
+    counterparty: {
+      eyebrow: string;
+      titleWallet: string;
+      titleEmail: string;
+      helperWallet: string;
+      helperEmail: string;
+      sendByEmailLabel: string;
+      walletLabel: string;
+      walletHint: string;
+      walletPlaceholder: string;
+      walletInvalid: string;
+      walletSelfWarning: string;
+      emailLabel: string;
+      emailHint: string;
+      emailPlaceholder: string;
+      emailInvalid: string;
+    };
+    terms: {
+      eyebrow: string;
+      title: string;
+      amountLabel: string;
+      deadlineLabel: string;
+      deadlineHint: string;
+      deliveryPctLabel: string;
+      deliveryPctHint: string;
+      acceptanceWindowLabel: string;
+      acceptanceWindowHint: string;
+      presets: {
+        oneHr: string;
+        sixHr: string;
+        dayOne: string;
+        threeDays: string;
+        sevenDays: string;
+      };
+    };
+    deliverable: {
+      eyebrow: string;
+      title: string;
+      termsLabel: string;
+      termsHint: string;
+      termsPlaceholder: string;
+    };
+    funding: {
+      header: string;
+      youFundLabel: string;
+      sellerReceivesLabel: string;
+      platformFeeLabel: string;
+      footerTemplate: string;
+    };
+    trustedMatch: {
+      eyebrow: string;
+      body: string;
+      sliderAria: string;
+      pctCaption: string;
+      stakeNoteTemplate: string;
+    };
+    submit: {
+      opening: string;
+      open: string;
+      fundsCaption: string;
+    };
+    errorPrefix: string;
+    deadlineUnitAria: string;
+    unitPickerLabels: {
+      min: string;
+      hr: string;
+      day: string;
+    };
+  };
   postJob: {
     notConnected: string;
     noBuyerProfile: {
@@ -1658,6 +1738,86 @@ export const en: MessagesShape = {
       countPlural: '{n} deals',
       prevAria: 'Previous page',
       nextAria: 'Next page',
+    },
+  },
+  directDeal: {
+    notConnected: 'Sign in to open a direct deal. Use the Log in pill in the nav.',
+    preview: {
+      eyebrow: 'DEAL PREVIEW',
+      unitMin: 'min',
+      unitHr: 'hr',
+      unitDays: 'days',
+      deliveryPctTemplate: '{n}% on delivery',
+      verificationPctTemplate: '{n}% on verification',
+      directEscrow: 'direct escrow',
+    },
+    counterparty: {
+      eyebrow: 'COUNTERPARTY',
+      titleWallet: 'Name the seller wallet.',
+      titleEmail: 'Send the seller a shareable link.',
+      helperWallet: 'Have their wallet address? Paste it. They sign in to that address to accept.',
+      helperEmail: 'No wallet to hand? Send a link by email. They claim it, verify their address, and the escrow is ready. No signup needed.',
+      sendByEmailLabel: 'Send by email',
+      walletLabel: 'Seller address',
+      walletHint: 'Their wallet. They sign in with the same address to accept and deliver.',
+      walletPlaceholder: '0x...',
+      walletInvalid: 'Not a valid 20-byte address.',
+      walletSelfWarning: 'Seller must differ from your wallet.',
+      emailLabel: 'Seller email',
+      emailHint: 'We email them a one-shot link. The deal sits idle until they claim. Nothing funds before then.',
+      emailPlaceholder: 'them@work.com',
+      emailInvalid: 'Not a valid email address.',
+    },
+    terms: {
+      eyebrow: 'DEAL TERMS',
+      title: 'Set the amount and release split.',
+      amountLabel: 'Amount',
+      deadlineLabel: 'Deadline (optional)',
+      deadlineHint: 'When the seller must deliver by. Leave blank for open-ended (no time pressure, no unilateral cancel for late delivery). Max 180 days when set.',
+      deliveryPctLabel: 'On delivery',
+      deliveryPctHint: 'Slice released when seller marks delivered. Rest on your verification.',
+      acceptanceWindowLabel: 'Seller has to accept within',
+      acceptanceWindowHint: "If they don't, the deal auto-expires with no reputation hit on either side. You're free to re-shop.",
+      presets: {
+        oneHr: '1 hr',
+        sixHr: '6 hr',
+        dayOne: '24 hr',
+        threeDays: '3 d',
+        sevenDays: '7 d',
+      },
+    },
+    deliverable: {
+      eyebrow: 'DELIVERABLE',
+      title: "What's being delivered.",
+      termsLabel: 'Terms',
+      termsHint: 'Visible to both parties on the deal page.',
+      termsPlaceholder: 'e.g. Logo redesign with 2 revision rounds. Final files in SVG + PNG.',
+    },
+    funding: {
+      header: 'FUNDING BREAKDOWN · 1.5% FEE, SPLIT EVENLY',
+      youFundLabel: 'You fund',
+      sellerReceivesLabel: 'Seller receives',
+      platformFeeLabel: 'Platform fee',
+      footerTemplate: '↳ {delivery}% on delivery · {verification}% on verification · funds when seller accepts',
+    },
+    trustedMatch: {
+      eyebrow: '[:TRUSTED MATCH:]',
+      body: "Seller has to stake USDC to accept. Slashed if they lose a dispute. Best for higher-value or one-shot deals you can't redo. Leave off for casual deals.",
+      sliderAria: 'Required stake percentage',
+      pctCaption: '% OF DEAL',
+      stakeNoteTemplate: '↳ seller must stake {amount} USDC to accept',
+    },
+    submit: {
+      opening: 'Opening deal...',
+      open: 'Open deal',
+      fundsCaption: '↳ funds when seller accepts',
+    },
+    errorPrefix: "Couldn't open deal:",
+    deadlineUnitAria: 'Deadline unit',
+    unitPickerLabels: {
+      min: 'MIN',
+      hr: 'HR',
+      day: 'DAY',
     },
   },
   postJob: {

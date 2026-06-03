@@ -8,10 +8,14 @@ import { sfx } from '@/shared/utils/sfx';
 import { feeBreakdown } from '../config';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 
 export function DirectDealForm() {
+  const t = useTranslations();
+  const dd = t.directDeal;
   const router = useRouter();
   // Source of truth covers both wagmi web3 users and Circle passkey/email
   // users. Direct-deal create is backend-signed (the buyer agent DCW opens
@@ -96,7 +100,11 @@ export function DirectDealForm() {
   const previewPct = typeof firstPct === 'number' ? firstPct : 0;
   const previewDeadlineValue = typeof deadlineValue === 'number' ? deadlineValue : 0;
   const previewUnitLabel =
-    deadlineUnit === 'min' ? 'min' : deadlineUnit === 'hr' ? 'hr' : 'days';
+    deadlineUnit === 'min'
+      ? dd.preview.unitMin
+      : deadlineUnit === 'hr'
+        ? dd.preview.unitHr
+        : dd.preview.unitDays;
   // Convert the (value, unit) pair into the days+hours pair the API accepts.
   // Minutes round up to the next hour so the on-chain deadlineUnix is never
   // shorter than what the user picked.
@@ -148,9 +156,7 @@ export function DirectDealForm() {
 
   if (!isConnected) {
     return (
-      <p className="text-[13px] text-[var(--lp-text-sub)]">
-        Sign in to open a direct deal. Use the Log in pill in the nav.
-      </p>
+      <p className="text-[13px] text-[var(--lp-text-sub)]">{dd.notConnected}</p>
     );
   }
 
@@ -182,7 +188,7 @@ export function DirectDealForm() {
         />
         <div className="relative px-6 py-6">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            DEAL PREVIEW
+            {dd.preview.eyebrow}
           </p>
           <div className="mt-3 flex items-baseline gap-2 flex-wrap">
             <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
@@ -210,30 +216,32 @@ export function DirectDealForm() {
                   animation: 'instrumentBlink 1.6s ease-in-out infinite',
                 }}
               />
-              {previewPct}% on delivery
+              {dd.preview.deliveryPctTemplate.replace('{n}', String(previewPct))}
             </span>
             <span aria-hidden className="w-px h-3 bg-white/20" />
-            <span>{100 - previewPct}% on verification</span>
+            <span>
+              {dd.preview.verificationPctTemplate.replace('{n}', String(100 - previewPct))}
+            </span>
             <span aria-hidden className="w-px h-3 bg-white/20" />
-            <span>direct escrow</span>
+            <span>{dd.preview.directEscrow}</span>
           </div>
         </div>
       </div>
 
       {/* COUNTERPARTY */}
       <FieldSection
-        eyebrow="COUNTERPARTY"
+        eyebrow={dd.counterparty.eyebrow}
         title={
           counterpartyMode === 'wallet'
-            ? 'Name the seller wallet.'
-            : 'Send the seller a shareable link.'
+            ? dd.counterparty.titleWallet
+            : dd.counterparty.titleEmail
         }
       >
         <div className="flex items-center justify-between gap-3 pb-3">
           <p className="text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
             {counterpartyMode === 'wallet'
-              ? 'Have their wallet address? Paste it. They sign in to that address to accept.'
-              : 'No wallet to hand? Send a link by email. They claim it, verify their address, and the escrow is ready. No signup needed.'}
+              ? dd.counterparty.helperWallet
+              : dd.counterparty.helperEmail}
           </p>
           <label className="inline-flex items-center gap-2 shrink-0 cursor-pointer">
             <input
@@ -244,50 +252,50 @@ export function DirectDealForm() {
               className="accent-[var(--lp-accent)]"
             />
             <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
-              Send by email
+              {dd.counterparty.sendByEmailLabel}
             </span>
           </label>
         </div>
         {counterpartyMode === 'wallet' ? (
           <FormLabel
-            label="Seller address"
-            hint="Their wallet. They sign in with the same address to accept and deliver."
+            label={dd.counterparty.walletLabel}
+            hint={dd.counterparty.walletHint}
           >
             <input
               type="text"
               value={seller}
               onChange={(e) => setSeller(e.target.value)}
-              placeholder="0x..."
+              placeholder={dd.counterparty.walletPlaceholder}
               disabled={submitting}
               className="form-input form-input-mono"
             />
             {seller.length > 0 && !sellerValid && (
               <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
-                Not a valid 20-byte address.
+                {dd.counterparty.walletInvalid}
               </span>
             )}
             {sameWallet && (
               <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
-                Seller must differ from your wallet.
+                {dd.counterparty.walletSelfWarning}
               </span>
             )}
           </FormLabel>
         ) : (
           <FormLabel
-            label="Seller email"
-            hint="We email them a one-shot link. The deal sits idle until they claim. Nothing funds before then."
+            label={dd.counterparty.emailLabel}
+            hint={dd.counterparty.emailHint}
           >
             <input
               type="email"
               value={counterpartyEmail}
               onChange={(e) => setCounterpartyEmail(e.target.value)}
-              placeholder="them@work.com"
+              placeholder={dd.counterparty.emailPlaceholder}
               disabled={submitting}
               className="form-input"
             />
             {counterpartyEmail.length > 3 && !emailValid && (
               <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
-                Not a valid email address.
+                {dd.counterparty.emailInvalid}
               </span>
             )}
           </FormLabel>
@@ -295,9 +303,9 @@ export function DirectDealForm() {
       </FieldSection>
 
       {/* TERMS */}
-      <FieldSection eyebrow="DEAL TERMS" title="Set the amount and release split.">
+      <FieldSection eyebrow={dd.terms.eyebrow} title={dd.terms.title}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <FormLabel label="Amount" unit="USDC">
+          <FormLabel label={dd.terms.amountLabel} unit="USDC">
             <input
               type="number"
               inputMode="decimal"
@@ -311,9 +319,9 @@ export function DirectDealForm() {
             />
           </FormLabel>
           <FormLabel
-            label="Deadline (optional)"
+            label={dd.terms.deadlineLabel}
             unit={previewUnitLabel}
-            hint="When the seller must deliver by. Leave blank for open-ended (no time pressure, no unilateral cancel for late delivery). Max 180 days when set."
+            hint={dd.terms.deadlineHint}
           >
             <div className="flex items-stretch gap-2">
               <input
@@ -333,6 +341,8 @@ export function DirectDealForm() {
               <DeadlineUnitPicker
                 value={deadlineUnit}
                 disabled={submitting}
+                ariaLabel={dd.deadlineUnitAria}
+                labels={dd.unitPickerLabels}
                 onChange={(next) => {
                   // When switching units, reset to empty so the user picks a
                   // sensible number for the new unit. The buyer form seeds
@@ -345,9 +355,9 @@ export function DirectDealForm() {
             </div>
           </FormLabel>
           <FormLabel
-            label="On delivery"
+            label={dd.terms.deliveryPctLabel}
             unit="%"
-            hint="Slice released when seller marks delivered. Rest on your verification."
+            hint={dd.terms.deliveryPctHint}
           >
             <input
               type="number"
@@ -363,17 +373,17 @@ export function DirectDealForm() {
             />
           </FormLabel>
           <FormLabel
-            label="Seller has to accept within"
-            hint="If they don't, the deal auto-expires with no reputation hit on either side. You're free to re-shop."
+            label={dd.terms.acceptanceWindowLabel}
+            hint={dd.terms.acceptanceWindowHint}
           >
             <div className="flex flex-wrap gap-1.5">
               {(
                 [
-                  { label: '1 hr', value: 1 },
-                  { label: '6 hr', value: 6 },
-                  { label: '24 hr', value: 24 },
-                  { label: '3 d', value: 72 },
-                  { label: '7 d', value: 168 },
+                  { label: dd.terms.presets.oneHr, value: 1 },
+                  { label: dd.terms.presets.sixHr, value: 6 },
+                  { label: dd.terms.presets.dayOne, value: 24 },
+                  { label: dd.terms.presets.threeDays, value: 72 },
+                  { label: dd.terms.presets.sevenDays, value: 168 },
                 ] as const
               ).map((opt) => {
                 const active = acceptanceHours === opt.value;
@@ -404,14 +414,14 @@ export function DirectDealForm() {
       </FieldSection>
 
       {/* DELIVERABLE */}
-      <FieldSection eyebrow="DELIVERABLE" title="What's being delivered.">
-        <FormLabel label="Terms" hint="Visible to both parties on the deal page.">
+      <FieldSection eyebrow={dd.deliverable.eyebrow} title={dd.deliverable.title}>
+        <FormLabel label={dd.deliverable.termsLabel} hint={dd.deliverable.termsHint}>
           <textarea
             value={terms}
             onChange={(e) => setTerms(e.target.value)}
             rows={3}
             disabled={submitting}
-            placeholder="e.g. Logo redesign with 2 revision rounds. Final files in SVG + PNG."
+            placeholder={dd.deliverable.termsPlaceholder}
             className="form-input form-textarea"
           />
         </FormLabel>
@@ -432,17 +442,18 @@ export function DirectDealForm() {
         >
           <div className="px-5 py-4 border-b border-[var(--lp-border-light)]">
             <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-              FUNDING BREAKDOWN · 1.5% FEE, SPLIT EVENLY
+              {dd.funding.header}
             </p>
           </div>
           <div className="px-5 py-4 space-y-2.5">
-            <FeeLine label="You fund" value={fee.fundedAmount} strong />
-            <FeeLine label="Seller receives" value={fee.sellerNet} />
-            <FeeLine label="Platform fee" value={fee.feeTotal} faint />
+            <FeeLine label={dd.funding.youFundLabel} value={fee.fundedAmount} strong />
+            <FeeLine label={dd.funding.sellerReceivesLabel} value={fee.sellerNet} />
+            <FeeLine label={dd.funding.platformFeeLabel} value={fee.feeTotal} faint />
           </div>
           <div className="px-5 py-3 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-            ↳ {previewPct}% on delivery · {100 - previewPct}% on verification · funds when seller
-            accepts
+            {dd.funding.footerTemplate
+              .replace('{delivery}', String(previewPct))
+              .replace('{verification}', String(100 - previewPct))}
           </div>
         </div>
       )}
@@ -480,15 +491,13 @@ export function DirectDealForm() {
             className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
             style={{ color: requireStake ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
           >
-            [:TRUSTED MATCH:]
+            {dd.trustedMatch.eyebrow}
           </span>
           <p
             id="require-stake-help"
             className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
           >
-            Seller has to stake USDC to accept. Slashed if they lose a dispute.
-            Best for higher-value or one-shot deals you can&apos;t redo. Leave off
-            for casual deals.
+            {dd.trustedMatch.body}
           </p>
           {requireStake && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -501,19 +510,22 @@ export function DirectDealForm() {
                 onChange={(e) => setRequireStakePct(Number(e.target.value))}
                 disabled={submitting}
                 className="flex-1 min-w-[180px] accent-[var(--lp-accent)]"
-                aria-label="Required stake percentage"
+                aria-label={dd.trustedMatch.sliderAria}
               />
               <div className="flex items-baseline gap-1.5 shrink-0">
                 <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
                   {requireStakePct}
                 </span>
                 <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  % OF DEAL
+                  {dd.trustedMatch.pctCaption}
                 </span>
               </div>
               {typeof amount === 'number' && amount > 0 && (
                 <p className="basis-full mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-                  ↳ seller must stake {((amount * requireStakePct) / 100).toFixed(2)} USDC to accept
+                  {dd.trustedMatch.stakeNoteTemplate.replace(
+                    '{amount}',
+                    ((amount * requireStakePct) / 100).toFixed(2),
+                  )}
                 </p>
               )}
             </div>
@@ -554,7 +566,7 @@ export function DirectDealForm() {
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           )}
-          {submitting ? 'Opening deal...' : 'Open deal'}
+          {submitting ? dd.submit.opening : dd.submit.open}
           {!submitting && (
             <span
               aria-hidden
@@ -566,13 +578,15 @@ export function DirectDealForm() {
         </button>
         {!submitting && (
           <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-            ↳ funds when seller accepts
+            {dd.submit.fundsCaption}
           </p>
         )}
       </div>
 
       {error && (
-        <p className="mono text-[12px] text-[#7a1f1a]">Couldn&apos;t open deal: {error}</p>
+        <p className="mono text-[12px] text-[#7a1f1a]">
+          {dd.errorPrefix} {error}
+        </p>
       )}
 
     </form>
@@ -636,20 +650,24 @@ function DeadlineUnitPicker({
   value,
   disabled,
   onChange,
+  ariaLabel,
+  labels,
 }: {
   value: 'min' | 'hr' | 'd';
   disabled?: boolean;
   onChange: (next: 'min' | 'hr' | 'd') => void;
+  ariaLabel: string;
+  labels: Messages['directDeal']['unitPickerLabels'];
 }) {
   const options: Array<{ key: 'min' | 'hr' | 'd'; label: string }> = [
-    { key: 'min', label: 'MIN' },
-    { key: 'hr', label: 'HR' },
-    { key: 'd', label: 'DAY' },
+    { key: 'min', label: labels.min },
+    { key: 'hr', label: labels.hr },
+    { key: 'd', label: labels.day },
   ];
   return (
     <div
       role="radiogroup"
-      aria-label="Deadline unit"
+      aria-label={ariaLabel}
       className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
       style={{
         background: 'var(--lp-light)',
