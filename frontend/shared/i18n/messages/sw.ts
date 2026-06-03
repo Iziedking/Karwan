@@ -539,6 +539,36 @@ export const sw: Messages = {
       now: 'sasa',
     },
   },
+  bridge: {
+    signInGate: {
+      tag: 'DARAJA',
+      body: 'Kupeleka USDC ndani na nje ya Arc kunaunganishwa na pochi yako. Ingia ili kuendelea.',
+    },
+    sectionTag: 'DARAJA',
+    headlinePrefix: 'Hamisha ',
+    description: 'Lete USDC kwenye Arc kutoka mnyororo mwingine, au peleka salio lako la Arc nje. USDC asili kupitia Circle CCTP. Hakuna tokeni zilizofungwa.',
+    directions: {
+      toArc: 'Kwenda Arc',
+      fromArc: 'Kutoka Arc',
+    },
+  },
+  statsTicker: {
+    liveLabels: {
+      directDealsOnChain: 'BIASHARA ZA MOJA KWA MOJA KWENYE MNYORORO',
+      settledInFull: 'ZILIZOLIPWA KIKAMILIFU',
+      movedThroughEscrow: 'ZILIZOPITA KWENYE ESCROW',
+    },
+    staticItems: {
+      arcTestnetLabel: 'MNYORORO 5042002',
+      circleLabel: 'USDC · CCTP · POCHI',
+      erc8004Label: 'SIFA INAYOBEBA',
+    },
+  },
+  livePulse: {
+    dealsToday: 'Biashara za leo',
+    settled: 'Zilizolipwa',
+    usdcReleased: 'USDC iliyotolewa',
+  },
   tierCelebration: {
     eyebrow: 'KIWANGO KIMEFUNGULIWA',
     achievementPrefix: 'Umefika',

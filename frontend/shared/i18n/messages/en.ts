@@ -512,6 +512,33 @@ interface MessagesShape {
       now: string;
     };
   };
+  bridge: {
+    signInGate: { tag: string; body: string };
+    sectionTag: string;
+    headlinePrefix: string;
+    description: string;
+    directions: {
+      toArc: string;
+      fromArc: string;
+    };
+  };
+  statsTicker: {
+    liveLabels: {
+      directDealsOnChain: string;
+      settledInFull: string;
+      movedThroughEscrow: string;
+    };
+    staticItems: {
+      arcTestnetLabel: string;
+      circleLabel: string;
+      erc8004Label: string;
+    };
+  };
+  livePulse: {
+    dealsToday: string;
+    settled: string;
+    usdcReleased: string;
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -1237,6 +1264,36 @@ export const en: MessagesShape = {
       live: 'live',
       now: 'now',
     },
+  },
+  bridge: {
+    signInGate: {
+      tag: 'BRIDGE',
+      body: 'Bridging USDC in and out of Arc is keyed to your wallet. Sign in to continue.',
+    },
+    sectionTag: 'BRIDGE',
+    headlinePrefix: 'Move ',
+    description: 'Bring USDC to Arc from another chain, or send your Arc balance out. Native USDC over Circle CCTP. No wrapped tokens.',
+    directions: {
+      toArc: 'To Arc',
+      fromArc: 'From Arc',
+    },
+  },
+  statsTicker: {
+    liveLabels: {
+      directDealsOnChain: 'DIRECT DEALS ON CHAIN',
+      settledInFull: 'SETTLED IN FULL',
+      movedThroughEscrow: 'MOVED THROUGH ESCROW',
+    },
+    staticItems: {
+      arcTestnetLabel: 'CHAIN 5042002',
+      circleLabel: 'USDC · CCTP · WALLETS',
+      erc8004Label: 'PORTABLE REPUTATION',
+    },
+  },
+  livePulse: {
+    dealsToday: 'Deals today',
+    settled: 'Settled',
+    usdcReleased: 'USDC released',
   },
   tierCelebration: {
     eyebrow: 'TIER UNLOCKED',

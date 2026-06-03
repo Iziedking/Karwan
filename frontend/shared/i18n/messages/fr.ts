@@ -539,6 +539,36 @@ export const fr: Messages = {
       now: 'maintenant',
     },
   },
+  bridge: {
+    signInGate: {
+      tag: 'BRIDGE',
+      body: 'Le bridge d’USDC vers et depuis Arc est lié à votre wallet. Connectez-vous pour continuer.',
+    },
+    sectionTag: 'BRIDGE',
+    headlinePrefix: 'Déplacer ',
+    description: 'Faites entrer de l’USDC sur Arc depuis une autre chaîne, ou sortez votre solde Arc. USDC natif via Circle CCTP. Pas de tokens wrappés.',
+    directions: {
+      toArc: 'Vers Arc',
+      fromArc: 'Depuis Arc',
+    },
+  },
+  statsTicker: {
+    liveLabels: {
+      directDealsOnChain: 'DEALS DIRECTS ON CHAIN',
+      settledInFull: 'ENTIÈREMENT RÉGLÉS',
+      movedThroughEscrow: 'PASSÉS PAR ESCROW',
+    },
+    staticItems: {
+      arcTestnetLabel: 'CHAÎNE 5042002',
+      circleLabel: 'USDC · CCTP · WALLETS',
+      erc8004Label: 'RÉPUTATION PORTABLE',
+    },
+  },
+  livePulse: {
+    dealsToday: 'Deals aujourd’hui',
+    settled: 'Réglés',
+    usdcReleased: 'USDC libérés',
+  },
   tierCelebration: {
     eyebrow: 'PALIER DÉBLOQUÉ',
     achievementPrefix: 'Vous avez atteint',

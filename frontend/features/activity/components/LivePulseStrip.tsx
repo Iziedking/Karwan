@@ -1,6 +1,7 @@
 'use client';
 import { useMemo } from 'react';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const ALL_TYPES = [
   'job.tracked',
@@ -14,6 +15,7 @@ const ALL_TYPES = [
 ];
 
 export function LivePulseStrip() {
+  const t = useTranslations().livePulse;
   const events = useLiveEvents(undefined, 200);
   const stats = useMemo(() => {
     const today = new Date();
@@ -45,10 +47,10 @@ export function LivePulseStrip() {
   return (
     <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden">
       <div className="grid grid-cols-3 divide-x divide-[var(--color-line)]">
-        <PulseStat label="Deals today" value={stats.deals} active={justPulsed} />
-        <PulseStat label="Settled" value={stats.settled} />
+        <PulseStat label={t.dealsToday} value={stats.deals} active={justPulsed} />
+        <PulseStat label={t.settled} value={stats.settled} />
         <PulseStat
-          label="USDC released"
+          label={t.usdcReleased}
           value={stats.usdcMoved.toLocaleString('en-US', { maximumFractionDigits: 2 })}
           unit="USDC"
         />

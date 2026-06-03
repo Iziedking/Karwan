@@ -539,6 +539,36 @@ export const ar: Messages = {
       now: 'الآن',
     },
   },
+  bridge: {
+    signInGate: {
+      tag: 'الجسر',
+      body: 'تحويل USDC من وإلى Arc مربوط بمحفظتك. سجّل الدخول للمتابعة.',
+    },
+    sectionTag: 'الجسر',
+    headlinePrefix: 'حرّك ',
+    description: 'أحضر USDC إلى Arc من سلسلة أخرى، أو أرسل رصيدك على Arc إلى الخارج. USDC أصلية عبر Circle CCTP. لا توكنات مغلّفة.',
+    directions: {
+      toArc: 'إلى Arc',
+      fromArc: 'من Arc',
+    },
+  },
+  statsTicker: {
+    liveLabels: {
+      directDealsOnChain: 'صفقات مباشرة على السلسلة',
+      settledInFull: 'تسوية كاملة',
+      movedThroughEscrow: 'تحرّكت عبر الإسكرو',
+    },
+    staticItems: {
+      arcTestnetLabel: 'السلسلة 5042002',
+      circleLabel: 'USDC · CCTP · المحافظ',
+      erc8004Label: 'سمعة قابلة للنقل',
+    },
+  },
+  livePulse: {
+    dealsToday: 'صفقات اليوم',
+    settled: 'مسوّاة',
+    usdcReleased: 'USDC مفرَج عنه',
+  },
   tierCelebration: {
     eyebrow: 'تم فتح الرتبة',
     achievementPrefix: 'وصلت إلى',

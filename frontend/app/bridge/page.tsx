@@ -5,6 +5,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeOutCard } from '@/features/bridge/components/BridgeOutCard';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   FullBleed,
   Band,
@@ -18,6 +19,7 @@ import {
 type Direction = 'in' | 'out';
 
 export default function BridgePage() {
+  const t = useTranslations().bridge;
   const { isAuthenticated } = useAuth();
   const { agents } = useActivation();
   const [direction, setDirection] = useState<Direction>('in');
@@ -26,8 +28,8 @@ export default function BridgePage() {
     return (
       <SignInGate
         variant="page"
-        tag="BRIDGE"
-        body="Bridging USDC in and out of Arc is keyed to your wallet. Sign in to continue."
+        tag={t.signInGate.tag}
+        body={t.signInGate.body}
       />
     );
   }
@@ -35,14 +37,13 @@ export default function BridgePage() {
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
-        <SectionTag tone="dark">BRIDGE</SectionTag>
+        <SectionTag tone="dark">{t.sectionTag}</SectionTag>
         <HeroHeadline>
-          Move <Accent>USDC</Accent>
+          {t.headlinePrefix}<Accent>USDC</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
-          Bring USDC to Arc from another chain, or send your Arc balance out. Native USDC over
-          Circle CCTP. No wrapped tokens.
+          {t.description}
         </p>
       </Band>
 
@@ -58,10 +59,10 @@ export default function BridgePage() {
             }}
           >
             <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
-              To Arc
+              {t.directions.toArc}
             </DirToggle>
             <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-              From Arc
+              {t.directions.fromArc}
             </DirToggle>
           </div>
 

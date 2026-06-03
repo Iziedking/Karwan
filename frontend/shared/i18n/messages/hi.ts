@@ -539,6 +539,36 @@ export const hi: Messages = {
       now: 'अभी',
     },
   },
+  bridge: {
+    signInGate: {
+      tag: 'ब्रिज',
+      body: 'Arc पर USDC लाना और बाहर भेजना आपके वॉलेट से जुड़ा है। जारी रखने के लिए साइन इन करें।',
+    },
+    sectionTag: 'ब्रिज',
+    headlinePrefix: 'भेजें ',
+    description: 'किसी और चेन से Arc पर USDC लाएँ, या अपना Arc बैलेंस बाहर भेजें। Circle CCTP के ज़रिए मूल USDC। कोई रैप्ड टोकन नहीं।',
+    directions: {
+      toArc: 'Arc को',
+      fromArc: 'Arc से',
+    },
+  },
+  statsTicker: {
+    liveLabels: {
+      directDealsOnChain: 'चेन पर डायरेक्ट डील',
+      settledInFull: 'पूरी तरह निपटी',
+      movedThroughEscrow: 'एस्क्रो से गुज़री',
+    },
+    staticItems: {
+      arcTestnetLabel: 'चेन 5042002',
+      circleLabel: 'USDC · CCTP · वॉलेट',
+      erc8004Label: 'पोर्टेबल प्रतिष्ठा',
+    },
+  },
+  livePulse: {
+    dealsToday: 'आज की डील',
+    settled: 'निपटी',
+    usdcReleased: 'जारी USDC',
+  },
   tierCelebration: {
     eyebrow: 'स्तर अनलॉक हुआ',
     achievementPrefix: 'आप पहुँचे',

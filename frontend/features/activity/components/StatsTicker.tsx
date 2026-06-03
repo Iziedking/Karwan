@@ -1,23 +1,27 @@
 ﻿'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 interface TickerItem {
   value: string;
   label: string;
 }
 
-// Static brand facts, shown until the live numbers load (and never fabricated).
-const BASE_ITEMS: TickerItem[] = [
-  { value: 'ARC TESTNET', label: 'CHAIN 5042002' },
-  { value: 'CIRCLE', label: 'USDC · CCTP · WALLETS' },
-  { value: 'ERC-8004', label: 'PORTABLE REPUTATION' },
-];
-
 /// The live stats ticker. Numbers come from the real on-chain deal feed, so the
 /// marquee only ever shows true data.
 export function StatsTicker() {
-  const [items, setItems] = useState<TickerItem[]>(BASE_ITEMS);
+  const t = useTranslations().statsTicker;
+  // Static brand facts, shown until the live numbers load (and never fabricated).
+  const baseItems = useMemo<TickerItem[]>(
+    () => [
+      { value: 'ARC TESTNET', label: t.staticItems.arcTestnetLabel },
+      { value: 'CIRCLE', label: t.staticItems.circleLabel },
+      { value: 'ERC-8004', label: t.staticItems.erc8004Label },
+    ],
+    [t],
+  );
+  const [items, setItems] = useState<TickerItem[]>(baseItems);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,10 +30,10 @@ export function StatsTicker() {
       .then((s) => {
         if (cancelled) return;
         setItems([
-          { value: s.total.toLocaleString(), label: 'DIRECT DEALS ON CHAIN' },
-          { value: s.settled.toLocaleString(), label: 'SETTLED IN FULL' },
-          { value: `${s.volumeUsdc.toLocaleString()} USDC`, label: 'MOVED THROUGH ESCROW' },
-          ...BASE_ITEMS,
+          { value: s.total.toLocaleString(), label: t.liveLabels.directDealsOnChain },
+          { value: s.settled.toLocaleString(), label: t.liveLabels.settledInFull },
+          { value: `${s.volumeUsdc.toLocaleString()} USDC`, label: t.liveLabels.movedThroughEscrow },
+          ...baseItems,
         ]);
       })
       .catch(() => {
@@ -38,7 +42,7 @@ export function StatsTicker() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t, baseItems]);
 
   // The track is duplicated so translateX(-50%) lands on a seamless loop point.
   const track = [...items, ...items];
