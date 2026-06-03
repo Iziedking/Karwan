@@ -319,6 +319,117 @@ interface MessagesShape {
       filtering: string;
       events: string;
     };
+    view: {
+      notSignedInEyebrow: string;
+      notSignedInBody: string;
+      streamEyebrow: string;
+      countZero: string;
+      countRange: string;
+      countHidden: string;
+      pagerAria: string;
+      prevAria: string;
+      nextAria: string;
+    };
+  };
+  profile: {
+    signInGate: { tag: string; body: string };
+    loadError: { tag: string; title: string; body: string };
+    tabs: {
+      identity: string;
+      wallets: string;
+      agents: string;
+      stake: string;
+      preferences: string;
+    };
+    hero: {
+      sectionTag: string;
+      fallbackName: string;
+      publicPassport: string;
+      updatedPrefix: string;
+      editDetailsCta: string;
+      setUpProfileCta: string;
+    };
+    agentStatus: {
+      eyebrow: string;
+      checking: string;
+      walletsPrefix: string;
+      walletsLive: string;
+      walletsIdle: string;
+      activatedBody: string;
+      inactiveBody: string;
+      buyerFallback: string;
+      sellerFallback: string;
+    };
+    activation: {
+      activatedTag: string;
+      inactiveTag: string;
+      activatedHeadlinePrefix: string;
+      activatedHeadlineAccent: string;
+      inactiveHeadlinePrefix: string;
+      inactiveHeadlineAccent: string;
+      activatedBody: string;
+      inactiveBody: string;
+      cta: string;
+    };
+    accountType: {
+      tag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      body: string;
+    };
+    agentProfiles: {
+      tag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      body: string;
+      headsUpEyebrow: string;
+      headsUpBody: string;
+      buyerEyebrow: string;
+      sellerEyebrow: string;
+      buyerFallback: string;
+      sellerFallback: string;
+      rows: {
+        maxBudget: string;
+        deadline: string;
+        bidWindow: string;
+        milestones: string;
+        skills: string;
+        bio: string;
+        budget: string;
+        delivery: string;
+      };
+      daysSuffix: string;
+    };
+    noProfile: {
+      tag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      body: string;
+      cta: string;
+    };
+    holdings: {
+      tag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      body: string;
+    };
+    agentTreasury: {
+      tag: string;
+      headlineFund: string;
+      headlineWithdraw: string;
+      body: string;
+    };
+    stake: {
+      tag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      body: string;
+    };
+    preferences: {
+      tag: string;
+      headline: string;
+      body: string;
+    };
   };
   tierCelebration: {
     eyebrow: string;
@@ -833,6 +944,124 @@ export const en: MessagesShape = {
       },
       filtering: '↳ filtering',
       events: 'events',
+    },
+    view: {
+      notSignedInEyebrow: 'NOT SIGNED IN',
+      notSignedInBody: 'Sign in to watch every deal moving across Karwan. Search by job ID to follow a specific one.',
+      streamEyebrow: 'EVENT STREAM',
+      countZero: '0 EVENTS',
+      countRange: '{start}–{end} OF {total}',
+      countHidden: '{n} HIDDEN',
+      pagerAria: 'Activity pages',
+      prevAria: 'Previous page',
+      nextAria: 'Next page',
+    },
+  },
+  profile: {
+    signInGate: {
+      tag: 'PROFILE',
+      body: 'Profiles are keyed to your wallet. Sign in to set up buyer and seller agents.',
+    },
+    loadError: {
+      tag: 'PROFILE',
+      title: 'Could not load profile',
+      body: 'Try again in a moment.',
+    },
+    tabs: {
+      identity: 'IDENTITY',
+      wallets: 'WALLETS',
+      agents: 'AGENTS',
+      stake: 'STAKE',
+      preferences: 'PREFERENCES',
+    },
+    hero: {
+      sectionTag: 'PROFILE',
+      fallbackName: 'Your wallet',
+      publicPassport: 'Public passport ↗',
+      updatedPrefix: 'Updated',
+      editDetailsCta: 'Edit details',
+      setUpProfileCta: 'Set up profile',
+    },
+    agentStatus: {
+      eyebrow: 'Agent status',
+      checking: 'Checking…',
+      walletsPrefix: 'Wallets',
+      walletsLive: 'live',
+      walletsIdle: 'idle',
+      activatedBody: 'Buyer and seller wallets provisioned. Signing on chain.',
+      inactiveBody: 'Activate below to provision agent wallets.',
+      buyerFallback: 'Buyer agent',
+      sellerFallback: 'Seller agent',
+    },
+    activation: {
+      activatedTag: 'AGENT WALLETS',
+      inactiveTag: 'NOT ACTIVATED',
+      activatedHeadlinePrefix: 'Agents ',
+      activatedHeadlineAccent: 'active',
+      inactiveHeadlinePrefix: 'Activate to ',
+      inactiveHeadlineAccent: 'begin',
+      activatedBody: 'Buyer and seller wallets sign every on-chain action. Fund or withdraw below.',
+      inactiveBody: 'Activation provisions buyer and seller Circle wallets for this address.',
+      cta: 'Activate agents',
+    },
+    accountType: {
+      tag: 'ACCOUNT TYPE',
+      headlinePrefix: 'Pick your ',
+      headlineAccent: 'role',
+      body: 'Switch any time. Run both at once.',
+    },
+    agentProfiles: {
+      tag: 'AGENT PROFILES',
+      headlinePrefix: 'Agent ',
+      headlineAccent: 'ranges',
+      body: 'Ranges agents respect on every request.',
+      headsUpEyebrow: 'HEADS UP',
+      headsUpBody: "this is saved, but your agents aren't active yet, so they won't bid or post. Activate above to put them to work.",
+      buyerEyebrow: 'BUYER AGENT',
+      sellerEyebrow: 'SELLER AGENT',
+      buyerFallback: 'Buyer',
+      sellerFallback: 'Seller',
+      rows: {
+        maxBudget: 'Max budget',
+        deadline: 'Deadline',
+        bidWindow: 'Bid window',
+        milestones: 'Milestones',
+        skills: 'Skills',
+        bio: 'Bio',
+        budget: 'Budget',
+        delivery: 'Delivery',
+      },
+      daysSuffix: 'days',
+    },
+    noProfile: {
+      tag: 'NO PROFILE YET',
+      headlinePrefix: 'Set one ',
+      headlineAccent: 'up',
+      body: 'A profile sets your display name and unlocks managed deals. Direct deals and agent wallets work without one.',
+      cta: 'Set up profile',
+    },
+    holdings: {
+      tag: 'HOLDINGS',
+      headlinePrefix: 'Your ',
+      headlineAccent: 'wallets',
+      body: 'Balances at a glance. Bridge USDC in and out from the Bridge tab.',
+    },
+    agentTreasury: {
+      tag: 'AGENT TREASURY',
+      headlineFund: 'Fund',
+      headlineWithdraw: 'Withdraw',
+      body: 'Top up the wallet that signs your deals. Sweep it back any time.',
+    },
+    stake: {
+      tag: 'STAKE',
+      headlinePrefix: 'Earn ',
+      headlineAccent: 'reputation',
+      body: 'Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 7-day cool-down on withdrawal.',
+    },
+    preferences: {
+      tag: 'PREFERENCES',
+      headline: 'Reach pipes',
+      body: 'Connect Telegram and X so the agent can ping you when a deal needs you.',
     },
   },
   tierCelebration: {

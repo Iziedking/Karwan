@@ -23,6 +23,7 @@ import { PendingDealsBand } from '@/features/notifications/components/PendingDea
 import { PageTour } from '@/shared/guide/PageTour';
 import { PROFILE_TOUR_ID, buildProfileSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { type UserProfile } from '@/core/api';
 import {
   FullBleed,
@@ -37,15 +38,8 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 
-const TABS: Tab[] = [
-  { id: 'identity', label: 'IDENTITY', hash: 'identity' },
-  { id: 'wallets', label: 'WALLETS', hash: 'wallets' },
-  { id: 'agents', label: 'AGENTS', hash: 'agents' },
-  { id: 'stake', label: 'STAKE', hash: 'stake' },
-  { id: 'preferences', label: 'PREFERENCES', hash: 'preferences' },
-];
-
 export default function ProfilePage() {
+  const t = useTranslations().profile;
   const router = useRouter();
   const { profile: loadedProfile, address, isConnected, fetchState } = useUserProfile();
   const { method } = useAuth();
@@ -55,12 +49,20 @@ export default function ProfilePage() {
   const [activationOpen, setActivationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('identity');
 
+  const TABS: Tab[] = [
+    { id: 'identity', label: t.tabs.identity, hash: 'identity' },
+    { id: 'wallets', label: t.tabs.wallets, hash: 'wallets' },
+    { id: 'agents', label: t.tabs.agents, hash: 'agents' },
+    { id: 'stake', label: t.tabs.stake, hash: 'stake' },
+    { id: 'preferences', label: t.tabs.preferences, hash: 'preferences' },
+  ];
+
   useEffect(() => setProfile(loadedProfile), [loadedProfile]);
 
   // Drive tab active state from scroll position.
   useEffect(() => {
     if (!isConnected) return;
-    const ids = TABS.map((t) => t.hash).filter(Boolean) as string[];
+    const ids = ['identity', 'wallets', 'agents', 'stake', 'preferences'];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -87,8 +89,8 @@ export default function ProfilePage() {
     return (
       <SignInGate
         variant="page"
-        tag="PROFILE"
-        body="Profiles are keyed to your wallet. Sign in to set up buyer and seller agents."
+        tag={t.signInGate.tag}
+        body={t.signInGate.body}
       />
     );
   }
@@ -98,13 +100,13 @@ export default function ProfilePage() {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[44ch]">
-            <SectionTag tone="dark">PROFILE</SectionTag>
+            <SectionTag tone="dark">{t.loadError.tag}</SectionTag>
             <HeroHeadline size="md">
-              Could not load profile
+              {t.loadError.title}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              Try again in a moment.
+              {t.loadError.body}
             </p>
           </div>
         </Band>
@@ -135,12 +137,12 @@ export default function ProfilePage() {
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activation.activated ? 'live' : undefined}>
-                PROFILE
+                {t.hero.sectionTag}
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
               <HeroHeadline>
-                {profile ? profile.displayName : 'Your wallet'}
+                {profile ? profile.displayName : t.hero.fallbackName}
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
@@ -153,22 +155,22 @@ export default function ProfilePage() {
                   rel="noopener noreferrer"
                   className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-accent)] hover:underline"
                 >
-                  Public passport ↗
+                  {t.hero.publicPassport}
                 </a>
               )}
               {profile && (
                 <span className="mono text-[11px] uppercase tracking-[0.12em] text-white/45">
-                  Updated {new Date(profile.updatedAt).toLocaleDateString()}
+                  {t.hero.updatedPrefix} {new Date(profile.updatedAt).toLocaleDateString()}
                 </span>
               )}
             </div>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {profile ? (
                 <CTAPill href="/onboarding?edit=1" variant="secondary" tone="dark">
-                  Edit details
+                  {t.hero.editDetailsCta}
                 </CTAPill>
               ) : (
-                <CTAPill href="/onboarding">Set up profile</CTAPill>
+                <CTAPill href="/onboarding">{t.hero.setUpProfileCta}</CTAPill>
               )}
               <div className="flex items-center gap-2">
                 <ConnectXButton />
@@ -197,7 +199,7 @@ export default function ProfilePage() {
 
       {/* PENDING MATCHES + DEALS AWAITING ACTION. At-a-glance surfaces only.
           The full book lives on /app home; profile keeps the action surfaces. */}
-      <PendingMatchesBand tone="light" headline="Pending matches" />
+      <PendingMatchesBand tone="light" />
       <PendingDealsBand tone="light" />
 
       {/* IDENTITY section anchor. Also contains ACTIVATION + ROLE blocks below. */}
@@ -210,29 +212,29 @@ export default function ProfilePage() {
         <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end" data-guide="profile-identity">
           <div className="max-w-[52ch]">
             <SectionTag dot={activation.activated ? 'live' : undefined}>
-              {activation.activated ? 'AGENT WALLETS' : 'NOT ACTIVATED'}
+              {activation.activated ? t.activation.activatedTag : t.activation.inactiveTag}
             </SectionTag>
             <HeroHeadline size="md">
               {activation.activated ? (
                 <>
-                  Agents <Accent>active</Accent>
+                  {t.activation.activatedHeadlinePrefix}
+                  <Accent>{t.activation.activatedHeadlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               ) : (
                 <>
-                  Activate to <Accent>begin</Accent>
+                  {t.activation.inactiveHeadlinePrefix}
+                  <Accent>{t.activation.inactiveHeadlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
             </HeroHeadline>
             <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-              {activation.activated
-                ? 'Buyer and seller wallets sign every on-chain action. Fund or withdraw below.'
-                : 'Activation provisions buyer and seller Circle wallets for this address.'}
+              {activation.activated ? t.activation.activatedBody : t.activation.inactiveBody}
             </p>
           </div>
           {!activation.activated && !activation.loading && (
-            <CTAPill onClick={() => setActivationOpen(true)}>Activate agents</CTAPill>
+            <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
           )}
         </div>
       </Band>
@@ -241,13 +243,13 @@ export default function ProfilePage() {
       {profile ? (
         <>
           <Band tone="light" compact>
-            <SectionTag>ACCOUNT TYPE</SectionTag>
+            <SectionTag>{t.accountType.tag}</SectionTag>
             <HeroHeadline size="md">
-              Pick your <Accent>role</Accent>
+              {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-              Switch any time. Run both at once.
+              {t.accountType.body}
             </p>
             <div className="mt-8">
               <PageCard>
@@ -260,39 +262,39 @@ export default function ProfilePage() {
 
           {(profile.buyer || profile.seller) && (
             <Band tone="light" compact>
-              <SectionTag>AGENT PROFILES</SectionTag>
+              <SectionTag>{t.agentProfiles.tag}</SectionTag>
               <HeroHeadline size="md">
-                Agent <Accent>ranges</Accent>
+                {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent>
                 <Punc>.</Punc>
               </HeroHeadline>
               <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                Ranges agents respect on every request.
+                {t.agentProfiles.body}
               </p>
               {!activation.activated && (
                 <p
                   className="mt-3 mono text-[11px] uppercase tracking-[0.12em] leading-relaxed max-w-[52ch]"
                   style={{ color: '#b25425' }}
                 >
-                  [:HEADS UP:] this is saved, but your agents aren&apos;t active yet, so they
-                  won&apos;t bid or post. Activate above to put them to work.
+                  [:{t.agentProfiles.headsUpEyebrow}:] {t.agentProfiles.headsUpBody}
                 </p>
               )}
               <div className="mt-10 grid md:grid-cols-2 gap-5">
                 {profile.buyer && (
                   <AgentBlock
-                    role="Buyer"
+                    eyebrow={t.agentProfiles.buyerEyebrow}
+                    fallbackName={t.agentProfiles.buyerFallback}
                     name={activation.agents?.buyerName}
                     agentAddress={agents.buyer}
                     rows={[
-                      { label: 'Max budget', value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
+                      { label: t.agentProfiles.rows.maxBudget, value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
                       {
-                        label: 'Deadline',
-                        value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} days`,
+                        label: t.agentProfiles.rows.deadline,
+                        value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
                         mono: true,
                       },
-                      { label: 'Bid window', value: `${profile.buyer.bidCollectionSeconds}s`, mono: true },
+                      { label: t.agentProfiles.rows.bidWindow, value: `${profile.buyer.bidCollectionSeconds}s`, mono: true },
                       {
-                        label: 'Milestones',
+                        label: t.agentProfiles.rows.milestones,
                         value: profile.buyer.milestonePcts.join(' / ') || '-',
                         mono: true,
                       },
@@ -301,20 +303,21 @@ export default function ProfilePage() {
                 )}
                 {profile.seller && (
                   <AgentBlock
-                    role="Seller"
+                    eyebrow={t.agentProfiles.sellerEyebrow}
+                    fallbackName={t.agentProfiles.sellerFallback}
                     name={activation.agents?.sellerName}
                     agentAddress={agents.seller}
                     rows={[
-                      { label: 'Skills', value: profile.seller.skills.join(', ') || '-' },
-                      { label: 'Bio', value: profile.seller.bio || '-' },
+                      { label: t.agentProfiles.rows.skills, value: profile.seller.skills.join(', ') || '-' },
+                      { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
                       {
-                        label: 'Budget',
+                        label: t.agentProfiles.rows.budget,
                         value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
                         mono: true,
                       },
                       {
-                        label: 'Delivery',
-                        value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} days`,
+                        label: t.agentProfiles.rows.delivery,
+                        value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
                         mono: true,
                       },
                     ]}
@@ -326,16 +329,16 @@ export default function ProfilePage() {
         </>
       ) : (
         <Band tone="light" compact>
-          <SectionTag>NO PROFILE YET</SectionTag>
+          <SectionTag>{t.noProfile.tag}</SectionTag>
           <HeroHeadline size="md">
-            Set one <Accent>up</Accent>
+            {t.noProfile.headlinePrefix}<Accent>{t.noProfile.headlineAccent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-            A profile sets your display name and unlocks managed deals. Direct deals and agent wallets work without one.
+            {t.noProfile.body}
           </p>
           <div className="mt-7">
-            <CTAPill href="/onboarding">Set up profile</CTAPill>
+            <CTAPill href="/onboarding">{t.noProfile.cta}</CTAPill>
           </div>
         </Band>
       )}
@@ -345,13 +348,13 @@ export default function ProfilePage() {
 
       {/* HOLDINGS */}
       <Band tone="light" compact>
-        <SectionTag>HOLDINGS</SectionTag>
+        <SectionTag>{t.holdings.tag}</SectionTag>
         <HeroHeadline size="md">
-          Your <Accent>wallets</Accent>
+          {t.holdings.headlinePrefix}<Accent>{t.holdings.headlineAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Balances at a glance. Bridge USDC in and out from the Bridge tab.
+          {t.holdings.body}
         </p>
         <div className="mt-10">
           <WalletsPanel address={address ?? undefined} />
@@ -366,12 +369,12 @@ export default function ProfilePage() {
 
       {/* FUND + WITHDRAW */}
       <Band tone="dark" compact>
-        <SectionTag tone="dark">AGENT TREASURY</SectionTag>
+        <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
         <HeroHeadline size="md">
-          Fund<Punc>.</Punc> Withdraw<Punc>.</Punc>
+          {t.agentTreasury.headlineFund}<Punc>.</Punc> {t.agentTreasury.headlineWithdraw}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          Top up the wallet that signs your deals. Sweep it back any time.
+          {t.agentTreasury.body}
         </p>
         <div className="mt-10 grid lg:grid-cols-2 gap-5" data-guide="profile-agents">
           <ArcFundCard
@@ -394,13 +397,13 @@ export default function ProfilePage() {
 
       {/* STAKE — vault deposits + cool-down + tier badge. */}
       <Band tone="light" compact>
-        <SectionTag>STAKE</SectionTag>
+        <SectionTag>{t.stake.tag}</SectionTag>
         <HeroHeadline size="md">
-          Earn <Accent>reputation</Accent>
+          {t.stake.headlinePrefix}<Accent>{t.stake.headlineAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 7-day cool-down on withdrawal.
+          {t.stake.body}
         </p>
         <div className="mt-10" data-guide="profile-stake">
           <StakeCard tour={false} />
@@ -412,12 +415,12 @@ export default function ProfilePage() {
 
       {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
       <Band tone="light" compact>
-        <SectionTag>PREFERENCES</SectionTag>
+        <SectionTag>{t.preferences.tag}</SectionTag>
         <HeroHeadline size="md">
-          Reach pipes<Punc>.</Punc>
+          {t.preferences.headline}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Connect Telegram and X so the agent can ping you when a deal needs you.
+          {t.preferences.body}
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <TelegramConnectButton address={address ?? undefined} tone="light" />
@@ -443,12 +446,14 @@ export default function ProfilePage() {
 type AgentRow = { label: string; value: string; mono?: boolean };
 
 function AgentBlock({
-  role,
+  eyebrow,
+  fallbackName,
   name,
   agentAddress,
   rows,
 }: {
-  role: 'Buyer' | 'Seller';
+  eyebrow: string;
+  fallbackName: string;
   name?: string;
   agentAddress: string | undefined;
   rows: AgentRow[];
@@ -470,10 +475,10 @@ function AgentBlock({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{role} AGENT:]
+              [:{eyebrow}:]
             </span>
             <h3 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-              {name || role}
+              {name || fallbackName}
             </h3>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -524,6 +529,7 @@ function AgentStatusVignette({
   buyerName?: string;
   sellerName?: string;
 }) {
+  const t = useTranslations().profile.agentStatus;
   return (
     <div
       className="relative overflow-hidden"
@@ -539,7 +545,7 @@ function AgentStatusVignette({
       <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
         <div className="flex items-center justify-between">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            Agent status
+            {t.eyebrow}
           </span>
           {activated ? (
             <span
@@ -557,26 +563,24 @@ function AgentStatusVignette({
         </div>
         <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
           {loading ? (
-            'Checking...'
+            t.checking
           ) : (
             <>
-              Wallets{' '}
+              {t.walletsPrefix}{' '}
               <span style={{ color: activated ? 'var(--lp-accent)' : 'rgba(255,255,255,0.5)' }}>
-                {activated ? 'live' : 'idle'}
+                {activated ? t.walletsLive : t.walletsIdle}
               </span>
             </>
           )}
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
-          {activated
-            ? 'Buyer and seller wallets provisioned. Signing on chain.'
-            : 'Activate below to provision agent wallets.'}
+          {activated ? t.activatedBody : t.inactiveBody}
         </p>
       </div>
       <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
         <div className="px-4 py-4 min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 truncate">
-            {buyerName || 'Buyer agent'}
+            {buyerName || t.buyerFallback}
           </p>
           <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
             {buyer ? shortAddress(buyer) : '-'}
@@ -584,7 +588,7 @@ function AgentStatusVignette({
         </div>
         <div className="px-4 py-4 min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 truncate">
-            {sellerName || 'Seller agent'}
+            {sellerName || t.sellerFallback}
           </p>
           <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
             {seller ? shortAddress(seller) : '-'}
