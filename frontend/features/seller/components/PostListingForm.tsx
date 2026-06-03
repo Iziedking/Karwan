@@ -12,8 +12,10 @@ import { useDismissed } from '@/shared/hooks/useDismissed';
 import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function PostListingForm() {
+  const pl = useTranslations().postListing;
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
@@ -111,11 +113,7 @@ export function PostListingForm() {
   }
 
   if (!isConnected) {
-    return (
-      <p className="text-[13px] text-white/55">
-        Sign in to post a listing. Use the Log in pill in the nav.
-      </p>
-    );
+    return <p className="text-[13px] text-white/55">{pl.notConnected}</p>;
   }
 
   const disabled = submitting || !title.trim() || !description.trim() || !price;
@@ -156,7 +154,7 @@ export function PostListingForm() {
           />
           <div className="relative px-6 py-6">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-band-dark)]/65">
-              OFFER PREVIEW
+              {pl.preview.eyebrow}
             </p>
             <div className="mt-3 flex items-baseline gap-2 flex-wrap">
               <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
@@ -170,7 +168,7 @@ export function PostListingForm() {
                 −{previewTol}%
               </span>
               <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-band-dark)]/65">
-                accept
+                {pl.preview.acceptCaption}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-band-dark)]/65">
@@ -184,29 +182,29 @@ export function PostListingForm() {
                     animation: 'instrumentBlink 1.6s ease-in-out infinite',
                   }}
                 />
-                agent listening
+                {pl.preview.agentListening}
               </span>
               {floor && (
                 <>
                   <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
-                  <span>floor {floor} USDC</span>
+                  <span>{pl.preview.floorTemplate.replace('{amount}', floor)}</span>
                 </>
               )}
               <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
-              <span>matched to buyer requests</span>
+              <span>{pl.preview.matchedCaption}</span>
             </div>
           </div>
         </div>
 
         {/* WHAT YOU OFFER */}
-        <FieldSection eyebrow="WHAT YOU OFFER" title="Describe the offer." dataGuide="seller-listing">
-          <FormLabel label="Title" hint="A short headline buyers see first.">
+        <FieldSection eyebrow={pl.sectionWork.eyebrow} title={pl.sectionWork.title} dataGuide="seller-listing">
+          <FormLabel label={pl.sectionWork.titleLabel} hint={pl.sectionWork.titleHint}>
             <input
               type="text"
               value={title}
               maxLength={120}
               disabled={submitting}
-              placeholder="e.g. Spanish → Arabic legal translation"
+              placeholder={pl.sectionWork.titlePlaceholder}
               onChange={(e) => {
                 setTitle(e.target.value);
                 setIntentWarned(false);
@@ -215,15 +213,15 @@ export function PostListingForm() {
             />
           </FormLabel>
           <FormLabel
-            label="Description"
-            hint="What you build, examples, turnaround. Your agent uses this to match requests."
+            label={pl.sectionWork.descriptionLabel}
+            hint={pl.sectionWork.descriptionHint}
           >
             <textarea
               value={description}
               rows={3}
               maxLength={500}
               disabled={submitting}
-              placeholder="Describe your offer in detail. The agent uses this to match buyer requests."
+              placeholder={pl.sectionWork.descriptionPlaceholder}
               onChange={(e) => {
                 setDescription(e.target.value);
                 setIntentWarned(false);
@@ -234,12 +232,12 @@ export function PostListingForm() {
         </FieldSection>
 
         {/* PRICING */}
-        <FieldSection eyebrow="PRICING" title="Set your asking and the floor.">
+        <FieldSection eyebrow={pl.sectionPricing.eyebrow} title={pl.sectionPricing.title}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <FormLabel
-              label="Asking price"
+              label={pl.sectionPricing.askingLabel}
               unit="USDC"
-              hint="Your headline price. Your agent bids this on matched briefs."
+              hint={pl.sectionPricing.askingHint}
               dataGuide="seller-price"
             >
               <input
@@ -254,9 +252,9 @@ export function PostListingForm() {
               />
             </FormLabel>
             <FormLabel
-              label="Accept decrease"
+              label={pl.sectionPricing.acceptLabel}
               unit="%"
-              hint="How far below asking the agent may accept. 0 = strict at price."
+              hint={pl.sectionPricing.acceptHint}
               dataGuide="seller-floor"
             >
               <input
@@ -274,9 +272,15 @@ export function PostListingForm() {
               />
             </FormLabel>
             <FormLabel
-              label="Window"
-              unit={ttlUnit === 'min' ? 'MIN' : ttlUnit === 'hr' ? 'HRS' : 'DAYS'}
-              hint="How long the offer stays live before it auto-expires. Pick a unit for demo timing."
+              label={pl.sectionPricing.windowLabel}
+              unit={
+                ttlUnit === 'min'
+                  ? pl.sectionPricing.windowUnitShort.min
+                  : ttlUnit === 'hr'
+                    ? pl.sectionPricing.windowUnitShort.hr
+                    : pl.sectionPricing.windowUnitShort.day
+              }
+              hint={pl.sectionPricing.windowHint}
               dataGuide="seller-window"
             >
               <div className="flex items-stretch gap-2">
@@ -295,7 +299,7 @@ export function PostListingForm() {
                 />
                 <div
                   role="radiogroup"
-                  aria-label="Window unit"
+                  aria-label={pl.sectionPricing.unitPickerAria}
                   className="inline-flex items-stretch p-1 shrink-0"
                   style={{
                     background: 'var(--lp-band-dark)',
@@ -308,7 +312,12 @@ export function PostListingForm() {
                 >
                   {(['min', 'hr', 'day'] as const).map((u) => {
                     const active = ttlUnit === u;
-                    const label = u === 'min' ? 'MIN' : u === 'hr' ? 'HR' : 'DAY';
+                    const label =
+                      u === 'min'
+                        ? pl.sectionPricing.unitPickerLabels.min
+                        : u === 'hr'
+                          ? pl.sectionPricing.unitPickerLabels.hr
+                          : pl.sectionPricing.unitPickerLabels.day;
                     return (
                       <button
                         key={u}
@@ -360,19 +369,20 @@ export function PostListingForm() {
             }}
           >
             <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
-              [:WAIT. IS THIS AN OFFER OR A REQUEST?:]
+              {pl.intentWarning.eyebrow}
             </p>
             <p className="text-[12.5px] leading-snug text-white/85">
-              This reads like something you <span className="font-bold">need</span>, not something
-              you <span className="font-bold">offer</span>. Offers are for sellers; requests
-              (posted from the buyer desk) are for buyers. If you meant to find a backend engineer,{' '}
-              <a
-                href="/buyer"
-                className="underline underline-offset-2 hover:text-white"
-              >
-                post a request instead
+              {pl.intentWarning.bodyPart1}
+              <span className="font-bold">{pl.intentWarning.bodyEmphNeed}</span>
+              {pl.intentWarning.bodyPart2}
+              <span className="font-bold">{pl.intentWarning.bodyEmphOffer}</span>
+              {pl.intentWarning.bodyPart3}
+              <a href="/buyer" className="underline underline-offset-2 hover:text-white">
+                {pl.intentWarning.postRequestLink}
               </a>
-              . Click <span className="font-bold">Post offer</span> again to publish as-is.
+              {pl.intentWarning.bodyPart4}
+              <span className="font-bold">{pl.intentWarning.submitEmph}</span>
+              {pl.intentWarning.bodyPart5}
             </p>
           </div>
         )}
@@ -411,7 +421,7 @@ export function PostListingForm() {
                 <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             )}
-            {submitting ? 'Posting…' : 'Post offer'}
+            {submitting ? pl.submit.posting : pl.submit.cta}
             {!submitting && (
               <span
                 aria-hidden
@@ -423,7 +433,7 @@ export function PostListingForm() {
           </button>
           {!submitting && (
             <p className="mono text-[11px] uppercase tracking-[0.12em] text-white/45 leading-snug">
-              ↳ your agent scans open briefs and buyer profiles for a match
+              {pl.submit.fundsCaption}
             </p>
           )}
         </div>
@@ -439,12 +449,14 @@ export function PostListingForm() {
                 animation: 'instrumentBlink 1.6s ease-in-out infinite',
               }}
             />
-            scanning open briefs for a match
+            {pl.watchingScanning}
           </p>
         )}
         {error && (
           <div className="space-y-1.5">
-            <p className="mono text-[12px] text-[#ff8a7a]">Couldn&apos;t post: {error}</p>
+            <p className="mono text-[12px] text-[#ff8a7a]">
+              {pl.errors.postFailedTemplate.replace('{error}', error)}
+            </p>
             {/activate|agent wallet/i.test(error) && (
               <button
                 type="button"
@@ -460,7 +472,7 @@ export function PostListingForm() {
                 className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 disabled:opacity-50"
                 style={{ color: 'var(--lp-accent)' }}
               >
-                {activating ? 'Activating…' : 'Activate your agents here →'}
+                {activating ? pl.errors.activating : pl.errors.activateCta}
               </button>
             )}
           </div>
@@ -474,10 +486,10 @@ export function PostListingForm() {
           return (
             <div className="pt-6 border-t border-white/[0.08]">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-3">
-                YOUR OFFERS
+                {pl.yourOffers.eyebrow}
               </p>
               <p className="text-[13px] text-white/55">
-                All terminal offers dismissed.
+                {pl.yourOffers.allDismissed}
               </p>
             </div>
           );
@@ -485,7 +497,7 @@ export function PostListingForm() {
         return (
           <div className="pt-6 border-t border-white/[0.08]">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-4">
-              YOUR OFFERS
+              {pl.yourOffers.eyebrow}
             </p>
             <ul className="divide-y divide-white/[0.08]">
               {visible.slice(0, 5).map((l) => {
@@ -494,12 +506,12 @@ export function PostListingForm() {
                 const isExpired = !isCancelled && !isMatched && (l.expiresAt ?? Infinity) <= now;
                 const isTerminal = isCancelled || isMatched || isExpired;
                 const label = isCancelled
-                  ? 'Cancelled'
+                  ? pl.offerStatuses.cancelled
                   : isExpired
-                    ? 'Expired'
+                    ? pl.offerStatuses.expired
                     : isMatched
-                      ? 'Matched'
-                      : 'Open';
+                      ? pl.offerStatuses.matched
+                      : pl.offerStatuses.open;
                 const arrow = isMatched ? '↗' : '→';
                 return (
                   <li
@@ -513,7 +525,7 @@ export function PostListingForm() {
                     }}
                     tabIndex={0}
                     role="link"
-                    aria-label={`Open offer ${l.title}`}
+                    aria-label={pl.openAriaTemplate.replace('{title}', l.title)}
                     className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-white/[0.04] -mx-2 px-2 transition-colors rounded-md focus:bg-white/[0.04] focus:outline-none"
                   >
                     <div className="min-w-0">
@@ -532,8 +544,8 @@ export function PostListingForm() {
                       {isTerminal && (
                         <button
                           type="button"
-                          title="Dismiss"
-                          aria-label={`Dismiss ${label.toLowerCase()} offer`}
+                          title={pl.dismissTitle}
+                          aria-label={pl.dismissAriaTemplate.replace('{status}', label.toLowerCase())}
                           onClick={(e) => {
                             e.stopPropagation();
                             dismiss(l.id);

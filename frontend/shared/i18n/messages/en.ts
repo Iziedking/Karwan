@@ -992,6 +992,83 @@ interface MessagesShape {
       cancel: string;
     };
   };
+  postListing: {
+    notConnected: string;
+    preview: {
+      eyebrow: string;
+      acceptCaption: string;
+      agentListening: string;
+      floorTemplate: string;
+      matchedCaption: string;
+    };
+    sectionWork: {
+      eyebrow: string;
+      title: string;
+      titleLabel: string;
+      titleHint: string;
+      titlePlaceholder: string;
+      descriptionLabel: string;
+      descriptionHint: string;
+      descriptionPlaceholder: string;
+    };
+    sectionPricing: {
+      eyebrow: string;
+      title: string;
+      askingLabel: string;
+      askingHint: string;
+      acceptLabel: string;
+      acceptHint: string;
+      windowLabel: string;
+      windowHint: string;
+      windowUnitShort: {
+        min: string;
+        hr: string;
+        day: string;
+      };
+      unitPickerAria: string;
+      unitPickerLabels: {
+        min: string;
+        hr: string;
+        day: string;
+      };
+    };
+    intentWarning: {
+      eyebrow: string;
+      bodyPart1: string;
+      bodyEmphNeed: string;
+      bodyPart2: string;
+      bodyEmphOffer: string;
+      bodyPart3: string;
+      postRequestLink: string;
+      bodyPart4: string;
+      submitEmph: string;
+      bodyPart5: string;
+    };
+    submit: {
+      posting: string;
+      cta: string;
+      fundsCaption: string;
+    };
+    watchingScanning: string;
+    errors: {
+      postFailedTemplate: string;
+      activating: string;
+      activateCta: string;
+    };
+    yourOffers: {
+      eyebrow: string;
+      allDismissed: string;
+    };
+    offerStatuses: {
+      open: string;
+      expired: string;
+      matched: string;
+      cancelled: string;
+    };
+    dismissTitle: string;
+    dismissAriaTemplate: string;
+    openAriaTemplate: string;
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2423,6 +2500,83 @@ export const en: MessagesShape = {
       save: 'Save changes',
       cancel: 'Cancel',
     },
+  },
+  postListing: {
+    notConnected: 'Sign in to post a listing. Use the Log in pill in the nav.',
+    preview: {
+      eyebrow: 'OFFER PREVIEW',
+      acceptCaption: 'accept',
+      agentListening: 'agent listening',
+      floorTemplate: 'floor {amount} USDC',
+      matchedCaption: 'matched to buyer requests',
+    },
+    sectionWork: {
+      eyebrow: 'WHAT YOU OFFER',
+      title: 'Describe the offer.',
+      titleLabel: 'Title',
+      titleHint: 'A short headline buyers see first.',
+      titlePlaceholder: 'e.g. Spanish → Arabic legal translation',
+      descriptionLabel: 'Description',
+      descriptionHint: 'What you build, examples, turnaround. Your agent uses this to match requests.',
+      descriptionPlaceholder: 'Describe your offer in detail. The agent uses this to match buyer requests.',
+    },
+    sectionPricing: {
+      eyebrow: 'PRICING',
+      title: 'Set your asking and the floor.',
+      askingLabel: 'Asking price',
+      askingHint: 'Your headline price. Your agent bids this on matched briefs.',
+      acceptLabel: 'Accept decrease',
+      acceptHint: 'How far below asking the agent may accept. 0 = strict at price.',
+      windowLabel: 'Window',
+      windowHint: 'How long the offer stays live before it auto-expires. Pick a unit for demo timing.',
+      windowUnitShort: {
+        min: 'MIN',
+        hr: 'HRS',
+        day: 'DAYS',
+      },
+      unitPickerAria: 'Window unit',
+      unitPickerLabels: {
+        min: 'MIN',
+        hr: 'HR',
+        day: 'DAY',
+      },
+    },
+    intentWarning: {
+      eyebrow: '[:WAIT. IS THIS AN OFFER OR A REQUEST?:]',
+      bodyPart1: 'This reads like something you ',
+      bodyEmphNeed: 'need',
+      bodyPart2: ', not something you ',
+      bodyEmphOffer: 'offer',
+      bodyPart3: '. Offers are for sellers; requests (posted from the buyer desk) are for buyers. If you meant to find a backend engineer, ',
+      postRequestLink: 'post a request instead',
+      bodyPart4: '. Click ',
+      submitEmph: 'Post offer',
+      bodyPart5: ' again to publish as-is.',
+    },
+    submit: {
+      posting: 'Posting…',
+      cta: 'Post offer',
+      fundsCaption: '↳ your agent scans open briefs and buyer profiles for a match',
+    },
+    watchingScanning: 'scanning open briefs for a match',
+    errors: {
+      postFailedTemplate: "Couldn't post: {error}",
+      activating: 'Activating…',
+      activateCta: 'Activate your agents here →',
+    },
+    yourOffers: {
+      eyebrow: 'YOUR OFFERS',
+      allDismissed: 'All terminal offers dismissed.',
+    },
+    offerStatuses: {
+      open: 'Open',
+      expired: 'Expired',
+      matched: 'Matched',
+      cancelled: 'Cancelled',
+    },
+    dismissTitle: 'Dismiss',
+    dismissAriaTemplate: 'Dismiss {status} offer',
+    openAriaTemplate: 'Open offer {title}',
   },
   jobPage: {
     loading: {
