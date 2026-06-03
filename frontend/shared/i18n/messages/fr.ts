@@ -151,6 +151,31 @@ export const fr: Messages = {
     cancelDefault: 'Annuler',
     backdropAria: 'Annuler',
   },
+  dealPanel: {
+    managedLabel: 'Trouvez-moi un vendeur',
+    managedBlurb: 'Publiez une demande. Votre agent gère les enchères. Vous vous réveillez avec un deal réglé.',
+    directLabel: "J'ai un vendeur",
+    directBlurb: "Vous êtes déjà d'accord avec une contrepartie. Ouvrez un séquestre à son portefeuille et sautez l'enchère.",
+  },
+  roleToggle: {
+    ariaGroup: 'Type de compte',
+    eyebrow: 'RÔLE',
+    options: {
+      buyer: { label: 'Acheteur', description: 'Publiez des demandes, acceptez des offres' },
+      seller: { label: 'Vendeur', description: 'Enchérissez sur les demandes, livrez le travail' },
+      both: { label: 'Les deux', description: 'Un profil, les deux côtés' },
+    },
+    needBuyerDetails: "Ajoutez d'abord les détails acheteur",
+    needSellerDetails: "Ajoutez d'abord les détails vendeur",
+    saving: 'Enregistrement…',
+    switchFailed: 'Impossible de changer de rôle',
+  },
+  profileNudge: {
+    titleFragment: 'Configurer un profil',
+    bodyFragment: 'pour obtenir un nom d’affichage et bâtir votre réputation plus vite. Reste optionnel. Vous pouvez sécuriser des deals sans.',
+    cta: 'Configurer le profil',
+    dismissAria: 'Fermer',
+  },
   pending: {
     matches: {
       sectionTag: 'CORRESPONDANCES EN ATTENTE',

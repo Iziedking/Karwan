@@ -152,6 +152,31 @@ interface MessagesShape {
     cancelDefault: string;
     backdropAria: string;
   };
+  dealPanel: {
+    managedLabel: string;
+    managedBlurb: string;
+    directLabel: string;
+    directBlurb: string;
+  };
+  roleToggle: {
+    ariaGroup: string;
+    eyebrow: string;
+    options: {
+      buyer: { label: string; description: string };
+      seller: { label: string; description: string };
+      both: { label: string; description: string };
+    };
+    needBuyerDetails: string;
+    needSellerDetails: string;
+    saving: string;
+    switchFailed: string;
+  };
+  profileNudge: {
+    titleFragment: string;
+    bodyFragment: string;
+    cta: string;
+    dismissAria: string;
+  };
   pending: {
     matches: {
       sectionTag: string;
@@ -471,6 +496,31 @@ export const en: MessagesShape = {
     eyebrow: 'CONFIRM',
     cancelDefault: 'Cancel',
     backdropAria: 'Cancel',
+  },
+  dealPanel: {
+    managedLabel: 'Find me a seller',
+    managedBlurb: 'Post a request. Your agent runs the bidding. You wake up to a settled deal.',
+    directLabel: 'I have a seller',
+    directBlurb: 'You already agreed with a counterparty. Open an escrow naming their wallet, skip the auction.',
+  },
+  roleToggle: {
+    ariaGroup: 'Account type',
+    eyebrow: 'ROLE',
+    options: {
+      buyer: { label: 'Buyer', description: 'Post requests, accept bids' },
+      seller: { label: 'Seller', description: 'Bid on requests, deliver work' },
+      both: { label: 'Both', description: 'One profile, both sides' },
+    },
+    needBuyerDetails: 'Add buyer details first',
+    needSellerDetails: 'Add seller details first',
+    saving: 'Saving…',
+    switchFailed: 'Could not switch role',
+  },
+  profileNudge: {
+    titleFragment: 'Set up a profile',
+    bodyFragment: 'to get a display name and build reputation faster. It stays optional. You can secure deals without one.',
+    cta: 'Set up profile',
+    dismissAria: 'Dismiss',
   },
   pending: {
     matches: {

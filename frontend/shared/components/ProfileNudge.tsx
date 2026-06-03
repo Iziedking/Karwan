@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const DISMISS_PREFIX = 'karwan:profile-nudge-dismissed:';
 
@@ -13,6 +14,7 @@ const DISMISS_PREFIX = 'karwan:profile-nudge-dismissed:';
 export function ProfileNudge() {
   const pathname = usePathname();
   const auth = useAuth();
+  const t = useTranslations().profileNudge;
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
   const { profile, fetchState } = useUserProfile();
@@ -76,16 +78,14 @@ export function ProfileNudge() {
           </svg>
         </span>
         <p className="text-[12.5px] text-[var(--color-ink-dim)] flex-1 leading-snug">
-          <span className="text-[var(--color-ink)] font-medium">Set up a profile</span> to get a
-          display name and build reputation faster. It stays optional. You can secure deals
-          without one.
+          <span className="text-[var(--color-ink)] font-medium">{t.titleFragment}</span> {t.bodyFragment}
         </p>
         <Link
           href="/onboarding"
           style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
           className="text-[12px] font-semibold rounded-md px-3 py-1.5 hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shrink-0"
         >
-          Set up profile
+          {t.cta}
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
             <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -93,7 +93,7 @@ export function ProfileNudge() {
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss"
+          aria-label={t.dismissAria}
           className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] transition-colors shrink-0"
         >
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>

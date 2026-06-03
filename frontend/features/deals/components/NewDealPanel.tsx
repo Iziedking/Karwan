@@ -3,26 +3,17 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PostJobForm } from '@/features/buyer/components/PostJobForm';
 import { ActivationGate } from '@/shared/components/ActivationGate';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { DirectDealForm } from './DirectDealForm';
 
 type Mode = 'managed' | 'direct';
 
-const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
-  {
-    value: 'managed',
-    label: 'Find me a seller',
-    blurb:
-      'Post a request. Your agent runs the bidding. You wake up to a settled deal.',
-  },
-  {
-    value: 'direct',
-    label: 'I have a seller',
-    blurb:
-      'You already agreed with a counterparty. Open an escrow naming their wallet, skip the auction.',
-  },
-];
-
 export function NewDealPanel() {
+  const t = useTranslations().dealPanel;
+  const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
+    { value: 'managed', label: t.managedLabel, blurb: t.managedBlurb },
+    { value: 'direct', label: t.directLabel, blurb: t.directBlurb },
+  ];
   // When the user arrives here via a "Make offer" link from a listing detail
   // page (/buyer?seller=0x...&amount=...&terms=...), default to the direct
   // mode so the pre-filled fields are visible without a tab click.

@@ -151,6 +151,31 @@ export const sw: Messages = {
     cancelDefault: 'Ghairi',
     backdropAria: 'Ghairi',
   },
+  dealPanel: {
+    managedLabel: 'Tafutie muuzaji',
+    managedBlurb: 'Tuma ombi. Wakala wako anaendesha mnada. Unaamka na biashara iliyokamilika.',
+    directLabel: 'Nina muuzaji',
+    directBlurb: 'Tayari mmekubaliana na mwenza. Fungua escrow kwa mkoba wake, ruka mnada.',
+  },
+  roleToggle: {
+    ariaGroup: 'Aina ya akaunti',
+    eyebrow: 'JUKUMU',
+    options: {
+      buyer: { label: 'Mnunuzi', description: 'Tuma maombi, kubali zabuni' },
+      seller: { label: 'Muuzaji', description: 'Weka zabuni kwenye maombi, wasilisha kazi' },
+      both: { label: 'Vyote viwili', description: 'Wasifu mmoja, pande mbili' },
+    },
+    needBuyerDetails: 'Kwanza ongeza maelezo ya mnunuzi',
+    needSellerDetails: 'Kwanza ongeza maelezo ya muuzaji',
+    saving: 'Inahifadhi…',
+    switchFailed: 'Haikuweza kubadilisha jukumu',
+  },
+  profileNudge: {
+    titleFragment: 'Anzisha wasifu',
+    bodyFragment: 'kupata jina la kuonyesha na kujenga sifa haraka. Bado ni hiari. Unaweza kufanya biashara bila kuwa nao.',
+    cta: 'Anzisha wasifu',
+    dismissAria: 'Funga',
+  },
   pending: {
     matches: {
       sectionTag: 'MECHI ZINAZOSUBIRI',

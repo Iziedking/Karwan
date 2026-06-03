@@ -151,6 +151,31 @@ export const hi: Messages = {
     cancelDefault: 'रद्द करें',
     backdropAria: 'रद्द करें',
   },
+  dealPanel: {
+    managedLabel: 'मेरे लिए विक्रेता ढूँढो',
+    managedBlurb: 'अनुरोध पोस्ट करें। आपका एजेंट बोली चलाता है। आप पूरी हुई डील के साथ जागते हैं।',
+    directLabel: 'मेरे पास विक्रेता है',
+    directBlurb: 'आप पहले से किसी प्रतिपक्ष से सहमत हो चुके हैं। उनके वॉलेट के नाम पर एस्क्रो खोलें, नीलामी छोड़ें।',
+  },
+  roleToggle: {
+    ariaGroup: 'खाता प्रकार',
+    eyebrow: 'भूमिका',
+    options: {
+      buyer: { label: 'क्रेता', description: 'अनुरोध पोस्ट करें, बोली स्वीकार करें' },
+      seller: { label: 'विक्रेता', description: 'अनुरोधों पर बोली लगाएँ, काम डिलीवर करें' },
+      both: { label: 'दोनों', description: 'एक प्रोफ़ाइल, दोनों पक्ष' },
+    },
+    needBuyerDetails: 'पहले क्रेता विवरण जोड़ें',
+    needSellerDetails: 'पहले विक्रेता विवरण जोड़ें',
+    saving: 'सहेज रहे हैं…',
+    switchFailed: 'भूमिका नहीं बदल सकी',
+  },
+  profileNudge: {
+    titleFragment: 'प्रोफ़ाइल सेट करें',
+    bodyFragment: 'डिस्प्ले नाम पाने और तेज़ी से प्रतिष्ठा बनाने के लिए। यह वैकल्पिक है। बिना इसके भी आप डील कर सकते हैं।',
+    cta: 'प्रोफ़ाइल सेट करें',
+    dismissAria: 'बंद करें',
+  },
   pending: {
     matches: {
       sectionTag: 'लंबित मिलान',

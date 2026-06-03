@@ -3,14 +3,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Option = { value: UserRole; label: string; description: string };
-
-const OPTIONS: Option[] = [
-  { value: 'buyer', label: 'Buyer', description: 'Post requests, accept bids' },
-  { value: 'seller', label: 'Seller', description: 'Bid on requests, deliver work' },
-  { value: 'both', label: 'Both', description: 'One profile, both sides' },
-];
 
 export function RoleToggle({
   profile,
@@ -19,6 +14,12 @@ export function RoleToggle({
   profile: UserProfile;
   onUpdate: (next: UserProfile) => void;
 }) {
+  const t = useTranslations().roleToggle;
+  const OPTIONS: Option[] = [
+    { value: 'buyer', ...t.options.buyer },
+    { value: 'seller', ...t.options.seller },
+    { value: 'both', ...t.options.both },
+  ];
   const [submitting, setSubmitting] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -26,8 +27,8 @@ export function RoleToggle({
   function eligibilityFor(role: UserRole): { ok: boolean; reason?: string } {
     const wantsBuyer = role === 'buyer' || role === 'both';
     const wantsSeller = role === 'seller' || role === 'both';
-    if (wantsBuyer && !profile.buyer) return { ok: false, reason: 'Add buyer details first' };
-    if (wantsSeller && !profile.seller) return { ok: false, reason: 'Add seller details first' };
+    if (wantsBuyer && !profile.buyer) return { ok: false, reason: t.needBuyerDetails };
+    if (wantsSeller && !profile.seller) return { ok: false, reason: t.needSellerDetails };
     return { ok: true };
   }
 
@@ -50,7 +51,7 @@ export function RoleToggle({
       });
       onUpdate(next.profile);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Could not switch role';
+      const msg = err instanceof ApiError ? err.message : t.switchFailed;
       setError(msg);
     } finally {
       setSubmitting(null);
@@ -75,7 +76,7 @@ export function RoleToggle({
           {error}
         </div>
       )}
-      <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Account type">
+      <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label={t.ariaGroup}>
         {OPTIONS.map((opt) => {
           const active = profile.role === opt.value;
           const eligibility = eligibilityFor(opt.value);
@@ -130,13 +131,13 @@ export function RoleToggle({
                 </>
               )}
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:ROLE:]
+                [:{t.eyebrow}:]
               </span>
               <p className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
                 {opt.label}
               </p>
               <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-                {busy ? 'Saving…' : !eligibility.ok ? eligibility.reason : opt.description}
+                {busy ? t.saving : !eligibility.ok ? eligibility.reason : opt.description}
               </p>
             </button>
           );

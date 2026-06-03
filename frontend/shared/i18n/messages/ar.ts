@@ -151,6 +151,31 @@ export const ar: Messages = {
     cancelDefault: 'إلغاء',
     backdropAria: 'إلغاء',
   },
+  dealPanel: {
+    managedLabel: 'ابحث لي عن بائع',
+    managedBlurb: 'انشر طلبًا. وكيلك يدير المزايدة. تستيقظ على صفقة منجزة.',
+    directLabel: 'لديّ بائع',
+    directBlurb: 'لقد اتفقت بالفعل مع طرف آخر. افتح ضمانًا باسم محفظته، وتجاوز المزاد.',
+  },
+  roleToggle: {
+    ariaGroup: 'نوع الحساب',
+    eyebrow: 'الدور',
+    options: {
+      buyer: { label: 'مشتري', description: 'انشر الطلبات، اقبل العروض' },
+      seller: { label: 'بائع', description: 'قدّم عروضًا، سلّم العمل' },
+      both: { label: 'كلاهما', description: 'ملف واحد، الدوران' },
+    },
+    needBuyerDetails: 'أضف تفاصيل المشتري أولًا',
+    needSellerDetails: 'أضف تفاصيل البائع أولًا',
+    saving: 'جارٍ الحفظ…',
+    switchFailed: 'تعذّر تبديل الدور',
+  },
+  profileNudge: {
+    titleFragment: 'أنشئ ملفًا شخصيًا',
+    bodyFragment: 'لتحصل على اسم عرض وتبني سمعتك أسرع. يبقى اختياريًا. يمكنك إجراء الصفقات بدونه.',
+    cta: 'أنشئ الملف',
+    dismissAria: 'إغلاق',
+  },
   pending: {
     matches: {
       sectionTag: 'مطابقات معلّقة',
