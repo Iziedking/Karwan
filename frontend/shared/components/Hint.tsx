@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Tooltip that renders via portal so parent overflow:hidden / rounded
 /// corners can never clip it. Coordinates are recomputed on every show so
@@ -14,6 +15,7 @@ export function Hint({
   side?: 'top' | 'bottom';
   align?: 'start' | 'center' | 'end';
 }) {
+  const t = useTranslations().hint;
   const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ export function Hint({
       ref={triggerRef}
       role="button"
       tabIndex={0}
-      aria-label="Details"
+      aria-label={t.triggerAria}
       aria-expanded={open}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}

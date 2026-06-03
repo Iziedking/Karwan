@@ -170,6 +170,21 @@ export const sw: Messages = {
     saving: 'Inahifadhi…',
     switchFailed: 'Haikuweza kubadilisha jukumu',
   },
+  hint: {
+    triggerAria: 'Maelezo',
+  },
+  tierCelebration: {
+    eyebrow: 'KIWANGO KIMEFUNGULIWA',
+    achievementPrefix: 'Umefika',
+    dismissAria: 'Funga',
+    blurbs: {
+      NEW: 'Karibu.',
+      COLD: 'Rekodi yako inaanza kuonekana.',
+      ESTABLISHED: 'Wasifu thabiti na wa kuaminika.',
+      STRONG: 'Mshirika anayependelewa. Mawakala wanasonga haraka kwa ajili yako.',
+      ELITE: 'Kiwango cha juu kabisa. Mawakala wanakubali kwa mtazamo wa kwanza ndani ya bei yako, bila mnada.',
+    },
+  },
   profileNudge: {
     titleFragment: 'Anzisha wasifu',
     bodyFragment: 'kupata jina la kuonyesha na kujenga sifa haraka. Bado ni hiari. Unaweza kufanya biashara bila kuwa nao.',

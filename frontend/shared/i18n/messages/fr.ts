@@ -170,6 +170,21 @@ export const fr: Messages = {
     saving: 'Enregistrement…',
     switchFailed: 'Impossible de changer de rôle',
   },
+  hint: {
+    triggerAria: 'Détails',
+  },
+  tierCelebration: {
+    eyebrow: 'PALIER DÉBLOQUÉ',
+    achievementPrefix: 'Vous avez atteint',
+    dismissAria: 'Fermer',
+    blurbs: {
+      NEW: 'Bienvenue.',
+      COLD: 'Votre historique prend forme.',
+      ESTABLISHED: 'Un profil solide et fiable.',
+      STRONG: 'Une contrepartie de premier choix. Les agents avancent plus vite pour vous.',
+      ELITE: 'Sommet du classement. Les agents acceptent au premier regard si le prix est dans votre fourchette, sans enchère.',
+    },
+  },
   profileNudge: {
     titleFragment: 'Configurer un profil',
     bodyFragment: 'pour obtenir un nom d’affichage et bâtir votre réputation plus vite. Reste optionnel. Vous pouvez sécuriser des deals sans.',

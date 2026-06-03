@@ -170,6 +170,21 @@ export const ar: Messages = {
     saving: 'جارٍ الحفظ…',
     switchFailed: 'تعذّر تبديل الدور',
   },
+  hint: {
+    triggerAria: 'تفاصيل',
+  },
+  tierCelebration: {
+    eyebrow: 'تم فتح الرتبة',
+    achievementPrefix: 'وصلت إلى',
+    dismissAria: 'إخفاء',
+    blurbs: {
+      NEW: 'أهلًا بك.',
+      COLD: 'سجلك بدأ يتشكّل.',
+      ESTABLISHED: 'ملف موثوق ومستقر.',
+      STRONG: 'طرف مفضّل. الوكلاء يتحركون أسرع لصالحك.',
+      ELITE: 'أعلى رتبة. الوكلاء يقبلون من النظرة الأولى داخل النطاق، دون مزاد.',
+    },
+  },
   profileNudge: {
     titleFragment: 'أنشئ ملفًا شخصيًا',
     bodyFragment: 'لتحصل على اسم عرض وتبني سمعتك أسرع. يبقى اختياريًا. يمكنك إجراء الصفقات بدونه.',

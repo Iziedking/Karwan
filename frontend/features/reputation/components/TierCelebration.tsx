@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, type CSSProperties } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useReputation } from '../hooks/useReputation';
 
 type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
@@ -15,14 +16,6 @@ const TIER_HUE: Record<Tier, string> = {
   ESTABLISHED: 'var(--lp-accent)',
   STRONG: '#37c87f',
   ELITE: '#16b06a',
-};
-
-const TIER_BLURB: Record<Tier, string> = {
-  NEW: 'Welcome aboard.',
-  COLD: 'Your track record is taking shape.',
-  ESTABLISHED: 'A solid, trusted profile.',
-  STRONG: 'A preferred counterparty. Agents move faster for you.',
-  ELITE: 'Top tier. Agents accept first look within range, no auction.',
 };
 
 // Allow inline CSS custom properties (--rail-dy etc.) without fighting the types.
@@ -113,6 +106,7 @@ function TierBurst({ tierHue }: { tierHue: string }) {
 /// every visit; the card itself still pops in each time. Pass the user's
 /// address and it reads its own reputation.
 export function TierCelebration({ address }: { address?: string | null }) {
+  const t = useTranslations().tierCelebration;
   const { data } = useReputation(address);
   const [dismissed, setDismissed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -214,14 +208,14 @@ export function TierCelebration({ address }: { address?: string | null }) {
 
           <div className="min-w-0 flex-1">
             <p className="mono text-[10px] uppercase tracking-[0.2em]" style={{ color: labelInk }}>
-              [:TIER UNLOCKED:]
+              [:{t.eyebrow}:]
             </p>
             <p className="mt-1.5 font-sans text-[22px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-[var(--color-ink)] sm:text-[26px]">
-              You reached <span style={{ color: wordInk }}>{tier}</span>
+              {t.achievementPrefix} <span style={{ color: wordInk }}>{tier}</span>
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </p>
             <p className="mt-1.5 text-[13px] leading-snug text-[var(--color-ink-dim)]">
-              {TIER_BLURB[tier]}
+              {t.blurbs[tier]}
             </p>
             {/* Rank ladder: filled squares up to the tier reached. */}
             <div className="mt-2.5 flex items-center gap-1.5" aria-hidden>
@@ -242,7 +236,7 @@ export function TierCelebration({ address }: { address?: string | null }) {
           <button
             type="button"
             onClick={dismiss}
-            aria-label="Dismiss"
+            aria-label={t.dismissAria}
             className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-ink-faint)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>

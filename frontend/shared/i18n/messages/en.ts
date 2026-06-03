@@ -177,6 +177,21 @@ interface MessagesShape {
     cta: string;
     dismissAria: string;
   };
+  hint: {
+    triggerAria: string;
+  };
+  tierCelebration: {
+    eyebrow: string;
+    achievementPrefix: string;
+    dismissAria: string;
+    blurbs: {
+      NEW: string;
+      COLD: string;
+      ESTABLISHED: string;
+      STRONG: string;
+      ELITE: string;
+    };
+  };
   pending: {
     matches: {
       sectionTag: string;
@@ -521,6 +536,21 @@ export const en: MessagesShape = {
     bodyFragment: 'to get a display name and build reputation faster. It stays optional. You can secure deals without one.',
     cta: 'Set up profile',
     dismissAria: 'Dismiss',
+  },
+  hint: {
+    triggerAria: 'Details',
+  },
+  tierCelebration: {
+    eyebrow: 'TIER UNLOCKED',
+    achievementPrefix: 'You reached',
+    dismissAria: 'Dismiss',
+    blurbs: {
+      NEW: 'Welcome aboard.',
+      COLD: 'Your track record is taking shape.',
+      ESTABLISHED: 'A solid, trusted profile.',
+      STRONG: 'A preferred counterparty. Agents move faster for you.',
+      ELITE: 'Top tier. Agents accept first look within range, no auction.',
+    },
   },
   pending: {
     matches: {
