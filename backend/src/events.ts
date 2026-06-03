@@ -27,6 +27,7 @@ export type KarwanEventType =
   | 'bridge.error'
   | 'reputation.recorded'
   | 'deal.direct.created'
+  | 'deal.direct.edited'
   | 'deal.accepted'
   | 'deal.delivered'
   | 'deal.matched'

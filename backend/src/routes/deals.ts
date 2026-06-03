@@ -114,6 +114,44 @@ const createSchema = z
     { message: 'provide exactly one of sellerAddress or sellerEmail', path: ['sellerAddress'] },
   );
 
+/// Pre-accept edit. Mirrors the create schema but every field is optional and
+/// the counterparty (sellerAddress / sellerEmail) cannot move. A patch with no
+/// changes is rejected so the audit trail stays meaningful. Editing
+/// acceptanceWindowHours or the delivery deadline reanchors the clock from
+/// now, since both are forward-looking durations and a stale anchor would feel
+/// like the seller's window quietly shrank.
+const editSchema = z
+  .object({
+    caller: addrSchema,
+    dealAmountUsdc: z.number().positive().optional(),
+    deadlineDays: z.number().int().min(0).max(180).optional(),
+    deadlineHours: z.number().int().min(0).max(23).optional(),
+    acceptanceWindowHours: z.number().int().min(1).max(720).optional(),
+    terms: z.string().min(1).max(600).optional(),
+    firstReleasePct: z.number().int().min(1).max(99).optional(),
+    requireStake: z.boolean().optional(),
+    requireStakePct: z
+      .number()
+      .int()
+      .min(50)
+      .max(100)
+      .optional()
+      .refine((v) => v === undefined || v % 5 === 0, {
+        message: 'requireStakePct must be a multiple of 5',
+      }),
+  })
+  .refine(
+    (b) => {
+      const dd = b.deadlineDays;
+      const dh = b.deadlineHours;
+      if (dd === undefined && dh === undefined) return true;
+      const days = dd ?? 0;
+      const hours = dh ?? 0;
+      return (days === 0 && hours === 0) || days * 24 + hours >= 1;
+    },
+    { message: 'when set, deadline must be at least 1 hour', path: ['deadlineHours'] },
+  );
+
 const callerSchema = z.object({ caller: addrSchema });
 const deliveredSchema = z.object({
   caller: addrSchema,
@@ -270,6 +308,90 @@ dealsRoutes.post('/direct', async (c) => {
     },
     200,
   );
+});
+
+/// Buyer-side pre-accept edit. Lets the buyer rework deal terms while the seller
+/// hasn't accepted yet. Refused after deal.acceptedAt because at that point the
+/// escrow is funded on chain and dealAmountUsdc / firstReleasePct are locked in
+/// the milestone array. Counterparty is intentionally not editable: changing
+/// who the deal is for is a different deal. When the buyer touches
+/// acceptanceWindowHours or the delivery deadline, the clock reanchors from
+/// now so the seller's window matches the new terms.
+dealsRoutes.post('/direct/:jobId/edit', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = editSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.buyer) {
+    return c.json({ error: 'only the buyer can edit this deal' }, 403);
+  }
+  if (deal.acceptedAt) {
+    return c.json(
+      { error: 'this deal has already accepted; terms are locked', code: 'ACCEPTED' },
+      409,
+    );
+  }
+  if (deal.cancelledAt) {
+    return c.json({ error: 'this deal is cancelled', code: 'CANCELLED' }, 409);
+  }
+
+  const patch: Partial<DirectDeal> = {};
+  if (body.dealAmountUsdc !== undefined) {
+    patch.dealAmountUsdc = body.dealAmountUsdc.toString();
+  }
+  if (body.terms !== undefined) {
+    patch.terms = body.terms;
+  }
+  if (body.firstReleasePct !== undefined) {
+    patch.firstReleasePct = body.firstReleasePct;
+  }
+  if (body.deadlineDays !== undefined || body.deadlineHours !== undefined) {
+    const days = body.deadlineDays ?? 0;
+    const hours = body.deadlineHours ?? 0;
+    const totalSeconds = days * 86400 + hours * 3600;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    patch.deadlineUnix = totalSeconds > 0 ? nowSeconds + totalSeconds : undefined;
+  }
+  if (body.acceptanceWindowHours !== undefined) {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    patch.acceptanceDeadlineUnix = nowSeconds + body.acceptanceWindowHours * 3600;
+  }
+  if (body.requireStake !== undefined) {
+    patch.requireStake = body.requireStake;
+    if (body.requireStake) {
+      patch.requireStakePct = body.requireStakePct ?? deal.requireStakePct ?? 50;
+    } else {
+      patch.requireStakePct = undefined;
+    }
+  } else if (body.requireStakePct !== undefined && deal.requireStake) {
+    patch.requireStakePct = body.requireStakePct;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return c.json({ error: 'no changes provided' }, 400);
+  }
+
+  const updated = await patchDeal(jobId, patch);
+  bus.emitEvent({
+    type: 'deal.direct.edited',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      fields: Object.keys(patch),
+    },
+  });
+  return c.json({ accepted: true, jobId, deal: updated }, 200);
 });
 
 /// Public summary of a pending invite. Returns the deal terms in a form safe

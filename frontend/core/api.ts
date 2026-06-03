@@ -1274,6 +1274,28 @@ export const api = {
       `/api/deals/direct/${jobId}/cancel`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  /// Buyer-side pre-accept edit. Backend rejects after deal.acceptedAt because
+  /// the escrow is funded on chain and amount + split are locked there. Every
+  /// field is optional; pass only what changed. Editing deadline or the
+  /// acceptance window reanchors the clock from now.
+  editDirectDeal: (
+    jobId: string,
+    body: {
+      caller: string;
+      dealAmountUsdc?: number;
+      deadlineDays?: number;
+      deadlineHours?: number;
+      acceptanceWindowHours?: number;
+      terms?: string;
+      firstReleasePct?: number;
+      requireStake?: boolean;
+      requireStakePct?: number;
+    },
+  ) =>
+    json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
+      `/api/deals/direct/${jobId}/edit`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   proposeCancelDirectDeal: (
     jobId: string,
     caller: string,

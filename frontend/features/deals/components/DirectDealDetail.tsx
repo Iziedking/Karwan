@@ -11,6 +11,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { ExtensionRequestModal } from './ExtensionRequestModal';
+import { EditDealModal } from './EditDealModal';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
 import {
@@ -122,6 +123,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   // Hoisted above the conditional early returns below to satisfy the React
   // rules of hooks. must be called on every render in the same order.
   const [proposeOpen, setProposeOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -683,6 +685,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onStillReviewing={onStillReviewing}
               onAppeal={onAppeal}
               onCancel={onCancel}
+              onEdit={() => setEditOpen(true)}
               onRaiseDelayAppeal={onRaiseDelayAppeal}
               onRespondToDelayAppeal={onRespondToDelayAppeal}
               onRequestExtension={onRequestExtension}
@@ -790,6 +793,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           hasReservation={!!deal.requireStake}
           onConfirm={onProposeCancel}
           onClose={() => setProposeOpen(false)}
+        />
+      )}
+      {editOpen && address && (
+        <EditDealModal
+          deal={deal}
+          caller={address}
+          onClose={() => setEditOpen(false)}
+          onSaved={refresh}
         />
       )}
     </FullBleed>
@@ -959,6 +970,7 @@ function ActionPanel({
   onStillReviewing,
   onAppeal,
   onCancel,
+  onEdit,
   onRaiseDelayAppeal,
   onRespondToDelayAppeal,
   onRequestExtension,
@@ -979,6 +991,7 @@ function ActionPanel({
   onStillReviewing: () => void;
   onAppeal: () => void;
   onCancel: () => void;
+  onEdit: () => void;
   onRaiseDelayAppeal: () => void;
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
@@ -1138,9 +1151,14 @@ function ActionPanel({
           />
         )}
         <AcceptanceCountdown deal={deal} now={now} viewerIsSeller={false} />
-        <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
-          {busy ? 'Working…' : 'Cancel deal'}
-        </CTAPill>
+        <div className="flex flex-wrap gap-2">
+          <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
+            Edit terms
+          </CTAPill>
+          <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+            {busy ? 'Working…' : 'Cancel deal'}
+          </CTAPill>
+        </div>
       </div>
     );
   }
