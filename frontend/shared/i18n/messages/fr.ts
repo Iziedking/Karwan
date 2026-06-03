@@ -151,6 +151,37 @@ export const fr: Messages = {
     cancelDefault: 'Annuler',
     backdropAria: 'Annuler',
   },
+  pending: {
+    matches: {
+      sectionTag: 'CORRESPONDANCES EN ATTENTE',
+      inlineEyebrow: 'CORRESPONDANCES EN ATTENTE',
+      inlineSubtitle: "OUVRIR L'UNE POUR AGIR",
+      headline: 'Correspondances en attente',
+      body: "Ouvrez-en une pour agir. Le vendeur accepte ; l'agent de l'acheteur finance le séquestre automatiquement.",
+    },
+    deals: {
+      sectionTag: 'DEALS OUVERTS',
+      headline: 'Deals ouverts',
+      body: "Deals actifs sur votre carnet. Les puces vertes attendent une action de votre part. Les grises attendent l'autre côté.",
+    },
+    card: {
+      roleBuyer: 'ACHETEUR',
+      roleSeller: 'VENDEUR',
+      contextJob: 'DEMANDE',
+      contextDeal: 'DEAL',
+      unit: 'USDC',
+      open: 'OUVRIR',
+    },
+    chips: {
+      acceptToFund: 'ACCEPTER ET FINANCER',
+      awaitingSeller: 'EN ATTENTE DU VENDEUR',
+      markDelivered: 'MARQUER LIVRÉ',
+      waitingOnSeller: 'EN ATTENTE DU VENDEUR',
+      waitingOnBuyer: "EN ATTENTE DE L'ACHETEUR",
+      releaseFirst: 'LIBÉRER LA PREMIÈRE',
+      releaseFinal: 'LIBÉRER LA FINALE',
+    },
+  },
   activation: {
     notice: {
       tag: 'NON ACTIVÉ',

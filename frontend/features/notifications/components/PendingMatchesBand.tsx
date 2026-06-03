@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, type MatchProposal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   Band,
   SectionTag,
@@ -26,6 +27,7 @@ interface Props {
 /// notifications stream once task #34 lands.
 export function PendingMatchesBand({ tone = 'light', headline }: Props) {
   const auth = useAuth();
+  const t = useTranslations().pending;
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
   const [matches, setMatches] = useState<MatchProposal[]>([]);
@@ -55,12 +57,12 @@ export function PendingMatchesBand({ tone = 'light', headline }: Props) {
   if (matches.length === 0) return null;
 
   const dark = tone === 'dark';
-  const computedHeadline = headline ?? 'Pending matches';
+  const computedHeadline = headline ?? t.matches.headline;
 
   return (
     <Band tone={tone} compact>
       <SectionTag tone={tone} dot="live">
-        PENDING MATCHES
+        {t.matches.sectionTag}
       </SectionTag>
       <HeroHeadline size="md">
         {computedHeadline}
@@ -70,7 +72,7 @@ export function PendingMatchesBand({ tone = 'light', headline }: Props) {
         className="mt-5 text-pretty text-[15px] leading-relaxed max-w-[52ch]"
         style={{ color: dark ? 'var(--lp-text-muted)' : 'var(--lp-text-sub)' }}
       >
-        Open one to act. The seller accepts; the buyer&apos;s agent funds escrow automatically.
+        {t.matches.body}
       </p>
       <ul className="mt-8 space-y-3">
         {matches.map((p) => (
@@ -95,17 +97,18 @@ function MatchRow({
   viewerAddress: string;
   tone: 'light' | 'dark';
 }) {
+  const t = useTranslations().pending;
   const me = viewerAddress.toLowerCase();
   const isSeller = proposal.sellerUser.toLowerCase() === me;
   const counterparty = isSeller ? proposal.buyerUser : proposal.sellerUser;
-  const role = isSeller ? 'SELLER' : 'BUYER';
-  const counterRole = isSeller ? 'BUYER' : 'SELLER';
+  const role = isSeller ? t.card.roleSeller : t.card.roleBuyer;
+  const counterRole = isSeller ? t.card.roleBuyer : t.card.roleSeller;
   // Normalize the price display so a backend that stores 50.000000 reads as
   // 50, and a true 50.49 stays at 50.49. Drops trailing zeros and keeps a
   // 2-decimal floor when fractional.
   const priceDisplay = formatUsdcDisplay(proposal.agreedPriceUsdc);
   // Sellers get the action chip; buyers get the read-only awaiting chip.
-  const chipLabel = isSeller ? 'ACCEPT TO FUND' : 'AWAITING SELLER';
+  const chipLabel = isSeller ? t.chips.acceptToFund : t.chips.awaitingSeller;
   const chipFg = isSeller ? '#0a7553' : '#b25425';
   const chipBg = isSeller ? 'rgba(10,117,83,0.10)' : 'rgba(178,84,37,0.10)';
   const chipBorder = isSeller ? 'rgba(10,117,83,0.35)' : 'rgba(178,84,37,0.40)';
@@ -140,7 +143,7 @@ function MatchRow({
               className="mono text-[10px] uppercase tracking-[0.18em]"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
-              [:{role} · JOB:]{' '}
+              [:{role} · {t.card.contextJob}:]{' '}
               <span
                 className="tracking-normal normal-case"
                 style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
@@ -159,7 +162,7 @@ function MatchRow({
                 className="mono text-[10px] uppercase tracking-[0.14em]"
                 style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
               >
-                USDC
+                {t.card.unit}
               </span>
             </div>
             <p
@@ -200,7 +203,7 @@ function MatchRow({
               className="mt-2 mono text-[10px] uppercase tracking-[0.12em] transition-colors"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
-              OPEN →
+              {t.card.open} →
             </p>
           </div>
         </div>
@@ -222,6 +225,7 @@ function formatUsdcDisplay(raw: string): string {
 /// be too heavy.
 export function PendingMatchesInline() {
   const auth = useAuth();
+  const t = useTranslations().pending.matches;
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
   const [matches, setMatches] = useState<MatchProposal[]>([]);
@@ -254,10 +258,10 @@ export function PendingMatchesInline() {
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:PENDING MATCHES:] <Accent>{matches.length}</Accent>
+          [:{t.inlineEyebrow}:] <Accent>{matches.length}</Accent>
         </span>
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          OPEN ANY TO ACT
+          {t.inlineSubtitle}
         </p>
       </div>
       <ul className="space-y-2.5">

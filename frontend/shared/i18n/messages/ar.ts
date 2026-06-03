@@ -151,6 +151,37 @@ export const ar: Messages = {
     cancelDefault: 'إلغاء',
     backdropAria: 'إلغاء',
   },
+  pending: {
+    matches: {
+      sectionTag: 'مطابقات معلّقة',
+      inlineEyebrow: 'مطابقات معلّقة',
+      inlineSubtitle: 'افتح أيًا منها للمتابعة',
+      headline: 'مطابقات معلّقة',
+      body: 'افتح واحدة للمتابعة. البائع يوافق؛ وكيل المشتري يموّل الضمان تلقائيًا.',
+    },
+    deals: {
+      sectionTag: 'صفقات مفتوحة',
+      headline: 'صفقات مفتوحة',
+      body: 'صفقات نشطة في سجلّك. الشارات الخضراء تتطلّب خطوة منك. الرماديّة بانتظار الطرف الآخر.',
+    },
+    card: {
+      roleBuyer: 'مشتري',
+      roleSeller: 'بائع',
+      contextJob: 'طلب',
+      contextDeal: 'صفقة',
+      unit: 'USDC',
+      open: 'فتح',
+    },
+    chips: {
+      acceptToFund: 'وافِق للتمويل',
+      awaitingSeller: 'بانتظار البائع',
+      markDelivered: 'علِّم كمُسلَّم',
+      waitingOnSeller: 'بانتظار البائع',
+      waitingOnBuyer: 'بانتظار المشتري',
+      releaseFirst: 'حرِّر الأولى',
+      releaseFinal: 'حرِّر النهائية',
+    },
+  },
   activation: {
     notice: {
       tag: 'لم يُفعَّل',

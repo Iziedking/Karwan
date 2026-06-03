@@ -151,6 +151,37 @@ export const hi: Messages = {
     cancelDefault: 'रद्द करें',
     backdropAria: 'रद्द करें',
   },
+  pending: {
+    matches: {
+      sectionTag: 'लंबित मिलान',
+      inlineEyebrow: 'लंबित मिलान',
+      inlineSubtitle: 'कार्य के लिए कोई भी खोलें',
+      headline: 'लंबित मिलान',
+      body: 'कार्य के लिए एक खोलें। विक्रेता स्वीकार करता है; क्रेता का एजेंट एस्क्रो स्वतः फंड करता है।',
+    },
+    deals: {
+      sectionTag: 'खुले डील',
+      headline: 'खुले डील',
+      body: 'आपकी बही पर सक्रिय डील। हरी चिप आपकी ओर से कदम मांगती है। ग्रे चिप दूसरी ओर के इंतजार में।',
+    },
+    card: {
+      roleBuyer: 'क्रेता',
+      roleSeller: 'विक्रेता',
+      contextJob: 'अनुरोध',
+      contextDeal: 'डील',
+      unit: 'USDC',
+      open: 'खोलें',
+    },
+    chips: {
+      acceptToFund: 'फंड के लिए स्वीकारें',
+      awaitingSeller: 'विक्रेता के इंतजार में',
+      markDelivered: 'डिलीवर चिह्नित करें',
+      waitingOnSeller: 'विक्रेता के इंतजार में',
+      waitingOnBuyer: 'क्रेता के इंतजार में',
+      releaseFirst: 'पहली रिलीज़ करें',
+      releaseFinal: 'अंतिम रिलीज़ करें',
+    },
+  },
   activation: {
     notice: {
       tag: 'सक्रिय नहीं',

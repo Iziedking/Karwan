@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, type DirectDeal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages';
 import { Band, SectionTag, HeroHeadline, Punc } from '@/shared/components/Bands';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 
@@ -11,7 +13,7 @@ interface Props {
   headline?: string;
 }
 
-const FALLBACK_HEADLINE = 'Open deals';
+type PendingChips = Messages['pending']['chips'];
 
 /// Chip label for a deal stage from the viewer's side: either an action this
 /// viewer owns or a wait on the counterparty. Null on terminal stages so
@@ -19,24 +21,25 @@ const FALLBACK_HEADLINE = 'Open deals';
 function labelFor(
   stage: DealStage,
   isBuyer: boolean,
+  chips: PendingChips,
 ): { kind: 'action' | 'wait'; text: string } | null {
   switch (stage) {
     case 'awaiting-acceptance':
       return isBuyer
-        ? { kind: 'wait', text: 'WAITING ON SELLER' }
-        : { kind: 'action', text: 'ACCEPT TO FUND' };
+        ? { kind: 'wait', text: chips.waitingOnSeller }
+        : { kind: 'action', text: chips.acceptToFund };
     case 'awaiting-delivery':
       return isBuyer
-        ? { kind: 'wait', text: 'WAITING ON SELLER' }
-        : { kind: 'action', text: 'MARK DELIVERED' };
+        ? { kind: 'wait', text: chips.waitingOnSeller }
+        : { kind: 'action', text: chips.markDelivered };
     case 'awaiting-first-release':
       return isBuyer
-        ? { kind: 'action', text: 'RELEASE FIRST' }
-        : { kind: 'wait', text: 'WAITING ON BUYER' };
+        ? { kind: 'action', text: chips.releaseFirst }
+        : { kind: 'wait', text: chips.waitingOnBuyer };
     case 'awaiting-final-release':
       return isBuyer
-        ? { kind: 'action', text: 'RELEASE FINAL' }
-        : { kind: 'wait', text: 'WAITING ON BUYER' };
+        ? { kind: 'action', text: chips.releaseFinal }
+        : { kind: 'wait', text: chips.waitingOnBuyer };
     default:
       return null;
   }
@@ -53,8 +56,10 @@ function fmtUsdc(raw: string): string {
 /// Green chips mark deals where the viewer must move; grey chips mark deals
 /// waiting on the counterparty. Terminal stages drop off. Match proposals
 /// surface in PendingMatchesBand. Polls every 10s.
-export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE }: Props) {
+export function PendingDealsBand({ tone = 'light', headline }: Props) {
   const auth = useAuth();
+  const t = useTranslations().pending;
+  const resolvedHeadline = headline ?? t.deals.headline;
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
   const [deals, setDeals] = useState<DirectDeal[]>([]);
@@ -85,7 +90,7 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
   const rows = deals
     .map((deal) => {
       const isBuyer = deal.buyer.toLowerCase() === me;
-      const label = labelFor(stageOf(deal), isBuyer);
+      const label = labelFor(stageOf(deal), isBuyer, t.chips);
       return label ? { deal, isBuyer, label } : null;
     })
     .filter(
@@ -103,23 +108,23 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
   return (
     <Band tone={tone} compact>
       <SectionTag tone={tone} dot="live">
-        OPEN DEALS
+        {t.deals.sectionTag}
       </SectionTag>
       <HeroHeadline size="md">
-        {headline}
+        {resolvedHeadline}
         <Punc>.</Punc>
       </HeroHeadline>
       <p
         className="mt-5 text-pretty text-[15px] leading-relaxed max-w-[52ch]"
         style={{ color: dark ? 'var(--lp-text-muted)' : 'var(--lp-text-sub)' }}
       >
-        Live deals on your book. Green chips need a move from you. Grey chips are waiting on the other side.
+        {t.deals.body}
       </p>
       <ul className="mt-8 space-y-3">
         {rows.map(({ deal, isBuyer, label }) => {
           const counterparty = isBuyer ? deal.seller : deal.buyer;
-          const role = isBuyer ? 'BUYER' : 'SELLER';
-          const counterRole = isBuyer ? 'SELLER' : 'BUYER';
+          const role = isBuyer ? t.card.roleBuyer : t.card.roleSeller;
+          const counterRole = isBuyer ? t.card.roleSeller : t.card.roleBuyer;
           const isAction = label.kind === 'action';
           // Green action chips read as a call to action; grey wait chips
           // surface the deal without implying the viewer owes a move.
@@ -165,7 +170,7 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
                       className="mono text-[10px] uppercase tracking-[0.18em]"
                       style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
                     >
-                      [:{role} · DEAL:]{' '}
+                      [:{role} · {t.card.contextDeal}:]{' '}
                       <span
                         className="tracking-normal normal-case"
                         style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
@@ -184,7 +189,7 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
                         className="mono text-[10px] uppercase tracking-[0.14em]"
                         style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
                       >
-                        USDC
+                        {t.card.unit}
                       </span>
                     </div>
                     <p
@@ -225,7 +230,7 @@ export function PendingDealsBand({ tone = 'light', headline = FALLBACK_HEADLINE 
                       className="mt-2 mono text-[10px] uppercase tracking-[0.12em]"
                       style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
                     >
-                      OPEN →
+                      {t.card.open} →
                     </p>
                   </div>
                 </div>

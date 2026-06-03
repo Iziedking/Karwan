@@ -152,6 +152,37 @@ interface MessagesShape {
     cancelDefault: string;
     backdropAria: string;
   };
+  pending: {
+    matches: {
+      sectionTag: string;
+      inlineEyebrow: string;
+      inlineSubtitle: string;
+      headline: string;
+      body: string;
+    };
+    deals: {
+      sectionTag: string;
+      headline: string;
+      body: string;
+    };
+    card: {
+      roleBuyer: string;
+      roleSeller: string;
+      contextJob: string;
+      contextDeal: string;
+      unit: string;
+      open: string;
+    };
+    chips: {
+      acceptToFund: string;
+      awaitingSeller: string;
+      markDelivered: string;
+      waitingOnSeller: string;
+      waitingOnBuyer: string;
+      releaseFirst: string;
+      releaseFinal: string;
+    };
+  };
   activation: {
     notice: {
       tag: string;
@@ -440,6 +471,37 @@ export const en: MessagesShape = {
     eyebrow: 'CONFIRM',
     cancelDefault: 'Cancel',
     backdropAria: 'Cancel',
+  },
+  pending: {
+    matches: {
+      sectionTag: 'PENDING MATCHES',
+      inlineEyebrow: 'PENDING MATCHES',
+      inlineSubtitle: 'OPEN ANY TO ACT',
+      headline: 'Pending matches',
+      body: "Open one to act. The seller accepts; the buyer's agent funds escrow automatically.",
+    },
+    deals: {
+      sectionTag: 'OPEN DEALS',
+      headline: 'Open deals',
+      body: 'Live deals on your book. Green chips need a move from you. Grey chips are waiting on the other side.',
+    },
+    card: {
+      roleBuyer: 'BUYER',
+      roleSeller: 'SELLER',
+      contextJob: 'JOB',
+      contextDeal: 'DEAL',
+      unit: 'USDC',
+      open: 'OPEN',
+    },
+    chips: {
+      acceptToFund: 'ACCEPT TO FUND',
+      awaitingSeller: 'AWAITING SELLER',
+      markDelivered: 'MARK DELIVERED',
+      waitingOnSeller: 'WAITING ON SELLER',
+      waitingOnBuyer: 'WAITING ON BUYER',
+      releaseFirst: 'RELEASE FIRST',
+      releaseFinal: 'RELEASE FINAL',
+    },
   },
   activation: {
     notice: {

@@ -151,6 +151,37 @@ export const sw: Messages = {
     cancelDefault: 'Ghairi',
     backdropAria: 'Ghairi',
   },
+  pending: {
+    matches: {
+      sectionTag: 'MECHI ZINAZOSUBIRI',
+      inlineEyebrow: 'MECHI ZINAZOSUBIRI',
+      inlineSubtitle: 'FUNGUA YOYOTE ILI KUCHUKUA HATUA',
+      headline: 'Mechi zinazosubiri',
+      body: 'Fungua moja kuchukua hatua. Muuzaji anakubali; wakala wa mnunuzi anafadhili escrow kiotomatiki.',
+    },
+    deals: {
+      sectionTag: 'BIASHARA ZILIZO WAZI',
+      headline: 'Biashara zilizo wazi',
+      body: 'Biashara hai kwenye kitabu chako. Vibandiko vya kijani vinahitaji hatua kutoka kwako. Vya kijivu vinasubiri upande mwingine.',
+    },
+    card: {
+      roleBuyer: 'MNUNUZI',
+      roleSeller: 'MUUZAJI',
+      contextJob: 'OMBI',
+      contextDeal: 'BIASHARA',
+      unit: 'USDC',
+      open: 'FUNGUA',
+    },
+    chips: {
+      acceptToFund: 'KUBALI KUFADHILI',
+      awaitingSeller: 'INASUBIRI MUUZAJI',
+      markDelivered: 'WEKA KAMA IMEWASILISHWA',
+      waitingOnSeller: 'INASUBIRI MUUZAJI',
+      waitingOnBuyer: 'INASUBIRI MNUNUZI',
+      releaseFirst: 'TOA YA KWANZA',
+      releaseFinal: 'TOA YA MWISHO',
+    },
+  },
   activation: {
     notice: {
       tag: 'HAIJAANZISHWA',
