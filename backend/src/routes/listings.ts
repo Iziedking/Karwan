@@ -48,14 +48,19 @@ const createSchema = z.object({
 
 const cancelSchema = z.object({ caller: addrSchema });
 
-/// Same validation as the create schema but every editable field is optional.
-/// Tolerance, ttl, and agent address are intentionally excluded; those move
-/// the seller agent's bidding logic and need a re-scan we do not yet support.
+/// Pre-match edit. Title, description, askingPrice, the agent's price floor,
+/// and the listing window are all optional but at least one must change. The
+/// sellerAgent address is not editable; rotating it mid-cycle would orphan a
+/// running negotiation. Tolerance changes are picked up by listingFloor() on
+/// the next bid evaluation since the floor is computed fresh per call rather
+/// than cached in agent state.
 const editSchema = z.object({
   caller: addrSchema,
   title: z.string().min(3).max(120).optional(),
   description: z.string().min(5).max(500).optional(),
   askingPriceUsdc: z.number().positive().max(5_000_000).optional(),
+  negotiationMaxDecreasePct: z.number().min(0).max(50).optional(),
+  ttlDays: z.number().min(0.0006).max(90).optional(),
 });
 
 const matchDecisionSchema = z.object({
@@ -190,10 +195,25 @@ listingsRoutes.post('/:id/edit', async (c) => {
     return c.json({ error: 'this listing has expired' }, 409);
   }
 
-  const patch: Partial<Pick<Listing, 'title' | 'description' | 'askingPriceUsdc'>> = {};
+  const patch: Partial<
+    Pick<
+      Listing,
+      'title' | 'description' | 'askingPriceUsdc' | 'negotiationMaxDecreasePct' | 'expiresAt'
+    >
+  > = {};
   if (body.title !== undefined) patch.title = body.title;
   if (body.description !== undefined) patch.description = body.description;
   if (body.askingPriceUsdc !== undefined) patch.askingPriceUsdc = body.askingPriceUsdc;
+  if (body.negotiationMaxDecreasePct !== undefined) {
+    patch.negotiationMaxDecreasePct = body.negotiationMaxDecreasePct;
+  }
+  if (body.ttlDays !== undefined) {
+    // Anchor the new window from now so a shortened ttl can't land the
+    // expiresAt in the past, which would expire the listing instantly. The
+    // seller's intent is "I want this open for another N days from this
+    // moment", not "I want it open for N days from when I first posted".
+    patch.expiresAt = Date.now() + body.ttlDays * 86_400_000;
+  }
 
   if (Object.keys(patch).length === 0) {
     return c.json({ error: 'no editable fields provided' }, 400);

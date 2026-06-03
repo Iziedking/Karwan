@@ -74,6 +74,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
     title?: string;
     description?: string;
     askingPriceUsdc?: number;
+    negotiationMaxDecreasePct?: number;
+    ttlDays?: number;
   }) {
     if (!address || !listing) return;
     setEditing(true);
@@ -422,6 +424,11 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           initialTitle={listing.title}
           initialDescription={listing.description}
           initialAskingPriceUsdc={listing.askingPriceUsdc}
+          initialFloorPct={listing.negotiationMaxDecreasePct ?? 0}
+          initialTtlDays={Math.max(
+            1,
+            Math.round((listing.expiresAt - Date.now()) / 86_400_000),
+          )}
           busy={editing}
           error={editError}
           onSave={handleEdit}
@@ -439,6 +446,8 @@ function EditListingModal({
   initialTitle,
   initialDescription,
   initialAskingPriceUsdc,
+  initialFloorPct,
+  initialTtlDays,
   busy,
   error,
   onSave,
@@ -447,29 +456,51 @@ function EditListingModal({
   initialTitle: string;
   initialDescription: string;
   initialAskingPriceUsdc: number;
+  initialFloorPct: number;
+  initialTtlDays: number;
   busy: boolean;
   error: string | null;
-  onSave: (patch: { title?: string; description?: string; askingPriceUsdc?: number }) => void;
+  onSave: (patch: {
+    title?: string;
+    description?: string;
+    askingPriceUsdc?: number;
+    negotiationMaxDecreasePct?: number;
+    ttlDays?: number;
+  }) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
   const [price, setPrice] = useState<number | ''>(initialAskingPriceUsdc);
+  const [floorPct, setFloorPct] = useState(initialFloorPct);
+  const [ttlDays, setTtlDays] = useState<number | ''>(initialTtlDays);
   const titleChanged = title.trim() !== initialTitle;
   const descChanged = description.trim() !== initialDescription;
   const priceChanged = typeof price === 'number' && price !== initialAskingPriceUsdc;
-  const dirty = titleChanged || descChanged || priceChanged;
+  const floorChanged = floorPct !== initialFloorPct;
+  const ttlChanged = typeof ttlDays === 'number' && ttlDays !== initialTtlDays;
+  const dirty = titleChanged || descChanged || priceChanged || floorChanged || ttlChanged;
   const titleValid = title.trim().length >= 3 && title.trim().length <= 120;
   const descValid = description.trim().length >= 5 && description.trim().length <= 500;
   const priceValid = typeof price === 'number' && price > 0 && price <= 5_000_000;
-  const valid = titleValid && descValid && priceValid && dirty;
+  const floorValid = floorPct >= 0 && floorPct <= 50;
+  const ttlValid = typeof ttlDays === 'number' && ttlDays >= 1 && ttlDays <= 90;
+  const valid = titleValid && descValid && priceValid && floorValid && ttlValid && dirty;
 
   function submit() {
     if (!valid || busy) return;
-    const patch: { title?: string; description?: string; askingPriceUsdc?: number } = {};
+    const patch: {
+      title?: string;
+      description?: string;
+      askingPriceUsdc?: number;
+      negotiationMaxDecreasePct?: number;
+      ttlDays?: number;
+    } = {};
     if (titleChanged) patch.title = title.trim();
     if (descChanged) patch.description = description.trim();
     if (priceChanged && typeof price === 'number') patch.askingPriceUsdc = price;
+    if (floorChanged) patch.negotiationMaxDecreasePct = floorPct;
+    if (ttlChanged && typeof ttlDays === 'number') patch.ttlDays = ttlDays;
     onSave(patch);
   }
 
@@ -562,6 +593,56 @@ function EditListingModal({
                 was {initialAskingPriceUsdc} USDC
               </span>
             )}
+          </label>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:PRICE FLOOR:]
+              </span>
+              <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+                -{floorPct}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={50}
+              step={1}
+              value={floorPct}
+              onChange={(e) => setFloorPct(Number(e.target.value))}
+              disabled={busy}
+              className="w-full accent-[var(--lp-accent)]"
+              aria-label="Negotiation max decrease percent"
+            />
+            <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
+              ↳ agent rejects counters below{' '}
+              {typeof price === 'number'
+                ? (price * (1 - floorPct / 100)).toFixed(2)
+                : '0.00'}{' '}
+              USDC
+            </p>
+          </div>
+
+          <label className="block space-y-1.5">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:WINDOW DAYS:]
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={90}
+              step={1}
+              value={ttlDays === '' ? '' : ttlDays}
+              onChange={(e) => setTtlDays(e.target.value === '' ? '' : Number(e.target.value))}
+              disabled={busy}
+              className="form-input form-input-num"
+            />
+            <span className="mono text-[10px] text-[var(--lp-text-muted)] leading-snug">
+              {ttlChanged
+                ? 'Window re-anchors from now when you save.'
+                : 'Days the listing stays open from today.'}
+            </span>
           </label>
 
           {error && (

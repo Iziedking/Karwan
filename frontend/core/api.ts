@@ -705,7 +705,13 @@ export const api = {
   editListing: (
     id: string,
     caller: string,
-    patch: { title?: string; description?: string; askingPriceUsdc?: number },
+    patch: {
+      title?: string;
+      description?: string;
+      askingPriceUsdc?: number;
+      negotiationMaxDecreasePct?: number;
+      ttlDays?: number;
+    },
   ) =>
     json<{ listing: Listing }>(`/api/listings/${id}/edit`, {
       method: 'POST',
