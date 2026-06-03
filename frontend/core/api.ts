@@ -646,11 +646,31 @@ export const api = {
       `/api/jobs/${jobId}/cancel`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
-  editBrief: (jobId: string, caller: string, briefText: string) =>
-    json<{ brief: { jobId: string; briefText: string; postedBy: string } }>(
-      `/api/jobs/${jobId}/edit`,
-      { method: 'POST', body: JSON.stringify({ caller, briefText }) },
-    ),
+  /// Pre-match edit on a buyer's request. briefText, negotiationMaxIncreasePct,
+  /// and trustedMatch are all optional and at least one must change. Budget
+  /// and deadline aren't editable here because they live on the JobBoard
+  /// contract.
+  editBrief: (
+    jobId: string,
+    body: {
+      caller: string;
+      briefText?: string;
+      negotiationMaxIncreasePct?: number;
+      trustedMatch?: boolean;
+    },
+  ) =>
+    json<{
+      brief: {
+        jobId: string;
+        briefText: string;
+        postedBy: string;
+        negotiationMaxIncreasePct?: number;
+        trustedMatch?: boolean;
+      };
+    }>(`/api/jobs/${jobId}/edit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   nearMiss: (jobId: string, caller?: string | null) =>
     json<{ nearMiss: NearMissApproval | null }>(
       withCaller(`/api/jobs/${jobId}/near-miss`, caller),

@@ -15,6 +15,7 @@ import {
   getMarketplaceBriefs,
   cancelBriefByBuyer,
   proceedAgentNearMiss,
+  patchTrackedJobContext,
   type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
@@ -32,14 +33,26 @@ const addrSchema = z
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 const callerSchema = z.object({ caller: addrSchema });
 const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).max(400).optional() });
-/// Minimal-scope edit. Only the briefText is mutable. Price ceiling
-/// (negotiationMaxIncreasePct), keywords, and trustedMatch toggle stay locked
-/// because changing them mid-walk would desync the seller agent's scoring
-/// against an already-running auction.
-const editBriefSchema = z.object({
-  caller: addrSchema,
-  briefText: z.string().min(5).max(2000),
-});
+/// Pre-match edit. Any of briefText, negotiationMaxIncreasePct, or trustedMatch
+/// can change. Each field is optional but at least one must be provided. The
+/// in-flight match guard at the route layer prevents a desync against a running
+/// auction; once a proposal is on the table, the buyer declines it first.
+/// On-chain budget and deadline remain locked at their post-time values — those
+/// live on JobBoard and changing them needs a new post.
+const editBriefSchema = z
+  .object({
+    caller: addrSchema,
+    briefText: z.string().min(5).max(2000).optional(),
+    negotiationMaxIncreasePct: z.number().min(0).max(50).optional(),
+    trustedMatch: z.boolean().optional(),
+  })
+  .refine(
+    (b) =>
+      b.briefText !== undefined ||
+      b.negotiationMaxIncreasePct !== undefined ||
+      b.trustedMatch !== undefined,
+    { message: 'provide at least one field to change' },
+  );
 const inFlight = new Set<string>();
 
 const USDC_DECIMALS = 6;
@@ -383,28 +396,50 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
       409,
     );
   }
-  if (brief.briefText === body.briefText) {
-    return c.json({ error: 'no change to the request text' }, 400);
+  const patch: Partial<typeof brief> = {};
+  if (body.briefText !== undefined && body.briefText !== brief.briefText) {
+    patch.briefText = body.briefText;
+  }
+  if (
+    body.negotiationMaxIncreasePct !== undefined &&
+    body.negotiationMaxIncreasePct !== brief.negotiationMaxIncreasePct
+  ) {
+    patch.negotiationMaxIncreasePct = body.negotiationMaxIncreasePct;
+  }
+  if (body.trustedMatch !== undefined && body.trustedMatch !== !!brief.trustedMatch) {
+    patch.trustedMatch = body.trustedMatch;
+  }
+  if (Object.keys(patch).length === 0) {
+    return c.json({ error: 'no changes provided' }, 400);
   }
 
-  const next = patchBrief(jobId, { briefText: body.briefText });
-  logger.info({ jobId, postedBy: brief.postedBy }, 'brief edited by buyer');
+  const next = patchBrief(jobId, patch);
+  if (patch.negotiationMaxIncreasePct !== undefined || patch.trustedMatch !== undefined) {
+    patchTrackedJobContext(jobId, {
+      negotiationMaxIncreasePct: patch.negotiationMaxIncreasePct,
+      trustedMatch: patch.trustedMatch,
+    });
+  }
+  logger.info({ jobId, postedBy: brief.postedBy, fields: Object.keys(patch) }, 'brief edited by buyer');
 
   /// Keywords were extracted at post time. The agent scans them for topical
   /// match against incoming listings, so a text change should re-extract.
   /// Fire-and-forget; the API responds immediately and the agent picks up the
   /// new keywords on the next match round.
-  extractKeywords(body.briefText, `brief-edit:${jobId}`)
-    .then((keywords) => {
-      patchBrief(jobId, { keywords });
-      logger.info({ jobId, keywords }, 'brief keywords re-extracted after edit');
-    })
-    .catch((err) => {
-      logger.warn(
-        { err: (err as Error).message, jobId },
-        'brief keyword re-extraction failed; stale keywords will be used',
-      );
-    });
+  if (patch.briefText !== undefined) {
+    const textToScan = patch.briefText;
+    extractKeywords(textToScan, `brief-edit:${jobId}`)
+      .then((keywords) => {
+        patchBrief(jobId, { keywords });
+        logger.info({ jobId, keywords }, 'brief keywords re-extracted after edit');
+      })
+      .catch((err) => {
+        logger.warn(
+          { err: (err as Error).message, jobId },
+          'brief keyword re-extraction failed; stale keywords will be used',
+        );
+      });
+  }
 
   return c.json({ brief: next });
 });

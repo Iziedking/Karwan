@@ -560,12 +560,16 @@ function EditBriefSection({
 
   if (!editable || !callerAddress) return null;
 
-  async function handleSave(briefText: string) {
+  async function handleSave(patch: {
+    briefText?: string;
+    negotiationMaxIncreasePct?: number;
+    trustedMatch?: boolean;
+  }) {
     if (!callerAddress) return;
     setBusy(true);
     setError(null);
     try {
-      await api.editBrief(job.jobId, callerAddress, briefText);
+      await api.editBrief(job.jobId, { caller: callerAddress, ...patch });
       await onEdited();
       setOpen(false);
     } catch (err) {
@@ -583,14 +587,14 @@ function EditBriefSection({
         <div className="px-6 pt-6 pb-3">
           <SectionTag>EDIT</SectionTag>
           <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            Fix the request text
+            Adjust the terms
           </h3>
         </div>
         <div className="px-6 pb-6 space-y-3">
           <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-            Spotted a typo or want to clarify what you need? Update the text now,
-            before a seller agent locks in a match. The agent re-reads the new
-            copy on its next scan.
+            Update the request text, price tolerance, or trusted-match before a
+            seller agent locks in a match. Budget and deadline stay locked
+            because they live on chain.
           </p>
           <button
             type="button"
@@ -607,6 +611,8 @@ function EditBriefSection({
       {open && (
         <EditBriefModal
           initialBriefText={job.briefText ?? ''}
+          initialTolerancePct={job.negotiationMaxIncreasePct ?? 0}
+          initialTrustedMatch={!!job.trustedMatch}
           busy={busy}
           error={error}
           onSave={handleSave}
@@ -622,30 +628,54 @@ function EditBriefSection({
 
 function EditBriefModal({
   initialBriefText,
+  initialTolerancePct,
+  initialTrustedMatch,
   busy,
   error,
   onSave,
   onClose,
 }: {
   initialBriefText: string;
+  initialTolerancePct: number;
+  initialTrustedMatch: boolean;
   busy: boolean;
   error: string | null;
-  onSave: (briefText: string) => void;
+  onSave: (patch: {
+    briefText?: string;
+    negotiationMaxIncreasePct?: number;
+    trustedMatch?: boolean;
+  }) => void;
   onClose: () => void;
 }) {
   const [text, setText] = useState(initialBriefText);
+  const [tolerancePct, setTolerancePct] = useState(initialTolerancePct);
+  const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
+
   const trimmed = text.trim();
-  const dirty = trimmed !== initialBriefText.trim();
-  const valid = trimmed.length >= 5 && trimmed.length <= 2000 && dirty;
+  const textChanged = trimmed !== initialBriefText.trim();
+  const toleranceChanged = tolerancePct !== initialTolerancePct;
+  const trustedChanged = trustedMatch !== initialTrustedMatch;
+  const dirty = textChanged || toleranceChanged || trustedChanged;
+  const textValid = trimmed.length >= 5 && trimmed.length <= 2000;
+  const toleranceValid = tolerancePct >= 0 && tolerancePct <= 50;
+  const valid = textValid && toleranceValid && dirty;
 
   function submit() {
     if (!valid || busy) return;
-    onSave(trimmed);
+    const patch: {
+      briefText?: string;
+      negotiationMaxIncreasePct?: number;
+      trustedMatch?: boolean;
+    } = {};
+    if (textChanged) patch.briefText = trimmed;
+    if (toleranceChanged) patch.negotiationMaxIncreasePct = tolerancePct;
+    if (trustedChanged) patch.trustedMatch = trustedMatch;
+    onSave(patch);
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
@@ -653,7 +683,7 @@ function EditBriefModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg overflow-hidden"
+        className="w-full max-w-lg my-auto overflow-hidden"
         style={{
           background: 'var(--lp-card)',
           color: 'var(--lp-dark)',
@@ -670,15 +700,15 @@ function EditBriefModal({
             [:EDIT REQUEST:]
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
-            Update the text
+            Update terms
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-4">
           <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
-            The off-chain text updates right away. Keywords re-extract for the
-            agent&apos;s next scan. Other fields (budget, deadline, tolerance)
-            stay locked because the auction relies on them.
+            The agent picks up these changes on its next scan. Budget and
+            deadline stay locked because they live on the JobBoard contract;
+            cancel and re-post to change those.
           </p>
 
           <label className="block space-y-1.5">
@@ -689,13 +719,75 @@ function EditBriefModal({
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={busy}
-              rows={8}
+              rows={6}
               className="form-input form-textarea"
               maxLength={2000}
             />
             <span className="mono text-[10px] text-[var(--lp-text-muted)]">
               {text.length}/2000
             </span>
+          </label>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:PRICE TOLERANCE:]
+              </span>
+              <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+                +{tolerancePct}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={50}
+              step={1}
+              value={tolerancePct}
+              onChange={(e) => setTolerancePct(Number(e.target.value))}
+              disabled={busy}
+              className="w-full accent-[var(--lp-accent)]"
+              aria-label="Price tolerance percent"
+            />
+            <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
+              ↳ agent may accept counters up to your budget +{tolerancePct}%
+            </p>
+          </div>
+
+          <label
+            className="flex items-start gap-3 px-4 py-3 cursor-pointer"
+            style={{
+              background: trustedMatch
+                ? 'color-mix(in oklab, var(--lp-accent) 10%, transparent)'
+                : 'var(--lp-light)',
+              border: trustedMatch
+                ? '1px solid color-mix(in oklab, var(--lp-accent) 35%, transparent)'
+                : '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={trustedMatch}
+              onChange={(e) => setTrustedMatch(e.target.checked)}
+              disabled={busy}
+              className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+            />
+            <div className="min-w-0">
+              <span
+                className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+                style={{ color: trustedMatch ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+              >
+                [:TRUSTED MATCH:]
+              </span>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+                Weight seller reputation and stake above price. Bids gate on
+                the seller's free stake covering the deal's insurance
+                reservation. For higher-value or one-shot trades.
+              </p>
+            </div>
           </label>
 
           {error && (

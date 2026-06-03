@@ -2181,6 +2181,25 @@ export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
   return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
 }
 
+/// Patches the cached negotiation context for a tracked job. Used by the brief
+/// edit route so the next bid evaluation picks up the new tolerance and
+/// trustedMatch flag without the buyer having to repost. No-op when the job
+/// isn't currently tracked (a brief can outlive its in-memory state across a
+/// backend restart; the next reseed reads the fresh brief anyway).
+export function patchTrackedJobContext(
+  jobId: string,
+  patch: { negotiationMaxIncreasePct?: number; trustedMatch?: boolean },
+): void {
+  const s = jobs.get(jobId as `0x${string}`);
+  if (!s) return;
+  if (patch.negotiationMaxIncreasePct !== undefined) {
+    s.context.negotiationMaxIncreasePct = patch.negotiationMaxIncreasePct;
+  }
+  if (patch.trustedMatch !== undefined) {
+    s.context.trustedMatch = patch.trustedMatch;
+  }
+}
+
 /// Returns the JobContext of every open (not finalized, not escrow-funded,
 /// not expired) job. Used by listings cross-matching to scan briefs that a
 /// new listing could fill.
