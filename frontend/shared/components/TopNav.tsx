@@ -55,7 +55,7 @@ export function TopNav() {
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={menuOpen ? t.nav.menuCloseAria : t.nav.menuOpenAria}
               aria-expanded={menuOpen}
               className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md border border-[var(--color-line)] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors shrink-0"
             >
@@ -106,7 +106,7 @@ export function TopNav() {
             <NavLink
               href="/app"
               active={pathname === '/app'}
-              title="Your home base. Deals, activity, and what to do next."
+              title={t.nav.hints.home}
             >
               {t.nav.home}
             </NavLink>
@@ -114,38 +114,38 @@ export function TopNav() {
             <NavLink
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
-              title="Browse open requests and offers from others."
+              title={t.nav.hints.market}
             >
-              Market
+              {t.nav.market}
             </NavLink>
             <NavLink
               href="/bridge"
               active={pathname.startsWith('/bridge')}
-              title="Move USDC from another chain onto Arc."
+              title={t.nav.hints.bridge}
             >
-              Bridge
+              {t.nav.bridge}
             </NavLink>
-            <NavLinkSoon title="Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.">
-              SME Trades
+            <NavLinkSoon title={t.nav.hints.smeTrades} soonLabel={t.nav.soonBadge}>
+              {t.nav.smeTrades}
             </NavLinkSoon>
             <NavLink
               href="/activity"
               active={pathname.startsWith('/activity')}
-              title="Live feed of every deal and settlement."
+              title={t.nav.hints.activity}
             >
               {t.nav.activity}
             </NavLink>
             <NavLink
               href="/stake"
               active={pathname.startsWith('/stake')}
-              title="Lock USDC to raise your reputation tier."
+              title={t.nav.hints.stake}
             >
               {t.nav.stake}
             </NavLink>
             <NavLink
               href="/profile"
               active={pathname.startsWith('/profile')}
-              title="Your wallets, agents, and reputation."
+              title={t.nav.hints.profile}
             >
               {t.nav.profile}
             </NavLink>
@@ -203,7 +203,7 @@ export function TopNav() {
             {/* Trades group: buyer + seller, labelled so the two desks read as
                 distinct surfaces, not a flat list. */}
             <p className="px-3 pt-3 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-              Trades
+              {t.nav.tradesGroupEyebrow}
             </p>
             <MobileNavLink
               href="/buyer"
@@ -223,12 +223,12 @@ export function TopNav() {
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
             >
-              Market
+              {t.nav.market}
             </MobileNavLink>
             <MobileNavLink href="/bridge" active={pathname.startsWith('/bridge')}>
-              Bridge
+              {t.nav.bridge}
             </MobileNavLink>
-            <MobileNavLinkSoon>SME Trades</MobileNavLinkSoon>
+            <MobileNavLinkSoon soonLabel={t.nav.soonBadge}>{t.nav.smeTrades}</MobileNavLinkSoon>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
               {t.nav.activity}
             </MobileNavLink>
@@ -313,9 +313,11 @@ function NavLink({
 function NavLinkSoon({
   children,
   title,
+  soonLabel,
 }: {
   children: React.ReactNode;
   title?: string;
+  soonLabel: string;
 }) {
   return (
     <span
@@ -332,13 +334,19 @@ function NavLinkSoon({
           borderRadius: 3,
         }}
       >
-        soon
+        {soonLabel}
       </span>
     </span>
   );
 }
 
-function MobileNavLinkSoon({ children }: { children: React.ReactNode }) {
+function MobileNavLinkSoon({
+  children,
+  soonLabel,
+}: {
+  children: React.ReactNode;
+  soonLabel: string;
+}) {
   return (
     <span
       aria-disabled="true"
@@ -353,7 +361,7 @@ function MobileNavLinkSoon({ children }: { children: React.ReactNode }) {
           borderRadius: 3,
         }}
       >
-        soon
+        {soonLabel}
       </span>
     </span>
   );
@@ -363,6 +371,7 @@ function MobileNavLinkSoon({ children }: { children: React.ReactNode }) {
 /// desk its own labelled row with a distinct accent dot, so the two surfaces
 /// read as separate, not a flat list. Hover-opens on desktop; chevron rotates.
 function TradesDropdown({ active }: { active: boolean }) {
+  const t = useTranslations().nav;
   const [open, setOpen] = useState(false);
   return (
     <div
@@ -381,7 +390,7 @@ function TradesDropdown({ active }: { active: boolean }) {
             : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
         )}
       >
-        Trades
+        {t.trades}
         <svg
           width="9"
           height="9"
@@ -414,15 +423,15 @@ function TradesDropdown({ active }: { active: boolean }) {
           >
             <TradesItem
               href="/buyer"
-              title="Buyer desk"
-              sub="Post a request. Agents run the bidding."
+              title={t.tradesDropdown.buyerTitle}
+              sub={t.tradesDropdown.buyerSub}
               accent="var(--lp-accent)"
             />
             <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
             <TradesItem
               href="/seller"
-              title="Seller desk"
-              sub="Post an offer. Take incoming deals."
+              title={t.tradesDropdown.sellerTitle}
+              sub={t.tradesDropdown.sellerSub}
               accent="#7CC2FF"
             />
           </div>
@@ -483,13 +492,14 @@ function QuickControls({
   isAuthenticated: boolean;
   settingsActive: boolean;
 }) {
+  const t = useTranslations().nav;
   const [open, setOpen] = useState(false);
   return (
     <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Preferences"
+        aria-label={t.preferencesAria}
         aria-expanded={open}
         className={cn(
           'inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
@@ -517,10 +527,10 @@ function QuickControls({
               boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
             }}
           >
-            <ControlRow label="Theme">
+            <ControlRow label={t.controlLabels.theme}>
               <ThemeToggle />
             </ControlRow>
-            <ControlRow label="Sound">
+            <ControlRow label={t.controlLabels.sound}>
               <SoundToggle />
             </ControlRow>
             {isAuthenticated && (
@@ -530,7 +540,7 @@ function QuickControls({
                   href="/settings"
                   className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
                 >
-                  <span>All settings</span>
+                  <span>{t.allSettings}</span>
                   <span aria-hidden className="text-[var(--color-ink-faint)]">
                     →
                   </span>
@@ -554,11 +564,12 @@ function ControlRow({ label, children }: { label: string; children: React.ReactN
 }
 
 function SettingsIconLink({ active }: { active: boolean }) {
+  const t = useTranslations().nav;
   return (
     <Link
       href="/settings"
-      aria-label="Settings"
-      title="Settings"
+      aria-label={t.settingsAriaTitle}
+      title={t.settingsAriaTitle}
       className={cn(
         'inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
         active

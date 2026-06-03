@@ -26,6 +26,36 @@ interface MessagesShape {
     stake: string;
     profile: string;
     deals: string;
+    market: string;
+    bridge: string;
+    smeTrades: string;
+    trades: string;
+    tradesGroupEyebrow: string;
+    soonBadge: string;
+    hints: {
+      home: string;
+      market: string;
+      bridge: string;
+      smeTrades: string;
+      activity: string;
+      stake: string;
+      profile: string;
+    };
+    tradesDropdown: {
+      buyerTitle: string;
+      buyerSub: string;
+      sellerTitle: string;
+      sellerSub: string;
+    };
+    menuOpenAria: string;
+    menuCloseAria: string;
+    preferencesAria: string;
+    settingsAriaTitle: string;
+    controlLabels: {
+      theme: string;
+      sound: string;
+    };
+    allSettings: string;
   };
   settings: {
     eyebrow: string;
@@ -584,6 +614,41 @@ interface MessagesShape {
       nextAria: string;
     };
   };
+  dealStage: {
+    labels: {
+      'awaiting-acceptance': string;
+      'awaiting-delivery': string;
+      'awaiting-first-release': string;
+      'awaiting-final-release': string;
+      settled: string;
+      cancelled: string;
+      disputed: string;
+    };
+  };
+  directDealList: {
+    errorBody: string;
+    empty: {
+      noDealsTag: string;
+      allDismissedTag: string;
+      promptBuyer: string;
+      promptSeller: string;
+      promptBoth: string;
+      promptAllDismissed: string;
+    };
+    roleEyebrow: {
+      buying: string;
+      selling: string;
+    };
+    counterpartyEyebrow: {
+      seller: string;
+      buyer: string;
+    };
+    swipe: {
+      dismissReveal: string;
+      dismissTitle: string;
+      dismissAria: string;
+    };
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -790,6 +855,36 @@ export const en: MessagesShape = {
     stake: 'Stake',
     profile: 'Profile',
     deals: 'Deals',
+    market: 'Market',
+    bridge: 'Bridge',
+    smeTrades: 'SME Trades',
+    trades: 'Trades',
+    tradesGroupEyebrow: 'Trades',
+    soonBadge: 'soon',
+    hints: {
+      home: 'Your home base. Deals, activity, and what to do next.',
+      market: 'Browse open requests and offers from others.',
+      bridge: 'Move USDC from another chain onto Arc.',
+      smeTrades: 'Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.',
+      activity: 'Live feed of every deal and settlement.',
+      stake: 'Lock USDC to raise your reputation tier.',
+      profile: 'Your wallets, agents, and reputation.',
+    },
+    tradesDropdown: {
+      buyerTitle: 'Buyer desk',
+      buyerSub: 'Post a request. Agents run the bidding.',
+      sellerTitle: 'Seller desk',
+      sellerSub: 'Post an offer. Take incoming deals.',
+    },
+    menuOpenAria: 'Open menu',
+    menuCloseAria: 'Close menu',
+    preferencesAria: 'Preferences',
+    settingsAriaTitle: 'Settings',
+    controlLabels: {
+      theme: 'Theme',
+      sound: 'Sound',
+    },
+    allSettings: 'All settings',
   },
   settings: {
     eyebrow: 'SETTINGS',
@@ -1383,6 +1478,41 @@ export const en: MessagesShape = {
       countPlural: '{n} deals',
       prevAria: 'Previous page',
       nextAria: 'Next page',
+    },
+  },
+  dealStage: {
+    labels: {
+      'awaiting-acceptance': 'Pending acceptance',
+      'awaiting-delivery': 'Awaiting delivery',
+      'awaiting-first-release': 'Delivered',
+      'awaiting-final-release': 'Releasing',
+      settled: 'Settled',
+      cancelled: 'Cancelled',
+      disputed: 'Disputed',
+    },
+  },
+  directDealList: {
+    errorBody: "Couldn't load direct deals.",
+    empty: {
+      noDealsTag: 'NO DEALS YET',
+      allDismissedTag: 'ALL DISMISSED',
+      promptBuyer: 'Deals you open land here.',
+      promptSeller: 'Deals naming your wallet land here.',
+      promptBoth: 'Deals you open or that name your wallet land here.',
+      promptAllDismissed: 'Every deal in this list has been dismissed.',
+    },
+    roleEyebrow: {
+      buying: 'BUYING',
+      selling: 'SELLING',
+    },
+    counterpartyEyebrow: {
+      seller: 'SELLER',
+      buyer: 'BUYER',
+    },
+    swipe: {
+      dismissReveal: 'Dismiss',
+      dismissTitle: 'Dismiss',
+      dismissAria: 'Dismiss this deal from the list',
     },
   },
   tierCelebration: {
