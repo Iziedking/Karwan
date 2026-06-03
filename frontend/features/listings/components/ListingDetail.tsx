@@ -15,10 +15,12 @@ import {
   PageCard,
   CTAPill,
 } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type FetchState = 'loading' | 'ok' | 'error';
 
 export function ListingDetail({ listingId }: { listingId: string }) {
+  const ld = useTranslations().listingDetail;
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
@@ -110,18 +112,18 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch]">
-            <SectionTag tone="dark">LISTING NOT FOUND</SectionTag>
+            <SectionTag tone="dark">{ld.notFound.tag}</SectionTag>
             <HeroHeadline size="md">
-              We couldn&apos;t load this offer<Punc>.</Punc>
+              {ld.notFound.headline}<Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              The link may be wrong, or the offer has been removed.
+              {ld.notFound.body}
             </p>
             <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-white/45 break-all">
               {listingId}
             </p>
             <div className="mt-7">
-              <CTAPill href="/seller">Back to seller desk</CTAPill>
+              <CTAPill href="/seller">{ld.notFound.backCta}</CTAPill>
             </div>
           </div>
         </Band>
@@ -141,12 +143,12 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   // can't leak it.
   const showFloor = viewerIsOwner && floor != null;
   const statusLabel = isCancelled
-    ? 'Cancelled'
+    ? ld.hero.statuses.cancelled
     : isExpired
-      ? 'Expired'
+      ? ld.hero.statuses.expired
       : matched
-        ? 'Matched'
-        : 'Open';
+        ? ld.hero.statuses.matched
+        : ld.hero.statuses.open;
   const statusTone = isCancelled
     ? '#b03d3a'
     : isExpired
@@ -174,14 +176,14 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             >
               ←
             </span>
-            Back to seller
+            {ld.backToSeller}
           </Link>
         </div>
         <div className="grid lg:grid-cols-[1.4fr_auto] gap-6 items-start">
           <div className="min-w-0">
             <div className="fade-up fade-up-1 flex items-center gap-3 flex-wrap">
               <SectionTag tone="dark" dot={matched ? undefined : 'live'}>
-                LISTING
+                {ld.hero.listingTag}
               </SectionTag>
               <span
                 className="inline-flex items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 border"
@@ -207,7 +209,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-3 mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45 tabular-nums">
-              posted {relativeTime(listing.postedAt)}
+              {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt))}
             </p>
           </div>
           <div className="fade-up fade-up-4 flex items-baseline gap-2 shrink-0">
@@ -222,9 +224,9 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       </Band>
 
       <Band tone="light" compact>
-        <SectionTag>OFFER</SectionTag>
+        <SectionTag>{ld.pitch.sectionTag}</SectionTag>
         <HeroHeadline size="md">
-          The pitch<Punc>.</Punc>
+          {ld.pitch.headline}<Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-8 grid md:grid-cols-2 gap-5">
           <PageCard>
@@ -236,26 +238,29 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           </PageCard>
           <PageCard>
             <div className="p-6 md:p-7 space-y-4">
-              <PriceRow label="Asking" value={listing.askingPriceUsdc} strong />
+              <PriceRow label={ld.pitch.askingLabel} value={listing.askingPriceUsdc} strong />
               {showFloor && (
                 <>
                   <PriceRow
-                    label={`Your floor (${listing.negotiationMaxDecreasePct ?? 0}% accept)`}
+                    label={ld.pitch.floorLabelTemplate.replace(
+                      '{n}',
+                      String(listing.negotiationMaxDecreasePct ?? 0),
+                    )}
                     value={floor!}
                   />
                   <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] leading-snug">
-                    [:PRIVATE:] only you see this. Your agent uses it to steer counters.
+                    {ld.pitch.floorNote}
                   </p>
                 </>
               )}
               <div className="pt-3 border-t border-[var(--lp-border-light)] space-y-2">
                 <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  [:SELLER:]
+                  {ld.pitch.sellerEyebrow}
                 </p>
                 <p className="mono text-[13px] text-[var(--lp-dark)] tabular-nums">
                   {shortAddress(listing.sellerUser)}
                   {viewerIsOwner && (
-                    <span style={{ color: 'var(--lp-accent)' }}> · you</span>
+                    <span style={{ color: 'var(--lp-accent)' }}>{ld.pitch.selfSuffix}</span>
                   )}
                 </p>
               </div>
@@ -269,31 +274,31 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           <div className="max-w-[42ch]">
             <SectionTag tone="dark" dot={isTerminal ? undefined : 'live'}>
               {isCancelled
-                ? 'CANCELLED'
+                ? ld.state.tags.cancelled
                 : isExpired
-                  ? 'EXPIRED'
+                  ? ld.state.tags.expired
                   : matched
-                    ? 'MATCHED'
+                    ? ld.state.tags.matched
                     : viewerIsOwner
-                      ? 'SCANNING'
-                      : 'OPEN'}
+                      ? ld.state.tags.scanning
+                      : ld.state.tags.open}
             </SectionTag>
             <HeroHeadline size="md">
               {isCancelled ? (
-                <>You called it off<Punc>.</Punc></>
+                <>{ld.state.headlines.cancelled}<Punc>.</Punc></>
               ) : isExpired ? (
-                <>Offer window closed<Punc>.</Punc></>
+                <>{ld.state.headlines.expired}<Punc>.</Punc></>
               ) : matched ? (
-                <>Request landed<Punc>.</Punc></>
+                <>{ld.state.headlines.matched}<Punc>.</Punc></>
               ) : viewerIsOwner ? (
-                <>Agent is watching<Punc>.</Punc></>
+                <>{ld.state.headlines.scanning}<Punc>.</Punc></>
               ) : (
-                <>Open a deal<Punc>.</Punc></>
+                <>{ld.state.headlines.openBuyer}<Punc>.</Punc></>
               )}
             </HeroHeadline>
             {isOpen && listing.expiresAt && (
               <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45">
-                Window closes {relativeTime(listing.expiresAt)}
+                {ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt))}
               </p>
             )}
           </div>
@@ -310,38 +315,32 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           >
             {isCancelled ? (
               <p className="text-[14px] leading-relaxed text-white/70">
-                You cancelled this offer. It no longer scans for matches and won&apos;t accept
-                bids. Post a new offer if you want to offer again.
+                {ld.state.cancelledBody}
               </p>
             ) : isExpired ? (
               listing.matchedJobId ? (
                 <div className="space-y-4">
                   <p className="text-[14px] leading-relaxed text-white/70">
-                    The matching window has closed. Your agent did match a request and bid
-                    on it, but the buyer did not accept before the window expired. Open the
-                    matched job to see how it played out, or post a new offer.
+                    {ld.state.expiredMatchedBody}
                   </p>
-                  <CTAPill href={`/jobs/${listing.matchedJobId}`}>Open matched job</CTAPill>
+                  <CTAPill href={`/jobs/${listing.matchedJobId}`}>{ld.state.openMatchedCta}</CTAPill>
                 </div>
               ) : (
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  The matching window has closed. No bid landed in time. Post a new offer to put
-                  it back in front of buyer agents.
+                  {ld.state.expiredUnmatchedBody}
                 </p>
               )
             ) : matched ? (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  Your agent bid on a matching request. The auction continues on the job page.
+                  {ld.state.matchedBody}
                 </p>
-                <CTAPill href={`/jobs/${listing.matchedJobId}`}>Open matched job</CTAPill>
+                <CTAPill href={`/jobs/${listing.matchedJobId}`}>{ld.state.openMatchedCta}</CTAPill>
               </div>
             ) : viewerIsOwner ? (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  The seller agent watches every request that lands. When one matches this offer
-                  and the price gap is crossable, it bids automatically. You will get a
-                  notification the moment that happens.
+                  {ld.state.scanningBody}
                 </p>
                 {!confirmCancel ? (
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -350,14 +349,14 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                       onClick={() => setShowEdit(true)}
                       className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)] underline underline-offset-2"
                     >
-                      Edit this offer
+                      {ld.state.editCta}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmCancel(true)}
                       className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-white/55 hover:text-white underline underline-offset-2"
                     >
-                      Cancel this offer
+                      {ld.state.cancelCta}
                     </button>
                   </div>
                 ) : (
@@ -373,8 +372,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                     }}
                   >
                     <p className="text-[13px] text-white/85 leading-snug">
-                      Cancel this offer? It drops out of every match scanner immediately.
-                      Cannot be undone. Post fresh if you change your mind.
+                      {ld.state.confirmCancelBody}
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       <button
@@ -390,7 +388,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                           borderBottomRightRadius: 2,
                         }}
                       >
-                        {cancelling ? 'Cancelling...' : 'Yes, cancel'}
+                        {cancelling ? ld.state.confirmYesBusy : ld.state.confirmYes}
                       </button>
                       <button
                         type="button"
@@ -398,7 +396,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                         disabled={cancelling}
                         className="mono text-[11px] uppercase tracking-[0.10em] text-white/70 hover:text-white"
                       >
-                        Keep listed
+                        {ld.state.confirmNo}
                       </button>
                     </div>
                     {cancelError && (
@@ -410,10 +408,14 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             ) : (
               <div className="space-y-4">
                 <p className="text-[14px] leading-relaxed text-white/70">
-                  This offer is open. Open a direct deal with this seller at the asking
-                  price. Escrow funds when they accept.
+                  {ld.state.buyerBody}
                 </p>
-                <CTAPill href={buyerOfferHref}>Open a deal at {listing.askingPriceUsdc} USDC</CTAPill>
+                <CTAPill href={buyerOfferHref}>
+                  {ld.state.buyerCtaTemplate.replace(
+                    '{amount}',
+                    String(listing.askingPriceUsdc),
+                  )}
+                </CTAPill>
               </div>
             )}
           </div>
@@ -469,6 +471,7 @@ function EditListingModal({
   }) => void;
   onClose: () => void;
 }) {
+  const em = useTranslations().listingDetail.editModal;
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
   const [price, setPrice] = useState<number | ''>(initialAskingPriceUsdc);
@@ -528,21 +531,21 @@ function EditListingModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:EDIT OFFER:]
+            {em.tag}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
-            Fix the details
+            {em.title}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-4">
           <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
-            Edits apply right away. Active match scans use the new copy on their next pass.
+            {em.body}
           </p>
 
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:TITLE:]
+              {em.titleEyebrow}
             </span>
             <input
               type="text"
@@ -559,7 +562,7 @@ function EditListingModal({
 
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:DESCRIPTION:]
+              {em.descriptionEyebrow}
             </span>
             <textarea
               value={description}
@@ -576,7 +579,7 @@ function EditListingModal({
 
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:ASKING PRICE USDC:]
+              {em.askingPriceEyebrow}
             </span>
             <input
               type="number"
@@ -590,7 +593,7 @@ function EditListingModal({
             />
             {priceChanged && (
               <span className="mono text-[10px] text-[var(--lp-text-sub)]">
-                was {initialAskingPriceUsdc} USDC
+                {em.priceWasTemplate.replace('{n}', String(initialAskingPriceUsdc))}
               </span>
             )}
           </label>
@@ -598,7 +601,7 @@ function EditListingModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:PRICE FLOOR:]
+                {em.floorEyebrow}
               </span>
               <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
                 -{floorPct}%
@@ -613,20 +616,19 @@ function EditListingModal({
               onChange={(e) => setFloorPct(Number(e.target.value))}
               disabled={busy}
               className="w-full accent-[var(--lp-accent)]"
-              aria-label="Negotiation max decrease percent"
+              aria-label={em.floorAria}
             />
             <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
-              ↳ agent rejects counters below{' '}
-              {typeof price === 'number'
-                ? (price * (1 - floorPct / 100)).toFixed(2)
-                : '0.00'}{' '}
-              USDC
+              {em.floorFootTemplate.replace(
+                '{amount}',
+                typeof price === 'number' ? (price * (1 - floorPct / 100)).toFixed(2) : '0.00',
+              )}
             </p>
           </div>
 
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:WINDOW DAYS:]
+              {em.windowDaysEyebrow}
             </span>
             <input
               type="number"
@@ -639,9 +641,7 @@ function EditListingModal({
               className="form-input form-input-num"
             />
             <span className="mono text-[10px] text-[var(--lp-text-muted)] leading-snug">
-              {ttlChanged
-                ? 'Window re-anchors from now when you save.'
-                : 'Days the listing stays open from today.'}
+              {ttlChanged ? em.windowReanchored : em.windowDefault}
             </span>
           </label>
 
@@ -651,10 +651,10 @@ function EditListingModal({
 
           <div className="flex items-center gap-3 pt-2">
             <CTAPill onClick={submit} disabled={!valid || busy}>
-              {busy ? 'Saving...' : 'Save changes'}
+              {busy ? em.saving : em.save}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
-              Cancel
+              {em.cancel}
             </CTAPill>
           </div>
         </div>

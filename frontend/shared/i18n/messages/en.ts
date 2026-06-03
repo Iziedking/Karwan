@@ -899,6 +899,99 @@ interface MessagesShape {
       };
     };
   };
+  profilePeek: {
+    closeLabel: string;
+    identityAriaBuyer: string;
+    identityAriaSeller: string;
+    profileAriaBuyer: string;
+    profileAriaSeller: string;
+    compactEyebrowBuyer: string;
+    compactEyebrowSeller: string;
+    fullEyebrowBuyer: string;
+    fullEyebrowSeller: string;
+    noDisplayName: string;
+    copyAddress: string;
+    copied: string;
+    xNotConnected: string;
+    loading: string;
+  };
+  listingDetail: {
+    notFound: {
+      tag: string;
+      headline: string;
+      body: string;
+      backCta: string;
+    };
+    backToSeller: string;
+    hero: {
+      listingTag: string;
+      statuses: {
+        open: string;
+        expired: string;
+        matched: string;
+        cancelled: string;
+      };
+      postedTemplate: string;
+    };
+    pitch: {
+      sectionTag: string;
+      headline: string;
+      askingLabel: string;
+      floorLabelTemplate: string;
+      floorNote: string;
+      sellerEyebrow: string;
+      selfSuffix: string;
+    };
+    state: {
+      tags: {
+        cancelled: string;
+        expired: string;
+        matched: string;
+        scanning: string;
+        open: string;
+      };
+      headlines: {
+        cancelled: string;
+        expired: string;
+        matched: string;
+        scanning: string;
+        openBuyer: string;
+      };
+      windowClosesTemplate: string;
+      cancelledBody: string;
+      expiredMatchedBody: string;
+      expiredUnmatchedBody: string;
+      matchedBody: string;
+      openMatchedCta: string;
+      scanningBody: string;
+      editCta: string;
+      cancelCta: string;
+      confirmCancelBody: string;
+      confirmYes: string;
+      confirmYesBusy: string;
+      confirmNo: string;
+      buyerBody: string;
+      buyerCtaTemplate: string;
+    };
+    editModal: {
+      tag: string;
+      title: string;
+      body: string;
+      titleEyebrow: string;
+      descriptionEyebrow: string;
+      askingPriceEyebrow: string;
+      priceWasTemplate: string;
+      floorEyebrow: string;
+      floorAria: string;
+      floorFootTemplate: string;
+      windowDaysEyebrow: string;
+      windowReanchored: string;
+      windowDefault: string;
+      saving: string;
+      save: string;
+      cancel: string;
+    };
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2236,6 +2329,99 @@ export const en: MessagesShape = {
         settledTemplate: '{n} settled',
         disputedTemplate: '{n} disputed',
       },
+    },
+  },
+  profilePeek: {
+    closeLabel: 'Close',
+    identityAriaBuyer: 'buyer identity',
+    identityAriaSeller: 'seller identity',
+    profileAriaBuyer: 'buyer profile',
+    profileAriaSeller: 'seller profile',
+    compactEyebrowBuyer: '[:BUYER:]',
+    compactEyebrowSeller: '[:SELLER:]',
+    fullEyebrowBuyer: '[:BUYER PROFILE:]',
+    fullEyebrowSeller: '[:SELLER PROFILE:]',
+    noDisplayName: 'no display name set',
+    copyAddress: 'Copy address',
+    copied: 'Copied',
+    xNotConnected: 'X not connected',
+    loading: 'Loading',
+  },
+  listingDetail: {
+    notFound: {
+      tag: 'LISTING NOT FOUND',
+      headline: "We couldn't load this offer",
+      body: 'The link may be wrong, or the offer has been removed.',
+      backCta: 'Back to seller desk',
+    },
+    backToSeller: 'Back to seller',
+    hero: {
+      listingTag: 'LISTING',
+      statuses: {
+        open: 'Open',
+        expired: 'Expired',
+        matched: 'Matched',
+        cancelled: 'Cancelled',
+      },
+      postedTemplate: 'posted {time}',
+    },
+    pitch: {
+      sectionTag: 'OFFER',
+      headline: 'The pitch',
+      askingLabel: 'Asking',
+      floorLabelTemplate: 'Your floor ({n}% accept)',
+      floorNote: '[:PRIVATE:] only you see this. Your agent uses it to steer counters.',
+      sellerEyebrow: '[:SELLER:]',
+      selfSuffix: ' · you',
+    },
+    state: {
+      tags: {
+        cancelled: 'CANCELLED',
+        expired: 'EXPIRED',
+        matched: 'MATCHED',
+        scanning: 'SCANNING',
+        open: 'OPEN',
+      },
+      headlines: {
+        cancelled: 'You called it off',
+        expired: 'Offer window closed',
+        matched: 'Request landed',
+        scanning: 'Agent is watching',
+        openBuyer: 'Open a deal',
+      },
+      windowClosesTemplate: 'Window closes {time}',
+      cancelledBody: "You cancelled this offer. It no longer scans for matches and won't accept bids. Post a new offer if you want to offer again.",
+      expiredMatchedBody: 'The matching window has closed. Your agent did match a request and bid on it, but the buyer did not accept before the window expired. Open the matched job to see how it played out, or post a new offer.',
+      expiredUnmatchedBody: 'The matching window has closed. No bid landed in time. Post a new offer to put it back in front of buyer agents.',
+      matchedBody: 'Your agent bid on a matching request. The auction continues on the job page.',
+      openMatchedCta: 'Open matched job',
+      scanningBody: 'The seller agent watches every request that lands. When one matches this offer and the price gap is crossable, it bids automatically. You will get a notification the moment that happens.',
+      editCta: 'Edit this offer',
+      cancelCta: 'Cancel this offer',
+      confirmCancelBody: 'Cancel this offer? It drops out of every match scanner immediately. Cannot be undone. Post fresh if you change your mind.',
+      confirmYes: 'Yes, cancel',
+      confirmYesBusy: 'Cancelling...',
+      confirmNo: 'Keep listed',
+      buyerBody: 'This offer is open. Open a direct deal with this seller at the asking price. Escrow funds when they accept.',
+      buyerCtaTemplate: 'Open a deal at {amount} USDC',
+    },
+    editModal: {
+      tag: '[:EDIT OFFER:]',
+      title: 'Fix the details',
+      body: 'Edits apply right away. Active match scans use the new copy on their next pass.',
+      titleEyebrow: '[:TITLE:]',
+      descriptionEyebrow: '[:DESCRIPTION:]',
+      askingPriceEyebrow: '[:ASKING PRICE USDC:]',
+      priceWasTemplate: 'was {n} USDC',
+      floorEyebrow: '[:PRICE FLOOR:]',
+      floorAria: 'Negotiation max decrease percent',
+      floorFootTemplate: '↳ agent rejects counters below {amount} USDC',
+      windowDaysEyebrow: '[:WINDOW DAYS:]',
+      windowReanchored: 'Window re-anchors from now when you save.',
+      windowDefault: 'Days the listing stays open from today.',
+      saving: 'Saving...',
+      save: 'Save changes',
+      cancel: 'Cancel',
     },
   },
   jobPage: {

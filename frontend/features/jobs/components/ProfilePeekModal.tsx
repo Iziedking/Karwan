@@ -6,6 +6,7 @@ import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 // Per-tier hue, mirroring ProfileTierCard so the tier reads the same colour
 // everywhere. Shown as a rail down the profile box.
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function ProfilePeekModal({ open, onClose, address, role, compact = false }: Props) {
+  const pp = useTranslations().profilePeek;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const { copied, copy } = useClipboard();
@@ -88,7 +90,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`${role} identity`}
+          aria-label={role === 'buyer' ? pp.identityAriaBuyer : pp.identityAriaSeller}
           onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-[320px] fade-up"
           style={{
@@ -104,7 +106,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={pp.closeLabel}
             className="absolute top-2 end-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -118,7 +120,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
           </button>
           <div className="px-5 py-4">
             <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              [:{role.toUpperCase()}:]
+              {role === 'buyer' ? pp.compactEyebrowBuyer : pp.compactEyebrowSeller}
             </span>
             {displayName ? (
               <>
@@ -135,7 +137,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
                   {shortAddress(address)}
                 </p>
                 <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  no display name set
+                  {pp.noDisplayName}
                 </p>
               </>
             )}
@@ -155,7 +157,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`${role} profile`}
+        aria-label={role === 'buyer' ? pp.profileAriaBuyer : pp.profileAriaSeller}
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-sm overflow-hidden fade-up"
         style={{
@@ -179,7 +181,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={pp.closeLabel}
             className="absolute top-3 end-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -192,7 +194,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
             </svg>
           </button>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{role.toUpperCase()} PROFILE:]
+            {role === 'buyer' ? pp.fullEyebrowBuyer : pp.fullEyebrowSeller}
           </span>
           <h2 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
             {displayName || shortAddress(address)}
@@ -221,7 +223,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
               borderBottomRightRadius: 3,
             }}
           >
-            {copied ? 'Copied' : 'Copy address'}
+            {copied ? pp.copied : pp.copyAddress}
           </button>
           {xHref ? (
             <a
@@ -257,7 +259,7 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
                 borderBottomRightRadius: 3,
               }}
             >
-              {loaded ? 'X not connected' : 'Loading'}
+              {loaded ? pp.xNotConnected : pp.loading}
             </span>
           )}
         </div>
