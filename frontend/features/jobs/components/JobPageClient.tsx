@@ -13,6 +13,7 @@ import {
   Punc,
   CTAPill,
 } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Client-side wrapper for /jobs/[id]. Replaces the previous async server
 /// component so navigation into a job page is instant; the loading.tsx
@@ -31,6 +32,8 @@ function isNotFoundError(message: string): boolean {
 }
 
 export function JobPageClient({ jobId }: { jobId: string }) {
+  const t = useTranslations();
+  const jp = t.jobPage;
   const auth = useAuth();
   const [state, setState] = useState<
     | { kind: 'loading' }
@@ -109,13 +112,13 @@ export function JobPageClient({ jobId }: { jobId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch] fade-up">
-            <SectionTag tone="dark">LOADING JOB</SectionTag>
+            <SectionTag tone="dark">{jp.loading.tag}</SectionTag>
             <HeroHeadline size="md">
-              Fetching the request
+              {jp.loading.headline}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              Reading the live state from the buyer agent.
+              {jp.loading.body}
             </p>
           </div>
         </Band>
@@ -126,36 +129,26 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   if (state.kind === 'private') {
     const negotiating = state.status === 'negotiating';
     const closed = state.status === 'cancelled' || state.status === 'expired';
-    const tag = negotiating ? 'IN NEGOTIATION' : closed ? 'CLOSED' : 'COLLECTING BIDS';
-    const head = negotiating
-      ? 'This deal is private'
-      : closed
-        ? 'This request is closed'
-        : 'This request is collecting bids';
-    const body = negotiating
-      ? 'Two parties are settling this deal privately. You cannot see the negotiation. Post an offer so buyers or an agent can find you, or wait for another opportunity.'
-      : closed
-        ? 'This request is no longer open.'
-        : 'Only the buyer who posted this request can see its live auction. Post your own request, or list what you offer and let buyers come to you.';
+    const variant = negotiating ? 'negotiating' : closed ? 'closed' : 'default';
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch] fade-up">
-            <SectionTag tone="dark">{tag}</SectionTag>
+            <SectionTag tone="dark">{jp.private.tags[variant]}</SectionTag>
             <HeroHeadline size="md">
-              {head}
+              {jp.private.headlines[variant]}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {body}
+              {jp.private.bodies[variant]}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/market">Browse the market</CTAPill>
+              <CTAPill href="/market">{jp.private.browseCta}</CTAPill>
               <Link
                 href="/buyer"
                 className="mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white"
               >
-                Post a request →
+                {jp.private.postCta}
               </Link>
             </div>
           </div>
@@ -170,27 +163,25 @@ export function JobPageClient({ jobId }: { jobId: string }) {
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch] fade-up">
             <SectionTag tone="dark">
-              {state.isNotFound ? 'REQUEST NOT TRACKED YET' : 'JOB ERROR'}
+              {state.isNotFound ? jp.error.notFoundTag : jp.error.errorTag}
             </SectionTag>
             <HeroHeadline size="md">
-              {state.isNotFound ? 'We could not find this request' : 'Could not load this job'}
+              {state.isNotFound ? jp.error.notFoundHeadline : jp.error.errorHeadline}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {state.isNotFound
-                ? 'The backend has no record of this jobId. If you just posted it, give the buyer agent a few more seconds to pick up the on-chain event and try refreshing. If it stays missing, the id may be wrong.'
-                : 'The job id may be wrong, or the backend has not seen it.'}
+              {state.isNotFound ? jp.error.notFoundBody : jp.error.errorBody}
             </p>
             <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-white/45 break-all">
               {jobId}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/buyer">Back to buyer desk</CTAPill>
+              <CTAPill href="/buyer">{jp.error.backCta}</CTAPill>
               <Link
                 href="/activity"
                 className="mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white"
               >
-                See activity →
+                {jp.error.activityCta}
               </Link>
             </div>
           </div>

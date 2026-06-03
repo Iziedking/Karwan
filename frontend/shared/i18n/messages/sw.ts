@@ -738,6 +738,42 @@ export const sw: Messages = {
       day: 'SIKU',
     },
   },
+  jobPage: {
+    loading: {
+      tag: 'INAPAKIA KAZI',
+      headline: 'Inachukua ombi',
+      body: 'Inasoma hali ya moja kwa moja kutoka kwa wakala wa mnunuzi.',
+    },
+    private: {
+      tags: {
+        negotiating: 'MAJADILIANO YANAENDELEA',
+        closed: 'IMEFUNGWA',
+        default: 'INAKUSANYA OFA',
+      },
+      headlines: {
+        negotiating: 'Biashara hii ni ya faragha',
+        closed: 'Ombi hili limefungwa',
+        default: 'Ombi hili linakusanya ofa',
+      },
+      bodies: {
+        negotiating: 'Wahusika wawili wanahitimisha biashara hii kwa faragha. Huwezi kuona majadiliano. Tuma ofa ili wanunuzi au wakala wakupate, au subiri fursa nyingine.',
+        closed: 'Ombi hili halifunguliwi tena.',
+        default: 'Mnunuzi aliyetuma ombi hili tu ndiye anaweza kuona mnada wake wa moja kwa moja. Tuma ombi lako mwenyewe, au orodhesha unachotoa na waache wanunuzi waje kwako.',
+      },
+      browseCta: 'Vinjari soko',
+      postCta: 'Tuma ombi →',
+    },
+    error: {
+      notFoundTag: 'OMBI HALIJAFUATILIWA BADO',
+      errorTag: 'KOSA LA KAZI',
+      notFoundHeadline: 'Hatukuweza kupata ombi hili',
+      errorHeadline: 'Imeshindwa kupakia kazi hii',
+      notFoundBody: 'Seva haina rekodi ya jobId hii. Ikiwa umetuma sasa hivi, mpe wakala wa mnunuzi sekunde chache zaidi kupokea tukio la mnyororo na jaribu kurefresha. Ikibaki imekosekana, kitambulisho kinaweza kuwa kibaya.',
+      errorBody: 'Kitambulisho cha kazi kinaweza kuwa kibaya, au seva haijakiona bado.',
+      backCta: 'Rudi kwa dawati la mnunuzi',
+      activityCta: 'Tazama shughuli →',
+    },
+  },
   postJob: {
     notConnected: 'Ingia kuchapisha biashara. Kibonye cha kuingia kipo kwenye nav.',
     noBuyerProfile: {

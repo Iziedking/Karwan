@@ -708,6 +708,42 @@ interface MessagesShape {
       day: string;
     };
   };
+  jobPage: {
+    loading: {
+      tag: string;
+      headline: string;
+      body: string;
+    };
+    private: {
+      tags: {
+        negotiating: string;
+        closed: string;
+        default: string;
+      };
+      headlines: {
+        negotiating: string;
+        closed: string;
+        default: string;
+      };
+      bodies: {
+        negotiating: string;
+        closed: string;
+        default: string;
+      };
+      browseCta: string;
+      postCta: string;
+    };
+    error: {
+      notFoundTag: string;
+      errorTag: string;
+      notFoundHeadline: string;
+      errorHeadline: string;
+      notFoundBody: string;
+      errorBody: string;
+      backCta: string;
+      activityCta: string;
+    };
+  };
   postJob: {
     notConnected: string;
     noBuyerProfile: {
@@ -1818,6 +1854,42 @@ export const en: MessagesShape = {
       min: 'MIN',
       hr: 'HR',
       day: 'DAY',
+    },
+  },
+  jobPage: {
+    loading: {
+      tag: 'LOADING JOB',
+      headline: 'Fetching the request',
+      body: 'Reading the live state from the buyer agent.',
+    },
+    private: {
+      tags: {
+        negotiating: 'IN NEGOTIATION',
+        closed: 'CLOSED',
+        default: 'COLLECTING BIDS',
+      },
+      headlines: {
+        negotiating: 'This deal is private',
+        closed: 'This request is closed',
+        default: 'This request is collecting bids',
+      },
+      bodies: {
+        negotiating: 'Two parties are settling this deal privately. You cannot see the negotiation. Post an offer so buyers or an agent can find you, or wait for another opportunity.',
+        closed: 'This request is no longer open.',
+        default: 'Only the buyer who posted this request can see its live auction. Post your own request, or list what you offer and let buyers come to you.',
+      },
+      browseCta: 'Browse the market',
+      postCta: 'Post a request →',
+    },
+    error: {
+      notFoundTag: 'REQUEST NOT TRACKED YET',
+      errorTag: 'JOB ERROR',
+      notFoundHeadline: 'We could not find this request',
+      errorHeadline: 'Could not load this job',
+      notFoundBody: 'The backend has no record of this jobId. If you just posted it, give the buyer agent a few more seconds to pick up the on-chain event and try refreshing. If it stays missing, the id may be wrong.',
+      errorBody: 'The job id may be wrong, or the backend has not seen it.',
+      backCta: 'Back to buyer desk',
+      activityCta: 'See activity →',
     },
   },
   postJob: {

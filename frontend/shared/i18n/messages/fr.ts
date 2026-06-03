@@ -738,6 +738,42 @@ export const fr: Messages = {
       day: 'J',
     },
   },
+  jobPage: {
+    loading: {
+      tag: 'CHARGEMENT DU JOB',
+      headline: 'Récupération de la requête',
+      body: "Lecture de l'état en direct depuis l'agent acheteur.",
+    },
+    private: {
+      tags: {
+        negotiating: 'EN NÉGOCIATION',
+        closed: 'FERMÉ',
+        default: 'COLLECTE DES OFFRES',
+      },
+      headlines: {
+        negotiating: 'Ce deal est privé',
+        closed: 'Cette requête est fermée',
+        default: 'Cette requête collecte des offres',
+      },
+      bodies: {
+        negotiating: "Deux parties règlent ce deal en privé. Vous ne pouvez pas voir la négociation. Publiez une offre pour que des acheteurs ou un agent vous trouvent, ou attendez une autre opportunité.",
+        closed: "Cette requête n'est plus ouverte.",
+        default: "Seul l'acheteur qui a publié cette requête peut voir son enchère en direct. Publiez votre propre requête, ou listez ce que vous offrez et laissez les acheteurs venir à vous.",
+      },
+      browseCta: 'Parcourir le marché',
+      postCta: 'Publier une requête →',
+    },
+    error: {
+      notFoundTag: 'REQUÊTE PAS ENCORE SUIVIE',
+      errorTag: 'ERREUR DU JOB',
+      notFoundHeadline: "Impossible de trouver cette requête",
+      errorHeadline: 'Impossible de charger ce job',
+      notFoundBody: "Le backend n'a aucun enregistrement de ce jobId. Si vous venez de le publier, accordez à l'agent acheteur quelques secondes pour capter l'événement on-chain et essayez de rafraîchir. S'il reste manquant, l'identifiant est peut-être faux.",
+      errorBody: "Le jobId est peut-être faux, ou le backend ne l'a pas encore vu.",
+      backCta: "Retour au bureau de l'acheteur",
+      activityCta: "Voir l'activité →",
+    },
+  },
   postJob: {
     notConnected: 'Connectez-vous pour publier un deal. Le bouton de connexion est dans la nav.',
     noBuyerProfile: {
