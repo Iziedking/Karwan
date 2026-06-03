@@ -738,6 +738,52 @@ export const fr: Messages = {
       day: 'J',
     },
   },
+  liveJob: {
+    backToBuyer: "RETOUR À L'ACHETEUR",
+    backToSeller: 'RETOUR AU VENDEUR',
+    managedDealTag: 'DEAL GÉRÉ',
+    statusEyebrow: {
+      positive: 'RÉGLÉ',
+      warning: 'EN COURS',
+      accent: 'EN DIRECT',
+      default: 'OUVERT',
+      critical: 'REFUSÉ',
+    },
+    statusLabels: {
+      escrowFundedTemplate: 'Séquestre financé · {amount}',
+      requestExpired: 'Requête expirée',
+      negotiationEnded: 'Négociation terminée',
+      matchAwaitingTemplate: 'Match · {price} USDC · en attente d’approbation',
+      acceptedFunding: 'Accepté · financement du séquestre',
+      bidsNegotiatingOne: '1 offre · négociation',
+      bidsNegotiatingMany: '{n} offres · négociation',
+      waitingOnSellers: 'En attente des agents vendeurs',
+    },
+    stats: {
+      budget: 'Budget',
+      bids: 'Offres',
+      deadline: 'Échéance',
+      termsHash: 'Hash des termes',
+      statusLabel: 'Statut',
+      escrowFunded: 'Séquestre financé',
+      accepted: 'Accepté',
+      expired: 'Expiré',
+      ended: 'Terminé',
+    },
+    brief: {
+      eyebrow: '[:REQUÊTE:]',
+      trustedMatchBadge: '★ MATCH DE CONFIANCE',
+      trustedMatchTooltip: "L'acheteur a activé le Match de confiance. La boucle d'agent privilégie la réputation et la mise du vendeur au prix; les vendeurs doivent détenir une mise libre pour enchérir.",
+    },
+    expired: {
+      eyebrow: 'Requête expirée · lecture seule',
+      bodyTemplate: "Échéance {time}. L'agent a arrêté de suivre cette requête, aucun fonds n'a été déplacé. Ouvrez une nouvelle requête pour relancer une enchère.",
+    },
+    sections: {
+      flow: 'FLUX',
+      bids: 'OFFRES',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'CHARGEMENT DU JOB',

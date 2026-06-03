@@ -26,10 +26,13 @@ import {
   PageCard,
   CTAPill,
 } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
+  const t = useTranslations();
+  const lj = t.liveJob;
   const { job, refresh: refreshJob } = useJobSnapshot(initial);
   const { events, active, completed, declined, ended } = useJobLiveState(job);
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
@@ -59,30 +62,46 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
     !!proposal &&
     address.toLowerCase() === proposal.sellerUser.toLowerCase();
   const backHref = viewerIsSeller ? '/seller' : '/buyer';
-  const backLabel = viewerIsSeller ? 'BACK TO SELLER' : 'BACK TO BUYER';
+  const backLabel = viewerIsSeller ? lj.backToSeller : lj.backToBuyer;
 
   const expired = !!job.expiredAt;
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
-    ? { label: `Escrow funded · ${formatUsdc(job.budgetUsdc)}`, tone: 'positive', live: false }
+    ? {
+        label: lj.statusLabels.escrowFundedTemplate.replace(
+          '{amount}',
+          formatUsdc(job.budgetUsdc),
+        ),
+        tone: 'positive',
+        live: false,
+      }
     : expired
-      ? { label: 'Request expired', tone: 'default', live: false }
+      ? { label: lj.statusLabels.requestExpired, tone: 'default', live: false }
       : declined
-        ? { label: 'Negotiation ended', tone: 'critical', live: false }
+        ? { label: lj.statusLabels.negotiationEnded, tone: 'critical', live: false }
         : matchPending
           ? {
-              label: `Match · ${proposal!.agreedPriceUsdc} USDC · awaiting approval`,
+              label: lj.statusLabels.matchAwaitingTemplate.replace(
+                '{price}',
+                proposal!.agreedPriceUsdc,
+              ),
               tone: 'warning',
               live: true,
             }
           : job.finalized
-            ? { label: 'Accepted · funding escrow', tone: 'warning', live: true }
+            ? { label: lj.statusLabels.acceptedFunding, tone: 'warning', live: true }
             : job.bids.length > 0
               ? {
-                  label: `${job.bids.length} bid${job.bids.length === 1 ? '' : 's'} · negotiating`,
+                  label:
+                    job.bids.length === 1
+                      ? lj.statusLabels.bidsNegotiatingOne
+                      : lj.statusLabels.bidsNegotiatingMany.replace(
+                          '{n}',
+                          String(job.bids.length),
+                        ),
                   tone: 'accent',
                   live: true,
                 }
-              : { label: 'Waiting on seller agents', tone: 'default', live: true };
+              : { label: lj.statusLabels.waitingOnSellers, tone: 'default', live: true };
 
   return (
     <FullBleed>
@@ -107,7 +126,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <div className="min-w-0">
             <div className="fade-up fade-up-1">
               <SectionTag tone="dark" dot={status.live ? 'live' : undefined}>
-                MANAGED DEAL
+                {lj.managedDealTag}
               </SectionTag>
             </div>
             <div className="fade-up fade-up-2">
@@ -121,7 +140,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             </p>
           </div>
           <div className="fade-up fade-up-4">
-            <StatusChip label={status.label} tone={status.tone} live={status.live} />
+            <StatusChip
+              label={status.label}
+              tone={status.tone}
+              live={status.live}
+              eyebrows={lj.statusEyebrow}
+            />
           </div>
         </div>
       </Band>
@@ -130,27 +154,27 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       <Band tone="light" compact>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 fade-up">
           <StatTile
-            label="Budget"
+            label={lj.stats.budget}
             value={formatUsdc(job.budgetUsdc, { withSuffix: false })}
             unit="USDC"
           />
-          <StatTile label="Bids" value={String(job.bids.length)} />
+          <StatTile label={lj.stats.bids} value={String(job.bids.length)} />
           {/* Once a match is approved or escrow has funded, the brief deadline
               is irrelevant. show the auction state instead. The page redirects
               to /deals/[id] on escrowFunded anyway, but during the brief flash
               we don't want to mislead. */}
           {job.escrowFunded ? (
-            <StatTile label="Status" value="Escrow funded" small />
+            <StatTile label={lj.stats.statusLabel} value={lj.stats.escrowFunded} small />
           ) : proposal?.approvedAt ? (
-            <StatTile label="Status" value="Accepted" small />
+            <StatTile label={lj.stats.statusLabel} value={lj.stats.accepted} small />
           ) : expired ? (
-            <StatTile label="Status" value="Expired" small />
+            <StatTile label={lj.stats.statusLabel} value={lj.stats.expired} small />
           ) : declined ? (
-            <StatTile label="Status" value="Ended" small />
+            <StatTile label={lj.stats.statusLabel} value={lj.stats.ended} small />
           ) : (
-            <StatTile label="Deadline" value={relativeTime(job.deadlineUnix)} small />
+            <StatTile label={lj.stats.deadline} value={relativeTime(job.deadlineUnix)} small />
           )}
-          <StatTile label="Terms hash" value={shortHash(job.termsHash, 6, 4)} mono />
+          <StatTile label={lj.stats.termsHash} value={shortHash(job.termsHash, 6, 4)} mono />
         </div>
 
         {/* BRIEF BAND. Renders the human-readable brief text the buyer
@@ -173,7 +197,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <div className="flex-1 px-5 py-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
                   <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)]">
-                    [:REQUEST:]
+                    {lj.brief.eyebrow}
                   </p>
                   {job.trustedMatch && (
                     <span
@@ -183,9 +207,9 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                         color: 'var(--lp-band-dark)',
                         borderRadius: 3,
                       }}
-                      title="Buyer opted into Trusted Match. The agent loop weights seller reputation and stake above price; sellers must hold free stake to bid."
+                      title={lj.brief.trustedMatchTooltip}
                     >
-                      ★ TRUSTED MATCH
+                      {lj.brief.trustedMatchBadge}
                     </span>
                   )}
                 </div>
@@ -231,11 +255,10 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <span aria-hidden className="w-[3px]" style={{ background: '#6b6b6b' }} />
               <div className="flex-1 px-5 py-4">
                 <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
-                  Request expired · read only
+                  {lj.expired.eyebrow}
                 </p>
                 <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                  Deadline {relativeTime(job.deadlineUnix)}. The agent stopped tracking this
-                  request, no funds were ever moved. Open a new request to run another auction.
+                  {lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix))}
                 </p>
               </div>
             </div>
@@ -264,7 +287,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <div className="lg:col-span-2 space-y-5">
             <PageCard>
               <div className="p-6" data-guide="job-flow">
-                <SectionTag>FLOW</SectionTag>
+                <SectionTag>{lj.sections.flow}</SectionTag>
                 <div className="mt-6">
                   <FlowStepper active={active} completed={completed} ended={ended} />
                 </div>
@@ -300,7 +323,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <div className="space-y-5" data-guide="job-bids">
             <PageCard>
               <div className="px-6 pt-6">
-                <SectionTag>BIDS</SectionTag>
+                <SectionTag>{lj.sections.bids}</SectionTag>
               </div>
               <LiveBidsPanel initial={job} />
             </PageCard>
@@ -366,10 +389,12 @@ function StatusChip({
   label,
   tone,
   live,
+  eyebrows,
 }: {
   label: string;
   tone: StatusTone;
   live: boolean;
+  eyebrows: Record<StatusTone, string>;
 }) {
   // Instrument-readout chip. same family as navbar LiveDot/wallet button.
   // Body is white-on-dark; status color lives only in the LED cell.
@@ -379,13 +404,6 @@ function StatusChip({
     accent: 'var(--lp-accent)',
     default: '#6b6b6b',
     critical: '#b03d3a',
-  };
-  const eyebrowText: Record<StatusTone, string> = {
-    positive: 'SETTLED',
-    warning: 'IN PROGRESS',
-    accent: 'LIVE',
-    default: 'OPEN',
-    critical: 'DECLINED',
   };
   return (
     <span
@@ -418,7 +436,7 @@ function StatusChip({
           className="text-[8.5px] font-bold uppercase tracking-[0.22em]"
           style={{ color: tone === 'accent' ? 'var(--lp-accent)' : 'rgba(255,255,255,0.55)' }}
         >
-          {eyebrowText[tone]}
+          {eyebrows[tone]}
         </span>
         <span className="text-[12px] font-semibold tracking-[-0.005em]">{label}</span>
       </span>

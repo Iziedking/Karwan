@@ -738,6 +738,52 @@ export const sw: Messages = {
       day: 'SIKU',
     },
   },
+  liveJob: {
+    backToBuyer: 'RUDI KWA MNUNUZI',
+    backToSeller: 'RUDI KWA MUUZAJI',
+    managedDealTag: 'BIASHARA INAYOSIMAMIWA',
+    statusEyebrow: {
+      positive: 'IMEMALIZIKA',
+      warning: 'INAENDELEA',
+      accent: 'MOJA KWA MOJA',
+      default: 'IMEFUNGULIWA',
+      critical: 'IMEKATALIWA',
+    },
+    statusLabels: {
+      escrowFundedTemplate: 'Esokrau imefadhiliwa · {amount}',
+      requestExpired: 'Ombi limeisha muda',
+      negotiationEnded: 'Majadiliano yamemalizika',
+      matchAwaitingTemplate: 'Ujumbe · {price} USDC · inasubiri idhini',
+      acceptedFunding: 'Imekubaliwa · inafadhili esokrau',
+      bidsNegotiatingOne: 'Ofa 1 · majadiliano',
+      bidsNegotiatingMany: 'Ofa {n} · majadiliano',
+      waitingOnSellers: 'Inasubiri wakala wa wauzaji',
+    },
+    stats: {
+      budget: 'Bajeti',
+      bids: 'Ofa',
+      deadline: 'Tarehe ya mwisho',
+      termsHash: 'Hashi ya masharti',
+      statusLabel: 'Hali',
+      escrowFunded: 'Esokrau imefadhiliwa',
+      accepted: 'Imekubaliwa',
+      expired: 'Imeisha',
+      ended: 'Imemalizika',
+    },
+    brief: {
+      eyebrow: '[:OMBI:]',
+      trustedMatchBadge: '★ UJUMBE WA KUAMINIWA',
+      trustedMatchTooltip: 'Mnunuzi amechagua Ujumbe wa Kuaminiwa. Mzunguko wa wakala unapima sifa na dhamana ya muuzaji juu ya bei; wauzaji lazima washikilie dhamana huru ili kutoa ofa.',
+    },
+    expired: {
+      eyebrow: 'Ombi limeisha · kusoma tu',
+      bodyTemplate: 'Tarehe ya mwisho {time}. Wakala alisitisha kufuatilia ombi hili, hakuna fedha iliyohamishwa. Fungua ombi jipya kuendesha mnada mwingine.',
+    },
+    sections: {
+      flow: 'MTIRIRIKO',
+      bids: 'OFA',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'INAPAKIA KAZI',

@@ -738,6 +738,52 @@ export const ar: Messages = {
       day: 'يوم',
     },
   },
+  liveJob: {
+    backToBuyer: 'العودة إلى المشتري',
+    backToSeller: 'العودة إلى البائع',
+    managedDealTag: 'صفقة مُدارة',
+    statusEyebrow: {
+      positive: 'مُسوّاة',
+      warning: 'قيد التنفيذ',
+      accent: 'مباشر',
+      default: 'مفتوحة',
+      critical: 'مرفوضة',
+    },
+    statusLabels: {
+      escrowFundedTemplate: 'تم تمويل الضمان · {amount}',
+      requestExpired: 'انتهت صلاحية الطلب',
+      negotiationEnded: 'انتهى التفاوض',
+      matchAwaitingTemplate: 'تطابق · {price} USDC · بانتظار الموافقة',
+      acceptedFunding: 'مقبول · جاري تمويل الضمان',
+      bidsNegotiatingOne: 'عرض واحد · تفاوض',
+      bidsNegotiatingMany: '{n} عروض · تفاوض',
+      waitingOnSellers: 'بانتظار وكلاء البائعين',
+    },
+    stats: {
+      budget: 'الميزانية',
+      bids: 'العروض',
+      deadline: 'الموعد النهائي',
+      termsHash: 'بصمة الشروط',
+      statusLabel: 'الحالة',
+      escrowFunded: 'تم التمويل',
+      accepted: 'مقبول',
+      expired: 'منتهي',
+      ended: 'انتهى',
+    },
+    brief: {
+      eyebrow: '[:الطلب:]',
+      trustedMatchBadge: '★ تطابق موثوق',
+      trustedMatchTooltip: 'اختار المشتري وضع التطابق الموثوق. تُرجّح حلقة الوكيل سمعة البائع وحصته فوق السعر، ويجب أن يحوز البائعون حصة حرة للتقديم.',
+    },
+    expired: {
+      eyebrow: 'انتهى الطلب · للقراءة فقط',
+      bodyTemplate: 'الموعد النهائي {time}. توقّف الوكيل عن متابعة هذا الطلب، لم تُنقل أي أموال. افتح طلباً جديداً لإجراء مزاد آخر.',
+    },
+    sections: {
+      flow: 'التدفق',
+      bids: 'العروض',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'جاري تحميل الطلب',

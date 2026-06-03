@@ -738,6 +738,52 @@ export const hi: Messages = {
       day: 'दिन',
     },
   },
+  liveJob: {
+    backToBuyer: 'क्रेता पर वापस',
+    backToSeller: 'विक्रेता पर वापस',
+    managedDealTag: 'प्रबंधित डील',
+    statusEyebrow: {
+      positive: 'निपटाया गया',
+      warning: 'प्रगति में',
+      accent: 'लाइव',
+      default: 'खुला',
+      critical: 'अस्वीकृत',
+    },
+    statusLabels: {
+      escrowFundedTemplate: 'एस्क्रो फंडेड · {amount}',
+      requestExpired: 'अनुरोध समाप्त',
+      negotiationEnded: 'वार्ता समाप्त',
+      matchAwaitingTemplate: 'मैच · {price} USDC · स्वीकृति की प्रतीक्षा',
+      acceptedFunding: 'स्वीकृत · एस्क्रो में फंड डाला जा रहा है',
+      bidsNegotiatingOne: '1 बोली · वार्ता',
+      bidsNegotiatingMany: '{n} बोलियाँ · वार्ता',
+      waitingOnSellers: 'विक्रेता एजेंटों की प्रतीक्षा',
+    },
+    stats: {
+      budget: 'बजट',
+      bids: 'बोलियाँ',
+      deadline: 'समय सीमा',
+      termsHash: 'शर्तों का हैश',
+      statusLabel: 'स्थिति',
+      escrowFunded: 'एस्क्रो फंडेड',
+      accepted: 'स्वीकृत',
+      expired: 'समाप्त',
+      ended: 'समाप्त',
+    },
+    brief: {
+      eyebrow: '[:अनुरोध:]',
+      trustedMatchBadge: '★ भरोसेमंद मैच',
+      trustedMatchTooltip: 'क्रेता ने भरोसेमंद मैच चुना है। एजेंट लूप विक्रेता की प्रतिष्ठा और स्टेक को कीमत से ऊपर तौलता है; विक्रेताओं को बोली लगाने के लिए मुक्त स्टेक रखना होगा।',
+    },
+    expired: {
+      eyebrow: 'अनुरोध समाप्त · केवल पढ़ने योग्य',
+      bodyTemplate: 'समय सीमा {time}। एजेंट ने इस अनुरोध को ट्रैक करना बंद कर दिया, कोई फंड नहीं ले जाया गया। दूसरी नीलामी के लिए नया अनुरोध खोलें।',
+    },
+    sections: {
+      flow: 'प्रवाह',
+      bids: 'बोलियाँ',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'जॉब लोड हो रहा है',

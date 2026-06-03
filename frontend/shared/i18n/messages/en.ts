@@ -708,6 +708,52 @@ interface MessagesShape {
       day: string;
     };
   };
+  liveJob: {
+    backToBuyer: string;
+    backToSeller: string;
+    managedDealTag: string;
+    statusEyebrow: {
+      positive: string;
+      warning: string;
+      accent: string;
+      default: string;
+      critical: string;
+    };
+    statusLabels: {
+      escrowFundedTemplate: string;
+      requestExpired: string;
+      negotiationEnded: string;
+      matchAwaitingTemplate: string;
+      acceptedFunding: string;
+      bidsNegotiatingOne: string;
+      bidsNegotiatingMany: string;
+      waitingOnSellers: string;
+    };
+    stats: {
+      budget: string;
+      bids: string;
+      deadline: string;
+      termsHash: string;
+      statusLabel: string;
+      escrowFunded: string;
+      accepted: string;
+      expired: string;
+      ended: string;
+    };
+    brief: {
+      eyebrow: string;
+      trustedMatchBadge: string;
+      trustedMatchTooltip: string;
+    };
+    expired: {
+      eyebrow: string;
+      bodyTemplate: string;
+    };
+    sections: {
+      flow: string;
+      bids: string;
+    };
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -1854,6 +1900,52 @@ export const en: MessagesShape = {
       min: 'MIN',
       hr: 'HR',
       day: 'DAY',
+    },
+  },
+  liveJob: {
+    backToBuyer: 'BACK TO BUYER',
+    backToSeller: 'BACK TO SELLER',
+    managedDealTag: 'MANAGED DEAL',
+    statusEyebrow: {
+      positive: 'SETTLED',
+      warning: 'IN PROGRESS',
+      accent: 'LIVE',
+      default: 'OPEN',
+      critical: 'DECLINED',
+    },
+    statusLabels: {
+      escrowFundedTemplate: 'Escrow funded · {amount}',
+      requestExpired: 'Request expired',
+      negotiationEnded: 'Negotiation ended',
+      matchAwaitingTemplate: 'Match · {price} USDC · awaiting approval',
+      acceptedFunding: 'Accepted · funding escrow',
+      bidsNegotiatingOne: '1 bid · negotiating',
+      bidsNegotiatingMany: '{n} bids · negotiating',
+      waitingOnSellers: 'Waiting on seller agents',
+    },
+    stats: {
+      budget: 'Budget',
+      bids: 'Bids',
+      deadline: 'Deadline',
+      termsHash: 'Terms hash',
+      statusLabel: 'Status',
+      escrowFunded: 'Escrow funded',
+      accepted: 'Accepted',
+      expired: 'Expired',
+      ended: 'Ended',
+    },
+    brief: {
+      eyebrow: '[:REQUEST:]',
+      trustedMatchBadge: '★ TRUSTED MATCH',
+      trustedMatchTooltip: 'Buyer opted into Trusted Match. The agent loop weights seller reputation and stake above price; sellers must hold free stake to bid.',
+    },
+    expired: {
+      eyebrow: 'Request expired · read only',
+      bodyTemplate: 'Deadline {time}. The agent stopped tracking this request, no funds were ever moved. Open a new request to run another auction.',
+    },
+    sections: {
+      flow: 'FLOW',
+      bids: 'BIDS',
     },
   },
   jobPage: {
