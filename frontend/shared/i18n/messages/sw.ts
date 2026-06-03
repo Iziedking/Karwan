@@ -1213,6 +1213,56 @@ export const sw: Messages = {
       BidSubmitted: 'Mshughulikiaji wa BidSubmitted ameanguka',
     },
   },
+  creditPassport: {
+    eyebrow: 'Pasipoti ya mkopo',
+    fallbackName: 'Pochi ya Karwan',
+    copyAddressTitle: 'Nakili anwani',
+    copyAddressIdle: 'nakili',
+    copyAddressDone: 'imenakiliwa',
+    invalid: {
+      headline: 'Anwani si halali',
+      body: 'URL ya pasipoti inahitaji anwani kamili ya pochi, kama /credit-passport/0x1234…abcd.',
+    },
+    error: {
+      headline: 'Hatukuweza kupakia pasipoti hii',
+      bodyTemplate: 'Rekodi ya mnyororo ya {address} haipatikani kwa sasa. Jaribu tena baadaye.',
+    },
+    scorePanel: {
+      compositeScore: 'Alama ya mchanganyiko',
+      outOfTotal: 'kati ya 1000',
+      nextTier: 'Daraja linalofuata',
+      nextTierTemplate: '{tier} · +{delta}',
+    },
+    stats: {
+      success: 'Mafanikio',
+      disputed: 'Zenye mzozo',
+      failed: 'Zilizoshindwa',
+      activeStake: 'Dhamana hai',
+      syncing: 'inasawazisha',
+      syncingTitle: 'Inachunguza historia ya mnyororo. Jumla bado inaweza kupanda.',
+    },
+    meta: {
+      settled: 'Zilizomalizika',
+      tenure: 'Urefu wa muda',
+      tenureDaysSuffix: ' siku',
+    },
+    factors: {
+      eyebrow: 'Vipengele vya alama',
+      scaleCaption: 'kila moja 0 — 100',
+      labels: {
+        completion: 'Ukamilifu',
+        stake: 'Dhamana',
+        volume: 'Kiasi',
+        tenure: 'Urefu wa muda',
+        activity: 'Shughuli',
+        referral: 'Rufaa',
+      },
+    },
+    footer: {
+      disclaimer: 'Mchanganyiko wa historia ya biashara, dhamana, na urefu wa muda. Sifa imerekodiwa kwenye Arc na inasafiri na pochi katika biashara.',
+      verifiedLink: 'Imethibitishwa kwenye Arc ↗',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'INAPAKIA KAZI',

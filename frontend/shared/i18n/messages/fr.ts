@@ -1213,6 +1213,56 @@ export const fr: Messages = {
       BidSubmitted: 'Handler BidSubmitted en panne',
     },
   },
+  creditPassport: {
+    eyebrow: 'Credit Passport',
+    fallbackName: 'Wallet Karwan',
+    copyAddressTitle: "Copier l'adresse",
+    copyAddressIdle: 'copier',
+    copyAddressDone: 'copié',
+    invalid: {
+      headline: 'Adresse invalide',
+      body: "Une URL de passport a besoin d'une adresse wallet complète, par exemple /credit-passport/0x1234…abcd.",
+    },
+    error: {
+      headline: 'Impossible de charger ce passport',
+      bodyTemplate: "L'enregistrement on-chain de {address} est indisponible pour le moment. Réessayez dans un instant.",
+    },
+    scorePanel: {
+      compositeScore: 'Score composite',
+      outOfTotal: 'sur 1000',
+      nextTier: 'Tier suivant',
+      nextTierTemplate: '{tier} · +{delta}',
+    },
+    stats: {
+      success: 'Succès',
+      disputed: 'En litige',
+      failed: 'Échecs',
+      activeStake: 'Mise active',
+      syncing: 'sync',
+      syncingTitle: "Lecture de l'historique on-chain. Le total peut encore augmenter.",
+    },
+    meta: {
+      settled: 'Réglés',
+      tenure: 'Ancienneté',
+      tenureDaysSuffix: 'j',
+    },
+    factors: {
+      eyebrow: 'Facteurs de score',
+      scaleCaption: '0 — 100 chacun',
+      labels: {
+        completion: 'Achèvement',
+        stake: 'Mise',
+        volume: 'Volume',
+        tenure: 'Ancienneté',
+        activity: 'Activité',
+        referral: 'Parrainage',
+      },
+    },
+    footer: {
+      disclaimer: "Composite de l'historique des deals, de la mise et de l'ancienneté. La réputation est enregistrée sur Arc et suit le wallet d'un deal à l'autre.",
+      verifiedLink: 'Vérifié sur Arc ↗',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'CHARGEMENT DU JOB',

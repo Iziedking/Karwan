@@ -9,6 +9,8 @@ import {
   type CompositeTier,
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -30,19 +32,16 @@ const TIER_BANDS: { tier: CompositeTier; start: number }[] = [
   { tier: 'ELITE', start: 800 },
 ];
 
-// Human labels for the composite term breakdown the engine returns (all [0,1]).
-const TERM_LABELS: Record<string, string> = {
-  completion: 'Completion',
-  stake: 'Stake',
-  volume: 'Volume',
-  tenure: 'Tenure',
-  activity: 'Activity',
-  referral: 'Referral',
-};
+/// Ordered list of the composite term keys the engine returns. The visible
+/// label for each comes from i18n at render time; the order here drives the
+/// vertical ordering in the Score factors section.
+const TERM_KEYS = ['completion', 'stake', 'volume', 'tenure', 'activity', 'referral'] as const;
+type TermKey = (typeof TERM_KEYS)[number];
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export function CreditPassport({ address }: { address: string }) {
+  const cp = useTranslations().creditPassport;
   const valid = ADDR_RE.test(address);
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -117,13 +116,11 @@ export function CreditPassport({ address }: { address: string }) {
   if (!valid) {
     return (
       <Shell>
-        <p className="eyebrow">Credit passport</p>
+        <p className="eyebrow">{cp.eyebrow}</p>
         <h1 className="mt-2 text-[28px] tracking-tight" style={{ fontFamily: 'var(--font-serif)' }}>
-          Invalid address
+          {cp.invalid.headline}
         </h1>
-        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)]">
-          A passport URL needs a full wallet address, like /credit-passport/0x1234…abcd.
-        </p>
+        <p className="mt-3 text-[14px] text-[var(--color-ink-dim)]">{cp.invalid.body}</p>
       </Shell>
     );
   }
@@ -143,12 +140,12 @@ export function CreditPassport({ address }: { address: string }) {
   if (fetchState === 'error' || !rep) {
     return (
       <Shell>
-        <p className="eyebrow">Credit passport</p>
+        <p className="eyebrow">{cp.eyebrow}</p>
         <h1 className="mt-2 text-[28px] tracking-tight" style={{ fontFamily: 'var(--font-serif)' }}>
-          Could not load this passport
+          {cp.error.headline}
         </h1>
         <p className="mt-3 text-[14px] text-[var(--color-ink-dim)]">
-          The on-chain record for {shortAddress(address)} is unavailable right now. Try again in a moment.
+          {cp.error.bodyTemplate.replace('{address}', shortAddress(address))}
         </p>
       </Shell>
     );
@@ -160,9 +157,10 @@ export function CreditPassport({ address }: { address: string }) {
   const hue = TIER_HUE[tier];
 
   const terms = rep.terms ?? {};
-  const termRows = Object.entries(TERM_LABELS)
-    .map(([key, label]) => ({ label, value: (terms as Record<string, number | undefined>)[key] }))
-    .filter((r): r is { label: string; value: number } => typeof r.value === 'number');
+  const termRows = TERM_KEYS.map((key) => ({
+    label: cp.factors.labels[key as TermKey],
+    value: (terms as Record<string, number | undefined>)[key],
+  })).filter((r): r is { label: string; value: number } => typeof r.value === 'number');
 
   // Distance to the next tier ladder rung. Drives the "next tier +X" hint
   // on the score panel so a viewer knows what reaching the next badge would
@@ -194,22 +192,24 @@ export function CreditPassport({ address }: { address: string }) {
       {/* HEADER */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <p className="eyebrow">Credit passport</p>
+          <p className="eyebrow">{cp.eyebrow}</p>
           <h1
             className="mt-2 text-[clamp(1.75rem,4vw,2.5rem)] tracking-tight leading-[1.05]"
             style={{ fontFamily: 'var(--font-serif)' }}
           >
-            {profile?.displayName || 'Karwan wallet'}
+            {profile?.displayName || cp.fallbackName}
           </h1>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={copyAddress}
-              title="Copy address"
+              title={cp.copyAddressTitle}
               className="inline-flex items-center gap-1.5 mono text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
             >
               {shortAddress(address)}
-              <span className="text-[10px] text-[var(--color-ink-faint)]">{copied ? 'copied' : 'copy'}</span>
+              <span className="text-[10px] text-[var(--color-ink-faint)]">
+                {copied ? cp.copyAddressDone : cp.copyAddressIdle}
+              </span>
             </button>
             {profile?.xHandle && (
               <a
@@ -243,22 +243,24 @@ export function CreditPassport({ address }: { address: string }) {
             </span>
             <div className="pb-1">
               <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-                Composite score
+                {cp.scorePanel.compositeScore}
               </p>
               <p className="mt-0.5 mono text-[11px] text-[var(--color-ink-dim)] tabular-nums">
-                of 1000
+                {cp.scorePanel.outOfTotal}
               </p>
             </div>
             {distanceToNext != null && nextTierTarget && (
               <div className="ms-auto pb-1 text-end">
                 <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
-                  Next tier
+                  {cp.scorePanel.nextTier}
                 </p>
                 <p
                   className="mt-0.5 mono text-[12px] tabular-nums"
                   style={{ color: TIER_HUE[nextTierTarget.tier] }}
                 >
-                  {TIER_LABEL[nextTierTarget.tier]} · +{distanceToNext}
+                  {cp.scorePanel.nextTierTemplate
+                    .replace('{tier}', TIER_LABEL[nextTierTarget.tier])
+                    .replace('{delta}', String(distanceToNext))}
                 </p>
               </div>
             )}
@@ -276,24 +278,32 @@ export function CreditPassport({ address }: { address: string }) {
         style={{ borderColor: 'var(--color-line)', background: 'var(--color-line)' }}
       >
         <Stat
-          label="Success"
+          label={cp.stats.success}
           value={String(rep.successCount)}
           tone={rep.successCount > 0 ? 'positive' : undefined}
+          syncingCopy={cp.stats.syncing}
+          syncingTitle={cp.stats.syncingTitle}
         />
         <Stat
-          label="Disputed"
+          label={cp.stats.disputed}
           value={String(rep.disputedCount)}
           tone={rep.disputedCount > 0 ? 'warning' : undefined}
+          syncingCopy={cp.stats.syncing}
+          syncingTitle={cp.stats.syncingTitle}
         />
         <Stat
-          label="Failed"
+          label={cp.stats.failed}
           value={String(rep.failedCount)}
           tone={rep.failedCount > 0 ? 'critical' : undefined}
+          syncingCopy={cp.stats.syncing}
+          syncingTitle={cp.stats.syncingTitle}
         />
         <Stat
-          label="Active stake"
+          label={cp.stats.activeStake}
           value={`${trimUsdc(stakeUsdc)} USDC`}
           syncing={!stakeSynced}
+          syncingCopy={cp.stats.syncing}
+          syncingTitle={cp.stats.syncingTitle}
         />
       </section>
 
@@ -303,16 +313,19 @@ export function CreditPassport({ address }: { address: string }) {
       <section className="mt-4 flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--color-ink-dim)] px-1">
         <span>
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] me-1.5">
-            Settled
+            {cp.meta.settled}
           </span>
           <span className="tabular-nums">{total}</span>
         </span>
         {tenureDays != null && (
           <span>
             <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)] me-1.5">
-              Tenure
+              {cp.meta.tenure}
             </span>
-            <span className="tabular-nums">{tenureDays}d</span>
+            <span className="tabular-nums">
+              {tenureDays}
+              {cp.meta.tenureDaysSuffix}
+            </span>
           </span>
         )}
       </section>
@@ -326,9 +339,9 @@ export function CreditPassport({ address }: { address: string }) {
           style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
         >
           <div className="flex items-baseline justify-between gap-2">
-            <p className="eyebrow">Score factors</p>
+            <p className="eyebrow">{cp.factors.eyebrow}</p>
             <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-              0 — 100 each
+              {cp.factors.scaleCaption}
             </p>
           </div>
           <div className="mt-4 space-y-3.5">
@@ -342,7 +355,7 @@ export function CreditPassport({ address }: { address: string }) {
       {/* FOOTER */}
       <footer className="mt-6 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-[12px] text-[var(--color-ink-faint)] leading-snug max-w-[48ch]">
-          Composite of deal history, stake, and tenure. Reputation is recorded on Arc and travels with the wallet across deals.
+          {cp.footer.disclaimer}
         </p>
         <a
           href={`${EXPLORER}/address/${address}`}
@@ -350,7 +363,7 @@ export function CreditPassport({ address }: { address: string }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
         >
-          Verified on Arc ↗
+          {cp.footer.verifiedLink}
         </a>
       </footer>
     </Shell>
@@ -410,6 +423,8 @@ function Stat({
   value,
   tone,
   syncing,
+  syncingCopy,
+  syncingTitle,
 }: {
   label: string;
   value: string;
@@ -418,6 +433,8 @@ function Stat({
   /// and may still rise. Renders a small "syncing" chip next to the label so
   /// readers don't take a partial total as final.
   syncing?: boolean;
+  syncingCopy: string;
+  syncingTitle: string;
 }) {
   const color =
     tone === 'positive'
@@ -438,9 +455,9 @@ function Stat({
               color: 'var(--color-ink-faint)',
               background: 'var(--color-surface-2)',
             }}
-            title="Scanning chain history. The total may still rise."
+            title={syncingTitle}
           >
-            syncing
+            {syncingCopy}
           </span>
         )}
       </div>

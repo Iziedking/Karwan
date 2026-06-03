@@ -1213,6 +1213,56 @@ export const hi: Messages = {
       BidSubmitted: 'BidSubmitted हैंडलर क्रैश',
     },
   },
+  creditPassport: {
+    eyebrow: 'क्रेडिट पासपोर्ट',
+    fallbackName: 'कारवान वॉलेट',
+    copyAddressTitle: 'पता कॉपी करें',
+    copyAddressIdle: 'कॉपी',
+    copyAddressDone: 'कॉपी हो गया',
+    invalid: {
+      headline: 'अमान्य पता',
+      body: 'पासपोर्ट URL को पूरा वॉलेट पता चाहिए, जैसे /credit-passport/0x1234…abcd।',
+    },
+    error: {
+      headline: 'यह पासपोर्ट लोड नहीं हो सका',
+      bodyTemplate: '{address} का ऑन-चेन रिकॉर्ड अभी उपलब्ध नहीं है। कुछ देर में फिर कोशिश करें।',
+    },
+    scorePanel: {
+      compositeScore: 'समग्र स्कोर',
+      outOfTotal: '1000 में से',
+      nextTier: 'अगला टियर',
+      nextTierTemplate: '{tier} · +{delta}',
+    },
+    stats: {
+      success: 'सफल',
+      disputed: 'विवादित',
+      failed: 'विफल',
+      activeStake: 'सक्रिय स्टेक',
+      syncing: 'सिंक हो रहा',
+      syncingTitle: 'चेन इतिहास स्कैन हो रहा है। कुल अभी बढ़ सकता है।',
+    },
+    meta: {
+      settled: 'निपटाए',
+      tenure: 'अवधि',
+      tenureDaysSuffix: ' दिन',
+    },
+    factors: {
+      eyebrow: 'स्कोर कारक',
+      scaleCaption: 'प्रत्येक 0 — 100',
+      labels: {
+        completion: 'पूर्णता',
+        stake: 'स्टेक',
+        volume: 'मात्रा',
+        tenure: 'अवधि',
+        activity: 'गतिविधि',
+        referral: 'रेफरल',
+      },
+    },
+    footer: {
+      disclaimer: 'डील इतिहास, स्टेक, और अवधि का समग्र। प्रतिष्ठा Arc पर दर्ज होती है और वॉलेट के साथ डील से डील यात्रा करती है।',
+      verifiedLink: 'Arc पर सत्यापित ↗',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'जॉब लोड हो रहा है',

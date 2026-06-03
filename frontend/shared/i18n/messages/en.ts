@@ -1119,6 +1119,56 @@ interface MessagesShape {
     reasonLabels: Record<string, string>;
     scopeLabels: Record<string, string>;
   };
+  creditPassport: {
+    eyebrow: string;
+    fallbackName: string;
+    copyAddressTitle: string;
+    copyAddressIdle: string;
+    copyAddressDone: string;
+    invalid: {
+      headline: string;
+      body: string;
+    };
+    error: {
+      headline: string;
+      bodyTemplate: string;
+    };
+    scorePanel: {
+      compositeScore: string;
+      outOfTotal: string;
+      nextTier: string;
+      nextTierTemplate: string;
+    };
+    stats: {
+      success: string;
+      disputed: string;
+      failed: string;
+      activeStake: string;
+      syncing: string;
+      syncingTitle: string;
+    };
+    meta: {
+      settled: string;
+      tenure: string;
+      tenureDaysSuffix: string;
+    };
+    factors: {
+      eyebrow: string;
+      scaleCaption: string;
+      labels: {
+        completion: string;
+        stake: string;
+        volume: string;
+        tenure: string;
+        activity: string;
+        referral: string;
+      };
+    };
+    footer: {
+      disclaimer: string;
+      verifiedLink: string;
+    };
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2740,6 +2790,56 @@ export const en: MessagesShape = {
       JobPosted: 'JobPosted handler crashed',
       CounterOfferIssued: 'CounterOfferIssued handler crashed',
       BidSubmitted: 'BidSubmitted handler crashed',
+    },
+  },
+  creditPassport: {
+    eyebrow: 'Credit passport',
+    fallbackName: 'Karwan wallet',
+    copyAddressTitle: 'Copy address',
+    copyAddressIdle: 'copy',
+    copyAddressDone: 'copied',
+    invalid: {
+      headline: 'Invalid address',
+      body: 'A passport URL needs a full wallet address, like /credit-passport/0x1234…abcd.',
+    },
+    error: {
+      headline: 'Could not load this passport',
+      bodyTemplate: 'The on-chain record for {address} is unavailable right now. Try again in a moment.',
+    },
+    scorePanel: {
+      compositeScore: 'Composite score',
+      outOfTotal: 'of 1000',
+      nextTier: 'Next tier',
+      nextTierTemplate: '{tier} · +{delta}',
+    },
+    stats: {
+      success: 'Success',
+      disputed: 'Disputed',
+      failed: 'Failed',
+      activeStake: 'Active stake',
+      syncing: 'syncing',
+      syncingTitle: 'Scanning chain history. The total may still rise.',
+    },
+    meta: {
+      settled: 'Settled',
+      tenure: 'Tenure',
+      tenureDaysSuffix: 'd',
+    },
+    factors: {
+      eyebrow: 'Score factors',
+      scaleCaption: '0 — 100 each',
+      labels: {
+        completion: 'Completion',
+        stake: 'Stake',
+        volume: 'Volume',
+        tenure: 'Tenure',
+        activity: 'Activity',
+        referral: 'Referral',
+      },
+    },
+    footer: {
+      disclaimer: 'Composite of deal history, stake, and tenure. Reputation is recorded on Arc and travels with the wallet across deals.',
+      verifiedLink: 'Verified on Arc ↗',
     },
   },
   jobPage: {

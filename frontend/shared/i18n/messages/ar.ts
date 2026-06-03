@@ -1213,6 +1213,56 @@ export const ar: Messages = {
       BidSubmitted: 'تعطّل معالج BidSubmitted',
     },
   },
+  creditPassport: {
+    eyebrow: 'سجل الجدارة',
+    fallbackName: 'محفظة كرَوان',
+    copyAddressTitle: 'انسخ العنوان',
+    copyAddressIdle: 'نسخ',
+    copyAddressDone: 'تم النسخ',
+    invalid: {
+      headline: 'عنوان غير صالح',
+      body: 'يحتاج رابط السجل عنواناً كاملاً للمحفظة، مثل /credit-passport/0x1234…abcd.',
+    },
+    error: {
+      headline: 'تعذّر تحميل هذا السجل',
+      bodyTemplate: 'سجل {address} على السلسلة غير متاح حالياً. حاول بعد لحظة.',
+    },
+    scorePanel: {
+      compositeScore: 'النتيجة المركّبة',
+      outOfTotal: 'من 1000',
+      nextTier: 'المرتبة التالية',
+      nextTierTemplate: '{tier} · +{delta}',
+    },
+    stats: {
+      success: 'ناجحة',
+      disputed: 'متنازع عليها',
+      failed: 'فاشلة',
+      activeStake: 'الحصة النشطة',
+      syncing: 'جاري المزامنة',
+      syncingTitle: 'فحص سجل السلسلة. قد يرتفع المجموع.',
+    },
+    meta: {
+      settled: 'مُسوّاة',
+      tenure: 'المدّة',
+      tenureDaysSuffix: ' يوم',
+    },
+    factors: {
+      eyebrow: 'عوامل النتيجة',
+      scaleCaption: '0 — 100 لكل عامل',
+      labels: {
+        completion: 'الإكمال',
+        stake: 'الحصة',
+        volume: 'الحجم',
+        tenure: 'المدّة',
+        activity: 'النشاط',
+        referral: 'الإحالة',
+      },
+    },
+    footer: {
+      disclaimer: 'مركّب من سجل الصفقات والحصة والمدّة. تُسجَّل السمعة على Arc وتسافر مع المحفظة عبر الصفقات.',
+      verifiedLink: 'مُتحقَّق على Arc ↗',
+    },
+  },
   jobPage: {
     loading: {
       tag: 'جاري تحميل الطلب',
