@@ -6,6 +6,8 @@ import { useBridges, bridgeChainMeta, type BridgePhase, type BridgeRecord } from
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, ARC_TESTNET, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages';
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -20,22 +22,26 @@ const CARD_STYLE = {
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
-function outPhaseLabel(phase: BridgePhase, dest: string): string {
+function outPhaseLabel(
+  phase: BridgePhase,
+  dest: string,
+  phases: Messages['bridgeOut']['phases'],
+): string {
   switch (phase) {
     case 'approving':
     case 'burning':
-      return 'Burning on Arc';
+      return phases.burning;
     case 'relaying':
     case 'attesting':
-      return 'Waiting for attestation';
+      return phases.waitingAttestation;
     case 'minting':
-      return `Minting on ${dest}`;
+      return phases.mintingTemplate.replace('{dest}', dest);
     case 'done':
-      return 'Sent';
+      return phases.done;
     case 'error':
-      return 'Failed';
+      return phases.error;
     default:
-      return 'Submitting';
+      return phases.submitting;
   }
 }
 
@@ -50,6 +56,7 @@ function phaseTone(phase: BridgePhase): 'live' | 'positive' | 'critical' {
 /// destination (gas sponsored). Circle accounts only for now; web3 users sign
 /// the Arc burn themselves, which is a follow-up.
 export function BridgeOutCard() {
+  const t = useTranslations().bridgeOut;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
   const { bridges, startCircleOut, dismiss, isActive } = useBridges();
@@ -70,7 +77,7 @@ export function BridgeOutCard() {
     setFaucetNote(null);
     try {
       await api.faucet(auth.address, 'identity');
-      setFaucetNote('Faucet requested. About 20 USDC lands on your Arc wallet in a minute.');
+      setFaucetNote(t.form.faucetSuccess);
     } catch (err) {
       const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
       setFaucetNote(detail ?? (err as Error).message);
@@ -104,13 +111,13 @@ export function BridgeOutCard() {
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:SEND OUT:]
+          [:{t.header.eyebrow}:]
         </span>
         <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-          Bridge from Arc
+          {t.header.title}
         </h2>
         <p className="mt-2 inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          <span>CCTP V2 · gas sponsored</span>
+          <span>{t.header.subtitle}</span>
         </p>
       </div>
 
@@ -127,15 +134,14 @@ export function BridgeOutCard() {
               borderBottomRightRadius: 3,
             }}
           >
-            Bridging out from a web3 wallet signs the Arc burn yourself, which is coming soon. Use a
-            Karwan email account to send out now.
+            {t.web3Fallback}
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-5">
             {/* DESTINATION DROPDOWN */}
             <div className="relative">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:DESTINATION:]
+                [:{t.form.destinationEyebrow}:]
               </span>
               <button
                 type="button"
@@ -222,10 +228,10 @@ export function BridgeOutCard() {
             >
               <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
                 <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  [:AMOUNT:]
+                  [:{t.form.amountEyebrow}:]
                 </span>
                 <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  FROM ARC
+                  {t.form.fromArcCaption}
                 </span>
               </div>
               <div className="px-4 pb-3 flex items-baseline gap-3">
@@ -253,7 +259,7 @@ export function BridgeOutCard() {
                 disabled={faucetBusy}
                 className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50"
               >
-                {faucetBusy ? 'Requesting' : 'Need Arc USDC? Faucet →'}
+                {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
               </button>
             </div>
             {faucetNote && (
@@ -286,19 +292,19 @@ export function BridgeOutCard() {
               }}
             >
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:LANDS AT · {dest.shortName.toUpperCase()}:]
+                [:{t.form.landsAtPrefix} {dest.shortName.toUpperCase()}:]
               </span>
               <input
                 type="text"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                placeholder="0x your address on the destination chain"
+                placeholder={t.form.recipientPlaceholder}
                 spellCheck={false}
                 className="mt-1.5 w-full bg-transparent text-[13px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
               />
               {recipient.trim() !== '' && !recipientValid && (
                 <p className="mt-1 mono text-[10px] uppercase tracking-[0.1em] text-[#b03d3a]">
-                  • [:ERR:] not a valid address
+                  {t.form.addressInvalid}
                 </p>
               )}
             </div>
@@ -317,7 +323,7 @@ export function BridgeOutCard() {
                 boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
               }}
             >
-              <span>Send to {dest.shortName}</span>
+              <span>{t.form.submitTemplate.replace('{dest}', dest.shortName)}</span>
               <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -330,7 +336,7 @@ export function BridgeOutCard() {
         {outBridges.length > 0 && (
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:ACTIVITY:]
+              [:{t.activityEyebrow}:]
             </span>
             <ul className="mt-3.5 space-y-2">
               {outBridges.map((b) => (
@@ -353,6 +359,7 @@ function OutRow({
   onDismiss: () => void;
   active: boolean;
 }) {
+  const t = useTranslations().bridgeOut;
   // OUT records always land on a CCTP EVM destination today (Solana is
   // bridge-IN-only on the App Kit path), so this index is safe. The meta
   // lookup tolerates a future widening without forcing a rewrite here.
@@ -391,7 +398,7 @@ function OutRow({
             </span>
           </div>
           <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] leading-none" style={{ color: rail }}>
-            {outPhaseLabel(bridge.phase, dest.shortName)}
+            {outPhaseLabel(bridge.phase, dest.shortName, t.phases)}
             {bridge.mintTxHash && (
               <a
                 href={dest.explorerTx(bridge.mintTxHash)}
@@ -413,11 +420,11 @@ function OutRow({
             onClick={onDismiss}
             className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors shrink-0"
           >
-            Dismiss
+            {t.dismissButton}
           </button>
         )}
       </div>
-      <span className="sr-only">to {shortAddress(bridge.mintRecipient)}</span>
+      <span className="sr-only">{t.srToRecipient.replace('{address}', shortAddress(bridge.mintRecipient))}</span>
     </li>
   );
 }

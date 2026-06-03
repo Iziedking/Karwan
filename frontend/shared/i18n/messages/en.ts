@@ -628,6 +628,37 @@ interface MessagesShape {
       nextAria: string;
     };
   };
+  bridgeOut: {
+    header: {
+      eyebrow: string;
+      title: string;
+      subtitle: string;
+    };
+    web3Fallback: string;
+    form: {
+      destinationEyebrow: string;
+      amountEyebrow: string;
+      fromArcCaption: string;
+      faucetCta: string;
+      faucetBusy: string;
+      faucetSuccess: string;
+      landsAtPrefix: string;
+      recipientPlaceholder: string;
+      addressInvalid: string;
+      submitTemplate: string;
+    };
+    activityEyebrow: string;
+    dismissButton: string;
+    srToRecipient: string;
+    phases: {
+      burning: string;
+      waitingAttestation: string;
+      mintingTemplate: string;
+      done: string;
+      error: string;
+      submitting: string;
+    };
+  };
   onChainProof: {
     sectionTag: string;
     headlinePrefix: string;
@@ -1554,6 +1585,37 @@ export const en: MessagesShape = {
       countPlural: '{n} deals',
       prevAria: 'Previous page',
       nextAria: 'Next page',
+    },
+  },
+  bridgeOut: {
+    header: {
+      eyebrow: 'SEND OUT',
+      title: 'Bridge from Arc',
+      subtitle: 'CCTP V2 · gas sponsored',
+    },
+    web3Fallback: 'Bridging out from a web3 wallet signs the Arc burn yourself, which is coming soon. Use a Karwan email account to send out now.',
+    form: {
+      destinationEyebrow: 'DESTINATION',
+      amountEyebrow: 'AMOUNT',
+      fromArcCaption: 'FROM ARC',
+      faucetCta: 'Need Arc USDC? Faucet →',
+      faucetBusy: 'Requesting',
+      faucetSuccess: 'Faucet requested. About 20 USDC lands on your Arc wallet in a minute.',
+      landsAtPrefix: 'LANDS AT ·',
+      recipientPlaceholder: '0x your address on the destination chain',
+      addressInvalid: '• [:ERR:] not a valid address',
+      submitTemplate: 'Send to {dest}',
+    },
+    activityEyebrow: 'ACTIVITY',
+    dismissButton: 'Dismiss',
+    srToRecipient: 'to {address}',
+    phases: {
+      burning: 'Burning on Arc',
+      waitingAttestation: 'Waiting for attestation',
+      mintingTemplate: 'Minting on {dest}',
+      done: 'Sent',
+      error: 'Failed',
+      submitting: 'Submitting',
     },
   },
   onChainProof: {
