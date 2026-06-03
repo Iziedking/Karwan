@@ -78,6 +78,20 @@ export const ar: Messages = {
     accountDelete: 'حذف ملفي خارج السلسلة',
     accountDeleteHint: 'يحذف الملف والإعدادات وعلامات المخاطر. سجل السمعة على السلسلة دائم ولا يُحذف.',
     accountDeleteConfirm: 'اكتب DELETE للتأكيد',
+    fundedFallback: 'محافظ وكلائك تحتوي على رصيد. الحذف لن ينقلها. هل تواصل رغم ذلك؟',
+    deletingButton: 'جارٍ الحذف',
+    confirmDeleteYes: 'نعم، احذف',
+    confirmDeleteNo: 'لا، احتفظ بها',
+    passkey: {
+      rowLabel: 'تسجيل الدخول',
+      rowHint: 'مفتاح المرور أسرع من الرمز في كل تسجيل دخول ويعمل دون اتصال.',
+      activeChip: 'مفتاح المرور مفعّل',
+      addButton: 'أضف مفتاح مرور',
+      addingButton: 'جارٍ الإعداد…',
+      noBrowserSupport: 'هذا المتصفح لا يدعم مفاتيح المرور.',
+      errorCancelled: 'تم إلغاء إعداد مفتاح المرور. حاول مرة أخرى متى شئت.',
+      errorGeneric: 'تعذّر إضافة مفتاح مرور.',
+    },
   },
   onboarding: {
     languageStep: {

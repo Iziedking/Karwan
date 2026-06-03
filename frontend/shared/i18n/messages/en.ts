@@ -79,6 +79,20 @@ interface MessagesShape {
     accountDelete: string;
     accountDeleteHint: string;
     accountDeleteConfirm: string;
+    fundedFallback: string;
+    deletingButton: string;
+    confirmDeleteYes: string;
+    confirmDeleteNo: string;
+    passkey: {
+      rowLabel: string;
+      rowHint: string;
+      activeChip: string;
+      addButton: string;
+      addingButton: string;
+      noBrowserSupport: string;
+      errorCancelled: string;
+      errorGeneric: string;
+    };
   };
   onboarding: {
     languageStep: {
@@ -908,6 +922,20 @@ export const en: MessagesShape = {
     accountDelete: 'Delete my off-chain profile',
     accountDeleteHint: 'Removes profile, settings, and risk tags. On-chain reputation is permanent and stays.',
     accountDeleteConfirm: 'Type DELETE to confirm',
+    fundedFallback: 'Your agent wallets are funded. Deleting will not move them. Proceed anyway?',
+    deletingButton: 'Deleting',
+    confirmDeleteYes: 'Yes, delete',
+    confirmDeleteNo: 'No, keep it',
+    passkey: {
+      rowLabel: 'Sign-in',
+      rowHint: 'A passkey is faster than a code on every login and works offline.',
+      activeChip: 'Passkey active',
+      addButton: 'Add a passkey',
+      addingButton: 'Setting up…',
+      noBrowserSupport: 'This browser has no passkey support.',
+      errorCancelled: 'Passkey setup cancelled. Try again any time.',
+      errorGeneric: 'Could not add a passkey.',
+    },
   },
   onboarding: {
     languageStep: {

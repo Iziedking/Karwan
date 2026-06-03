@@ -56,7 +56,7 @@ export function SettingsBand() {
           setForceConfirm(
             typeof err.detail === 'string'
               ? err.detail
-              : 'Your agent wallets are funded. Deleting will not move them. Proceed anyway?',
+              : t.settings.fundedFallback,
           );
           setDeleting(false);
           return;
@@ -254,7 +254,7 @@ export function SettingsBand() {
                   borderRadius: 3,
                 }}
               >
-                {deleting ? 'Deleting' : 'Yes, delete'}
+                {deleting ? t.settings.deletingButton : t.settings.confirmDeleteYes}
               </button>
               <button
                 type="button"
@@ -270,7 +270,7 @@ export function SettingsBand() {
                   borderRadius: 3,
                 }}
               >
-                No, keep it
+                {t.settings.confirmDeleteNo}
               </button>
             </div>
           </div>
@@ -305,6 +305,7 @@ function PasskeyRow({
   email: string;
   onAdded: () => void | Promise<void>;
 }) {
+  const t = useTranslations().settings.passkey;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
@@ -322,11 +323,11 @@ function PasskeyRow({
     } catch (err) {
       const e = err as Error & { name?: string };
       if (e.name === 'NotAllowedError' || /timed out|not allowed/i.test(e.message ?? '')) {
-        setError('Passkey setup cancelled. Try again any time.');
+        setError(t.errorCancelled);
       } else {
         const detail =
           err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-        setError(detail || 'Could not add a passkey.');
+        setError(detail || t.errorGeneric);
       }
     } finally {
       setBusy(false);
@@ -334,7 +335,7 @@ function PasskeyRow({
   }
 
   return (
-    <Row label="Sign-in" hint="A passkey is faster than a code on every login and works offline.">
+    <Row label={t.rowLabel} hint={t.rowHint}>
       {hasPasskey || justAdded ? (
         <div className="inline-flex items-center gap-2.5">
           <span
@@ -343,7 +344,7 @@ function PasskeyRow({
             style={{ background: 'var(--color-accent, #b25425)' }}
           />
           <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-ink-dim)]">
-            Passkey active
+            {t.activeChip}
           </span>
         </div>
       ) : (
@@ -355,12 +356,12 @@ function PasskeyRow({
             className="inline-flex items-center gap-2 px-4 py-2 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--color-ink)] text-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             style={{ borderRadius: 3 }}
           >
-            {busy ? 'Setting up…' : 'Add a passkey'}
+            {busy ? t.addingButton : t.addButton}
             <span aria-hidden>→</span>
           </button>
           {!supports && (
             <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-              This browser has no passkey support.
+              {t.noBrowserSupport}
             </p>
           )}
           {error && (
@@ -422,7 +423,7 @@ function ToggleGroup({
             style={{
               background: active ? 'var(--color-ink)' : 'transparent',
               color: active ? 'var(--color-surface)' : 'var(--color-ink-dim)',
-              borderLeft: i === 0 ? 'none' : '1px solid var(--color-line)',
+              borderInlineStart: i === 0 ? 'none' : '1px solid var(--color-line)',
             }}
           >
             {opt.label}
@@ -463,8 +464,8 @@ function Switch({
       >
         <span
           aria-hidden
-          className="absolute top-0.5 inline-block w-4 h-4 bg-white transition-[left]"
-          style={{ left: checked ? 18 : 2, borderRadius: 999 }}
+          className="absolute top-0.5 inline-block w-4 h-4 bg-white transition-[inset-inline-start]"
+          style={{ insetInlineStart: checked ? 18 : 2, borderRadius: 999 }}
         />
       </span>
       <span className="text-[13px] text-[var(--color-ink-dim)]">{label}</span>
