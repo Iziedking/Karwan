@@ -591,6 +591,29 @@ export const hi: Messages = {
       sellerAgent: 'विक्रेता एजेंट',
     },
   },
+  dealsFeed: {
+    tabs: {
+      all: 'सभी',
+      active: 'चालू',
+      completed: 'पूर्ण',
+    },
+    liveEyebrow: 'आपकी डील · Arc पर लाइव',
+    errorBody: 'डील फ़ीड लोड नहीं हो सकी।',
+    empty: {
+      noDealsTag: 'अभी कोई डील नहीं',
+      noMatchTag: 'कोई मेल नहीं',
+      promptAll: 'अनुरोध पोस्ट करें या डायरेक्ट डील खोलें ताकि यहाँ दिखे।',
+      promptFilteredActive: 'अभी आपकी किताब पर कोई चालू डील नहीं है।',
+      promptFilteredCompleted: 'अभी आपकी किताब पर कोई पूर्ण डील नहीं है।',
+    },
+    pager: {
+      pageOf: 'पेज {page} / {total}',
+      countSingle: '{n} डील',
+      countPlural: '{n} डील',
+      prevAria: 'पिछला पेज',
+      nextAria: 'अगला पेज',
+    },
+  },
   tierCelebration: {
     eyebrow: 'स्तर अनलॉक हुआ',
     achievementPrefix: 'आप पहुँचे',

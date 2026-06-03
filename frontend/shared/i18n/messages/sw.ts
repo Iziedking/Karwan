@@ -591,6 +591,29 @@ export const sw: Messages = {
       sellerAgent: 'Wakala wa muuzaji',
     },
   },
+  dealsFeed: {
+    tabs: {
+      all: 'Zote',
+      active: 'Zinaendelea',
+      completed: 'Zimekamilika',
+    },
+    liveEyebrow: 'BIASHARA ZAKO · MOJA KWA MOJA KWENYE ARC',
+    errorBody: 'Imeshindikana kupakia mkondo wa biashara.',
+    empty: {
+      noDealsTag: 'BADO HAKUNA BIASHARA',
+      noMatchTag: 'HAKUNA INAYOLINGANA',
+      promptAll: 'Tuma ombi au fungua biashara ya moja kwa moja ili ionekane hapa.',
+      promptFilteredActive: 'Hakuna biashara zinazoendelea kwenye daftari lako kwa sasa.',
+      promptFilteredCompleted: 'Hakuna biashara zilizokamilika kwenye daftari lako kwa sasa.',
+    },
+    pager: {
+      pageOf: 'Ukurasa {page} kati ya {total}',
+      countSingle: 'biashara {n}',
+      countPlural: 'biashara {n}',
+      prevAria: 'Ukurasa uliopita',
+      nextAria: 'Ukurasa unaofuata',
+    },
+  },
   tierCelebration: {
     eyebrow: 'KIWANGO KIMEFUNGULIWA',
     achievementPrefix: 'Umefika',

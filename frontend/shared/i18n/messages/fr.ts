@@ -591,6 +591,29 @@ export const fr: Messages = {
       sellerAgent: 'Agent vendeur',
     },
   },
+  dealsFeed: {
+    tabs: {
+      all: 'Tous',
+      active: 'En cours',
+      completed: 'Terminés',
+    },
+    liveEyebrow: 'VOS DEALS · LIVE SUR ARC',
+    errorBody: 'Impossible de charger vos deals.',
+    empty: {
+      noDealsTag: 'AUCUN DEAL',
+      noMatchTag: 'AUCUN RÉSULTAT',
+      promptAll: 'Publiez une demande ou ouvrez un deal direct pour le voir ici.',
+      promptFilteredActive: 'Aucun deal en cours sur votre carnet pour l’instant.',
+      promptFilteredCompleted: 'Aucun deal terminé sur votre carnet pour l’instant.',
+    },
+    pager: {
+      pageOf: 'Page {page} sur {total}',
+      countSingle: '{n} deal',
+      countPlural: '{n} deals',
+      prevAria: 'Page précédente',
+      nextAria: 'Page suivante',
+    },
+  },
   tierCelebration: {
     eyebrow: 'PALIER DÉBLOQUÉ',
     achievementPrefix: 'Vous avez atteint',

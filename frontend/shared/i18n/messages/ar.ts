@@ -591,6 +591,29 @@ export const ar: Messages = {
       sellerAgent: 'وكيل البائع',
     },
   },
+  dealsFeed: {
+    tabs: {
+      all: 'الكل',
+      active: 'جارية',
+      completed: 'مكتملة',
+    },
+    liveEyebrow: 'صفقاتك · مباشرة على Arc',
+    errorBody: 'تعذّر تحميل صفقاتك.',
+    empty: {
+      noDealsTag: 'لا صفقات بعد',
+      noMatchTag: 'لا تطابق',
+      promptAll: 'انشر طلبًا أو افتح صفقة مباشرة لتظهر هنا.',
+      promptFilteredActive: 'لا توجد صفقات جارية على دفترك حاليًا.',
+      promptFilteredCompleted: 'لا توجد صفقات مكتملة على دفترك حاليًا.',
+    },
+    pager: {
+      pageOf: 'الصفحة {page} من {total}',
+      countSingle: 'صفقة {n}',
+      countPlural: 'صفقات {n}',
+      prevAria: 'الصفحة السابقة',
+      nextAria: 'الصفحة التالية',
+    },
+  },
   tierCelebration: {
     eyebrow: 'تم فتح الرتبة',
     achievementPrefix: 'وصلت إلى',

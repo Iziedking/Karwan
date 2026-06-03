@@ -6,6 +6,7 @@ import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealLis
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc, shortAddress, shortHash, relativeTime } from '@/shared/utils/format';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Filter = 'all' | 'active' | 'completed';
 
@@ -21,6 +22,7 @@ const ACTIVE_STAGES: DealStage[] = [
 /// lives in the NetworkTicker — that one shows masked network-wide activity
 /// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
+  const tr = useTranslations().dealsFeed;
   const auth = useAuth();
   const address = auth.address;
   const [deals, setDeals] = useState<DirectDeal[]>([]);
@@ -74,9 +76,9 @@ export function DealsFeed() {
   const canNext = safePage < pageCount - 1;
 
   const tabs: Array<{ key: Filter; label: string; count: number }> = [
-    { key: 'all', label: 'All', count: withStage.length },
-    { key: 'active', label: 'Active', count: activeCount },
-    { key: 'completed', label: 'Completed', count: completedCount },
+    { key: 'all', label: tr.tabs.all, count: withStage.length },
+    { key: 'active', label: tr.tabs.active, count: activeCount },
+    { key: 'completed', label: tr.tabs.completed, count: completedCount },
   ];
 
   return (
@@ -134,7 +136,7 @@ export function DealsFeed() {
           })}
         </div>
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          YOUR DEALS · LIVE ON ARC
+          {tr.liveEyebrow}
         </p>
       </div>
 
@@ -146,17 +148,19 @@ export function DealsFeed() {
         </div>
       ) : fetchState === 'error' ? (
         <p className="px-6 md:px-8 py-12 text-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          Couldn&apos;t load the deals feed.
+          {tr.errorBody}
         </p>
       ) : shown.length === 0 ? (
         <div className="px-6 md:px-8 py-12 text-center space-y-2">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {filter === 'all' ? 'NO DEALS YET' : 'NO MATCH'}
+            {filter === 'all' ? tr.empty.noDealsTag : tr.empty.noMatchTag}
           </p>
           <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
             {filter === 'all'
-              ? 'Post a request or open a direct deal to see it here.'
-              : `No ${filter} deals on your book right now.`}
+              ? tr.empty.promptAll
+              : filter === 'active'
+                ? tr.empty.promptFilteredActive
+                : tr.empty.promptFilteredCompleted}
           </p>
         </div>
       ) : (
@@ -233,9 +237,14 @@ export function DealsFeed() {
         {pageCount > 1 && (
           <div className="px-6 md:px-8 py-5 flex items-center justify-between gap-4 border-t border-[var(--lp-border-light)]">
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
-              Page {safePage + 1} of {pageCount}
+              {tr.pager.pageOf
+                .replace('{page}', String(safePage + 1))
+                .replace('{total}', String(pageCount))}
               <span className="mx-2 opacity-50">·</span>
-              {shown.length} {shown.length === 1 ? 'deal' : 'deals'}
+              {(shown.length === 1 ? tr.pager.countSingle : tr.pager.countPlural).replace(
+                '{n}',
+                String(shown.length),
+              )}
             </p>
             <div className="flex items-center gap-2">
               <PagerButton
@@ -268,12 +277,13 @@ function PagerButton({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const tr = useTranslations().dealsFeed.pager;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={direction === 'prev' ? 'Previous page' : 'Next page'}
+      aria-label={direction === 'prev' ? tr.prevAria : tr.nextAria}
       className={cn(
         'group inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
         'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',

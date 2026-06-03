@@ -561,6 +561,29 @@ interface MessagesShape {
       sellerAgent: string;
     };
   };
+  dealsFeed: {
+    tabs: {
+      all: string;
+      active: string;
+      completed: string;
+    };
+    liveEyebrow: string;
+    errorBody: string;
+    empty: {
+      noDealsTag: string;
+      noMatchTag: string;
+      promptAll: string;
+      promptFilteredActive: string;
+      promptFilteredCompleted: string;
+    };
+    pager: {
+      pageOf: string;
+      countSingle: string;
+      countPlural: string;
+      prevAria: string;
+      nextAria: string;
+    };
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -1337,6 +1360,29 @@ export const en: MessagesShape = {
       buyerAgent: 'Buyer agent',
       routesThroughEscrow: 'USDC routes through escrow',
       sellerAgent: 'Seller agent',
+    },
+  },
+  dealsFeed: {
+    tabs: {
+      all: 'All',
+      active: 'Active',
+      completed: 'Completed',
+    },
+    liveEyebrow: 'YOUR DEALS · LIVE ON ARC',
+    errorBody: "Couldn't load the deals feed.",
+    empty: {
+      noDealsTag: 'NO DEALS YET',
+      noMatchTag: 'NO MATCH',
+      promptAll: 'Post a request or open a direct deal to see it here.',
+      promptFilteredActive: 'No active deals on your book right now.',
+      promptFilteredCompleted: 'No completed deals on your book right now.',
+    },
+    pager: {
+      pageOf: 'Page {page} of {total}',
+      countSingle: '{n} deal',
+      countPlural: '{n} deals',
+      prevAria: 'Previous page',
+      nextAria: 'Next page',
     },
   },
   tierCelebration: {
