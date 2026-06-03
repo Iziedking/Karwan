@@ -33,13 +33,14 @@ export default function OnboardingPage() {
 }
 
 function OnboardingShell() {
+  const t = useTranslations().onboarding;
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] mx-auto text-center">
           <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
             <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
-            SIGN UP
+            {t.signUpTag}
           </span>
         </div>
       </Band>
@@ -86,36 +87,35 @@ function OnboardingInner() {
 
   const validationIssues: string[] = (() => {
     if (!role) return [];
+    const v = t.onboarding.validation;
     const issues: string[] = [];
-    if (!displayName.trim()) issues.push('Add a display name.');
+    if (!displayName.trim()) issues.push(v.displayName);
 
     const wantsSeller = role === 'seller' || role === 'both';
     const wantsBuyer = role === 'buyer' || role === 'both';
 
     if (wantsSeller) {
       const cleanSkills = skills.split(',').map((s) => s.trim()).filter(Boolean);
-      if (cleanSkills.length === 0) issues.push('Add at least one skill.');
-      if (!bio.trim()) issues.push('Write a short seller bio.');
-      if (!(sellerMin > 0)) issues.push('Set a seller minimum budget above 0.');
-      if (!(sellerMax > sellerMin)) issues.push('Seller max budget must exceed the min.');
-      if (!(sellerMinDays > 0)) issues.push('Seller minimum deadline must be at least 1 day.');
-      if (!(sellerMaxDays >= sellerMinDays))
-        issues.push('Seller max deadline must be ≥ the min.');
+      if (cleanSkills.length === 0) issues.push(v.skills);
+      if (!bio.trim()) issues.push(v.bio);
+      if (!(sellerMin > 0)) issues.push(v.sellerMinBudget);
+      if (!(sellerMax > sellerMin)) issues.push(v.sellerMaxBudget);
+      if (!(sellerMinDays > 0)) issues.push(v.sellerMinDeadline);
+      if (!(sellerMaxDays >= sellerMinDays)) issues.push(v.sellerMaxDeadline);
     }
 
     if (wantsBuyer) {
-      if (!(buyerMax > 0)) issues.push('Set a buyer max budget above 0.');
-      if (!(bidWindow >= 10)) issues.push('Bid window must be at least 10 seconds.');
-      if (!(buyerMinDays > 0)) issues.push('Buyer minimum deadline must be at least 1 day.');
-      if (!(buyerMaxDays >= buyerMinDays))
-        issues.push('Buyer max deadline must be ≥ the min.');
+      if (!(buyerMax > 0)) issues.push(v.buyerMaxBudget);
+      if (!(bidWindow >= 10)) issues.push(v.bidWindow);
+      if (!(buyerMinDays > 0)) issues.push(v.buyerMinDeadline);
+      if (!(buyerMaxDays >= buyerMinDays)) issues.push(v.buyerMaxDeadline);
       const pcts = milestoneSplit
         .split(',')
         .map((s) => Number(s.trim()))
         .filter((n) => Number.isFinite(n));
       const sum = pcts.reduce((a, b) => a + b, 0);
-      if (pcts.length === 0) issues.push('Milestone split needs at least one number.');
-      else if (sum !== 100) issues.push(`Milestone split must add up to 100 (currently ${sum}).`);
+      if (pcts.length === 0) issues.push(v.splitEmpty);
+      else if (sum !== 100) issues.push(v.splitSum.replace('{sum}', String(sum)));
     }
 
     return issues;
@@ -228,7 +228,9 @@ function OnboardingInner() {
           <div className="fade-up flex justify-center">
             <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
               <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
-              SIGN UP · STEP {stepN} OF 4
+              {t.onboarding.stepIndicator
+                .replace('{step}', String(stepN))
+                .replace('{total}', '4')}
             </span>
           </div>
           <div className="fade-up fade-up-1">
@@ -241,19 +243,22 @@ function OnboardingInner() {
               )}
               {step === 'connect' && (
                 <>
-                  Connect your <Accent>wallet</Accent>
+                  {t.onboarding.connectStep.headlinePrefix}
+                  <Accent>{t.onboarding.connectStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
               {step === 'role' && (
                 <>
-                  How will you use <Accent>Karwan</Accent>
+                  {t.onboarding.roleStep.headlinePrefix}
+                  <Accent>{t.onboarding.roleStep.headlineAccent}</Accent>
                   <Punc>?</Punc>
                 </>
               )}
               {step === 'profile' && (
                 <>
-                  Tell us a bit <Accent>about you</Accent>
+                  {t.onboarding.profileStep.headlinePrefix}
+                  <Accent>{t.onboarding.profileStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
@@ -374,6 +379,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
 }
 
 function ConnectStep({ onLogin }: { onLogin: () => void }) {
+  const t = useTranslations().onboarding.connectStep;
   return (
     <div className="fade-up">
       <div
@@ -389,8 +395,7 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
         }}
       >
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Karwan identifies you by a wallet. Connect an EVM wallet, or sign in with email and
-          Circle provisions one for you.
+          {t.bodyText}
         </p>
         <div className="mt-6">
           <button
@@ -404,12 +409,12 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
               borderBottomRightRadius: 3,
             }}
           >
-            Log in
+            {t.loginButton}
             <span aria-hidden>→</span>
           </button>
         </div>
         <p className="mt-6 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Wallet or email. Both land you with an Arc address.
+          {t.fineprint}
         </p>
       </div>
     </div>
@@ -427,17 +432,18 @@ function RoleStep({
   onSelect: (r: UserRole) => void;
   onContinue: () => void;
 }) {
+  const t = useTranslations().onboarding.roleStep;
   return (
     <div className="space-y-8">
       <div className="fade-up text-center">
         <p className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Connected as{' '}
+          {t.connectedAs}{' '}
           <span className="text-[var(--lp-dark)]">
             {address?.slice(0, 6)}…{address?.slice(-4)}
           </span>
         </p>
         <p className="mt-4 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
-          How will you mostly use Karwan? Pick one. You can change this later.
+          {t.description}
         </p>
       </div>
 
@@ -448,10 +454,10 @@ function RoleStep({
             selected={role}
             onSelect={onSelect}
             tone="cream"
-            eyebrow="TAKE WORK"
-            title="Bid as seller"
-            body="Your seller agent watches the chain for jobs that match your skills and bids on your behalf."
-            tagline="Best for freelancers and SME service providers."
+            eyebrow={t.cards.seller.eyebrow}
+            title={t.cards.seller.title}
+            body={t.cards.seller.body}
+            tagline={t.cards.seller.tagline}
           />
         </div>
         <div className="fade-up fade-up-2">
@@ -460,10 +466,10 @@ function RoleStep({
             selected={role}
             onSelect={onSelect}
             tone="dark"
-            eyebrow="HIRE SOMEONE"
-            title="Run the auction"
-            body="Post requests. Your buyer agent ranks bids, negotiates within your terms, and locks the deal."
-            tagline="Best for founders, agencies, procurement."
+            eyebrow={t.cards.buyer.eyebrow}
+            title={t.cards.buyer.title}
+            body={t.cards.buyer.body}
+            tagline={t.cards.buyer.tagline}
           />
         </div>
         <div className="fade-up fade-up-3">
@@ -472,10 +478,10 @@ function RoleStep({
             selected={role}
             onSelect={onSelect}
             tone="accent"
-            eyebrow="BOTH"
-            title="Hire and bid"
-            body="Hire and take work from one account. Reputation compounds across both."
-            tagline="One identity, two roles. Recommended for SMEs."
+            eyebrow={t.cards.both.eyebrow}
+            title={t.cards.both.title}
+            body={t.cards.both.body}
+            tagline={t.cards.both.tagline}
             recommended
           />
         </div>
@@ -489,10 +495,10 @@ function RoleStep({
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
           </span>
-          Back
+          {t.backArrow}
         </Link>
         <CTAPill onClick={onContinue} disabled={!role} tone="light">
-          Continue →
+          {t.continueArrow}
         </CTAPill>
       </div>
     </div>
@@ -520,6 +526,7 @@ function RoleCard({
   tagline: string;
   recommended?: boolean;
 }) {
+  const t = useTranslations().onboarding.roleStep;
   const isSel = selected === role;
   const surface =
     tone === 'dark'
@@ -584,7 +591,7 @@ function RoleCard({
                 borderRadius: 3,
               }}
             >
-              ★ TOP
+              {t.topBadge}
             </span>
           )}
         </div>
@@ -629,7 +636,7 @@ function RoleCard({
               isSel ? 'opacity-100' : 'opacity-0',
             )}
           >
-            selected
+            {t.selected}
           </span>
         </div>
       </div>
@@ -669,15 +676,17 @@ function ProfileStep(props: {
   onBack: () => void;
   onSubmit: () => void;
 }) {
+  const t = useTranslations().onboarding;
+  const ps = t.profileStep;
   const wantsSeller = props.role === 'seller' || props.role === 'both';
   const wantsBuyer = props.role === 'buyer' || props.role === 'both';
 
   return (
     <div className="space-y-6 fade-up">
-      <ProfileSection number="01" eyebrow="IDENTITY" title="About you">
+      <ProfileSection number="01" eyebrow={ps.identity.eyebrow} title={ps.identity.title}>
         <Field
-          label="Display name"
-          hint="Shown to counterparties on deals. Example: Alex · Frontend developer."
+          label={ps.identity.displayNameLabel}
+          hint={ps.identity.displayNameHint}
         >
           <input
             value={props.displayName}
@@ -688,15 +697,15 @@ function ProfileStep(props: {
       </ProfileSection>
 
       {wantsSeller && (
-        <ProfileSection number="02" eyebrow="TAKE WORK" title="Seller profile">
-          <Field label="Skills" hint="Comma-separated. Example: Next.js, Tailwind, copywriting.">
+        <ProfileSection number="02" eyebrow={ps.seller.eyebrow} title={ps.seller.title}>
+          <Field label={ps.seller.skillsLabel} hint={ps.seller.skillsHint}>
             <input
               value={props.skills}
               onChange={(e) => props.setSkills(e.target.value)}
               className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
             />
           </Field>
-          <Field label="Bio" hint="One or two sentences shown to buyers.">
+          <Field label={ps.seller.bioLabel} hint={ps.seller.bioHint}>
             <textarea
               value={props.bio}
               onChange={(e) => props.setBio(e.target.value)}
@@ -706,26 +715,26 @@ function ProfileStep(props: {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <NumField
-              label="Min budget (USDC)"
-              hint="Smallest job you will take, in USDC. Requests priced below this are filtered out before your agent bids."
+              label={ps.seller.minBudgetLabel}
+              hint={ps.seller.minBudgetHint}
               value={props.sellerMin}
               setValue={props.setSellerMin}
             />
             <NumField
-              label="Max budget (USDC)"
-              hint="Largest job you will take, in USDC. Requests priced above this are skipped."
+              label={ps.seller.maxBudgetLabel}
+              hint={ps.seller.maxBudgetHint}
               value={props.sellerMax}
               setValue={props.setSellerMax}
             />
             <NumField
-              label="Min deadline (days)"
-              hint="Shortest delivery window you will accept. Jobs due sooner than this are skipped."
+              label={ps.seller.minDeadlineLabel}
+              hint={ps.seller.minDeadlineHint}
               value={props.sellerMinDays}
               setValue={props.setSellerMinDays}
             />
             <NumField
-              label="Max deadline (days)"
-              hint="Longest delivery window you will commit to."
+              label={ps.seller.maxDeadlineLabel}
+              hint={ps.seller.maxDeadlineHint}
               value={props.sellerMaxDays}
               setValue={props.setSellerMaxDays}
             />
@@ -736,38 +745,38 @@ function ProfileStep(props: {
       {wantsBuyer && (
         <ProfileSection
           number={props.role === 'both' ? '03' : '02'}
-          eyebrow="HIRE SOMEONE"
-          title="Buyer profile"
+          eyebrow={ps.buyer.eyebrow}
+          title={ps.buyer.title}
         >
           <div className="grid grid-cols-2 gap-3">
             <NumField
-              label="Max budget per job (USDC)"
-              hint="The most you will pay for one job, in USDC. Your agent never bids or settles above this."
+              label={ps.buyer.maxBudgetLabel}
+              hint={ps.buyer.maxBudgetHint}
               value={props.buyerMax}
               setValue={props.setBuyerMax}
             />
             <NumField
-              label="Bid window (sec)"
-              hint="Seconds your agent collects seller bids before it scores them and picks. 30 is fine for testing. Raise it to gather more bids."
+              label={ps.buyer.bidWindowLabel}
+              hint={ps.buyer.bidWindowHint}
               value={props.bidWindow}
               setValue={props.setBidWindow}
             />
             <NumField
-              label="Min deadline (days)"
-              hint="Shortest delivery time you would give a seller for a job."
+              label={ps.buyer.minDeadlineLabel}
+              hint={ps.buyer.minDeadlineHint}
               value={props.buyerMinDays}
               setValue={props.setBuyerMinDays}
             />
             <NumField
-              label="Max deadline (days)"
-              hint="Longest delivery time you would allow a seller for a job."
+              label={ps.buyer.maxDeadlineLabel}
+              hint={ps.buyer.maxDeadlineHint}
               value={props.buyerMaxDays}
               setValue={props.setBuyerMaxDays}
             />
           </div>
           <Field
-            label="Milestone split"
-            hint="Comma-separated percentages that total 100. Example: 50,50 or 30,40,30."
+            label={ps.buyer.splitLabel}
+            hint={ps.buyer.splitHint}
           >
             <input
               value={props.milestoneSplit}
@@ -787,10 +796,10 @@ function ProfileStep(props: {
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
           </span>
-          Back
+          {t.roleStep.backArrow}
         </button>
         <CTAPill onClick={props.onSubmit} disabled={!props.canSubmit} tone="light">
-          {props.submitting ? 'Saving…' : 'Save & activate ↗'}
+          {props.submitting ? ps.saving : ps.submit}
         </CTAPill>
       </div>
       {props.error && (

@@ -56,6 +56,87 @@ interface MessagesShape {
       title: string;
       description: string;
     };
+    signUpTag: string;
+    stepIndicator: string;
+    connectStep: {
+      headlinePrefix: string;
+      headlineAccent: string;
+      bodyText: string;
+      loginButton: string;
+      fineprint: string;
+    };
+    roleStep: {
+      headlinePrefix: string;
+      headlineAccent: string;
+      connectedAs: string;
+      description: string;
+      continueArrow: string;
+      backArrow: string;
+      cards: {
+        seller: { eyebrow: string; title: string; body: string; tagline: string };
+        buyer: { eyebrow: string; title: string; body: string; tagline: string };
+        both: { eyebrow: string; title: string; body: string; tagline: string };
+      };
+      topBadge: string;
+      selected: string;
+    };
+    profileStep: {
+      headlinePrefix: string;
+      headlineAccent: string;
+      identity: {
+        eyebrow: string;
+        title: string;
+        displayNameLabel: string;
+        displayNameHint: string;
+      };
+      seller: {
+        eyebrow: string;
+        title: string;
+        skillsLabel: string;
+        skillsHint: string;
+        bioLabel: string;
+        bioHint: string;
+        minBudgetLabel: string;
+        minBudgetHint: string;
+        maxBudgetLabel: string;
+        maxBudgetHint: string;
+        minDeadlineLabel: string;
+        minDeadlineHint: string;
+        maxDeadlineLabel: string;
+        maxDeadlineHint: string;
+      };
+      buyer: {
+        eyebrow: string;
+        title: string;
+        maxBudgetLabel: string;
+        maxBudgetHint: string;
+        bidWindowLabel: string;
+        bidWindowHint: string;
+        minDeadlineLabel: string;
+        minDeadlineHint: string;
+        maxDeadlineLabel: string;
+        maxDeadlineHint: string;
+        splitLabel: string;
+        splitHint: string;
+      };
+      saving: string;
+      submit: string;
+    };
+    validation: {
+      displayName: string;
+      skills: string;
+      bio: string;
+      sellerMinBudget: string;
+      sellerMaxBudget: string;
+      sellerMinDeadline: string;
+      sellerMaxDeadline: string;
+      buyerMaxBudget: string;
+      bidWindow: string;
+      buyerMinDeadline: string;
+      buyerMaxDeadline: string;
+      splitEmpty: string;
+      splitSum: string;
+    };
   };
   account: {
     modal: {
@@ -436,6 +517,102 @@ export const en: MessagesShape = {
       eyebrow: 'STEP 1',
       title: 'Pick your language',
       description: 'You can change this any time from Settings.',
+    },
+    signUpTag: 'SIGN UP',
+    stepIndicator: 'SIGN UP · STEP {step} OF {total}',
+    connectStep: {
+      headlinePrefix: 'Connect your ',
+      headlineAccent: 'wallet',
+      bodyText: 'Karwan identifies you by a wallet. Connect an EVM wallet, or sign in with email and Circle provisions one for you.',
+      loginButton: 'Log in',
+      fineprint: 'Wallet or email. Both land you with an Arc address.',
+    },
+    roleStep: {
+      headlinePrefix: 'How will you use ',
+      headlineAccent: 'Karwan',
+      connectedAs: 'Connected as',
+      description: 'How will you mostly use Karwan? Pick one. You can change this later.',
+      continueArrow: 'Continue →',
+      backArrow: 'Back',
+      cards: {
+        seller: {
+          eyebrow: 'TAKE WORK',
+          title: 'Bid as seller',
+          body: 'Your seller agent watches the chain for jobs that match your skills and bids on your behalf.',
+          tagline: 'Best for freelancers and SME service providers.',
+        },
+        buyer: {
+          eyebrow: 'HIRE SOMEONE',
+          title: 'Run the auction',
+          body: 'Post requests. Your buyer agent ranks bids, negotiates within your terms, and locks the deal.',
+          tagline: 'Best for founders, agencies, procurement.',
+        },
+        both: {
+          eyebrow: 'BOTH',
+          title: 'Hire and bid',
+          body: 'Hire and take work from one account. Reputation compounds across both.',
+          tagline: 'One identity, two roles. Recommended for SMEs.',
+        },
+      },
+      topBadge: '★ TOP',
+      selected: 'selected',
+    },
+    profileStep: {
+      headlinePrefix: 'Tell us a bit ',
+      headlineAccent: 'about you',
+      identity: {
+        eyebrow: 'IDENTITY',
+        title: 'About you',
+        displayNameLabel: 'Display name',
+        displayNameHint: 'Shown to counterparties on deals. Example: Alex · Frontend developer.',
+      },
+      seller: {
+        eyebrow: 'TAKE WORK',
+        title: 'Seller profile',
+        skillsLabel: 'Skills',
+        skillsHint: 'Comma-separated. Example: Next.js, Tailwind, copywriting.',
+        bioLabel: 'Bio',
+        bioHint: 'One or two sentences shown to buyers.',
+        minBudgetLabel: 'Min budget (USDC)',
+        minBudgetHint: 'Smallest job you will take, in USDC. Requests priced below this are filtered out before your agent bids.',
+        maxBudgetLabel: 'Max budget (USDC)',
+        maxBudgetHint: 'Largest job you will take, in USDC. Requests priced above this are skipped.',
+        minDeadlineLabel: 'Min deadline (days)',
+        minDeadlineHint: 'Shortest delivery window you will accept. Jobs due sooner than this are skipped.',
+        maxDeadlineLabel: 'Max deadline (days)',
+        maxDeadlineHint: 'Longest delivery window you will commit to.',
+      },
+      buyer: {
+        eyebrow: 'HIRE SOMEONE',
+        title: 'Buyer profile',
+        maxBudgetLabel: 'Max budget per job (USDC)',
+        maxBudgetHint: 'The most you will pay for one job, in USDC. Your agent never bids or settles above this.',
+        bidWindowLabel: 'Bid window (sec)',
+        bidWindowHint: 'Seconds your agent collects seller bids before it scores them and picks. 30 is fine for testing. Raise it to gather more bids.',
+        minDeadlineLabel: 'Min deadline (days)',
+        minDeadlineHint: 'Shortest delivery time you would give a seller for a job.',
+        maxDeadlineLabel: 'Max deadline (days)',
+        maxDeadlineHint: 'Longest delivery time you would allow a seller for a job.',
+        splitLabel: 'Milestone split',
+        splitHint: 'Comma-separated percentages that total 100. Example: 50,50 or 30,40,30.',
+      },
+      saving: 'Saving…',
+      submit: 'Save & activate ↗',
+    },
+    validation: {
+      displayName: 'Add a display name.',
+      skills: 'Add at least one skill.',
+      bio: 'Write a short seller bio.',
+      sellerMinBudget: 'Set a seller minimum budget above 0.',
+      sellerMaxBudget: 'Seller max budget must exceed the min.',
+      sellerMinDeadline: 'Seller minimum deadline must be at least 1 day.',
+      sellerMaxDeadline: 'Seller max deadline must be at least the min.',
+      buyerMaxBudget: 'Set a buyer max budget above 0.',
+      bidWindow: 'Bid window must be at least 10 seconds.',
+      buyerMinDeadline: 'Buyer minimum deadline must be at least 1 day.',
+      buyerMaxDeadline: 'Buyer max deadline must be at least the min.',
+      splitEmpty: 'Milestone split needs at least one number.',
+      splitSum: 'Milestone split must add up to 100 (currently {sum}).',
     },
   },
   account: {
