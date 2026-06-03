@@ -282,6 +282,44 @@ interface MessagesShape {
     };
     usdcDeal: string;
   };
+  activity: {
+    signInGate: {
+      tag: string;
+      body: string;
+    };
+    hero: {
+      sectionTag: string;
+      headlineTop: string;
+      headlineAccent: string;
+      description: string;
+    };
+    stream: {
+      sectionTag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      description: string;
+    };
+    filters: {
+      searchPlaceholder: string;
+      clearSearchAria: string;
+      clearFilters: string;
+      actors: {
+        buyer: string;
+        seller: string;
+        system: string;
+      };
+    };
+    stats: {
+      groups: {
+        jobs: string;
+        negotiation: string;
+        settlement: string;
+        bridge: string;
+      };
+      filtering: string;
+      events: string;
+    };
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -758,6 +796,44 @@ export const en: MessagesShape = {
       cancelled: 'cancelled a',
     },
     usdcDeal: 'USDC DEAL',
+  },
+  activity: {
+    signInGate: {
+      tag: 'STREAM',
+      body: 'Every deal moving across Karwan, live from Arc. Sign in to view the network stream and search by job ID.',
+    },
+    hero: {
+      sectionTag: 'STREAM',
+      headlineTop: 'Every event',
+      headlineAccent: 'On chain.',
+      description: 'Live from Arc Testnet. Each row deep-links to the explorer.',
+    },
+    stream: {
+      sectionTag: 'EVENT STREAM',
+      headlinePrefix: 'Audit the ',
+      headlineAccent: 'chain',
+      description: 'Full network event log.',
+    },
+    filters: {
+      searchPlaceholder: 'Filter by job id…',
+      clearSearchAria: 'Clear',
+      clearFilters: 'Clear filters',
+      actors: {
+        buyer: 'Buyer',
+        seller: 'Seller',
+        system: 'System',
+      },
+    },
+    stats: {
+      groups: {
+        jobs: 'Jobs',
+        negotiation: 'Negotiation',
+        settlement: 'Settlement',
+        bridge: 'Bridge',
+      },
+      filtering: '↳ filtering',
+      events: 'events',
+    },
   },
   tierCelebration: {
     eyebrow: 'TIER UNLOCKED',

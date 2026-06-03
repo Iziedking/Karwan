@@ -290,6 +290,44 @@ export const sw: Messages = {
     },
     usdcDeal: 'BIASHARA YA USDC',
   },
+  activity: {
+    signInGate: {
+      tag: 'MTIRIRIKO',
+      body: 'Kila biashara inayopita kwenye Karwan, moja kwa moja kutoka Arc. Ingia kuona mtiririko wa mtandao na utafute kwa kitambulisho cha kazi.',
+    },
+    hero: {
+      sectionTag: 'MTIRIRIKO',
+      headlineTop: 'Kila tukio',
+      headlineAccent: 'Kwenye mnyororo.',
+      description: 'Moja kwa moja kutoka Arc Testnet. Kila safu inaungana na kichunguzi.',
+    },
+    stream: {
+      sectionTag: 'MTIRIRIKO WA MATUKIO',
+      headlinePrefix: 'Kagua ',
+      headlineAccent: 'mnyororo',
+      description: 'Kumbukumbu kamili ya matukio ya mtandao.',
+    },
+    filters: {
+      searchPlaceholder: 'Chuja kwa kitambulisho cha kazi…',
+      clearSearchAria: 'Futa',
+      clearFilters: 'Futa vichujio',
+      actors: {
+        buyer: 'Mnunuzi',
+        seller: 'Muuzaji',
+        system: 'Mfumo',
+      },
+    },
+    stats: {
+      groups: {
+        jobs: 'Kazi',
+        negotiation: 'Mazungumzo',
+        settlement: 'Malipo',
+        bridge: 'Daraja',
+      },
+      filtering: '↳ inachuja',
+      events: 'matukio',
+    },
+  },
   tierCelebration: {
     eyebrow: 'KIWANGO KIMEFUNGULIWA',
     achievementPrefix: 'Umefika',

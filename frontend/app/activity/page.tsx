@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { ActivityView } from '@/features/activity/components/ActivityView';
 import { PageTour } from '@/shared/guide/PageTour';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ACTIVITY_TOUR_ID, ACTIVITY_STEPS } from '@/shared/guide/tours';
 import {
   FullBleed,
@@ -18,6 +19,7 @@ import {
 } from '@/shared/components/Bands';
 
 export default function ActivityPage() {
+  const t = useTranslations().activity;
   const { isAuthenticated, isLoading } = useAuth();
   const [explorer, setExplorer] = useState<string>('https://testnet.arcscan.app');
 
@@ -36,8 +38,8 @@ export default function ActivityPage() {
     return (
       <SignInGate
         variant="page"
-        tag="STREAM"
-        body="Every deal moving across Karwan, live from Arc. Sign in to view the network stream and search by job ID."
+        tag={t.signInGate.tag}
+        body={t.signInGate.body}
       />
     );
   }
@@ -50,31 +52,31 @@ export default function ActivityPage() {
         <div className="max-w-[58ch]">
           <div className="fade-up">
             <SectionTag tone="dark" dot="live">
-              STREAM
+              {t.hero.sectionTag}
             </SectionTag>
           </div>
           <div className="fade-up fade-up-1">
             <HeroHeadline>
-              Every event<Punc>.</Punc>
+              {t.hero.headlineTop}<Punc>.</Punc>
               <br />
-              <Accent>On chain.</Accent>
+              <Accent>{t.hero.headlineAccent}</Accent>
             </HeroHeadline>
           </div>
           <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-            Live from Arc Testnet. Each row deep-links to the explorer.
+            {t.hero.description}
           </p>
         </div>
       </Band>
 
       {/* STREAM SECTION */}
       <Band tone="light" compact>
-        <SectionTag>EVENT STREAM</SectionTag>
+        <SectionTag>{t.stream.sectionTag}</SectionTag>
         <HeroHeadline size="md">
-          Audit the <Accent>chain</Accent>
+          {t.stream.headlinePrefix}<Accent>{t.stream.headlineAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          Full network event log.
+          {t.stream.description}
         </p>
         <div className="mt-10 fade-up fade-up-1" data-guide="activity-stream">
           <PageCard>

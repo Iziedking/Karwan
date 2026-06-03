@@ -290,6 +290,44 @@ export const fr: Messages = {
     },
     usdcDeal: 'DEAL USDC',
   },
+  activity: {
+    signInGate: {
+      tag: 'FLUX',
+      body: 'Tous les deals qui bougent sur Karwan, en direct depuis Arc. Connectez-vous pour suivre le flux réseau et chercher par job ID.',
+    },
+    hero: {
+      sectionTag: 'FLUX',
+      headlineTop: 'Chaque évènement',
+      headlineAccent: 'Sur la chaîne.',
+      description: 'En direct depuis Arc Testnet. Chaque ligne renvoie à l’explorateur.',
+    },
+    stream: {
+      sectionTag: 'FLUX D’ÉVÈNEMENTS',
+      headlinePrefix: 'Auditez la ',
+      headlineAccent: 'chaîne',
+      description: 'Journal complet des évènements réseau.',
+    },
+    filters: {
+      searchPlaceholder: 'Filtrer par job id…',
+      clearSearchAria: 'Effacer',
+      clearFilters: 'Effacer les filtres',
+      actors: {
+        buyer: 'Acheteur',
+        seller: 'Vendeur',
+        system: 'Système',
+      },
+    },
+    stats: {
+      groups: {
+        jobs: 'Missions',
+        negotiation: 'Négociation',
+        settlement: 'Règlement',
+        bridge: 'Pont',
+      },
+      filtering: '↳ filtrage',
+      events: 'évènements',
+    },
+  },
   tierCelebration: {
     eyebrow: 'PALIER DÉBLOQUÉ',
     achievementPrefix: 'Vous avez atteint',

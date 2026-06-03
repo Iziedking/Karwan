@@ -1,6 +1,6 @@
 'use client';
 import type { ActorFilter } from '../types';
-import { ACTOR_LABELS } from '../types';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function ActivityFilters({
   activeActors,
@@ -17,6 +17,7 @@ export function ActivityFilters({
   onClear: () => void;
   hasAnyFilter: boolean;
 }) {
+  const t = useTranslations().activity.filters;
   const actors: ActorFilter[] = ['buyer', 'seller', 'system'];
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -58,7 +59,7 @@ export function ActivityFilters({
                   style={{ background: 'var(--lp-accent)' }}
                 />
               )}
-              {ACTOR_LABELS[a]}
+              {t.actors[a]}
             </button>
           );
         })}
@@ -80,7 +81,7 @@ export function ActivityFilters({
           type="text"
           value={jobIdSearch}
           onChange={(e) => onJobIdSearch(e.target.value)}
-          placeholder="Filter by job id…"
+          placeholder={t.searchPlaceholder}
           className="activity-search w-full bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
           style={{
             border: '1px solid var(--lp-border-light)',
@@ -95,7 +96,7 @@ export function ActivityFilters({
             type="button"
             onClick={() => onJobIdSearch('')}
             className="absolute end-2.5 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-            aria-label="Clear"
+            aria-label={t.clearSearchAria}
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
               <path
@@ -121,7 +122,7 @@ export function ActivityFilters({
           onClick={onClear}
           className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          Clear filters
+          {t.clearFilters}
         </button>
       )}
     </div>

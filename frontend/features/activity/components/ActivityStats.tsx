@@ -1,7 +1,7 @@
 ﻿'use client';
 import type { GroupCounts, EventGroup } from '../types';
-import { GROUP_LABELS } from '../types';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const GROUP_TINT: Record<EventGroup, string> = {
   jobs: 'rgba(255,255,255,0.55)',
@@ -19,6 +19,7 @@ export function ActivityStats({
   activeGroups: Set<EventGroup>;
   onToggleGroup: (g: EventGroup) => void;
 }) {
+  const t = useTranslations().activity.stats;
   const groups: EventGroup[] = ['jobs', 'negotiation', 'settlement', 'bridge'];
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -49,7 +50,7 @@ export function ActivityStats({
           >
             <div className="flex items-center justify-between">
               <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-white/55">
-                {GROUP_LABELS[g]}
+                {t.groups[g]}
               </p>
               <span
                 aria-hidden
@@ -66,7 +67,7 @@ export function ActivityStats({
               {counts[g]}
             </p>
             <p className="mt-2 mono text-[10px] uppercase tracking-[0.16em] text-white/55">
-              {active ? '↳ filtering' : 'events'}
+              {active ? t.filtering : t.events}
             </p>
             {active && (
               <span

@@ -290,6 +290,44 @@ export const hi: Messages = {
     },
     usdcDeal: 'USDC डील',
   },
+  activity: {
+    signInGate: {
+      tag: 'स्ट्रीम',
+      body: 'कारवान पर चलने वाली हर डील, Arc से लाइव। नेटवर्क स्ट्रीम देखने और जॉब ID से खोजने के लिए साइन इन करें।',
+    },
+    hero: {
+      sectionTag: 'स्ट्रीम',
+      headlineTop: 'हर घटना',
+      headlineAccent: 'चेन पर।',
+      description: 'Arc Testnet से लाइव। हर पंक्ति एक्सप्लोरर से जुड़ती है।',
+    },
+    stream: {
+      sectionTag: 'इवेंट स्ट्रीम',
+      headlinePrefix: 'चेन का ',
+      headlineAccent: 'ऑडिट',
+      description: 'पूरी नेटवर्क इवेंट लॉग।',
+    },
+    filters: {
+      searchPlaceholder: 'जॉब आईडी से छानें…',
+      clearSearchAria: 'मिटाएँ',
+      clearFilters: 'फ़िल्टर मिटाएँ',
+      actors: {
+        buyer: 'क्रेता',
+        seller: 'विक्रेता',
+        system: 'सिस्टम',
+      },
+    },
+    stats: {
+      groups: {
+        jobs: 'कार्य',
+        negotiation: 'बातचीत',
+        settlement: 'निपटान',
+        bridge: 'ब्रिज',
+      },
+      filtering: '↳ छाँट रहे हैं',
+      events: 'घटनाएँ',
+    },
+  },
   tierCelebration: {
     eyebrow: 'स्तर अनलॉक हुआ',
     achievementPrefix: 'आप पहुँचे',

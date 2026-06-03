@@ -74,15 +74,3 @@ export function applyFilters(events: ChainEvent[], filters: ActivityFilters): Ch
   });
 }
 
-export const GROUP_LABELS: Record<EventGroup, string> = {
-  jobs:        'Jobs',
-  negotiation: 'Negotiation',
-  settlement:  'Settlement',
-  bridge:      'Bridge',
-};
-
-export const ACTOR_LABELS: Record<ActorFilter, string> = {
-  buyer:  'Buyer',
-  seller: 'Seller',
-  system: 'System',
-};

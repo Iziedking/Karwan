@@ -290,6 +290,44 @@ export const ar: Messages = {
     },
     usdcDeal: 'صفقة USDC',
   },
+  activity: {
+    signInGate: {
+      tag: 'البث',
+      body: 'كل صفقة تتحرك عبر كاروان، مباشرةً من Arc. سجّل الدخول لرؤية بث الشبكة والبحث برقم الوظيفة.',
+    },
+    hero: {
+      sectionTag: 'البث',
+      headlineTop: 'كل حدث',
+      headlineAccent: 'على السلسلة.',
+      description: 'مباشر من Arc Testnet. كل سطر يربط بمستعرض السلسلة.',
+    },
+    stream: {
+      sectionTag: 'بث الأحداث',
+      headlinePrefix: 'تحقّق من ',
+      headlineAccent: 'السلسلة',
+      description: 'سجل أحداث الشبكة الكامل.',
+    },
+    filters: {
+      searchPlaceholder: 'تصفية برقم الوظيفة…',
+      clearSearchAria: 'مسح',
+      clearFilters: 'مسح المرشحات',
+      actors: {
+        buyer: 'مشتر',
+        seller: 'بائع',
+        system: 'النظام',
+      },
+    },
+    stats: {
+      groups: {
+        jobs: 'الأعمال',
+        negotiation: 'التفاوض',
+        settlement: 'التسوية',
+        bridge: 'الجسر',
+      },
+      filtering: '↳ يصفّي',
+      events: 'أحداث',
+    },
+  },
   tierCelebration: {
     eyebrow: 'تم فتح الرتبة',
     achievementPrefix: 'وصلت إلى',
