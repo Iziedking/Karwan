@@ -7,6 +7,7 @@ import { useDismissed } from '@/shared/hooks/useDismissed';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export type DealStage =
   | 'awaiting-acceptance'
@@ -38,49 +39,43 @@ export function stageOf(deal: DirectDeal): DealStage {
 
 // Curated palette. slight off-axis hues so the badges feel designed, not
 // pulled from default success/error/warning. Each tone has matching bg, fg, and
-// a slightly punchier rail color for the row edge marker.
+// a slightly punchier rail color for the row edge marker. Labels live in the
+// dealStage.labels namespace so each locale supplies its own wording.
 export const STAGE_META: Record<
   DealStage,
-  { label: string; rail: string; chipBg: string; chipFg: string }
+  { rail: string; chipBg: string; chipFg: string }
 > = {
   'awaiting-acceptance': {
-    label: 'Pending acceptance',
     rail: '#4a5aa3',
     chipBg: 'rgba(60, 74, 138, 0.10)',
     chipFg: '#3a4a85',
   },
   'awaiting-delivery': {
-    label: 'Awaiting delivery',
     rail: '#4a5aa3',
     chipBg: 'rgba(60, 74, 138, 0.10)',
     chipFg: '#3a4a85',
   },
   'awaiting-first-release': {
-    label: 'Delivered',
     rail: '#c96030',
     chipBg: 'rgba(178, 84, 37, 0.12)',
     chipFg: '#b25425',
   },
   'awaiting-final-release': {
-    label: 'Releasing',
     rail: '#c96030',
     chipBg: 'rgba(178, 84, 37, 0.12)',
     chipFg: '#b25425',
   },
   settled: {
-    label: 'Settled',
     rail: '#0e8c5f',
     chipBg: 'rgba(10, 117, 83, 0.12)',
     chipFg: '#0a7553',
   },
   cancelled: {
-    label: 'Cancelled',
     rail: '#b03d3a',
     chipBg: 'rgba(156, 55, 53, 0.10)',
     chipFg: '#9c3735',
   },
   disputed: {
-    label: 'Disputed',
     rail: '#92294a',
     chipBg: 'rgba(126, 36, 64, 0.10)',
     chipFg: '#7e2440',
@@ -89,6 +84,7 @@ export const STAGE_META: Record<
 
 export function StageBadge({ stage }: { stage: DealStage }) {
   const m = STAGE_META[stage];
+  const label = useTranslations().dealStage.labels[stage];
   return (
     <span
       className="inline-flex items-stretch overflow-hidden text-[10px] mono font-bold uppercase tracking-[0.18em] leading-none"
@@ -110,12 +106,13 @@ export function StageBadge({ stage }: { stage: DealStage }) {
       >
         <span className="block w-[5px] h-[5px] bg-white" />
       </span>
-      <span className="px-2 py-[7px]">{m.label}</span>
+      <span className="px-2 py-[7px]">{label}</span>
     </span>
   );
 }
 
 export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
+  const t = useTranslations().directDealList;
   const auth = useAuth();
   const address = auth.address ?? undefined;
   const { deals, fetchState } = useDirectDeals();
@@ -141,7 +138,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
   if (fetchState === 'error') {
     return (
       <p className="p-8 text-center mono text-[12px] uppercase tracking-[0.1em] text-[#7a1f1a]">
-        Couldn&apos;t load direct deals.
+        {t.errorBody}
       </p>
     );
   }
@@ -149,16 +146,16 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
     return (
       <div className="p-10 text-center space-y-2">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          {scoped.length === 0 ? 'NO DEALS YET' : 'ALL DISMISSED'}
+          {scoped.length === 0 ? t.empty.noDealsTag : t.empty.allDismissedTag}
         </p>
         <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
           {scoped.length === 0
             ? role === 'seller'
-              ? 'Deals naming your wallet land here.'
+              ? t.empty.promptSeller
               : role === 'buyer'
-                ? 'Deals you open land here.'
-                : 'Deals you open or that name your wallet land here.'
-            : 'Every deal in this list has been dismissed.'}
+                ? t.empty.promptBuyer
+                : t.empty.promptBoth
+            : t.empty.promptAllDismissed}
         </p>
       </div>
     );
@@ -190,7 +187,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-                      {isBuyer ? 'BUYING' : 'SELLING'}
+                      {isBuyer ? t.roleEyebrow.buying : t.roleEyebrow.selling}
                     </span>
                     <StageBadge stage={stage} />
                   </div>
@@ -208,7 +205,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                 </div>
                 <div className="text-end shrink-0 space-y-1.5">
                   <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-                    {isBuyer ? 'SELLER' : 'BUYER'}
+                    {isBuyer ? t.counterpartyEyebrow.seller : t.counterpartyEyebrow.buyer}
                   </p>
                   <span
                     className="inline-flex items-center gap-1.5 px-2 py-0.5 mono text-[11px] border"
@@ -269,6 +266,7 @@ function SwipeableRow({
   railColor: string;
   children: ReactNode;
 }) {
+  const t = useTranslations().directDealList.swipe;
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startXRef = useRef<number | null>(null);
@@ -386,7 +384,7 @@ function SwipeableRow({
           }}
         >
           <span className="mono text-[11px] uppercase tracking-[0.18em] font-bold text-white">
-            Dismiss
+            {t.dismissReveal}
           </span>
         </div>
       )}
@@ -402,8 +400,8 @@ function SwipeableRow({
       {dismissable && (
         <button
           type="button"
-          title="Dismiss"
-          aria-label="Dismiss this deal from the list"
+          title={t.dismissTitle}
+          aria-label={t.dismissAria}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

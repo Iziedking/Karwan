@@ -628,6 +628,79 @@ interface MessagesShape {
       nextAria: string;
     };
   };
+  postJob: {
+    notConnected: string;
+    noBuyerProfile: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
+    preview: {
+      eyebrow: string;
+      unitMinShort: string;
+      unitHrShort: string;
+      unitDaysShort: string;
+      tolerancePrefix: string;
+      ceilingPrefix: string;
+      milestoneCaption: string;
+    };
+    sectionWork: {
+      eyebrow: string;
+      title: string;
+      requestLabel: string;
+      requestHint: string;
+      requestPlaceholder: string;
+    };
+    sectionTerms: {
+      eyebrow: string;
+      title: string;
+      budgetLabel: string;
+      budgetHint: string;
+      deadlineLabel: string;
+      deadlineHint: string;
+      toleranceLabel: string;
+      toleranceHint: string;
+    };
+    trustedMatch: {
+      eyebrow: string;
+      body: string;
+    };
+    intentWarning: {
+      eyebrow: string;
+      bodyStart: string;
+      bodyOffer: string;
+      bodyMiddle: string;
+      bodyNeed: string;
+      bodyAfter: string;
+      bodyLink: string;
+      bodyAfterLink: string;
+      bodyButtonRef: string;
+      bodyTail: string;
+    };
+    submit: {
+      submittingShort: string;
+      waitingArcTemplate: string;
+      waitingCircleTemplate: string;
+      postOnChain: string;
+      pendingHelper: string;
+      feeCaption: string;
+    };
+    errors: {
+      insufficientBalanceTitle: string;
+      insufficientBalanceFallback: string;
+      topUpCta: string;
+      postFailedPrefix: string;
+      activatingButton: string;
+      activateCta: string;
+    };
+    deadlineUnitAria: string;
+    unitPickerLabels: {
+      min: string;
+      hr: string;
+      day: string;
+    };
+  };
   bridgeOut: {
     header: {
       eyebrow: string;
@@ -1585,6 +1658,79 @@ export const en: MessagesShape = {
       countPlural: '{n} deals',
       prevAria: 'Previous page',
       nextAria: 'Next page',
+    },
+  },
+  postJob: {
+    notConnected: 'Sign in to post a deal. Log in pill is in the nav.',
+    noBuyerProfile: {
+      eyebrow: 'BUYER PROFILE',
+      title: 'Set up a buyer profile.',
+      body: 'Your agent uses it to score and counter bids inside your ranges.',
+      cta: 'Set up profile →',
+    },
+    preview: {
+      eyebrow: 'DEAL PREVIEW',
+      unitMinShort: 'MIN',
+      unitHrShort: 'HR',
+      unitDaysShort: 'DAYS',
+      tolerancePrefix: 'tolerance',
+      ceilingPrefix: 'ceiling',
+      milestoneCaption: 'milestone escrow on Arc',
+    },
+    sectionWork: {
+      eyebrow: 'THE WORK',
+      title: 'Describe what you need.',
+      requestLabel: 'Request',
+      requestHint: 'Outline scope, deliverables, must-haves. The seller agent reads this to decide whether to bid.',
+      requestPlaceholder: 'e.g. 200 bags arabica green coffee, Lagos to Dubai. CIF, net 30. BoL on dispatch.',
+    },
+    sectionTerms: {
+      eyebrow: 'TERMS',
+      title: 'Set the auction guardrails.',
+      budgetLabel: 'Budget',
+      budgetHint: 'Target price. The agent negotiates from here within the tolerance.',
+      deadlineLabel: 'Deadline',
+      deadlineHint: "Sellers won't bid if it falls outside their delivery window. Choose min, hr, or days.",
+      toleranceLabel: 'Tolerance',
+      toleranceHint: 'How much above budget the agent may accept on a counter. 0 = strict.',
+    },
+    trustedMatch: {
+      eyebrow: 'TRUSTED MATCH',
+      body: "Agent prioritizes seller reputation and stake over price. Sellers with no stake cannot bid. Best for higher-value or one-shot deals you can't redo.",
+    },
+    intentWarning: {
+      eyebrow: 'WAIT. IS THIS A REQUEST OR AN OFFER?',
+      bodyStart: 'This reads like something you ',
+      bodyOffer: 'offer',
+      bodyMiddle: ', not something you ',
+      bodyNeed: 'need',
+      bodyAfter: '. Requests are for buyers; offers (posted from the seller desk) are for sellers. If you meant to sell a service, ',
+      bodyLink: 'post an offer instead',
+      bodyAfterLink: '. Click ',
+      bodyButtonRef: 'Post on chain',
+      bodyTail: ' again to post the request as-is.',
+    },
+    submit: {
+      submittingShort: 'Submitting tx…',
+      waitingArcTemplate: 'Waiting for Arc to confirm… {seconds}s',
+      waitingCircleTemplate: 'Still waiting on Circle… {seconds}s',
+      postOnChain: 'Post on chain',
+      pendingHelper: 'Circle is broadcasting and confirming on Arc. Live job page opens when it lands.',
+      feeCaption: '↳ tx fee paid in USDC',
+    },
+    errors: {
+      insufficientBalanceTitle: 'Buyer agent short on USDC.',
+      insufficientBalanceFallback: 'Buyer agent is short on USDC.',
+      topUpCta: 'Top up via CCTP →',
+      postFailedPrefix: "Couldn't post:",
+      activatingButton: 'Activating…',
+      activateCta: 'Activate your agents here →',
+    },
+    deadlineUnitAria: 'Deadline unit',
+    unitPickerLabels: {
+      min: 'MIN',
+      hr: 'HR',
+      day: 'DAY',
     },
   },
   bridgeOut: {

@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { cn } from '@/shared/utils/cn';
@@ -15,6 +16,7 @@ import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 
 export function PostJobForm() {
+  const t = useTranslations().postJob;
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
@@ -88,7 +90,7 @@ export function PostJobForm() {
     } catch (err) {
       if (err instanceof ApiError && err.message === 'insufficient buyer balance') {
         setInsufficientBalance(true);
-        setError(err.detail ? String(err.detail) : 'Buyer agent is short on USDC.');
+        setError(err.detail ? String(err.detail) : t.errors.insufficientBalanceFallback);
       } else if (err instanceof ApiError && err.detail) {
         setError(String(err.detail));
       } else {
@@ -101,17 +103,17 @@ export function PostJobForm() {
   const disabled = submitting || !brief.trim() || !budget || !deadlineValue;
   const buttonLabel = submitting
     ? elapsed < 8
-      ? 'Submitting tx…'
+      ? t.submit.submittingShort
       : elapsed < 30
-        ? `Waiting for Arc to confirm… ${elapsed}s`
-        : `Still waiting on Circle… ${elapsed}s`
-    : 'Post on chain';
+        ? t.submit.waitingArcTemplate.replace('{seconds}', String(elapsed))
+        : t.submit.waitingCircleTemplate.replace('{seconds}', String(elapsed))
+    : t.submit.postOnChain;
 
   if (!isConnected) {
     return (
       <div className="space-y-4">
         <p className="text-[13px] text-[var(--lp-text-sub)]">
-          Sign in to post a deal. Log in pill is in the nav.
+          {t.notConnected}
         </p>
       </div>
     );
@@ -131,13 +133,13 @@ export function PostJobForm() {
         }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          BUYER PROFILE
+          {t.noBuyerProfile.eyebrow}
         </p>
         <h3 className="font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em]">
-          Set up a buyer profile.
+          {t.noBuyerProfile.title}
         </h3>
         <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
-          Your agent uses it to score and counter bids inside your ranges.
+          {t.noBuyerProfile.body}
         </p>
         <Link
           href="/onboarding"
@@ -149,7 +151,7 @@ export function PostJobForm() {
             borderBottomRightRadius: 3,
           }}
         >
-          Set up profile →
+          {t.noBuyerProfile.cta}
         </Link>
       </div>
     );
@@ -158,7 +160,11 @@ export function PostJobForm() {
   const previewAmount = typeof budget === 'number' ? budget : 0;
   const previewDeadline = typeof deadlineValue === 'number' ? deadlineValue : 0;
   const previewUnitLabel =
-    deadlineUnit === 'min' ? 'MIN' : deadlineUnit === 'hr' ? 'HR' : 'DAYS';
+    deadlineUnit === 'min'
+      ? t.preview.unitMinShort
+      : deadlineUnit === 'hr'
+        ? t.preview.unitHrShort
+        : t.preview.unitDaysShort;
   const previewTol = typeof tolerance === 'number' ? tolerance : 0;
   const ceiling =
     typeof budget === 'number' && typeof tolerance === 'number'
@@ -195,7 +201,7 @@ export function PostJobForm() {
         />
         <div className="relative px-6 py-6">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            DEAL PREVIEW
+            {t.preview.eyebrow}
           </p>
           <div className="mt-3 flex items-baseline gap-2 flex-wrap">
             <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
@@ -223,25 +229,25 @@ export function PostJobForm() {
                   animation: 'instrumentBlink 1.6s ease-in-out infinite',
                 }}
               />
-              tolerance {previewTol}%
+              {t.preview.tolerancePrefix} {previewTol}%
             </span>
             {ceiling && (
               <>
                 <span aria-hidden className="w-px h-3 bg-white/20" />
-                <span>ceiling {ceiling} USDC</span>
+                <span>{t.preview.ceilingPrefix} {ceiling} USDC</span>
               </>
             )}
             <span aria-hidden className="w-px h-3 bg-white/20" />
-            <span>milestone escrow on Arc</span>
+            <span>{t.preview.milestoneCaption}</span>
           </div>
         </div>
       </div>
 
       {/* THE WORK */}
-      <FieldSection eyebrow="THE WORK" title="Describe what you need." dataGuide="buyer-brief">
+      <FieldSection eyebrow={t.sectionWork.eyebrow} title={t.sectionWork.title} dataGuide="buyer-brief">
         <FormLabel
-          label="Request"
-          hint="Outline scope, deliverables, must-haves. The seller agent reads this to decide whether to bid."
+          label={t.sectionWork.requestLabel}
+          hint={t.sectionWork.requestHint}
         >
           <textarea
             value={brief}
@@ -251,19 +257,19 @@ export function PostJobForm() {
             }}
             rows={4}
             disabled={submitting}
-            placeholder="e.g. 200 bags arabica green coffee, Lagos to Dubai. CIF, net 30. BoL on dispatch."
+            placeholder={t.sectionWork.requestPlaceholder}
             className="form-input form-textarea"
           />
         </FormLabel>
       </FieldSection>
 
       {/* TERMS */}
-      <FieldSection eyebrow="TERMS" title="Set the auction guardrails.">
+      <FieldSection eyebrow={t.sectionTerms.eyebrow} title={t.sectionTerms.title}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <FormLabel
-            label="Budget"
+            label={t.sectionTerms.budgetLabel}
             unit="USDC"
-            hint="Target price. The agent negotiates from here within the tolerance."
+            hint={t.sectionTerms.budgetHint}
             dataGuide="buyer-budget"
           >
             <input
@@ -278,9 +284,9 @@ export function PostJobForm() {
             />
           </FormLabel>
           <FormLabel
-            label="Deadline"
+            label={t.sectionTerms.deadlineLabel}
             unit={previewUnitLabel.toLowerCase()}
-            hint="Sellers won't bid if it falls outside their delivery window. Choose min, hr, or days."
+            hint={t.sectionTerms.deadlineHint}
             dataGuide="buyer-deadline"
           >
             <div className="flex items-stretch gap-2">
@@ -311,9 +317,9 @@ export function PostJobForm() {
             </div>
           </FormLabel>
           <FormLabel
-            label="Tolerance"
+            label={t.sectionTerms.toleranceLabel}
             unit="%"
-            hint="How much above budget the agent may accept on a counter. 0 = strict."
+            hint={t.sectionTerms.toleranceHint}
             dataGuide="buyer-tolerance"
           >
             <input
@@ -363,15 +369,13 @@ export function PostJobForm() {
             className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
             style={{ color: trustedMatch ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
           >
-            [:TRUSTED MATCH:]
+            [:{t.trustedMatch.eyebrow}:]
           </span>
           <p
             id="trusted-match-help"
             className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
           >
-            Agent prioritizes seller reputation and stake over price. Sellers
-            with no stake cannot bid. Best for higher-value or one-shot deals
-            you can't redo.
+            {t.trustedMatch.body}
           </p>
         </div>
       </label>
@@ -392,20 +396,23 @@ export function PostJobForm() {
           }}
         >
           <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
-            [:WAIT. IS THIS A REQUEST OR AN OFFER?:]
+            [:{t.intentWarning.eyebrow}:]
           </p>
           <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
-            This reads like something you <span className="font-bold">offer</span>, not something
-            you <span className="font-bold">need</span>. Requests are for buyers; offers (posted
-            from the seller desk) are for sellers. If you meant to sell a service,{' '}
+            {t.intentWarning.bodyStart}
+            <span className="font-bold">{t.intentWarning.bodyOffer}</span>
+            {t.intentWarning.bodyMiddle}
+            <span className="font-bold">{t.intentWarning.bodyNeed}</span>
+            {t.intentWarning.bodyAfter}
             <Link
               href="/seller"
               className="underline underline-offset-2 hover:opacity-80"
             >
-              post an offer instead
+              {t.intentWarning.bodyLink}
             </Link>
-            . Click <span className="font-bold">Post on chain</span> again to post the request
-            as-is.
+            {t.intentWarning.bodyAfterLink}
+            <span className="font-bold">{t.intentWarning.bodyButtonRef}</span>
+            {t.intentWarning.bodyTail}
           </p>
         </div>
       )}
@@ -456,12 +463,12 @@ export function PostJobForm() {
         </button>
         {submitting && (
           <p className="text-[12px] text-[var(--lp-text-muted)] leading-snug max-w-[36ch]">
-            Circle is broadcasting and confirming on Arc. Live job page opens when it lands.
+            {t.submit.pendingHelper}
           </p>
         )}
         {!submitting && (
           <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-            ↳ tx fee paid in USDC
+            {t.submit.feeCaption}
           </p>
         )}
       </div>
@@ -476,7 +483,7 @@ export function PostJobForm() {
           }}
         >
           <p className="font-sans text-[14px] font-extrabold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
-            Buyer agent short on USDC.
+            {t.errors.insufficientBalanceTitle}
           </p>
           <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">{error}</p>
           <button
@@ -484,13 +491,13 @@ export function PostJobForm() {
             onClick={() => window.location.assign('/bridge')}
             className="mono text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--lp-dark)] underline-offset-2 hover:underline"
           >
-            Top up via CCTP →
+            {t.errors.topUpCta}
           </button>
         </div>
       ) : (
         error && (
           <div className="space-y-1.5">
-            <p className="mono text-[12px] text-[#7a1f1a]">Couldn&apos;t post: {error}</p>
+            <p className="mono text-[12px] text-[#7a1f1a]">{t.errors.postFailedPrefix} {error}</p>
             {/activate|agent wallet/i.test(error) && (
               <button
                 type="button"
@@ -505,7 +512,7 @@ export function PostJobForm() {
                 disabled={activating}
                 className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 text-[var(--lp-dark)] disabled:opacity-50"
               >
-                {activating ? 'Activating…' : 'Activate your agents here →'}
+                {activating ? t.errors.activatingButton : t.errors.activateCta}
               </button>
             )}
           </div>
@@ -589,15 +596,16 @@ function DeadlineUnitPicker({
   disabled?: boolean;
   onChange: (next: 'min' | 'hr' | 'd') => void;
 }) {
+  const t = useTranslations().postJob;
   const options: Array<{ key: 'min' | 'hr' | 'd'; label: string }> = [
-    { key: 'min', label: 'MIN' },
-    { key: 'hr', label: 'HR' },
-    { key: 'd', label: 'DAY' },
+    { key: 'min', label: t.unitPickerLabels.min },
+    { key: 'hr', label: t.unitPickerLabels.hr },
+    { key: 'd', label: t.unitPickerLabels.day },
   ];
   return (
     <div
       role="radiogroup"
-      aria-label="Deadline unit"
+      aria-label={t.deadlineUnitAria}
       className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
       style={{
         background: 'var(--lp-light)',

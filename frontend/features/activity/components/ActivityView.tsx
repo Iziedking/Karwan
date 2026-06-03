@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { EventList } from '@/features/jobs/components/EventList';
 import { ActivityStats } from './ActivityStats';
 import { ActivityFilters } from './ActivityFilters';
@@ -17,6 +18,7 @@ import { publicizeEvents } from '../publicFeed';
 const PAGE_SIZE = 20;
 
 export function ActivityView({ explorer }: { explorer: string }) {
+  const t = useTranslations().activity.view;
   const auth = useAuth();
   const address = auth.address ?? undefined;
   const isAuthed = auth.isAuthenticated;
@@ -69,11 +71,10 @@ export function ActivityView({ explorer }: { explorer: string }) {
     return (
       <div className="py-12 text-center space-y-2.5 max-w-[48ch] mx-auto">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          NOT SIGNED IN
+          {t.notSignedInEyebrow}
         </p>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Sign in to watch every deal moving across Karwan. Search by job ID to follow a
-          specific one.
+          {t.notSignedInBody}
         </p>
       </div>
     );
@@ -121,18 +122,20 @@ export function ActivityView({ explorer }: { explorer: string }) {
         className="flex items-baseline justify-between gap-3 pt-2 scroll-mt-24"
       >
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:EVENT STREAM:]
+          [:{t.streamEyebrow}:]
         </span>
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {filtered.length === 0 ? (
-            <>0 EVENTS</>
-          ) : (
-            <>
-              {pageStart + 1}&ndash;{pageStart + pageEvents.length} OF {filtered.length}
-            </>
-          )}
+          {filtered.length === 0
+            ? t.countZero
+            : t.countRange
+                .replace('{start}', String(pageStart + 1))
+                .replace('{end}', String(pageStart + pageEvents.length))
+                .replace('{total}', String(filtered.length))}
           {hasAnyFilter && events.length > filtered.length && (
-            <span> · {events.length - filtered.length} HIDDEN</span>
+            <span>
+              {' · '}
+              {t.countHidden.replace('{n}', String(events.length - filtered.length))}
+            </span>
           )}
         </p>
       </div>
@@ -156,6 +159,7 @@ function Pager({
   totalPages: number;
   onPage: (p: number) => void;
 }) {
+  const t = useTranslations().activity.view;
   if (totalPages <= 1) return null;
 
   const items: Array<number | 'gap'> = [];
@@ -176,14 +180,14 @@ function Pager({
 
   return (
     <nav
-      aria-label="Activity pages"
+      aria-label={t.pagerAria}
       className="flex flex-wrap items-center justify-center gap-1.5 pt-4"
     >
       <button
         type="button"
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
-        aria-label="Previous page"
+        aria-label={t.prevAria}
         className="mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
@@ -221,7 +225,7 @@ function Pager({
         type="button"
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
-        aria-label="Next page"
+        aria-label={t.nextAria}
         className="mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
