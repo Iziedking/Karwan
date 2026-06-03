@@ -8,10 +8,17 @@ import { wagmiConfig } from '@/core/wagmi';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
 import { SiweGate } from '@/shared/components/SiweGate';
+import type { Locale } from '@/shared/i18n/locales';
 
 type Mode = 'light' | 'dark';
 
-export function AppProviders({ children }: { children: ReactNode }) {
+export function AppProviders({
+  children,
+  initialLocale,
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
   const [queryClient] = useState(() => new QueryClient());
   const [mode, setMode] = useState<Mode>('light');
 
@@ -40,7 +47,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         });
 
   return (
-    <LocaleProvider>
+    <LocaleProvider initialLocale={initialLocale}>
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>

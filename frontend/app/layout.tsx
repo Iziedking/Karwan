@@ -1,6 +1,8 @@
 ﻿import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import localFont from 'next/font/local';
+import { DEFAULT_LOCALE, isLocale, isRtl, type Locale } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
 import { ProfileNudge } from '@/shared/components/ProfileNudge';
@@ -92,9 +94,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read the locale cookie at SSR so <html lang/dir> ships correctly on first
+  // paint. Without this, the page renders LTR, then the LocaleProvider client
+  // effect flips dir mid-frame, which jolts the layout and pushes the initial
+  // scroll position to the wrong edge for RTL locales.
+  const cookieStore = await cookies();
+  const rawLocale = cookieStore.get('karwan-locale')?.value;
+  const locale: Locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
+  const dir = isRtl(locale) ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable}`} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -103,7 +119,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <AppProviders>
+        <AppProviders initialLocale={locale}>
           <ScrollbarWidthProbe />
           {/* No overflow clip here on purpose: full-bleed sections use the
               scrollbar-aware `.w-bleed` width so they don't over-shoot at normal
