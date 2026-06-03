@@ -628,6 +628,54 @@ interface MessagesShape {
       nextAria: string;
     };
   };
+  onChainProof: {
+    sectionTag: string;
+    headlinePrefix: string;
+    headlineAccent: string;
+    description: string;
+    blockPrefix: string;
+    tiles: {
+      escrowsFunded: { label: string; hint: string };
+      settledInFull: { label: string; hint: string };
+      disputesOpened: { label: string; hint: string };
+      usdcFunded: { label: string; hint: string };
+      usdcReleased: { label: string; hint: string };
+      vaultDeposits: { label: string; hint: string };
+    };
+    smallStats: {
+      milestoneReleases: string;
+      reputationRecords: string;
+      vaultClaims: string;
+      feesCollected: string;
+    };
+    sourceContracts: {
+      eyebrow: string;
+      labels: {
+        escrow: string;
+        vault: string;
+        reputation: string;
+        treasury: string;
+        jobBoard: string;
+      };
+    };
+    chart: {
+      activityEyebrow: string;
+      maxPerDay: string;
+      loading: string;
+      error: string;
+      empty: string;
+      legend: {
+        funded: string;
+        settled: string;
+        disputedOrRefunded: string;
+      };
+      tooltip: {
+        funded: string;
+        settled: string;
+        disputedRefunded: string;
+      };
+    };
+  };
   dealStage: {
     labels: {
       'awaiting-acceptance': string;
@@ -1506,6 +1554,54 @@ export const en: MessagesShape = {
       countPlural: '{n} deals',
       prevAria: 'Previous page',
       nextAria: 'Next page',
+    },
+  },
+  onChainProof: {
+    sectionTag: 'ON-CHAIN PROOF',
+    headlinePrefix: 'Provable on ',
+    headlineAccent: 'Arc',
+    description: 'Every number below is read straight from the live contract events on Arc Testnet.',
+    blockPrefix: 'Block',
+    tiles: {
+      escrowsFunded: { label: 'Escrows funded', hint: 'Deals locked on chain' },
+      settledInFull: { label: 'Settled in full', hint: 'Buyer released, contract zeroed' },
+      disputesOpened: { label: 'Disputes opened', hint: 'Either side raised the contract' },
+      usdcFunded: { label: 'USDC funded', hint: 'Cumulative deal volume' },
+      usdcReleased: { label: 'USDC released', hint: 'Milestones paid to sellers' },
+      vaultDeposits: { label: 'Vault deposits', hint: 'Stake principal across positions' },
+    },
+    smallStats: {
+      milestoneReleases: 'Milestone releases',
+      reputationRecords: 'Reputation records',
+      vaultClaims: 'Vault claims',
+      feesCollected: 'Fees collected (USDC)',
+    },
+    sourceContracts: {
+      eyebrow: 'SOURCE CONTRACTS',
+      labels: {
+        escrow: 'Escrow',
+        vault: 'Vault',
+        reputation: 'Reputation',
+        treasury: 'Treasury',
+        jobBoard: 'JobBoard',
+      },
+    },
+    chart: {
+      activityEyebrow: '30-DAY ACTIVITY',
+      maxPerDay: 'MAX {max} / DAY',
+      loading: 'Reading chain',
+      error: 'Chain read failed',
+      empty: 'No activity in the last 30 days yet',
+      legend: {
+        funded: 'Funded',
+        settled: 'Settled',
+        disputedOrRefunded: 'Disputed or refunded',
+      },
+      tooltip: {
+        funded: 'Funded',
+        settled: 'Settled',
+        disputedRefunded: 'Disputed / refunded',
+      },
     },
   },
   dealStage: {

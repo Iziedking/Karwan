@@ -658,6 +658,54 @@ export const ar: Messages = {
       nextAria: 'الصفحة التالية',
     },
   },
+  onChainProof: {
+    sectionTag: 'إثبات على السلسلة',
+    headlinePrefix: 'قابل للتحقق على ',
+    headlineAccent: 'Arc',
+    description: 'كل رقم أدناه يُقرأ مباشرة من أحداث العقود المباشرة على Arc Testnet.',
+    blockPrefix: 'الكتلة',
+    tiles: {
+      escrowsFunded: { label: 'إسكروهات ممولة', hint: 'صفقات مقفلة على السلسلة' },
+      settledInFull: { label: 'مسوّاة بالكامل', hint: 'حرّر المشتري، وصُفّر العقد' },
+      disputesOpened: { label: 'نزاعات مفتوحة', hint: 'رفع أحد الطرفين العقد' },
+      usdcFunded: { label: 'USDC مُموّلة', hint: 'الحجم التراكمي للصفقات' },
+      usdcReleased: { label: 'USDC مُفرَج عنها', hint: 'مدفوعات المعالم للبائعين' },
+      vaultDeposits: { label: 'إيداعات الخزنة', hint: 'رأس مال الإيداع عبر المراكز' },
+    },
+    smallStats: {
+      milestoneReleases: 'إطلاقات المعالم',
+      reputationRecords: 'سجلات السمعة',
+      vaultClaims: 'مطالبات الخزنة',
+      feesCollected: 'الرسوم المحصّلة (USDC)',
+    },
+    sourceContracts: {
+      eyebrow: 'عقود المصدر',
+      labels: {
+        escrow: 'الإسكرو',
+        vault: 'الخزنة',
+        reputation: 'السمعة',
+        treasury: 'الخزانة',
+        jobBoard: 'لوحة الأعمال',
+      },
+    },
+    chart: {
+      activityEyebrow: 'نشاط 30 يومًا',
+      maxPerDay: 'الأقصى {max} / اليوم',
+      loading: 'جارٍ قراءة السلسلة',
+      error: 'تعذّر قراءة السلسلة',
+      empty: 'لا نشاط خلال الأيام الثلاثين الماضية بعد',
+      legend: {
+        funded: 'ممولة',
+        settled: 'مسوّاة',
+        disputedOrRefunded: 'نزاع أو استرداد',
+      },
+      tooltip: {
+        funded: 'ممولة',
+        settled: 'مسوّاة',
+        disputedRefunded: 'نزاع / استرداد',
+      },
+    },
+  },
   dealStage: {
     labels: {
       'awaiting-acceptance': 'بانتظار القبول',

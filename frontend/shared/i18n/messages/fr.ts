@@ -658,6 +658,54 @@ export const fr: Messages = {
       nextAria: 'Page suivante',
     },
   },
+  onChainProof: {
+    sectionTag: 'PREUVE ON-CHAIN',
+    headlinePrefix: 'Vérifiable sur ',
+    headlineAccent: 'Arc',
+    description: 'Chaque chiffre ci-dessous est lu directement depuis les évènements de contrat en direct sur Arc Testnet.',
+    blockPrefix: 'Bloc',
+    tiles: {
+      escrowsFunded: { label: 'Escrows financés', hint: 'Deals verrouillés on-chain' },
+      settledInFull: { label: 'Entièrement réglés', hint: 'Acheteur a libéré, contrat à zéro' },
+      disputesOpened: { label: 'Litiges ouverts', hint: 'Un des deux côtés a saisi le contrat' },
+      usdcFunded: { label: 'USDC financés', hint: 'Volume cumulé des deals' },
+      usdcReleased: { label: 'USDC libérés', hint: 'Étapes payées aux vendeurs' },
+      vaultDeposits: { label: 'Dépôts au vault', hint: 'Capital de stake sur toutes les positions' },
+    },
+    smallStats: {
+      milestoneReleases: 'Libérations d’étapes',
+      reputationRecords: 'Records de réputation',
+      vaultClaims: 'Retraits du vault',
+      feesCollected: 'Frais collectés (USDC)',
+    },
+    sourceContracts: {
+      eyebrow: 'CONTRATS SOURCE',
+      labels: {
+        escrow: 'Escrow',
+        vault: 'Vault',
+        reputation: 'Reputation',
+        treasury: 'Treasury',
+        jobBoard: 'JobBoard',
+      },
+    },
+    chart: {
+      activityEyebrow: 'ACTIVITÉ 30 JOURS',
+      maxPerDay: 'MAX {max} / JOUR',
+      loading: 'Lecture de la chaîne',
+      error: 'Échec de lecture de la chaîne',
+      empty: 'Pas encore d’activité sur les 30 derniers jours',
+      legend: {
+        funded: 'Financés',
+        settled: 'Réglés',
+        disputedOrRefunded: 'Litige ou remboursé',
+      },
+      tooltip: {
+        funded: 'Financés',
+        settled: 'Réglés',
+        disputedRefunded: 'Litige / remboursé',
+      },
+    },
+  },
   dealStage: {
     labels: {
       'awaiting-acceptance': 'En attente d’acceptation',

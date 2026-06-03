@@ -658,6 +658,54 @@ export const hi: Messages = {
       nextAria: 'अगला पेज',
     },
   },
+  onChainProof: {
+    sectionTag: 'ऑन-चेन प्रमाण',
+    headlinePrefix: 'सत्यापन योग्य ',
+    headlineAccent: 'Arc पर',
+    description: 'नीचे की हर संख्या Arc Testnet पर लाइव कॉन्ट्रैक्ट इवेंट्स से सीधे पढ़ी जाती है।',
+    blockPrefix: 'ब्लॉक',
+    tiles: {
+      escrowsFunded: { label: 'फंडेड एस्क्रो', hint: 'चेन पर लॉक की गई डील' },
+      settledInFull: { label: 'पूरी तरह निपटान', hint: 'क्रेता ने रिलीज़ किया, कॉन्ट्रैक्ट शून्य' },
+      disputesOpened: { label: 'खुले विवाद', hint: 'किसी एक पक्ष ने कॉन्ट्रैक्ट उठाया' },
+      usdcFunded: { label: 'USDC फंडेड', hint: 'डील का कुल वॉल्यूम' },
+      usdcReleased: { label: 'USDC जारी', hint: 'विक्रेताओं को माइलस्टोन भुगतान' },
+      vaultDeposits: { label: 'वॉल्ट जमा', hint: 'सभी पोज़िशन का स्टेक मूलधन' },
+    },
+    smallStats: {
+      milestoneReleases: 'माइलस्टोन रिलीज़',
+      reputationRecords: 'प्रतिष्ठा रिकॉर्ड',
+      vaultClaims: 'वॉल्ट दावे',
+      feesCollected: 'जुटाई फीस (USDC)',
+    },
+    sourceContracts: {
+      eyebrow: 'स्रोत कॉन्ट्रैक्ट',
+      labels: {
+        escrow: 'एस्क्रो',
+        vault: 'वॉल्ट',
+        reputation: 'प्रतिष्ठा',
+        treasury: 'ट्रेज़री',
+        jobBoard: 'जॉब बोर्ड',
+      },
+    },
+    chart: {
+      activityEyebrow: '30 दिन की गतिविधि',
+      maxPerDay: 'अधिकतम {max} / दिन',
+      loading: 'चेन पढ़ रहे हैं',
+      error: 'चेन रीड विफल',
+      empty: 'पिछले 30 दिनों में अभी कोई गतिविधि नहीं',
+      legend: {
+        funded: 'फंडेड',
+        settled: 'निपटी',
+        disputedOrRefunded: 'विवादित या वापसी',
+      },
+      tooltip: {
+        funded: 'फंडेड',
+        settled: 'निपटी',
+        disputedRefunded: 'विवादित / वापसी',
+      },
+    },
+  },
   dealStage: {
     labels: {
       'awaiting-acceptance': 'स्वीकार बाकी',

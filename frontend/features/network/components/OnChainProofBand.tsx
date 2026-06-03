@@ -10,12 +10,14 @@ import {
   BigStatTile,
 } from '@/shared/components/Bands';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Home-page band that surfaces stats read directly from current-contract
 /// events. Every count and volume below comes from a public chain read; the
 /// caption at the bottom names the block window and the contract addresses
 /// scanned so anyone can verify.
 export function OnChainProofBand() {
+  const t = useTranslations().onChainProof;
   const [stats, setStats] = useState<NetworkOnchainStats | null>(null);
   const [errored, setErrored] = useState(false);
 
@@ -53,20 +55,19 @@ export function OnChainProofBand() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="max-w-[46ch]">
           <SectionTag tone="dark" dot="live">
-            ON-CHAIN PROOF
+            {t.sectionTag}
           </SectionTag>
           <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-            Provable on <Accent>Arc</Accent>
+            {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-pretty text-[15px] leading-relaxed text-white/65 max-w-[44ch]">
-            Every number below is read straight from the live contract events
-            on Arc Testnet.
+            {t.description}
           </p>
         </div>
         {stats && (
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 tabular-nums">
-            Block {fmtBlock(stats.fromBlock)} → {fmtBlock(stats.toBlock)}
+            {t.blockPrefix} {fmtBlock(stats.fromBlock)} → {fmtBlock(stats.toBlock)}
           </p>
         )}
       </div>
@@ -86,52 +87,52 @@ export function OnChainProofBand() {
       <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="fade-up fade-up-1">
           <BigStatTile
-            label="Escrows funded"
+            label={t.tiles.escrowsFunded.label}
             value={<AnimatedNumber value={stats?.totals.escrowsFunded ?? 0} decimals={0} />}
-            hint="Deals locked on chain"
+            hint={t.tiles.escrowsFunded.hint}
             loading={!stats}
           />
         </div>
         <div className="fade-up fade-up-2">
           <BigStatTile
-            label="Settled in full"
+            label={t.tiles.settledInFull.label}
             value={<AnimatedNumber value={stats?.totals.escrowsSettled ?? 0} decimals={0} />}
-            hint="Buyer released, contract zeroed"
+            hint={t.tiles.settledInFull.hint}
             loading={!stats}
           />
         </div>
         <div className="fade-up fade-up-3">
           <BigStatTile
-            label="Disputes opened"
+            label={t.tiles.disputesOpened.label}
             value={<AnimatedNumber value={stats?.totals.escrowsDisputed ?? 0} decimals={0} />}
-            hint="Either side raised the contract"
+            hint={t.tiles.disputesOpened.hint}
             loading={!stats}
           />
         </div>
         <div className="fade-up fade-up-4">
           <BigStatTile
-            label="USDC funded"
+            label={t.tiles.usdcFunded.label}
             value={<AnimatedNumber value={fundedUsdc} decimals={2} />}
             unit="USDC"
-            hint="Cumulative deal volume"
+            hint={t.tiles.usdcFunded.hint}
             loading={!stats}
           />
         </div>
         <div className="fade-up fade-up-4">
           <BigStatTile
-            label="USDC released"
+            label={t.tiles.usdcReleased.label}
             value={<AnimatedNumber value={releasedUsdc} decimals={2} />}
             unit="USDC"
-            hint="Milestones paid to sellers"
+            hint={t.tiles.usdcReleased.hint}
             loading={!stats}
           />
         </div>
         <div className="fade-up fade-up-4">
           <BigStatTile
-            label="Vault deposits"
+            label={t.tiles.vaultDeposits.label}
             value={<AnimatedNumber value={vaultDepositsUsdc} decimals={2} />}
             unit="USDC"
-            hint="Stake principal across positions"
+            hint={t.tiles.vaultDeposits.hint}
             loading={!stats}
           />
         </div>
@@ -140,22 +141,22 @@ export function OnChainProofBand() {
       {/* Three secondary numbers + a treasury readout, smaller scale. */}
       <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
         <SmallStat
-          label="Milestone releases"
+          label={t.smallStats.milestoneReleases}
           value={stats?.totals.milestoneReleases ?? 0}
           loading={!stats}
         />
         <SmallStat
-          label="Reputation records"
+          label={t.smallStats.reputationRecords}
           value={stats?.totals.reputationRecords ?? 0}
           loading={!stats}
         />
         <SmallStat
-          label="Vault claims"
+          label={t.smallStats.vaultClaims}
           value={stats?.totals.vaultClaims ?? 0}
           loading={!stats}
         />
         <SmallStat
-          label="Fees collected (USDC)"
+          label={t.smallStats.feesCollected}
           value={feesUsdc}
           decimals={2}
           loading={!stats}
@@ -167,14 +168,14 @@ export function OnChainProofBand() {
       {stats && (
         <div className="mt-12 pt-6 border-t border-white/[0.08]">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
-            [:SOURCE CONTRACTS:]
+            [:{t.sourceContracts.eyebrow}:]
           </p>
           <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-6">
-            <ContractRow label="Escrow" address={stats.contracts.escrow} />
-            <ContractRow label="Vault" address={stats.contracts.vault} />
-            <ContractRow label="Reputation" address={stats.contracts.reputation} />
-            <ContractRow label="Treasury" address={stats.contracts.treasury} />
-            <ContractRow label="JobBoard" address={stats.contracts.jobBoard} />
+            <ContractRow label={t.sourceContracts.labels.escrow} address={stats.contracts.escrow} />
+            <ContractRow label={t.sourceContracts.labels.vault} address={stats.contracts.vault} />
+            <ContractRow label={t.sourceContracts.labels.reputation} address={stats.contracts.reputation} />
+            <ContractRow label={t.sourceContracts.labels.treasury} address={stats.contracts.treasury} />
+            <ContractRow label={t.sourceContracts.labels.jobBoard} address={stats.contracts.jobBoard} />
           </ul>
         </div>
       )}
@@ -194,6 +195,7 @@ interface DailyAreaChartProps {
 /// layer reads the cursor x and surfaces a day-detail card so a reader can
 /// pull exact counts without us crowding the chart with labels.
 function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
+  const t = useTranslations().onChainProof.chart;
   const VIEW_W = 1000;
   const VIEW_H = 280;
   const PAD = { top: 28, right: 16, bottom: 28, left: 16 };
@@ -227,7 +229,7 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
         }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45 animate-pulse">
-          Reading chain
+          {t.loading}
         </p>
       </div>
     );
@@ -248,7 +250,7 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
         }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
-          {errored ? 'Chain read failed' : 'No activity in the last 30 days yet'}
+          {errored ? t.error : t.empty}
         </p>
       </div>
     );
@@ -313,10 +315,10 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
       >
         <div className="flex items-center justify-between px-5 pt-4">
           <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/45">
-            [:30-DAY ACTIVITY:]
+            [:{t.activityEyebrow}:]
           </p>
           <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/55 tabular-nums">
-            MAX {maxY} / DAY
+            {t.maxPerDay.replace('{max}', String(maxY))}
           </p>
         </div>
         <svg
@@ -461,9 +463,9 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
         )}
       </div>
       <figcaption className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <LegendDot color="rgba(255,255,255,0.55)" label="Funded" />
-        <LegendDot color="var(--lp-accent, #afc95b)" label="Settled" />
-        <LegendDot color="#c96030" label="Disputed or refunded" />
+        <LegendDot color="rgba(255,255,255,0.55)" label={t.legend.funded} />
+        <LegendDot color="var(--lp-accent, #afc95b)" label={t.legend.settled} />
+        <LegendDot color="#c96030" label={t.legend.disputedOrRefunded} />
       </figcaption>
     </figure>
   );
@@ -474,6 +476,7 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
 /// container. `pointer-events: none` keeps it from stealing mouse events
 /// from the SVG underneath, so the cursor can keep tracking.
 function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: number }) {
+  const t = useTranslations().onChainProof.chart.tooltip;
   const flipLeft = xPct > 72;
   const bad = point.disputed + point.refunded;
   return (
@@ -499,10 +502,10 @@ function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: nu
         {formatTooltipDate(point.ts)}
       </p>
       <div className="mt-2 space-y-1.5">
-        <TipRow color="rgba(255,255,255,0.85)" label="Funded" value={point.funded} />
-        <TipRow color="var(--lp-accent, #afc95b)" label="Settled" value={point.settled} />
+        <TipRow color="rgba(255,255,255,0.85)" label={t.funded} value={point.funded} />
+        <TipRow color="var(--lp-accent, #afc95b)" label={t.settled} value={point.settled} />
         {bad > 0 && (
-          <TipRow color="#c96030" label="Disputed / refunded" value={bad} />
+          <TipRow color="#c96030" label={t.disputedRefunded} value={bad} />
         )}
       </div>
     </div>

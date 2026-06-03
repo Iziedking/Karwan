@@ -658,6 +658,54 @@ export const sw: Messages = {
       nextAria: 'Ukurasa unaofuata',
     },
   },
+  onChainProof: {
+    sectionTag: 'USHAHIDI WA MNYORORO',
+    headlinePrefix: 'Inathibitishika kwenye ',
+    headlineAccent: 'Arc',
+    description: 'Kila nambari hapa chini inasomwa moja kwa moja kutoka kwa matukio ya kandarasi yanayoendelea kwenye Arc Testnet.',
+    blockPrefix: 'Bloki',
+    tiles: {
+      escrowsFunded: { label: 'Escrows zilizofadhiliwa', hint: 'Biashara zilizofungwa kwenye mnyororo' },
+      settledInFull: { label: 'Zilizolipwa kikamilifu', hint: 'Mnunuzi alitoa, kandarasi imefutwa' },
+      disputesOpened: { label: 'Mizozo iliyofunguliwa', hint: 'Upande mmoja umeibua kandarasi' },
+      usdcFunded: { label: 'USDC zilizofadhiliwa', hint: 'Jumla ya kiasi cha biashara' },
+      usdcReleased: { label: 'USDC zilizotolewa', hint: 'Hatua zilizolipwa kwa wauzaji' },
+      vaultDeposits: { label: 'Amana za vault', hint: 'Mtaji wa steki katika nafasi zote' },
+    },
+    smallStats: {
+      milestoneReleases: 'Utoaji wa hatua',
+      reputationRecords: 'Rekodi za sifa',
+      vaultClaims: 'Madai ya vault',
+      feesCollected: 'Ada zilizokusanywa (USDC)',
+    },
+    sourceContracts: {
+      eyebrow: 'KANDARASI ZA CHANZO',
+      labels: {
+        escrow: 'Escrow',
+        vault: 'Vault',
+        reputation: 'Sifa',
+        treasury: 'Hazina',
+        jobBoard: 'Bodi ya Kazi',
+      },
+    },
+    chart: {
+      activityEyebrow: 'SHUGHULI YA SIKU 30',
+      maxPerDay: 'JUU {max} / SIKU',
+      loading: 'Inasoma mnyororo',
+      error: 'Imeshindikana kusoma mnyororo',
+      empty: 'Hakuna shughuli katika siku 30 zilizopita bado',
+      legend: {
+        funded: 'Zilizofadhiliwa',
+        settled: 'Zilizolipwa',
+        disputedOrRefunded: 'Mzozo au kurudishwa',
+      },
+      tooltip: {
+        funded: 'Zilizofadhiliwa',
+        settled: 'Zilizolipwa',
+        disputedRefunded: 'Mzozo / kurudishwa',
+      },
+    },
+  },
   dealStage: {
     labels: {
       'awaiting-acceptance': 'Inasubiri kukubaliwa',
