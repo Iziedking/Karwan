@@ -753,6 +753,65 @@ interface MessagesShape {
       flow: string;
       bids: string;
     };
+    settle: {
+      escrowLive: {
+        tag: string;
+        title: string;
+        bodyTemplate: string;
+        cta: string;
+      };
+      negotiationEnded: {
+        tag: string;
+        title: string;
+        body: string;
+      };
+      funding: {
+        tag: string;
+        stalledTag: string;
+        title: string;
+        stalledTitleTemplate: string;
+        stalledBodyTemplate: string;
+      };
+      fundingSteps: {
+        approveUsdc: string;
+        fundEscrow: string;
+      };
+      locked: {
+        tag: string;
+        title: string;
+        body: string;
+      };
+    };
+    editSection: {
+      tag: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
+    editModal: {
+      tag: string;
+      title: string;
+      body: string;
+      requestTextEyebrow: string;
+      toleranceEyebrow: string;
+      toleranceAria: string;
+      toleranceFootTemplate: string;
+      trustedMatchEyebrow: string;
+      trustedMatchBody: string;
+      saving: string;
+      save: string;
+      cancel: string;
+    };
+    cancelSection: {
+      tag: string;
+      title: string;
+      body: string;
+      cta: string;
+      confirmBody: string;
+      confirmYes: string;
+      confirmYesBusy: string;
+      confirmNo: string;
+    };
   };
   jobPage: {
     loading: {
@@ -1946,6 +2005,65 @@ export const en: MessagesShape = {
     sections: {
       flow: 'FLOW',
       bids: 'BIDS',
+    },
+    settle: {
+      escrowLive: {
+        tag: 'SETTLE',
+        title: 'Escrow live',
+        bodyTemplate: 'Escrow holds {amount}. Deal management has moved to its dedicated page.',
+        cta: 'Open deal',
+      },
+      negotiationEnded: {
+        tag: 'NEGOTIATION ENDED',
+        title: 'No agreement',
+        body: 'Your agent ended the negotiation. No terms agreed, no escrow funded. Post a fresh request with a higher budget or tolerance.',
+      },
+      funding: {
+        tag: 'FUNDING ESCROW',
+        stalledTag: 'FUNDING STALLED',
+        title: 'Approve · fund',
+        stalledTitleTemplate: 'Stalled · {time}',
+        stalledBodyTemplate: 'Escrow has not funded in {time}.',
+      },
+      fundingSteps: {
+        approveUsdc: 'APPROVE USDC',
+        fundEscrow: 'FUND ESCROW',
+      },
+      locked: {
+        tag: 'SETTLE',
+        title: 'Locked after accept',
+        body: 'Funds lock in escrow once the buyer agent accepts a final bid. Releases unlock after escrow funds.',
+      },
+    },
+    editSection: {
+      tag: 'EDIT',
+      title: 'Adjust the terms',
+      body: 'Update the request text, price tolerance, or trusted-match before a seller agent locks in a match. Budget and deadline stay locked because they live on chain.',
+      cta: 'Edit request',
+    },
+    editModal: {
+      tag: '[:EDIT REQUEST:]',
+      title: 'Update terms',
+      body: 'The agent picks up these changes on its next scan. Budget and deadline stay locked because they live on the JobBoard contract; cancel and re-post to change those.',
+      requestTextEyebrow: '[:REQUEST TEXT:]',
+      toleranceEyebrow: '[:PRICE TOLERANCE:]',
+      toleranceAria: 'Price tolerance percent',
+      toleranceFootTemplate: '↳ agent may accept counters up to your budget +{n}%',
+      trustedMatchEyebrow: '[:TRUSTED MATCH:]',
+      trustedMatchBody: "Weight seller reputation and stake above price. Bids gate on the seller's free stake covering the deal's insurance reservation. For higher-value or one-shot trades.",
+      saving: 'Saving...',
+      save: 'Save changes',
+      cancel: 'Cancel',
+    },
+    cancelSection: {
+      tag: 'OR',
+      title: 'Pull this request',
+      body: 'Posted by mistake or changed your mind? Pull the request now, before any seller agent locks in a match. Nothing funded yet, so the cancel is free.',
+      cta: 'Cancel request',
+      confirmBody: 'Pull this request? The agent stops scanning bids on it immediately. You can post a fresh one any time.',
+      confirmYes: 'Yes, cancel',
+      confirmYesBusy: 'Cancelling…',
+      confirmNo: 'Keep request',
     },
   },
   jobPage: {

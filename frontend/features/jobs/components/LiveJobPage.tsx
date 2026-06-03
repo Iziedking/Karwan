@@ -453,6 +453,7 @@ function SettleSection({
   acceptedAt?: number;
   declined: boolean;
 }) {
+  const s = useTranslations().liveJob.settle;
   const [now, setNow] = useState(() => Date.now());
   const fundingPhase = job.finalized && !job.escrowFunded && !declined;
   useEffect(() => {
@@ -467,14 +468,16 @@ function SettleSection({
   // reduced, etc.). it points to the canonical surface instead of duplicating
   // ReleaseMilestonesButton, so there's exactly one place to act on the deal.
   if (job.escrowFunded) {
+    const bodyBefore = s.escrowLive.bodyTemplate.split('{amount}')[0];
+    const bodyAfter = s.escrowLive.bodyTemplate.split('{amount}')[1] ?? '';
     return (
-      <SettleCard label="SETTLE" title="Escrow live">
+      <SettleCard label={s.escrowLive.tag} title={s.escrowLive.title}>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] mb-4">
-          Escrow holds{' '}
+          {bodyBefore}
           <span className="font-sans font-extrabold tabular-nums text-[var(--lp-dark)]">
             {formatUsdc(job.budgetUsdc)}
           </span>
-          . Deal management has moved to its dedicated page.
+          {bodyAfter}
         </p>
         <Link
           href={`/deals/${job.jobId}`}
@@ -486,7 +489,7 @@ function SettleSection({
             borderBottomRightRadius: 3,
           }}
         >
-          Open deal
+          {s.escrowLive.cta}
           <span aria-hidden>→</span>
         </Link>
       </SettleCard>
@@ -495,10 +498,9 @@ function SettleSection({
 
   if (declined) {
     return (
-      <SettleCard label="NEGOTIATION ENDED" title="No agreement">
+      <SettleCard label={s.negotiationEnded.tag} title={s.negotiationEnded.title}>
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Your agent ended the negotiation. No terms agreed, no escrow funded. Post a fresh request
-          with a higher budget or tolerance.
+          {s.negotiationEnded.body}
         </p>
       </SettleCard>
     );
@@ -507,14 +509,19 @@ function SettleSection({
   if (fundingPhase) {
     const elapsed = acceptedAt ? Math.max(0, Math.floor((now - acceptedAt) / 1000)) : null;
     const stalled = elapsed != null && elapsed > 120;
+    const stalledTime = stalled ? formatElapsed(elapsed!) : '';
     return (
       <SettleCard
-        label={stalled ? 'FUNDING STALLED' : 'FUNDING ESCROW'}
-        title={stalled ? `Stalled · ${formatElapsed(elapsed!)}` : 'Approve · fund'}
+        label={stalled ? s.funding.stalledTag : s.funding.tag}
+        title={
+          stalled
+            ? s.funding.stalledTitleTemplate.replace('{time}', stalledTime)
+            : s.funding.title
+        }
       >
         {stalled ? (
           <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-            Escrow has not funded in {formatElapsed(elapsed!)}.
+            {s.funding.stalledBodyTemplate.replace('{time}', stalledTime)}
           </p>
         ) : (
           <FundingProgress elapsed={elapsed ?? 0} amount={formatUsdc(job.budgetUsdc)} />
@@ -524,11 +531,8 @@ function SettleSection({
   }
 
   return (
-    <SettleCard label="SETTLE" title="Locked after accept">
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-        Funds lock in escrow once the buyer agent accepts a final bid. Releases unlock after
-        escrow funds.
-      </p>
+    <SettleCard label={s.locked.tag} title={s.locked.title}>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{s.locked.body}</p>
     </SettleCard>
   );
 }
@@ -559,6 +563,7 @@ function EditBriefSection({
   callerAddress: string | undefined;
   onEdited: () => Promise<void> | void;
 }) {
+  const es = useTranslations().liveJob.editSection;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -603,16 +608,14 @@ function EditBriefSection({
     <>
       <PageCard>
         <div className="px-6 pt-6 pb-3">
-          <SectionTag>EDIT</SectionTag>
+          <SectionTag>{es.tag}</SectionTag>
           <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            Adjust the terms
+            {es.title}
           </h3>
         </div>
         <div className="px-6 pb-6 space-y-3">
           <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-            Update the request text, price tolerance, or trusted-match before a
-            seller agent locks in a match. Budget and deadline stay locked
-            because they live on chain.
+            {es.body}
           </p>
           <button
             type="button"
@@ -622,7 +625,7 @@ function EditBriefSection({
             }}
             className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)] underline underline-offset-2"
           >
-            Edit request
+            {es.cta}
           </button>
         </div>
       </PageCard>
@@ -665,6 +668,7 @@ function EditBriefModal({
   }) => void;
   onClose: () => void;
 }) {
+  const m = useTranslations().liveJob.editModal;
   const [text, setText] = useState(initialBriefText);
   const [tolerancePct, setTolerancePct] = useState(initialTolerancePct);
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
@@ -715,23 +719,21 @@ function EditBriefModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:EDIT REQUEST:]
+            {m.tag}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
-            Update terms
+            {m.title}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-4">
           <p className="text-[13px] text-[var(--lp-text-sub)] leading-relaxed">
-            The agent picks up these changes on its next scan. Budget and
-            deadline stay locked because they live on the JobBoard contract;
-            cancel and re-post to change those.
+            {m.body}
           </p>
 
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:REQUEST TEXT:]
+              {m.requestTextEyebrow}
             </span>
             <textarea
               value={text}
@@ -749,7 +751,7 @@ function EditBriefModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:PRICE TOLERANCE:]
+                {m.toleranceEyebrow}
               </span>
               <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
                 +{tolerancePct}%
@@ -764,10 +766,10 @@ function EditBriefModal({
               onChange={(e) => setTolerancePct(Number(e.target.value))}
               disabled={busy}
               className="w-full accent-[var(--lp-accent)]"
-              aria-label="Price tolerance percent"
+              aria-label={m.toleranceAria}
             />
             <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-snug">
-              ↳ agent may accept counters up to your budget +{tolerancePct}%
+              {m.toleranceFootTemplate.replace('{n}', String(tolerancePct))}
             </p>
           </div>
 
@@ -798,12 +800,10 @@ function EditBriefModal({
                 className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
                 style={{ color: trustedMatch ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
               >
-                [:TRUSTED MATCH:]
+                {m.trustedMatchEyebrow}
               </span>
               <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-                Weight seller reputation and stake above price. Bids gate on
-                the seller's free stake covering the deal's insurance
-                reservation. For higher-value or one-shot trades.
+                {m.trustedMatchBody}
               </p>
             </div>
           </label>
@@ -814,10 +814,10 @@ function EditBriefModal({
 
           <div className="flex items-center gap-3 pt-2">
             <CTAPill onClick={submit} disabled={!valid || busy}>
-              {busy ? 'Saving...' : 'Save changes'}
+              {busy ? m.saving : m.save}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
-              Cancel
+              {m.cancel}
             </CTAPill>
           </div>
         </div>
@@ -839,6 +839,7 @@ function CancelBriefSection({
   viewerIsSeller: boolean;
   callerAddress: string | undefined;
 }) {
+  const cs = useTranslations().liveJob.cancelSection;
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -876,15 +877,14 @@ function CancelBriefSection({
   return (
     <PageCard>
       <div className="px-6 pt-6 pb-3">
-        <SectionTag>OR</SectionTag>
+        <SectionTag>{cs.tag}</SectionTag>
         <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-          Pull this request
+          {cs.title}
         </h3>
       </div>
       <div className="px-6 pb-6 space-y-3">
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-          Posted by mistake or changed your mind? Pull the request now, before any seller agent
-          locks in a match. Nothing funded yet, so the cancel is free.
+          {cs.body}
         </p>
         {!confirm ? (
           <button
@@ -892,7 +892,7 @@ function CancelBriefSection({
             onClick={() => setConfirm(true)}
             className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
           >
-            Cancel request
+            {cs.cta}
           </button>
         ) : (
           <div
@@ -907,8 +907,7 @@ function CancelBriefSection({
             }}
           >
             <p className="text-[13px] text-[var(--lp-dark)] leading-snug">
-              Pull this request? The agent stops scanning bids on it immediately. You can post a
-              fresh one any time.
+              {cs.confirmBody}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -924,7 +923,7 @@ function CancelBriefSection({
                   borderBottomRightRadius: 2,
                 }}
               >
-                {busy ? 'Cancelling…' : 'Yes, cancel'}
+                {busy ? cs.confirmYesBusy : cs.confirmYes}
               </button>
               <button
                 type="button"
@@ -932,7 +931,7 @@ function CancelBriefSection({
                 disabled={busy}
                 className="mono text-[11px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
               >
-                Keep request
+                {cs.confirmNo}
               </button>
             </div>
             {error && (
@@ -968,12 +967,13 @@ function SettleCard({
 }
 
 function FundingProgress({ elapsed }: { elapsed: number; amount: string }) {
+  const steps = useTranslations().liveJob.settle.fundingSteps;
   const approveDone = elapsed > 30;
   const fundDone = elapsed > 60;
   return (
     <div className="space-y-2.5">
-      <FundingStep label="APPROVE USDC" done={approveDone} active={!approveDone} />
-      <FundingStep label="FUND ESCROW" done={fundDone} active={approveDone && !fundDone} />
+      <FundingStep label={steps.approveUsdc} done={approveDone} active={!approveDone} />
+      <FundingStep label={steps.fundEscrow} done={fundDone} active={approveDone && !fundDone} />
     </div>
   );
 }
