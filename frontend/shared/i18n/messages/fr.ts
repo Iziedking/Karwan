@@ -1099,6 +1099,19 @@ export const fr: Messages = {
     dismissAriaTemplate: 'Rejeter l’offre {status}',
     openAriaTemplate: "Ouvrir l'offre {title}",
   },
+  editDealModal: {
+    tag: '[:MODIFIER LE DEAL:]',
+    title: 'Mettre à jour les termes',
+    body: "Les changements sont enregistrés immédiatement. Le vendeur voit les nouveaux termes avant d'accepter, et la fenêtre d'acceptation repart de zéro pour qu'il puisse les revoir.",
+    deadlineHintShort: 'Laissez vide pour un deal ouvert. Maximum 180 jours si défini.',
+    acceptanceHintShort: "L'horloge d'acceptation repart de maintenant après l'enregistrement.",
+    deliveryHintShort: 'Part que le vendeur reçoit quand il marque livré. Le reste à votre vérification.',
+    trustedMatchBodyShort: "Le vendeur doit miser des USDC pour accepter. Saisis s'il perd un litige. Désactivé pour les deals occasionnels.",
+    feeBreakdownTemplate: 'Vous financez {funded} USDC · le vendeur reçoit {seller} · frais de plateforme {fee}',
+    saving: 'Enregistrement...',
+    save: 'Enregistrer',
+    cancel: 'Annuler',
+  },
   jobPage: {
     loading: {
       tag: 'CHARGEMENT DU JOB',

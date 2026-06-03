@@ -1099,6 +1099,19 @@ export const ar: Messages = {
     dismissAriaTemplate: 'رفض العرض {status}',
     openAriaTemplate: 'فتح العرض {title}',
   },
+  editDealModal: {
+    tag: '[:تحرير الصفقة:]',
+    title: 'تحديث الشروط',
+    body: 'تُحفظ التغييرات فوراً. يرى البائع الشروط الجديدة قبل القبول، وتُعاد نافذة القبول من جديد ليراجعها.',
+    deadlineHintShort: 'اتركه فارغاً لصفقة مفتوحة. الحد الأقصى 180 يوماً عند التحديد.',
+    acceptanceHintShort: 'تُعاد ساعة القبول من الآن بعد الحفظ.',
+    deliveryHintShort: 'الجزء الذي يستلمه البائع عند تأشير التسليم. الباقي عند تحققك.',
+    trustedMatchBodyShort: 'يجب على البائع إيداع USDC للقبول. يُصادَر عند خسارة النزاع. اتركه مغلقاً للصفقات العادية.',
+    feeBreakdownTemplate: 'تموّل {funded} USDC · يستلم البائع {seller} · رسوم المنصة {fee}',
+    saving: 'جاري الحفظ...',
+    save: 'حفظ التغييرات',
+    cancel: 'إلغاء',
+  },
   jobPage: {
     loading: {
       tag: 'جاري تحميل الطلب',

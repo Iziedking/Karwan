@@ -7,16 +7,21 @@ import { formatUsdc } from '@/shared/utils/format';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { CTAPill } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 type DeadlineUnit = 'min' | 'hr' | 'd';
 
-const ACCEPTANCE_PRESETS = [
-  { label: '1 hr', value: 1 },
-  { label: '6 hr', value: 6 },
-  { label: '24 hr', value: 24 },
-  { label: '3 d', value: 72 },
-  { label: '7 d', value: 168 },
-] as const;
+const ACCEPTANCE_PRESETS: ReadonlyArray<{
+  key: keyof Messages['directDeal']['terms']['presets'];
+  value: number;
+}> = [
+  { key: 'oneHr', value: 1 },
+  { key: 'sixHr', value: 6 },
+  { key: 'dayOne', value: 24 },
+  { key: 'threeDays', value: 72 },
+  { key: 'sevenDays', value: 168 },
+];
 
 /// Convert the stored deadlineUnix into a (value, unit) pair that fits the same
 /// picker the create form uses. Picks the largest unit that yields a clean
@@ -55,6 +60,9 @@ export function EditDealModal({
   onClose: () => void;
   onSaved: () => Promise<void> | void;
 }) {
+  const t = useTranslations();
+  const em = t.editDealModal;
+  const dd = t.directDeal;
   const initialDeadline = useMemo(() => decomposeDeadline(deal), [deal]);
   const initialAcceptance = useMemo(() => pickAcceptancePreset(deal), [deal]);
 
@@ -146,21 +154,20 @@ export function EditDealModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:EDIT DEAL:]
+            {em.tag}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
-            Update terms
+            {em.title}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
           <p className="mt-2 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-            Changes save right away. The seller sees the new terms before accepting,
-            and the acceptance window restarts so they can review.
+            {em.body}
           </p>
         </div>
 
         <div className="px-6 pb-6 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Amount" unit="USDC">
+            <Field label={dd.terms.amountLabel} unit="USDC">
               <input
                 type="number"
                 inputMode="decimal"
@@ -175,9 +182,9 @@ export function EditDealModal({
               />
             </Field>
             <Field
-              label="On delivery"
+              label={dd.terms.deliveryPctLabel}
               unit="%"
-              hint="Slice the seller receives when they mark delivered. Rest on your verification."
+              hint={em.deliveryHintShort}
             >
               <input
                 type="number"
@@ -196,8 +203,8 @@ export function EditDealModal({
           </div>
 
           <Field
-            label="Deadline (optional)"
-            hint="Leave blank for an open-ended deal. Max 180 days when set."
+            label={dd.terms.deadlineLabel}
+            hint={em.deadlineHintShort}
           >
             <div className="flex items-stretch gap-2">
               <input
@@ -217,6 +224,8 @@ export function EditDealModal({
               <UnitPicker
                 value={deadlineUnit}
                 disabled={busy}
+                ariaLabel={dd.deadlineUnitAria}
+                labels={dd.unitPickerLabels}
                 onChange={(next) => {
                   setDeadlineUnit(next);
                   setDeadlineValue('');
@@ -226,8 +235,8 @@ export function EditDealModal({
           </Field>
 
           <Field
-            label="Seller has to accept within"
-            hint="The acceptance clock restarts from now after you save."
+            label={dd.terms.acceptanceWindowLabel}
+            hint={em.acceptanceHintShort}
           >
             <div className="flex flex-wrap gap-1.5">
               {ACCEPTANCE_PRESETS.map((opt) => {
@@ -249,14 +258,14 @@ export function EditDealModal({
                       borderBottomRightRadius: 2,
                     }}
                   >
-                    {opt.label}
+                    {dd.terms.presets[opt.key]}
                   </button>
                 );
               })}
             </div>
           </Field>
 
-          <Field label="Terms" hint="Visible to both parties on the deal page.">
+          <Field label={dd.deliverable.termsLabel} hint={dd.deliverable.termsHint}>
             <textarea
               value={terms}
               onChange={(e) => setTerms(e.target.value)}
@@ -297,11 +306,10 @@ export function EditDealModal({
                 className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
                 style={{ color: requireStake ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
               >
-                [:TRUSTED MATCH:]
+                {dd.trustedMatch.eyebrow}
               </span>
               <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-                Seller has to stake USDC to accept. Slashed if they lose a dispute.
-                Leave off for casual deals.
+                {em.trustedMatchBodyShort}
               </p>
               {requireStake && (
                 <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -314,14 +322,14 @@ export function EditDealModal({
                     onChange={(e) => setRequireStakePct(Number(e.target.value))}
                     disabled={busy}
                     className="flex-1 min-w-[160px] accent-[var(--lp-accent)]"
-                    aria-label="Required stake percentage"
+                    aria-label={dd.trustedMatch.sliderAria}
                   />
                   <div className="flex items-baseline gap-1.5 shrink-0">
                     <span className="font-sans text-[18px] font-extrabold tabular-nums text-[var(--lp-dark)]">
                       {requireStakePct}
                     </span>
                     <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      % OF DEAL
+                      {dd.trustedMatch.pctCaption}
                     </span>
                   </div>
                 </div>
@@ -341,8 +349,10 @@ export function EditDealModal({
                 borderBottomRightRadius: 2,
               }}
             >
-              You fund {formatUsdc(fee.fundedAmount)} USDC · seller receives{' '}
-              {formatUsdc(fee.sellerNet)} · platform fee {formatUsdc(fee.feeTotal)}
+              {em.feeBreakdownTemplate
+                .replace('{funded}', formatUsdc(fee.fundedAmount))
+                .replace('{seller}', formatUsdc(fee.sellerNet))
+                .replace('{fee}', formatUsdc(fee.feeTotal))}
             </div>
           )}
 
@@ -350,10 +360,10 @@ export function EditDealModal({
 
           <div className="flex items-center gap-3 pt-2">
             <CTAPill onClick={submit} disabled={!canSave}>
-              {busy ? 'Saving...' : 'Save changes'}
+              {busy ? em.saving : em.save}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
-              Cancel
+              {em.cancel}
             </CTAPill>
           </div>
         </div>
@@ -398,20 +408,24 @@ function UnitPicker({
   value,
   disabled,
   onChange,
+  ariaLabel,
+  labels,
 }: {
   value: DeadlineUnit;
   disabled?: boolean;
   onChange: (next: DeadlineUnit) => void;
+  ariaLabel: string;
+  labels: Messages['directDeal']['unitPickerLabels'];
 }) {
   const options: Array<{ key: DeadlineUnit; label: string }> = [
-    { key: 'min', label: 'MIN' },
-    { key: 'hr', label: 'HR' },
-    { key: 'd', label: 'DAY' },
+    { key: 'min', label: labels.min },
+    { key: 'hr', label: labels.hr },
+    { key: 'd', label: labels.day },
   ];
   return (
     <div
       role="radiogroup"
-      aria-label="Deadline unit"
+      aria-label={ariaLabel}
       className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
       style={{
         background: 'var(--lp-light)',

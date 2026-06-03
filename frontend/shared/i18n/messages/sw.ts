@@ -1099,6 +1099,19 @@ export const sw: Messages = {
     dismissAriaTemplate: 'Kataa ofa {status}',
     openAriaTemplate: 'Fungua ofa {title}',
   },
+  editDealModal: {
+    tag: '[:HARIRI BIASHARA:]',
+    title: 'Sasisha masharti',
+    body: 'Mabadiliko huhifadhiwa mara moja. Muuzaji anaona masharti mapya kabla ya kukubali, na dirisha la kukubali huanza upya ili apate kuyapitia.',
+    deadlineHintShort: 'Iache wazi kwa biashara isiyo na kikomo. Upeo wa siku 180 ukitajwa.',
+    acceptanceHintShort: 'Saa ya kukubali inaanza upya kutoka sasa baada ya kuhifadhi.',
+    deliveryHintShort: 'Sehemu anayopata muuzaji anapotia alama ya kupokea. Iliyobaki kwa uthibitishaji wako.',
+    trustedMatchBodyShort: 'Muuzaji anapaswa kuweka USDC ili kukubali. Anapoteza akishindwa kesi. Iache imefungwa kwa biashara za kawaida.',
+    feeBreakdownTemplate: 'Unafadhili {funded} USDC · muuzaji anapokea {seller} · ada ya jukwaa {fee}',
+    saving: 'Inahifadhi...',
+    save: 'Hifadhi mabadiliko',
+    cancel: 'Ghairi',
+  },
   jobPage: {
     loading: {
       tag: 'INAPAKIA KAZI',

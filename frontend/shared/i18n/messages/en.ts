@@ -1069,6 +1069,19 @@ interface MessagesShape {
     dismissAriaTemplate: string;
     openAriaTemplate: string;
   };
+  editDealModal: {
+    tag: string;
+    title: string;
+    body: string;
+    deadlineHintShort: string;
+    acceptanceHintShort: string;
+    deliveryHintShort: string;
+    trustedMatchBodyShort: string;
+    feeBreakdownTemplate: string;
+    saving: string;
+    save: string;
+    cancel: string;
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2577,6 +2590,19 @@ export const en: MessagesShape = {
     dismissTitle: 'Dismiss',
     dismissAriaTemplate: 'Dismiss {status} offer',
     openAriaTemplate: 'Open offer {title}',
+  },
+  editDealModal: {
+    tag: '[:EDIT DEAL:]',
+    title: 'Update terms',
+    body: 'Changes save right away. The seller sees the new terms before accepting, and the acceptance window restarts so they can review.',
+    deadlineHintShort: 'Leave blank for an open-ended deal. Max 180 days when set.',
+    acceptanceHintShort: 'The acceptance clock restarts from now after you save.',
+    deliveryHintShort: 'Slice the seller receives when they mark delivered. Rest on your verification.',
+    trustedMatchBodyShort: 'Seller has to stake USDC to accept. Slashed if they lose a dispute. Leave off for casual deals.',
+    feeBreakdownTemplate: 'You fund {funded} USDC · seller receives {seller} · platform fee {fee}',
+    saving: 'Saving...',
+    save: 'Save changes',
+    cancel: 'Cancel',
   },
   jobPage: {
     loading: {
