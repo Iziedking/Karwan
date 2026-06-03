@@ -4,6 +4,7 @@ import type { ChainEvent } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
 import { SectionTag, PageCard } from '@/shared/components/Bands';
 import { EventList } from './EventList';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 // Mirrors the backend default NEGOTIATION_MAX_ROUNDS_PER_SIDE. Display-only:
 // a soft cap shown beside the round counter, not enforced here.
@@ -51,6 +52,7 @@ export function NegotiationCard({
   explorer: string;
   terminal?: boolean;
 }) {
+  const nc = useTranslations().negotiationCard;
   const [open, setOpen] = useState(false);
   const walk = priceWalk(events);
   const accepted = walk.some((p) => p.accepted);
@@ -67,18 +69,17 @@ export function NegotiationCard({
 
   const headline =
     phase === 'agreed'
-      ? `Agreed at ${formatUsdc(standing!, { withSuffix: false })} USDC.`
+      ? nc.headlines.agreedTemplate.replace(
+          '{amount}',
+          formatUsdc(standing!, { withSuffix: false }),
+        )
       : phase === 'ended'
-        ? 'Negotiation ended.'
+        ? nc.headlines.ended
         : phase === 'negotiating'
-          ? 'Agents negotiating.'
-          : 'Scanning for bids.';
+          ? nc.headlines.negotiating
+          : nc.headlines.awaiting;
   const sub =
-    phase === 'awaiting'
-      ? 'Seller agents are sizing up the request. The first bid lands here.'
-      : phase === 'ended'
-        ? 'No terms were agreed on this request.'
-        : null;
+    phase === 'awaiting' ? nc.subs.awaiting : phase === 'ended' ? nc.subs.ended : null;
 
   const display = walk.length > MAX_CHIPS ? walk.slice(-MAX_CHIPS) : walk;
   const truncated = walk.length > MAX_CHIPS;
@@ -86,11 +87,14 @@ export function NegotiationCard({
   return (
     <PageCard>
       <div className="px-6 pt-6 flex items-center justify-between gap-3">
-        <SectionTag dot={live ? 'live' : undefined}>NEGOTIATION</SectionTag>
+        <SectionTag dot={live ? 'live' : undefined}>{nc.tag}</SectionTag>
         {round > 0 && phase !== 'agreed' && (
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
-            Round {round}
-            {round <= SOFT_ROUND_CAP ? ` of ${SOFT_ROUND_CAP}` : ''}
+            {round <= SOFT_ROUND_CAP
+              ? nc.roundOfCapTemplate
+                  .replace('{n}', String(round))
+                  .replace('{cap}', String(SOFT_ROUND_CAP))
+              : nc.roundTemplate.replace('{n}', String(round))}
           </span>
         )}
       </div>
@@ -112,7 +116,11 @@ export function NegotiationCard({
             )}
             {display.map((pt, i) => {
               const isLast = i === display.length - 1;
-              const label = isLast ? (accepted ? 'Agreed' : 'Standing') : pt.side;
+              const label = isLast
+                ? accepted
+                  ? nc.chips.agreed
+                  : nc.chips.standing
+                : nc.chips[pt.side];
               return (
                 <div key={i} className="flex items-end gap-2">
                   {i > 0 && (
@@ -153,7 +161,7 @@ export function NegotiationCard({
             aria-expanded={open}
             className="group inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
           >
-            {open ? 'Hide live timeline' : 'View live timeline'}
+            {open ? nc.timelineHide : nc.timelineShow}
             <svg
               width="10"
               height="10"

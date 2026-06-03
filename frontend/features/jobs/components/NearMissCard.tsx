@@ -4,29 +4,38 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type NearMissApproval } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 interface Props {
   nearMiss: NearMissApproval;
   onChange: () => void;
 }
 
-function remainingLabel(expiresAt: number, now: number): string {
+function remainingLabel(
+  expiresAt: number,
+  now: number,
+  copy: Messages['nearMissCard'],
+): string {
   const ms = expiresAt - now;
-  if (ms <= 0) return 'expired';
+  if (ms <= 0) return copy.remainingExpired;
   const mins = Math.floor(ms / 60_000);
   if (mins >= 60) {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    return m > 0 ? `${h}h ${m}m left` : `${h}h left`;
+    return m > 0
+      ? copy.remainingHrMin.replace('{h}', String(h)).replace('{m}', String(m))
+      : copy.remainingHr.replace('{h}', String(h));
   }
-  if (mins >= 1) return `${mins}m left`;
-  return `${Math.max(1, Math.floor(ms / 1000))}s left`;
+  if (mins >= 1) return copy.remainingMin.replace('{m}', String(mins));
+  return copy.remainingSec.replace('{s}', String(Math.max(1, Math.floor(ms / 1000))));
 }
 
 /// The agent found a real match, but the price sits just outside one party's
 /// range. Rather than walking away, it asks that party to proceed. The asked
 /// party gets Proceed / Pass; the other party sees a waiting note.
 export function NearMissCard({ nearMiss, onChange }: Props) {
+  const nm = useTranslations().nearMissCard;
   const router = useRouter();
   const { address } = useAuth();
   const [busy, setBusy] = useState<'proceed' | 'decline' | null>(null);
@@ -73,9 +82,11 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
     }
   }
 
-  const directionLine = askedSeller
-    ? `that's ${formatUsdc(nearMiss.gapUsdc, { withSuffix: true })} below your floor of ${formatUsdc(nearMiss.limitUsdc, { withSuffix: true })}`
-    : `that's ${formatUsdc(nearMiss.gapUsdc, { withSuffix: true })} above your cap of ${formatUsdc(nearMiss.limitUsdc, { withSuffix: true })}`;
+  const gapStr = formatUsdc(nearMiss.gapUsdc, { withSuffix: true });
+  const limitStr = formatUsdc(nearMiss.limitUsdc, { withSuffix: true });
+  const directionLine = (askedSeller ? nm.directionBelowFloor : nm.directionAboveCap)
+    .replace('{gap}', gapStr)
+    .replace('{limit}', limitStr);
 
   return (
     <div
@@ -86,10 +97,10 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
       <div className="flex-1 px-5 py-4">
         <div className="flex items-center justify-between gap-3 mb-2">
           <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em]" style={{ color: rail }}>
-            Near match · your agent needs a call
+            {nm.eyebrow}
           </p>
           <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)] tabular-nums">
-            {remainingLabel(nearMiss.expiresAt, now)}
+            {remainingLabel(nearMiss.expiresAt, now, nm)}
           </span>
         </div>
 
@@ -106,17 +117,11 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
         </div>
 
         <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
-          {viewerIsAsked ? (
-            <>
-              Karwan found you a deal, but {directionLine}. Proceed at this price, or pass and the
-              agent keeps your range. Nothing moves until you decide.
-            </>
-          ) : (
-            <>
-              Your agent found a near-match at this price, just outside the{' '}
-              {askedSeller ? 'seller' : 'buyer'}&apos;s range. Waiting on them to proceed or pass.
-            </>
-          )}
+          {viewerIsAsked
+            ? nm.askedBodyTemplate.replace('{direction}', directionLine)
+            : askedSeller
+              ? nm.otherBodySellerTemplate
+              : nm.otherBodyBuyerTemplate}
         </p>
 
         {viewerIsAsked && (
@@ -129,7 +134,7 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
             >
               {busy === 'proceed' && <Spinner />}
-              {busy === 'proceed' ? 'Closing the deal…' : 'Proceed at this price'}
+              {busy === 'proceed' ? nm.proceedBusy : nm.proceedCta}
             </button>
             <button
               type="button"
@@ -139,7 +144,7 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
               style={{ borderColor: 'var(--color-line-strong)', color: 'var(--color-ink-dim)' }}
             >
               {busy === 'decline' && <Spinner />}
-              {busy === 'decline' ? 'Passing…' : 'Pass'}
+              {busy === 'decline' ? nm.declineBusy : nm.declineCta}
             </button>
           </div>
         )}

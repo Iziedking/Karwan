@@ -813,6 +813,92 @@ interface MessagesShape {
       confirmNo: string;
     };
   };
+  nearMissCard: {
+    eyebrow: string;
+    remainingExpired: string;
+    remainingHrMin: string;
+    remainingHr: string;
+    remainingMin: string;
+    remainingSec: string;
+    directionBelowFloor: string;
+    directionAboveCap: string;
+    askedBodyTemplate: string;
+    otherBodySellerTemplate: string;
+    otherBodyBuyerTemplate: string;
+    proceedBusy: string;
+    proceedCta: string;
+    declineBusy: string;
+    declineCta: string;
+  };
+  negotiationCard: {
+    tag: string;
+    roundTemplate: string;
+    roundOfCapTemplate: string;
+    headlines: {
+      agreedTemplate: string;
+      ended: string;
+      negotiating: string;
+      awaiting: string;
+    };
+    subs: {
+      awaiting: string;
+      ended: string;
+    };
+    chips: {
+      agreed: string;
+      standing: string;
+      buyer: string;
+      seller: string;
+    };
+    timelineHide: string;
+    timelineShow: string;
+  };
+  matchBanner: {
+    approvedEyebrow: string;
+    approvedBody: string;
+    approvedCta: string;
+    declinedEyebrow: string;
+    declinedSellerView: string;
+    declinedOtherView: string;
+    pendingEyebrow: string;
+    proposedTemplate: string;
+    risk: {
+      honeyTrap: string;
+      lowball: string;
+      spammy: string;
+      newBuyer: string;
+    };
+    topUp: {
+      eyebrow: string;
+      buyerTemplate: string;
+      sellerBody: string;
+    };
+    approveCta: string;
+    approveBusy: string;
+    declineCta: string;
+    declineReasonLabel: string;
+    declineReasonPlaceholder: string;
+    declineConfirmCta: string;
+    declineConfirmBusy: string;
+    declineCancelCta: string;
+    buyerWaiting: string;
+    outsideWaiting: string;
+    counterparty: {
+      buyerLabel: string;
+      sellerLabel: string;
+      viewProfile: string;
+      creditPassport: string;
+      onX: string;
+      more: string;
+      record: {
+        noDeals: string;
+        dealOne: string;
+        dealsTemplate: string;
+        settledTemplate: string;
+        disputedTemplate: string;
+      };
+    };
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2064,6 +2150,92 @@ export const en: MessagesShape = {
       confirmYes: 'Yes, cancel',
       confirmYesBusy: 'Cancelling…',
       confirmNo: 'Keep request',
+    },
+  },
+  nearMissCard: {
+    eyebrow: 'Near match · your agent needs a call',
+    remainingExpired: 'expired',
+    remainingHrMin: '{h}h {m}m left',
+    remainingHr: '{h}h left',
+    remainingMin: '{m}m left',
+    remainingSec: '{s}s left',
+    directionBelowFloor: "that's {gap} below your floor of {limit}",
+    directionAboveCap: "that's {gap} above your cap of {limit}",
+    askedBodyTemplate: 'Karwan found you a deal, but {direction}. Proceed at this price, or pass and the agent keeps your range. Nothing moves until you decide.',
+    otherBodySellerTemplate: "Your agent found a near-match at this price, just outside the seller's range. Waiting on them to proceed or pass.",
+    otherBodyBuyerTemplate: "Your agent found a near-match at this price, just outside the buyer's range. Waiting on them to proceed or pass.",
+    proceedBusy: 'Closing the deal…',
+    proceedCta: 'Proceed at this price',
+    declineBusy: 'Passing…',
+    declineCta: 'Pass',
+  },
+  negotiationCard: {
+    tag: 'NEGOTIATION',
+    roundTemplate: 'Round {n}',
+    roundOfCapTemplate: 'Round {n} of {cap}',
+    headlines: {
+      agreedTemplate: 'Agreed at {amount} USDC.',
+      ended: 'Negotiation ended.',
+      negotiating: 'Agents negotiating.',
+      awaiting: 'Scanning for bids.',
+    },
+    subs: {
+      awaiting: 'Seller agents are sizing up the request. The first bid lands here.',
+      ended: 'No terms were agreed on this request.',
+    },
+    chips: {
+      agreed: 'Agreed',
+      standing: 'Standing',
+      buyer: 'buyer',
+      seller: 'seller',
+    },
+    timelineHide: 'Hide live timeline',
+    timelineShow: 'View live timeline',
+  },
+  matchBanner: {
+    approvedEyebrow: 'Seller accepted',
+    approvedBody: 'The seller accepted your deal. Escrow is funded. Opening the live deal.',
+    approvedCta: 'Open deal →',
+    declinedEyebrow: 'Match declined',
+    declinedSellerView: 'You declined this match. The job stays closed; the buyer can post a fresh brief.',
+    declinedOtherView: 'The seller declined this match. Post a fresh brief to re-run the auction.',
+    pendingEyebrow: 'Match found · awaiting approval',
+    proposedTemplate: 'proposed {time}',
+    risk: {
+      honeyTrap: 'Risk flag · low rep, generous bid',
+      lowball: 'Risk flag · lowball from unproven actor',
+      spammy: 'Risk flag · counterparty unusually active',
+      newBuyer: 'Heads up · buyer is new to the network',
+    },
+    topUp: {
+      eyebrow: 'Top up needed',
+      buyerTemplate: 'Your agent agreed within your cap, but its wallet is short by {amount}. Top up your buyer agent so the seller can accept and escrow can fund.',
+      sellerBody: 'The buyer agent needs a top-up before this can fund. The buyer has been prompted to add funds.',
+    },
+    approveCta: 'Accept match',
+    approveBusy: 'Funding escrow…',
+    declineCta: 'Decline',
+    declineReasonLabel: 'Reason (optional)',
+    declineReasonPlaceholder: 'Why are you declining this match?',
+    declineConfirmCta: 'Confirm decline',
+    declineConfirmBusy: 'Declining…',
+    declineCancelCta: 'Cancel',
+    buyerWaiting: 'Waiting for the seller to accept. Your agent will fund escrow automatically when they do. No action needed from you.',
+    outsideWaiting: 'Waiting for the seller to accept this match.',
+    counterparty: {
+      buyerLabel: 'Buyer',
+      sellerLabel: 'Seller',
+      viewProfile: 'View profile',
+      creditPassport: 'Credit passport',
+      onX: 'On X',
+      more: 'More',
+      record: {
+        noDeals: 'no deals yet',
+        dealOne: '1 deal',
+        dealsTemplate: '{n} deals',
+        settledTemplate: '{n} settled',
+        disputedTemplate: '{n} disputed',
+      },
     },
   },
   jobPage: {
