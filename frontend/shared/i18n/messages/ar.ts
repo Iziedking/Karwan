@@ -173,6 +173,27 @@ export const ar: Messages = {
   hint: {
     triggerAria: 'تفاصيل',
   },
+  liveDot: {
+    live: 'مباشر',
+    connecting: 'جارٍ الاتصال',
+    offline: 'غير متصل',
+  },
+  countdown: {
+    closed: 'مغلق',
+  },
+  networkTicker: {
+    eyebrows: {
+      opened: 'افتُتحت للتو',
+      completed: 'اكتملت للتو',
+      cancelled: 'أُلغيت للتو',
+    },
+    verbs: {
+      opened: 'افتتح صفقة بقيمة',
+      completed: 'أغلق صفقة بقيمة',
+      cancelled: 'ألغى صفقة بقيمة',
+    },
+    usdcDeal: 'صفقة USDC',
+  },
   tierCelebration: {
     eyebrow: 'تم فتح الرتبة',
     achievementPrefix: 'وصلت إلى',

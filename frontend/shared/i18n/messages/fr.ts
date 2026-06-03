@@ -173,6 +173,27 @@ export const fr: Messages = {
   hint: {
     triggerAria: 'Détails',
   },
+  liveDot: {
+    live: 'En direct',
+    connecting: 'Connexion',
+    offline: 'Hors ligne',
+  },
+  countdown: {
+    closed: 'clôturé',
+  },
+  networkTicker: {
+    eyebrows: {
+      opened: 'VIENT D’OUVRIR',
+      completed: 'VIENT DE CLORE',
+      cancelled: 'VIENT D’ANNULER',
+    },
+    verbs: {
+      opened: 'a ouvert un',
+      completed: 'a clôturé un',
+      cancelled: 'a annulé un',
+    },
+    usdcDeal: 'DEAL USDC',
+  },
   tierCelebration: {
     eyebrow: 'PALIER DÉBLOQUÉ',
     achievementPrefix: 'Vous avez atteint',

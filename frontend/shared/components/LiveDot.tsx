@@ -1,19 +1,22 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { subscribeLiveStatus, type LiveStatus } from '@/shared/utils/liveEventBus';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-const TONE = {
-  live: { color: '#0a7553', label: 'Live' },
-  connecting: { color: 'var(--color-ink-faint)', label: 'Connecting' },
-  offline: { color: '#b03d3a', label: 'Offline' },
-} as const;
+const COLOR: Record<LiveStatus, string> = {
+  live: '#0a7553',
+  connecting: 'var(--color-ink-faint)',
+  offline: '#b03d3a',
+};
 
 export function LiveDot() {
+  const tr = useTranslations().liveDot;
   const [state, setState] = useState<LiveStatus>('connecting');
 
   useEffect(() => subscribeLiveStatus(setState), []);
 
-  const t = TONE[state];
+  const color = COLOR[state];
+  const label = tr[state];
   const pinging = state === 'live';
 
   return (
@@ -22,15 +25,15 @@ export function LiveDot() {
         {pinging && (
           <span
             className="absolute inset-0 rounded-full opacity-55 motion-safe:animate-ping"
-            style={{ background: t.color }}
+            style={{ background: color }}
           />
         )}
         <span
           className="relative inline-flex w-[6px] h-[6px] rounded-full"
-          style={{ background: t.color }}
+          style={{ background: color }}
         />
       </span>
-      <span>{t.label}</span>
+      <span>{label}</span>
     </span>
   );
 }

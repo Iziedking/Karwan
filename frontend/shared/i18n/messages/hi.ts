@@ -173,6 +173,27 @@ export const hi: Messages = {
   hint: {
     triggerAria: 'विवरण',
   },
+  liveDot: {
+    live: 'लाइव',
+    connecting: 'जुड़ रहे हैं',
+    offline: 'ऑफ़लाइन',
+  },
+  countdown: {
+    closed: 'बंद',
+  },
+  networkTicker: {
+    eyebrows: {
+      opened: 'अभी खुली',
+      completed: 'अभी पूरी',
+      cancelled: 'अभी रद्द',
+    },
+    verbs: {
+      opened: 'ने खोली',
+      completed: 'ने पूरी की',
+      cancelled: 'ने रद्द की',
+    },
+    usdcDeal: 'USDC डील',
+  },
   tierCelebration: {
     eyebrow: 'स्तर अनलॉक हुआ',
     achievementPrefix: 'आप पहुँचे',

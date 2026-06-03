@@ -173,6 +173,27 @@ export const sw: Messages = {
   hint: {
     triggerAria: 'Maelezo',
   },
+  liveDot: {
+    live: 'Moja kwa moja',
+    connecting: 'Inaunganisha',
+    offline: 'Nje ya mtandao',
+  },
+  countdown: {
+    closed: 'imefungwa',
+  },
+  networkTicker: {
+    eyebrows: {
+      opened: 'IMEFUNGULIWA SASA',
+      completed: 'IMEKAMILIKA SASA',
+      cancelled: 'IMEFUTWA SASA',
+    },
+    verbs: {
+      opened: 'amefungua',
+      completed: 'amehitimisha',
+      cancelled: 'ameghairi',
+    },
+    usdcDeal: 'BIASHARA YA USDC',
+  },
   tierCelebration: {
     eyebrow: 'KIWANGO KIMEFUNGULIWA',
     achievementPrefix: 'Umefika',

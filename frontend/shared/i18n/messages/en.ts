@@ -180,6 +180,27 @@ interface MessagesShape {
   hint: {
     triggerAria: string;
   };
+  liveDot: {
+    live: string;
+    connecting: string;
+    offline: string;
+  };
+  countdown: {
+    closed: string;
+  };
+  networkTicker: {
+    eyebrows: {
+      opened: string;
+      completed: string;
+      cancelled: string;
+    };
+    verbs: {
+      opened: string;
+      completed: string;
+      cancelled: string;
+    };
+    usdcDeal: string;
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -539,6 +560,27 @@ export const en: MessagesShape = {
   },
   hint: {
     triggerAria: 'Details',
+  },
+  liveDot: {
+    live: 'Live',
+    connecting: 'Connecting',
+    offline: 'Offline',
+  },
+  countdown: {
+    closed: 'closed',
+  },
+  networkTicker: {
+    eyebrows: {
+      opened: 'JUST OPENED',
+      completed: 'JUST COMPLETED',
+      cancelled: 'JUST CANCELLED',
+    },
+    verbs: {
+      opened: 'opened a',
+      completed: 'closed a',
+      cancelled: 'cancelled a',
+    },
+    usdcDeal: 'USDC DEAL',
   },
   tierCelebration: {
     eyebrow: 'TIER UNLOCKED',

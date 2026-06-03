@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { api, type DirectDeal } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 
 type EventKind = 'opened' | 'completed' | 'cancelled';
@@ -135,12 +136,8 @@ export function NetworkTicker() {
 }
 
 function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
-  const eyebrow =
-    card.kind === 'opened'
-      ? 'JUST OPENED'
-      : card.kind === 'completed'
-        ? 'JUST COMPLETED'
-        : 'JUST CANCELLED';
+  const t = useTranslations().networkTicker;
+  const eyebrow = t.eyebrows[card.kind];
   // Map state to skill BracketTag variant + tone color for the left rail.
   const variant: BracketTagVariant =
     card.kind === 'opened' ? 'live' : card.kind === 'completed' ? 'pos' : 'neg';
@@ -150,12 +147,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
       : card.kind === 'completed'
         ? 'var(--pos)'
         : 'var(--neg)';
-  const verb =
-    card.kind === 'opened'
-      ? 'opened a'
-      : card.kind === 'completed'
-        ? 'closed a'
-        : 'cancelled a';
+  const verb = t.verbs[card.kind];
 
   return (
     <motion.div
@@ -241,7 +233,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
             className="font-mono text-[10px] uppercase tracking-[0.14em]"
             style={{ color: 'var(--ink-3)' }}
           >
-            USDC DEAL
+            {t.usdcDeal}
           </span>
         </div>
       </div>
