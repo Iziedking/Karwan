@@ -156,25 +156,21 @@ function BrandSwatches() {
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:{t.brand.label}:]
       </span>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {swatches.map((s) => (
-          <div key={s.label} className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className="inline-block w-4 h-4"
-              style={{
-                background: s.hex,
-                border: s.border ? '1px solid rgba(0,0,0,0.08)' : 'none',
-                borderTopLeftRadius: 4,
-                borderTopRightRadius: 4,
-                borderBottomLeftRadius: 4,
-                borderBottomRightRadius: 1,
-              }}
-            />
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)] tabular-nums">
-              {s.hex}
-            </span>
-          </div>
+          <span
+            key={s.label}
+            aria-hidden
+            className="inline-block w-4 h-4"
+            style={{
+              background: s.hex,
+              border: s.border ? '1px solid rgba(0,0,0,0.08)' : 'none',
+              borderTopLeftRadius: 4,
+              borderTopRightRadius: 4,
+              borderBottomLeftRadius: 4,
+              borderBottomRightRadius: 1,
+            }}
+          />
         ))}
       </div>
     </div>

@@ -30,6 +30,8 @@ export const PUBLIC_EVENT_TYPES = new Set<string>([
   // listings
   'listing.posted', 'listing.matched', 'listing.cancelled', 'listing.expired',
   'brief.cancelled',
+  // cross-chain bridge completion (intermediate states stay personal)
+  'bridge.minted',
 ]);
 
 // Full 20-byte wallet address. Job IDs and tx hashes are 32 bytes (0x + 64 hex)

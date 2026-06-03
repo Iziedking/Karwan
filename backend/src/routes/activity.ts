@@ -19,12 +19,16 @@ function isParty(event: KarwanEvent, caller: string): boolean {
   return false;
 }
 
-// The general/public feed shows only trade activity: requests, bids,
-// negotiation, matches, deal lifecycle, on-chain settlement txns, and listings.
-// Account, platform, and personal events (telegram link, agent activation,
-// agent funding/withdrawal, staking, bridging, tier-ups, private chat, errors)
-// are NOT public and never appear here. An allowlist, not a blocklist, so a new
-// event type is private by default until deliberately surfaced.
+// The general/public feed shows trade activity (requests, bids, negotiation,
+// matches, deal lifecycle, on-chain settlement, listings) PLUS the completion
+// step of CCTP bridges — bridge.minted is the moment USDC lands on Arc and
+// counts as visible network activity. The intermediate bridge states
+// (approving, burning, attested, error) stay private since they're noisy and
+// each successful bridge already produces exactly one bridge.minted.
+// Account, platform, and other personal events (telegram link, agent
+// activation, agent funding/withdrawal, staking, tier-ups, private chat,
+// errors) stay NOT public. An allowlist, not a blocklist, so a new event
+// type is private by default until deliberately surfaced.
 const PUBLIC_EVENT_TYPES = new Set<string>([
   // request lifecycle
   'job.posted', 'job.tracked', 'job.expired',
@@ -48,6 +52,8 @@ const PUBLIC_EVENT_TYPES = new Set<string>([
   // listings
   'listing.posted', 'listing.matched', 'listing.match.proactive', 'listing.cancelled', 'listing.expired',
   'brief.cancelled',
+  // cross-chain bridge completion (intermediate states stay private)
+  'bridge.minted',
 ]);
 
 // Payload keys that hold wallet addresses; redacted to a short form on the
@@ -55,6 +61,7 @@ const PUBLIC_EVENT_TYPES = new Set<string>([
 const ADDRESS_KEYS = new Set<string>([
   'buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy',
   'buyerAgent', 'sellerAgent', 'user', 'recipient', 'from', 'to',
+  'mintRecipient',
 ]);
 // Payload keys that hold free-form text the parties exchanged. Stripped on the
 // public feed so cancel/decline reasons don't end up indexed.
