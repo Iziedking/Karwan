@@ -569,6 +569,28 @@ export const hi: Messages = {
     settled: 'निपटी',
     usdcReleased: 'जारी USDC',
   },
+  heroFlow: {
+    stages: {
+      request: 'अनुरोध',
+      bid: 'बोली',
+      counter: 'काउंटर',
+      accept: 'स्वीकार',
+    },
+    escrow: {
+      idle: 'एस्क्रो',
+      settling: 'एस्क्रो · निपटान',
+    },
+    nodes: {
+      buyerLabel: 'क्रेता',
+      sellerLabel: 'विक्रेता',
+      agentSublabel: 'एजेंट',
+    },
+    caption: {
+      buyerAgent: 'क्रेता एजेंट',
+      routesThroughEscrow: 'USDC एस्क्रो से होकर जाता है',
+      sellerAgent: 'विक्रेता एजेंट',
+    },
+  },
   tierCelebration: {
     eyebrow: 'स्तर अनलॉक हुआ',
     achievementPrefix: 'आप पहुँचे',

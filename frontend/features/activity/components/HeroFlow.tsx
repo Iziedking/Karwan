@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Dark-native palette. This visual sits on the landing hero which is always
 /// dark, so it does not read the themeable --color-* tokens.
@@ -24,6 +25,7 @@ const STAGE_DURATION = 1.6; // seconds the coin holds at each station
 const TRAVEL_DURATION = 0.9; // seconds in transit between stations
 
 export function HeroFlow() {
+  const t = useTranslations().heroFlow;
   // Cycle: 0 → 1 → 2 → 0 → 1 → 2 → ...
   const [stage, setStage] = useState<0 | 1 | 2>(0);
   useEffect(() => {
@@ -63,15 +65,27 @@ export function HeroFlow() {
         {/* Drop line connecting the top track to the Escrow pill. */}
         <line x1="180" y1="100" x2="180" y2="165" stroke={STROKE} strokeWidth="1" />
 
-        <Node x={60} label="Buyer" sublabel="agent" active={stage === 0} variant="left" />
-        <Node x={300} label="Seller" sublabel="agent" active={atSeller} variant="right" />
+        <Node
+          x={60}
+          label={t.nodes.buyerLabel}
+          sublabel={t.nodes.agentSublabel}
+          active={stage === 0}
+          variant="left"
+        />
+        <Node
+          x={300}
+          label={t.nodes.sellerLabel}
+          sublabel={t.nodes.agentSublabel}
+          active={atSeller}
+          variant="right"
+        />
 
         {/* Stage labels on the top track. */}
         <g fontSize="9.5" fill={SUB} fontFamily="var(--font-geist, sans-serif)" textAnchor="middle">
-          <text x="105" y="128">request</text>
-          <text x="160" y="128">bid</text>
-          <text x="215" y="128">counter</text>
-          <text x="270" y="128">accept</text>
+          <text x="105" y="128">{t.stages.request}</text>
+          <text x="160" y="128">{t.stages.bid}</text>
+          <text x="215" y="128">{t.stages.counter}</text>
+          <text x="270" y="128">{t.stages.accept}</text>
         </g>
 
         {/* Escrow pill — lights up when the coin lands inside it. */}
@@ -99,7 +113,7 @@ export function HeroFlow() {
             animate={{ opacity: atEscrow ? 1 : 0.6 }}
             transition={{ duration: 0.3 }}
           >
-            {atEscrow ? 'Escrow · settling' : 'Escrow'}
+            {atEscrow ? t.escrow.settling : t.escrow.idle}
           </motion.text>
         </g>
 
@@ -148,9 +162,9 @@ export function HeroFlow() {
         className="mt-3 flex items-center justify-between mono text-[10px] uppercase tracking-[0.14em]"
         style={{ color: SUB }}
       >
-        <span>Buyer agent</span>
-        <span style={{ color: ACCENT }}>USDC routes through escrow</span>
-        <span>Seller agent</span>
+        <span>{t.caption.buyerAgent}</span>
+        <span style={{ color: ACCENT }}>{t.caption.routesThroughEscrow}</span>
+        <span>{t.caption.sellerAgent}</span>
       </div>
     </div>
   );

@@ -569,6 +569,28 @@ export const sw: Messages = {
     settled: 'Zilizolipwa',
     usdcReleased: 'USDC iliyotolewa',
   },
+  heroFlow: {
+    stages: {
+      request: 'ombi',
+      bid: 'zabuni',
+      counter: 'badala',
+      accept: 'kubali',
+    },
+    escrow: {
+      idle: 'Escrow',
+      settling: 'Escrow · inalipwa',
+    },
+    nodes: {
+      buyerLabel: 'Mnunuzi',
+      sellerLabel: 'Muuzaji',
+      agentSublabel: 'wakala',
+    },
+    caption: {
+      buyerAgent: 'Wakala wa mnunuzi',
+      routesThroughEscrow: 'USDC inapita kwenye escrow',
+      sellerAgent: 'Wakala wa muuzaji',
+    },
+  },
   tierCelebration: {
     eyebrow: 'KIWANGO KIMEFUNGULIWA',
     achievementPrefix: 'Umefika',

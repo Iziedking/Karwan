@@ -539,6 +539,28 @@ interface MessagesShape {
     settled: string;
     usdcReleased: string;
   };
+  heroFlow: {
+    stages: {
+      request: string;
+      bid: string;
+      counter: string;
+      accept: string;
+    };
+    escrow: {
+      idle: string;
+      settling: string;
+    };
+    nodes: {
+      buyerLabel: string;
+      sellerLabel: string;
+      agentSublabel: string;
+    };
+    caption: {
+      buyerAgent: string;
+      routesThroughEscrow: string;
+      sellerAgent: string;
+    };
+  };
   tierCelebration: {
     eyebrow: string;
     achievementPrefix: string;
@@ -1294,6 +1316,28 @@ export const en: MessagesShape = {
     dealsToday: 'Deals today',
     settled: 'Settled',
     usdcReleased: 'USDC released',
+  },
+  heroFlow: {
+    stages: {
+      request: 'request',
+      bid: 'bid',
+      counter: 'counter',
+      accept: 'accept',
+    },
+    escrow: {
+      idle: 'Escrow',
+      settling: 'Escrow · settling',
+    },
+    nodes: {
+      buyerLabel: 'Buyer',
+      sellerLabel: 'Seller',
+      agentSublabel: 'agent',
+    },
+    caption: {
+      buyerAgent: 'Buyer agent',
+      routesThroughEscrow: 'USDC routes through escrow',
+      sellerAgent: 'Seller agent',
+    },
   },
   tierCelebration: {
     eyebrow: 'TIER UNLOCKED',

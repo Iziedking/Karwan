@@ -569,6 +569,28 @@ export const fr: Messages = {
     settled: 'Réglés',
     usdcReleased: 'USDC libérés',
   },
+  heroFlow: {
+    stages: {
+      request: 'demande',
+      bid: 'offre',
+      counter: 'contre',
+      accept: 'accept',
+    },
+    escrow: {
+      idle: 'Escrow',
+      settling: 'Escrow · règlement',
+    },
+    nodes: {
+      buyerLabel: 'Acheteur',
+      sellerLabel: 'Vendeur',
+      agentSublabel: 'agent',
+    },
+    caption: {
+      buyerAgent: 'Agent acheteur',
+      routesThroughEscrow: 'L’USDC passe par escrow',
+      sellerAgent: 'Agent vendeur',
+    },
+  },
   tierCelebration: {
     eyebrow: 'PALIER DÉBLOQUÉ',
     achievementPrefix: 'Vous avez atteint',

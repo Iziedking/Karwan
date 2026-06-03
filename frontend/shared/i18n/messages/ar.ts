@@ -569,6 +569,28 @@ export const ar: Messages = {
     settled: 'مسوّاة',
     usdcReleased: 'USDC مفرَج عنه',
   },
+  heroFlow: {
+    stages: {
+      request: 'طلب',
+      bid: 'عرض',
+      counter: 'مضاد',
+      accept: 'قبول',
+    },
+    escrow: {
+      idle: 'الإسكرو',
+      settling: 'الإسكرو · تسوية',
+    },
+    nodes: {
+      buyerLabel: 'مشتر',
+      sellerLabel: 'بائع',
+      agentSublabel: 'وكيل',
+    },
+    caption: {
+      buyerAgent: 'وكيل المشتري',
+      routesThroughEscrow: 'تمر USDC عبر الإسكرو',
+      sellerAgent: 'وكيل البائع',
+    },
+  },
   tierCelebration: {
     eyebrow: 'تم فتح الرتبة',
     achievementPrefix: 'وصلت إلى',
