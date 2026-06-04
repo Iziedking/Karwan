@@ -61,29 +61,24 @@ export function ReservesWidget() {
 
   const tiles: Array<{ label: string; value: string; hint: string }> = [
     {
-      label: 'Yield distributed',
+      label: 'Distributed',
       value: fmt(data?.totalCreditedUsdc),
-      hint: 'USDC pushed into the distributor since launch',
+      hint: 'Lifetime yield credited to stakers',
     },
     {
-      label: 'Already claimed',
+      label: 'Claimed',
       value: fmt(data?.totalClaimedUsdc),
-      hint: 'pulled out by stakers',
+      hint: 'Withdrawn by stakers to date',
     },
     {
-      label: 'Waiting for you',
+      label: 'Outstanding',
       value: fmt(data?.outstandingUsdc),
-      hint: 'credited, unclaimed',
-    },
-    {
-      label: 'Live float',
-      value: fmt(data?.usdcBalance),
-      hint: 'USDC in the contract right now',
+      hint: 'Accrued, awaiting claim',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)]">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)]">
       {tiles.map((t) => (
         <div
           key={t.label}

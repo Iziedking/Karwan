@@ -159,8 +159,8 @@ export function YieldClaimPanel() {
               </span>
             </p>
             <p className="mt-1.5 text-[12px] text-white/55">
-              Your share of protocol yield, credited daily. Pulls straight
-              to your wallet.
+              Your accrued share of protocol yield. Claim directly to
+              your wallet.
             </p>
           </div>
 
@@ -208,7 +208,7 @@ export function YieldClaimPanel() {
 
         {claimableNum === 0 && !loading ? (
           <p className="mt-3 text-[11px] text-white/45">
-            Yield drops once a day. Your share scales with the size and
+            Yield accrues daily. Your share scales with the size and
             tenure of your active stake.
           </p>
         ) : null}

@@ -129,7 +129,7 @@ export default function StakePage() {
               </span>
               <span className="text-white/35 text-[15px]"> / 1000</span>
             </Stat>
-            <Stat label={sp.position.tier}>
+            <Stat label={sp.position.tier} fit>
               <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
             </Stat>
             <Stat
@@ -154,17 +154,16 @@ export default function StakePage() {
       </Band>
 
       {/* PROTOCOL RESERVES — read directly from the YieldDistributor.
-          Tells visitors and stakers exactly how much yield has been pushed,
-          claimed, and is still waiting to be pulled. */}
+          Surfaces lifetime accrual, withdrawn share, and outstanding claim. */}
       <Band tone="light" compact>
         <SectionTag>[:RESERVES:]</SectionTag>
         <HeroHeadline size="md">
           Real yield. Real numbers<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          The vault routes idle stake through Hashnote USYC and the daily cron
-          drops each staker their share into a public contract. Pull it any
-          time, no cooldown.
+          Idle stake accrues real yield through Hashnote USYC, tokenized
+          US Treasuries settled on Arc. Each staker earns a pro-rata share,
+          claimable on demand.
         </p>
         <div className="mt-9">
           <ReservesWidget />
@@ -259,15 +258,24 @@ function Stat({
   label,
   children,
   wide,
+  fit,
 }: {
   label: string;
   children: ReactNode;
   wide?: boolean;
+  /// True for long-word values (eg "ESTABLISHED") that need to scale down on
+  /// narrow tiles. Uses a fluid font-size so the value never gets clipped.
+  fit?: boolean;
 }) {
+  const sizeClass = fit
+    ? 'text-[clamp(14px,4.8vw,24px)]'
+    : 'text-[26px]';
   return (
-    <div className={`bg-[var(--lp-band-dark)] px-5 py-4 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
+    <div className={`min-w-0 bg-[var(--lp-band-dark)] px-5 py-4 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</p>
-      <p className="mt-1.5 font-sans text-[26px] font-extrabold tracking-[-0.02em] leading-none text-white">
+      <p
+        className={`mt-1.5 font-sans ${sizeClass} font-extrabold tracking-[-0.02em] leading-none text-white truncate`}
+      >
         {children}
       </p>
     </div>
