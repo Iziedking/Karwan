@@ -1863,6 +1863,192 @@ interface MessagesShape {
       acceptEscrowFailedTitle: string;
     };
   };
+  walletsPanel: {
+    eyebrow: string;
+    headline: string;
+    intro: {
+      circle: string;
+      web3: string;
+    };
+    rows: {
+      identity: {
+        tag: string;
+        title: string;
+        purposeCircle: string;
+        purposeWeb3: string;
+      };
+      buyer: {
+        tag: string;
+        title: string;
+        purpose: string;
+      };
+      seller: {
+        tag: string;
+        title: string;
+        purpose: string;
+      };
+      bridge: {
+        tag: string;
+        title: string;
+        purpose: string;
+        gasSecondaryTemplate: string;
+      };
+    };
+    agentsNotCreated: string;
+    faucetButton: {
+      idle: string;
+      busy: string;
+    };
+    bridgeActions: {
+      topUpBase: string;
+      requesting: string;
+      ethereumGas: string;
+    };
+    chains: {
+      baseSepolia: string;
+      ethereumSepolia: string;
+    };
+    notes: {
+      faucetCopied: string;
+      faucetFallbackTemplate: string;
+      gasRequestedTemplate: string;
+    };
+  };
+  connectX: {
+    connectCta: string;
+    disabledTitle: string;
+    redirecting: string;
+    working: string;
+    unlink: string;
+    handleLabel: string;
+    handlePlaceholder: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    handleNote: string;
+    errors: {
+      bindFailed: string;
+      accountTaken: string;
+      handleTakenTemplate: string;
+      invalidHandle: string;
+    };
+  };
+  telegramConnect: {
+    chatLabelTemplate: string;
+    button: {
+      brand: string;
+      offBadge: string;
+      linkedBadge: string;
+      connectLabel: string;
+      connectTitle: string;
+      manageTitleTemplate: string;
+      disabledTitle: string;
+    };
+    modal: {
+      eyebrow: string;
+      title: string;
+      subheading: string;
+      closeAria: string;
+      startBody: string;
+      generateCta: string;
+      waitingBodyBefore: string;
+      startWord: string;
+      waitingBodyAfter: string;
+      openTelegramCta: string;
+      waitingNoteTitle: string;
+      waitingNoteBody: string;
+    };
+    linkedCard: {
+      label: string;
+      linkedAtTemplate: string;
+      unlinkCta: string;
+    };
+  };
+  reputationBadge: {
+    popoverAriaLabel: string;
+    eyebrow: string;
+    dealCountOneTemplate: string;
+    dealCountManyTemplate: string;
+    scoreMaxTemplate: string;
+    unratedLabel: string;
+    compositeFootnote: string;
+    creditPassportLink: string;
+    stats: {
+      success: string;
+      disputed: string;
+      failed: string;
+    };
+    legacyTiers: {
+      unrated: string;
+      topTier: string;
+      veteran: string;
+      trusted: string;
+      cautious: string;
+      watchlist: string;
+    };
+  };
+  arcFundCard: {
+    agentBuyerLabel: string;
+    agentSellerLabel: string;
+    header: {
+      eyebrow: string;
+      title: string;
+      subtitleCircle: string;
+      subtitleWeb3: string;
+      inFlightTemplate: string;
+      refreshTitle: string;
+      refresh: string;
+      refreshing: string;
+    };
+    recipient: {
+      eyebrow: string;
+      notConfigured: string;
+      balance: string;
+    };
+    amount: {
+      eyebrow: string;
+      availableTemplate: string;
+    };
+    submit: {
+      signInToFund: string;
+      switchingToArc: string;
+      transferInProgress: string;
+      switchToArc: string;
+      sendToTemplate: string;
+      agentFallback: string;
+      activeNote: string;
+    };
+    activity: {
+      eyebrow: string;
+      transferOne: string;
+      transferMany: string;
+    };
+    phase: {
+      switching: string;
+      signing: string;
+      confirming: string;
+      sending: string;
+      done: string;
+      error: string;
+    };
+    elapsed: {
+      secondsTemplate: string;
+      minutesTemplate: string;
+      hoursMinutesTemplate: string;
+    };
+    row: {
+      agentKeyBuyer: string;
+      agentKeySeller: string;
+      slow: string;
+      viewOnArcscan: string;
+      errorLabel: string;
+      recipient: string;
+      txArc: string;
+      stuckNote: string;
+      retry: string;
+      dismiss: string;
+    };
+  };
   balancesCard: {
     eyebrow: string;
     signedOutBody: string;
@@ -4249,6 +4435,192 @@ export const en: MessagesShape = {
       insufficientStakeLink: 'Stake more',
       insufficientStakeSuffix: 'then return here to accept.',
       acceptEscrowFailedTitle: 'Could not accept the escrow on chain.',
+    },
+  },
+  walletsPanel: {
+    eyebrow: '[:YOUR WALLETS:]',
+    headline: 'One account. Several wallets',
+    intro: {
+      circle: 'Created with your account. Funds settle into your identity wallet, then route to your agents. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.',
+      web3: 'Your connected wallet is your identity. Karwan provisions the agent and bridge wallets it runs for you, funded from it. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.',
+    },
+    rows: {
+      identity: {
+        tag: 'IDENTITY',
+        title: 'Identity wallet',
+        purposeCircle: 'Your account wallet on Arc, funded at sign-up. The hub every other wallet draws from.',
+        purposeWeb3: 'Your connected wallet, serving as your Arc identity. Fund the agents from here.',
+      },
+      buyer: {
+        tag: 'BUYER AGENT',
+        title: 'Buyer agent',
+        purpose: 'Escrows USDC for the deals you buy. Top up under Agent treasury.',
+      },
+      seller: {
+        tag: 'SELLER AGENT',
+        title: 'Seller agent',
+        purpose: 'Covers the Arc gas to accept and deliver on the deals you sell. Top up under Agent treasury.',
+      },
+      bridge: {
+        tag: 'BRIDGE WALLET',
+        title: 'Bridge wallet',
+        purpose: 'Imports USDC from Base or Ethereum. It settles on that chain, so it holds ETH for gas, not Arc USDC.',
+        gasSecondaryTemplate: '{amount} ETH gas',
+      },
+    },
+    agentsNotCreated: '[:AGENTS NOT CREATED:] Activate to provision your buyer and seller agents.',
+    faucetButton: {
+      idle: 'Get USDC',
+      busy: 'Opening',
+    },
+    bridgeActions: {
+      topUpBase: 'Top up Base gas',
+      requesting: 'Requesting',
+      ethereumGas: 'Ethereum gas',
+    },
+    chains: {
+      baseSepolia: 'Base Sepolia',
+      ethereumSepolia: 'Ethereum Sepolia',
+    },
+    notes: {
+      faucetCopied: "Address copied. On Circle's faucet, choose Arc Testnet and paste it to get USDC.",
+      faucetFallbackTemplate: "On Circle's faucet, choose Arc Testnet and paste {addr} to get USDC.",
+      gasRequestedTemplate: '{chain} gas and USDC requested. It lands in about a minute, then retry the bridge.',
+    },
+  },
+  connectX: {
+    connectCta: 'Connect X',
+    disabledTitle: 'Connect your wallet first',
+    redirecting: 'Redirecting',
+    working: 'Working',
+    unlink: 'Unlink',
+    handleLabel: 'X handle',
+    handlePlaceholder: 'karwan',
+    save: 'Save',
+    saving: 'Saving',
+    cancel: 'Cancel',
+    handleNote: 'Handle only. Karwan tags it on public milestones. We never post on your behalf without one of those triggers.',
+    errors: {
+      bindFailed: 'Could not bind your X account.',
+      accountTaken: 'That X account is already connected to another Karwan account.',
+      handleTakenTemplate: '@{handle} is already connected to another Karwan account.',
+      invalidHandle: 'Use letters, numbers, or underscores. Up to 15 characters.',
+    },
+  },
+  telegramConnect: {
+    chatLabelTemplate: 'chat {chatId}',
+    button: {
+      brand: 'Telegram',
+      offBadge: 'Off',
+      linkedBadge: 'Linked',
+      connectLabel: 'Connect Telegram',
+      connectTitle: 'Connect Telegram for alerts',
+      manageTitleTemplate: 'Manage Telegram link ({label})',
+      disabledTitle: 'Telegram alerts are not configured on this server',
+    },
+    modal: {
+      eyebrow: '[:TELEGRAM ALERTS:]',
+      title: 'Push to your chat',
+      subheading: 'Deals · chat · bridge state',
+      closeAria: 'Close',
+      startBody: 'One tap to open the bot, one more to confirm. Deal updates and chat messages reach you outside the app.',
+      generateCta: 'Generate link',
+      waitingBodyBefore: 'Open the bot in Telegram and tap ',
+      startWord: 'Start',
+      waitingBodyAfter: '. Karwan confirms the link automatically.',
+      openTelegramCta: 'Open Telegram',
+      waitingNoteTitle: 'Waiting for /start',
+      waitingNoteBody: "Link expires in 10 minutes. Generate a fresh one if you don't use it.",
+    },
+    linkedCard: {
+      label: 'Telegram',
+      linkedAtTemplate: 'linked {date}',
+      unlinkCta: 'Unlink',
+    },
+  },
+  reputationBadge: {
+    popoverAriaLabel: 'Reputation details',
+    eyebrow: 'Reputation',
+    dealCountOneTemplate: '{count} deal',
+    dealCountManyTemplate: '{count} deals',
+    scoreMaxTemplate: '/ {max}',
+    unratedLabel: 'unrated',
+    compositeFootnote: 'Composite of deal history, stake, and tenure. Recorded on-chain.',
+    creditPassportLink: 'Credit passport ↗',
+    stats: {
+      success: 'Success',
+      disputed: 'Disputed',
+      failed: 'Failed',
+    },
+    legacyTiers: {
+      unrated: 'Unrated',
+      topTier: 'Top tier',
+      veteran: 'Veteran',
+      trusted: 'Trusted',
+      cautious: 'Cautious',
+      watchlist: 'Watchlist',
+    },
+  },
+  arcFundCard: {
+    agentBuyerLabel: 'Buyer agent',
+    agentSellerLabel: 'Seller agent',
+    header: {
+      eyebrow: 'FUND AGENT',
+      title: 'Top up on Arc',
+      subtitleCircle: 'One click · backend signs',
+      subtitleWeb3: 'Single tx · settles in ~3s',
+      inFlightTemplate: '{count} IN FLIGHT',
+      refreshTitle: 'Refresh balances',
+      refresh: 'Refresh',
+      refreshing: 'Refreshing',
+    },
+    recipient: {
+      eyebrow: 'RECIPIENT',
+      notConfigured: 'not configured',
+      balance: 'Balance',
+    },
+    amount: {
+      eyebrow: 'AMOUNT',
+      availableTemplate: '{amount} USDC available',
+    },
+    submit: {
+      signInToFund: 'Sign in to fund',
+      switchingToArc: 'Switching to Arc...',
+      transferInProgress: 'Transfer in progress...',
+      switchToArc: 'Switch to Arc',
+      sendToTemplate: 'Send to {label}',
+      agentFallback: 'agent',
+      activeNote: 'One transfer at a time. Native transfers settle in nonce order.',
+    },
+    activity: {
+      eyebrow: 'ACTIVITY',
+      transferOne: 'TRANSFER',
+      transferMany: 'TRANSFERS',
+    },
+    phase: {
+      switching: 'Switching to Arc',
+      signing: 'Sign in wallet',
+      confirming: 'Confirming on Arc',
+      sending: 'Transferring on Arc',
+      done: 'Sent',
+      error: 'Failed',
+    },
+    elapsed: {
+      secondsTemplate: '{s}s',
+      minutesTemplate: '{m}m',
+      hoursMinutesTemplate: '{h}h {m}m',
+    },
+    row: {
+      agentKeyBuyer: 'buyer',
+      agentKeySeller: 'seller',
+      slow: 'SLOW',
+      viewOnArcscan: 'View on Arcscan',
+      errorLabel: 'ERROR',
+      recipient: 'Recipient',
+      txArc: 'Tx · Arc',
+      stuckNote: 'This transfer has not confirmed in a while. Likely a dropped tx. Retry to send a fresh one, or dismiss it.',
+      retry: 'Retry',
+      dismiss: 'Dismiss',
     },
   },
   balancesCard: {

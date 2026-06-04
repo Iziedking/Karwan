@@ -10,6 +10,8 @@ import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund
 import { useCircleFund, type CircleFundRecord } from '../hooks/useCircleFund';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -49,6 +51,7 @@ export function ArcFundCard({
   sellerAgent?: string;
   defaultAgent?: 'buyer' | 'seller';
 }) {
+  const af = useTranslations().arcFundCard;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const isConnected = auth.isAuthenticated;
@@ -115,8 +118,8 @@ export function ArcFundCard({
   }, [hasLive]);
 
   const options: AgentOption[] = [
-    { key: 'buyer', label: 'Buyer agent', address: buyerAgent },
-    { key: 'seller', label: 'Seller agent', address: sellerAgent },
+    { key: 'buyer', label: af.agentBuyerLabel, address: buyerAgent },
+    { key: 'seller', label: af.agentSellerLabel, address: sellerAgent },
   ];
 
   const [selected, setSelected] = useState<'buyer' | 'seller'>(defaultAgent);
@@ -185,13 +188,13 @@ export function ArcFundCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:FUND AGENT:]
+            [:{af.header.eyebrow}:]
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            Top up on Arc
+            {af.header.title}
           </h2>
           <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {isCircleUser ? 'One click · backend signs' : 'Single tx · settles in ~3s'}
+            {isCircleUser ? af.header.subtitleCircle : af.header.subtitleWeb3}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -218,14 +221,14 @@ export function ArcFundCard({
                   style={{ background: 'var(--lp-accent)' }}
                 />
               </span>
-              {activeCount} IN FLIGHT
+              {af.header.inFlightTemplate.replace('{count}', String(activeCount))}
             </span>
           )}
           <button
             type="button"
             onClick={refetchAll}
             disabled={refreshing}
-            title="Refresh balances"
+            title={af.header.refreshTitle}
             className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait"
           >
             <svg
@@ -244,7 +247,7 @@ export function ArcFundCard({
                 strokeLinejoin="round"
               />
             </svg>
-            {refreshing ? 'Refreshing' : 'Refresh'}
+            {refreshing ? af.header.refreshing : af.header.refresh}
           </button>
         </div>
       </div>
@@ -253,7 +256,7 @@ export function ArcFundCard({
         {/* RECIPIENT PICKER */}
         <div>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:RECIPIENT:]
+            [:{af.recipient.eyebrow}:]
           </span>
           <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {options.map((o) => {
@@ -316,7 +319,7 @@ export function ArcFundCard({
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="mono text-[10px] tabular-nums truncate text-[var(--lp-text-muted)]">
-                          {o.address ? shortAddress(o.address) : 'not configured'}
+                          {o.address ? shortAddress(o.address) : af.recipient.notConfigured}
                         </span>
                         {o.address && <CopyAddress value={o.address} />}
                       </div>
@@ -324,7 +327,7 @@ export function ArcFundCard({
                   </div>
                   <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-[var(--lp-border-light)]">
                     <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      Balance
+                      {af.recipient.balance}
                     </span>
                     <span className="inline-flex items-baseline gap-1">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
@@ -355,11 +358,16 @@ export function ArcFundCard({
         >
           <div className="flex items-baseline justify-between">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:AMOUNT:]
+              [:{af.amount.eyebrow}:]
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               Arc ·{' '}
-              {arcHuman ? `${formatUsdc(arcHuman, { withSuffix: false })} USDC available` : '-'}
+              {arcHuman
+                ? af.amount.availableTemplate.replace(
+                    '{amount}',
+                    formatUsdc(arcHuman, { withSuffix: false }),
+                  )
+                : '-'}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-3">
@@ -407,17 +415,20 @@ export function ArcFundCard({
           }}
         >
           {!isConnected ? (
-            'Sign in to fund'
+            af.submit.signInToFund
           ) : isSwitching ? (
-            'Switching to Arc...'
+            af.submit.switchingToArc
           ) : hasActiveTransfer ? (
-            'Transfer in progress...'
+            af.submit.transferInProgress
           ) : (
             <>
               <span>
                 {onWrongChain
-                  ? 'Switch to Arc'
-                  : `Send to ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
+                  ? af.submit.switchToArc
+                  : af.submit.sendToTemplate.replace(
+                      '{label}',
+                      selectedAgent?.label.toLowerCase() ?? af.submit.agentFallback,
+                    )}
               </span>
               <span
                 aria-hidden
@@ -438,7 +449,7 @@ export function ArcFundCard({
         </button>
         {hasActiveTransfer && (
           <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
-            One transfer at a time. Native transfers settle in nonce order.
+            {af.submit.activeNote}
           </p>
         )}
       </form>
@@ -447,10 +458,11 @@ export function ArcFundCard({
         <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
           <div className="flex items-baseline justify-between mb-3.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:ACTIVITY:]
+              [:{af.activity.eyebrow}:]
             </span>
             <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              {records.length} {records.length === 1 ? 'TRANSFER' : 'TRANSFERS'}
+              {records.length}{' '}
+              {records.length === 1 ? af.activity.transferOne : af.activity.transferMany}
             </p>
           </div>
           <ul className="space-y-2">
@@ -462,6 +474,7 @@ export function ArcFundCard({
                 onToggle={() => setExpandedId(expandedId === r.id ? null : r.id)}
                 onRetry={() => retry(r.id)}
                 onDismiss={() => dismiss(r.id)}
+                copy={af}
               />
             ))}
           </ul>
@@ -473,20 +486,23 @@ export function ArcFundCard({
 
 type AnyFundPhase = FundPhase | 'sending';
 
-function phaseLabel(phase: AnyFundPhase): string {
+function phaseLabel(
+  phase: AnyFundPhase,
+  copy: Messages['arcFundCard']['phase'],
+): string {
   switch (phase) {
     case 'switching':
-      return 'Switching to Arc';
+      return copy.switching;
     case 'signing':
-      return 'Sign in wallet';
+      return copy.signing;
     case 'confirming':
-      return 'Confirming on Arc';
+      return copy.confirming;
     case 'sending':
-      return 'Transferring on Arc';
+      return copy.sending;
     case 'done':
-      return 'Sent';
+      return copy.done;
     case 'error':
-      return 'Failed';
+      return copy.error;
   }
 }
 
@@ -496,13 +512,15 @@ function phaseTone(phase: AnyFundPhase): 'live' | 'positive' | 'critical' {
   return 'live';
 }
 
-function elapsed(ts: number): string {
+function elapsed(ts: number, copy: Messages['arcFundCard']['elapsed']): string {
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (s < 60) return `${s}s`;
+  if (s < 60) return copy.secondsTemplate.replace('{s}', String(s));
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
+  if (m < 60) return copy.minutesTemplate.replace('{m}', String(m));
   const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  return copy.hoursMinutesTemplate
+    .replace('{h}', String(h))
+    .replace('{m}', String(m % 60));
 }
 
 function FundRow({
@@ -511,12 +529,14 @@ function FundRow({
   onToggle,
   onRetry,
   onDismiss,
+  copy,
 }: {
   record: FundRecord | CircleFundRecord;
   expanded: boolean;
   onToggle: () => void;
   onRetry: () => void;
   onDismiss: () => void;
+  copy: Messages['arcFundCard'];
 }) {
   const tone = phaseTone(record.phase);
   const elapsedSec = Math.max(0, Math.floor((Date.now() - record.startedAt) / 1000));
@@ -570,7 +590,10 @@ function FundRow({
               {formatUsdc(record.amountUsdc, { withSuffix: false })}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
-              → {record.agentKey}
+              →{' '}
+              {record.agentKey === 'buyer'
+                ? copy.row.agentKeyBuyer
+                : copy.row.agentKeySeller}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -579,10 +602,10 @@ function FundRow({
               className="text-[11px] font-medium leading-none"
               style={{ color: textColor }}
             >
-              {phaseLabel(record.phase)}
+              {phaseLabel(record.phase, copy.phase)}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-none">
-              · {elapsed(record.startedAt)}
+              · {elapsed(record.startedAt, copy.elapsed)}
             </span>
             {isSlow && (
               <span
@@ -597,7 +620,7 @@ function FundRow({
                   borderBottomRightRadius: 2,
                 }}
               >
-                SLOW
+                {copy.row.slow}
               </span>
             )}
           </div>
@@ -617,7 +640,7 @@ function FundRow({
               borderBottomLeftRadius: 6,
               borderBottomRightRadius: 2,
             }}
-            title="View on Arcscan"
+            title={copy.row.viewOnArcscan}
           >
             <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
@@ -672,7 +695,7 @@ function FundRow({
               >
                 <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
                 <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                  ERROR
+                  {copy.row.errorLabel}
                 </span>
               </div>
               <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">
@@ -684,7 +707,7 @@ function FundRow({
           <div className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)]">
               <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                Recipient
+                {copy.row.recipient}
               </span>
               <span className="mono tabular-nums">{shortAddress(record.agentAddress)}</span>
             </div>
@@ -696,7 +719,7 @@ function FundRow({
                 className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
               >
                 <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  Tx · Arc
+                  {copy.row.txArc}
                 </span>
                 <span className="mono inline-flex items-center gap-1 tabular-nums">
                   {shortHash(record.txHash)}
@@ -715,8 +738,7 @@ function FundRow({
 
           {isStuck && (
             <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
-              This transfer has not confirmed in a while. Likely a dropped tx. Retry to send a
-              fresh one, or dismiss it.
+              {copy.row.stuckNote}
             </p>
           )}
 
@@ -733,7 +755,7 @@ function FundRow({
                   borderBottomRightRadius: 2,
                 }}
               >
-                Retry
+                {copy.row.retry}
               </button>
             )}
             {canDismiss && (
@@ -742,7 +764,7 @@ function FundRow({
                 onClick={onDismiss}
                 className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
               >
-                Dismiss
+                {copy.row.dismiss}
               </button>
             )}
           </div>

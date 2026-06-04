@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages';
 import { useTelegramLink } from '../hooks/useTelegramLink';
 
 const TG_BLUE = '#229ED9';
@@ -35,6 +37,7 @@ export function TelegramConnectButton({
   address?: string;
   tone?: 'dark' | 'light';
 }) {
+  const tc = useTranslations().telegramConnect;
   const link = useTelegramLink(address);
   const [open, setOpen] = useState(false);
 
@@ -55,7 +58,7 @@ export function TelegramConnectButton({
   const linkedLabel = link.status?.linked
     ? link.status.username
       ? `@${link.status.username}`
-      : `chat ${link.status.chatId ?? ''}`
+      : tc.chatLabelTemplate.replace('{chatId}', String(link.status.chatId ?? ''))
     : null;
 
   if (link.status && !link.status.enabled) {
@@ -63,7 +66,7 @@ export function TelegramConnectButton({
       <button
         type="button"
         disabled
-        title="Telegram alerts are not configured on this server"
+        title={tc.button.disabledTitle}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
           borderTopLeftRadius: 8,
@@ -73,9 +76,9 @@ export function TelegramConnectButton({
         }}
       >
         <TelegramGlyph />
-        Telegram
+        {tc.button.brand}
         <span className={`text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5 ${offPillClass} rounded-sm`}>
-          Off
+          {tc.button.offBadge}
         </span>
       </button>
     );
@@ -86,7 +89,11 @@ export function TelegramConnectButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title={linkedLabel ? `Manage Telegram link (${linkedLabel})` : 'Connect Telegram for alerts'}
+        title={
+          linkedLabel
+            ? tc.button.manageTitleTemplate.replace('{label}', linkedLabel)
+            : tc.button.connectTitle
+        }
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit`}
         style={{
           borderTopLeftRadius: 8,
@@ -96,7 +103,7 @@ export function TelegramConnectButton({
         }}
       >
         <TelegramGlyph />
-        {linkedLabel ?? 'Connect Telegram'}
+        {linkedLabel ?? tc.button.connectLabel}
         {linkedLabel && (
           <span
             className="text-[9px] uppercase tracking-[0.12em] font-bold px-1.5 py-0.5"
@@ -106,13 +113,14 @@ export function TelegramConnectButton({
               borderRadius: 3,
             }}
           >
-            Linked
+            {tc.button.linkedBadge}
           </span>
         )}
       </button>
 
       {open && (
         <TelegramConnectModal
+          copy={tc}
           link={link}
           onClose={() => {
             link.cancelLink();
@@ -154,9 +162,11 @@ function ModalNote({ tone, children }: { tone: 'info' | 'error'; children: React
 }
 
 function TelegramConnectModal({
+  copy,
   link,
   onClose,
 }: {
+  copy: Messages['telegramConnect'];
   link: ReturnType<typeof useTelegramLink>;
   onClose: () => void;
 }) {
@@ -195,18 +205,18 @@ function TelegramConnectModal({
             <div className="flex items-center gap-2.5">
               <TelegramGlyph size={16} />
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:TELEGRAM ALERTS:]
+                {copy.modal.eyebrow}
               </span>
             </div>
             <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
-              Push to your chat
+              {copy.modal.title}
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={copy.modal.closeAria}
             className="size-8 inline-flex items-center justify-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -222,14 +232,13 @@ function TelegramConnectModal({
 
         <div className="px-6 pb-6 space-y-4">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Deals · chat · bridge state
+            {copy.modal.subheading}
           </p>
 
           {!status?.linked && !linking && (
             <>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                One tap to open the bot, one more to confirm. Deal updates and chat messages reach
-                you outside the app.
+                {copy.modal.startBody}
               </p>
               <button
                 type="button"
@@ -243,7 +252,7 @@ function TelegramConnectModal({
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
-                Generate link
+                {copy.modal.generateCta}
                 <span aria-hidden>→</span>
               </button>
             </>
@@ -252,9 +261,9 @@ function TelegramConnectModal({
           {!status?.linked && linking && deepLink && (
             <>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                Open the bot in Telegram and tap{' '}
-                <span className="font-semibold text-[var(--lp-dark)]">Start</span>. Karwan
-                confirms the link automatically.
+                {copy.modal.waitingBodyBefore}
+                <span className="font-semibold text-[var(--lp-dark)]">{copy.modal.startWord}</span>
+                {copy.modal.waitingBodyAfter}
               </p>
               <a
                 href={deepLink}
@@ -269,15 +278,15 @@ function TelegramConnectModal({
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
-                Open Telegram
+                {copy.modal.openTelegramCta}
                 <span aria-hidden>↗</span>
               </a>
               <ModalNote tone="info">
                 <p className="font-bold uppercase tracking-[0.08em] text-[10px]">
-                  Waiting for /start
+                  {copy.modal.waitingNoteTitle}
                 </p>
                 <p className="mt-1 text-[11.5px] opacity-90 normal-case">
-                  Link expires in 10 minutes. Generate a fresh one if you don&apos;t use it.
+                  {copy.modal.waitingNoteBody}
                 </p>
               </ModalNote>
             </>
@@ -298,15 +307,20 @@ function TelegramConnectModal({
               >
                 <div>
                   <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    Telegram
+                    {copy.linkedCard.label}
                   </p>
                   <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em]">
-                    {status.username ? `@${status.username}` : `chat ${status.chatId ?? ''}`}
+                    {status.username
+                      ? `@${status.username}`
+                      : copy.chatLabelTemplate.replace('{chatId}', String(status.chatId ?? ''))}
                   </p>
                 </div>
                 {status.linkedAt && (
                   <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                    linked {formatLinkedAt(status.linkedAt)}
+                    {copy.linkedCard.linkedAtTemplate.replace(
+                      '{date}',
+                      formatLinkedAt(status.linkedAt),
+                    )}
                   </p>
                 )}
               </div>
@@ -316,7 +330,7 @@ function TelegramConnectModal({
                   onClick={unlink}
                   className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
                 >
-                  Unlink
+                  {copy.linkedCard.unlinkCta}
                 </button>
               </div>
             </>

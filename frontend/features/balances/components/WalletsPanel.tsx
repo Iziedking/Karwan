@@ -2,9 +2,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
 type BridgeStatus = Awaited<ReturnType<typeof api.bridgeWalletStatus>>;
+type WalletsCopy = Messages['walletsPanel'];
 
 const CARD = {
   background: 'var(--lp-card)',
@@ -27,7 +30,6 @@ function short(addr?: string): string {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 }
 
-/// One wallet line: bracket tag, plain-English purpose, balance, optional action.
 function Row({
   tag,
   hub,
@@ -59,7 +61,6 @@ function Row({
         borderBottomRightRadius: 3,
       }}
     >
-      {/* The identity wallet is the funding hub: give it the one lime rail. */}
       <span
         aria-hidden
         className="absolute start-0 top-0 bottom-0 w-[3px]"
@@ -98,10 +99,15 @@ function Row({
   );
 }
 
-/// Small outline button that opens Circle's web faucet for a wallet. Arc USDC is
-/// only dispensed by the web faucet (the drips API 403s ARC-TESTNET), so this
-/// copies the address and sends the user there rather than calling the API.
-function FaucetButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+function FaucetButton({
+  onClick,
+  busy,
+  copy,
+}: {
+  onClick: () => void;
+  busy: boolean;
+  copy: WalletsCopy['faucetButton'];
+}) {
   return (
     <button
       type="button"
@@ -117,19 +123,14 @@ function FaucetButton({ onClick, busy }: { onClick: () => void; busy: boolean })
         borderBottomRightRadius: 3,
       }}
     >
-      {busy ? 'Opening' : 'Get USDC'}
+      {busy ? copy.busy : copy.idle}
     </button>
   );
 }
 
-/// Plain-language map of the wallets in a Karwan account, with live balances and
-/// the one action most users miss: refuelling the bridge wallet's source-chain
-/// gas. Identity is the hub; agents are funded from it; the bridge wallet lives
-/// on Base/Ethereum and needs ETH for gas. See [[karwan_wallet_model]].
 export function WalletsPanel({ address }: { address?: string }) {
+  const wp = useTranslations().walletsPanel;
   const { method } = useAuth();
-  // Email / passkey accounts get Karwan-created, faucet-funded wallets; web3
-  // users bring their own wallet as the identity and fund the agents themselves.
   const isCircle = method === 'circle';
   const [data, setData] = useState<Overview | null>(null);
   const [bridge, setBridge] = useState<BridgeStatus | null>(null);
@@ -152,9 +153,6 @@ export function WalletsPanel({ address }: { address?: string }) {
   const agents = data?.agents ?? null;
   const bridgeAddr = bridge?.bridgeWalletAddress ?? data?.bridgeWallets?.['BASE-SEPOLIA']?.address;
 
-  // Arc USDC is dispensed only by Circle's web faucet (the drips API 403s
-  // ARC-TESTNET), so hand off there: copy the target wallet's address and open
-  // the faucet in a new tab for the user to paste.
   const runFaucet = async (target: 'identity' | 'buyer' | 'seller') => {
     const addr =
       target === 'identity'
@@ -167,9 +165,9 @@ export function WalletsPanel({ address }: { address?: string }) {
     setNote(null);
     try {
       await navigator.clipboard?.writeText(addr);
-      setNote("Address copied. On Circle's faucet, choose Arc Testnet and paste it to get USDC.");
+      setNote(wp.notes.faucetCopied);
     } catch {
-      setNote(`On Circle's faucet, choose Arc Testnet and paste ${short(addr)} to get USDC.`);
+      setNote(wp.notes.faucetFallbackTemplate.replace('{addr}', short(addr)));
     }
     window.open('https://faucet.circle.com', '_blank', 'noopener,noreferrer');
     setFaucetBusy(null);
@@ -180,8 +178,8 @@ export function WalletsPanel({ address }: { address?: string }) {
     setNote(null);
     try {
       await api.dripBridgeGas(address, chain);
-      const label = chain === 'sepolia' ? 'Ethereum Sepolia' : 'Base Sepolia';
-      setNote(`${label} gas and USDC requested. It lands in about a minute, then retry the bridge.`);
+      const label = chain === 'sepolia' ? wp.chains.ethereumSepolia : wp.chains.baseSepolia;
+      setNote(wp.notes.gasRequestedTemplate.replace('{chain}', label));
       if (chain === 'baseSepolia') setTimeout(refresh, 8000);
     } catch (err) {
       const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
@@ -194,33 +192,31 @@ export function WalletsPanel({ address }: { address?: string }) {
   return (
     <section style={CARD} className="p-6 md:p-8">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:YOUR WALLETS:]
+        {wp.eyebrow}
       </span>
       <h3 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
-        One account. Several wallets
+        {wp.headline}
         <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h3>
       <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-        {isCircle
-          ? 'Created with your account. Funds settle into your identity wallet, then route to your agents. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.'
-          : 'Your connected wallet is your identity. Karwan provisions the agent and bridge wallets it runs for you, funded from it. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.'}
+        {isCircle ? wp.intro.circle : wp.intro.web3}
       </p>
 
       <ul className="mt-6 space-y-3">
         <Row
-          tag="IDENTITY"
+          tag={wp.rows.identity.tag}
           hub
-          title="Identity wallet"
-          purpose={
-            isCircle
-              ? 'Your account wallet on Arc, funded at sign-up. The hub every other wallet draws from.'
-              : 'Your connected wallet, serving as your Arc identity. Fund the agents from here.'
-          }
+          title={wp.rows.identity.title}
+          purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
           address={data?.identity.address}
           primary={`${fmt(data?.identity.usdcBalance)} USDC`}
           action={
             isCircle ? (
-              <FaucetButton onClick={() => runFaucet('identity')} busy={faucetBusy === 'identity'} />
+              <FaucetButton
+                onClick={() => runFaucet('identity')}
+                busy={faucetBusy === 'identity'}
+                copy={wp.faucetButton}
+              />
             ) : undefined
           }
         />
@@ -228,23 +224,31 @@ export function WalletsPanel({ address }: { address?: string }) {
         {agents ? (
           <>
             <Row
-              tag="BUYER AGENT"
-              title="Buyer agent"
-              purpose="Escrows USDC for the deals you buy. Top up under Agent treasury."
+              tag={wp.rows.buyer.tag}
+              title={wp.rows.buyer.title}
+              purpose={wp.rows.buyer.purpose}
               address={agents.buyer.address}
               primary={`${fmt(agents.buyer.usdcBalance)} USDC`}
               action={
-                <FaucetButton onClick={() => runFaucet('buyer')} busy={faucetBusy === 'buyer'} />
+                <FaucetButton
+                  onClick={() => runFaucet('buyer')}
+                  busy={faucetBusy === 'buyer'}
+                  copy={wp.faucetButton}
+                />
               }
             />
             <Row
-              tag="SELLER AGENT"
-              title="Seller agent"
-              purpose="Covers the Arc gas to accept and deliver on the deals you sell. Top up under Agent treasury."
+              tag={wp.rows.seller.tag}
+              title={wp.rows.seller.title}
+              purpose={wp.rows.seller.purpose}
               address={agents.seller.address}
               primary={`${fmt(agents.seller.usdcBalance)} USDC`}
               action={
-                <FaucetButton onClick={() => runFaucet('seller')} busy={faucetBusy === 'seller'} />
+                <FaucetButton
+                  onClick={() => runFaucet('seller')}
+                  busy={faucetBusy === 'seller'}
+                  copy={wp.faucetButton}
+                />
               }
             />
           </>
@@ -260,18 +264,18 @@ export function WalletsPanel({ address }: { address?: string }) {
               borderBottomRightRadius: 3,
             }}
           >
-            [:AGENTS NOT CREATED:] Activate to provision your buyer and seller agents.
+            {wp.agentsNotCreated}
           </li>
         )}
 
         {bridgeAddr && (
           <Row
-            tag="BRIDGE WALLET"
-            title="Bridge wallet"
-            purpose="Imports USDC from Base or Ethereum. It settles on that chain, so it holds ETH for gas, not Arc USDC."
+            tag={wp.rows.bridge.tag}
+            title={wp.rows.bridge.title}
+            purpose={wp.rows.bridge.purpose}
             address={bridgeAddr}
             primary={`${fmt(bridge?.usdcBalance)} USDC`}
-            secondary={`${fmt(bridge?.gasBalance)} ETH gas`}
+            secondary={wp.rows.bridge.gasSecondaryTemplate.replace('{amount}', fmt(bridge?.gasBalance))}
             action={
               <div className="flex flex-col items-stretch gap-1.5">
                 <button
@@ -287,7 +291,7 @@ export function WalletsPanel({ address }: { address?: string }) {
                     boxShadow: '0 3px 0 rgba(0,0,0,0.2)',
                   }}
                 >
-                  {refueling ? 'Requesting' : 'Top up Base gas'}
+                  {refueling ? wp.bridgeActions.requesting : wp.bridgeActions.topUpBase}
                 </button>
                 <button
                   type="button"
@@ -303,7 +307,7 @@ export function WalletsPanel({ address }: { address?: string }) {
                     borderBottomRightRadius: 3,
                   }}
                 >
-                  Ethereum gas
+                  {wp.bridgeActions.ethereumGas}
                 </button>
               </div>
             }

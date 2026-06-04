@@ -2,6 +2,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 import { useReputation } from '../hooks/useReputation';
 import {
   TIER_HUE,
@@ -34,13 +36,17 @@ const TIER_STYLES: Record<CompositeTier, Tier> = {
 
 // Legacy bps badge, kept only as a fallback for API responses that predate the
 // composite engine (no `tier`/`score`). New responses always carry both.
-function tierFor(scoreBps: number, totalDeals: number): Tier {
+function tierFor(
+  scoreBps: number,
+  totalDeals: number,
+  legacy: Messages['reputationBadge']['legacyTiers'],
+): Tier {
   // Explicit "no data" treatment. the wallet has settled zero deals, so any
   // displayed score would be misleading. Label and color are deliberately
   // muted so it reads as "unknown" rather than "low".
   if (totalDeals === 0) {
     return {
-      label: 'Unrated',
+      label: legacy.unrated,
       color: 'var(--color-ink-faint)',
       bg: 'var(--color-surface-2)',
       border: 'var(--color-line)',
@@ -49,7 +55,7 @@ function tierFor(scoreBps: number, totalDeals: number): Tier {
   const score = scoreBps / 100;
   if (score >= 90) {
     return {
-      label: 'Top tier',
+      label: legacy.topTier,
       color: '#0E5E3E',
       bg: 'color-mix(in oklab, #0E5E3E 8%, transparent)',
       border: 'color-mix(in oklab, #0E5E3E 30%, transparent)',
@@ -57,7 +63,7 @@ function tierFor(scoreBps: number, totalDeals: number): Tier {
   }
   if (score >= 70) {
     return {
-      label: 'Veteran',
+      label: legacy.veteran,
       color: 'var(--color-positive)',
       bg: 'var(--color-positive-soft)',
       border: 'color-mix(in oklab, var(--color-positive) 28%, transparent)',
@@ -65,7 +71,7 @@ function tierFor(scoreBps: number, totalDeals: number): Tier {
   }
   if (score >= 50) {
     return {
-      label: 'Trusted',
+      label: legacy.trusted,
       color: 'var(--color-accent)',
       bg: 'var(--color-accent-soft)',
       border: 'color-mix(in oklab, var(--color-accent) 28%, transparent)',
@@ -73,14 +79,14 @@ function tierFor(scoreBps: number, totalDeals: number): Tier {
   }
   if (score >= 30) {
     return {
-      label: 'Cautious',
+      label: legacy.cautious,
       color: 'var(--color-warning)',
       bg: 'var(--color-warning-soft)',
       border: 'color-mix(in oklab, var(--color-warning) 28%, transparent)',
     };
   }
   return {
-    label: 'Watchlist',
+    label: legacy.watchlist,
     color: 'var(--color-critical)',
     bg: 'var(--color-critical-soft)',
     border: 'color-mix(in oklab, var(--color-critical) 28%, transparent)',
@@ -96,6 +102,7 @@ export function ReputationBadge({
   size?: 'sm' | 'md';
   withDetail?: boolean;
 }) {
+  const rb = useTranslations().reputationBadge;
   const { data, fetchState } = useReputation(address);
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -206,7 +213,9 @@ export function ReputationBadge({
   // Prefer the composite engine (NEW..ELITE, 0..1000). Fall back to the legacy
   // bps badge only when an older API response omits tier/score.
   const useComposite = data.tier != null && data.score != null;
-  const tier = useComposite ? TIER_STYLES[data.tier!] : tierFor(data.scoreBps, data.totalDeals);
+  const tier = useComposite
+    ? TIER_STYLES[data.tier!]
+    : tierFor(data.scoreBps, data.totalDeals, rb.legacyTiers);
   const scoreMax = useComposite ? 1000 : 100;
   const score = useComposite ? Math.round(data.score!) : Math.round(data.scoreBps / 100);
   // Composite score is meaningful from day one (stake + time terms), so show it
@@ -222,7 +231,7 @@ export function ReputationBadge({
         disabled={!withDetail}
         aria-haspopup={withDetail ? 'dialog' : undefined}
         aria-expanded={withDetail ? open : undefined}
-        title={`${tier.label} · ${data.totalDeals} ${data.totalDeals === 1 ? 'deal' : 'deals'}`}
+        title={`${tier.label} · ${(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}`}
         className={`group inline-flex items-stretch border transition-colors ${
           withDetail ? 'hover:brightness-95' : 'cursor-default'
         }`}
@@ -261,14 +270,14 @@ export function ReputationBadge({
           <div
             ref={popoverRef}
             role="dialog"
-            aria-label="Reputation details"
+            aria-label={rb.popoverAriaLabel}
             className="fixed z-50 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card-hover)] p-3 fade-up"
             style={{ top: pos.top, left: pos.left, width: pos.width }}
           >
             <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-[var(--color-line)]">
-              <span className="eyebrow">Reputation</span>
+              <span className="eyebrow">{rb.eyebrow}</span>
               <span className="text-[10px] mono text-[var(--color-ink-faint)]">
-                {data.totalDeals} {data.totalDeals === 1 ? 'deal' : 'deals'}
+                {(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}
               </span>
             </div>
             <div className="pt-3 pb-2 flex items-baseline gap-3">
@@ -279,23 +288,23 @@ export function ReputationBadge({
                 {showScore ? score : '-'}
               </span>
               <span className="text-[10px] mono uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
-                {showScore ? `/ ${scoreMax}` : 'unrated'}
+                {showScore ? rb.scoreMaxTemplate.replace('{max}', String(scoreMax)) : rb.unratedLabel}
               </span>
             </div>
             <div className="space-y-1.5 pt-2">
-              <StatRow label="Success" value={data.successCount} tone="positive" />
-              <StatRow label="Disputed" value={data.disputedCount} tone="warning" />
-              <StatRow label="Failed" value={data.failedCount} tone="critical" />
+              <StatRow label={rb.stats.success} value={data.successCount} tone="positive" />
+              <StatRow label={rb.stats.disputed} value={data.disputedCount} tone="warning" />
+              <StatRow label={rb.stats.failed} value={data.failedCount} tone="critical" />
             </div>
             <p className="mt-3 pt-2 border-t border-[var(--color-line)] text-[10px] text-[var(--color-ink-faint)] leading-snug">
-              Composite of deal history, stake, and tenure. Recorded on-chain.
+              {rb.compositeFootnote}
             </p>
             {address && (
               <Link
                 href={`/credit-passport/${address}`}
                 className="mt-2 inline-flex items-center gap-1 text-[10px] mono uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline"
               >
-                Credit passport ↗
+                {rb.creditPassportLink}
               </Link>
             )}
           </div>,

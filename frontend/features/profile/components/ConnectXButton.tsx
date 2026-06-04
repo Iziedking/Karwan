@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type UserProfile } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const HANDLE_RE = /^@?[A-Za-z0-9_]{1,15}$/;
 
@@ -24,6 +25,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
+  const cx = useTranslations().connectX;
 
   // Theme-aware chip colors. `dark` keeps white-on-dark. `light` uses --lp-dark
   // and --lp-text-sub which both flip under html[data-theme="dark"], so the
@@ -62,17 +64,17 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
   const xParam = search.get('x');
   useEffect(() => {
     if (xParam === 'error') {
-      const reason = search.get('reason') ?? 'Could not bind your X account.';
+      const reason = search.get('reason') ?? cx.errors.bindFailed;
       setError(reason);
     } else if (xParam === 'taken') {
       const h = search.get('handle');
       setError(
         h
-          ? `@${h} is already connected to another Karwan account.`
-          : 'That X account is already connected to another Karwan account.',
+          ? cx.errors.handleTakenTemplate.replace('{handle}', h)
+          : cx.errors.accountTaken,
       );
     }
-  }, [xParam, search]);
+  }, [xParam, search, cx]);
 
   const bound = !!profile?.xHandle;
 
@@ -93,7 +95,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
     if (!address) return;
     const trimmed = handle.trim();
     if (!HANDLE_RE.test(trimmed)) {
-      setError('Use letters, numbers, or underscores. Up to 15 characters.');
+      setError(cx.errors.invalidHandle);
       return;
     }
     setBusy(true);
@@ -131,7 +133,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
       <button
         type="button"
         disabled
-        title="Connect your wallet first"
+        title={cx.disabledTitle}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipMuted} cursor-not-allowed w-fit`}
         style={{
           borderTopLeftRadius: 8,
@@ -141,7 +143,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         }}
       >
         <XBrandTile />
-        Connect X
+        {cx.connectCta}
       </button>
     );
   }
@@ -176,7 +178,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           disabled={busy}
           className={`mono text-[10px] uppercase tracking-[0.12em] ${sublabel} hover:${onLight ? 'text-[var(--lp-band-dark)]' : 'text-white'} transition-colors disabled:opacity-50`}
         >
-          {busy ? 'Working' : 'Unlink'}
+          {busy ? cx.working : cx.unlink}
         </button>
       </div>
     );
@@ -199,7 +201,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           }}
         >
           <XBrandTile />
-          {busy ? 'Redirecting' : 'Connect X'}
+          {busy ? cx.redirecting : cx.connectCta}
         </button>
         {error && (
           <p className={`mono text-[10px] ${errClass} leading-snug max-w-[34ch]`}>{error}</p>
@@ -223,7 +225,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
         }}
       >
         <XBrandTile />
-        Connect X
+        {cx.connectCta}
       </button>
     );
   }
@@ -240,7 +242,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
       }}
     >
       <label className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
-        X handle
+        {cx.handleLabel}
       </label>
       <div className="inline-flex items-center gap-2">
         <span className="mono text-[12px] text-white/55">@</span>
@@ -256,7 +258,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
               setError(null);
             }
           }}
-          placeholder="karwan"
+          placeholder={cx.handlePlaceholder}
           maxLength={15}
           className="bg-transparent border-b border-white/20 focus:border-white/60 focus:outline-none mono text-[13px] text-white w-44 py-1"
         />
@@ -266,7 +268,7 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           disabled={busy || !handle.trim()}
           className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-2 py-1 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
         >
-          {busy ? 'Saving' : 'Save'}
+          {busy ? cx.saving : cx.save}
         </button>
         <button
           type="button"
@@ -277,12 +279,11 @@ export function ConnectXButton({ tone = 'dark' }: { tone?: 'dark' | 'light' } = 
           }}
           className="mono text-[10px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
         >
-          Cancel
+          {cx.cancel}
         </button>
       </div>
       <p className="mono text-[10px] text-white/45 leading-snug max-w-[34ch]">
-        Handle only. Karwan tags it on public milestones. We never post on your behalf without one
-        of those triggers.
+        {cx.handleNote}
       </p>
       {error && (
         <p className="mono text-[10px] text-[#e8806b] leading-snug max-w-[34ch]">{error}</p>
