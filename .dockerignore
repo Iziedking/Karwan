@@ -7,6 +7,7 @@
 !backend/package.json
 !backend/tsconfig.json
 !backend/src/**
+!scripts/**
 
 # ---- Never include secrets or local-only state ----
 .env
