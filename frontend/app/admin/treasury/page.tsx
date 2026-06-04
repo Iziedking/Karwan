@@ -320,10 +320,15 @@ function TreasuryCard({
         <p className="mt-4 text-sm text-zinc-500">
           Not configured. Set {which === 'live' ? 'KARWAN_TREASURY_CONTRACT_ADDR' : 'KARWAN_TREASURY_V3_ADDR'} in backend env.
         </p>
-      ) : view.error ? (
-        <p className="mt-4 text-sm text-red-800">{view.error}</p>
+      ) : view.owner === null ? (
+        <p className="mt-4 text-sm text-red-800">{view.error ?? 'read failed'}</p>
       ) : (
         <>
+          {view.error ? (
+            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+              {view.error}
+            </p>
+          ) : null}
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <Field label="Address" value={view.address ?? ''} mono />
             <Field label="Owner" value={view.owner ?? ''} mono />
