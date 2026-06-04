@@ -9,6 +9,10 @@ import {
   type FeedbackStatus,
   type FeedbackCategory,
 } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
+
+type AdminFeedbackCopy = Messages['adminFeedbackPage'];
 
 type Filter = 'all' | FeedbackStatus;
 
@@ -34,6 +38,7 @@ function resolveAssetUrl(url: string): string {
 }
 
 export default function AdminFeedbackPage() {
+  const t = useTranslations().adminFeedbackPage;
   const [items, setItems] = useState<FeedbackItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
@@ -45,18 +50,18 @@ export default function AdminFeedbackPage() {
   // request that's guaranteed to 401.
   const ensureToken = useCallback((): boolean => {
     if (getAdminToken()) return true;
-    const t = window.prompt('Admin token (sent as X-Admin-Token):');
-    if (t && t.trim()) {
-      setAdminToken(t.trim());
+    const tok = window.prompt(t.tokenPrompt);
+    if (tok && tok.trim()) {
+      setAdminToken(tok.trim());
       return true;
     }
     return false;
-  }, []);
+  }, [t.tokenPrompt]);
 
   const load = useCallback(async () => {
     setError(null);
     if (!ensureToken()) {
-      setError('Admin token required. Click "Set token" to enter it.');
+      setError(t.errors.tokenRequired);
       setItems([]);
       return;
     }
@@ -66,24 +71,24 @@ export default function AdminFeedbackPage() {
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setAdminToken(null);
-        setError('Token rejected. Click "Set token" and re-enter it.');
+        setError(t.errors.tokenRejected);
       } else if (err instanceof ApiError && err.status === 503) {
-        setError('Admin gate is not configured on the server (set ADMIN_API_TOKEN).');
+        setError(t.errors.gateNotConfigured);
       } else {
         setError((err as Error).message);
       }
       setItems([]);
     }
-  }, [ensureToken]);
+  }, [ensureToken, t.errors.tokenRequired, t.errors.tokenRejected, t.errors.gateNotConfigured]);
 
   // Lets the operator overwrite the stored token by hand, then reloads.
   const promptForToken = useCallback(() => {
-    const t = window.prompt('Admin token (sent as X-Admin-Token):', getAdminToken() ?? '');
-    if (t !== null) {
-      setAdminToken(t.trim() || null);
+    const tok = window.prompt(t.tokenPrompt, getAdminToken() ?? '');
+    if (tok !== null) {
+      setAdminToken(tok.trim() || null);
       void load();
     }
-  }, [load]);
+  }, [load, t.tokenPrompt]);
 
   useEffect(() => {
     void load();
@@ -113,7 +118,7 @@ export default function AdminFeedbackPage() {
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setAdminToken(null);
-        setError('Token rejected. Click "Set token" and re-enter it.');
+        setError(t.errors.tokenRejected);
       } else {
         setError((err as Error).message);
       }
@@ -122,16 +127,36 @@ export default function AdminFeedbackPage() {
     }
   }
 
+  const filterLabels: Record<Filter, string> = {
+    all: t.filters.all,
+    new: t.filters.new,
+    triaged: t.filters.triaged,
+    resolved: t.filters.resolved,
+  };
+
+  const statusLabels: Record<FeedbackStatus, string> = {
+    new: t.statusLabels.new,
+    triaged: t.statusLabels.triaged,
+    resolved: t.statusLabels.resolved,
+  };
+
+  const categoryLabels: Record<FeedbackCategory, string> = {
+    bug: t.categoryLabels.bug,
+    improvement: t.categoryLabels.improvement,
+    praise: t.categoryLabels.praise,
+    other: t.categoryLabels.other,
+  };
+
   return (
     <main className="min-h-screen bg-[var(--lp-light)] text-[var(--lp-dark)]">
       <div className="mx-auto max-w-[1100px] px-[clamp(20px,5vw,48px)] py-[clamp(28px,5vw,56px)]">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:OPERATOR:]
+              [:{t.eyebrow}:]
             </p>
             <h1 className="mt-2 font-sans text-[clamp(1.8rem,4vw,2.75rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95]">
-              Feedback
+              {t.title}
               <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </h1>
           </div>
@@ -142,7 +167,7 @@ export default function AdminFeedbackPage() {
               className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
               style={{ borderRadius: 8 }}
             >
-              Set token
+              {t.actions.setToken}
             </button>
             <button
               type="button"
@@ -150,7 +175,7 @@ export default function AdminFeedbackPage() {
               className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3.5 py-2 bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors"
               style={{ borderRadius: 8 }}
             >
-              Refresh
+              {t.actions.refresh}
             </button>
           </div>
         </div>
@@ -172,7 +197,7 @@ export default function AdminFeedbackPage() {
                   borderRadius: 999,
                 }}
               >
-                {f} ({counts[f]})
+                {filterLabels[f]} ({counts[f]})
               </button>
             );
           })}
@@ -196,12 +221,12 @@ export default function AdminFeedbackPage() {
         <div className="mt-7 space-y-4">
           {items === null && (
             <p className="mono text-[12px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-              Loading…
+              {t.loading}
             </p>
           )}
           {items !== null && visible.length === 0 && !error && (
             <p className="text-[14px] text-[var(--lp-text-sub)]">
-              No feedback{filter !== 'all' ? ` in "${filter}"` : ' yet'}.
+              {filter !== 'all' ? t.emptyInFilter.replace('{filter}', filterLabels[filter]) : t.emptyAll}
             </p>
           )}
           {visible.map((it) => (
@@ -211,6 +236,10 @@ export default function AdminFeedbackPage() {
               busy={busyId === it.id}
               onStatus={(s) => void changeStatus(it.id, s)}
               onOpenShot={(url) => setLightbox(url)}
+              statusLabel={statusLabels[it.status]}
+              categoryLabel={categoryLabels[it.category]}
+              metaLabels={t.metaLabels}
+              actionLabels={t.actions}
             />
           ))}
         </div>
@@ -219,14 +248,14 @@ export default function AdminFeedbackPage() {
       {lightbox && (
         <button
           type="button"
-          aria-label="Close screenshot"
+          aria-label={t.lightbox.closeAria}
           onClick={() => setLightbox(null)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightbox}
-            alt="feedback screenshot"
+            alt={t.lightbox.imageAlt}
             className="max-h-[92vh] max-w-[92vw] object-contain"
             style={{ borderRadius: 8 }}
           />
@@ -241,11 +270,19 @@ function FeedbackCard({
   busy,
   onStatus,
   onOpenShot,
+  statusLabel,
+  categoryLabel,
+  metaLabels,
+  actionLabels,
 }: {
   item: FeedbackItem;
   busy: boolean;
   onStatus: (s: FeedbackStatus) => void;
   onOpenShot: (url: string) => void;
+  statusLabel: string;
+  categoryLabel: string;
+  metaLabels: AdminFeedbackCopy['metaLabels'];
+  actionLabels: AdminFeedbackCopy['actions'];
 }) {
   return (
     <div
@@ -262,7 +299,7 @@ function FeedbackCard({
           className="mono text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 text-white"
           style={{ background: CATEGORY_COLOR[item.category], borderRadius: 4 }}
         >
-          {item.category}
+          {categoryLabel}
         </span>
         <span
           className="mono text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5"
@@ -272,7 +309,7 @@ function FeedbackCard({
             borderRadius: 4,
           }}
         >
-          {item.status}
+          {statusLabel}
         </span>
         <span className="ms-auto mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
           {new Date(item.createdAt).toLocaleString()}
@@ -288,10 +325,10 @@ function FeedbackCard({
 
       {/* META */}
       <div className="mt-3 flex flex-col gap-1">
-        {item.context?.url && <Meta k="Where" v={item.context.url} />}
-        {item.context?.wallet && <Meta k="Wallet" v={item.context.wallet} mono />}
-        {item.contact && <Meta k="Contact" v={item.contact} />}
-        {item.context?.userAgent && <Meta k="Client" v={item.context.userAgent} />}
+        {item.context?.url && <Meta k={metaLabels.where} v={item.context.url} />}
+        {item.context?.wallet && <Meta k={metaLabels.wallet} v={item.context.wallet} mono />}
+        {item.contact && <Meta k={metaLabels.contact} v={item.contact} />}
+        {item.context?.userAgent && <Meta k={metaLabels.client} v={item.context.userAgent} />}
       </div>
 
       {/* SCREENSHOTS */}
@@ -318,13 +355,13 @@ function FeedbackCard({
       {/* ACTIONS */}
       <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-[var(--lp-border-light)]">
         {item.status !== 'triaged' && (
-          <StatusButton label="Mark triaged" onClick={() => onStatus('triaged')} busy={busy} />
+          <StatusButton label={actionLabels.markTriaged} onClick={() => onStatus('triaged')} busy={busy} />
         )}
         {item.status !== 'resolved' && (
-          <StatusButton label="Mark resolved" onClick={() => onStatus('resolved')} busy={busy} />
+          <StatusButton label={actionLabels.markResolved} onClick={() => onStatus('resolved')} busy={busy} />
         )}
         {item.status !== 'new' && (
-          <StatusButton label="Reopen" onClick={() => onStatus('new')} busy={busy} muted />
+          <StatusButton label={actionLabels.reopen} onClick={() => onStatus('new')} busy={busy} muted />
         )}
       </div>
     </div>

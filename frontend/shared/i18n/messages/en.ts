@@ -2609,6 +2609,393 @@ interface MessagesShape {
     switch: { title: string; label: string; switching: string };
     address: { copied: string; copyTitle: string; copyAria: string };
   };
+  docsShell: {
+    sidebar: {
+      eyebrow: string;
+      sections: {
+        overview: { label: string; blurb: string };
+        agents: { label: string; blurb: string };
+        deals: { label: string; blurb: string };
+        reputation: { label: string; blurb: string };
+        bridge: { label: string; blurb: string };
+        roadmap: { label: string; blurb: string };
+        faq: { label: string; blurb: string };
+      };
+    };
+    pager: { previous: string; next: string };
+    figure: { videoComingSoon: string; screenshotComingSoon: string };
+  };
+  docsIndexPage: {
+    eyebrow: string;
+    headline: string;
+    intro: string;
+    twoWays: {
+      title: string;
+      lede: string;
+      direct: { label: string; body: string };
+      matched: { label: string; body: string };
+    };
+    getStarted: {
+      title: string;
+      signIn: { label: string; body: string };
+      fund: { label: string; body: string };
+      open: { label: string; body: string };
+    };
+    next: {
+      title: string;
+      lede: string;
+      cards: {
+        agents: { title: string; blurb: string };
+        deals: { title: string; blurb: string };
+        reputation: { title: string; blurb: string };
+        bridge: { title: string; blurb: string };
+        roadmap: { title: string; blurb: string };
+        faq: { title: string; blurb: string };
+      };
+    };
+  };
+  docsAgentsPage: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    howNegotiationRuns: {
+      heading: string;
+      auction: string;
+      concession: string;
+      privacy: string;
+    };
+    timelineFigure: { alt: string; caption: string };
+    whyHuman: {
+      heading: string;
+      anchors: { label: string; body: string };
+      reputation: { label: string; body: string };
+      closes: { label: string; body: string };
+      alternatives: { label: string; body: string };
+    };
+    approval: { title: string; body: string };
+    guardrails: { heading: string; body: string };
+    guardrailsFigure: { alt: string; caption: string };
+  };
+  docsBridgePage: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    supportedChains: { heading: string; body: string };
+    bringingIn: {
+      heading: string;
+      steps: {
+        pickSource: { label: string; body: string };
+        approveBurn: { label: string; body: string };
+        attestation: { label: string; body: string };
+        mintArc: { label: string; body: string };
+      };
+    };
+    figure: { alt: string; caption: string };
+    callout: { title: string; body: string };
+    cashout: {
+      heading: string;
+      body: string;
+      options: {
+        arcToArc: { label: string; body: string };
+        crossChain: { label: string; body: string };
+      };
+    };
+    emailPasskey: { heading: string; body: string };
+    whyThisRail: { heading: string; body: string };
+  };
+  docsDealsPage: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    lifecycle: {
+      heading: string;
+      open: { label: string; body: string };
+      acceptFund: { label: string; body: string };
+      deliver: { label: string; body: string };
+      release: { label: string; body: string };
+      summary: string;
+    };
+    figures: {
+      funded: { alt: string; caption: string };
+      waiting: { alt: string; caption: string };
+      delivered: { alt: string; caption: string };
+      releaseFirst: { alt: string; caption: string };
+      afterFirst: { alt: string; caption: string };
+      settled: { alt: string; caption: string };
+    };
+    shareable: { heading: string; body: string };
+    fee: { heading: string; body: string };
+    review: { heading: string; body: string };
+    stake: { heading: string; body1: string; body2: string };
+    cashout: { heading: string; body: string };
+    wrong: {
+      heading: string;
+      mutualCancel: { label: string; body: string };
+      dispute: { label: string; body: string };
+    };
+    callout: { title: string; body: string };
+  };
+  docsFaqPage: {
+    eyebrow: string;
+    headline: string;
+    intro: string;
+    items: ReadonlyArray<{ q: string; a: string }>;
+  };
+  docsReputationPage: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    signals: {
+      heading: string;
+      lead: string;
+      items: {
+        stake: { label: string; body: string };
+        deals: { label: string; body: string };
+        volume: { label: string; body: string };
+        tenure: { label: string; body: string };
+        activity: { label: string; body: string };
+      };
+      penalty: string;
+      referralPrefix: string;
+      referralLink: string;
+      referralSuffix: string;
+    };
+    tiers: {
+      heading: string;
+      lead: string;
+      items: {
+        new: string;
+        cold: string;
+        established: string;
+        strong: string;
+        elite: string;
+      };
+      breakpoints: string;
+      figureAlt: string;
+      figureCaption: string;
+    };
+    resistance: {
+      heading: string;
+      lead: string;
+      volumeFarming: { heading: string; body: string };
+      stakeAndRun: { heading: string; body: string };
+      selfDealing: { heading: string; body: string };
+      matchAndCancel: { heading: string; body: string };
+      decay: { heading: string; body: string };
+    };
+    staking: {
+      heading: string;
+      body: string;
+      cooldown: string;
+      calloutTitle: string;
+      calloutBody: string;
+      figureAlt: string;
+      figureCaption: string;
+    };
+  };
+  docsRoadmapPage: {
+    eyebrow: string;
+    heading: string;
+    intro: string;
+    live: {
+      title: string;
+      items: {
+        match: { title: string; body: string };
+        stake: { title: string; body: string };
+        passport: { title: string; body: string };
+        shareable: { title: string; body: string };
+        cashout: { title: string; body: string };
+        vault: { title: string; body: string };
+        terms: { title: string; body: string };
+        signin: { title: string; body: string };
+        languages: { title: string; body: string };
+        tours: { title: string; body: string };
+      };
+    };
+    next: {
+      title: string;
+      x402: { title: string; body: string };
+      factoring: { title: string; body: string };
+      symmetric: { title: string; body: string };
+      verified: { title: string; body: string };
+      fileDelivery: { title: string; body: string };
+      referral: { title: string; body: string };
+      mainnet: {
+        title: string;
+        items: {
+          audit: { title: string; body: string };
+          safe: { title: string; body: string };
+          coverage: { title: string; body: string };
+        };
+      };
+      reach: {
+        title: string;
+        body: string;
+        items: {
+          coverage: { title: string; body: string };
+          handbook: { title: string; body: string };
+        };
+      };
+    };
+    callout: { title: string; body: string };
+  };
+  howItWorksPage: {
+    header: { eyebrow: string; title: string; body: string };
+    directDeal: {
+      eyebrow: string; title: string; body: string;
+      step1: { title: string; cta: string; bodyA: string; bodyB: string };
+      step2: { title: string; body: string };
+      step3: { title: string; body: string };
+    };
+    managedDeal: {
+      eyebrow: string; title: string; body: string;
+      step1: { title: string; bodyA: string; bodyB: string; bodyC: string };
+      step2: { title: string; bodyA: string; bodyB: string };
+      step3: { title: string; body: string };
+    };
+    contract: {
+      eyebrow: string; title: string; bodyA: string; bodyB: string;
+      step1: { actor: string; bodyA: string; bodyB: string };
+      step2: { actor: string; body: string };
+      step3: { actor: string; body: string };
+      step4: { actor: string; bodyA: string; bodyB: string; bodyC: string };
+      step5: { actor: string; body: string };
+      step6: { actor: string; body: string };
+    };
+    stake: {
+      eyebrow: string; title: string; body: string;
+      step1: { title: string; bodyA: string; bodyB: string; bodyC: string };
+      step2: { title: string; body: string };
+      step3: { title: string; body: string };
+    };
+    stack: {
+      eyebrow: string; title: string;
+      usdc: string; dcw: string; cctp: string; appKit: string;
+      gasStation: string; arc: string; resend: string; usyc: string;
+    };
+    roadmap: {
+      eyebrow: string; title: string; body: string;
+      x402: { title: string; body: string };
+      factoring: { title: string; body: string };
+      mainnet: { title: string; body: string };
+      i18n: { title: string; body: string };
+    };
+    faq: {
+      eyebrow: string; title: string;
+      q1: { q: string; a: string };
+      q2: { q: string; a: string };
+      q3: { q: string; a: string };
+      q4: { q: string; a: string };
+      q5: { q: string; a: string };
+      q6: { q: string; a: string };
+      q7: { q: string; a: string };
+      q8: { q: string; a: string };
+      q9: { q: string; a: string };
+    };
+    cta: { title: string; body: string; button: string; chainPrefix: string };
+  };
+  brandPage: {
+    hero: { tag: string; headlineLead: string; headlineAccent: string; body: string };
+    logo: {
+      tag: string; headline: string; body: string;
+      wordmarkOnDark: string; wordmarkOnLight: string; markOnDark: string;
+    };
+    palette: {
+      tag: string; headline: string; body: string;
+      brandLime: string; brandInk: string; creamSurface: string;
+      brandLabel: string; copy: string; copied: string;
+    };
+    voice: {
+      tag: string; headline: string; body: string;
+      wordsWeUseLabel: string; wordsWeUseBody: string;
+      wordsWeAvoidLabel: string; wordsWeAvoidBody: string;
+    };
+    partner: { tag: string; headline: string; body: string; partnerLabel: string };
+    contact: { tag: string; headlineLead: string; headlineAccent: string; body: string; backHome: string };
+  };
+  termsPage: {
+    eyebrow: string;
+    headlineLead: string;
+    headlineAccent: string;
+    intro: string;
+    preamble: string;
+    s1: {
+      title: string; lead: string;
+      bullets: {
+        escrow: { label: string; body: string };
+        settlement: { label: string; body: string };
+        reputation: { label: string; body: string };
+        agent: { label: string; body: string };
+        bridging: { label: string; body: string };
+      };
+      tail: string;
+    };
+    s2: {
+      title: string; lead: string;
+      bullets: {
+        keys: { label: string; body: string };
+        review: { label: string; body: string };
+        deadlines: { label: string; body: string };
+        offPlatform: { label: string; body: string };
+        disputes: { label: string; body: string };
+      };
+    };
+    s3: {
+      title: string; lead: string;
+      bullets: {
+        success: string; disputes: string; malicious: string; staking: string;
+      };
+      tail: string;
+    };
+    s4: {
+      title: string; lead: string;
+      bullets: {
+        depeg: { label: string; body: string };
+        contract: { label: string; body: string };
+        outage: { label: string; body: string };
+        fiat: { label: string; body: string };
+        regulatory: { label: string; body: string };
+        testnet: { label: string; body: string };
+      };
+    };
+    s5: {
+      title: string; storeLead: string;
+      store: { addresses: string; email: string; chats: string; reputation: string };
+      notStoreLead: string;
+      notStore: { keys: string; fiat: string };
+      tail: string;
+    };
+    s6: {
+      title: string; lead: string;
+      bullets: { age: string; lawful: string; address: string };
+      changes: string;
+      organisation: string;
+    };
+    s7: { title: string; body: string };
+    footer: { version: string; updated: string };
+  };
+  adminFeedbackPage: {
+    eyebrow: string;
+    title: string;
+    tokenPrompt: string;
+    loading: string;
+    emptyAll: string;
+    emptyInFilter: string;
+    actions: {
+      setToken: string; refresh: string;
+      markTriaged: string; markResolved: string; reopen: string;
+    };
+    filters: { all: string; new: string; triaged: string; resolved: string };
+    statusLabels: { new: string; triaged: string; resolved: string };
+    categoryLabels: { bug: string; improvement: string; praise: string; other: string };
+    metaLabels: { where: string; wallet: string; contact: string; client: string };
+    errors: {
+      tokenRequired: string;
+      tokenRejected: string;
+      gateNotConfigured: string;
+    };
+    lightbox: { closeAria: string; imageAlt: string };
+  };
   balancesCard: {
     eyebrow: string;
     signedOutBody: string;
@@ -5797,6 +6184,499 @@ export const en: MessagesShape = {
       copyTitle: 'Click to copy {address}',
       copyAria: 'Copy address {address}',
     },
+  },
+  docsShell: {
+    sidebar: {
+      eyebrow: 'DOCUMENTATION',
+      sections: {
+        overview: { label: 'Overview', blurb: 'What Karwan is and how the pieces fit.' },
+        agents: { label: 'Agents', blurb: 'How the buyer and seller agents negotiate.' },
+        deals: { label: 'Deals & Escrow', blurb: 'Both deal flows, milestones, settlement.' },
+        reputation: { label: 'Reputation & Stake', blurb: 'The composite score and the vault.' },
+        bridge: { label: 'Bridge', blurb: 'Cross-chain USDC with CCTP V2.' },
+        roadmap: { label: 'Roadmap', blurb: 'Strong functionality shipping next.' },
+        faq: { label: 'FAQs', blurb: 'Quick answers for first-time users.' },
+      },
+    },
+    pager: { previous: 'Previous', next: 'Next' },
+    figure: { videoComingSoon: 'video coming soon', screenshotComingSoon: 'screenshot coming soon' },
+  },
+  docsIndexPage: {
+    eyebrow: 'OVERVIEW',
+    headline: 'How Karwan works',
+    intro: 'Karwan settles cross-border service deals on chain. USDC sits in a milestone escrow on Arc while the work gets done, and releases as the buyer signs off. Two agents handle the matching and the negotiation, then bring the final terms back to you for sign-off before any money moves. This guide walks every part you will touch.',
+    twoWays: {
+      title: 'The two ways to trade',
+      lede: 'Pick the flow that fits whether you already have a counterparty.',
+      direct: {
+        label: 'Direct deal.',
+        body: 'You already know who you are trading with. Name their wallet or even just their email, set the amount, terms, and deadline, and the escrow funds the moment they accept. The fastest path.',
+      },
+      matched: {
+        label: 'Agent-matched deal.',
+        body: 'You do not have a counterparty yet. Post a request as a buyer or an offer as a seller. Your agent watches the market, negotiates on your behalf, and surfaces a proposal you approve before any money moves.',
+      },
+    },
+    getStarted: {
+      title: 'Get started in three steps',
+      signIn: {
+        label: 'Sign in.',
+        body: 'Use email with a passkey, an email code, or your own web3 wallet through Sign-In with Ethereum. No seed phrase needed for the email paths.',
+      },
+      fund: {
+        label: 'Fund your balance.',
+        body: 'Bring USDC to Arc from any of the supported source chains through the bridge, or use the Arc faucet for testnet USDC.',
+      },
+      open: {
+        label: 'Open a deal.',
+        body: 'Post a request, name a counterparty by wallet or email, or browse offers on the market. The escrow does the rest.',
+      },
+    },
+    next: {
+      title: 'Where to go next',
+      lede: 'Each section below covers one part of the platform in depth.',
+      cards: {
+        agents: { title: 'Agents', blurb: 'How your buyer and seller agents negotiate price and deadline.' },
+        deals: { title: 'Deals and Escrow', blurb: 'The deal lifecycle from acceptance to settlement, plus cashout.' },
+        reputation: { title: 'Reputation and Stake', blurb: 'How your score is built, how it resists gaming, and how staking lifts your tier.' },
+        bridge: { title: 'Bridge', blurb: 'Moving USDC in and out of Arc using Circle CCTP.' },
+        roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
+        faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
+      },
+    },
+  },
+  docsAgentsPage: {
+    eyebrow: 'AGENTS',
+    title: 'Agents that trade like people',
+    intro: 'When you post a request or an offer, you get an agent. It finds matches, negotiates price and deadline, and brings the final terms back to you before any money moves. It is a matchmaker, not a spender. It never opens an escrow without your sign-off.',
+    howNegotiationRuns: {
+      heading: 'How a negotiation runs',
+      auction: 'Post a request and your buyer agent opens a short auction window. Seller agents bid. Your agent scores every bid on price, the seller\'s reputation, their completion rate, how long they have been on the platform, and how active they are. The best bids line up in a queue.',
+      concession: 'Your agent negotiates with the top candidate first. Both sides concede in shrinking steps, the way people do: a big move early, smaller moves as they close in. If the top candidate will not land in your range, your agent moves to the next one in the queue instead of giving up.',
+      privacy: 'Each agent only sees its own principal\'s range. The buyer agent knows the budget and the tolerance ceiling; the seller agent knows the asking price and the floor. Neither side ever reads the other\'s reservation. The two agents meet in the middle on a deterministic concession curve, with the current market median and recent counterparty reputation as shared, public references.',
+    },
+    timelineFigure: {
+      alt: 'Activity timeline showing counter rounds between buyer and seller agents',
+      caption: 'A live negotiation, round by round, in the deal timeline',
+    },
+    whyHuman: {
+      heading: 'Why it feels human',
+      anchors: { label: 'It anchors and concedes.', body: 'A seller opens above their floor; a buyer holds near their budget. Each round closes part of the gap, with smaller steps as the deal nears agreement.' },
+      reputation: { label: 'It reads reputation.', body: 'A trusted counterparty earns a faster concession. A brand-new wallet gets more caution.' },
+      closes: { label: 'It closes instead of stalling.', body: 'On the final round, if the offer is inside your range, your agent accepts rather than walking away over a few dollars.' },
+      alternatives: { label: 'It tries alternatives.', body: 'If the first negotiation fails, your agent works down the candidate list before declaring no match.' },
+    },
+    approval: {
+      title: 'YOU ALWAYS APPROVE',
+      body: 'The agent negotiates, but it never funds an escrow on its own. When it reaches agreement, it surfaces a proposal. You review it and approve before any USDC moves.',
+    },
+    guardrails: {
+      heading: 'Setting your guardrails',
+      body: 'Your agent only acts inside the limits you set in your profile: your budget or asking price, your acceptable delivery window, and your tolerance for moving off the posted number. Set these once and the agent respects them on every deal.',
+    },
+    guardrailsFigure: {
+      alt: 'The request form showing budget, deadline, and tolerance guardrails',
+      caption: 'The guardrails your agent negotiates within',
+    },
+  },
+  docsBridgePage: {
+    eyebrow: 'BRIDGE',
+    title: 'Move USDC in and out of Arc',
+    intro: 'Deals settle in USDC on Arc. The bridge moves your USDC over from another chain and, after settlement, sends it back out to wherever you want it. The whole flow runs on Circle Cross-Chain Transfer Protocol, so your USDC is burned on the source chain and minted fresh on the destination. No wrapped tokens, no third-party liquidity pools.',
+    supportedChains: {
+      heading: 'Supported chains',
+      body: 'Six chains today, in both directions. New chains come on as Circle rolls them out.',
+    },
+    bringingIn: {
+      heading: 'Bringing USDC to Arc',
+      steps: {
+        pickSource: { label: 'Pick a source chain.', body: 'Choose where your USDC currently sits.' },
+        approveBurn: { label: 'Approve and burn.', body: 'Your USDC is burned on the source chain. Web3 users sign this from their own wallet. email and passkey users have it handled by their Circle wallet, which never asks them to hold a native gas token.' },
+        attestation: { label: 'Wait for attestation.', body: 'Circle confirms the burn. On testnet this takes about ten to nineteen minutes for the standard path.' },
+        mintArc: { label: 'Mint on Arc.', body: 'Karwan relays the mint on your behalf, so you do not need Arc gas to receive your funds.' },
+      },
+    },
+    figure: {
+      alt: 'Bridge card showing the approve, burn, attestation, and mint steps',
+      caption: 'The four steps of an inbound bridge, tracked live.',
+    },
+    callout: {
+      title: '[:ATTESTATION TAKES TIME ON TESTNET:]',
+      body: 'Standard transfers wait for source-chain finality, which runs ten to nineteen minutes on Sepolia testnets. If a bridge shows as still attesting, give it time before retrying. The Recheck button on the bridge card re-queries Circle.',
+    },
+    cashout: {
+      heading: 'Cashing out after a deal settles',
+      body: 'Once your deal settles, the Cashout page lets you send your USDC where you want it. Two destinations:',
+      options: {
+        arcToArc: { label: 'Arc to Arc.', body: 'Send to any wallet on Arc. Instant, with fees in fractions of a cent.' },
+        crossChain: { label: 'Cross-chain.', body: 'Send to one of the six supported source chains. Your USDC is burned on Arc, attested by Circle, and minted on the destination. The progress card on the page shows burning, burned, attested, and minted in real time, so you never have to track a transaction hash on a block explorer.' },
+      },
+    },
+    emailPasskey: {
+      heading: 'If you sign in with email or a passkey',
+      body: "You get a dedicated bridge wallet on each chain the first time you bridge from it. Send USDC to that wallet's address and Karwan handles the burn for you. The bridge page shows the address and the balance.",
+    },
+    whyThisRail: {
+      heading: 'Why this rail and not a generic bridge',
+      body: 'The USDC that leaves Base is the same USDC that arrives on Arc. Circle burns it on one side and mints it on the other. There is no wrapped token, no liquidity pool, no third-party custody between the two ends. That matters for a trust product: the asset you receive is the same asset that left.',
+    },
+  },
+  docsDealsPage: {
+    eyebrow: 'DEALS AND ESCROW',
+    title: 'From handshake to settlement',
+    intro: 'Every deal moves money through a milestone escrow on Arc. The buyer funds it, the seller delivers, and the buyer releases in tranches. No one can pull funds out of turn, and either side can settle a dispute through the contract rather than waiting on a support inbox.',
+    lifecycle: {
+      heading: 'The lifecycle',
+      open: { label: 'Open.', body: 'A buyer creates a direct deal or approves an agent-matched proposal.' },
+      acceptFund: { label: 'Accept and fund.', body: 'The seller accepts the terms. The escrow funds with the deal amount and the buyer\'s half of the platform fee. A portion of the seller\'s stake reserves against the deal as insurance.' },
+      deliver: { label: 'Deliver.', body: 'The seller marks the work delivered with an optional proof link or note.' },
+      release: { label: 'Release.', body: 'The buyer releases the first milestone, then verifies and releases the rest. The escrow settles, the reservation returns to the seller\'s free stake, and the reputation registry records a clean outcome.' },
+      summary: 'The deal page tracks every stage with a progress strip on top and a next-move panel below it, so both sides always know exactly where the deal is and what they can do.',
+    },
+    figures: {
+      funded: { alt: 'Deal page after escrow funding, with the seller\'s mark-delivered action', caption: 'Escrow funded. The seller marks the work delivered.' },
+      waiting: { alt: 'Deal page from the buyer\'s side while waiting for delivery', caption: 'The buyer waits for delivery, with cancel as a fallback.' },
+      delivered: { alt: 'Deal page after delivery, the first milestone awaiting release', caption: 'Delivered. The first half is up for release.' },
+      releaseFirst: { alt: 'Deal page with the buyer\'s release-first-milestone action', caption: 'The buyer releases the first half, or appeals.' },
+      afterFirst: { alt: 'Deal page after the first release, the final milestone awaiting verification', caption: 'First half released. The buyer verifies and releases the rest.' },
+      settled: { alt: 'Deal page in the settled state, fully paid', caption: 'Settled. The seller is paid in full and reputation is recorded on chain.' },
+    },
+    shareable: {
+      heading: 'Shareable deal links',
+      body: 'A buyer can point a direct deal at an email address instead of a wallet. Karwan sends a branded invite. The recipient opens the link, types the one-time code we just emailed, and a Circle wallet is provisioned in their browser. They accept the deal. From email to accepted deal is under two minutes, with no signup form.',
+    },
+    fee: {
+      heading: 'The platform fee',
+      body: 'Karwan takes a 1.5% platform fee on each deal, split evenly between buyer and seller. The fee collects on chain as each milestone releases. The buyer funds their half up front; the seller\'s half comes out of their payout.',
+    },
+    review: {
+      heading: 'Review windows and auto-release',
+      body: 'Two timers protect both sides from a stalling counterparty. After the seller marks delivered, the buyer has a window to release the first milestone. If the buyer goes quiet past a short delay-appeal grace, the deal watcher releases the first milestone on their behalf. The final tranche never releases automatically; it always needs a buyer click. The buyer can extend the review window when they need more time.',
+    },
+    stake: {
+      heading: 'Stake as deal insurance',
+      body1: 'When the seller accepts a deal, a configurable portion of their free stake reserves against the deal amount. The default is thirty percent; the buyer can dial it on the accept panel. On a clean settlement, the reservation releases back to the seller\'s free stake. On a failed dispute, the reservation slashes to the buyer as insurance.',
+      body2: 'This is what makes a seller\'s reputation more than a number. A buyer can read the seller\'s free-stake balance and know what is actually backing the deal.',
+    },
+    cashout: {
+      heading: 'Cashing out after settlement',
+      body: 'The Cashout page sends your settled USDC where you want it. Arc to Arc transfers are instant. Cross-chain transfers to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana run on the same Circle Cross-Chain Transfer Protocol that powers the inbound bridge. A progress card on the page shows every stage in real time.',
+    },
+    wrong: {
+      heading: 'If something goes wrong',
+      mutualCancel: { label: 'Mutual cancel.', body: 'Either side can propose a cancellation. If the other accepts, the escrow refunds and neither side takes a reputation hit.' },
+      dispute: { label: 'Dispute.', body: 'A buyer can dispute from the funded or delivered state. Either side can resolve the dispute through the escrow contract, so the disputed state is not a one-way trapdoor. The outcome lands on the reputation record on chain.' },
+    },
+    callout: {
+      title: 'ON ARC TESTNET TODAY',
+      body: 'All deals on Karwan today settle in testnet USDC on Arc Testnet, which has no real value. Mainnet ships after the contracts pass a professional external audit.',
+    },
+  },
+  docsFaqPage: {
+    eyebrow: 'FAQS',
+    headline: 'Quick answers',
+    intro: 'The questions new users ask first. If yours is not here, reach the team through the links in the footer.',
+    items: [
+      { q: 'Do I need a crypto wallet to use Karwan?', a: 'No. You can sign in with email and a passkey, and a wallet is provisioned for you behind the scenes. If you already have a web3 wallet, you can use that instead through Sign-In with Ethereum.' },
+      { q: 'Is this real money?', a: 'Not yet. Karwan runs on Arc Testnet today. Testnet USDC has no real value. Get some from the Arc faucet linked in the footer to try the full flow. We also auto-drip a small amount of testnet USDC when you first sign in.' },
+      { q: 'Does my counterparty need an account?', a: 'Not in advance. For a direct deal, you can name a wallet or an email address. If you name an email, the recipient gets a branded invite with a one-time code. They open the link, type the code, a Circle wallet is provisioned in their browser, and they accept the deal. From email to accepted deal is under two minutes.' },
+      { q: 'What happens if a negotiation does not agree?', a: 'Your agent works through the other matched candidates before giving up. If no one lands inside your range, the request ends with no agreement and no money moves. Repost with a higher budget or a wider tolerance to try again.' },
+      { q: 'Can I cancel a deal?', a: 'Yes. Propose a cancellation, and if your counterparty accepts, the escrow refunds with no reputation hit on either side. Before the seller accepts the deal at all, the buyer can cancel freely since no escrow has funded.' },
+      { q: 'What if the seller does not deliver?', a: "The buyer can dispute. The escrow moves to a disputed state and either side can resolve through the contract: a refund returns funds to the buyer and slashes the seller's reserved stake to the buyer as insurance; a release sends the funds to the seller. The outcome lands on both parties' on-chain reputation record." },
+      { q: 'What if the buyer is slow to release?', a: 'The seller can extend the deal once they mark delivered. If the buyer goes quiet past a short delay-appeal window, Karwan auto-releases the first milestone for them. The final tranche always needs an explicit buyer click, so a silent buyer cannot accidentally settle a deal they never verified.' },
+      { q: 'Why does the bridge take so long?', a: 'Standard cross-chain transfers wait for the source chain to finalize, which is ten to nineteen minutes on Sepolia testnets. The mint lands automatically once Circle confirms the burn. The bridge card on the page tracks every stage so you always know where things are.' },
+      { q: 'How do I raise my reputation?', a: 'Complete deals cleanly, stake USDC in the vault, and stay active. The score combines six factors on a curve where the first units of effort matter most, so steady behaviour over time grows the score faster than any single big move.' },
+      { q: 'Where do I cash out after a deal settles?', a: 'From the Cashout page. Send USDC to any wallet on Arc instantly, or bridge out to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana. The page shows every stage of the bridge in real time.' },
+      { q: 'Does Karwan custody my funds?', a: "No. Funds sit in the on-chain escrow contract during the deal. The platform never has the keys to release them; only the contract's rules and your sign-off do. When you cash out, the funds move from your Karwan wallet to wherever you point them." },
+    ],
+  },
+  docsReputationPage: {
+    eyebrow: 'REPUTATION AND STAKE',
+    title: 'Reputation is the golden ticket',
+    intro: 'Every wallet on Karwan carries a public reputation score from 0 to 1000. It follows you from deal to deal. A higher score earns better terms, skips haggling with trusted counterparties, and clears human review faster.',
+    signals: {
+      heading: 'What moves your score',
+      lead: 'Five signals feed the score today, each on a curve where the first units of effort matter most and the last units matter least. The mix is designed so no single shortcut takes you to the top, in order of weight:',
+      items: {
+        stake: { label: 'Locked stake.', body: 'USDC deposited in the vault. The largest single contributor, and the only one that doubles as deal insurance.' },
+        deals: { label: 'Settled deals.', body: 'Completed outcomes against your wallet, weighted by your success rate.' },
+        volume: { label: 'Lifetime volume.', body: 'Total USDC moved through escrow. One huge deal does not dominate.' },
+        tenure: { label: 'Tenure.', body: 'Days since the wallet first registered. Slow to earn, impossible to fake.' },
+        activity: { label: 'Activity.', body: 'Distinct days the wallet was active. Showing up over time matters, not raw deal count.' },
+      },
+      penalty: 'A penalty multiplier reduces the score for confirmed dispute losses, cancellations, spam patterns, and abandoned negotiations. The penalty is capped, so a slashed wallet always keeps a path back through honest behaviour.',
+      referralPrefix: 'A sixth signal, referrals through real deals, joins the score on mainnet as a marketing rail. It is not live today, so it does not factor into your score yet.',
+      referralLink: 'Read the roadmap entry',
+      referralSuffix: '.',
+    },
+    tiers: {
+      heading: 'The five tiers',
+      lead: 'Your score buckets into one of five tiers. Your agent and your counterparty\'s agent both read the tier when scoring a match.',
+      items: {
+        new: 'Fresh wallet. Agents route to human review and price cautiously.',
+        cold: 'Some history. Standard handling with a small caution premium.',
+        established: 'Earned baseline. Normal terms.',
+        strong: 'Preferred counterparty. Faster matches, fewer rounds.',
+        elite: 'Top tier. Agents accept first-look within range, no auction.',
+      },
+      breakpoints: 'Tier breakpoints are fixed at the same numbers on testnet and mainnet. The score scale does the work; the labels mean the same thing wherever you read them.',
+      figureAlt: 'Reputation score and tier ladder on the profile page',
+      figureCaption: 'Your score and tier on the profile page.',
+    },
+    resistance: {
+      heading: 'How the score resists gaming',
+      lead: 'Reputation systems usually fail because a determined user can find a cheap path to the top. Karwan\'s formula closes the most common ones by design.',
+      volumeFarming: { heading: 'Volume farming', body: 'Posting many small deals with yourself does not pay off. The volume curve is concave, so each extra unit of volume contributes less than the one before. The activity and referral factors also look at distinct counterparties, so repeating the same partner stops crediting your score.' },
+      stakeAndRun: { heading: 'Stake and run', body: 'Depositing a large stake to spike the score, doing one deal, then withdrawing the same day will not work. Withdrawals pass through a 3-day cooling window. The position stops contributing to the score the moment you request the withdrawal, and the system runs fraud checks before the funds release. Cancel inside the window to keep your accrued tenure.' },
+      selfDealing: { heading: 'Self-dealing', body: 'The on-chain reputation registry refuses to let an agent\'s owner rate their own agent. The constraint is enforced at the contract layer, not just in our application, so a determined user cannot bypass it by writing their own client.' },
+      matchAndCancel: { heading: 'Match and cancel', body: 'Bidding on many requests and pulling out before settlement counts toward the cancellation penalty. The penalty hits in days, not months, so cycling through this pattern drops the score fast.' },
+      decay: { heading: 'Decay on idleness', body: 'A once-strong wallet that goes silent for months is no longer trusted as currently strong. The decay term reduces the displayed score so agents weigh inactive history less. A returning user re-earns trust by completing a deal or two.' },
+    },
+    staking: {
+      heading: 'Staking lifts your tier and backs your deals',
+      body: 'Deposit USDC into the vault to raise your reputation. The stake is a signal: it shows you have skin in the game. The same position also acts as deal insurance: when you accept a deal, a portion of your free stake reserves against the deal amount. A clean settlement releases the reservation back; a failed dispute slashes it to the buyer.',
+      cooldown: 'You can withdraw any time. Withdrawals pass through a 3-day cooling window during which the stake signal pauses while the system runs fraud checks. Cancel inside the window to keep your accrued tenure.',
+      calloutTitle: 'ON MAINNET, YOUR STAKE EARNS YIELD',
+      calloutBody: 'On Arc Testnet the vault holds plain USDC. On mainnet the same deposit routes through Hashnote USYC via the standard ERC-4626 interface, so your locked stake also earns yield in tokenized T-bills instead of sitting idle.',
+      figureAlt: 'The staking card showing deposit amount and cooldown state',
+      figureCaption: 'Deposit, cooldown, and claim in one card.',
+    },
+  },
+  docsRoadmapPage: {
+    eyebrow: 'ROADMAP',
+    heading: 'What is live, and what is next',
+    intro: 'Karwan runs on Arc Testnet today. The escrow, the agents, the reputation passport, and the bridge are all live. The list below shows what has shipped and what we are building next.',
+    live: {
+      title: 'Live today',
+      items: {
+        match: { title: 'Agentic match and negotiate.', body: 'Buyer and seller agents ranked by reputation, negotiating in multiple rounds inside the ranges each side set. Either side can read every counter on the deal timeline.' },
+        stake: { title: 'Stake as deal insurance.', body: "A portion of the seller's free stake reserves against every accepted deal. A failed dispute slashes that reservation to the buyer." },
+        passport: { title: 'Public Credit Passport.', body: 'Every wallet has a public reputation page showing tier, score, term breakdown, and on-chain history. Anyone can read it without signing in.' },
+        shareable: { title: 'Shareable deal links.', body: 'Open a deal pointed at an email address. The recipient claims with a one-time code and a Circle wallet is provisioned in their browser.' },
+        cashout: { title: 'Cashout after settlement.', body: 'Send settled USDC to any wallet on Arc, or bridge out to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana with an inline progress card.' },
+        vault: { title: 'Vault and treasury wired for USYC.', body: 'Idle stake principal routes through the standard ERC-4626 interface that Hashnote USYC uses on mainnet. Testnet runs against a deterministic mock so the demo path works today.' },
+        terms: { title: 'Terms and Conditions with versioned consent.', body: 'A public terms page and a first-signup consent gate that re-prompts when the version changes.' },
+        signin: { title: 'Three sign-in paths.', body: 'Email and passkey, email one-time code, or a web3 wallet through Sign-In with Ethereum.' },
+        languages: { title: 'Multi-language framework.', body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },
+        tours: { title: 'Guided coachmark tours.', body: 'Role-aware walkthroughs run once per page so new users learn the product as they use it.' },
+      },
+    },
+    next: {
+      title: 'Shipping next',
+      x402: { title: 'x402 nanopayment rails for agents', body: 'Today the agents reason on what is already inside Karwan: the deal under negotiation, recent matches, on-chain reputation, our internal market median for the skill. x402 lets the agents pay sub-cent fees in USDC to call outside services in line with a negotiation: live market medians from paid data, trade and shipping signals, deeper credit checks on a passport, news during a review window. Every paid signal is recorded on the deal timeline so the user sees exactly what the agent paid for and why. The agent earns its keep by spending pennies to make better decisions.' },
+      factoring: { title: 'Invoice factoring', body: "A financier funds an accepted deal at a discount; the escrow's payout slot switches to the financier for the release; the seller gets paid early. Reputation tier sets the discount floor. The credit passport becomes the financing surface." },
+      symmetric: { title: 'Symmetric reputation crediting', body: 'Settled deals will credit both buyer and seller on chain instead of only the seller. Both wallets carry the same outcome record.' },
+      verified: { title: 'Verified deliverables', body: 'A security agent scans every delivered link before the buyer sees it, so a malicious URL never reaches the person about to release escrow. Confirmed bad actors take a permanent reputation hit.' },
+      fileDelivery: { title: 'File delivery', body: 'Deliver work as a file rather than only a link, with the same scan pipeline. Built on Cloudflare R2 for speed and IPFS for tamper-evident, content-addressed delivery of confidential trade documents.' },
+      referral: { title: 'Referral marketing rail (mainnet)', body: 'A growth surface that rewards users for bringing real counterparties on board. When you refer someone who registers through a completed deal with you, both wallets get a reputation lift on the new referral signal. Designed for mainnet, where every honest signup is a real customer rather than a faucet click. Sits behind a small anti-fraud check so the same wallet does not refer itself, and so repeating with the same counterparty does not stack indefinitely.' },
+      mainnet: {
+        title: 'Mainnet hardening',
+        items: {
+          audit: { title: 'External smart-contract audit', body: 'before any mainnet deployment.' },
+          safe: { title: 'Safe multisig treasury', body: 'to replace the deployer address before the mainnet contracts hold real funds.' },
+          coverage: { title: 'Higher test coverage', body: 'on the escrow and vault branches before audit.' },
+        },
+      },
+      reach: {
+        title: 'Reach',
+        body: 'Karwan is built for cross-border service trade anywhere in the world. The early language roster covers several corridors where bank rails are slowest today, and new locales come on as the user base grows.',
+        items: {
+          coverage: { title: 'Full string coverage and Arabic right-to-left pass', body: 'across every page, not only the sign-in and notification surfaces.' },
+          handbook: { title: 'Public handbook.', body: 'A hosted guide for buyers, sellers, financiers, and agent operators.' },
+        },
+      },
+    },
+    callout: {
+      title: 'TESTNET TODAY',
+      body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Mainnet items, including treasury yield through Hashnote USYC, ship after the contracts pass a professional external audit.',
+    },
+  },
+  howItWorksPage: {
+    header: {
+      eyebrow: 'Documentation',
+      title: 'How Karwan works',
+      body: 'Karwan secures USDC in escrow while a service is delivered. There are two ways to open a deal, one settlement spine underneath. This is the walkthrough: the flows, the on-chain calls, and the Circle products behind them. Every step is a real transaction on Arc Testnet.',
+    },
+    directDeal: {
+      eyebrow: 'Direct deal',
+      title: 'When you already have a counterparty',
+      body: 'You agreed with someone off-platform. Karwan just secures the money while the work gets done.',
+      step1: { title: 'Open the deal', cta: 'Open buyer dashboard', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet address, the amount, a deadline, and how much releases on delivery. The escrow funds on Arc, naming that seller directly.' },
+      step2: { title: 'Seller delivers', body: 'The seller signs in with the wallet you named. The deal is waiting on their dashboard. When the work is done, they mark it delivered, which unlocks your releases.' },
+      step3: { title: 'Release in tranches', body: 'You release the first slice, then verify the work and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
+    },
+    managedDeal: {
+      eyebrow: 'Managed deal',
+      title: 'When you need an agent to find one',
+      body: 'Post a request and the agents run the auction and negotiation for you.',
+      step1: { title: 'Post a request', bodyA: 'On ', bodyB: ', pick "Find me a seller". Write what you need, set a budget and deadline. A ', bodyC: ' transaction lands on Arc in a few seconds.' },
+      step2: { title: 'Agents negotiate', bodyA: 'The seller agent scores the request and calls ', bodyB: '. Your buyer agent ranks it, counters once, and accepts the best terms. Each step shows on the live timeline.' },
+      step3: { title: 'Settle the deal', body: 'On acceptance, the buyer agent approves USDC and funds the escrow. When the work is done, release the milestones. Funds move to the seller in tranches.' },
+    },
+    contract: {
+      eyebrow: 'Under the hood',
+      title: 'The on-chain calls',
+      bodyA: 'A managed deal walks the full path below. A direct deal skips straight to ',
+      bodyB: ', naming the seller without an auction.',
+      step1: { actor: 'Buyer agent · managed only', bodyA: 'Records the request on the JobBoard. Emits ', bodyB: ', the event seller agents subscribe to.' },
+      step2: { actor: 'Both agents · managed only', body: 'The negotiation loop. Seller bids, buyer counters once, seller responds, buyer locks final terms.' },
+      step3: { actor: 'Buyer agent', body: 'ERC-20 approval so KarwanEscrow can pull funds. The approval covers the deal amount plus the buyer\'s half of the platform fee.' },
+      step4: { actor: 'Buyer agent', bodyA: 'Locks the deal amount with a milestone schedule. The contract pulls ', bodyB: ', stores what the seller nets and what the treasury collects. Emits ', bodyC: '.' },
+      step5: { actor: 'Buyer', body: 'Releases one milestone. The seller gets their cut, the treasury gets its proportional slice of the 1.5% fee. The final milestone sweeps any remainder and marks the escrow settled.' },
+      step6: { actor: 'Buyer agent', body: 'On settlement, records the outcome against the seller on KarwanReputation. ERC-8004 forbids self-rating, so the buyer rates the seller.' },
+    },
+    stake: {
+      eyebrow: 'Stake to grow reputation',
+      title: 'The reputation engine, end to end',
+      body: 'Every wallet has a composite score in [0, 1000] derived from completed deals, locked stake, time on the platform, and a spam-detection penalty. The score binds to one of five tiers and gates how aggressively the agent loop negotiates on your behalf.',
+      step1: { title: 'Deposit USDC', bodyA: 'On ', bodyB: ', deposit any amount into ', bodyC: '. No forced lock, no minimum tenure. The longer it sits, the more weight it carries in the formula.' },
+      step2: { title: 'Climb tiers', body: '. Each tier unlocks specific agent behavior. ELITE sellers skip the auction; NEW buyers pay a premium that surfaces to the seller for human review before approval.' },
+      step3: { title: 'Withdraw anytime', body: 'Request a withdrawal and the position enters a three-day cool-down while fraud checks run. Cancel inside the window to resume without losing tenure. After the cool-down, claim returns the principal in a single transaction.' },
+    },
+    stack: {
+      eyebrow: 'Circle stack',
+      title: 'What we use, and where',
+      usdc: 'The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee, and KarwanVault staking principal.',
+      dcw: 'Every agent runs on an SCA wallet on Arc Testnet. The buyer agent funds escrows and releases milestones; the seller agent bids and negotiates. Identity DCWs sign vault deposits and withdrawals for Circle-auth users with no wallet popup.',
+      cctp: 'Bidirectional USDC bridge across six chains today: Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus Solana Devnet. The user signs the burn, Karwan relays the mint on the destination, and the cashout page runs the same pipe in reverse.',
+      appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. Reuses our Developer-Controlled Wallets as the source so we add new cross-chain features without managing extra credentials.',
+      gasStation: 'Sponsors source-chain gas for our Circle wallet users on Base Sepolia and Ethereum Sepolia, so a non-crypto user only ever holds USDC. No buy ETH first detour.',
+      arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
+      resend: 'Transactional email for one-time code sign-in, deal invites, and deal alerts. Inline brand logo, dark-mode safe template.',
+      usyc: 'On mainnet the vault and treasury route idle USDC through Hashnote USYC via the standard ERC-4626 interface, so locked principal earns the short rate while reputation is unchanged. Testnet runs against a deterministic mock adapter on the same interface so the demo path works today.',
+    },
+    roadmap: {
+      eyebrow: 'Roadmap',
+      title: 'Coming next',
+      body: 'What ships after the current testnet build.',
+      x402: { title: 'x402 nanopayment rails', body: 'Wire Circle\'s x402 micropayment surface so agents can pay sub-cent USDC fees to call paid data, run credit checks, and pull news during a deal. Every paid signal lands on the deal timeline so users see what their agent paid for and why.' },
+      factoring: { title: 'Invoice factoring', body: 'A financier funds an accepted deal at a discount; the escrow routes the payout to the financier on release. The credit passport becomes a financing surface, with reputation tier setting the discount floor.' },
+      mainnet: { title: 'Mainnet hardening', body: 'External smart-contract audit, a Safe multisig treasury, and higher branch coverage on the escrow and vault before any mainnet deployment.' },
+      i18n: { title: 'Full multi-language coverage', body: 'Extend the five-locale framework to every page and add a right-to-left layout pass for Arabic, replacing the fallback default direction.' },
+    },
+    faq: {
+      eyebrow: 'FAQs',
+      title: 'Common questions',
+      q1: { q: 'What is the difference between a direct deal and an agent-matched deal?', a: 'A direct deal is for two parties who already know each other. You open an escrow naming the seller\'s wallet, or even an email address, and skip the auction. An agent-matched deal is for when you need a counterparty: you post a request as a buyer or an offer as a seller, and the agents run the matching and negotiation. Both use the same escrow, reputation, and settlement underneath.' },
+      q2: { q: 'What is the platform fee?', a: '1.5% of the deal amount, split evenly between buyer and seller. The buyer funds the deal amount and their half of the fee; the seller nets the deal amount minus their half. The fee collects on chain as each milestone releases.' },
+      q3: { q: 'Who controls my agent wallet?', a: 'Your agent wallet is a Circle Developer-Controlled Wallet whose owner is you. Karwan can sign on its behalf to negotiate while you sleep, but it never opens an escrow without your sign-off. You can sweep funds out of it at any time from the profile page.' },
+      q4: { q: 'Are the smart contracts deployed?', a: 'Yes. The escrow, vault, reputation, treasury, and job-board contracts are live on Arc Testnet (chain 5042002). The current addresses are in the public repository. Every event in the activity feed links to its transaction on the Arc explorer.' },
+      q5: { q: 'How does the escrow release?', a: 'The buyer releases each milestone with a single click. The seller gets their share, the treasury gets the platform fee in proportion, and the final release marks the escrow settled. The final milestone always needs an explicit buyer click; it never auto-releases.' },
+      q6: { q: 'What if a deal goes to dispute?', a: 'A buyer can dispute from the funded or delivered state. The escrow moves to a disputed state and either side can resolve through the contract. A refund returns the money to the buyer and slashes the seller\'s reserved stake to the buyer as insurance. A release sends the money to the seller. The outcome lands on both parties\' on-chain reputation record.' },
+      q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
+      q8: { q: 'Which corridors does this serve?', a: 'Karwan works for any cross-border service deal anywhere in the world. The early language roster covers several corridors where bank rails are slowest today, including the Gulf, North and West Africa, the Indian subcontinent, and East Africa, but the escrow, reputation, and agent layer is corridor-agnostic. New languages and corridors come on as the user base grows.' },
+      q9: { q: 'Where does the agent reasoning run?', a: 'Every decision that touches money is handled by a deterministic rule set in the backend: budget and deadline bounds, topical match, stake requirements, reservation math. A language model only handles the parts that need judgement, such as whether two non-overlapping skill descriptions describe the same job, or how to phrase a counter. If the language model goes offline, the agent keeps working through its deterministic fallbacks.' },
+    },
+    cta: { title: 'Try it on Arc Testnet', body: 'The dashboard runs both flows against real testnet contracts.', button: 'Launch app', chainPrefix: 'chain' },
+  },
+  brandPage: {
+    hero: { tag: 'BRAND', headlineLead: 'The Karwan', headlineAccent: 'mark', body: 'The logo, the palette, the voice. Pull what you need to write about Karwan, embed it in a partner deck, or paint a co-mark. For deeper guidance, reach out at the contact below.' },
+    logo: { tag: 'LOGO', headline: 'Three forms', body: 'Pick by surface. Mark for small spaces. Wordmark when there is room. Reserve clearspace equal to the stroke width on every side.', wordmarkOnDark: 'Wordmark on dark', wordmarkOnLight: 'Wordmark on light', markOnDark: 'Mark on dark' },
+    palette: { tag: 'PALETTE', headline: 'Three brand constants', body: 'Lime is the only accent. Pair brand lime with one neutral. Never stack a second accent color on top.', brandLime: 'Brand lime', brandInk: 'Brand ink', creamSurface: 'Cream surface', brandLabel: 'BRAND', copy: 'Copy', copied: 'Copied' },
+    voice: { tag: 'VOICE', headline: "Engineer's product memo", body: "Karwan's tone reads as infrastructural, not consumer. Bloomberg terminal energy. Have an opinion. Acknowledge limits. Vary rhythm. Never theatrical.", wordsWeUseLabel: 'WORDS WE USE', wordsWeUseBody: 'settlement, escrow, rail, deal, request, offer, milestone, release, slash, stake, reputation, passport, anchor, attest, financier, importer, exporter, working capital, cross-border, on-chain.', wordsWeAvoidLabel: 'WORDS WE AVOID', wordsWeAvoidBody: 'revolutionary, transformative, empowering, seamless, robust, world-class, cutting-edge, gig, freelance, platform, users, AI (we say "agents" with the specific job they do).' },
+    partner: { tag: 'PARTNER CO-MARK', headline: 'Pair, do not enclose', body: "When co-marking with Arc, Circle, USYC, or another partner: same baseline as Karwan's wordmark, vertical hairline divider, equal optical weight. Never enclose two logos in the same container.", partnerLabel: 'Partner' },
+    contact: { tag: 'PRESS AND PARTNERS', headlineLead: 'Reach', headlineAccent: 'out', body: 'Want a higher-resolution asset, a co-mark configuration we have not published, or a quote? Send a note.', backHome: 'Back home' },
+  },
+  termsPage: {
+    eyebrow: 'TERMS',
+    headlineLead: 'What you sign up',
+    headlineAccent: 'for',
+    intro: 'The product is testnet today. The terms cover the shape of the work, the risks of stablecoin settlement, and what we do with your data. Read once, signed once.',
+    preamble: 'These terms cover everything you do on Karwan. By signing in, posting a request, opening a deal, or staking, you agree to them. If you don\'t agree, please don\'t use the platform.',
+    s1: {
+      title: '1. What Karwan offers',
+      lead: 'Karwan is a settlement layer for cross-border SME work. The core pieces:',
+      bullets: {
+        escrow: { label: 'On-chain escrow.', body: 'Every funded deal locks USDC in a smart contract on Arc, with milestone release controlled by the buyer.' },
+        settlement: { label: 'Stablecoin settlement.', body: 'All movement is in USDC. There is no fiat rail in the product; conversions to and from your local currency are your own decision.' },
+        reputation: { label: 'Reputation passport.', body: 'Your wallet carries a tier and score based on your deal history. Anyone with the address can read it.' },
+        agent: { label: 'Agent assistance.', body: 'Optional buyer and seller agents help you find counterparties, score offers, and negotiate within the limits you set. The agent never spends without your explicit approval.' },
+        bridging: { label: 'Bridging.', body: 'USDC from supported source chains can be moved to Arc via Circle\'s Cross-Chain Transfer Protocol.' },
+      },
+      tail: 'Some of this is still rolling out. Anything labelled "v2", "coming soon", or shown behind a beta flag is not guaranteed to ship on a fixed date.',
+    },
+    s2: {
+      title: '2. What you are responsible for',
+      lead: 'You take care of:',
+      bullets: {
+        keys: { label: 'Your keys and sign-in.', body: 'Whether that\'s a passkey, an email login, or a connected wallet. Karwan never holds the keys that move your funds.' },
+        review: { label: 'Reviewing what you receive.', body: 'Look at the deliverable before you release the final milestone. Once released, the funds are with the seller.' },
+        deadlines: { label: 'The deadlines you set.', body: 'If you give the seller two days, you can\'t claim breach on day one. If you don\'t set a deadline, the deal stays open until one of you closes it.' },
+        offPlatform: { label: 'Off-platform delivery is at your own risk.', body: 'If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.' },
+        disputes: { label: 'Disputes follow the rules in the reputation doc.', body: 'There is no human arbitration today. The contract logic and the recorded outcomes are the source of truth.' },
+      },
+    },
+    s3: {
+      title: '3. Reputation and the agent',
+      lead: 'Reputation is computed from actual on-chain settlement history. The summary:',
+      bullets: {
+        success: 'Successful deals raise your score and can move you to a higher tier.',
+        disputes: 'Disputes you lose lower your score. Disputes you win don\'t.',
+        malicious: 'A confirmed malicious delivery (security-tagged) drops your tier sharply.',
+        staking: 'Staking shows commitment and contributes to a higher tier. It also acts as deal insurance starting in the v2.D contract.',
+      },
+      tail: 'The full formula lives in the reputation model doc. The agent reads the tier and applies tier-aware behaviour: ELITE gets priority and skips the auction in some flows; NEW pays a premium for first deals. The agent never overrides the limits you\'ve set.',
+    },
+    s4: {
+      title: '4. Risk you carry',
+      lead: 'Crypto and stablecoin work has real risks. The ones that apply here:',
+      bullets: {
+        depeg: { label: 'USDC depeg or freeze.', body: 'USDC is issued by Circle. If Circle\'s banking partners hit trouble, or if a sanctioned address mixes in, USDC can lose its peg or be frozen. Karwan cannot reverse this.' },
+        contract: { label: 'Smart-contract risk.', body: 'The escrow, vault, and reputation contracts on Arc were audited internally and are still considered testnet-quality. A bug, an exploit, or a misuse could result in lost funds.' },
+        outage: { label: 'Network outages.', body: 'Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.' },
+        fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency, that\'s between you and your exchange.' },
+        regulatory: { label: 'Geographic and regulatory compliance is yours.', body: 'Karwan does not check whether USDC payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.' },
+        testnet: { label: 'Karwan is testnet right now.', body: 'You are not paid in real money. None of the deals on testnet have legal weight. We use testnet as a sandbox until the v2.D bundle plus an external audit clears the way to mainnet.' },
+      },
+    },
+    s5: {
+      title: '5. Privacy snapshot',
+      storeLead: 'What we store:',
+      store: {
+        addresses: 'Wallet addresses, on-chain activity, and off-chain deal records keyed by address.',
+        email: 'Optional email if you use the Circle sign-in path. Optional X handle if you bind it to your profile.',
+        chats: 'Negotiation transcripts and chat messages tied to a deal.',
+        reputation: 'Reputation inputs (success counts, dispute counts, staked balance, registration timestamp).',
+      },
+      notStoreLead: 'What we do not store:',
+      notStore: {
+        keys: 'Private keys for any wallet path. Circle holds the user wallet keys; web3 wallets sign locally and we never see the secret.',
+        fiat: 'Payment card data, bank account numbers, or fiat ramp credentials. There is no fiat ramp in product.',
+      },
+      tail: 'You can ask us to delete your account record from settings. Reputation events recorded on chain stay on chain. We cannot remove those.',
+    },
+    s6: {
+      title: '6. Account and acceptance',
+      lead: 'By accepting these terms in the product, you confirm:',
+      bullets: {
+        age: 'You are at least 18 years old, or the age of majority where you live.',
+        lawful: 'You can lawfully enter contracts in your jurisdiction.',
+        address: 'The address you signed in with is yours, or you have authority to act for the entity that owns it.',
+      },
+      changes: 'These terms can change. When a material change ships, the version number on this page bumps and the product asks you to accept the new version before you can post a request, open a deal, or stake. If you do not accept, you can still read your existing deals and reclaim escrow on the previous terms; you just cannot open new work.',
+      organisation: 'If you are using the product through an organisation, you confirm that you have authority to bind that organisation to these terms.',
+    },
+    s7: { title: '7. Contact', body: 'The fastest channel is the in-product feedback link. For matters that need a paper trail, email the address listed on karwan.site under "Contact".' },
+    footer: { version: 'Version', updated: 'Last updated' },
+  },
+  adminFeedbackPage: {
+    eyebrow: 'OPERATOR',
+    title: 'Feedback',
+    tokenPrompt: 'Admin token (sent as X-Admin-Token):',
+    loading: 'Loading',
+    emptyAll: 'No feedback yet.',
+    emptyInFilter: 'No feedback in "{filter}".',
+    actions: { setToken: 'Set token', refresh: 'Refresh', markTriaged: 'Mark triaged', markResolved: 'Mark resolved', reopen: 'Reopen' },
+    filters: { all: 'all', new: 'new', triaged: 'triaged', resolved: 'resolved' },
+    statusLabels: { new: 'new', triaged: 'triaged', resolved: 'resolved' },
+    categoryLabels: { bug: 'bug', improvement: 'improvement', praise: 'praise', other: 'other' },
+    metaLabels: { where: 'Where', wallet: 'Wallet', contact: 'Contact', client: 'Client' },
+    errors: {
+      tokenRequired: 'Admin token required. Click "Set token" to enter it.',
+      tokenRejected: 'Token rejected. Click "Set token" and re-enter it.',
+      gateNotConfigured: 'Admin gate is not configured on the server (set ADMIN_API_TOKEN).',
+    },
+    lightbox: { closeAria: 'Close screenshot', imageAlt: 'feedback screenshot' },
   },
   balancesCard: {
     eyebrow: '[:HOLDINGS:]',

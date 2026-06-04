@@ -1,3 +1,5 @@
+'use client';
+
 import {
   FullBleed,
   Band,
@@ -8,23 +10,19 @@ import {
   Accent,
 } from '@/shared/components/Bands';
 import { TermsContent } from '@/shared/components/TermsContent';
-
-export const metadata = {
-  title: 'Karwan terms and conditions',
-  description: 'What Karwan does, what we store, and what you carry when you use the platform.',
-};
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export default function TermsPage() {
+  const t = useTranslations().termsPage;
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
-        <SectionTag tone="dark">TERMS</SectionTag>
+        <SectionTag tone="dark">{t.eyebrow}</SectionTag>
         <HeroHeadline size="md">
-          What you sign up <Accent>for</Accent><Punc>.</Punc>
+          {t.headlineLead} <Accent>{t.headlineAccent}</Accent><Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 text-[15px] text-[var(--lp-text-muted)] leading-relaxed max-w-[58ch]">
-          The product is testnet today. The terms cover the shape of the work, the risks of
-          stablecoin settlement, and what we do with your data. Read once, signed once.
+          {t.intro}
         </p>
       </Band>
 

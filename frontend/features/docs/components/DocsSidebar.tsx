@@ -2,31 +2,33 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export interface DocsSection {
-  label: string;
+  key: 'overview' | 'agents' | 'deals' | 'reputation' | 'bridge' | 'roadmap' | 'faq';
   href: string;
-  blurb: string;
 }
 
 /// Single source of truth for the docs order. Drives the sidebar and the
-/// prev/next pager at the bottom of each page.
+/// prev/next pager at the bottom of each page. Labels and blurbs come from
+/// the docsShell namespace so the order stays in sync across locales.
 export const DOCS_SECTIONS: DocsSection[] = [
-  { label: 'Overview', href: '/docs', blurb: 'What Karwan is and how the pieces fit.' },
-  { label: 'Agents', href: '/docs/agents', blurb: 'How the buyer and seller agents negotiate.' },
-  { label: 'Deals & Escrow', href: '/docs/deals', blurb: 'Both deal flows, milestones, settlement.' },
-  { label: 'Reputation & Stake', href: '/docs/reputation', blurb: 'The composite score and the vault.' },
-  { label: 'Bridge', href: '/docs/bridge', blurb: 'Cross-chain USDC with CCTP V2.' },
-  { label: 'Roadmap', href: '/docs/roadmap', blurb: 'Strong functionality shipping next.' },
-  { label: 'FAQs', href: '/docs/faq', blurb: 'Quick answers for first-time users.' },
+  { key: 'overview', href: '/docs' },
+  { key: 'agents', href: '/docs/agents' },
+  { key: 'deals', href: '/docs/deals' },
+  { key: 'reputation', href: '/docs/reputation' },
+  { key: 'bridge', href: '/docs/bridge' },
+  { key: 'roadmap', href: '/docs/roadmap' },
+  { key: 'faq', href: '/docs/faq' },
 ];
 
 export function DocsSidebar() {
   const pathname = usePathname();
+  const t = useTranslations().docsShell;
   return (
     <aside className="lg:sticky lg:top-[88px] lg:self-start">
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-4">
-        [:DOCUMENTATION:]
+        [:{t.sidebar.eyebrow}:]
       </p>
       <nav className="flex flex-col gap-1">
         {DOCS_SECTIONS.map((section) => {
@@ -58,7 +60,7 @@ export function DocsSidebar() {
                   active ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-border-light)] group-hover:bg-[var(--lp-accent)]',
                 )}
               />
-              {section.label}
+              {t.sidebar.sections[section.key].label}
             </Link>
           );
         })}

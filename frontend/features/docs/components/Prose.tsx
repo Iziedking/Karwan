@@ -1,6 +1,7 @@
 'use client';
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Body-text wrapper for docs pages. Sets typography for h2/h3/p/ul/code so
 /// each page can write JSX without restating the same Tailwind classes on
@@ -91,6 +92,7 @@ export function DocsFigure({
   // of a broken-image icon. Drop the file at the src path under
   // frontend/public/ and it renders automatically on next load.
   const [missing, setMissing] = useState(false);
+  const t = useTranslations().docsShell;
   return (
     <figure className="mt-7 max-w-[720px]">
       <div
@@ -110,7 +112,7 @@ export function DocsFigure({
               className="inline-block w-2 h-2 rounded-full bg-[var(--lp-accent)]"
             />
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              {kind === 'video' ? 'video coming soon' : 'screenshot coming soon'}
+              {kind === 'video' ? t.figure.videoComingSoon : t.figure.screenshotComingSoon}
             </span>
             <span className="mono text-[10px] text-[var(--lp-text-muted)]/60 break-all px-6">
               {src}

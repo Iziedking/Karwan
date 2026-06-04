@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Single source of the visible Terms text used by `/terms` (public page) and
 /// by the first-signin TermsModal. The backend has its own copy in
@@ -14,188 +17,125 @@ export const TERMS_LAST_UPDATED = '2026-05-29';
 export const TERMS_DISPLAY_VERSION = 1;
 
 export function TermsContent({ heading }: { heading?: ReactNode }) {
+  const t = useTranslations().termsPage;
   return (
     <div className="space-y-7">
       {heading}
       <p className="text-[13.5px] leading-relaxed text-[var(--lp-text-sub)]">
-        These terms cover everything you do on Karwan. By signing in, posting a request, opening a
-        deal, or staking, you agree to them. If you don&apos;t agree, please don&apos;t use the platform.
+        {t.preamble}
       </p>
 
-      <Section title="1. What Karwan offers">
-        <p>Karwan is a settlement layer for cross-border SME work. The core pieces:</p>
+      <Section title={t.s1.title}>
+        <p>{t.s1.lead}</p>
         <Bullets>
           <li>
-            <strong>On-chain escrow.</strong> Every funded deal locks USDC in a smart contract on
-            Arc, with milestone release controlled by the buyer.
+            <strong>{t.s1.bullets.escrow.label}</strong> {t.s1.bullets.escrow.body}
           </li>
           <li>
-            <strong>Stablecoin settlement.</strong> All movement is in USDC. There is no fiat rail
-            in the product; conversions to and from your local currency are your own decision.
+            <strong>{t.s1.bullets.settlement.label}</strong> {t.s1.bullets.settlement.body}
           </li>
           <li>
-            <strong>Reputation passport.</strong> Your wallet carries a tier and score based on
-            your deal history. Anyone with the address can read it.
+            <strong>{t.s1.bullets.reputation.label}</strong> {t.s1.bullets.reputation.body}
           </li>
           <li>
-            <strong>Agent assistance.</strong> Optional buyer and seller agents help you find
-            counterparties, score offers, and negotiate within the limits you set. The agent never
-            spends without your explicit approval.
+            <strong>{t.s1.bullets.agent.label}</strong> {t.s1.bullets.agent.body}
           </li>
           <li>
-            <strong>Bridging.</strong> USDC from supported source chains can be moved to Arc via
-            Circle&apos;s Cross-Chain Transfer Protocol.
+            <strong>{t.s1.bullets.bridging.label}</strong> {t.s1.bullets.bridging.body}
           </li>
         </Bullets>
-        <p>
-          Some of this is still rolling out. Anything labelled &quot;v2&quot;, &quot;coming
-          soon&quot;, or shown behind a beta flag is not guaranteed to ship on a fixed date.
-        </p>
+        <p>{t.s1.tail}</p>
       </Section>
 
-      <Section title="2. What you are responsible for">
-        <p>You take care of:</p>
+      <Section title={t.s2.title}>
+        <p>{t.s2.lead}</p>
         <Bullets>
           <li>
-            <strong>Your keys and sign-in.</strong> Whether that&apos;s a passkey, an email login,
-            or a connected wallet. Karwan never holds the keys that move your funds.
+            <strong>{t.s2.bullets.keys.label}</strong> {t.s2.bullets.keys.body}
           </li>
           <li>
-            <strong>Reviewing what you receive.</strong> Look at the deliverable before you release
-            the final milestone. Once released, the funds are with the seller.
+            <strong>{t.s2.bullets.review.label}</strong> {t.s2.bullets.review.body}
           </li>
           <li>
-            <strong>The deadlines you set.</strong> If you give the seller two days, you can&apos;t
-            claim breach on day one. If you don&apos;t set a deadline, the deal stays open until
-            one of you closes it.
+            <strong>{t.s2.bullets.deadlines.label}</strong> {t.s2.bullets.deadlines.body}
           </li>
           <li>
-            <strong>Off-platform delivery is at your own risk.</strong> If you and your counterparty
-            agree to share files, links, or specs outside Karwan, we cannot help you recover funds
-            released on those grounds.
+            <strong>{t.s2.bullets.offPlatform.label}</strong> {t.s2.bullets.offPlatform.body}
           </li>
           <li>
-            <strong>Disputes follow the rules in the reputation doc.</strong> There is no human
-            arbitration today. The contract logic and the recorded outcomes are the source of truth.
+            <strong>{t.s2.bullets.disputes.label}</strong> {t.s2.bullets.disputes.body}
           </li>
         </Bullets>
       </Section>
 
-      <Section title="3. Reputation and the agent">
-        <p>Reputation is computed from actual on-chain settlement history. The summary:</p>
+      <Section title={t.s3.title}>
+        <p>{t.s3.lead}</p>
         <Bullets>
-          <li>Successful deals raise your score and can move you to a higher tier.</li>
-          <li>Disputes you lose lower your score. Disputes you win don&apos;t.</li>
-          <li>A confirmed malicious delivery (security-tagged) drops your tier sharply.</li>
-          <li>
-            Staking shows commitment and contributes to a higher tier. It also acts as deal
-            insurance starting in the v2.D contract.
-          </li>
+          <li>{t.s3.bullets.success}</li>
+          <li>{t.s3.bullets.disputes}</li>
+          <li>{t.s3.bullets.malicious}</li>
+          <li>{t.s3.bullets.staking}</li>
         </Bullets>
-        <p>
-          The full formula lives in the reputation model doc. The agent reads the tier and applies
-          tier-aware behaviour: ELITE gets priority and skips the auction in some flows; NEW pays a
-          premium for first deals. The agent never overrides the limits you&apos;ve set.
-        </p>
+        <p>{t.s3.tail}</p>
       </Section>
 
-      <Section title="4. Risk you carry">
-        <p>Crypto and stablecoin work has real risks. The ones that apply here:</p>
+      <Section title={t.s4.title}>
+        <p>{t.s4.lead}</p>
         <Bullets>
           <li>
-            <strong>USDC depeg or freeze.</strong> USDC is issued by Circle. If Circle&apos;s
-            banking partners hit trouble, or if a sanctioned address mixes in, USDC can lose its
-            peg or be frozen. Karwan cannot reverse this.
+            <strong>{t.s4.bullets.depeg.label}</strong> {t.s4.bullets.depeg.body}
           </li>
           <li>
-            <strong>Smart-contract risk.</strong> The escrow, vault, and reputation contracts on
-            Arc were audited internally and are still considered testnet-quality. A bug, an
-            exploit, or a misuse could result in lost funds.
+            <strong>{t.s4.bullets.contract.label}</strong> {t.s4.bullets.contract.body}
           </li>
           <li>
-            <strong>Network outages.</strong> Arc Testnet is a live testbed. If validators stall,
-            RPC providers go down, or a chain reorg happens, your deal can pause or roll back.
+            <strong>{t.s4.bullets.outage.label}</strong> {t.s4.bullets.outage.body}
           </li>
           <li>
-            <strong>No fiat conversion guarantee.</strong> If you sell USDC for local currency,
-            that&apos;s between you and your exchange.
+            <strong>{t.s4.bullets.fiat.label}</strong> {t.s4.bullets.fiat.body}
           </li>
           <li>
-            <strong>Geographic and regulatory compliance is yours.</strong> Karwan does not check
-            whether USDC payments are legal where you live. Some jurisdictions restrict stablecoin
-            payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing
-            your own rules.
+            <strong>{t.s4.bullets.regulatory.label}</strong> {t.s4.bullets.regulatory.body}
           </li>
           <li>
-            <strong>Karwan is testnet right now.</strong> You are not paid in real money. None of
-            the deals on testnet have legal weight. We use testnet as a sandbox until the v2.D
-            bundle plus an external audit clears the way to mainnet.
+            <strong>{t.s4.bullets.testnet.label}</strong> {t.s4.bullets.testnet.body}
           </li>
         </Bullets>
       </Section>
 
-      <Section title="5. Privacy snapshot">
-        <p>What we store:</p>
+      <Section title={t.s5.title}>
+        <p>{t.s5.storeLead}</p>
         <Bullets>
-          <li>Wallet addresses, on-chain activity, and off-chain deal records keyed by address.</li>
-          <li>
-            Optional email if you use the Circle sign-in path. Optional X handle if you bind it to
-            your profile.
-          </li>
-          <li>Negotiation transcripts and chat messages tied to a deal.</li>
-          <li>
-            Reputation inputs (success counts, dispute counts, staked balance, registration
-            timestamp).
-          </li>
+          <li>{t.s5.store.addresses}</li>
+          <li>{t.s5.store.email}</li>
+          <li>{t.s5.store.chats}</li>
+          <li>{t.s5.store.reputation}</li>
         </Bullets>
-        <p>What we do not store:</p>
+        <p>{t.s5.notStoreLead}</p>
         <Bullets>
-          <li>
-            Private keys for any wallet path. Circle holds the user wallet keys; web3 wallets sign
-            locally and we never see the secret.
-          </li>
-          <li>
-            Payment card data, bank account numbers, or fiat ramp credentials. There is no fiat
-            ramp in product.
-          </li>
+          <li>{t.s5.notStore.keys}</li>
+          <li>{t.s5.notStore.fiat}</li>
         </Bullets>
-        <p>
-          You can ask us to delete your account record from settings. Reputation events recorded
-          on chain stay on chain. We cannot remove those.
-        </p>
+        <p>{t.s5.tail}</p>
       </Section>
 
-      <Section title="6. Account and acceptance">
-        <p>By accepting these terms in the product, you confirm:</p>
+      <Section title={t.s6.title}>
+        <p>{t.s6.lead}</p>
         <Bullets>
-          <li>You are at least 18 years old, or the age of majority where you live.</li>
-          <li>You can lawfully enter contracts in your jurisdiction.</li>
-          <li>
-            The address you signed in with is yours, or you have authority to act for the entity
-            that owns it.
-          </li>
+          <li>{t.s6.bullets.age}</li>
+          <li>{t.s6.bullets.lawful}</li>
+          <li>{t.s6.bullets.address}</li>
         </Bullets>
-        <p>
-          These terms can change. When a material change ships, the version number on this page
-          bumps and the product asks you to accept the new version before you can post a request,
-          open a deal, or stake. If you do not accept, you can still read your existing deals and
-          reclaim escrow on the previous terms; you just cannot open new work.
-        </p>
-        <p>
-          If you are using the product through an organisation, you confirm that you have authority
-          to bind that organisation to these terms.
-        </p>
+        <p>{t.s6.changes}</p>
+        <p>{t.s6.organisation}</p>
       </Section>
 
-      <Section title="7. Contact">
-        <p>
-          The fastest channel is the in-product feedback link. For matters that need a paper trail,
-          email the address listed on karwan.site under &quot;Contact&quot;.
-        </p>
+      <Section title={t.s7.title}>
+        <p>{t.s7.body}</p>
       </Section>
 
       <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] pt-4 border-t border-[var(--lp-border-light)]">
-        Version {TERMS_DISPLAY_VERSION} . Last updated {TERMS_LAST_UPDATED}
+        {t.footer.version} {TERMS_DISPLAY_VERSION} . {t.footer.updated} {TERMS_LAST_UPDATED}
       </p>
     </div>
   );

@@ -11,44 +11,43 @@ import {
   CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Public brand page. Press, partners, and anyone embedding Karwan in their
 /// own materials can download the logo set, copy the brand colors, and read
 /// the short voice rules. Internal living document is `docs/assets/brand-kit.md`
 /// (gitignored). This page is the public-facing slice of that doc.
 export default function BrandPage() {
+  const t = useTranslations().brandPage;
   return (
     <FullBleed>
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
-          <SectionTag tone="dark">BRAND</SectionTag>
+          <SectionTag tone="dark">{t.hero.tag}</SectionTag>
         </div>
         <HeroHeadline className="fade-up fade-up-1 mt-6">
-          The Karwan <Accent>mark</Accent>
+          {t.hero.headlineLead} <Accent>{t.hero.headlineAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="fade-up fade-up-2 mt-7 max-w-[52ch] text-[15px] leading-relaxed text-white/65">
-          The logo, the palette, the voice. Pull what you need to write about
-          Karwan, embed it in a partner deck, or paint a co-mark. For deeper
-          guidance, reach out at the contact below.
+          {t.hero.body}
         </p>
       </Band>
 
       {/* LOGO DOWNLOADS */}
       <Band tone="light" compact>
-        <SectionTag>LOGO</SectionTag>
+        <SectionTag>{t.logo.tag}</SectionTag>
         <HeroHeadline size="md" className="mt-4">
-          Three forms<Punc>.</Punc>
+          {t.logo.headline}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          Pick by surface. Mark for small spaces. Wordmark when there is room.
-          Reserve clearspace equal to the stroke width on every side.
+          {t.logo.body}
         </p>
 
         <div className="mt-10 grid md:grid-cols-3 gap-5">
           <LogoCard
-            label="Wordmark on dark"
+            label={t.logo.wordmarkOnDark}
             href="/brand/karwan-wordmark-light.svg"
             pngHref="/brand/karwan-wordmark-light.png"
             preview={
@@ -66,7 +65,7 @@ export default function BrandPage() {
             }
           />
           <LogoCard
-            label="Wordmark on light"
+            label={t.logo.wordmarkOnLight}
             href="/brand/karwan-wordmark-dark.svg"
             pngHref="/brand/karwan-wordmark-dark.png"
             preview={
@@ -84,7 +83,7 @@ export default function BrandPage() {
             }
           />
           <LogoCard
-            label="Mark on dark"
+            label={t.logo.markOnDark}
             href="/brand/karwan-mark-lime.svg"
             pngHref="/brand/karwan-mark-lime.png"
             preview={
@@ -109,57 +108,49 @@ export default function BrandPage() {
 
       {/* COLOR PALETTE */}
       <Band tone="light" compact>
-        <SectionTag>PALETTE</SectionTag>
+        <SectionTag>{t.palette.tag}</SectionTag>
         <HeroHeadline size="md" className="mt-4">
-          Three brand constants<Punc>.</Punc>
+          {t.palette.headline}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          Lime is the only accent. Pair brand lime with one neutral. Never
-          stack a second accent color on top.
+          {t.palette.body}
         </p>
 
         <div className="mt-10 grid sm:grid-cols-3 gap-5">
-          <ColorChip name="Brand lime" hex="#AFC95B" labelTone="dark" />
-          <ColorChip name="Brand ink" hex="#0E0E0E" labelTone="light" />
-          <ColorChip name="Cream surface" hex="#FAF8F2" labelTone="dark" border />
+          <ColorChip name={t.palette.brandLime} hex="#AFC95B" labelTone="dark" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          <ColorChip name={t.palette.brandInk} hex="#0E0E0E" labelTone="light" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          <ColorChip name={t.palette.creamSurface} hex="#FAF8F2" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
         </div>
       </Band>
 
       {/* VOICE RULES */}
       <Band tone="light" compact>
-        <SectionTag>VOICE</SectionTag>
+        <SectionTag>{t.voice.tag}</SectionTag>
         <HeroHeadline size="md" className="mt-4">
-          Engineer&apos;s product memo<Punc>.</Punc>
+          {t.voice.headline}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          Karwan&apos;s tone reads as infrastructural, not consumer. Bloomberg
-          terminal energy. Have an opinion. Acknowledge limits. Vary rhythm.
-          Never theatrical.
+          {t.voice.body}
         </p>
 
         <div className="mt-10 grid md:grid-cols-2 gap-5">
           <PageCard>
             <div className="p-6 md:p-7 space-y-3">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
-                [:WORDS WE USE:]
+                [:{t.voice.wordsWeUseLabel}:]
               </p>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                settlement, escrow, rail, deal, request, offer, milestone,
-                release, slash, stake, reputation, passport, anchor, attest,
-                financier, importer, exporter, working capital, cross-border,
-                on-chain.
+                {t.voice.wordsWeUseBody}
               </p>
             </div>
           </PageCard>
           <PageCard>
             <div className="p-6 md:p-7 space-y-3">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[#b03d3a]">
-                [:WORDS WE AVOID:]
+                [:{t.voice.wordsWeAvoidLabel}:]
               </p>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                revolutionary, transformative, empowering, seamless, robust,
-                world-class, cutting-edge, gig, freelance, platform, users, AI
-                (we say &quot;agents&quot; with the specific job they do).
+                {t.voice.wordsWeAvoidBody}
               </p>
             </div>
           </PageCard>
@@ -168,14 +159,12 @@ export default function BrandPage() {
 
       {/* PARTNER CO-MARK */}
       <Band tone="light" compact>
-        <SectionTag>PARTNER CO-MARK</SectionTag>
+        <SectionTag>{t.partner.tag}</SectionTag>
         <HeroHeadline size="md" className="mt-4">
-          Pair, do not enclose<Punc>.</Punc>
+          {t.partner.headline}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          When co-marking with Arc, Circle, USYC, or another partner: same
-          baseline as Karwan&apos;s wordmark, vertical hairline divider, equal
-          optical weight. Never enclose two logos in the same container.
+          {t.partner.body}
         </p>
 
         <div className="mt-10">
@@ -196,7 +185,7 @@ export default function BrandPage() {
                 className="font-sans font-bold tracking-tight"
                 style={{ fontSize: 30, color: 'var(--lp-text-sub)' }}
               >
-                Partner
+                {t.partner.partnerLabel}
               </span>
             </div>
           </PageCard>
@@ -205,19 +194,18 @@ export default function BrandPage() {
 
       {/* CONTACT */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
-        <SectionTag tone="dark">PRESS AND PARTNERS</SectionTag>
+        <SectionTag tone="dark">{t.contact.tag}</SectionTag>
         <HeroHeadline size="md" className="mt-4">
-          Reach <Accent>out</Accent>
+          {t.contact.headlineLead} <Accent>{t.contact.headlineAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 max-w-[52ch] text-[15px] leading-relaxed text-white/65">
-          Want a higher-resolution asset, a co-mark configuration we have not
-          published, or a quote? Send a note.
+          {t.contact.body}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <CTAPill href="mailto:hello@karwan.site">hello@karwan.site</CTAPill>
           <CTAPill href="/" variant="secondary" tone="dark">
-            Back home
+            {t.contact.backHome}
           </CTAPill>
         </div>
       </Band>
@@ -279,11 +267,17 @@ function ColorChip({
   hex,
   labelTone,
   border,
+  brandLabel,
+  copyLabel,
+  copiedLabel,
 }: {
   name: string;
   hex: string;
   labelTone: 'dark' | 'light';
   border?: boolean;
+  brandLabel: string;
+  copyLabel: string;
+  copiedLabel: string;
 }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
@@ -317,7 +311,7 @@ function ColorChip({
             className="mono text-[10px] uppercase tracking-[0.14em]"
             style={{ color: labelTone === 'dark' ? '#0E0E0E' : '#FFFFFF' }}
           >
-            BRAND
+            {brandLabel}
           </span>
         </div>
         <div className="px-5 py-4 flex items-baseline justify-between gap-3">
@@ -334,7 +328,7 @@ function ColorChip({
             onClick={copy}
             className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
           >
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? copiedLabel : copyLabel}
           </button>
         </div>
       </div>

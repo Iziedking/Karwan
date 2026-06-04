@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   DocsEyebrow,
@@ -6,100 +8,75 @@ import {
   DocsList,
   DocsListItem,
 } from '@/features/docs/components/Prose';
-
-export const metadata = {
-  title: 'Documentation · Karwan',
-  description: 'How Karwan works: agents, escrow, reputation, the bridge, and what is shipping next.',
-};
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export default function DocsOverviewPage() {
+  const t = useTranslations().docsIndexPage;
   return (
     <article>
-      <DocsEyebrow>OVERVIEW</DocsEyebrow>
+      <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
       <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-[var(--lp-dark)]">
-        How Karwan works
+        {t.headline}
         <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h1>
-      <DocsP>
-        Karwan settles cross-border service deals on chain. USDC sits in a
-        milestone escrow on Arc while the work gets done, and releases as the
-        buyer signs off. Two agents handle the matching and the negotiation,
-        then bring the final terms back to you for sign-off before any money
-        moves. This guide walks every part you will touch.
-      </DocsP>
+      <DocsP>{t.intro}</DocsP>
 
-      <DocsH2>The two ways to trade</DocsH2>
-      <DocsP>
-        Pick the flow that fits whether you already have a counterparty.
-      </DocsP>
+      <DocsH2>{t.twoWays.title}</DocsH2>
+      <DocsP>{t.twoWays.lede}</DocsP>
       <DocsList>
         <DocsListItem>
-          <strong>Direct deal.</strong> You already know who you are trading
-          with. Name their wallet or even just their email, set the amount,
-          terms, and deadline, and the escrow funds the moment they accept.
-          The fastest path.
+          <strong>{t.twoWays.direct.label}</strong> {t.twoWays.direct.body}
         </DocsListItem>
         <DocsListItem>
-          <strong>Agent-matched deal.</strong> You do not have a counterparty
-          yet. Post a request as a buyer or an offer as a seller. Your agent
-          watches the market, negotiates on your behalf, and surfaces a
-          proposal you approve before any money moves.
+          <strong>{t.twoWays.matched.label}</strong> {t.twoWays.matched.body}
         </DocsListItem>
       </DocsList>
 
-      <DocsH2>Get started in three steps</DocsH2>
+      <DocsH2>{t.getStarted.title}</DocsH2>
       <DocsList>
         <DocsListItem>
-          <strong>Sign in.</strong> Use email with a passkey, an email code,
-          or your own web3 wallet through Sign-In with Ethereum. No seed
-          phrase needed for the email paths.
+          <strong>{t.getStarted.signIn.label}</strong> {t.getStarted.signIn.body}
         </DocsListItem>
         <DocsListItem>
-          <strong>Fund your balance.</strong> Bring USDC to Arc from any of
-          the supported source chains through the bridge, or use the Arc
-          faucet for testnet USDC.
+          <strong>{t.getStarted.fund.label}</strong> {t.getStarted.fund.body}
         </DocsListItem>
         <DocsListItem>
-          <strong>Open a deal.</strong> Post a request, name a counterparty
-          by wallet or email, or browse offers on the market. The escrow does
-          the rest.
+          <strong>{t.getStarted.open.label}</strong> {t.getStarted.open.body}
         </DocsListItem>
       </DocsList>
 
-      <DocsH2>Where to go next</DocsH2>
-      <DocsP>
-        Each section below covers one part of the platform in depth.
-      </DocsP>
+      <DocsH2>{t.next.title}</DocsH2>
+      <DocsP>{t.next.lede}</DocsP>
       <div className="mt-6 grid sm:grid-cols-2 gap-3 max-w-[64ch]">
         <DocsCardLink
           href="/docs/agents"
-          title="Agents"
-          blurb="How your buyer and seller agents negotiate price and deadline."
+          title={t.next.cards.agents.title}
+          blurb={t.next.cards.agents.blurb}
         />
         <DocsCardLink
           href="/docs/deals"
-          title="Deals and Escrow"
-          blurb="The deal lifecycle from acceptance to settlement, plus cashout."
+          title={t.next.cards.deals.title}
+          blurb={t.next.cards.deals.blurb}
         />
         <DocsCardLink
           href="/docs/reputation"
-          title="Reputation and Stake"
-          blurb="How your score is built, how it resists gaming, and how staking lifts your tier."
+          title={t.next.cards.reputation.title}
+          blurb={t.next.cards.reputation.blurb}
         />
         <DocsCardLink
           href="/docs/bridge"
-          title="Bridge"
-          blurb="Moving USDC in and out of Arc using Circle CCTP."
+          title={t.next.cards.bridge.title}
+          blurb={t.next.cards.bridge.blurb}
         />
         <DocsCardLink
           href="/docs/roadmap"
-          title="Roadmap"
-          blurb="What is live today and what is shipping next."
+          title={t.next.cards.roadmap.title}
+          blurb={t.next.cards.roadmap.blurb}
         />
         <DocsCardLink
           href="/docs/faq"
-          title="FAQs"
-          blurb="Quick answers to the questions new users ask first."
+          title={t.next.cards.faq.title}
+          blurb={t.next.cards.faq.blurb}
         />
       </div>
     </article>

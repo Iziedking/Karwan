@@ -2,12 +2,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DOCS_SECTIONS } from './DocsSidebar';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Prev/next pager at the foot of every docs page. Lets a reader (especially on
 /// mobile) move to the adjacent section without scrolling back up to the
 /// sidebar. Order comes from DOCS_SECTIONS so it stays in sync with the nav.
 export function DocsPager() {
   const pathname = usePathname();
+  const t = useTranslations().docsShell;
   const idx = DOCS_SECTIONS.findIndex((s) =>
     s.href === '/docs' ? pathname === '/docs' : pathname?.startsWith(s.href) === true,
   );
@@ -27,10 +29,10 @@ export function DocsPager() {
         >
           <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1">
             <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
-            Previous
+            {t.pager.previous}
           </span>
           <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            {prev.label}
+            {t.sidebar.sections[prev.key].label}
           </span>
         </Link>
       ) : (
@@ -43,11 +45,11 @@ export function DocsPager() {
           style={{ borderRadius: 12, borderBottomRightRadius: 3 }}
         >
           <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] inline-flex items-center gap-1 justify-end">
-            Next
+            {t.pager.next}
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
           </span>
           <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            {next.label}
+            {t.sidebar.sections[next.key].label}
           </span>
         </Link>
       )}
