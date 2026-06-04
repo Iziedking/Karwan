@@ -201,7 +201,7 @@ yieldRoutes.post('/claim', async (c) => {
   }
   const { address } = parsed.data;
   const user = await getUserByAddress(address);
-  if (!user?.walletId) {
+  if (!user?.circleIdentityWalletId) {
     return c.json(
       {
         error: 'no Circle wallet bound to this address',
@@ -220,12 +220,15 @@ yieldRoutes.post('/claim', async (c) => {
     return c.json({ error: 'nothing to claim' }, 409);
   }
   try {
-    const tx = await executeContractCall({
-      walletId: user.walletId,
-      contractAddress: distributor,
-      abiFunctionSignature: 'claim()',
-      abiParameters: [],
-    });
+    const tx = await executeContractCall(
+      {
+        walletId: user.circleIdentityWalletId,
+        contractAddress: distributor,
+        abiFunctionSignature: 'claim()',
+        abiParameters: [],
+      },
+      'yield.claim',
+    );
     return c.json({ ok: true, txHash: tx?.txHash ?? null });
   } catch (err) {
     logger.warn({ err: (err as Error).message, address }, 'yield claim failed');
