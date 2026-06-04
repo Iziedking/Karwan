@@ -1,3 +1,5 @@
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+
 export type StepKey =
   | 'posted'
   | 'bidding'
@@ -7,14 +9,14 @@ export type StepKey =
   | 'milestones'
   | 'settled';
 
-const steps: Array<{ key: StepKey; label: string }> = [
-  { key: 'posted', label: 'POSTED' },
-  { key: 'bidding', label: 'BIDDING' },
-  { key: 'counter', label: 'NEGOTIATING' },
-  { key: 'accepted', label: 'ACCEPTED' },
-  { key: 'escrow', label: 'ESCROW' },
-  { key: 'milestones', label: 'MILESTONES' },
-  { key: 'settled', label: 'SETTLED' },
+const stepKeys: StepKey[] = [
+  'posted',
+  'bidding',
+  'counter',
+  'accepted',
+  'escrow',
+  'milestones',
+  'settled',
 ];
 
 const POSITIVE = '#0a7553';
@@ -28,18 +30,23 @@ export function FlowStepper({
 }: {
   active: StepKey;
   completed: StepKey[];
-  /// 'declined' = negotiation ended without agreement (red "ENDED HERE").
-  /// 'expired' = brief deadline lapsed with no match (neutral "EXPIRED").
+  /// 'declined' = negotiation ended without agreement (red terminal label).
+  /// 'expired' = request deadline lapsed with no match (neutral terminal label).
   /// null = live; the active step blinks. Replaces the old `declined` boolean.
   ended?: 'declined' | 'expired' | null;
 }) {
+  const fs = useTranslations().flowStepper;
+  const steps: Array<{ key: StepKey; label: string }> = stepKeys.map((key) => ({
+    key,
+    label: fs.steps[key],
+  }));
   const activeIndex = Math.max(
     steps.findIndex((s) => s.key === active),
     0,
   );
   const completedSet = new Set(completed);
   const terminalColor = ended === 'expired' ? NEUTRAL : CRITICAL;
-  const terminalLabel = ended === 'expired' ? 'EXPIRED' : 'ENDED HERE';
+  const terminalLabel = ended === 'expired' ? fs.terminal.expired : fs.terminal.ended;
 
   return (
     <ol className="relative">

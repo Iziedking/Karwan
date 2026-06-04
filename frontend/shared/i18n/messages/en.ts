@@ -2518,6 +2518,97 @@ interface MessagesShape {
       };
     };
   };
+  flowStepper: {
+    steps: {
+      posted: string;
+      bidding: string;
+      counter: string;
+      accepted: string;
+      escrow: string;
+      milestones: string;
+      settled: string;
+    };
+    terminal: { expired: string; ended: string };
+  };
+  agentShell: {
+    role: { buyer: string; seller: string };
+    status: { active: string; idle: string; offline: string };
+    activate: {
+      running: string;
+      connectWallet: string;
+      soonBadge: string;
+      tooltip: string;
+    };
+  };
+  profileTierCard: {
+    eyebrow: string;
+    scoreSuffix: string;
+    toNext: string;
+    topTier: string;
+  };
+  partnerLogos: { builtOn: string };
+  jobsTable: {
+    empty: { none: string; allDismissed: string };
+    columns: { job: string; budget: string; deadline: string; status: string; open: string };
+    status: {
+      cancelled: string;
+      expired: string;
+      escrowFunded: string;
+      accepted: string;
+      bidOne: string;
+      bidOther: string;
+      open: string;
+    };
+    row: { openAria: string; openCta: string };
+    dismiss: { title: string; ariaExpired: string; ariaCancelled: string; ariaFunded: string };
+  };
+  moneyStrip: {
+    eyebrow: string;
+    heldSafe: string;
+    cells: {
+      available: { label: string; hint: string };
+      inEscrow: { label: string; hint: string };
+      earned: { label: string; hint: string };
+    };
+  };
+  bidsTable: {
+    empty: { idle: string; dismissed: string };
+    columns: { job: string; buyer: string; bid: string; rounds: string; status: string; open: string };
+    status: { finalized: string; negotiating: string };
+    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string };
+  };
+  releaseMilestones: {
+    button: { released: string; releasing: string; release: string };
+    progress: { confirmed: string; settled: string };
+  };
+  languagePicker: {
+    languageLabels: { en: string; ar: string; fr: string; hi: string; sw: string };
+  };
+  telegramConnectCard: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    linkedBadge: string;
+    notConfiguredPrefix: string;
+    notConfiguredAnd: string;
+    idleDescription: string;
+    connectCta: string;
+    linkingPrefix: string;
+    linkingSuffix: string;
+    openTelegramCta: string;
+    cancelCta: string;
+    waitingTitle: string;
+    waitingExpiry: string;
+    telegramLabel: string;
+    chatFallback: string;
+    linkedAt: string;
+    unlinkCta: string;
+    emailNote: string;
+  };
+  balanceRail: {
+    switch: { title: string; label: string; switching: string };
+    address: { copied: string; copyTitle: string; copyAria: string };
+  };
   balancesCard: {
     eyebrow: string;
     signedOutBody: string;
@@ -5585,6 +5676,128 @@ export const en: MessagesShape = {
       },
     },
   },
+  flowStepper: {
+    steps: {
+      posted: 'POSTED',
+      bidding: 'BIDDING',
+      counter: 'NEGOTIATING',
+      accepted: 'ACCEPTED',
+      escrow: 'ESCROW',
+      milestones: 'MILESTONES',
+      settled: 'SETTLED',
+    },
+    terminal: { expired: 'EXPIRED', ended: 'ENDED HERE' },
+  },
+  agentShell: {
+    role: { buyer: 'Buyer agent', seller: 'Seller agent' },
+    status: { active: 'Active', idle: 'Idle', offline: 'Offline' },
+    activate: {
+      running: 'Agent running',
+      connectWallet: 'Connect wallet',
+      soonBadge: 'soon',
+      tooltip: 'Wallet connect arrives in v1',
+    },
+  },
+  profileTierCard: {
+    eyebrow: '[:REPUTATION:]',
+    scoreSuffix: '/ 1000',
+    toNext: '{amount} to {tier}',
+    topTier: 'Top tier',
+  },
+  partnerLogos: { builtOn: 'Built on' },
+  jobsTable: {
+    empty: {
+      none: 'No jobs yet. Post a request and the seller agent will respond within seconds.',
+      allDismissed: 'All cancelled deals dismissed.',
+    },
+    columns: { job: 'Job', budget: 'Budget', deadline: 'Deadline', status: 'Status', open: 'Open' },
+    status: {
+      cancelled: 'Cancelled',
+      expired: 'Expired',
+      escrowFunded: 'Escrow funded',
+      accepted: 'Accepted',
+      bidOne: '{count} bid',
+      bidOther: '{count} bids',
+      open: 'Open',
+    },
+    row: { openAria: 'Open deal {id}', openCta: 'Open' },
+    dismiss: {
+      title: 'Dismiss',
+      ariaExpired: 'Dismiss this expired request',
+      ariaCancelled: 'Dismiss this cancelled deal',
+      ariaFunded: 'Dismiss this funded request',
+    },
+  },
+  moneyStrip: {
+    eyebrow: 'YOUR MONEY',
+    heldSafe: 'Held safe on Arc · withdraw anytime',
+    cells: {
+      available: { label: 'Available', hint: 'Ready to spend' },
+      inEscrow: { label: 'In escrow', hint: 'Locked &amp; safe' },
+      earned: { label: 'Earned', hint: 'Paid to you' },
+    },
+  },
+  bidsTable: {
+    empty: {
+      idle: 'Idle. The agent is subscribed to JobPosted and will respond when a matching request lands.',
+      dismissed: 'All finalized bids dismissed.',
+    },
+    columns: { job: 'Job', buyer: 'Buyer', bid: 'Bid', rounds: 'Rounds', status: 'Status', open: 'Open' },
+    status: { finalized: 'Finalized', negotiating: 'Negotiating' },
+    row: {
+      openJobAria: 'Open job {id}',
+      dismissTitle: 'Dismiss',
+      dismissAria: 'Dismiss this finalized bid',
+      open: 'Open',
+    },
+  },
+  releaseMilestones: {
+    button: {
+      released: 'Released',
+      releasing: 'Releasing milestone {current} of {total}…',
+      release: 'Release {total} milestones',
+    },
+    progress: {
+      confirmed: '{count} of {total} confirmed on chain.',
+      settled: 'All milestones released. Escrow settled.',
+    },
+  },
+  languagePicker: {
+    languageLabels: { en: 'English', ar: 'Arabic', fr: 'French', hi: 'Hindi', sw: 'Swahili' },
+  },
+  telegramConnectCard: {
+    eyebrow: 'TELEGRAM ALERTS',
+    title: 'Push to your chat',
+    subtitle: 'Deals · chat · bridge state',
+    linkedBadge: 'LINKED',
+    notConfiguredPrefix: 'Telegram alerts are not configured on this server. Ask the operator to set',
+    notConfiguredAnd: 'and',
+    idleDescription: 'One tap to open the bot, one more to confirm. Wallet stays in your browser.',
+    connectCta: 'Connect Telegram',
+    linkingPrefix: 'Open the bot in Telegram and tap',
+    linkingSuffix: '. Karwan confirms automatically.',
+    openTelegramCta: 'Open Telegram',
+    cancelCta: 'Cancel',
+    waitingTitle: 'Waiting for /start',
+    waitingExpiry: 'Link expires in 10 minutes.',
+    telegramLabel: 'Telegram',
+    chatFallback: 'chat {id}',
+    linkedAt: 'linked {date}',
+    unlinkCta: 'Unlink',
+    emailNote: 'Email alerts coming later',
+  },
+  balanceRail: {
+    switch: {
+      title: 'Your wallet is on the wrong network. Switch to Arc Testnet.',
+      label: 'Switch to Arc',
+      switching: 'Switching to Arc',
+    },
+    address: {
+      copied: 'Copied',
+      copyTitle: 'Click to copy {address}',
+      copyAria: 'Copy address {address}',
+    },
+  },
   balancesCard: {
     eyebrow: '[:HOLDINGS:]',
     signedOutBody: 'Sign in to see your USDC balances. Use the Log in pill in the nav.',
@@ -5933,18 +6146,18 @@ export const en: MessagesShape = {
   },
   auth: {
     walletPill: {
-      logIn: 'Log in',
+      logIn: 'Sign in',
       wrongNetwork: 'Wrong network',
       networkTooltip: 'On {chain}. Tap to switch or manage.',
       fallbackChain: 'unknown network',
     },
     signInGate: {
       defaultTag: 'SIGN IN',
-      heroTitle: 'Log in to enter',
+      heroTitle: 'Sign in to enter',
       pageTitle: 'Sign in to continue',
       heroBody: 'Karwan identifies you by a wallet. Pick one via an EVM connector or have Circle provision one for you. The rest of the app unlocks.',
       pageBody: 'This page is keyed to your wallet. Sign in once and every surface picks you up.',
-      button: 'Log in',
+      button: 'Sign in',
     },
     modal: {
       aria: {

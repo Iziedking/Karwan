@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function ReleaseMilestonesButton({
   jobId,
@@ -10,6 +11,7 @@ export function ReleaseMilestonesButton({
   jobId: string;
   totalMilestones: number;
 }) {
+  const rm = useTranslations().releaseMilestones;
   const events = useLiveEvents(jobId, 50);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,10 +48,12 @@ export function ReleaseMilestonesButton({
   }
 
   const label = settled
-    ? 'Released'
+    ? rm.button.released
     : running
-      ? `Releasing milestone ${Math.min(releasedCount + 1, totalMilestones)} of ${totalMilestones}…`
-      : `Release ${totalMilestones} milestones`;
+      ? rm.button.releasing
+          .replace('{current}', String(Math.min(releasedCount + 1, totalMilestones)))
+          .replace('{total}', String(totalMilestones))
+      : rm.button.release.replace('{total}', String(totalMilestones));
 
   return (
     <div className="space-y-3">
@@ -72,11 +76,13 @@ export function ReleaseMilestonesButton({
       </button>
       {running && releasedCount > 0 && (
         <p className="text-[12px] text-[var(--color-ink-dim)]">
-          {releasedCount} of {totalMilestones} confirmed on chain.
+          {rm.progress.confirmed
+            .replace('{count}', String(releasedCount))
+            .replace('{total}', String(totalMilestones))}
         </p>
       )}
       {settled && (
-        <p className="text-[12px] text-[var(--color-positive)]">All milestones released. Escrow settled.</p>
+        <p className="text-[12px] text-[var(--color-positive)]">{rm.progress.settled}</p>
       )}
       {error && <p className="text-xs text-[var(--color-critical)] mono">{error}</p>}
     </div>

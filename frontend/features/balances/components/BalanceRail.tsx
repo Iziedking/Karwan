@@ -6,11 +6,13 @@ import { arcTestnet } from '@/core/wagmi';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useClipboard } from '@/shared/hooks/useClipboard';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function BalanceRail() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const br = useTranslations().balanceRail;
   const auth = useAuth();
   const chainId = useChainId();
   const { switchChain, isPending: switching } = useSwitchChain();
@@ -43,7 +45,7 @@ export function BalanceRail() {
         type="button"
         onClick={() => switchChain({ chainId: arcTestnet.id })}
         disabled={switching}
-        title="Your wallet is on the wrong network. Switch to Arc Testnet."
+        title={br.switch.title}
         className="group inline-flex items-center gap-1.5 mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors disabled:opacity-60 disabled:cursor-wait"
         style={{ color: '#b25425' }}
       >
@@ -52,7 +54,7 @@ export function BalanceRail() {
           className="w-[6px] h-[6px] rounded-full shrink-0"
           style={{ background: '#b25425' }}
         />
-        <span>{switching ? 'Switching to Arc' : 'Switch to Arc'}</span>
+        <span>{switching ? br.switch.switching : br.switch.label}</span>
         <svg
           width="9"
           height="9"
@@ -84,11 +86,11 @@ export function BalanceRail() {
       <button
         type="button"
         onClick={() => copy(address)}
-        title={copied ? 'Copied' : `Click to copy ${address}`}
-        aria-label={`Copy address ${address}`}
+        title={copied ? br.address.copied : br.address.copyTitle.replace('{address}', address)}
+        aria-label={br.address.copyAria.replace('{address}', address)}
         className="mono text-[10px] tabular-nums whitespace-nowrap text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors"
       >
-        {copied ? 'Copied' : shortAddress(address)}
+        {copied ? br.address.copied : shortAddress(address)}
       </button>
     </div>
   );

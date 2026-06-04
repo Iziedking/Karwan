@@ -1,6 +1,6 @@
 'use client';
-import { useLocale } from '@/shared/i18n/LocaleProvider';
-import { LOCALES, LOCALE_NAMES, LOCALE_LABELS_EN, type Locale } from '@/shared/i18n/locales';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { LOCALES, LOCALE_NAMES, type Locale } from '@/shared/i18n/locales';
 
 interface Props {
   /// Called after the locale changes locally. Use this to persist the new
@@ -11,6 +11,7 @@ interface Props {
 
 export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
   const { locale, setLocale } = useLocale();
+  const lp = useTranslations().languagePicker;
 
   function handle(next: Locale) {
     if (next === locale) return;
@@ -60,7 +61,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
               className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
               style={{ color: 'var(--lp-text-muted)' }}
             >
-              {LOCALE_LABELS_EN[l]}
+              {lp.languageLabels[l]}
             </p>
           </button>
         );

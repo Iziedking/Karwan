@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { Band, SectionTag } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The newcomer's first question is "where is my money, and is it safe." This
 /// answers it in one glance, in plain dollars, no wallet/USDC/gas jargon:
@@ -36,6 +37,7 @@ function money(n: number | null): string {
 }
 
 export function MoneyStrip() {
+  const ms = useTranslations().moneyStrip;
   const { address, isAuthenticated } = useAuth();
   const [available, setAvailable] = useState<number | null>(null);
   const [inEscrow, setInEscrow] = useState<number | null>(null);
@@ -87,17 +89,17 @@ export function MoneyStrip() {
   if (!isAuthenticated || !address) return null;
 
   const cells = [
-    { value: available, label: 'Available', hint: 'Ready to spend', rail: 'var(--lp-accent)' },
-    { value: inEscrow, label: 'In escrow', hint: 'Locked & safe', rail: '#3a4a85' },
-    { value: earned, label: 'Earned', hint: 'Paid to you', rail: '#0a7553' },
+    { value: available, label: ms.cells.available.label, hint: ms.cells.available.hint, rail: 'var(--lp-accent)' },
+    { value: inEscrow, label: ms.cells.inEscrow.label, hint: ms.cells.inEscrow.hint, rail: '#3a4a85' },
+    { value: earned, label: ms.cells.earned.label, hint: ms.cells.earned.hint, rail: '#0a7553' },
   ];
 
   return (
     <Band tone="light" compact>
       <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
-        <SectionTag>YOUR MONEY</SectionTag>
+        <SectionTag>{ms.eyebrow}</SectionTag>
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          Held safe on Arc · withdraw anytime
+          {ms.heldSafe}
         </p>
       </div>
       <div data-guide="home-money" className="mt-6 grid grid-cols-3 gap-3 fade-up fade-up-1">

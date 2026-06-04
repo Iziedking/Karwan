@@ -1,13 +1,17 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function PartnerLogos() {
+  const pl = useTranslations().partnerLogos;
   // 12s cycle: each logo fades + drops in with a small stagger, holds, fades back,
   // then the strip loops. Keyframe (peer-drop) lives in globals.css so this can
   // stay a server component.
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 text-[var(--color-ink-dim)]">
       <span className="text-[11px] uppercase tracking-[0.2em] text-[var(--color-ink-faint)] me-2">
-        Built on
+        {pl.builtOn}
       </span>
       <LogoSlot delay="0s">
         <Circle />

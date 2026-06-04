@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function AgentShell({
   role,
@@ -17,13 +18,16 @@ export function AgentShell({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const as = useTranslations().agentShell;
   const dot =
     status === 'active'
       ? 'bg-[var(--color-positive)] shadow-[0_0_0_4px_rgba(15,81,50,0.12)]'
       : status === 'idle'
         ? 'bg-[var(--color-warning)]'
         : 'bg-[var(--color-ink-faint)]';
-  const statusLabel = status === 'active' ? 'Active' : status === 'idle' ? 'Idle' : 'Offline';
+  const roleLabel = role === 'Buyer agent' ? as.role.buyer : as.role.seller;
+  const statusLabel =
+    status === 'active' ? as.status.active : status === 'idle' ? as.status.idle : as.status.offline;
 
   return (
     <section
@@ -42,7 +46,7 @@ export function AgentShell({
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
             <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-            <span>{role}</span>
+            <span>{roleLabel}</span>
             <span className="text-[var(--color-ink-faint)]">·</span>
             <span>{statusLabel}</span>
           </div>
@@ -93,16 +97,17 @@ export function CapabilityRow({ children }: { children: ReactNode }) {
 
 export function ActivateSlot({
   active,
-  comingSoonLabel = 'Connect wallet',
+  comingSoonLabel,
 }: {
   active: boolean;
   comingSoonLabel?: string;
 }) {
+  const as = useTranslations().agentShell;
   if (active) {
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-positive-soft)] text-[var(--color-positive)] text-[12px] font-medium">
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)]" />
-        Agent running
+        {as.activate.running}
       </div>
     );
   }
@@ -111,10 +116,12 @@ export function ActivateSlot({
       type="button"
       disabled
       className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-[#0c0e10] text-[#ffffff] text-[12px] font-semibold opacity-60 cursor-not-allowed"
-      title="Wallet connect arrives in v1"
+      title={as.activate.tooltip}
     >
-      {comingSoonLabel}
-      <span className="px-1.5 py-px rounded bg-white/15 text-[9px] tracking-wide uppercase">soon</span>
+      {comingSoonLabel ?? as.activate.connectWallet}
+      <span className="px-1.5 py-px rounded bg-white/15 text-[9px] tracking-wide uppercase">
+        {as.activate.soonBadge}
+      </span>
     </button>
   );
 }

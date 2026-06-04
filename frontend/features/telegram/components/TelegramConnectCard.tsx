@@ -1,6 +1,7 @@
 'use client';
 import type { ReactNode } from 'react';
 import { useTelegramLink } from '../hooks/useTelegramLink';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -44,20 +45,21 @@ function Note({ tone, children }: { tone: 'info' | 'error'; children: ReactNode 
 export function TelegramConnectCard({ address }: { address?: string }) {
   const { status, loading, linking, deepLink, startLink, cancelLink, unlink, error } =
     useTelegramLink(address);
+  const tc = useTranslations().telegramConnectCard;
 
   return (
     <section style={CARD_STYLE} className="p-6 md:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:TELEGRAM ALERTS:]
+            {`[:${tc.eyebrow}:]`}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
-            Push to your chat
+            {tc.title}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
           <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Deals · chat · bridge state
+            {tc.subtitle}
           </p>
         </div>
         {status?.linked && (
@@ -82,7 +84,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 animation: 'instrumentBlink 1.6s ease-in-out infinite',
               }}
             />
-            LINKED
+            {tc.linkedBadge}
           </span>
         )}
       </div>
@@ -94,16 +96,15 @@ export function TelegramConnectCard({ address }: { address?: string }) {
 
         {status && !status.enabled && (
           <Note tone="info">
-            Telegram alerts are not configured on this server. Ask the operator to set{' '}
-            <span className="mono">TELEGRAM_BOT_TOKEN</span> and{' '}
-            <span className="mono">TELEGRAM_BOT_USERNAME</span>.
+            {tc.notConfiguredPrefix} <span className="mono">TELEGRAM_BOT_TOKEN</span>{' '}
+            {tc.notConfiguredAnd} <span className="mono">TELEGRAM_BOT_USERNAME</span>.
           </Note>
         )}
 
         {status?.enabled && !status.linked && !linking && (
           <>
             <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-              One tap to open the bot, one more to confirm. Wallet stays in your browser.
+              {tc.idleDescription}
             </p>
             <button
               type="button"
@@ -117,7 +118,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
               }}
             >
-              Connect Telegram
+              {tc.connectCta}
               <span aria-hidden>→</span>
             </button>
           </>
@@ -126,9 +127,9 @@ export function TelegramConnectCard({ address }: { address?: string }) {
         {status?.enabled && !status.linked && linking && deepLink && (
           <>
             <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-              Open the bot in Telegram and tap{' '}
-              <span className="font-semibold text-[var(--lp-dark)]">Start</span>. Karwan confirms
-              automatically.
+              {tc.linkingPrefix}{' '}
+              <span className="font-semibold text-[var(--lp-dark)]">Start</span>
+              {tc.linkingSuffix}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -144,7 +145,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                   boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
                 }}
               >
-                Open Telegram
+                {tc.openTelegramCta}
                 <span aria-hidden>↗</span>
               </a>
               <button
@@ -152,15 +153,15 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 onClick={cancelLink}
                 className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-light)] transition-colors rounded"
               >
-                Cancel
+                {tc.cancelCta}
               </button>
             </div>
             <Note tone="info">
               <p className="font-bold uppercase tracking-[0.08em] text-[10px]">
-                Waiting for /start
+                {tc.waitingTitle}
               </p>
               <p className="mt-1 text-[11.5px] opacity-90 normal-case">
-                Link expires in 10 minutes.
+                {tc.waitingExpiry}
               </p>
             </Note>
           </>
@@ -181,15 +182,17 @@ export function TelegramConnectCard({ address }: { address?: string }) {
             >
               <div>
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  Telegram
+                  {tc.telegramLabel}
                 </p>
                 <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em]">
-                  {status.username ? `@${status.username}` : `chat ${status.chatId ?? ''}`}
+                  {status.username
+                    ? `@${status.username}`
+                    : tc.chatFallback.replace('{id}', String(status.chatId ?? ''))}
                 </p>
               </div>
               {status.linkedAt && (
                 <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  linked {formatLinkedAt(status.linkedAt)}
+                  {tc.linkedAt.replace('{date}', formatLinkedAt(status.linkedAt))}
                 </p>
               )}
             </div>
@@ -199,10 +202,10 @@ export function TelegramConnectCard({ address }: { address?: string }) {
                 onClick={unlink}
                 className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[#b03d3a] hover:bg-[rgba(176,61,58,0.07)] transition-colors rounded"
               >
-                Unlink
+                {tc.unlinkCta}
               </button>
               <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                Email alerts coming later
+                {tc.emailNote}
               </p>
             </div>
           </>

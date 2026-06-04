@@ -3,19 +3,19 @@ import { useRouter } from 'next/navigation';
 import type { SellerActiveBid } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { useDismissed } from '@/shared/hooks/useDismissed';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortHash, formatUsdc } from '@/shared/utils/format';
 
 export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
   const router = useRouter();
+  const bt = useTranslations().bidsTable;
   const { dismissed, dismiss } = useDismissed('seller-bids');
   const visible = bids.filter((b) => !dismissed.has(b.jobId));
 
   if (visible.length === 0) {
     return (
       <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
-        {bids.length === 0
-          ? 'Idle. The agent is subscribed to JobPosted and will respond when a matching request lands.'
-          : 'All finalized bids dismissed.'}
+        {bids.length === 0 ? bt.empty.idle : bt.empty.dismissed}
       </div>
     );
   }
@@ -25,12 +25,12 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
-            <th className="text-start font-medium px-5 py-3">Job</th>
-            <th className="text-start font-medium px-5 py-3">Buyer</th>
-            <th className="text-start font-medium px-5 py-3">Bid</th>
-            <th className="text-start font-medium px-5 py-3">Rounds</th>
-            <th className="text-start font-medium px-5 py-3">Status</th>
-            <th className="text-end font-medium px-5 py-3">Open</th>
+            <th className="text-start font-medium px-5 py-3">{bt.columns.job}</th>
+            <th className="text-start font-medium px-5 py-3">{bt.columns.buyer}</th>
+            <th className="text-start font-medium px-5 py-3">{bt.columns.bid}</th>
+            <th className="text-start font-medium px-5 py-3">{bt.columns.rounds}</th>
+            <th className="text-start font-medium px-5 py-3">{bt.columns.status}</th>
+            <th className="text-end font-medium px-5 py-3">{bt.columns.open}</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,7 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
                 }}
                 tabIndex={0}
                 role="link"
-                aria-label={`Open job ${shortHash(b.jobId, 8, 4)}`}
+                aria-label={bt.row.openJobAria.replace('{id}', shortHash(b.jobId, 8, 4))}
                 className="group cursor-pointer border-b border-white/[0.06] last:border-0 hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none transition-colors"
               >
                 <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white">
@@ -69,7 +69,7 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
                   <span className="inline-flex items-center gap-2">
                     <StatusDot tone={b.finalized ? 'positive' : 'accent'} />
                     <Tag tone={b.finalized ? 'positive' : 'accent'}>
-                      {b.finalized ? 'Finalized' : 'Negotiating'}
+                      {b.finalized ? bt.status.finalized : bt.status.negotiating}
                     </Tag>
                   </span>
                 </td>
@@ -78,8 +78,8 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
                     {b.finalized && (
                       <button
                         type="button"
-                        title="Dismiss"
-                        aria-label="Dismiss this finalized bid"
+                        title={bt.row.dismissTitle}
+                        aria-label={bt.row.dismissAria}
                         onClick={(e) => {
                           e.stopPropagation();
                           dismiss(b.jobId);
@@ -93,7 +93,7 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
                       className="inline-flex items-center gap-1 mono text-[11px] uppercase tracking-[0.12em] font-bold"
                       style={{ color: 'var(--lp-accent)' }}
                     >
-                      Open
+                      {bt.row.open}
                       <span
                         aria-hidden
                         className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"

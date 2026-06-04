@@ -31,7 +31,8 @@ export function TopNav() {
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslations();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const showAppChrome = isApp && isAuthenticated;
 
   const tradesActive =
     pathname.startsWith('/buyer') ||
@@ -51,7 +52,7 @@ export function TopNav() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
         {/* LEFT. mobile toggle + logo */}
         <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
-          {isApp && (
+          {showAppChrome && (
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -98,8 +99,11 @@ export function TopNav() {
           </Link>
         </div>
 
-        {/* CENTER. floating pill nav (app only) */}
-        {isApp && (
+        {/* CENTER. floating pill nav (app only, signed-in only). Hides the
+            full app surface until the user has actually signed in so the
+            shell stays minimal while the SignInGate is the only thing on
+            the page. */}
+        {showAppChrome && (
           <nav
             className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
           >
@@ -154,7 +158,7 @@ export function TopNav() {
 
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
-          {isApp ? (
+          {showAppChrome ? (
             <>
               <div className="hidden lg:inline-flex items-center px-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono shrink-0 whitespace-nowrap">
                 <BalanceRail />
@@ -177,6 +181,11 @@ export function TopNav() {
               <ConnectWalletButton />
               <ProfileAvatar />
             </>
+          ) : isApp ? (
+            // Signed-out app chrome: just the Sign in button. Don't tease the
+            // app surface (nav rail, balance, bell, settings) before the user
+            // has signed in.
+            !authLoading && <ConnectWalletButton />
           ) : (
             <>
               <div className="hidden sm:inline-flex">
@@ -191,7 +200,7 @@ export function TopNav() {
         </div>
       </div>
 
-      {isApp && menuOpen && (
+      {showAppChrome && menuOpen && (
         <div
           className="md:hidden absolute start-0 end-0 top-full bg-[var(--color-surface)] border-b border-[var(--color-line)] shadow-sm fade-up"
           onClick={() => setMenuOpen(false)}

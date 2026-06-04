@@ -18,9 +18,9 @@ export interface AuthState {
   isLoading: boolean;
 }
 
-interface CircleSession {
+interface Session {
   address: string;
-  method: 'circle';
+  method: 'circle' | 'web3';
   email?: string;
   hasPasskey: boolean;
 }
@@ -54,24 +54,24 @@ export function useAuth(): AuthState & {
 } {
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
-  const [circle, setCircle] = useState<CircleSession | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
       const r = await api.authMe();
-      if (r.user?.method === 'circle') {
-        setCircle({
+      if (r.user) {
+        setSession({
           address: r.user.address,
-          method: 'circle',
+          method: r.user.method as 'circle' | 'web3',
           email: r.user.email,
           hasPasskey: !!r.user.hasPasskey,
         });
       } else {
-        setCircle(null);
+        setSession(null);
       }
     } catch {
-      setCircle(null);
+      setSession(null);
     } finally {
       setLoaded(true);
     }
@@ -80,6 +80,14 @@ export function useAuth(): AuthState & {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Re-check the backend session whenever wagmi reports a new connected address.
+  // SIWE runs in useSiwe() and emits AUTH_CHANGED_EVENT on success, which
+  // refresh()es; this extra refresh covers the auto-reconnect path where the
+  // wagmi address surfaces before any event fires.
+  useEffect(() => {
+    if (wagmiAddress) refresh();
+  }, [wagmiAddress, refresh]);
 
   // Sync this instance's circle slice whenever ANY other useAuth() in the app
   // changes the session. Without this, signing out from CircleAccountModal
@@ -109,7 +117,7 @@ export function useAuth(): AuthState & {
     } catch {
       /* clear local state regardless */
     }
-    if (circle) setCircle(null);
+    setSession(null);
     if (wagmiConnected) {
       try {
         await disconnectAsync();
@@ -119,10 +127,10 @@ export function useAuth(): AuthState & {
     }
     // Broadcast so every other useAuth instance picks up the change.
     emitAuthChanged();
-  }, [circle, wagmiConnected, wagmiAddress, disconnectAsync]);
+  }, [wagmiConnected, disconnectAsync]);
 
-  const address = circle?.address ?? wagmiAddress ?? null;
-  const method: AuthMethod | null = circle ? 'circle' : wagmiConnected ? 'web3' : null;
+  const address = session?.address ?? null;
+  const method: AuthMethod | null = session?.method ?? null;
 
   // Mirror the address into the API client so private reads can pass it as a
   // `caller` hint (web3 users have no backend session cookie).
@@ -133,9 +141,9 @@ export function useAuth(): AuthState & {
   return {
     address,
     method,
-    email: circle?.email,
-    hasPasskey: !!circle?.hasPasskey,
-    isAuthenticated: !!address,
+    email: session?.email,
+    hasPasskey: !!session?.hasPasskey,
+    isAuthenticated: !!session,
     isLoading: !loaded,
     signOut,
     refresh,

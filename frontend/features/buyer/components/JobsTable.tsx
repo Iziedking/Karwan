@@ -4,27 +4,33 @@ import type { BuyerJob } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
-function status(j: BuyerJob): { label: string; tone: 'positive' | 'warning' | 'accent' | 'default'; dot: 'positive' | 'accent' | 'warning' | 'default' } {
-  if (j.cancelledAt) return { label: 'Cancelled', tone: 'default', dot: 'default' };
-  if (j.expiredAt) return { label: 'Expired', tone: 'default', dot: 'default' };
-  if (j.escrowFunded) return { label: 'Escrow funded', tone: 'positive', dot: 'positive' };
-  if (j.finalized) return { label: 'Accepted', tone: 'warning', dot: 'warning' };
-  if (j.bids.length > 0) return { label: `${j.bids.length} bid${j.bids.length === 1 ? '' : 's'}`, tone: 'accent', dot: 'accent' };
-  return { label: 'Open', tone: 'default', dot: 'default' };
+type StatusCopy = Messages['jobsTable']['status'];
+
+function status(j: BuyerJob, copy: StatusCopy): { label: string; tone: 'positive' | 'warning' | 'accent' | 'default'; dot: 'positive' | 'accent' | 'warning' | 'default' } {
+  if (j.cancelledAt) return { label: copy.cancelled, tone: 'default', dot: 'default' };
+  if (j.expiredAt) return { label: copy.expired, tone: 'default', dot: 'default' };
+  if (j.escrowFunded) return { label: copy.escrowFunded, tone: 'positive', dot: 'positive' };
+  if (j.finalized) return { label: copy.accepted, tone: 'warning', dot: 'warning' };
+  if (j.bids.length > 0) {
+    const template = j.bids.length === 1 ? copy.bidOne : copy.bidOther;
+    return { label: template.replace('{count}', String(j.bids.length)), tone: 'accent', dot: 'accent' };
+  }
+  return { label: copy.open, tone: 'default', dot: 'default' };
 }
 
 export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
   const router = useRouter();
   const { dismissed, dismiss } = useDismissed('managed-jobs');
+  const jt = useTranslations().jobsTable;
   const visible = jobs.filter((j) => !dismissed.has(j.jobId));
 
   if (visible.length === 0) {
     return (
       <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
-        {jobs.length === 0
-          ? 'No jobs yet. Post a request and the seller agent will respond within seconds.'
-          : 'All cancelled deals dismissed.'}
+        {jobs.length === 0 ? jt.empty.none : jt.empty.allDismissed}
       </div>
     );
   }
@@ -34,16 +40,16 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
-            <th className="text-start font-medium px-5 py-3">Job</th>
-            <th className="text-start font-medium px-5 py-3">Budget</th>
-            <th className="text-start font-medium px-5 py-3">Deadline</th>
-            <th className="text-start font-medium px-5 py-3">Status</th>
-            <th className="text-end font-medium px-5 py-3">Open</th>
+            <th className="text-start font-medium px-5 py-3">{jt.columns.job}</th>
+            <th className="text-start font-medium px-5 py-3">{jt.columns.budget}</th>
+            <th className="text-start font-medium px-5 py-3">{jt.columns.deadline}</th>
+            <th className="text-start font-medium px-5 py-3">{jt.columns.status}</th>
+            <th className="text-end font-medium px-5 py-3">{jt.columns.open}</th>
           </tr>
         </thead>
         <tbody>
           {visible.map((j) => {
-            const s = status(j);
+            const s = status(j, jt.status);
             const href = `/jobs/${j.jobId}`;
             const go = () => router.push(href);
             const onPrefetch = () => router.prefetch(href);
@@ -61,7 +67,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                 }}
                 tabIndex={0}
                 role="link"
-                aria-label={`Open deal ${shortHash(j.jobId, 8, 4)}`}
+                aria-label={jt.row.openAria.replace('{id}', shortHash(j.jobId, 8, 4))}
                 className="group cursor-pointer border-b border-white/[0.06] last:border-0 hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none transition-colors"
               >
                 <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white">
@@ -84,13 +90,13 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                     {(j.cancelledAt || j.expiredAt || j.escrowFunded) && (
                       <button
                         type="button"
-                        title="Dismiss"
+                        title={jt.dismiss.title}
                         aria-label={
                           j.expiredAt
-                            ? 'Dismiss this expired request'
+                            ? jt.dismiss.ariaExpired
                             : j.cancelledAt
-                              ? 'Dismiss this cancelled deal'
-                              : 'Dismiss this funded request'
+                              ? jt.dismiss.ariaCancelled
+                              : jt.dismiss.ariaFunded
                         }
                         onClick={(e) => {
                           e.stopPropagation();
@@ -102,7 +108,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                       </button>
                     )}
                     <span className="inline-flex items-center gap-1 mono text-[11px] uppercase tracking-[0.12em] font-bold" style={{ color: 'var(--lp-accent)' }}>
-                      Open
+                      {jt.row.openCta}
                       <span
                         aria-hidden
                         className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"

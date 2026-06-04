@@ -1,5 +1,6 @@
 'use client';
 import { useReputation } from '../hooks/useReputation';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
 
@@ -21,6 +22,7 @@ const COLOR: Record<Tier, string> = {
 /// and how far to the next tier. Self-contained: pass the user's address.
 export function ProfileTierCard({ address }: { address?: string | null }) {
   const { data, fetchState } = useReputation(address);
+  const pt = useTranslations().profileTierCard;
   if (!address) return null;
 
   if (fetchState === 'loading' && !data) {
@@ -47,11 +49,11 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
     >
       <div className="flex items-center justify-between gap-3">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
-          [:REPUTATION:]
+          {pt.eyebrow}
         </span>
         <span className="mono text-[11px] tabular-nums text-white/55">
           {score}
-          <span className="text-white/35"> / 1000</span>
+          <span className="text-white/35"> {pt.scoreSuffix}</span>
         </span>
       </div>
 
@@ -63,7 +65,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
           {tier}
         </span>
         <span className="text-[12px] text-white/55">
-          {nextTier ? `${toNext} to ${nextTier}` : 'Top tier'}
+          {nextTier ? pt.toNext.replace('{amount}', String(toNext)).replace('{tier}', nextTier) : pt.topTier}
         </span>
       </div>
 
