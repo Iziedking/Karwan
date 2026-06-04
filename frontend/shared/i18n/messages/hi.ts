@@ -2734,6 +2734,13 @@ export const hi: Messages = {
       copyAria: 'पता {address} कॉपी करें',
     },
   },
+  inlineControls: {
+    walletNotConnected: 'वॉलेट कनेक्ट नहीं है',
+    copyLabel: 'कॉपी',
+    copiedLabel: 'कॉपी हो गया',
+    copyTooltip: 'कॉपी करें',
+    copyAddressTooltip: 'पता कॉपी करें',
+  },
   docsShell: {
     sidebar: {
       eyebrow: 'दस्तावेज़',

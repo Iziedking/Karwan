@@ -2734,6 +2734,13 @@ export const sw: Messages = {
       copyAria: 'Nakili anwani {address}',
     },
   },
+  inlineControls: {
+    walletNotConnected: 'Pochi haijaunganishwa',
+    copyLabel: 'nakili',
+    copiedLabel: 'imenakiliwa',
+    copyTooltip: 'Nakili',
+    copyAddressTooltip: 'Nakili anwani',
+  },
   docsShell: {
     sidebar: {
       eyebrow: 'NYARAKA',

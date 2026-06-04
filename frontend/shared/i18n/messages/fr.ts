@@ -2734,6 +2734,13 @@ export const fr: Messages = {
       copyAria: "Copier l'adresse {address}",
     },
   },
+  inlineControls: {
+    walletNotConnected: 'Portefeuille non connecté',
+    copyLabel: 'copier',
+    copiedLabel: 'copié',
+    copyTooltip: 'Copier',
+    copyAddressTooltip: "Copier l'adresse",
+  },
   docsShell: {
     sidebar: {
       eyebrow: 'DOCUMENTATION',

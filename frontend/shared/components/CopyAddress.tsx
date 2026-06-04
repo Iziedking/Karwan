@@ -1,11 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// A span-based copy control. Renders as a span (not a button) so it can sit
 /// inside a clickable parent without nesting interactive elements. Stops
 /// propagation so copying does not trigger the parent.
 export function CopyAddress({ value, className }: { value: string; className?: string }) {
   const [copied, setCopied] = useState(false);
+  const t = useTranslations().inlineControls;
 
   function copy(e: React.MouseEvent | React.KeyboardEvent) {
     e.stopPropagation();
@@ -27,7 +29,7 @@ export function CopyAddress({ value, className }: { value: string; className?: s
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') copy(e);
       }}
-      title="Copy address"
+      title={t.copyAddressTooltip}
       className={`inline-flex items-center gap-1 text-[10px] cursor-pointer transition-colors ${
         copied
           ? 'text-[var(--color-positive)]'
@@ -55,7 +57,7 @@ export function CopyAddress({ value, className }: { value: string; className?: s
           </>
         )}
       </svg>
-      {copied ? 'copied' : 'copy'}
+      {copied ? t.copiedLabel : t.copyLabel}
     </span>
   );
 }

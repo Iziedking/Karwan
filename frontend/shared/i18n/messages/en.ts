@@ -2609,6 +2609,13 @@ interface MessagesShape {
     switch: { title: string; label: string; switching: string };
     address: { copied: string; copyTitle: string; copyAria: string };
   };
+  inlineControls: {
+    walletNotConnected: string;
+    copyLabel: string;
+    copiedLabel: string;
+    copyTooltip: string;
+    copyAddressTooltip: string;
+  };
   docsShell: {
     sidebar: {
       eyebrow: string;
@@ -6184,6 +6191,13 @@ export const en: MessagesShape = {
       copyTitle: 'Click to copy {address}',
       copyAria: 'Copy address {address}',
     },
+  },
+  inlineControls: {
+    walletNotConnected: 'Wallet not connected',
+    copyLabel: 'copy',
+    copiedLabel: 'copied',
+    copyTooltip: 'Copy',
+    copyAddressTooltip: 'Copy address',
   },
   docsShell: {
     sidebar: {

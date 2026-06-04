@@ -2734,6 +2734,13 @@ export const ar: Messages = {
       copyAria: 'نسخ العنوان {address}',
     },
   },
+  inlineControls: {
+    walletNotConnected: 'المحفظة غير موصولة',
+    copyLabel: 'نسخ',
+    copiedLabel: 'تم النسخ',
+    copyTooltip: 'نسخ',
+    copyAddressTooltip: 'نسخ العنوان',
+  },
   docsShell: {
     sidebar: {
       eyebrow: 'التوثيق',
