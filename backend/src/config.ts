@@ -123,6 +123,11 @@ const envSchema = z.object({
   // Optional: when unset, GET /api/admin/treasury reports not-configured.
   // Populated after `forge script DeployTreasury`.
   KARWAN_TREASURY_CONTRACT_ADDR: optionalAddr,
+  // KarwanTreasury v3 — the redeployed treasury wired to real Hashnote USYC on
+  // Arc Testnet. The legacy KARWAN_TREASURY_CONTRACT_ADDR stays as the live
+  // fee sink until escrow is repointed; v3 is what the admin console drains
+  // INTO and what holds USYC after Circle whitelisting landed 2026-06-04.
+  KARWAN_TREASURY_V3_ADDR: optionalAddr,
   // Direct-deal review window in milliseconds. Used for two timers: the buyer
   // has this long to release the first milestone after the seller delivers, and
   // again to release the final milestone. When it expires the agent
