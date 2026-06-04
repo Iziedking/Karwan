@@ -19,6 +19,7 @@ import {
   ARC_USDC_DECIMALS,
   KARWAN_VAULT_ADDRESS,
 } from '../../profile/config';
+import { YieldClaimPanel } from './YieldClaimPanel';
 
 /// SKILL-grade staking surface. Reads positions from /api/vault/positions
 /// every 10s while open; supports deposit + request-withdraw + cancel-
@@ -707,11 +708,12 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         </Note>
       )}
 
-      {/* USYC YIELD NARRATIVE.
-          On testnet the vault holds plain USDC. On mainnet, KarwanVault routes
-          idle stake through Hashnote USYC so the same deposit earns yield
-          while it builds reputation. Treasury fees walk the same path. */}
-      <YieldNote copy={sc.yield} />
+      {/* LIVE YIELD. The vault routes idle stake through Hashnote USYC and
+          the daily cron credits each staker their share into the
+          KarwanYieldDistributor. This panel reads claimable directly and
+          lets the user pull whenever they want. Replaces the older
+          mainnet-promise YieldNote. */}
+      <YieldClaimPanel />
 
 
       {/* DEPOSIT + WITHDRAW. side-by-side on md+, stacked on mobile. The

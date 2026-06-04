@@ -29,6 +29,15 @@ export const ARC_USDC_DECIMALS = 6;
 export const KARWAN_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_KARWAN_VAULT_ADDRESS ??
   '0x2d4506284B2D778365b4B295100EF099F35973c5') as `0x${string}`;
 
+// KarwanYieldDistributor — per-address USDC claim contract that holds the
+// daily-credited yield for stakers. Read-only on chain for balances; the
+// `claim()` write is the only thing a staker ever calls. Env-driven so a
+// redeploy is a Vercel env swap, not a code change. Fallback to the address
+// deployed 2026-06-04.
+export const KARWAN_YIELD_DISTRIBUTOR_ADDRESS =
+  (process.env.NEXT_PUBLIC_KARWAN_YIELD_DISTRIBUTOR_ADDRESS ??
+    '0x9950b9a41A3e80930e451F2FEdaeb81e80195D03') as `0x${string}`;
+
 // Gen 1 legacy KarwanVault (the original pre-v2.D contract). Read-only on the
 // /legacy page so existing stakers can request-withdraw / claim USDC parked
 // on the older contract. Mirrors the backend KARWAN_VAULT_LEGACY_ADDR.

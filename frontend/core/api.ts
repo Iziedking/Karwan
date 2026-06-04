@@ -1000,6 +1000,33 @@ export const api = {
       /// `true` for back-compat.
       synced?: boolean;
     }>(`/api/vault/positions?address=${address}`),
+  /// KarwanYieldDistributor: this address's current claimable USDC. The
+  /// daily cron credits balances; users claim from their wallet (web3) or
+  /// via the backend signing path (Circle).
+  yieldMe: (address: string) =>
+    json<{
+      configured: boolean;
+      address: string | null;
+      claimableUsdc: string;
+      detail?: string;
+    }>(`/api/yield/me?address=${address}`),
+  /// Protocol-wide yield reserves for the /stake widget.
+  yieldProtocol: () =>
+    json<{
+      configured: boolean;
+      address?: string;
+      totalCreditedUsdc?: string;
+      totalClaimedUsdc?: string;
+      outstandingUsdc?: string;
+      usdcBalance?: string;
+    }>('/api/yield/protocol'),
+  /// Circle-user claim path. Web3 users sign claim() directly from their
+  /// own wallet; they do not call this endpoint.
+  yieldClaim: (body: { address: string }) =>
+    json<{ ok: true; txHash: string | null }>('/api/yield/claim', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   /// Circle-only vault writes. Web3 users sign deposit/withdraw/claim
   /// directly from the wallet via wagmi `writeContract`.
   vaultDeposit: (body: { address: string; amountUsdc: number }) =>

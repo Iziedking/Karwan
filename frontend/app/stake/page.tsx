@@ -12,6 +12,7 @@ import {
 } from '@/shared/components/Bands';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
+import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { TIER_HUE } from '@/features/reputation/tierColors';
@@ -119,9 +120,6 @@ export default function StakePage() {
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
             {sp.hero.body}
           </p>
-          <p className="mt-5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-relaxed">
-            {sp.hero.mainnetNote}
-          </p>
 
           {/* POSITION READOUT — count-up score + tier. */}
           <div className="mt-9 grid grid-cols-2 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
@@ -152,6 +150,24 @@ export default function StakePage() {
               )}
             </Stat>
           </div>
+        </div>
+      </Band>
+
+      {/* PROTOCOL RESERVES — read directly from the YieldDistributor.
+          Tells visitors and stakers exactly how much yield has been pushed,
+          claimed, and is still waiting to be pulled. */}
+      <Band tone="light" compact>
+        <SectionTag>[:RESERVES:]</SectionTag>
+        <HeroHeadline size="md">
+          Real yield. Real numbers<Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
+          The vault routes idle stake through Hashnote USYC and the daily cron
+          drops each staker their share into a public contract. Pull it any
+          time, no cooldown.
+        </p>
+        <div className="mt-9">
+          <ReservesWidget />
         </div>
       </Band>
 

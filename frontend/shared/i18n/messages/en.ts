@@ -5005,10 +5005,10 @@ export const en: MessagesShape = {
       suffix: 'and restart the backend.',
     },
     yield: {
-      eyebrow: 'MAINNET YIELD',
-      bodyPrefix: 'On testnet the vault holds plain USDC. On mainnet the same stake routes through',
+      eyebrow: 'LIVE YIELD',
+      bodyPrefix: 'Idle stake routes through',
       bodyMiddle: 'and earns roughly',
-      bodySuffix: 'APY while it builds your reputation.',
+      bodySuffix: 'APY while it builds your reputation. The cron drops your share into a public claim contract daily.',
     },
     depositForm: {
       label: 'DEPOSIT',
@@ -5683,7 +5683,7 @@ export const en: MessagesShape = {
       step2Title: 'Set your ranges',
       step2Body: 'Buyer side, set budget, deadlines, milestone splits. Seller side, set skills, range, response time. Your agents read these on every match.',
       step3Title: 'Stake to grow reputation',
-      step3Body: 'Deposit USDC in the vault. The longer it sits, the more reputation you earn. On mainnet that same stake also earns yield through USYC. Withdrawals wait 7 days while the system runs fraud checks.',
+      step3Body: 'Deposit USDC in the vault. The longer it sits, the more reputation you earn, and the bigger your slice of the daily USYC yield. Withdrawals wait 7 days while the system runs fraud checks.',
     },
     finalCta: {
       tag: 'OPEN A DEAL',
@@ -6034,7 +6034,7 @@ export const en: MessagesShape = {
       tag: 'STAKE',
       titlePrefix: 'Earn',
       titleAccent: 'reputation',
-      body: 'Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. On mainnet the same stake earns yield through Hashnote USYC.',
+      body: 'Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns and the bigger your slice of the daily USYC yield.',
       buttonLabel: 'Log in to stake',
     },
     hero: {
@@ -6044,7 +6044,7 @@ export const en: MessagesShape = {
       line2Prefix: 'Earn',
       line2Accent: 'yield',
       body: 'Stake USDC. The longer it sits, the more reputation it earns. Withdraw any time. 7-day cool-down on the way out.',
-      mainnetNote: '// ON MAINNET THIS STAKE ROUTES THROUGH HASHNOTE USYC FOR ~5% APY',
+      mainnetNote: '// IDLE STAKE ROUTES THROUGH HASHNOTE USYC FOR ~5% APY, CREDITED DAILY',
     },
     position: {
       reputation: 'Reputation',

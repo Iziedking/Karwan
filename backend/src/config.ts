@@ -128,6 +128,11 @@ const envSchema = z.object({
   // fee sink until escrow is repointed; v3 is what the admin console drains
   // INTO and what holds USYC after Circle whitelisting landed 2026-06-04.
   KARWAN_TREASURY_V3_ADDR: optionalAddr,
+  // KarwanYieldDistributor — per-address USDC claim contract that the daily
+  // yield-distribute cron credits via bulkCredit. Stakers pull from here via
+  // claim(). Read-only here; the cron operator key is set on the contract via
+  // setOperator, NOT loaded into the backend.
+  KARWAN_YIELD_DISTRIBUTOR_ADDR: optionalAddr,
   // Direct-deal review window in milliseconds. Used for two timers: the buyer
   // has this long to release the first milestone after the seller delivers, and
   // again to release the final milestone. When it expires the agent
