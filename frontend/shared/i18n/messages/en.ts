@@ -1263,6 +1263,61 @@ interface MessagesShape {
     eta: string;
     scoreOutOf: string;
   };
+  listingsBrowse: {
+    signInTag: string;
+    signInBody: string;
+    heroTag: string;
+    heroHeadlinePart1: string;
+    heroHeadlinePart2Prefix: string;
+    heroAccent: string;
+    heroBody: string;
+    filters: {
+      all: string;
+      offers: string;
+      briefs: string;
+    };
+    liveCaption: string;
+    error: string;
+    emptyAllTag: string;
+    emptyAllBody: string;
+    emptyFilteredTag: string;
+    emptyFilteredTemplate: string;
+    card: {
+      statusMatched: string;
+      statusOffer: string;
+      statusRequest: string;
+      priceLabelAsking: string;
+      priceLabelBudget: string;
+      partyRoleSeller: string;
+      partyRoleBuyer: string;
+      selfSuffix: string;
+      metaBidOne: string;
+      metaBidsTemplate: string;
+      metaAwaitingBids: string;
+      priceUnitTemplate: string;
+    };
+  };
+  balancesCard: {
+    eyebrow: string;
+    signedOutBody: string;
+    title: string;
+    chainCountTemplate: string;
+    refresh: string;
+    refreshing: string;
+    tabs: {
+      you: string;
+      buyer: string;
+      seller: string;
+    };
+    notConfigured: string;
+    updatedTemplate: string;
+    timeAgo: {
+      justNow: string;
+      secondsTemplate: string;
+      minutesTemplate: string;
+      hoursTemplate: string;
+    };
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -3029,6 +3084,61 @@ export const en: MessagesShape = {
     counter: 'Counter',
     eta: 'ETA',
     scoreOutOf: '/100',
+  },
+  listingsBrowse: {
+    signInTag: 'MARKETPLACE',
+    signInBody: 'Live offers and requests matched to your profile. Sign in to watch both sides.',
+    heroTag: 'MARKETPLACE',
+    heroHeadlinePart1: 'What sellers offer.',
+    heroHeadlinePart2Prefix: 'What buyers ',
+    heroAccent: 'need',
+    heroBody: 'Live offers and requests on Karwan. Matches land in your bell and Telegram.',
+    filters: {
+      all: 'All',
+      offers: 'Offers',
+      briefs: 'Requests',
+    },
+    liveCaption: 'LIVE FROM KARWAN',
+    error: "Couldn't load the marketplace.",
+    emptyAllTag: 'EMPTY MARKET',
+    emptyAllBody: 'No offers or requests yet. Post one to start the network.',
+    emptyFilteredTag: 'NO MATCH',
+    emptyFilteredTemplate: 'No {side} right now.',
+    card: {
+      statusMatched: 'MATCHED',
+      statusOffer: 'OFFER',
+      statusRequest: 'REQUEST',
+      priceLabelAsking: 'asking',
+      priceLabelBudget: 'budget',
+      partyRoleSeller: 'SELLER',
+      partyRoleBuyer: 'BUYER',
+      selfSuffix: ' · you',
+      metaBidOne: '1 bid',
+      metaBidsTemplate: '{n} bids',
+      metaAwaitingBids: 'awaiting bids',
+      priceUnitTemplate: 'USDC {label}',
+    },
+  },
+  balancesCard: {
+    eyebrow: '[:HOLDINGS:]',
+    signedOutBody: 'Sign in to see your USDC balances. Use the Log in pill in the nav.',
+    title: 'USDC balances',
+    chainCountTemplate: 'across {n} chains',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing',
+    tabs: {
+      you: 'You',
+      buyer: 'Buyer',
+      seller: 'Seller',
+    },
+    notConfigured: 'not configured',
+    updatedTemplate: 'updated {time}',
+    timeAgo: {
+      justNow: 'just now',
+      secondsTemplate: '{n}s ago',
+      minutesTemplate: '{n}m ago',
+      hoursTemplate: '{n}h ago',
+    },
   },
   jobPage: {
     loading: {

@@ -12,15 +12,11 @@ import {
   Punc,
   PageCard,
 } from '@/shared/components/Bands';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Category = 'bug' | 'improvement' | 'other' | 'praise';
 
-const CATEGORIES: { key: Category; label: string; blurb: string }[] = [
-  { key: 'bug', label: 'Bug', blurb: 'Something broke or behaved wrong' },
-  { key: 'improvement', label: 'Improvement', blurb: 'An idea to make it better' },
-  { key: 'other', label: 'Other', blurb: 'A question or general note' },
-  { key: 'praise', label: 'Praise', blurb: 'Something you liked' },
-];
+const CATEGORY_KEYS: Category[] = ['bug', 'improvement', 'other', 'praise'];
 
 const MAX_SHOTS = 4;
 // Downscale on the client so the upload stays small and the operator's view
@@ -69,6 +65,7 @@ function fileToShot(file: File): Promise<string> {
 }
 
 export function FeedbackForm() {
+  const fb = useTranslations().feedback;
   const { address } = useAuth();
   const [category, setCategory] = useState<Category>('bug');
   const [title, setTitle] = useState('');
@@ -88,7 +85,7 @@ export function FeedbackForm() {
     if (incoming.length === 0) return;
     const room = MAX_SHOTS - shots.length;
     if (room <= 0) {
-      setError(`You can attach up to ${MAX_SHOTS} screenshots.`);
+      setError(fb.errors.maxShotsTemplate.replace('{n}', String(MAX_SHOTS)));
       return;
     }
     const next: Shot[] = [];
@@ -97,7 +94,7 @@ export function FeedbackForm() {
         const dataUrl = await fileToShot(file);
         next.push({ dataUrl, name: file.name || 'pasted image' });
       } catch {
-        setError('One image could not be read. Try a PNG or JPG.');
+        setError(fb.errors.imageReadFailed);
       }
     }
     if (next.length > 0) setShots((s) => [...s, ...next]);
@@ -132,11 +129,11 @@ export function FeedbackForm() {
   async function submit() {
     setError(null);
     if (title.trim().length < 3) {
-      setError('Add a short title (at least 3 characters).');
+      setError(fb.errors.shortTitle);
       return;
     }
     if (message.trim().length < 5) {
-      setError('Tell us a little more in the description.');
+      setError(fb.errors.shortMessage);
       return;
     }
     setBusy(true);
@@ -158,7 +155,7 @@ export function FeedbackForm() {
     } catch (err) {
       const detail =
         err instanceof ApiError && err.detail ? JSON.stringify(err.detail) : (err as Error).message;
-      setError(detail || 'Could not send feedback. Please try again.');
+      setError(detail || fb.errors.submitFailed);
     } finally {
       setBusy(false);
     }
@@ -179,38 +176,37 @@ export function FeedbackForm() {
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up fade-up-1">
-          <SectionTag tone="dark">FEEDBACK</SectionTag>
+          <SectionTag tone="dark">{fb.hero.tag}</SectionTag>
         </div>
         <div className="fade-up fade-up-2">
           <HeroHeadline>
-            Tell us what you hit
+            {fb.hero.headline}
             <Punc>.</Punc>
           </HeroHeadline>
         </div>
         <p className="fade-up fade-up-3 mt-4 max-w-[60ch] text-[15px] leading-relaxed text-white/65">
-          You are testing on Arc Testnet, so things will break. A bug, a rough
-          edge, an idea, anything. Paste a screenshot straight in. It goes to the
-          team the moment you send it.
+          {fb.hero.body}
         </p>
       </Band>
 
       <Band tone="light" compact>
         {doneId ? (
-          <SuccessCard onReset={reset} />
+          <SuccessCard onReset={reset} copy={fb.success} />
         ) : (
           <div className="max-w-[760px]">
             <PageCard>
               <div className="p-6 md:p-8 space-y-7">
                 {/* CATEGORY */}
-                <Field label="WHAT KIND OF FEEDBACK">
+                <Field label={fb.fields.categoryEyebrow}>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {CATEGORIES.map((c) => {
-                      const on = category === c.key;
+                    {CATEGORY_KEYS.map((key) => {
+                      const c = fb.categories[key];
+                      const on = category === key;
                       return (
                         <button
-                          key={c.key}
+                          key={key}
                           type="button"
-                          onClick={() => setCategory(c.key)}
+                          onClick={() => setCategory(key)}
                           className="text-start px-3 py-2.5 transition-colors"
                           style={{
                             background: on ? 'var(--lp-band-dark)' : 'var(--lp-light)',
@@ -240,12 +236,12 @@ export function FeedbackForm() {
                 </Field>
 
                 {/* TITLE */}
-                <Field label="TITLE">
+                <Field label={fb.fields.titleEyebrow}>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     maxLength={140}
-                    placeholder="Short summary, e.g. Bridge stuck on attesting"
+                    placeholder={fb.placeholders.title}
                     className="w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
@@ -258,14 +254,14 @@ export function FeedbackForm() {
                 </Field>
 
                 {/* MESSAGE */}
-                <Field label="WHAT HAPPENED">
+                <Field label={fb.fields.messageEyebrow}>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onPaste={onPaste}
                     maxLength={4000}
                     rows={6}
-                    placeholder="What you did, what you expected, what happened instead. You can paste a screenshot right here."
+                    placeholder={fb.placeholders.message}
                     className="w-full px-3.5 py-3 text-[14px] leading-relaxed text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors resize-y"
                     style={{
                       border: '1px solid var(--lp-border-light)',
@@ -278,7 +274,11 @@ export function FeedbackForm() {
                 </Field>
 
                 {/* SCREENSHOTS */}
-                <Field label={`SCREENSHOTS (${shots.length}/${MAX_SHOTS})`}>
+                <Field
+                  label={fb.fields.screenshotsEyebrowTemplate
+                    .replace('{n}', String(shots.length))
+                    .replace('{max}', String(MAX_SHOTS))}
+                >
                   <div
                     onPaste={onPaste}
                     onDragOver={(e) => {
@@ -295,18 +295,18 @@ export function FeedbackForm() {
                     }}
                   >
                     <p className="text-[13px] text-[var(--lp-text-sub)]">
-                      Paste, drop, or{' '}
+                      {fb.dropZone.bodyBefore}
                       <button
                         type="button"
                         onClick={() => fileInput.current?.click()}
                         className="font-semibold text-[var(--lp-dark)] underline underline-offset-2 hover:text-[var(--lp-accent-hover)]"
                       >
-                        choose files
+                        {fb.dropZone.chooseFiles}
                       </button>
-                      .
+                      {fb.dropZone.bodyAfter}
                     </p>
                     <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      PNG or JPG, up to {MAX_SHOTS}
+                      {fb.dropZone.formatLine.replace('{n}', String(MAX_SHOTS))}
                     </p>
                     <input
                       ref={fileInput}
@@ -334,7 +334,7 @@ export function FeedbackForm() {
                           <button
                             type="button"
                             onClick={() => removeShot(i)}
-                            aria-label="Remove screenshot"
+                            aria-label={fb.dropZone.removeAria}
                             className="absolute top-1 end-1 inline-flex items-center justify-center w-6 h-6 text-white bg-black/55 hover:bg-black/80 transition-colors"
                             style={{ borderRadius: 6 }}
                           >
@@ -348,12 +348,12 @@ export function FeedbackForm() {
 
                 {/* OPTIONAL CONTEXT */}
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="WHERE (OPTIONAL)">
+                  <Field label={fb.fields.whereEyebrow}>
                     <input
                       value={where}
                       onChange={(e) => setWhere(e.target.value)}
                       maxLength={500}
-                      placeholder="Page or screen, e.g. /bridge on mobile"
+                      placeholder={fb.placeholders.where}
                       className="w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                       style={{
                         border: '1px solid var(--lp-border-light)',
@@ -364,12 +364,12 @@ export function FeedbackForm() {
                       }}
                     />
                   </Field>
-                  <Field label="CONTACT (OPTIONAL)">
+                  <Field label={fb.fields.contactEyebrow}>
                     <input
                       value={contact}
                       onChange={(e) => setContact(e.target.value)}
                       maxLength={200}
-                      placeholder="Email or @handle to follow up"
+                      placeholder={fb.placeholders.contact}
                       className="w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                       style={{
                         border: '1px solid var(--lp-border-light)',
@@ -384,7 +384,10 @@ export function FeedbackForm() {
 
                 {address && (
                   <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                    Sending as {address.slice(0, 6)}…{address.slice(-4)}
+                    {fb.submit.sendingAsTemplate.replace(
+                      '{address}',
+                      `${address.slice(0, 6)}…${address.slice(-4)}`,
+                    )}
                   </p>
                 )}
 
@@ -415,11 +418,11 @@ export function FeedbackForm() {
                       borderBottomRightRadius: 3,
                     }}
                   >
-                    {busy ? 'Sending…' : 'Send feedback'}
+                    {busy ? fb.submit.sending : fb.submit.cta}
                     {!busy && <span aria-hidden>→</span>}
                   </button>
                   <span className="text-[12px] text-[var(--lp-text-muted)]">
-                    No account needed.
+                    {fb.submit.noAccountNeeded}
                   </span>
                 </div>
               </div>
@@ -442,7 +445,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SuccessCard({ onReset }: { onReset: () => void }) {
+function SuccessCard({
+  onReset,
+  copy,
+}: {
+  onReset: () => void;
+  copy: {
+    headline: string;
+    body: string;
+    sendAnother: string;
+    backToApp: string;
+  };
+}) {
   return (
     <div className="max-w-[560px]">
       <PageCard>
@@ -470,12 +484,11 @@ function SuccessCard({ onReset }: { onReset: () => void }) {
             </svg>
           </span>
           <h2 className="font-sans text-[24px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
-            Got it. Thank you
+            {copy.headline}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
           <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-            Your feedback reached the team. If you left a contact, we may follow
-            up. Found something else? Send another.
+            {copy.body}
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <button
@@ -489,13 +502,13 @@ function SuccessCard({ onReset }: { onReset: () => void }) {
                 borderBottomRightRadius: 3,
               }}
             >
-              Send another
+              {copy.sendAnother}
             </button>
             <Link
               href="/app"
               className="mono text-[12px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
             >
-              Back to app
+              {copy.backToApp}
             </Link>
           </div>
         </div>

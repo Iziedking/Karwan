@@ -9,6 +9,8 @@ import { cn } from '@/shared/utils/cn';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 // Arc (settlement) first, then every CCTP source chain the bridge supports.
 // Each key doubles as the ChainLogo key, so the row map stays simple.
@@ -97,6 +99,7 @@ export function BalancesCard({
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const [view, setView] = useState<View>('you');
+  const bc = useTranslations().balancesCard;
 
   const buyer = (buyerAgent as `0x${string}` | undefined) ?? undefined;
   const seller = (sellerAgent as `0x${string}` | undefined) ?? undefined;
@@ -109,10 +112,10 @@ export function BalancesCard({
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:HOLDINGS:]
+          {bc.eyebrow}
         </span>
         <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">
-          Sign in to see your USDC balances. Use the Log in pill in the nav.
+          {bc.signedOutBody}
         </p>
       </div>
     );
@@ -126,9 +129,9 @@ export function BalancesCard({
 
   const active = groups[view];
   const tabs: Array<{ key: View; label: string; disabled?: boolean }> = [
-    { key: 'you', label: 'You' },
-    { key: 'buyer', label: 'Buyer', disabled: !buyer },
-    { key: 'seller', label: 'Seller', disabled: !seller },
+    { key: 'you', label: bc.tabs.you },
+    { key: 'buyer', label: bc.tabs.buyer, disabled: !buyer },
+    { key: 'seller', label: bc.tabs.seller, disabled: !seller },
   ];
 
   const allBalances = [youBal, buyerBal, sellerBal].flatMap((g) => Object.values(g));
@@ -152,13 +155,13 @@ export function BalancesCard({
       <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:HOLDINGS:]
+            {bc.eyebrow}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            USDC balances
+            {bc.title}
           </h2>
           <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            across {rows.length} chains
+            {bc.chainCountTemplate.replace('{n}', String(rows.length))}
           </p>
         </div>
         <button
@@ -183,7 +186,7 @@ export function BalancesCard({
               strokeLinejoin="round"
             />
           </svg>
-          {busy ? 'Refreshing' : 'Refresh'}
+          {busy ? bc.refreshing : bc.refresh}
         </button>
       </div>
 
@@ -266,11 +269,11 @@ export function BalancesCard({
 
       <div className="px-6 py-3.5 mt-auto border-t border-[var(--lp-border-light)] flex items-baseline justify-between gap-3">
         <p className="mono text-[11px] tabular-nums text-[var(--lp-text-muted)]">
-          {active.address ? shortAddress(active.address) : 'not configured'}
+          {active.address ? shortAddress(active.address) : bc.notConfigured}
         </p>
         {lastUpdated > 0 && (
           <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            updated {timeAgo(lastUpdated)}
+            {bc.updatedTemplate.replace('{time}', timeAgo(lastUpdated, bc.timeAgo))}
           </p>
         )}
       </div>
@@ -278,12 +281,12 @@ export function BalancesCard({
   );
 }
 
-function timeAgo(ts: number): string {
+function timeAgo(ts: number, copy: Messages['balancesCard']['timeAgo']): string {
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (s < 5) return 'just now';
-  if (s < 60) return `${s}s ago`;
+  if (s < 5) return copy.justNow;
+  if (s < 60) return copy.secondsTemplate.replace('{n}', String(s));
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return copy.minutesTemplate.replace('{n}', String(m));
   const h = Math.floor(m / 60);
-  return `${h}h ago`;
+  return copy.hoursTemplate.replace('{n}', String(h));
 }

@@ -2,13 +2,15 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api, ApiError } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
-const PRESETS: { label: string; seconds: number }[] = [
-  { label: '+6 hours', seconds: 6 * 3600 },
-  { label: '+12 hours', seconds: 12 * 3600 },
-  { label: '+1 day', seconds: 24 * 3600 },
-  { label: '+3 days', seconds: 3 * 24 * 3600 },
-  { label: '+7 days', seconds: 7 * 24 * 3600 },
+const PRESETS: { key: keyof Messages['extensionRequest']['presets']; seconds: number }[] = [
+  { key: 'sixHours', seconds: 6 * 3600 },
+  { key: 'twelveHours', seconds: 12 * 3600 },
+  { key: 'oneDay', seconds: 24 * 3600 },
+  { key: 'threeDays', seconds: 3 * 24 * 3600 },
+  { key: 'sevenDays', seconds: 7 * 24 * 3600 },
 ];
 
 interface Props {
@@ -28,6 +30,7 @@ export function ExtensionRequestModal({
   onClose,
   onSubmitted,
 }: Props) {
+  const er = useTranslations().extensionRequest;
   const [seconds, setSeconds] = useState<number>(PRESETS[1].seconds);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -50,7 +53,7 @@ export function ExtensionRequestModal({
         err instanceof ApiError && err.detail
           ? String(err.detail)
           : (err as Error).message;
-      setError(message || 'Could not send the request.');
+      setError(message || er.errorFallback);
     } finally {
       setBusy(false);
     }
@@ -65,7 +68,7 @@ export function ExtensionRequestModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Request more delivery time"
+        aria-label={er.ariaLabel}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[460px] overflow-hidden fade-up"
         style={{
@@ -80,20 +83,19 @@ export function ExtensionRequestModal({
       >
         <div className="px-6 pt-6 pb-2">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:REQUEST EXTENSION:]
+            {er.tag}
           </p>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            Ask the buyer for more time.
+            {er.title}
           </h2>
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-            Pick how much more time you need. If they approve, the delivery
-            deadline shifts by that amount.
+            {er.body}
           </p>
         </div>
 
         <div className="px-6 pt-4">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
-            [:DURATION:]
+            {er.durationEyebrow}
           </p>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => {
@@ -116,7 +118,7 @@ export function ExtensionRequestModal({
                     borderBottomRightRadius: 3,
                   }}
                 >
-                  {p.label}
+                  {er.presets[p.key]}
                 </button>
               );
             })}
@@ -125,13 +127,13 @@ export function ExtensionRequestModal({
 
         <div className="px-6 pt-5">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
-            [:REASON. OPTIONAL:]
+            {er.reasonEyebrow}
           </p>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value.slice(0, 280))}
             rows={3}
-            placeholder="A short note for the buyer."
+            placeholder={er.reasonPlaceholder}
             className="w-full bg-[var(--lp-light)] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] px-3.5 py-2.5 text-[13px] leading-relaxed focus:outline-none resize-none"
             style={{
               border: '1px solid var(--lp-border-light)',
@@ -177,7 +179,7 @@ export function ExtensionRequestModal({
               borderBottomRightRadius: 3,
             }}
           >
-            {busy ? 'Sending…' : 'Send request'}
+            {busy ? er.sending : er.send}
           </button>
           <button
             type="button"
@@ -185,7 +187,7 @@ export function ExtensionRequestModal({
             disabled={busy}
             className="px-4 py-2.5 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
           >
-            Cancel
+            {er.cancel}
           </button>
         </div>
       </div>

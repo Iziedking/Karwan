@@ -17,6 +17,8 @@ import {
 } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
 import { MARKET_TOUR_ID, MARKET_STEPS } from '@/shared/guide/tours';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 type Side = 'all' | 'offers' | 'briefs';
 
@@ -40,6 +42,7 @@ interface Card {
 }
 
 export function ListingsBrowse() {
+  const lb = useTranslations().listingsBrowse;
   const { address, isAuthenticated, isLoading } = useAuth();
   const [listings, setListings] = useState<Listing[] | null>(null);
   const [briefs, setBriefs] = useState<MarketplaceBrief[] | null>(null);
@@ -81,10 +84,10 @@ export function ListingsBrowse() {
         title: l.title,
         body: l.description,
         priceUsdc: l.askingPriceUsdc,
-        priceLabel: 'asking',
+        priceLabel: lb.card.priceLabelAsking,
         postedAt: l.postedAt,
         partyShort: shortAddress(l.sellerUser),
-        partyRole: 'SELLER',
+        partyRole: lb.card.partyRoleSeller,
         partyIsYou: !!a && l.sellerUser.toLowerCase() === a,
         matched: !!l.matchedAt,
       }));
@@ -93,6 +96,12 @@ export function ListingsBrowse() {
         (b.briefText.split('\n')[0] || b.briefText).slice(0, 80) ||
         `Request ${b.jobId.slice(0, 10)}`;
       const body = b.briefText.length > title.length ? b.briefText : '';
+      const metaCopy =
+        b.bidsCount === 0
+          ? lb.card.metaAwaitingBids
+          : b.bidsCount === 1
+            ? lb.card.metaBidOne
+            : lb.card.metaBidsTemplate.replace('{n}', String(b.bidsCount));
       return {
         side: 'brief',
         id: b.jobId,
@@ -100,13 +109,13 @@ export function ListingsBrowse() {
         title,
         body,
         priceUsdc: Number(b.budgetUsdc),
-        priceLabel: 'budget',
+        priceLabel: lb.card.priceLabelBudget,
         postedAt: b.postedAt,
         partyShort: b.buyer,
-        partyRole: 'BUYER',
+        partyRole: lb.card.partyRoleBuyer,
         partyIsYou: false,
         matched: false,
-        meta: b.bidsCount > 0 ? `${b.bidsCount} bid${b.bidsCount === 1 ? '' : 's'}` : 'awaiting bids',
+        meta: metaCopy,
       };
     });
     return [...offerCards, ...briefCards].sort((x, y) => y.postedAt - x.postedAt);
@@ -124,9 +133,9 @@ export function ListingsBrowse() {
   const empty = !loading && shown.length === 0;
 
   const FILTERS: Array<{ key: Side; label: string; count: number }> = [
-    { key: 'all', label: 'All', count: cards.length },
-    { key: 'offers', label: 'Offers', count: offersCount },
-    { key: 'briefs', label: 'Requests', count: briefsCount },
+    { key: 'all', label: lb.filters.all, count: cards.length },
+    { key: 'offers', label: lb.filters.offers, count: offersCount },
+    { key: 'briefs', label: lb.filters.briefs, count: briefsCount },
   ];
 
   if (isLoading) return null;
@@ -135,8 +144,8 @@ export function ListingsBrowse() {
     return (
       <SignInGate
         variant="page"
-        tag="MARKETPLACE"
-        body="Live offers and requests matched to your profile. Sign in to watch both sides."
+        tag={lb.signInTag}
+        body={lb.signInBody}
       />
     );
   }
@@ -147,19 +156,20 @@ export function ListingsBrowse() {
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
           <SectionTag tone="dark" dot="live">
-            MARKETPLACE
+            {lb.heroTag}
           </SectionTag>
         </div>
         <div className="fade-up fade-up-1 mt-5">
           <HeroHeadline>
-            What sellers offer.{' '}
+            {lb.heroHeadlinePart1}{' '}
             <br className="hidden md:inline" />
-            What buyers <Accent>need</Accent>
+            {lb.heroHeadlinePart2Prefix}
+            <Accent>{lb.heroAccent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
         </div>
         <p className="fade-up fade-up-2 mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
-          Live offers and requests on Karwan. Matches land in your bell and Telegram.
+          {lb.heroBody}
         </p>
       </Band>
 
@@ -202,13 +212,13 @@ export function ListingsBrowse() {
             })}
           </div>
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            LIVE FROM KARWAN
+            {lb.liveCaption}
           </p>
         </div>
 
         {error && (
           <p className="py-12 text-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Couldn&apos;t load the marketplace.
+            {lb.error}
           </p>
         )}
         {loading && !error && (
@@ -225,12 +235,12 @@ export function ListingsBrowse() {
           <PageCard>
             <div className="px-6 py-12 text-center space-y-2">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {cards.length === 0 ? 'EMPTY MARKET' : 'NO MATCH'}
+                {cards.length === 0 ? lb.emptyAllTag : lb.emptyFilteredTag}
               </p>
               <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
                 {cards.length === 0
-                  ? 'No offers or requests yet. Post one to start the network.'
-                  : `No ${side} right now.`}
+                  ? lb.emptyAllBody
+                  : lb.emptyFilteredTemplate.replace('{side}', side)}
               </p>
             </div>
           </PageCard>
@@ -238,7 +248,7 @@ export function ListingsBrowse() {
         {!loading && !error && shown.length > 0 && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {shown.map((c) => (
-              <MarketCard key={`${c.side}-${c.id}`} card={c} />
+              <MarketCard key={`${c.side}-${c.id}`} card={c} copy={lb.card} />
             ))}
           </div>
         )}
@@ -247,9 +257,19 @@ export function ListingsBrowse() {
   );
 }
 
-function MarketCard({ card }: { card: Card }) {
+function MarketCard({
+  card,
+  copy,
+}: {
+  card: Card;
+  copy: Messages['listingsBrowse']['card'];
+}) {
   const sideTone = card.side === 'offer' ? '#0a7553' : '#b25425';
-  const statusLabel = card.matched ? 'MATCHED' : card.side === 'offer' ? 'OFFER' : 'REQUEST';
+  const statusLabel = card.matched
+    ? copy.statusMatched
+    : card.side === 'offer'
+      ? copy.statusOffer
+      : copy.statusRequest;
   const statusTone = card.matched ? 'var(--lp-accent)' : sideTone;
   return (
     <Link
@@ -300,13 +320,13 @@ function MarketCard({ card }: { card: Card }) {
             {formatUsdc(card.priceUsdc, { withSuffix: false })}
           </span>
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            USDC {card.priceLabel}
+            {copy.priceUnitTemplate.replace('{label}', card.priceLabel)}
           </span>
         </div>
         <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)] shrink-0">
           {card.partyRole} {card.partyShort}
           {card.partyIsYou && (
-            <span style={{ color: 'var(--lp-accent)' }}> · you</span>
+            <span style={{ color: 'var(--lp-accent)' }}>{copy.selfSuffix}</span>
           )}
         </span>
       </div>
