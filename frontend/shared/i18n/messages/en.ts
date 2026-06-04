@@ -1297,6 +1297,572 @@ interface MessagesShape {
       priceUnitTemplate: string;
     };
   };
+  agentWithdrawCard: {
+    header: {
+      eyebrow: string;
+      title: string;
+      subtitle: string;
+    };
+    agents: {
+      buyer: string;
+      seller: string;
+      notConfigured: string;
+      balanceLabel: string;
+    };
+    form: {
+      fromEyebrow: string;
+      amountEyebrow: string;
+      availableTemplate: string;
+      amountPlaceholder: string;
+      destinationEyebrow: string;
+      destinationPlaceholder: string;
+      yourWalletHint: string;
+    };
+    submit: {
+      signIn: string;
+      sending: string;
+      withdrawTemplate: string;
+      agentFallback: string;
+    };
+    success: {
+      message: string;
+    };
+    errors: {
+      invalidAddress: string;
+      failedTag: string;
+    };
+  };
+  bridgeCard: {
+    title: string;
+    cctpV2: string;
+    arcTestnet: string;
+    buyerAgentNotConfigured: string;
+    inFlightTemplate: string;
+    eyebrow: {
+      bridge: string;
+      topUpAgent: string;
+      sourceChain: string;
+      amount: string;
+      mintsTo: string;
+      activity: string;
+    };
+    sourceChain: {
+      sepoliaDomainTemplate: string;
+      devnetAppKit: string;
+      circleOnlyTag: string;
+      solanaCircleOnlyTitle: string;
+    };
+    amount: {
+      balanceMaxTemplate: string;
+      maxTitle: string;
+    };
+    submit: {
+      bridgeFromTemplate: string;
+      switchToTemplate: string;
+      switchingToTemplate: string;
+      solanaNeedsCircle: string;
+      connectWallet: string;
+    };
+    activity: {
+      clearHistory: string;
+      clearHistoryTitle: string;
+      bridgeSingular: string;
+      bridgePlural: string;
+    };
+    row: {
+      stale: string;
+      burnLabelTemplate: string;
+      mintLabel: string;
+      stuckNote: string;
+      recheckOnChain: string;
+      retryFromStart: string;
+      dismiss: string;
+      elapsed: {
+        secondsTemplate: string;
+        minutesTemplate: string;
+        hoursTemplate: string;
+      };
+      phase: {
+        switchingTo: string;
+        switchingChain: string;
+        approving: string;
+        burning: string;
+        relaying: string;
+        attesting: string;
+        minting: string;
+        done: string;
+        error: string;
+      };
+      progress: {
+        approve: string;
+        burn: string;
+        attest: string;
+        mint: string;
+      };
+      steps: {
+        approveTemplate: string;
+        burnTemplate: string;
+        circleAttestation: string;
+        attestationHint: string;
+        mintArc: string;
+      };
+      error: {
+        errorBadge: string;
+      };
+    };
+    circleFund: {
+      badgeFunded: string;
+      badgeFundToBridge: string;
+      statusChecking: string;
+      statusEmpty: string;
+      statusFunded: string;
+      statusSendUsdc: string;
+      balanceHere: string;
+      gas: string;
+      sponsored: string;
+      gasSponsoredNote: string;
+      addressLabel: string;
+      provisioning: string;
+      copy: string;
+      copied: string;
+      getUsdc: string;
+      requesting: string;
+      testUsdcRequested: string;
+      circleFaucet: string;
+    };
+    appKitFund: {
+      eyebrowTemplate: string;
+      descriptionTemplate: string;
+      addressLabelTemplate: string;
+      provisioning: string;
+      copy: string;
+      copied: string;
+      claimGasTemplate: string;
+      getTestUsdc: string;
+    };
+    web3Fund: {
+      eyebrowTemplate: string;
+      descriptionTemplate: string;
+      claimGasTemplate: string;
+      getTestUsdc: string;
+      requesting: string;
+      testUsdcSentTemplate: string;
+    };
+  };
+  stakeCard: {
+    eyebrow: {
+      stake: string;
+    };
+    signedOut: {
+      body: string;
+    };
+    summary: {
+      usdcActive: string;
+      syncing: string;
+      syncingTitle: string;
+      freeLabel: string;
+      reservedLabel: string;
+      reservedTitle: string;
+      coolingLabel: string;
+    };
+    wrongNetwork: {
+      eyebrow: string;
+      body: string;
+      switchButton: string;
+    };
+    vaultNotDeployed: {
+      prefix: string;
+      middle: string;
+      suffix: string;
+    };
+    yield: {
+      eyebrow: string;
+      bodyPrefix: string;
+      bodyMiddle: string;
+      bodySuffix: string;
+    };
+    depositForm: {
+      label: string;
+      max: string;
+      maxTitleTemplate: string;
+      maxTitleLoading: string;
+      inputAria: string;
+      submit: string;
+      submitBusy: string;
+      insufficientBalanceTemplate: string;
+    };
+    withdrawForm: {
+      label: string;
+      max: string;
+      maxTitleFreeTemplate: string;
+      maxTitleAllReserved: string;
+      maxTitleNone: string;
+      inputAria: string;
+      submit: string;
+      submitBusy: string;
+      insufficientFreeTemplate: string;
+      insufficientStakeTemplate: string;
+    };
+    confirm: {
+      eyebrow: string;
+      coolPrefix: string;
+      coolMiddle: string;
+      daysTemplate: string;
+      roundedPrefix: string;
+      roundedMiddle: string;
+      smallestSingleTemplate: string;
+      smallestMultiTemplate: string;
+      roundedSuffix: string;
+      disclaimerTemplate: string;
+      cancel: string;
+      confirm: string;
+    };
+    cooldownFooterTemplate: string;
+    cooling: {
+      label: string;
+      usdcCooling: string;
+      preparing: string;
+      claimReady: string;
+      claimInDaysHoursTemplate: string;
+      claimInHoursMinutesTemplate: string;
+      cancelTitle: string;
+      cancelLabel: string;
+      cancelling: string;
+      claimLabel: string;
+      claimBusy: string;
+    };
+    recent: {
+      label: string;
+      kinds: {
+        deposit: string;
+        request: string;
+        cancel: string;
+        claim: string;
+      };
+      failedFallback: string;
+    };
+    positionAction: {
+      confirmRequestTemplate: string;
+    };
+    errors: {
+      insufficientBalanceTemplate: string;
+      insufficientFreeStakeTemplate: string;
+      insufficientStakeTemplate: string;
+      walletNotReady: string;
+    };
+  };
+  directDealDetail: {
+    hero: {
+      eyebrow: string;
+      openedTemplate: string;
+    };
+    errorStates: {
+      privateEyebrow: string;
+      privateTitle: string;
+      privateBody: string;
+      privateCta: string;
+      notFoundEyebrow: string;
+      notFoundTitle: string;
+      notFoundBody: string;
+      notFoundCta: string;
+    };
+    connectGate: {
+      eyebrow: string;
+      titleLead: string;
+      titleAccent: string;
+      body: string;
+    };
+    notPartyGate: {
+      eyebrow: string;
+      titleLead: string;
+      titleAccent: string;
+      body: string;
+      ctaOpen: string;
+      ctaHome: string;
+    };
+    legacyBanner: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
+    parties: {
+      cardLabel: string;
+      buyer: string;
+      seller: string;
+      youSuffix: string;
+    };
+    funding: {
+      cardLabel: string;
+      buyerFunds: string;
+      sellerReceives: string;
+      platformFee: string;
+      onDeliveryTemplate: string;
+      onVerificationTemplate: string;
+      protectedEyebrow: string;
+    };
+    fundingSafety: {
+      settled: string;
+      awaitingAcceptanceBuyer: string;
+      awaitingAcceptanceSeller: string;
+      activeBuyer: string;
+      activeSeller: string;
+    };
+    terms: {
+      eyebrow: string;
+      title: string;
+      deadlineTemplate: string;
+      noDeadline: string;
+      deliveryProofLabel: string;
+    };
+    progress: {
+      eyebrow: string;
+      titleLead: string;
+      titleAccent: string;
+    };
+    progressTrack: {
+      opened: string;
+      accepted: string;
+      delivered: string;
+      firstReleasedTemplate: string;
+      finalReleasedTemplate: string;
+    };
+    actions: {
+      eyebrow: string;
+      titleLead: string;
+      titleAccent: string;
+    };
+    proposeBlock: {
+      orEyebrow: string;
+      disputeBody: string;
+      cancelBody: string;
+      disputeCta: string;
+      cancelCta: string;
+    };
+    fundingTxLabel: string;
+    chat: {
+      eyebrow: string;
+      titleLead: string;
+      titleAccent: string;
+      body: string;
+      counterpartySellerTemplate: string;
+      counterpartyBuyerTemplate: string;
+    };
+    actionPanel: {
+      settled: {
+        releasedFromDispute: string;
+        autoReleased: string;
+        normal: string;
+        cashoutTemplate: string;
+      };
+      cancelled: {
+        preAccept: string;
+        unilateral: string;
+        refundFromDisputePrefix: string;
+        refundFromDisputePartialTailTemplate: string;
+        refundFromDisputeFullTail: string;
+        platformAttributedPrefix: string;
+        mutualPrefix: string;
+        mutualPartialTemplate: string;
+        mutualFullTemplate: string;
+        reasonEyebrow: string;
+      };
+      disputed: {
+        intro: string;
+        refundLabel: string;
+        refundBody: string;
+        refundBodyWithReservation: string;
+        releaseLabel: string;
+        releaseBody: string;
+      };
+      awaitingAcceptance: {
+        sellerIntro: string;
+        trustedMatchPrefix: string;
+        trustedMatchMiddleTemplate: string;
+        trustedMatchSuffix: string;
+        acceptCta: string;
+        acceptBusy: string;
+        buyerWaiting: string;
+        buyerWaitingInviteTemplate: string;
+        editTermsCta: string;
+        cancelCta: string;
+        cancelBusy: string;
+      };
+      awaitingDelivery: {
+        sellerIntroTemplate: string;
+        proofEyebrow: string;
+        proofPlaceholder: string;
+        markDeliveredCta: string;
+        markDeliveredBusy: string;
+        extensionTitlePending: string;
+        extensionTitleAsk: string;
+        extensionPendingCta: string;
+        extensionRequestCta: string;
+        buyerIntro: string;
+        buyerNoDeadlineTail: string;
+        buyerHasDeadlineTail: string;
+        buyerDeadlinePassedNote: string;
+        reclaimCta: string;
+        reclaimBusy: string;
+      };
+      awaitingFirstRelease: {
+        buyerIntroTemplate: string;
+        buyerAutoReleasePrefixTemplate: string;
+        buyerAutoReleaseSuffix: string;
+        buyerExpiredTemplate: string;
+        releaseCtaTemplate: string;
+        releaseBusy: string;
+        appealCta: string;
+        sellerWaitingTemplate: string;
+        sellerOpenPrefix: string;
+        sellerOpenSuffixTemplate: string;
+        sellerExpiredTemplate: string;
+      };
+      awaitingFinalRelease: {
+        buyerIntroTemplate: string;
+        buyerResponseExpiredTemplate: string;
+        buyerNoAppealTemplate: string;
+        releaseCtaTemplate: string;
+        releaseBusy: string;
+        appealCta: string;
+        sellerWaitingTemplate: string;
+        sellerAppealOpenPrefix: string;
+        sellerAppealOpenSuffixTemplate: string;
+        sellerResponseExpiredTemplate: string;
+        sellerBuyerResponded: string;
+        sellerGracePrefix: string;
+        sellerGraceSuffix: string;
+        raiseAppealCta: string;
+        raiseAppealBusy: string;
+        openDisputeCta: string;
+      };
+      delayAppealResponder: {
+        eyebrow: string;
+        prefix: string;
+        suffixTemplate: string;
+        placeholder: string;
+        submitCta: string;
+        submitBusy: string;
+      };
+      pendingInvite: {
+        eyebrow: string;
+        bodyTemplate: string;
+        copyCta: string;
+        copied: string;
+      };
+      acceptanceCountdown: {
+        openSellerPrefix: string;
+        openSellerSuffix: string;
+        openBuyerPrefix: string;
+        openBuyerSuffix: string;
+        expired: string;
+      };
+      extensionDuration: {
+        dayTemplate: string;
+        daysTemplate: string;
+        hourTemplate: string;
+        hoursTemplate: string;
+      };
+      extensionPending: {
+        eyebrow: string;
+        prefix: string;
+        reasonPrefix: string;
+        duration: {
+          dayTemplate: string;
+          daysTemplate: string;
+          hourTemplate: string;
+          hoursTemplate: string;
+        };
+      };
+      extensionBuyerBanner: {
+        eyebrow: string;
+        requestPrefix: string;
+        requestSuffix: string;
+        reasonPrefix: string;
+        newDeadlinePrefix: string;
+        approveCta: string;
+        approveBusy: string;
+        declineCta: string;
+        duration: {
+          dayTemplate: string;
+          daysTemplate: string;
+          hourTemplate: string;
+          hoursTemplate: string;
+        };
+      };
+    };
+    acceptConsentModal: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      confirmCta: string;
+      confirmBusy: string;
+      cancelCta: string;
+    };
+    cancelProposalBanner: {
+      kindReleaseToSeller: string;
+      kindRefundBuyer: string;
+      kindPlatformMisroute: string;
+      kindMutualCancel: string;
+      proposedTemplate: string;
+      proposerBuyer: string;
+      proposerSeller: string;
+      byTemplate: string;
+      reasonEyebrow: string;
+      outcomeReleaseFromDispute: string;
+      outcomeRefundFromDisputePartialTemplate: string;
+      outcomeRefundFromDisputeFull: string;
+      outcomePlatformPrefix: string;
+      outcomeMutualPrefix: string;
+      outcomePartialTemplate: string;
+      outcomeFull: string;
+      legacyCta: string;
+      legacyNote: string;
+      acceptReleaseCta: string;
+      acceptRefundCta: string;
+      confirmingBusy: string;
+      declineDisputeCta: string;
+      declineCancelCta: string;
+      waitingNote: string;
+    };
+    proposeCancelModal: {
+      eyebrowResolution: string;
+      eyebrowCancellation: string;
+      titleDispute: string;
+      titleCancel: string;
+      disputeBody: string;
+      cancelBodyTemplate: string;
+      cancelOutcomePartialTemplate: string;
+      cancelOutcomeFull: string;
+      kindEyebrowResolution: string;
+      kindEyebrowKind: string;
+      kindRefundBuyerLabel: string;
+      kindRefundBuyerBody: string;
+      kindRefundBuyerBodyWithReservation: string;
+      kindReleaseSellerLabel: string;
+      kindReleaseSellerBody: string;
+      kindMutualLabel: string;
+      kindMutualBody: string;
+      kindPlatformLabel: string;
+      kindPlatformBody: string;
+      reasonEyebrow: string;
+      reasonPlaceholder: string;
+      submitCta: string;
+      submitBusy: string;
+      cancelCta: string;
+    };
+    errors: {
+      insufficientBalanceTitle: string;
+      insufficientBalanceBuyerPrefix: string;
+      insufficientBalanceBuyerLink: string;
+      insufficientBalanceSeller: string;
+      insufficientGas: string;
+      insufficientStakeTitle: string;
+      insufficientStakeLink: string;
+      insufficientStakeSuffix: string;
+      acceptEscrowFailedTitle: string;
+    };
+  };
   balancesCard: {
     eyebrow: string;
     signedOutBody: string;
@@ -3117,6 +3683,572 @@ export const en: MessagesShape = {
       metaBidsTemplate: '{n} bids',
       metaAwaitingBids: 'awaiting bids',
       priceUnitTemplate: 'USDC {label}',
+    },
+  },
+  agentWithdrawCard: {
+    header: {
+      eyebrow: '[:WITHDRAW:]',
+      title: 'Sweep from agent',
+      subtitle: 'Agent signs · settles on Arc',
+    },
+    agents: {
+      buyer: 'Buyer agent',
+      seller: 'Seller agent',
+      notConfigured: 'not configured',
+      balanceLabel: 'Balance',
+    },
+    form: {
+      fromEyebrow: '[:FROM:]',
+      amountEyebrow: '[:AMOUNT:]',
+      availableTemplate: '{amount} available',
+      amountPlaceholder: '0',
+      destinationEyebrow: '[:DESTINATION:]',
+      destinationPlaceholder: '0x...',
+      yourWalletHint: 'Your wallet.',
+    },
+    submit: {
+      signIn: 'Sign in to withdraw',
+      sending: 'Sending on Arc...',
+      withdrawTemplate: 'Withdraw from {agent}',
+      agentFallback: 'agent',
+    },
+    success: {
+      message: 'Withdrawal sent.',
+    },
+    errors: {
+      invalidAddress: 'Not a valid 20-byte address.',
+      failedTag: 'WITHDRAW FAILED',
+    },
+  },
+  bridgeCard: {
+    title: 'Bridge to Arc',
+    cctpV2: 'CCTP V2',
+    arcTestnet: 'Arc Testnet',
+    buyerAgentNotConfigured: 'Buyer agent not configured.',
+    inFlightTemplate: '{n} IN FLIGHT',
+    eyebrow: {
+      bridge: '[:BRIDGE:]',
+      topUpAgent: '[:TOP UP AGENT:]',
+      sourceChain: '[:SOURCE CHAIN:]',
+      amount: '[:AMOUNT:]',
+      mintsTo: '[:MINTS TO:]',
+      activity: '[:ACTIVITY:]',
+    },
+    sourceChain: {
+      sepoliaDomainTemplate: 'Sepolia · d{domain}',
+      devnetAppKit: 'Devnet · App Kit',
+      circleOnlyTag: 'Circle only',
+      solanaCircleOnlyTitle: 'Solana bridge runs through Circle App Kit. Sign in with a Circle account to use it.',
+    },
+    amount: {
+      balanceMaxTemplate: 'Balance {amount} · MAX',
+      maxTitle: 'Use full balance',
+    },
+    submit: {
+      bridgeFromTemplate: 'Bridge from {chain}',
+      switchToTemplate: 'Switch to {chain}',
+      switchingToTemplate: 'Switching to {chain}…',
+      solanaNeedsCircle: 'Solana bridge needs a Circle account',
+      connectWallet: 'Connect wallet to bridge',
+    },
+    activity: {
+      clearHistory: 'Clear history',
+      clearHistoryTitle: 'Remove finished and failed bridges from your local history. Active bridges are kept.',
+      bridgeSingular: 'BRIDGE',
+      bridgePlural: 'BRIDGES',
+    },
+    row: {
+      stale: 'STALE',
+      burnLabelTemplate: 'BURN · {chain}',
+      mintLabel: 'MINT · ARC',
+      stuckNote: 'This bridge has been waiting far longer than the usual 10 to 19 minutes. The relay was likely interrupted, or the mint already landed and this card missed the event. Dismissing it only clears the card. The burn on chain and any mint are unaffected.',
+      recheckOnChain: 'Recheck on chain',
+      retryFromStart: 'Retry from start',
+      dismiss: 'Dismiss',
+      elapsed: {
+        secondsTemplate: '{n}s',
+        minutesTemplate: '{n}m',
+        hoursTemplate: '{h}h {m}m',
+      },
+      phase: {
+        switchingTo: 'Switching to {chain}',
+        switchingChain: 'Switching chain',
+        approving: 'Approving USDC',
+        burning: 'Burning',
+        relaying: 'Submitting to relay',
+        attesting: 'Waiting for attestation',
+        minting: 'Minting on Arc',
+        done: 'Bridged',
+        error: 'Failed',
+      },
+      progress: {
+        approve: 'Approve',
+        burn: 'Burn',
+        attest: 'Attest',
+        mint: 'Mint',
+      },
+      steps: {
+        approveTemplate: 'Approve · {chain}',
+        burnTemplate: 'Burn · {chain}',
+        circleAttestation: 'Circle attestation',
+        attestationHint: '~10-19 MIN',
+        mintArc: 'Mint · Arc',
+      },
+      error: {
+        errorBadge: 'ERROR',
+      },
+    },
+    circleFund: {
+      badgeFunded: 'FUNDED',
+      badgeFundToBridge: 'FUND TO BRIDGE',
+      statusChecking: 'Checking your source-chain wallet…',
+      statusEmpty: 'This wallet is empty. Send testnet USDC here, then bridge.',
+      statusFunded: 'Funded. You can bridge now.',
+      statusSendUsdc: 'Send USDC to this address first, then bridge.',
+      balanceHere: 'Balance here',
+      gas: 'Gas',
+      sponsored: 'Sponsored',
+      gasSponsoredNote: 'No ETH needed here. Karwan sponsors the gas for this burn, so you only fund USDC.',
+      addressLabel: 'Your source-chain Circle address',
+      provisioning: 'provisioning…',
+      copy: 'COPY',
+      copied: 'COPIED',
+      getUsdc: 'Get USDC',
+      requesting: 'Requesting',
+      testUsdcRequested: 'Test USDC requested. It lands here in about a minute.',
+      circleFaucet: 'Circle faucet',
+    },
+    appKitFund: {
+      eyebrowTemplate: '[:FUND {chain} TO BRIDGE:]',
+      descriptionTemplate: '{name} bridges through Circle App Kit. Karwan signs the burn from your dedicated {shortName} wallet, so you fund that address with USDC once and {nativeSymbol} for blockhash fees. Auto-drip is unreliable on devnet, so claim from the public faucets directly.',
+      addressLabelTemplate: 'Your {chain} Circle address',
+      provisioning: 'provisioning…',
+      copy: 'COPY',
+      copied: 'COPIED',
+      claimGasTemplate: 'Claim {native} gas',
+      getTestUsdc: 'Get test USDC',
+    },
+    web3Fund: {
+      eyebrowTemplate: '[:FUND {chain} TO BRIDGE:]',
+      descriptionTemplate: 'You sign the burn on {name}, so your wallet needs {nativeSymbol} for gas. Claim gas from the faucet, then pull test USDC here.',
+      claimGasTemplate: 'Claim {native} gas',
+      getTestUsdc: 'Get test USDC',
+      requesting: 'Requesting',
+      testUsdcSentTemplate: 'Test USDC sent to your wallet on {name}. Lands in about a minute, then bridge.',
+    },
+  },
+  stakeCard: {
+    eyebrow: {
+      stake: 'STAKE',
+    },
+    signedOut: {
+      body: 'Sign in to deposit USDC into KarwanVault. Stake earns reputation; the score grows your tier and softens the agent loop in your favor.',
+    },
+    summary: {
+      usdcActive: 'USDC ACTIVE',
+      syncing: 'syncing',
+      syncingTitle: 'Scanning chain history. The total may still rise.',
+      freeLabel: 'FREE',
+      reservedLabel: 'RESERVED',
+      reservedTitle: 'Locked against an active deal as buyer-side insurance. Releases on settle, slashes to the buyer on a dispute you lose.',
+      coolingLabel: 'COOLING',
+    },
+    wrongNetwork: {
+      eyebrow: 'WRONG NETWORK',
+      body: 'Your wallet is on another network. Switch to Arc Testnet to stake.',
+      switchButton: 'Switch to Arc',
+    },
+    vaultNotDeployed: {
+      prefix: 'KarwanVault is not deployed on this environment. Set',
+      middle: 'in',
+      suffix: 'and restart the backend.',
+    },
+    yield: {
+      eyebrow: 'MAINNET YIELD',
+      bodyPrefix: 'On testnet the vault holds plain USDC. On mainnet the same stake routes through',
+      bodyMiddle: 'and earns roughly',
+      bodySuffix: 'APY while it builds your reputation.',
+    },
+    depositForm: {
+      label: 'DEPOSIT',
+      max: 'MAX',
+      maxTitleTemplate: 'Wallet balance: {amount} USDC. Click to fill.',
+      maxTitleLoading: 'Loading wallet balance…',
+      inputAria: 'Deposit amount in USDC',
+      submit: 'Deposit',
+      submitBusy: 'Depositing…',
+      insufficientBalanceTemplate: 'Insufficient balance. You have {amount} USDC.',
+    },
+    withdrawForm: {
+      label: 'WITHDRAW',
+      max: 'MAX',
+      maxTitleFreeTemplate: 'Free stake: {amount} USDC. Click to fill. (Reserved stake stays locked until the deal settles.)',
+      maxTitleAllReserved: 'All your active stake is reserved against open deals. It unlocks when those deals settle.',
+      maxTitleNone: 'No active stake to withdraw',
+      inputAria: 'Withdraw amount in USDC',
+      submit: 'Withdraw',
+      submitBusy: 'Cooling…',
+      insufficientFreeTemplate: 'Insufficient free stake. You have {free} USDC free ({reserved} USDC reserved against open deals).',
+      insufficientStakeTemplate: 'Insufficient stake. You have {free} USDC active.',
+    },
+    confirm: {
+      eyebrow: 'CONFIRM WITHDRAWAL',
+      coolPrefix: 'Cool',
+      coolMiddle: 'for',
+      daysTemplate: '{days} days',
+      roundedPrefix: 'Rounded up from your',
+      roundedMiddle: 'USDC request. The vault cools whole positions only, and your smallest matching position is',
+      smallestSingleTemplate: '#{positionId} ({principal} USDC)',
+      smallestMultiTemplate: '{count} positions',
+      roundedSuffix: 'To cool less, deposit smaller amounts next time.',
+      disclaimerTemplate: 'This stake stops earning reputation during the cool-down. Cancel anytime in the {days}-day window to resume earning with tenure intact.',
+      cancel: 'Cancel',
+      confirm: 'Confirm',
+    },
+    cooldownFooterTemplate: 'Withdrawal starts a {days}-day cool-down. After that the stake is claimable to your wallet.',
+    cooling: {
+      label: 'COOLING',
+      usdcCooling: 'USDC COOLING',
+      preparing: 'preparing cool-down',
+      claimReady: 'claim ready',
+      claimInDaysHoursTemplate: 'claim in {days}d {hours}h',
+      claimInHoursMinutesTemplate: 'claim in {hours}h {minutes}m',
+      cancelTitle: 'Cancel this withdrawal and put the stake back to Active. Tenure stays intact.',
+      cancelLabel: '↶ cancel',
+      cancelling: 'cancelling',
+      claimLabel: 'Claim to wallet',
+      claimBusy: 'Claiming…',
+    },
+    recent: {
+      label: 'RECENT',
+      kinds: {
+        deposit: 'deposit',
+        request: 'request',
+        cancel: 'cancel',
+        claim: 'claim',
+      },
+      failedFallback: 'failed',
+    },
+    positionAction: {
+      confirmRequestTemplate: 'Start the {days}-day withdrawal cool-down on position #{positionId}? Stake stops earning reputation until you cancel or claim.',
+    },
+    errors: {
+      insufficientBalanceTemplate: 'Insufficient balance. You have {amount} USDC.',
+      insufficientFreeStakeTemplate: 'Insufficient free stake. You have {free} USDC free, {reserved} USDC reserved against open deals.',
+      insufficientStakeTemplate: 'Insufficient stake. You have {free} USDC active.',
+      walletNotReady: 'Wallet not ready. Reconnect and retry.',
+    },
+  },
+  directDealDetail: {
+    hero: {
+      eyebrow: 'DIRECT DEAL',
+      openedTemplate: 'opened {when}',
+    },
+    errorStates: {
+      privateEyebrow: 'PRIVATE DEAL',
+      privateTitle: 'This deal is private',
+      privateBody: 'Only its buyer and seller can see this deal. No one else sees what happens between two parties.',
+      privateCta: 'Browse the market',
+      notFoundEyebrow: 'DEAL NOT FOUND',
+      notFoundTitle: 'We could not load this deal',
+      notFoundBody: 'The link may be wrong, or your wallet may not be a party.',
+      notFoundCta: 'Back to buyer desk',
+    },
+    connectGate: {
+      eyebrow: 'PRIVATE DEAL',
+      titleLead: 'Connect to',
+      titleAccent: 'view',
+      body: 'Deals are visible only to the buyer and seller. Connect the wallet that opened or accepted this deal.',
+    },
+    notPartyGate: {
+      eyebrow: 'NOT A PARTY',
+      titleLead: 'No open deals',
+      titleAccent: 'here',
+      body: "Switch wallets if you're meant to see this, or start a new deal.",
+      ctaOpen: 'Open a deal',
+      ctaHome: 'Back home',
+    },
+    legacyBanner: {
+      eyebrow: 'PREVIOUS CONTRACT',
+      title: 'This deal lives on an older escrow.',
+      body: 'Finalize, refund, or cancel it from the recovery page.',
+      cta: 'Open recovery',
+    },
+    parties: {
+      cardLabel: 'Parties',
+      buyer: 'Buyer',
+      seller: 'Seller',
+      youSuffix: 'you',
+    },
+    funding: {
+      cardLabel: 'Funding · 1.5% fee, split evenly',
+      buyerFunds: 'Buyer funds',
+      sellerReceives: 'Seller receives',
+      platformFee: 'Platform fee',
+      onDeliveryTemplate: 'On delivery · {pct}%',
+      onVerificationTemplate: 'On verification · {pct}%',
+      protectedEyebrow: 'PROTECTED',
+    },
+    fundingSafety: {
+      settled: 'Settled on chain. The escrow paid out in full.',
+      awaitingAcceptanceBuyer: 'When the seller accepts, your payment locks in escrow on Arc. Released only as milestones clear, only when you say so.',
+      awaitingAcceptanceSeller: "Accept and the buyer's payment locks in escrow on Arc. It becomes yours as you deliver.",
+      activeBuyer: 'Your payment is locked in escrow on Arc. The seller is paid only as milestones clear, and only when you release.',
+      activeSeller: "The buyer's payment is locked in escrow on Arc. It becomes yours as milestones clear. No one can pull it back on a whim.",
+    },
+    terms: {
+      eyebrow: 'TERMS',
+      title: 'The agreement',
+      deadlineTemplate: 'Deadline {when}',
+      noDeadline: 'No delivery deadline',
+      deliveryProofLabel: 'Delivery proof',
+    },
+    progress: {
+      eyebrow: 'PROGRESS',
+      titleLead: 'Where this deal',
+      titleAccent: 'stands',
+    },
+    progressTrack: {
+      opened: 'Deal opened',
+      accepted: 'Seller accepted · escrow funded',
+      delivered: 'Seller marked delivered',
+      firstReleasedTemplate: 'First {pct}% released',
+      finalReleasedTemplate: 'Final {pct}% released',
+    },
+    actions: {
+      eyebrow: 'NEXT MOVE',
+      titleLead: 'What you can do',
+      titleAccent: 'now',
+    },
+    proposeBlock: {
+      orEyebrow: 'OR',
+      disputeBody: 'Propose how this dispute resolves. Refund the buyer or release to the seller.',
+      cancelBody: 'Need to call it off? Propose a cancellation. Your counterparty has to agree; no reputation hit if they do.',
+      disputeCta: 'Propose resolution',
+      cancelCta: 'Propose cancellation',
+    },
+    fundingTxLabel: 'FUNDING TX',
+    chat: {
+      eyebrow: 'CHAT',
+      titleLead: 'Talk to your',
+      titleAccent: 'counterparty',
+      body: 'Per-deal thread. Mirrors to Telegram if connected.',
+      counterpartySellerTemplate: 'seller {address}',
+      counterpartyBuyerTemplate: 'buyer {address}',
+    },
+    actionPanel: {
+      settled: {
+        releasedFromDispute: 'Settled via dispute resolution. The buyer released the escrow to the seller.',
+        autoReleased: 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.',
+        normal: 'Settled. The seller has been paid in full and reputation is recorded on chain.',
+        cashoutTemplate: 'Cash out {amount} USDC →',
+      },
+      cancelled: {
+        preAccept: 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.',
+        unilateral: 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.',
+        refundFromDisputePrefix: 'Closed via dispute resolution. {tail}',
+        refundFromDisputePartialTailTemplate: 'The first {firstPct}% had already been released; the remaining {remainPct}% refunded to the buyer.',
+        refundFromDisputeFullTail: 'The full escrow refunded to the buyer.',
+        platformAttributedPrefix: 'Closed as a platform misroute by mutual agreement.',
+        mutualPrefix: 'Closed by mutual agreement after an appeal.',
+        mutualPartialTemplate: '{prefix} The first {firstPct}% had already been released to the seller, so the remaining {remainPct}% was refunded to the buyer. Reputation unaffected on either side.',
+        mutualFullTemplate: '{prefix} No milestones had been released yet, so the full escrow was refunded to the buyer. Reputation unaffected on either side.',
+        reasonEyebrow: 'REASON',
+      },
+      disputed: {
+        intro: 'This deal is in dispute. The escrow is frozen on chain. To unfreeze it, one side proposes a resolution and the counterparty accepts.',
+        refundLabel: 'Refund the buyer.',
+        refundBody: 'Unreleased escrow returns to the buyer.',
+        refundBodyWithReservation: 'Unreleased escrow returns to the buyer. Reserved stake slashes to the buyer too.',
+        releaseLabel: 'Release to seller.',
+        releaseBody: 'The seller is paid the full escrow.',
+      },
+      awaitingAcceptance: {
+        sellerIntro: 'Review terms and the funding split. Accepting agrees to deliver on these terms and funds the escrow.',
+        trustedMatchPrefix: 'Trusted match. You need',
+        trustedMatchMiddleTemplate: 'free in your stake to accept ({pct}% of {amount}).',
+        trustedMatchSuffix: 'It releases back when the deal settles, or slashes to the buyer if you lose a dispute.',
+        acceptCta: 'Accept deal',
+        acceptBusy: 'Confirming on Arc…',
+        buyerWaiting: 'Waiting for the seller to accept. Nothing is funded yet. You can cancel anytime until they accept.',
+        buyerWaitingInviteTemplate: 'Waiting for {email} to claim the invite link. Nothing is funded yet.',
+        editTermsCta: 'Edit terms',
+        cancelCta: 'Cancel deal',
+        cancelBusy: 'Working…',
+      },
+      awaitingDelivery: {
+        sellerIntroTemplate: "Mark the work delivered when it's done. The buyer then releases the first {firstPct}%, and the rest once verified.",
+        proofEyebrow: 'DELIVERY PROOF. OPTIONAL',
+        proofPlaceholder: 'Link to the deliverable, a repo, a file, or a short note.',
+        markDeliveredCta: 'Mark delivered',
+        markDeliveredBusy: 'Confirming on Arc…',
+        extensionTitlePending: 'Already requested. Waiting on the buyer.',
+        extensionTitleAsk: 'Ask the buyer for more time.',
+        extensionPendingCta: 'Extension pending',
+        extensionRequestCta: 'Request extension',
+        buyerIntro: 'Seller accepted. Waiting for delivery.',
+        buyerNoDeadlineTail: 'No delivery deadline was set on this deal, so the seller can deliver whenever. Propose a mutual cancellation or open an appeal if you need to call it off.',
+        buyerHasDeadlineTail: 'If they miss the deadline, you can cancel and reclaim funds.',
+        buyerDeadlinePassedNote: 'Deadline passed without delivery. Cancel to reclaim the full escrow.',
+        reclaimCta: 'Cancel &amp; reclaim funds',
+        reclaimBusy: 'Working…',
+      },
+      awaitingFirstRelease: {
+        buyerIntroTemplate: 'Seller marked delivered. Release the first {firstPct}% now. The remaining {remainPct}% releases once you verify.',
+        buyerAutoReleasePrefixTemplate: 'Auto-releases the first {firstPct}% in',
+        buyerAutoReleaseSuffix: "if you don't act.",
+        buyerExpiredTemplate: 'Release window passed. The agent will release the first {firstPct}% shortly unless you act now.',
+        releaseCtaTemplate: 'Release first {firstPct}%',
+        releaseBusy: 'Confirming on Arc…',
+        appealCta: 'Appeal this deal',
+        sellerWaitingTemplate: 'Delivered. Waiting for the buyer to release the first {firstPct}%.',
+        sellerOpenPrefix: 'Buyer window:',
+        sellerOpenSuffixTemplate: 'left. If it passes, the first {firstPct}% releases automatically.',
+        sellerExpiredTemplate: 'Window passed. The agent will release the first {firstPct}% to you shortly.',
+      },
+      awaitingFinalRelease: {
+        buyerIntroTemplate: 'First {firstPct}% released. Verify and release the remaining {rest}% to settle.',
+        buyerResponseExpiredTemplate: 'Response window passed. The agent will auto-release the final {rest}% to the seller shortly.',
+        buyerNoAppealTemplate: "Take your time. The final {rest}% never releases automatically. Click below to verify and release once you've checked the work. If you stall too long the seller can raise a delay appeal.",
+        releaseCtaTemplate: 'Verify &amp; release final {rest}%',
+        releaseBusy: 'Confirming on Arc…',
+        appealCta: 'Appeal this deal',
+        sellerWaitingTemplate: 'First {firstPct}% released. Waiting for the buyer to verify and release the final {rest}%.',
+        sellerAppealOpenPrefix: 'Delay appeal raised. Buyer has',
+        sellerAppealOpenSuffixTemplate: "to respond. If they don't, the final {rest}% auto-releases to you.",
+        sellerResponseExpiredTemplate: 'Response window passed. The agent will release the final {rest}% to you shortly.',
+        sellerBuyerResponded: 'Buyer responded to your last delay appeal:',
+        sellerGracePrefix: 'Buyer is reviewing. You can raise a delay appeal in',
+        sellerGraceSuffix: "if they don't release.",
+        raiseAppealCta: 'Raise delay appeal',
+        raiseAppealBusy: 'Submitting…',
+        openDisputeCta: 'Open dispute instead',
+      },
+      delayAppealResponder: {
+        eyebrow: 'SELLER RAISED A DELAY APPEAL',
+        prefix: 'Reply with a reason in',
+        suffixTemplate: 'or the final {rest}% releases automatically.',
+        placeholder: 'Why are you still reviewing? Be specific.',
+        submitCta: 'Respond to appeal',
+        submitBusy: 'Submitting…',
+      },
+      pendingInvite: {
+        eyebrow: 'SHARE THE INVITE',
+        bodyTemplate: 'Send {email} this link. They open it, verify the email, and the deal binds to their wallet.',
+        copyCta: 'Copy',
+        copied: 'Copied',
+      },
+      acceptanceCountdown: {
+        openSellerPrefix: 'You have',
+        openSellerSuffix: 'to accept before the deal auto-expires.',
+        openBuyerPrefix: "Seller's window:",
+        openBuyerSuffix: 'before the deal auto-expires (pre-accept, no rep hit).',
+        expired: 'Acceptance window passed. The agent will mark this deal cancelled (pre-accept) on the next tick.',
+      },
+      extensionDuration: {
+        dayTemplate: '{n} day',
+        daysTemplate: '{n} days',
+        hourTemplate: '{n} hour',
+        hoursTemplate: '{n} hours',
+      },
+      extensionPending: {
+        eyebrow: 'EXTENSION REQUEST PENDING',
+        prefix: 'You asked the buyer for',
+        reasonPrefix: 'Reason:',
+        duration: {
+          dayTemplate: '{n} day',
+          daysTemplate: '{n} days',
+          hourTemplate: '{n} hour',
+          hoursTemplate: '{n} hours',
+        },
+      },
+      extensionBuyerBanner: {
+        eyebrow: 'SELLER ASKED FOR MORE TIME',
+        requestPrefix: 'Seller is requesting',
+        requestSuffix: 'to deliver.',
+        reasonPrefix: 'Reason:',
+        newDeadlinePrefix: 'New deadline if approved:',
+        approveCta: 'Approve',
+        approveBusy: 'Working…',
+        declineCta: 'Decline',
+        duration: {
+          dayTemplate: '{n} day',
+          daysTemplate: '{n} days',
+          hourTemplate: '{n} hour',
+          hoursTemplate: '{n} hours',
+        },
+      },
+    },
+    acceptConsentModal: {
+      eyebrow: 'CIRCLE WALLETS',
+      title: 'An agent wallet will be created',
+      body: 'Accepting provisions a Circle agent wallet pair tied to your wallet. Buyer escrow funds against it. Your seller agent receives payouts. One-time setup.',
+      confirmCta: 'Proceed &amp; accept',
+      confirmBusy: 'Setting up your wallet…',
+      cancelCta: 'Not now',
+    },
+    cancelProposalBanner: {
+      kindReleaseToSeller: 'RELEASE TO SELLER',
+      kindRefundBuyer: 'REFUND THE BUYER',
+      kindPlatformMisroute: 'PLATFORM MISROUTE',
+      kindMutualCancel: 'MUTUAL CANCEL',
+      proposedTemplate: '{kind} PROPOSED',
+      proposerBuyer: 'BUYER',
+      proposerSeller: 'SELLER',
+      byTemplate: 'BY {by}',
+      reasonEyebrow: 'REASON',
+      outcomeReleaseFromDispute: 'Accepting releases the full escrow to the seller.',
+      outcomeRefundFromDisputePartialTemplate: 'Accepting refunds the remaining {remainPct}% to the buyer.',
+      outcomeRefundFromDisputeFull: 'Accepting refunds the full escrow to the buyer.',
+      outcomePlatformPrefix: 'Both sides agree the agent misrouted.',
+      outcomeMutualPrefix: 'No reputation hit on either side if accepted.',
+      outcomePartialTemplate: 'The first {firstPct}% has already been released to the seller; accepting refunds the remaining {remainPct}% to the buyer.',
+      outcomeFull: 'Accepting refunds the full escrow to the buyer.',
+      legacyCta: 'Accept on recovery',
+      legacyNote: 'this deal is on an older contract',
+      acceptReleaseCta: 'Agree &amp; release',
+      acceptRefundCta: 'Accept &amp; refund',
+      confirmingBusy: 'Confirming…',
+      declineDisputeCta: 'Decline · stay in dispute',
+      declineCancelCta: 'Decline · keep the deal',
+      waitingNote: 'Waiting on counterparty to accept or decline.',
+    },
+    proposeCancelModal: {
+      eyebrowResolution: 'PROPOSE RESOLUTION',
+      eyebrowCancellation: 'PROPOSE CANCELLATION',
+      titleDispute: 'Resolve the dispute',
+      titleCancel: 'Call it off',
+      disputeBody: 'Your counterparty has to accept. If they decline, the deal stays in dispute.',
+      cancelBodyTemplate: 'Your counterparty has to agree. If they accept, {outcome}, with no reputation hit on either side. If they decline, the deal continues normally.',
+      cancelOutcomePartialTemplate: 'the first {firstPct}% already paid stays with the seller and the remaining {remainPct}% refunds to the buyer',
+      cancelOutcomeFull: 'the full escrow refunds to the buyer',
+      kindEyebrowResolution: 'RESOLUTION',
+      kindEyebrowKind: 'KIND',
+      kindRefundBuyerLabel: 'Refund the buyer',
+      kindRefundBuyerBody: 'Unreleased escrow returns to the buyer.',
+      kindRefundBuyerBodyWithReservation: 'Unreleased escrow returns to the buyer. Reserved stake slashes to the buyer too.',
+      kindReleaseSellerLabel: 'Release to seller',
+      kindReleaseSellerBody: 'Seller is paid the full escrow.',
+      kindMutualLabel: 'Mutual',
+      kindMutualBody: "We've both decided to walk.",
+      kindPlatformLabel: 'Platform misroute',
+      kindPlatformBody: 'The agent matched us wrong.',
+      reasonEyebrow: 'REASON',
+      reasonPlaceholder: 'Plain language. The other side reads this in their banner.',
+      submitCta: 'Send proposal',
+      submitBusy: 'Proposing…',
+      cancelCta: 'Not now',
+    },
+    errors: {
+      insufficientBalanceTitle: "Buyer agent doesn't have enough USDC on Arc.",
+      insufficientBalanceBuyerPrefix: 'Top up the buyer agent from your profile, then the seller can accept.',
+      insufficientBalanceBuyerLink: 'Fund agent',
+      insufficientBalanceSeller: 'The buyer has been notified. Try accepting again once funded.',
+      insufficientGas: "The buyer agent doesn't have enough native gas on Arc to send this transaction.",
+      insufficientStakeTitle: "Your seller agent doesn't have enough free stake to backstop this deal.",
+      insufficientStakeLink: 'Stake more',
+      insufficientStakeSuffix: 'then return here to accept.',
+      acceptEscrowFailedTitle: 'Could not accept the escrow on chain.',
     },
   },
   balancesCard: {

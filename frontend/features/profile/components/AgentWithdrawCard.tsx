@@ -6,6 +6,7 @@ import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 
@@ -44,6 +45,7 @@ export function AgentWithdrawCard({
   sellerAgent?: string;
   defaultAgent?: 'buyer' | 'seller';
 }) {
+  const aw = useTranslations().agentWithdrawCard;
   // useAuth covers both web3 and Circle users. The withdraw flow is already
   // backend-signed (the agent DCW signs server-side), so swapping the address
   // source unblocks Circle users with zero behavioral change to the request.
@@ -61,8 +63,8 @@ export function AgentWithdrawCard({
   });
 
   const options: AgentOption[] = [
-    { key: 'buyer', label: 'Buyer agent', address: buyerAgent },
-    { key: 'seller', label: 'Seller agent', address: sellerAgent },
+    { key: 'buyer', label: aw.agents.buyer, address: buyerAgent },
+    { key: 'seller', label: aw.agents.seller, address: sellerAgent },
   ];
 
   const [selected, setSelected] = useState<'buyer' | 'seller'>(defaultAgent);
@@ -123,19 +125,19 @@ export function AgentWithdrawCard({
       className="p-6 md:p-8 h-full min-w-0 flex flex-col overflow-hidden"
     >
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:WITHDRAW:]
+        {aw.header.eyebrow}
       </span>
       <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-        Sweep from agent
+        {aw.header.title}
       </h2>
       <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        Agent signs · settles on Arc
+        {aw.header.subtitle}
       </p>
 
       <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-5">
         <div>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:FROM:]
+            {aw.form.fromEyebrow}
           </span>
           <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {options.map((o) => {
@@ -202,13 +204,13 @@ export function AgentWithdrawCard({
                         {o.label}
                       </p>
                       <p className="mono text-[10px] tabular-nums mt-0.5 truncate text-[var(--lp-text-muted)]">
-                        {o.address ? shortAddress(o.address) : 'not configured'}
+                        {o.address ? shortAddress(o.address) : aw.agents.notConfigured}
                       </p>
                     </div>
                   </div>
                   <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-[var(--lp-border-light)]">
                     <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      Balance
+                      {aw.agents.balanceLabel}
                     </span>
                     <span className="inline-flex items-baseline gap-1">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
@@ -238,7 +240,7 @@ export function AgentWithdrawCard({
         >
           <div className="flex items-baseline justify-between">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:AMOUNT:]
+              {aw.form.amountEyebrow}
             </span>
             <button
               type="button"
@@ -246,7 +248,12 @@ export function AgentWithdrawCard({
               disabled={!balHuman}
               className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60"
             >
-              {balHuman ? `${formatUsdc(balHuman, { withSuffix: false })} available` : '-'}
+              {balHuman
+                ? aw.form.availableTemplate.replace(
+                    '{amount}',
+                    formatUsdc(balHuman, { withSuffix: false }),
+                  )
+                : '-'}
             </button>
           </div>
           <div className="mt-2 flex items-baseline gap-3">
@@ -258,7 +265,7 @@ export function AgentWithdrawCard({
               value={amount}
               onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
               className="no-spinner flex-1 bg-transparent font-sans text-[34px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] min-w-0"
-              placeholder="0"
+              placeholder={aw.form.amountPlaceholder}
             />
             <span
               className="inline-flex items-center gap-1.5 bg-[var(--lp-card)] px-3 py-1.5"
@@ -283,13 +290,13 @@ export function AgentWithdrawCard({
 
         <label className="block space-y-2">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:DESTINATION:]
+            {aw.form.destinationEyebrow}
           </span>
           <input
             type="text"
             value={dest}
             onChange={(e) => setDest(e.target.value)}
-            placeholder="0x..."
+            placeholder={aw.form.destinationPlaceholder}
             className="withdraw-dest w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none transition-shadow text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
             style={{
               border: '1px solid var(--lp-border-light)',
@@ -322,12 +329,12 @@ export function AgentWithdrawCard({
                 className="inline-block w-[5px] h-[5px]"
                 style={{ background: TONE_COLOR.critical, borderRadius: 1 }}
               />
-              Not a valid 20-byte address.
+              {aw.errors.invalidAddress}
             </p>
           )}
           {destValid && address && dest.trim().toLowerCase() === address.toLowerCase() && (
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              Your wallet.
+              {aw.form.yourWalletHint}
             </span>
           )}
           <style jsx>{`
@@ -369,10 +376,13 @@ export function AgentWithdrawCard({
             </svg>
           )}
           {!isConnected
-            ? 'Sign in to withdraw'
+            ? aw.submit.signIn
             : phase === 'sending'
-              ? 'Sending on Arc...'
-              : `Withdraw from ${selectedAgent?.label.toLowerCase() ?? 'agent'}`}
+              ? aw.submit.sending
+              : aw.submit.withdrawTemplate.replace(
+                  '{agent}',
+                  selectedAgent?.label.toLowerCase() ?? aw.submit.agentFallback,
+                )}
         </button>
 
         {phase === 'done' && txHash && (
@@ -399,7 +409,7 @@ export function AgentWithdrawCard({
                 className="inline-block w-[6px] h-[6px]"
                 style={{ background: TONE_COLOR.positive, borderRadius: 1 }}
               />
-              Withdrawal sent.
+              {aw.success.message}
             </span>
             <a
               href={ARC_EXPLORER_TX(txHash)}
@@ -446,7 +456,7 @@ export function AgentWithdrawCard({
             >
               <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
               <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                WITHDRAW FAILED
+                {aw.errors.failedTag}
               </span>
             </div>
             <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">

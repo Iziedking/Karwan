@@ -10,6 +10,8 @@ import { formatUsdc } from '@/shared/utils/format';
 import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -136,6 +138,7 @@ const TIER_TONE: Record<
 /// /stake page leaves it on; when embedded in /profile it's turned off so the
 /// Profile tour (which already mentions staking) doesn't collide with it.
 export function StakeCard({ tour = true }: { tour?: boolean }) {
+  const sc = useTranslations().stakeCard;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
@@ -283,7 +286,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         kind: 'deposit',
         amountUsdc: depositAmount.toString(),
         status: 'failed',
-        error: `Insufficient balance. You have ${walletUsdc.toFixed(2)} USDC.`,
+        error: sc.errors.insufficientBalanceTemplate.replace('{amount}', walletUsdc.toFixed(2)),
       });
       return;
     }
@@ -308,7 +311,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         const r = await api.vaultDeposit({ address, amountUsdc });
         patchLog(logId, { status: 'done', txHash: r.depositTxHash });
       } else {
-        if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+        if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
         // Allowance precheck.
         const current = (await arcClient.readContract({
           address: ARC_USDC_ADDRESS,
@@ -346,7 +349,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     } finally {
       setBusyKind(null);
     }
-  }, [address, depositAmount, walletUsdc, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog]);
+  }, [address, depositAmount, walletUsdc, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, sc]);
 
   // -------------------- withdraw --------------------
 
@@ -371,8 +374,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         status: 'failed',
         error:
           Number(reservedUsdc) > 0
-            ? `Insufficient free stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC free, ${formatUsdc(reservedUsdc, { withSuffix: false })} USDC reserved against open deals.`
-            : `Insufficient stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC active.`,
+            ? sc.errors.insufficientFreeStakeTemplate
+                .replace('{free}', formatUsdc(freeStakeUsdc, { withSuffix: false }))
+                .replace('{reserved}', formatUsdc(reservedUsdc, { withSuffix: false }))
+            : sc.errors.insufficientStakeTemplate.replace(
+                '{free}',
+                formatUsdc(freeStakeUsdc, { withSuffix: false }),
+              ),
       });
       return;
     }
@@ -423,7 +431,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       coolingTotal,
       toCool: toCool.map((p) => ({ positionId: p.positionId, principalUsdc: p.principalUsdc })),
     });
-  }, [address, withdrawAmount, positions, freeStakeUsdc, reservedUsdc, pushLog]);
+  }, [address, withdrawAmount, positions, freeStakeUsdc, reservedUsdc, pushLog, sc]);
 
   const confirmWithdraw = useCallback(async () => {
     if (!pendingWithdraw || !address) return;
@@ -446,7 +454,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           const r = await api.vaultRequestWithdraw({ address, positionId: p.positionId });
           patchLog(logId, { status: 'done', txHash: r.txHash });
         } else {
-          if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+          if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
           const hash = await walletClient.writeContract({
             address: KARWAN_VAULT_ADDRESS,
             abi: vaultAbi,
@@ -500,7 +508,9 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       // are reversible / terminal, no need to confirm.
       if (kind === 'request') {
         const ok = window.confirm(
-          `Start the ${cooldownDays}-day withdrawal cool-down on position #${positionId}? Stake stops earning reputation until you cancel or claim.`,
+          sc.positionAction.confirmRequestTemplate
+            .replace('{days}', String(cooldownDays))
+            .replace('{positionId}', positionId),
         );
         if (!ok) return;
       }
@@ -518,7 +528,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           const r = await route({ address, positionId });
           patchLog(logId, { status: 'done', txHash: r.txHash });
         } else {
-          if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+          if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
           const fnName =
             kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim';
           const hash = await walletClient.writeContract({
@@ -540,7 +550,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         setBusyKind(null);
       }
     },
-    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays],
+    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays, sc],
   );
 
   // -------------------- derived --------------------
@@ -559,10 +569,9 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   if (!address) {
     return (
       <div style={CARD_STYLE} className="px-6 py-8">
-        <SectionEyebrow>STAKE</SectionEyebrow>
+        <SectionEyebrow>{sc.eyebrow.stake}</SectionEyebrow>
         <p className="mt-3 text-[14px] text-[var(--lp-text-sub)] max-w-[48ch] leading-relaxed">
-          Sign in to deposit USDC into KarwanVault. Stake earns reputation; the
-          score grows your tier and softens the agent loop in your favor.
+          {sc.signedOut.body}
         </p>
       </div>
     );
@@ -577,7 +586,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           who haven't accepted any deals see the familiar pre-v2.D shape. */}
       <div className="flex items-start justify-between gap-6 flex-wrap">
         <div className="space-y-2 min-w-0" data-guide="stake-total">
-          <SectionEyebrow>STAKE</SectionEyebrow>
+          <SectionEyebrow>{sc.eyebrow.stake}</SectionEyebrow>
           <div className="flex items-baseline gap-3 flex-wrap">
             <span
               className="font-sans text-[32px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]"
@@ -585,7 +594,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               {formatUsdc(totalActive, { withSuffix: false })}
             </span>
             <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              USDC ACTIVE
+              {sc.summary.usdcActive}
             </span>
             {!synced && (
               <span
@@ -594,23 +603,21 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                   color: 'var(--lp-text-muted)',
                   background: 'var(--lp-surface-2, rgba(0,0,0,0.05))',
                 }}
-                title="Scanning chain history. The total may still rise."
+                title={sc.summary.syncingTitle}
               >
-                syncing
+                {sc.summary.syncing}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2.5 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             <span>
-              FREE {formatUsdc(freeStakeUsdc, { withSuffix: false })}
+              {sc.summary.freeLabel} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </span>
             {Number(reservedUsdc) > 0 && (
               <>
                 <span aria-hidden>·</span>
-                <span
-                  title="Locked against an active deal as buyer-side insurance. Releases on settle, slashes to the buyer on a dispute you lose."
-                >
-                  RESERVED {formatUsdc(reservedUsdc, { withSuffix: false })}
+                <span title={sc.summary.reservedTitle}>
+                  {sc.summary.reservedLabel} {formatUsdc(reservedUsdc, { withSuffix: false })}
                 </span>
               </>
             )}
@@ -618,7 +625,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               <>
                 <span aria-hidden>·</span>
                 <span>
-                  COOLING {formatUsdc(totalCooling, { withSuffix: false })}
+                  {sc.summary.coolingLabel} {formatUsdc(totalCooling, { withSuffix: false })}
                 </span>
               </>
             )}
@@ -667,10 +674,10 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               className="mono text-[9px] font-bold uppercase tracking-[0.18em]"
               style={{ color: '#b25425' }}
             >
-              [:WRONG NETWORK:]
+              [:{sc.wrongNetwork.eyebrow}:]
             </p>
             <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
-              Your wallet is on another network. Switch to Arc Testnet to stake.
+              {sc.wrongNetwork.body}
             </p>
           </div>
           <button
@@ -684,7 +691,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               borderBottomRightRadius: 2,
             }}
           >
-            Switch to Arc
+            {sc.wrongNetwork.switchButton}
           </button>
         </div>
       )}
@@ -692,9 +699,11 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       {/* VAULT NOT DEPLOYED STATE */}
       {vaultDeployed === false && (
         <Note tone="info">
-          KarwanVault is not deployed on this environment. Set
-          {' '}<code className="mono text-[11px]">KARWAN_VAULT_ADDR</code> in <code className="mono text-[11px]">.env</code> and
-          restart the backend.
+          {sc.vaultNotDeployed.prefix}
+          {' '}<code className="mono text-[11px]">KARWAN_VAULT_ADDR</code>{' '}
+          {sc.vaultNotDeployed.middle}
+          {' '}<code className="mono text-[11px]">.env</code>{' '}
+          {sc.vaultNotDeployed.suffix}
         </Note>
       )}
 
@@ -702,7 +711,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           On testnet the vault holds plain USDC. On mainnet, KarwanVault routes
           idle stake through Hashnote USYC so the same deposit earns yield
           while it builds reputation. Treasury fees walk the same path. */}
-      <YieldNote />
+      <YieldNote copy={sc.yield} />
 
 
       {/* DEPOSIT + WITHDRAW. side-by-side on md+, stacked on mobile. The
@@ -715,16 +724,16 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         <div className="space-y-3" data-guide="stake-deposit">
           <div className="flex items-baseline justify-between gap-2">
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              DEPOSIT
+              {sc.depositForm.label}
             </span>
             <button
               type="button"
               onClick={() => walletUsdc != null && setDepositAmount(Math.floor(walletUsdc * 100) / 100)}
               disabled={walletUsdc == null || walletUsdc <= 0}
-              title={walletUsdc != null ? `Wallet balance: ${walletUsdc.toFixed(2)} USDC. Click to fill.` : 'Loading wallet balance…'}
+              title={walletUsdc != null ? sc.depositForm.maxTitleTemplate.replace('{amount}', walletUsdc.toFixed(2)) : sc.depositForm.maxTitleLoading}
               className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
-              MAX {walletUsdc != null ? walletUsdc.toFixed(2) : '-'}
+              {sc.depositForm.max} {walletUsdc != null ? walletUsdc.toFixed(2) : '-'}
             </button>
           </div>
           <div className="flex items-stretch gap-2">
@@ -739,7 +748,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               disabled={busyKind?.kind === 'deposit'}
               placeholder="0"
               className="form-input form-input-num flex-1 min-w-0"
-              aria-label="Deposit amount in USDC"
+              aria-label={sc.depositForm.inputAria}
             />
             <button
               type="button"
@@ -764,13 +773,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 borderBottomRightRadius: 3,
               }}
             >
-              {busyKind?.kind === 'deposit' ? 'Depositing…' : 'Deposit'}
+              {busyKind?.kind === 'deposit' ? sc.depositForm.submitBusy : sc.depositForm.submit}
               <span aria-hidden>↘</span>
             </button>
           </div>
           {depositExceedsBalance && (
             <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
-              Insufficient balance. You have {walletUsdc?.toFixed(2)} USDC.
+              {sc.depositForm.insufficientBalanceTemplate.replace('{amount}', walletUsdc?.toFixed(2) ?? '')}
             </p>
           )}
         </div>
@@ -779,7 +788,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         <div className="space-y-3" data-guide="stake-withdraw">
           <div className="flex items-baseline justify-between gap-2">
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              WITHDRAW
+              {sc.withdrawForm.label}
             </span>
             <button
               type="button"
@@ -787,14 +796,14 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               disabled={Number(freeStakeUsdc) <= 0}
               title={
                 Number(freeStakeUsdc) > 0
-                  ? `Free stake: ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC. Click to fill. (Reserved stake stays locked until the deal settles.)`
+                  ? sc.withdrawForm.maxTitleFreeTemplate.replace('{amount}', formatUsdc(freeStakeUsdc, { withSuffix: false }))
                   : Number(reservedUsdc) > 0
-                    ? 'All your active stake is reserved against open deals. It unlocks when those deals settle.'
-                    : 'No active stake to withdraw'
+                    ? sc.withdrawForm.maxTitleAllReserved
+                    : sc.withdrawForm.maxTitleNone
               }
               className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
-              MAX {formatUsdc(freeStakeUsdc, { withSuffix: false })}
+              {sc.withdrawForm.max} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </button>
           </div>
           <div className="flex items-stretch gap-2">
@@ -810,7 +819,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               disabled={busyKind?.kind === 'request' || Number(freeStakeUsdc) <= 0}
               placeholder="0"
               className="form-input form-input-num flex-1 min-w-0"
-              aria-label="Withdraw amount in USDC"
+              aria-label={sc.withdrawForm.inputAria}
             />
             <button
               type="button"
@@ -835,15 +844,20 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 borderBottomRightRadius: 3,
               }}
             >
-              {busyKind?.kind === 'request' ? 'Cooling…' : 'Withdraw'}
+              {busyKind?.kind === 'request' ? sc.withdrawForm.submitBusy : sc.withdrawForm.submit}
               <span aria-hidden>↗</span>
             </button>
           </div>
           {withdrawExceedsActive && (
             <p className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#b25425' }}>
               {Number(reservedUsdc) > 0
-                ? `Insufficient free stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC free (${formatUsdc(reservedUsdc, { withSuffix: false })} USDC reserved against open deals).`
-                : `Insufficient stake. You have ${formatUsdc(freeStakeUsdc, { withSuffix: false })} USDC active.`}
+                ? sc.withdrawForm.insufficientFreeTemplate
+                    .replace('{free}', formatUsdc(freeStakeUsdc, { withSuffix: false }))
+                    .replace('{reserved}', formatUsdc(reservedUsdc, { withSuffix: false }))
+                : sc.withdrawForm.insufficientStakeTemplate.replace(
+                    '{free}',
+                    formatUsdc(freeStakeUsdc, { withSuffix: false }),
+                  )}
             </p>
           )}
         </div>
@@ -869,18 +883,18 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         >
           <div className="min-w-0 flex-1">
             <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-              [:CONFIRM WITHDRAWAL:]
+              [:{sc.confirm.eyebrow}:]
             </p>
             <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
-              Cool <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> for <span className="font-bold">{cooldownDays} days</span>.
+              {sc.confirm.coolPrefix} <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> {sc.confirm.coolMiddle} <span className="font-bold">{sc.confirm.daysTemplate.replace('{days}', String(cooldownDays))}</span>.
             </p>
             {pendingWithdraw.coolingTotal > pendingWithdraw.requested + 0.000_001 && (
               <p className="mt-1 text-[12px] leading-snug" style={{ color: '#b25425' }}>
-                Rounded up from your <span className="tabular-nums">{pendingWithdraw.requested}</span> USDC request. The vault cools whole positions only, and your smallest matching position is {pendingWithdraw.toCool.length === 1 ? `#${pendingWithdraw.toCool[0].positionId} (${pendingWithdraw.toCool[0].principalUsdc} USDC)` : `${pendingWithdraw.toCool.length} positions`}. To cool less, deposit smaller amounts next time.
+                {sc.confirm.roundedPrefix} <span className="tabular-nums">{pendingWithdraw.requested}</span> {sc.confirm.roundedMiddle} {pendingWithdraw.toCool.length === 1 ? sc.confirm.smallestSingleTemplate.replace('{positionId}', pendingWithdraw.toCool[0].positionId).replace('{principal}', pendingWithdraw.toCool[0].principalUsdc) : sc.confirm.smallestMultiTemplate.replace('{count}', String(pendingWithdraw.toCool.length))}. {sc.confirm.roundedSuffix}
               </p>
             )}
             <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-              This stake stops earning reputation during the cool-down. Cancel anytime in the {cooldownDays}-day window to resume earning with tenure intact.
+              {sc.confirm.disclaimerTemplate.replace('{days}', String(cooldownDays))}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -895,7 +909,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 borderBottomRightRadius: 2,
               }}
             >
-              Cancel
+              {sc.confirm.cancel}
             </button>
             <button
               type="button"
@@ -908,14 +922,14 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 borderBottomRightRadius: 2,
               }}
             >
-              Confirm
+              {sc.confirm.confirm}
             </button>
           </div>
         </div>
       )}
 
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed -mt-2">
-        Withdrawal starts a {cooldownDays}-day cool-down. After that the stake is claimable to your wallet.
+        {sc.cooldownFooterTemplate.replace('{days}', String(cooldownDays))}
       </p>
 
       {/* COOLING.
@@ -930,13 +944,14 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         busyKind={busyKind}
         onClaim={(positionId) => positionAction('claim', positionId)}
         onCancel={(positionId) => positionAction('cancel', positionId)}
+        copy={sc.cooling}
       />
 
       {/* RECENT ACTIVITY */}
       {log.length > 0 && (
         <div className="space-y-2 pt-1">
           <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            RECENT
+            {sc.recent.label}
           </span>
           <ul className="space-y-1.5">
             {log.map((entry) => (
@@ -945,7 +960,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 className="flex items-center justify-between gap-3 mono text-[11px] text-[var(--lp-text-sub)]"
               >
                 <span className="uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-                  {entry.kind}
+                  {sc.recent.kinds[entry.kind]}
                   {entry.positionId ? ` #${entry.positionId}` : ''}
                   {entry.amountUsdc ? ` · ${entry.amountUsdc} USDC` : ''}
                 </span>
@@ -971,7 +986,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                       {entry.txHash.slice(0, 6)}…{entry.txHash.slice(-4)} ↗
                     </a>
                   )}
-                  {entry.status === 'failed' && (entry.error?.slice(0, 40) ?? 'failed')}
+                  {entry.status === 'failed' && (entry.error?.slice(0, 40) ?? sc.recent.failedFallback)}
                 </span>
               </li>
             ))}
@@ -1012,19 +1027,25 @@ function StatePill({ state }: { state: 'active' | 'cooling' | 'claimed' }) {
   );
 }
 
-function CountdownLabel({ claimableAt }: { claimableAt: number }) {
+function CountdownLabel({
+  claimableAt,
+  copy,
+}: {
+  claimableAt: number;
+  copy: Messages['stakeCard']['cooling'];
+}) {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
     const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 30_000);
     return () => clearInterval(id);
   }, []);
   const delta = claimableAt - now;
-  if (delta <= 0) return <span style={{ color: 'var(--color-positive)' }}>claim ready</span>;
+  if (delta <= 0) return <span style={{ color: 'var(--color-positive)' }}>{copy.claimReady}</span>;
   const days = Math.floor(delta / 86400);
   const hours = Math.floor((delta % 86400) / 3600);
-  if (days > 0) return <span>claim in {days}d {hours}h</span>;
+  if (days > 0) return <span>{copy.claimInDaysHoursTemplate.replace('{days}', String(days)).replace('{hours}', String(hours))}</span>;
   const mins = Math.floor((delta % 3600) / 60);
-  return <span>claim in {hours}h {mins}m</span>;
+  return <span>{copy.claimInHoursMinutesTemplate.replace('{hours}', String(hours)).replace('{minutes}', String(mins))}</span>;
 }
 
 /// Renders the user's cooling positions as a list. Active stake is shown as
@@ -1041,6 +1062,7 @@ function CoolingList({
   busyKind,
   onClaim,
   onCancel,
+  copy,
 }: {
   positions: Array<{
     positionId: string;
@@ -1056,6 +1078,7 @@ function CoolingList({
   /// small mono text-link on cooling rows, not a primary button — keeps the
   /// "one-way withdrawal flow" intent while letting users undo a mistake.
   onCancel: (positionId: string) => void;
+  copy: Messages['stakeCard']['cooling'];
 }) {
   const cooling = positions.filter((p) => p.state === 'cooling');
 
@@ -1063,7 +1086,7 @@ function CoolingList({
     return (
       <div className="space-y-2">
         <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-          COOLING
+          {copy.label}
         </span>
         <div className="h-14 bg-black/[0.05] animate-pulse motion-reduce:animate-none rounded" />
       </div>
@@ -1076,7 +1099,7 @@ function CoolingList({
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-          COOLING
+          {copy.label}
         </span>
         <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
           {cooling.length}
@@ -1106,14 +1129,14 @@ function CoolingList({
                     {formatUsdc(p.principalUsdc, { withSuffix: false })}
                   </span>
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                    USDC COOLING
+                    {copy.usdcCooling}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                   {p.claimableAt > 0 ? (
-                    <CountdownLabel claimableAt={p.claimableAt} />
+                    <CountdownLabel claimableAt={p.claimableAt} copy={copy} />
                   ) : (
-                    <span>preparing cool-down</span>
+                    <span>{copy.preparing}</span>
                   )}
                   {!claimableNow && (
                     <>
@@ -1122,10 +1145,10 @@ function CoolingList({
                         type="button"
                         onClick={() => onCancel(p.positionId)}
                         disabled={busy || vaultDeployed}
-                        title="Cancel this withdrawal and put the stake back to Active. Tenure stays intact."
+                        title={copy.cancelTitle}
                         className="mono text-[10px] uppercase tracking-[0.12em] underline-offset-2 hover:underline hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm transition-colors disabled:opacity-50"
                       >
-                        {busy ? 'cancelling' : '↶ cancel'}
+                        {busy ? copy.cancelling : copy.cancelLabel}
                       </button>
                     </>
                   )}
@@ -1144,7 +1167,7 @@ function CoolingList({
                     borderBottomRightRadius: 2,
                   }}
                 >
-                  {busy ? 'Claiming…' : 'Claim to wallet'}
+                  {busy ? copy.claimBusy : copy.claimLabel}
                 </button>
               )}
             </li>
@@ -1160,7 +1183,7 @@ function CoolingList({
 /// yield on top of the reputation they build. Treasury fees walk the same
 /// path. Surfaced here so users (and judges) see the design intent before
 /// asking "is this stake just locked up doing nothing?"
-function YieldNote() {
+function YieldNote({ copy }: { copy: Messages['stakeCard']['yield'] }) {
   return (
     <div
       className="relative overflow-hidden px-4 py-3.5"
@@ -1175,18 +1198,17 @@ function YieldNote() {
       }}
     >
       <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-        [:MAINNET YIELD:]
+        [:{copy.eyebrow}:]
       </p>
       <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-dark)]">
-        On testnet the vault holds plain USDC. On mainnet the same stake routes
-        through{' '}
+        {copy.bodyPrefix}{' '}
         <span
           className="font-semibold"
           style={{ color: 'color-mix(in oklab, var(--lp-accent) 70%, var(--lp-dark))' }}
         >
           Hashnote USYC
         </span>{' '}
-        and earns roughly <span className="tabular-nums font-semibold">~5%</span> APY while it builds your reputation.
+        {copy.bodyMiddle} <span className="tabular-nums font-semibold">~5%</span> {copy.bodySuffix}
       </p>
     </div>
   );

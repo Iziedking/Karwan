@@ -14,6 +14,8 @@ import { ExtensionRequestModal } from './ExtensionRequestModal';
 import { EditDealModal } from './EditDealModal';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 import {
   feeBreakdown,
   REVIEW_WINDOW_MS,
@@ -47,29 +49,30 @@ const STAGE_RAIL: Record<DealStage, string> = {
 };
 
 /// One reassuring line on the funding card, by stage + viewer side. Keeps the
-/// web3 vocabulary (escrow, on Arc, on chain) on purpose — Karwan is a web3
-/// product and the chain is the reason the money is safe — but says it plainly.
-/// Returns null for terminal/dispute states, which have their own copy.
-function fundingSafetyLine(stage: string, viewerIsBuyer: boolean): string | null {
-  if (stage === 'settled') return 'Settled on chain. The escrow paid out in full.';
+/// web3 vocabulary (escrow, on Arc, on chain) on purpose. Karwan is a web3
+/// product and the chain is the reason the money is safe. Returns null for
+/// terminal/dispute states, which have their own copy.
+function fundingSafetyLine(
+  stage: string,
+  viewerIsBuyer: boolean,
+  copy: Messages['directDealDetail']['fundingSafety'],
+): string | null {
+  if (stage === 'settled') return copy.settled;
   if (stage === 'awaiting-acceptance') {
-    return viewerIsBuyer
-      ? 'When the seller accepts, your payment locks in escrow on Arc. Released only as milestones clear, only when you say so.'
-      : "Accept and the buyer's payment locks in escrow on Arc. It becomes yours as you deliver.";
+    return viewerIsBuyer ? copy.awaitingAcceptanceBuyer : copy.awaitingAcceptanceSeller;
   }
   if (
     stage === 'awaiting-delivery' ||
     stage === 'awaiting-first-release' ||
     stage === 'awaiting-final-release'
   ) {
-    return viewerIsBuyer
-      ? 'Your payment is locked in escrow on Arc. The seller is paid only as milestones clear, and only when you release.'
-      : "The buyer's payment is locked in escrow on Arc. It becomes yours as milestones clear. No one can pull it back on a whim.";
+    return viewerIsBuyer ? copy.activeBuyer : copy.activeSeller;
   }
   return null;
 }
 
 export function DirectDealDetail({ jobId }: { jobId: string }) {
+  const dd = useTranslations().directDealDetail;
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
@@ -150,19 +153,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[44ch]">
-            <SectionTag tone="dark">{isPrivate ? 'PRIVATE DEAL' : 'DEAL NOT FOUND'}</SectionTag>
+            <SectionTag tone="dark">{isPrivate ? dd.errorStates.privateEyebrow : dd.errorStates.notFoundEyebrow}</SectionTag>
             <HeroHeadline size="md">
-              {isPrivate ? 'This deal is private' : 'We could not load this deal'}
+              {isPrivate ? dd.errorStates.privateTitle : dd.errorStates.notFoundTitle}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {isPrivate
-                ? 'Only its buyer and seller can see this deal. No one else sees what happens between two parties.'
-                : 'The link may be wrong, or your wallet may not be a party.'}
+              {isPrivate ? dd.errorStates.privateBody : dd.errorStates.notFoundBody}
             </p>
             <div className="mt-7">
               <CTAPill href={isPrivate ? '/market' : '/buyer'}>
-                {isPrivate ? 'Browse the market' : 'Back to buyer desk'}
+                {isPrivate ? dd.errorStates.privateCta : dd.errorStates.notFoundCta}
               </CTAPill>
             </div>
           </div>
@@ -181,14 +182,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[44ch]">
-            <SectionTag tone="dark">PRIVATE DEAL</SectionTag>
+            <SectionTag tone="dark">{dd.connectGate.eyebrow}</SectionTag>
             <HeroHeadline size="md">
-              Connect to <span style={{ color: 'var(--lp-accent)' }}>view</span>
+              {dd.connectGate.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.connectGate.titleAccent}</span>
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              Deals are visible only to the buyer and seller. Connect the wallet that opened or
-              accepted this deal.
+              {dd.connectGate.body}
             </p>
             <div className="mt-7">
               <ConnectButton />
@@ -204,18 +204,18 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[44ch]">
-            <SectionTag tone="dark">NOT A PARTY</SectionTag>
+            <SectionTag tone="dark">{dd.notPartyGate.eyebrow}</SectionTag>
             <HeroHeadline size="md">
-              No open deals <span style={{ color: 'var(--lp-accent)' }}>here</span>
+              {dd.notPartyGate.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.notPartyGate.titleAccent}</span>
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              Switch wallets if you&apos;re meant to see this, or start a new deal.
+              {dd.notPartyGate.body}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/buyer">Open a deal</CTAPill>
+              <CTAPill href="/buyer">{dd.notPartyGate.ctaOpen}</CTAPill>
               <CTAPill href="/app" variant="secondary" tone="dark">
-                Back home
+                {dd.notPartyGate.ctaHome}
               </CTAPill>
             </div>
           </div>
@@ -469,7 +469,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
           <div className="flex flex-wrap items-center gap-3">
-            <SectionTag tone="dark">DIRECT DEAL</SectionTag>
+            <SectionTag tone="dark">{dd.hero.eyebrow}</SectionTag>
             <StageBadge stage={stage} />
           </div>
         </div>
@@ -483,7 +483,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           </span>
         </div>
         <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-white/45">
-          {shortHash(deal.jobId, 10, 6)} · opened {relativeTime(deal.createdAt)}
+          {shortHash(deal.jobId, 10, 6)} · {dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}
         </p>
       </Band>
 
@@ -502,13 +502,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           >
             <div className="min-w-0">
               <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                [:PREVIOUS CONTRACT:]
+                [:{dd.legacyBanner.eyebrow}:]
               </p>
               <p className="mt-1 font-sans text-[14px] font-extrabold text-[var(--lp-dark)] leading-snug">
-                This deal lives on an older escrow.
+                {dd.legacyBanner.title}
               </p>
               <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-                Finalize, refund, or cancel it from the recovery page.
+                {dd.legacyBanner.body}
               </p>
             </div>
             <Link
@@ -521,7 +521,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 borderBottomRightRadius: 2,
               }}
             >
-              Open recovery
+              {dd.legacyBanner.cta}
               <span aria-hidden>→</span>
             </Link>
           </div>
@@ -532,45 +532,46 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <Band tone="light" compact>
         <div className="grid md:grid-cols-2 gap-5">
           <PageCard>
-            <CardHead label="Parties" />
+            <CardHead label={dd.parties.cardLabel} />
             <div className="p-5 md:p-6 space-y-4">
-              <PartyRow role="Buyer" address={deal.buyer} you={viewerIsBuyer} />
+              <PartyRow role={dd.parties.buyer} address={deal.buyer} you={viewerIsBuyer} youLabel={dd.parties.youSuffix} />
               <div className="border-t border-[var(--lp-border-light)]" />
               <PartyRow
-                role="Seller"
+                role={dd.parties.seller}
                 address={deal.seller}
                 you={viewerIsSeller}
+                youLabel={dd.parties.youSuffix}
                 showReputation
               />
             </div>
           </PageCard>
 
           <PageCard>
-            <CardHead label="Funding · 1.5% fee, split evenly" />
+            <CardHead label={dd.funding.cardLabel} />
             <div className="p-5 md:p-6 space-y-2.5">
-              <MoneyRow label="Buyer funds" value={fee.fundedAmount} />
-              <MoneyRow label="Seller receives" value={fee.sellerNet} strong />
-              <MoneyRow label="Platform fee" value={fee.feeTotal} faint />
+              <MoneyRow label={dd.funding.buyerFunds} value={fee.fundedAmount} />
+              <MoneyRow label={dd.funding.sellerReceives} value={fee.sellerNet} strong />
+              <MoneyRow label={dd.funding.platformFee} value={fee.feeTotal} faint />
               <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
                 <MoneyRow
-                  label={`On delivery · ${deal.firstReleasePct}%`}
+                  label={dd.funding.onDeliveryTemplate.replace('{pct}', String(deal.firstReleasePct))}
                   value={(fee.sellerNet * deal.firstReleasePct) / 100}
                 />
                 <MoneyRow
-                  label={`On verification · ${100 - deal.firstReleasePct}%`}
+                  label={dd.funding.onVerificationTemplate.replace('{pct}', String(100 - deal.firstReleasePct))}
                   value={(fee.sellerNet * (100 - deal.firstReleasePct)) / 100}
                 />
               </div>
-              {fundingSafetyLine(stage, viewerIsBuyer) && (
+              {fundingSafetyLine(stage, viewerIsBuyer, dd.fundingSafety) && (
                 <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)]">
                   <p
                     className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
                     style={{ color: 'var(--lp-accent)' }}
                   >
-                    [:PROTECTED:]
+                    [:{dd.funding.protectedEyebrow}:]
                   </p>
                   <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-                    {fundingSafetyLine(stage, viewerIsBuyer)}
+                    {fundingSafetyLine(stage, viewerIsBuyer, dd.fundingSafety)}
                   </p>
                 </div>
               )}
@@ -581,9 +582,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
       {/* TERMS + (optional) DELIVERY PROOF */}
       <Band tone="light" compact>
-        <SectionTag>TERMS</SectionTag>
+        <SectionTag>{dd.terms.eyebrow}</SectionTag>
         <HeroHeadline size="md">
-          The agreement<Punc>.</Punc>
+          {dd.terms.title}<Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-8 grid md:grid-cols-2 gap-5">
           <PageCard>
@@ -593,15 +594,15 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </p>
               <p className="mt-4 pt-4 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 {deal.deadlineUnix
-                  ? `Deadline ${relativeTime(deal.deadlineUnix * 1000)}`
-                  : 'No delivery deadline'}
+                  ? dd.terms.deadlineTemplate.replace('{when}', relativeTime(deal.deadlineUnix * 1000))
+                  : dd.terms.noDeadline}
               </p>
             </div>
           </PageCard>
 
           {deal.delivered && deal.deliveryProof && (
             <PageCard>
-              <CardHead label="Delivery proof" />
+              <CardHead label={dd.terms.deliveryProofLabel} />
               <div className="p-5 md:p-6">
                 <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap break-words">
                   {deal.deliveryProof}
@@ -615,15 +616,15 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {/* PROGRESS */}
       <Band tone="light" compact>
         <SectionTag dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
-          PROGRESS
+          {dd.progress.eyebrow}
         </SectionTag>
         <HeroHeadline size="md">
-          Where this deal <span style={{ color: 'var(--lp-accent)' }}>stands</span>
+          {dd.progress.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.progress.titleAccent}</span>
           <Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-8" data-guide="deal-flow">
           <PageCard>
-            <ProgressTrack deal={deal} stage={stage} rail={rail} />
+            <ProgressTrack deal={deal} stage={stage} rail={rail} copy={dd.progressTrack} />
           </PageCard>
         </div>
       </Band>
@@ -633,10 +634,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
           <div className="max-w-[42ch]">
             <SectionTag tone="dark" dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
-              NEXT MOVE
+              {dd.actions.eyebrow}
             </SectionTag>
             <HeroHeadline size="md">
-              What you can do <span style={{ color: 'var(--lp-accent)' }}>now</span>
+              {dd.actions.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.actions.titleAccent}</span>
               <Punc>.</Punc>
             </HeroHeadline>
           </div>
@@ -666,6 +667,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   onAccept={onAcceptCancel}
                   onDecline={onDeclineCancel}
                   legacyEscrow={!!deal.legacyEscrow}
+                  copy={dd.cancelProposalBanner}
                 />
               </div>
             )}
@@ -690,16 +692,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onRespondToDelayAppeal={onRespondToDelayAppeal}
               onRequestExtension={onRequestExtension}
               onRespondExtension={onRespondExtension}
+              copy={dd.actionPanel}
             />
             {canPropose && (
               <div className="mt-5 pt-5 border-t border-white/[0.08]">
                 <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-                  [:OR:]
+                  [:{dd.proposeBlock.orEyebrow}:]
                 </p>
                 <p className="mt-2 text-[13px] leading-relaxed text-white/65">
                   {stage === 'disputed'
-                    ? 'Propose how this dispute resolves. Refund the buyer or release to the seller.'
-                    : 'Need to call it off? Propose a cancellation. Your counterparty has to agree; no reputation hit if they do.'}
+                    ? dd.proposeBlock.disputeBody
+                    : dd.proposeBlock.cancelBody}
                 </p>
                 <div className="mt-3">
                   <CTAPill
@@ -708,14 +711,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     onClick={() => setProposeOpen(true)}
                     disabled={busy}
                   >
-                    {stage === 'disputed' ? 'Propose resolution' : 'Propose cancellation'}
+                    {stage === 'disputed' ? dd.proposeBlock.disputeCta : dd.proposeBlock.cancelCta}
                   </CTAPill>
                 </div>
               </div>
             )}
             {errorInfo && (
               <div className="mt-4">
-                <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} />
+                <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} copy={dd.errors} />
               </div>
             )}
           </div>
@@ -728,7 +731,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
             >
-              <span>FUNDING TX</span>
+              <span>{dd.fundingTxLabel}</span>
               <span className="tabular-nums">{shortHash(deal.fundTxHash)}</span>
               <ExternalIcon />
             </a>
@@ -739,13 +742,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {/* CHAT */}
       {address && (
         <Band tone="light" compact>
-          <SectionTag>CHAT</SectionTag>
+          <SectionTag>{dd.chat.eyebrow}</SectionTag>
           <HeroHeadline size="md">
-            Talk to your <span style={{ color: 'var(--lp-accent)' }}>counterparty</span>
+            {dd.chat.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.chat.titleAccent}</span>
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-            Per-deal thread. Mirrors to Telegram if connected.
+            {dd.chat.body}
           </p>
           <div className="mt-8">
             <PageCard>
@@ -754,8 +757,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 caller={address}
                 counterpartyLabel={
                   viewerIsBuyer
-                    ? `seller ${shortAddress(deal.seller)}`
-                    : `buyer ${shortAddress(deal.buyer)}`
+                    ? dd.chat.counterpartySellerTemplate.replace('{address}', shortAddress(deal.seller))
+                    : dd.chat.counterpartyBuyerTemplate.replace('{address}', shortAddress(deal.buyer))
                 }
                 draftSeed={chatDraftSeed}
                 draftSeedKey={chatDraftSeedKey}
@@ -770,6 +773,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           busy={busy}
           onConfirm={doAccept}
           onClose={() => setShowAcceptConsent(false)}
+          copy={dd.acceptConsentModal}
         />
       )}
 
@@ -793,6 +797,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           hasReservation={!!deal.requireStake}
           onConfirm={onProposeCancel}
           onClose={() => setProposeOpen(false)}
+          copy={dd.proposeCancelModal}
         />
       )}
       {editOpen && address && (
@@ -821,11 +826,13 @@ function PartyRow({
   role,
   address,
   you,
+  youLabel,
   showReputation,
 }: {
   role: string;
   address: string;
   you: boolean;
+  youLabel: string;
   showReputation?: boolean;
 }) {
   return (
@@ -833,7 +840,7 @@ function PartyRow({
       <div className="min-w-0">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {role}
-          {you && <span style={{ color: 'var(--lp-accent)' }}> · you</span>}
+          {you && <span style={{ color: 'var(--lp-accent)' }}> · {youLabel}</span>}
         </p>
         <p className="mt-1 mono text-[13px] text-[var(--lp-dark)] tabular-nums">
           {shortAddress(address)}
@@ -879,33 +886,35 @@ function ProgressTrack({
   deal,
   stage,
   rail,
+  copy,
 }: {
   deal: { firstReleasePct: number };
   stage: DealStage;
   rail: string;
+  copy: Messages['directDealDetail']['progressTrack'];
 }) {
   const cancelled = stage === 'cancelled';
   const past = (...stages: DealStage[]) => !cancelled && !stages.includes(stage);
   const steps = [
-    { key: 'opened', label: 'Deal opened', done: true },
+    { key: 'opened', label: copy.opened, done: true },
     {
       key: 'accepted',
-      label: 'Seller accepted · escrow funded',
+      label: copy.accepted,
       done: past('awaiting-acceptance'),
     },
     {
       key: 'delivered',
-      label: 'Seller marked delivered',
+      label: copy.delivered,
       done: past('awaiting-acceptance', 'awaiting-delivery'),
     },
     {
       key: 'first',
-      label: `First ${deal.firstReleasePct}% released`,
+      label: copy.firstReleasedTemplate.replace('{pct}', String(deal.firstReleasePct)),
       done: stage === 'awaiting-final-release' || stage === 'settled',
     },
     {
       key: 'final',
-      label: `Final ${100 - deal.firstReleasePct}% released`,
+      label: copy.finalReleasedTemplate.replace('{pct}', String(100 - deal.firstReleasePct)),
       done: stage === 'settled',
     },
   ];
@@ -975,6 +984,7 @@ function ActionPanel({
   onRespondToDelayAppeal,
   onRequestExtension,
   onRespondExtension,
+  copy,
 }: {
   stage: DealStage;
   viewerIsBuyer: boolean;
@@ -996,6 +1006,7 @@ function ActionPanel({
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
   onRespondExtension: (decision: 'approved' | 'declined') => void;
+  copy: Messages['directDealDetail']['actionPanel'];
 }) {
   if (stage === 'settled') {
     const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
@@ -1003,14 +1014,14 @@ function ActionPanel({
       <div className="space-y-4">
         <Body>
           {releasedFromDispute
-            ? 'Settled via dispute resolution. The buyer released the escrow to the seller.'
+            ? copy.settled.releasedFromDispute
             : deal.autoReleasedAt
-              ? 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.'
-              : 'Settled. The seller has been paid in full and reputation is recorded on chain.'}
+              ? copy.settled.autoReleased
+              : copy.settled.normal}
         </Body>
         {viewerIsSeller && (
           <Link href={`/cashout/${deal.jobId}`}>
-            <CTAPill>Cash out {formatUsdc(deal.dealAmountUsdc)} USDC →</CTAPill>
+            <CTAPill>{copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc))}</CTAPill>
           </Link>
         )}
       </div>
@@ -1028,36 +1039,42 @@ function ActionPanel({
     const remainPct = 100 - firstPct;
 
     const body = (() => {
+      const c = copy.cancelled;
       // pre-accept / no funding ever happened
       if (deal.cancelKind === 'pre-accept' || (!deal.fundTxHash && !deal.cancelKind)) {
-        return 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.';
+        return c.preAccept;
       }
 
       // unilateral buyer cancel after deadline (no milestone was ever released
       // since the seller never delivered).
       if (deal.cancelKind === 'unilateral') {
-        return 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.';
+        return c.unilateral;
       }
 
       // Dispute-state refund accepted by either side. Seller takes the rep
       // hit off-chain via signals.ts; the UI stays neutral about it.
       if (deal.cancelKind === 'refund-from-dispute') {
         const tail = firstReleased
-          ? `The first ${firstPct}% had already been released; the remaining ${remainPct}% refunded to the buyer.`
-          : 'The full escrow refunded to the buyer.';
-        return `Closed via dispute resolution. ${tail}`;
+          ? c.refundFromDisputePartialTailTemplate
+              .replace('{firstPct}', String(firstPct))
+              .replace('{remainPct}', String(remainPct))
+          : c.refundFromDisputeFullTail;
+        return c.refundFromDisputePrefix.replace('{tail}', tail);
       }
 
       // Mutual / platform-attributed branches. Two cases based on prior release.
       const wording =
         deal.cancelKind === 'platform-attributed'
-          ? 'Closed as a platform misroute by mutual agreement.'
-          : 'Closed by mutual agreement after an appeal.';
+          ? c.platformAttributedPrefix
+          : c.mutualPrefix;
 
       if (firstReleased) {
-        return `${wording} The first ${firstPct}% had already been released to the seller, so the remaining ${remainPct}% was refunded to the buyer. Reputation unaffected on either side.`;
+        return c.mutualPartialTemplate
+          .replace('{prefix}', wording)
+          .replace('{firstPct}', String(firstPct))
+          .replace('{remainPct}', String(remainPct));
       }
-      return `${wording} No milestones had been released yet, so the full escrow was refunded to the buyer. Reputation unaffected on either side.`;
+      return c.mutualFullTemplate.replace('{prefix}', wording);
     })();
     return (
       <div className="space-y-2">
@@ -1065,7 +1082,7 @@ function ActionPanel({
         {deal.cancelReason && (deal.cancelKind === 'mutual' || deal.cancelKind === 'platform-attributed') && (
           <div className="mt-1">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
-              [:REASON:]
+              [:{copy.cancelled.reasonEyebrow}:]
             </p>
             <p className="mt-1 text-[13px] text-white/70 leading-relaxed whitespace-pre-wrap">
               {deal.cancelReason}
@@ -1079,18 +1096,14 @@ function ActionPanel({
     const hasReservation = !!deal.requireStake;
     return (
       <div className="space-y-3">
-        <Body tone="critical">
-          This deal is in dispute. The escrow is frozen on chain. To unfreeze it,
-          one side proposes a resolution and the counterparty accepts.
+        <Body tone="critical">{copy.disputed.intro}</Body>
+        <Body>
+          <span className="font-semibold text-white/85">{copy.disputed.refundLabel}</span>{' '}
+          {hasReservation ? copy.disputed.refundBodyWithReservation : copy.disputed.refundBody}
         </Body>
         <Body>
-          <span className="font-semibold text-white/85">Refund the buyer.</span>{' '}
-          Unreleased escrow returns to the buyer
-          {hasReservation ? '. Reserved stake slashes to the buyer too.' : '.'}
-        </Body>
-        <Body>
-          <span className="font-semibold text-white/85">Release to seller.</span>{' '}
-          The seller is paid the full escrow.
+          <span className="font-semibold text-white/85">{copy.disputed.releaseLabel}</span>{' '}
+          {copy.disputed.releaseBody}
         </Body>
       </div>
     );
@@ -1110,11 +1123,8 @@ function ActionPanel({
       ).toFixed(2);
       return (
         <div className="space-y-4">
-          <Body>
-            Review terms and the funding split. Accepting agrees to deliver on these terms and
-            funds the escrow.
-          </Body>
-          <AcceptanceCountdown deal={deal} now={now} viewerIsSeller />
+          <Body>{copy.awaitingAcceptance.sellerIntro}</Body>
+          <AcceptanceCountdown deal={deal} now={now} viewerIsSeller copy={copy.acceptanceCountdown} />
           {deal.requireStake && (
             <div
               className="px-3 py-2 mono text-[11px] leading-snug"
@@ -1124,15 +1134,16 @@ function ActionPanel({
                 color: 'var(--lp-band-dark)',
               }}
             >
-              Trusted match. You need{' '}
+              {copy.awaitingAcceptance.trustedMatchPrefix}{' '}
               <span className="font-bold tabular-nums">{reservedAmount} USDC</span>{' '}
-              free in your stake to accept ({RESERVATION_PCT}% of {deal.dealAmountUsdc}).
-              It releases back when the deal settles, or slashes to the buyer if
-              you lose a dispute.
+              {copy.awaitingAcceptance.trustedMatchMiddleTemplate
+                .replace('{pct}', String(RESERVATION_PCT))
+                .replace('{amount}', String(deal.dealAmountUsdc))}{' '}
+              {copy.awaitingAcceptance.trustedMatchSuffix}
             </div>
           )}
           <CTAPill disabled={busy} onClick={onAccept}>
-            {busy ? 'Confirming on Arc…' : 'Accept deal'}
+            {busy ? copy.awaitingAcceptance.acceptBusy : copy.awaitingAcceptance.acceptCta}
           </CTAPill>
         </div>
       );
@@ -1141,22 +1152,23 @@ function ActionPanel({
       <div className="space-y-4">
         <Body>
           {deal.pendingCounterparty
-            ? `Waiting for ${deal.pendingCounterparty.email} to claim the invite link. Nothing is funded yet.`
-            : 'Waiting for the seller to accept. Nothing is funded yet. You can cancel anytime until they accept.'}
+            ? copy.awaitingAcceptance.buyerWaitingInviteTemplate.replace('{email}', deal.pendingCounterparty.email)
+            : copy.awaitingAcceptance.buyerWaiting}
         </Body>
         {deal.pendingCounterparty && (
           <PendingInviteCopy
             token={deal.pendingCounterparty.inviteToken}
             email={deal.pendingCounterparty.email}
+            copy={copy.pendingInvite}
           />
         )}
-        <AcceptanceCountdown deal={deal} now={now} viewerIsSeller={false} />
+        <AcceptanceCountdown deal={deal} now={now} viewerIsSeller={false} copy={copy.acceptanceCountdown} />
         <div className="flex flex-wrap gap-2">
           <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
-            Edit terms
+            {copy.awaitingAcceptance.editTermsCta}
           </CTAPill>
           <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
-            {busy ? 'Working…' : 'Cancel deal'}
+            {busy ? copy.awaitingAcceptance.cancelBusy : copy.awaitingAcceptance.cancelCta}
           </CTAPill>
         </div>
       </div>
@@ -1175,21 +1187,22 @@ function ActionPanel({
               reason={ext.reason}
               tone="dark"
               role="seller"
+              copy={copy.extensionPending}
             />
           )}
           <Body>
-            Mark the work delivered when it&apos;s done. The buyer then releases the first{' '}
-            {firstPct}%, and the rest once verified.
+            {copy.awaitingDelivery.sellerIntroTemplate
+              .replace('{firstPct}', String(firstPct))}
           </Body>
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-              [:DELIVERY PROOF. OPTIONAL:]
+              [:{copy.awaitingDelivery.proofEyebrow}:]
             </span>
             <textarea
               value={deliveryProof}
               onChange={(e) => onDeliveryProofChange(e.target.value)}
               rows={3}
-              placeholder="Link to the deliverable, a repo, a file, or a short note."
+              placeholder={copy.awaitingDelivery.proofPlaceholder}
               className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(175, 201, 91,0.25)] resize-none transition-shadow"
               style={{
                 borderTopLeftRadius: 12,
@@ -1201,13 +1214,13 @@ function ActionPanel({
           </label>
           <div className="flex flex-wrap gap-2">
             <CTAPill disabled={busy} onClick={onMarkDelivered}>
-              {busy ? 'Confirming on Arc…' : 'Mark delivered'}
+              {busy ? copy.awaitingDelivery.markDeliveredBusy : copy.awaitingDelivery.markDeliveredCta}
             </CTAPill>
             <span
               title={
                 extPendingForSeller
-                  ? 'Already requested. Waiting on the buyer.'
-                  : 'Ask the buyer for more time.'
+                  ? copy.awaitingDelivery.extensionTitlePending
+                  : copy.awaitingDelivery.extensionTitleAsk
               }
             >
               <CTAPill
@@ -1216,7 +1229,7 @@ function ActionPanel({
                 onClick={onRequestExtension}
                 disabled={busy || extPendingForSeller}
               >
-                {extPendingForSeller ? 'Extension pending' : 'Request extension'}
+                {extPendingForSeller ? copy.awaitingDelivery.extensionPendingCta : copy.awaitingDelivery.extensionRequestCta}
               </CTAPill>
             </span>
           </div>
@@ -1235,21 +1248,21 @@ function ActionPanel({
             busy={busy}
             onApprove={() => onRespondExtension('approved')}
             onDecline={() => onRespondExtension('declined')}
+            copy={copy.extensionBuyerBanner}
           />
         )}
         <Body>
-          Seller accepted. Waiting for delivery.
-          {!hasDeadline &&
-            ' No delivery deadline was set on this deal, so the seller can deliver whenever. Propose a mutual cancellation or open an appeal if you need to call it off.'}
-          {hasDeadline && !deadlinePassed && ' If they miss the deadline, you can cancel and reclaim funds.'}
+          {copy.awaitingDelivery.buyerIntro}
+          {!hasDeadline && ' ' + copy.awaitingDelivery.buyerNoDeadlineTail}
+          {hasDeadline && !deadlinePassed && ' ' + copy.awaitingDelivery.buyerHasDeadlineTail}
         </Body>
         {deadlinePassed && (
           <>
             <WindowNote tone="warning">
-              Deadline passed without delivery. Cancel to reclaim the full escrow.
+              {copy.awaitingDelivery.buyerDeadlinePassedNote}
             </WindowNote>
             <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
-              {busy ? 'Working…' : 'Cancel & reclaim funds'}
+              {busy ? copy.awaitingDelivery.reclaimBusy : copy.awaitingDelivery.reclaimCta}
             </CTAPill>
           </>
         )}
@@ -1269,28 +1282,27 @@ function ActionPanel({
       return (
         <div className="space-y-4">
           <Body>
-            Seller marked delivered. Release the first {firstPct}% now. The remaining{' '}
-            {100 - firstPct}% releases once you verify.
+            {copy.awaitingFirstRelease.buyerIntroTemplate
+              .replace('{firstPct}', String(firstPct))
+              .replace('{remainPct}', String(100 - firstPct))}
           </Body>
           {open && (
             <WindowNote tone="warning">
-              Auto-releases the first {firstPct}% in{' '}
-              <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> if you don&apos;t
-              act.
+              {copy.awaitingFirstRelease.buyerAutoReleasePrefixTemplate.replace('{firstPct}', String(firstPct))}{' '}
+              <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> {copy.awaitingFirstRelease.buyerAutoReleaseSuffix}
             </WindowNote>
           )}
           {expired && (
             <WindowNote tone="muted">
-              Release window passed. The agent will release the first {firstPct}% shortly unless
-              you act now.
+              {copy.awaitingFirstRelease.buyerExpiredTemplate.replace('{firstPct}', String(firstPct))}
             </WindowNote>
           )}
           <div className="flex flex-wrap gap-2">
             <CTAPill disabled={busy} onClick={onRelease}>
-              {busy ? 'Confirming on Arc…' : `Release first ${firstPct}%`}
+              {busy ? copy.awaitingFirstRelease.releaseBusy : copy.awaitingFirstRelease.releaseCtaTemplate.replace('{firstPct}', String(firstPct))}
             </CTAPill>
             <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
-              Appeal this deal
+              {copy.awaitingFirstRelease.appealCta}
             </CTAPill>
           </div>
         </div>
@@ -1298,17 +1310,16 @@ function ActionPanel({
     }
     return (
       <div className="space-y-4">
-        <Body>Delivered. Waiting for the buyer to release the first {firstPct}%.</Body>
+        <Body>{copy.awaitingFirstRelease.sellerWaitingTemplate.replace('{firstPct}', String(firstPct))}</Body>
         {open && (
           <WindowNote tone="muted">
-            Buyer window:{' '}
-            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> left. If it
-            passes, the first {firstPct}% releases automatically.
+            {copy.awaitingFirstRelease.sellerOpenPrefix}{' '}
+            <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> {copy.awaitingFirstRelease.sellerOpenSuffixTemplate.replace('{firstPct}', String(firstPct))}
           </WindowNote>
         )}
         {expired && (
           <WindowNote tone="muted">
-            Window passed. The agent will release the first {firstPct}% to you shortly.
+            {copy.awaitingFirstRelease.sellerExpiredTemplate.replace('{firstPct}', String(firstPct))}
           </WindowNote>
         )}
       </div>
@@ -1334,7 +1345,9 @@ function ActionPanel({
     return (
       <div className="space-y-4">
         <Body>
-          First {firstPct}% released. Verify and release the remaining {rest}% to settle.
+          {copy.awaitingFinalRelease.buyerIntroTemplate
+            .replace('{firstPct}', String(firstPct))
+            .replace('{rest}', String(rest))}
         </Body>
         {appealOpen && !responseExpired && (
           <DelayAppealResponder
@@ -1342,24 +1355,25 @@ function ActionPanel({
             rest={rest}
             busy={busy}
             onRespond={onRespondToDelayAppeal}
+            copy={copy.delayAppealResponder}
           />
         )}
         {appealOpen && responseExpired && (
           <WindowNote tone="warning">
-            Response window passed. The agent will auto-release the final {rest}% to the seller shortly.
+            {copy.awaitingFinalRelease.buyerResponseExpiredTemplate.replace('{rest}', String(rest))}
           </WindowNote>
         )}
         {!appealOpen && (
           <WindowNote tone="muted">
-            Take your time. The final {rest}% never releases automatically. Click below to verify and release once you&apos;ve checked the work. If you stall too long the seller can raise a delay appeal.
+            {copy.awaitingFinalRelease.buyerNoAppealTemplate.replace('{rest}', String(rest))}
           </WindowNote>
         )}
         <div className="flex flex-wrap gap-2">
           <CTAPill disabled={busy} onClick={onRelease}>
-            {busy ? 'Confirming on Arc…' : `Verify & release final ${rest}%`}
+            {busy ? copy.awaitingFinalRelease.releaseBusy : copy.awaitingFinalRelease.releaseCtaTemplate.replace('{rest}', String(rest))}
           </CTAPill>
           <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
-            Appeal this deal
+            {copy.awaitingFinalRelease.appealCta}
           </CTAPill>
         </div>
       </div>
@@ -1369,25 +1383,25 @@ function ActionPanel({
   return (
     <div className="space-y-4">
       <Body>
-        First {firstPct}% released. Waiting for the buyer to verify and release the final{' '}
-        {rest}%.
+        {copy.awaitingFinalRelease.sellerWaitingTemplate
+          .replace('{firstPct}', String(firstPct))
+          .replace('{rest}', String(rest))}
       </Body>
       {appealOpen && !responseExpired && (
         <WindowNote tone="warning">
-          Delay appeal raised. Buyer has{' '}
-          <span className="mono font-semibold">{fmtCountdown(responseMsLeft)}</span> to respond. If they
-          don&apos;t, the final {rest}% auto-releases to you.
+          {copy.awaitingFinalRelease.sellerAppealOpenPrefix}{' '}
+          <span className="mono font-semibold">{fmtCountdown(responseMsLeft)}</span> {copy.awaitingFinalRelease.sellerAppealOpenSuffixTemplate.replace('{rest}', String(rest))}
         </WindowNote>
       )}
       {appealOpen && responseExpired && (
         <WindowNote tone="warning">
-          Response window passed. The agent will release the final {rest}% to you shortly.
+          {copy.awaitingFinalRelease.sellerResponseExpiredTemplate.replace('{rest}', String(rest))}
         </WindowNote>
       )}
       {!appealOpen && deal.delayAppealRespondedAt && deal.delayAppealResponse && (
         <div className="space-y-2">
           <WindowNote tone="muted">
-            Buyer responded to your last delay appeal:
+            {copy.awaitingFinalRelease.sellerBuyerResponded}
           </WindowNote>
           <p className="text-[13px] leading-relaxed text-white/75 px-3 py-2.5 border border-white/[0.08] rounded-[4px]">
             “{deal.delayAppealResponse}”
@@ -1396,18 +1410,17 @@ function ActionPanel({
       )}
       {!appealOpen && graceOpen && delayGraceEndsAt != null && (
         <WindowNote tone="muted">
-          Buyer is reviewing. You can raise a delay appeal in{' '}
-          <span className="mono font-semibold">{fmtCountdown(delayGraceEndsAt - now)}</span> if they
-          don&apos;t release.
+          {copy.awaitingFinalRelease.sellerGracePrefix}{' '}
+          <span className="mono font-semibold">{fmtCountdown(delayGraceEndsAt - now)}</span> {copy.awaitingFinalRelease.sellerGraceSuffix}
         </WindowNote>
       )}
       {!appealOpen && sellerCanAppeal && (
         <div className="flex flex-wrap gap-2">
           <CTAPill onClick={onRaiseDelayAppeal} disabled={busy}>
-            {busy ? 'Submitting…' : 'Raise delay appeal'}
+            {busy ? copy.awaitingFinalRelease.raiseAppealBusy : copy.awaitingFinalRelease.raiseAppealCta}
           </CTAPill>
           <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
-            Open dispute instead
+            {copy.awaitingFinalRelease.openDisputeCta}
           </CTAPill>
         </div>
       )}
@@ -1420,11 +1433,13 @@ function DelayAppealResponder({
   rest,
   busy,
   onRespond,
+  copy,
 }: {
   msLeft: number;
   rest: number;
   busy: boolean;
   onRespond: (reason: string) => void;
+  copy: Messages['directDealDetail']['actionPanel']['delayAppealResponder'];
 }) {
   const [reason, setReason] = useState('');
   const canSubmit = reason.trim().length > 0 && !busy;
@@ -1432,28 +1447,36 @@ function DelayAppealResponder({
     <div className="space-y-3 p-4 border border-[rgba(239,127,99,0.35)]" style={{ background: 'rgba(239,127,99,0.08)', borderRadius: 4 }}>
       <div className="space-y-1">
         <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: '#ef7f63' }}>
-          [:SELLER RAISED A DELAY APPEAL:]
+          [:{copy.eyebrow}:]
         </p>
         <p className="text-[13px] leading-relaxed text-white/85">
-          Reply with a reason in{' '}
-          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> or the final {rest}% releases automatically.
+          {copy.prefix}{' '}
+          <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> {copy.suffixTemplate.replace('{rest}', String(rest))}
         </p>
       </div>
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        placeholder="Why are you still reviewing? Be specific."
+        placeholder={copy.placeholder}
         rows={3}
         className="w-full bg-black/30 border border-white/[0.12] rounded-[3px] px-3 py-2 text-[13px] text-white placeholder:text-white/35 focus:outline-none focus:border-[rgba(239,127,99,0.6)]"
       />
       <CTAPill onClick={() => onRespond(reason.trim())} disabled={!canSubmit}>
-        {busy ? 'Submitting…' : 'Respond to appeal'}
+        {busy ? copy.submitBusy : copy.submitCta}
       </CTAPill>
     </div>
   );
 }
 
-function PendingInviteCopy({ token, email }: { token: string; email: string }) {
+function PendingInviteCopy({
+  token,
+  email,
+  copy,
+}: {
+  token: string;
+  email: string;
+  copy: Messages['directDealDetail']['actionPanel']['pendingInvite'];
+}) {
   const [copied, setCopied] = useState(false);
   const inviteUrl =
     typeof window !== 'undefined' ? `${window.location.origin}/invite/${token}` : `/invite/${token}`;
@@ -1467,10 +1490,10 @@ function PendingInviteCopy({ token, email }: { token: string; email: string }) {
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
-        [:SHARE THE INVITE:]
+        [:{copy.eyebrow}:]
       </p>
       <p className="text-[12.5px] leading-snug text-white/75">
-        Send {email} this link. They open it, verify the email, and the deal binds to their wallet.
+        {copy.bodyTemplate.replace('{email}', email)}
       </p>
       <div className="flex items-center gap-2 flex-wrap">
         <input
@@ -1499,7 +1522,7 @@ function PendingInviteCopy({ token, email }: { token: string; email: string }) {
             borderBottomRightRadius: 2,
           }}
         >
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? copy.copied : copy.copyCta}
         </button>
       </div>
     </div>
@@ -1510,10 +1533,12 @@ function AcceptanceCountdown({
   deal,
   now,
   viewerIsSeller,
+  copy,
 }: {
   deal: DirectDeal;
   now: number;
   viewerIsSeller: boolean;
+  copy: Messages['directDealDetail']['actionPanel']['acceptanceCountdown'];
 }) {
   if (!deal.acceptanceDeadlineUnix) return null;
   const deadlineMs = deal.acceptanceDeadlineUnix * 1000;
@@ -1522,19 +1547,15 @@ function AcceptanceCountdown({
   if (open) {
     return (
       <WindowNote tone="warning">
-        {viewerIsSeller
-          ? 'You have'
-          : "Seller's window:"}{' '}
+        {viewerIsSeller ? copy.openSellerPrefix : copy.openBuyerPrefix}{' '}
         <span className="mono font-semibold">{fmtCountdown(msLeft)}</span>{' '}
-        {viewerIsSeller
-          ? 'to accept before the deal auto-expires.'
-          : 'before the deal auto-expires (pre-accept, no rep hit).'}
+        {viewerIsSeller ? copy.openSellerSuffix : copy.openBuyerSuffix}
       </WindowNote>
     );
   }
   return (
     <WindowNote tone="muted">
-      Acceptance window passed. The agent will mark this deal cancelled (pre-accept) on the next tick.
+      {copy.expired}
     </WindowNote>
   );
 }
@@ -1589,14 +1610,19 @@ function WindowNote({
   );
 }
 
-function formatExtensionDuration(seconds: number): string {
+function formatExtensionDuration(
+  seconds: number,
+  copy: Messages['directDealDetail']['actionPanel']['extensionDuration'],
+): string {
   const days = Math.floor(seconds / 86400);
   if (days >= 1) {
     const rem = seconds - days * 86400;
-    if (rem === 0) return `${days} day${days === 1 ? '' : 's'}`;
+    if (rem === 0) {
+      return (days === 1 ? copy.dayTemplate : copy.daysTemplate).replace('{n}', String(days));
+    }
   }
   const hours = Math.round(seconds / 3600);
-  return `${hours} hour${hours === 1 ? '' : 's'}`;
+  return (hours === 1 ? copy.hourTemplate : copy.hoursTemplate).replace('{n}', String(hours));
 }
 
 /// Seller-side note shown above the deliver form when the buyer has an
@@ -1606,11 +1632,13 @@ function ExtensionPendingNote({
   additionalSeconds,
   reason,
   tone,
+  copy,
 }: {
   additionalSeconds: number;
   reason?: string;
   tone: 'dark' | 'light';
   role: 'seller';
+  copy: Messages['directDealDetail']['actionPanel']['extensionPending'];
 }) {
   const isDark = tone === 'dark';
   return (
@@ -1627,12 +1655,12 @@ function ExtensionPendingNote({
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] opacity-70">
-        [:EXTENSION REQUEST PENDING:]
+        [:{copy.eyebrow}:]
       </p>
       <p className="mt-1.5 text-[13px] leading-relaxed">
-        You asked the buyer for{' '}
-        <span className="font-semibold">+{formatExtensionDuration(additionalSeconds)}</span>.
-        {reason ? ` Reason: ${reason}` : ''}
+        {copy.prefix}{' '}
+        <span className="font-semibold">+{formatExtensionDuration(additionalSeconds, copy.duration)}</span>.
+        {reason ? ` ${copy.reasonPrefix} ${reason}` : ''}
       </p>
     </div>
   );
@@ -1648,6 +1676,7 @@ function ExtensionBuyerBanner({
   busy,
   onApprove,
   onDecline,
+  copy,
 }: {
   additionalSeconds: number;
   reason?: string;
@@ -1655,6 +1684,7 @@ function ExtensionBuyerBanner({
   busy: boolean;
   onApprove: () => void;
   onDecline: () => void;
+  copy: Messages['directDealDetail']['actionPanel']['extensionBuyerBanner'];
 }) {
   const newDeadline =
     currentDeadlineUnix != null ? currentDeadlineUnix + additionalSeconds : null;
@@ -1672,25 +1702,25 @@ function ExtensionBuyerBanner({
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
-        [:SELLER ASKED FOR MORE TIME:]
+        [:{copy.eyebrow}:]
       </p>
       <p className="mt-2 text-[14px] leading-relaxed text-white">
-        Seller is requesting{' '}
-        <span className="font-semibold">+{formatExtensionDuration(additionalSeconds)}</span>{' '}
-        to deliver.
-        {reason ? <> Reason: <span className="opacity-80">{reason}</span></> : null}
+        {copy.requestPrefix}{' '}
+        <span className="font-semibold">+{formatExtensionDuration(additionalSeconds, copy.duration)}</span>{' '}
+        {copy.requestSuffix}
+        {reason ? <> {copy.reasonPrefix} <span className="opacity-80">{reason}</span></> : null}
       </p>
       {newDeadlineLabel && (
         <p className="mt-1.5 text-[12.5px] text-white/70">
-          New deadline if approved: <span className="tabular-nums">{newDeadlineLabel}</span>
+          {copy.newDeadlinePrefix} <span className="tabular-nums">{newDeadlineLabel}</span>
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         <CTAPill onClick={onApprove} disabled={busy}>
-          {busy ? 'Working…' : 'Approve'}
+          {busy ? copy.approveBusy : copy.approveCta}
         </CTAPill>
         <CTAPill variant="secondary" tone="dark" onClick={onDecline} disabled={busy}>
-          Decline
+          {copy.declineCta}
         </CTAPill>
       </div>
     </div>
@@ -1701,10 +1731,12 @@ function AcceptConsentModal({
   busy,
   onConfirm,
   onClose,
+  copy,
 }: {
   busy: boolean;
   onConfirm: () => void;
   onClose: () => void;
+  copy: Messages['directDealDetail']['acceptConsentModal'];
 }) {
   return (
     <div
@@ -1729,24 +1761,23 @@ function AcceptConsentModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:CIRCLE WALLETS:]
+            [:{copy.eyebrow}:]
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
-            An agent wallet will be created
+            {copy.title}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-5">
           <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
-            Accepting provisions a Circle agent wallet pair tied to your wallet. Buyer escrow
-            funds against it. Your seller agent receives payouts. One-time setup.
+            {copy.body}
           </p>
           <div className="flex items-center gap-3">
             <CTAPill onClick={onConfirm} disabled={busy}>
-              {busy ? 'Setting up your wallet…' : 'Proceed & accept'}
+              {busy ? copy.confirmBusy : copy.confirmCta}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
-              Not now
+              {copy.cancelCta}
             </CTAPill>
           </div>
         </div>
@@ -1765,6 +1796,7 @@ function CancelProposalBanner({
   onAccept,
   onDecline,
   legacyEscrow,
+  copy,
 }: {
   proposal: NonNullable<DirectDeal['cancellationProposal']>;
   viewerIsCounterparty: boolean;
@@ -1778,19 +1810,21 @@ function CancelProposalBanner({
   /// route to v2.D endpoints that don't hold the funds, so swap them for a
   /// link to /legacy where the legacy-aware routes handle the refund.
   legacyEscrow: boolean;
+  copy: Messages['directDealDetail']['cancelProposalBanner'];
 }) {
   const remainPct = 100 - firstReleasePct;
   const isReleaseFromDispute = proposal.kind === 'release-from-dispute';
   const isRefundFromDispute = proposal.kind === 'refund-from-dispute';
   const isDisputeResolution = isReleaseFromDispute || isRefundFromDispute;
   const kindLabel = isReleaseFromDispute
-    ? 'RELEASE TO SELLER'
+    ? copy.kindReleaseToSeller
     : isRefundFromDispute
-      ? 'REFUND THE BUYER'
+      ? copy.kindRefundBuyer
       : proposal.kind === 'platform-attributed'
-        ? 'PLATFORM MISROUTE'
-        : 'MUTUAL CANCEL';
-  const acceptLabel = isReleaseFromDispute ? 'Agree & release' : 'Accept & refund';
+        ? copy.kindPlatformMisroute
+        : copy.kindMutualCancel;
+  const acceptLabel = isReleaseFromDispute ? copy.acceptReleaseCta : copy.acceptRefundCta;
+  const byLabel = proposal.proposedBy === 'buyer' ? copy.proposerBuyer : copy.proposerSeller;
   return (
     <div
       className="overflow-hidden"
@@ -1810,15 +1844,15 @@ function CancelProposalBanner({
       >
         <span aria-hidden className="inline-block w-[5px] h-[5px] bg-[var(--lp-band-dark)]" />
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
-          {kindLabel} PROPOSED
+          {copy.proposedTemplate.replace('{kind}', kindLabel)}
         </span>
         <span className="ms-auto mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-dark)]/70">
-          BY {proposal.proposedBy.toUpperCase()}
+          {copy.byTemplate.replace('{by}', byLabel)}
         </span>
       </div>
       <div className="px-4 py-3 space-y-2.5">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:REASON:]
+          [:{copy.reasonEyebrow}:]
         </p>
         <p className="text-[13px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
           {proposal.reason}
@@ -1826,20 +1860,22 @@ function CancelProposalBanner({
         <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
           {(() => {
             if (isReleaseFromDispute) {
-              return 'Accepting releases the full escrow to the seller.';
+              return copy.outcomeReleaseFromDispute;
             }
             if (isRefundFromDispute) {
               return firstReleased
-                ? `Accepting refunds the remaining ${remainPct}% to the buyer.`
-                : 'Accepting refunds the full escrow to the buyer.';
+                ? copy.outcomeRefundFromDisputePartialTemplate.replace('{remainPct}', String(remainPct))
+                : copy.outcomeRefundFromDisputeFull;
             }
             const prefix =
               proposal.kind === 'platform-attributed'
-                ? 'Both sides agree the agent misrouted.'
-                : 'No reputation hit on either side if accepted.';
+                ? copy.outcomePlatformPrefix
+                : copy.outcomeMutualPrefix;
             const outcome = firstReleased
-              ? `The first ${firstReleasePct}% has already been released to the seller; accepting refunds the remaining ${remainPct}% to the buyer.`
-              : 'Accepting refunds the full escrow to the buyer.';
+              ? copy.outcomePartialTemplate
+                  .replace('{firstPct}', String(firstReleasePct))
+                  .replace('{remainPct}', String(remainPct))
+              : copy.outcomeFull;
             return `${prefix} ${outcome}`;
           })()}
         </p>
@@ -1855,27 +1891,27 @@ function CancelProposalBanner({
                 borderBottomRightRadius: 2,
               }}
             >
-              Accept on recovery
+              {copy.legacyCta}
               <span aria-hidden>→</span>
             </Link>
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              this deal is on an older contract
+              {copy.legacyNote}
             </p>
           </div>
         )}
         {viewerIsCounterparty && !legacyEscrow && (
           <div className="pt-2 flex flex-wrap items-center gap-2">
             <CTAPill onClick={onAccept} disabled={busy}>
-              {busy ? 'Confirming…' : acceptLabel}
+              {busy ? copy.confirmingBusy : acceptLabel}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onDecline} disabled={busy}>
-              {isDisputeResolution ? 'Decline · stay in dispute' : 'Decline · keep the deal'}
+              {isDisputeResolution ? copy.declineDisputeCta : copy.declineCancelCta}
             </CTAPill>
           </div>
         )}
         {viewerIsProposer && (
           <p className="pt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Waiting on counterparty to accept or decline.
+            {copy.waitingNote}
           </p>
         )}
       </div>
@@ -1897,6 +1933,7 @@ function ProposeCancelModal({
   hasReservation,
   onConfirm,
   onClose,
+  copy,
 }: {
   busy: boolean;
   firstReleased: boolean;
@@ -1905,6 +1942,7 @@ function ProposeCancelModal({
   hasReservation: boolean;
   onConfirm: (reason: string, kind: ProposeKind) => void;
   onClose: () => void;
+  copy: Messages['directDealDetail']['proposeCancelModal'];
 }) {
   const [reason, setReason] = useState('');
   const defaultKind: ProposeKind = disputed ? 'refund-from-dispute' : 'mutual';
@@ -1916,23 +1954,21 @@ function ProposeCancelModal({
     ? [
         {
           key: 'refund-from-dispute',
-          label: 'Refund the buyer',
-          body: hasReservation
-            ? 'Unreleased escrow returns to the buyer. Reserved stake slashes to the buyer too.'
-            : 'Unreleased escrow returns to the buyer.',
+          label: copy.kindRefundBuyerLabel,
+          body: hasReservation ? copy.kindRefundBuyerBodyWithReservation : copy.kindRefundBuyerBody,
         },
         {
           key: 'release-from-dispute',
-          label: 'Release to seller',
-          body: 'Seller is paid the full escrow.',
+          label: copy.kindReleaseSellerLabel,
+          body: copy.kindReleaseSellerBody,
         },
       ]
     : [
-        { key: 'mutual', label: 'Mutual', body: "We've both decided to walk." },
+        { key: 'mutual', label: copy.kindMutualLabel, body: copy.kindMutualBody },
         {
           key: 'platform-attributed',
-          label: 'Platform misroute',
-          body: 'The agent matched us wrong.',
+          label: copy.kindPlatformLabel,
+          body: copy.kindPlatformBody,
         },
       ];
   return (
@@ -1959,27 +1995,30 @@ function ProposeCancelModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{disputed ? 'PROPOSE RESOLUTION' : 'PROPOSE CANCELLATION'}:]
+            [:{disputed ? copy.eyebrowResolution : copy.eyebrowCancellation}:]
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
-            {disputed ? 'Resolve the dispute' : 'Call it off'}
+            {disputed ? copy.titleDispute : copy.titleCancel}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>
         </div>
         <div className="px-6 pb-6 space-y-5">
           <p className="text-[13.5px] text-[var(--lp-text-sub)] leading-relaxed">
             {disputed
-              ? 'Your counterparty has to accept. If they decline, the deal stays in dispute.'
-              : `Your counterparty has to agree. If they accept, ${
+              ? copy.disputeBody
+              : copy.cancelBodyTemplate.replace(
+                  '{outcome}',
                   firstReleased
-                    ? `the first ${firstReleasePct}% already paid stays with the seller and the remaining ${remainPct}% refunds to the buyer`
-                    : 'the full escrow refunds to the buyer'
-                }, with no reputation hit on either side. If they decline, the deal continues normally.`}
+                    ? copy.cancelOutcomePartialTemplate
+                        .replace('{firstPct}', String(firstReleasePct))
+                        .replace('{remainPct}', String(remainPct))
+                    : copy.cancelOutcomeFull,
+                )}
           </p>
 
           <div className="space-y-2">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{disputed ? 'RESOLUTION' : 'KIND'}:]
+              [:{disputed ? copy.kindEyebrowResolution : copy.kindEyebrowKind}:]
             </span>
             <div className="grid grid-cols-2 gap-2">
               {KIND_OPTIONS.map((opt) => {
@@ -2023,23 +2062,23 @@ function ProposeCancelModal({
 
           <label className="block space-y-2">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:REASON:]
+              [:{copy.reasonEyebrow}:]
             </span>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
-              placeholder="Plain language. The other side reads this in their banner."
+              placeholder={copy.reasonPlaceholder}
               className="form-input form-textarea"
             />
           </label>
 
           <div className="flex items-center gap-3">
             <CTAPill onClick={() => onConfirm(reason.trim(), kind)} disabled={busy || !valid}>
-              {busy ? 'Proposing…' : 'Send proposal'}
+              {busy ? copy.submitBusy : copy.submitCta}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
-              Not now
+              {copy.cancelCta}
             </CTAPill>
           </div>
         </div>
@@ -2064,9 +2103,11 @@ function ExternalIcon() {
 function DealErrorNote({
   info,
   viewerIsBuyer,
+  copy,
 }: {
   info: { code?: string; message: string };
   viewerIsBuyer: boolean;
+  copy: Messages['directDealDetail']['errors'];
 }) {
   const wrap = (children: ReactNode) => (
     <div
@@ -2088,17 +2129,17 @@ function DealErrorNote({
   if (info.code === 'INSUFFICIENT_AGENT_BALANCE') {
     return wrap(
       <div className="space-y-1.5">
-        <p className="font-medium">Buyer agent doesn&apos;t have enough USDC on Arc.</p>
+        <p className="font-medium">{copy.insufficientBalanceTitle}</p>
         {viewerIsBuyer ? (
           <p className="text-[11px] opacity-90">
-            Top up the buyer agent from your profile, then the seller can accept.{' '}
+            {copy.insufficientBalanceBuyerPrefix}{' '}
             <Link href="/profile" className="underline font-medium">
-              Fund agent
+              {copy.insufficientBalanceBuyerLink}
             </Link>
           </p>
         ) : (
           <p className="text-[11px] opacity-90">
-            The buyer has been notified. Try accepting again once funded.
+            {copy.insufficientBalanceSeller}
           </p>
         )}
       </div>,
@@ -2106,27 +2147,22 @@ function DealErrorNote({
   }
   if (info.code === 'INSUFFICIENT_AGENT_GAS') {
     return wrap(
-      <p className="font-medium">
-        The buyer agent doesn&apos;t have enough native gas on Arc to send this transaction.
-      </p>,
+      <p className="font-medium">{copy.insufficientGas}</p>,
     );
   }
   if (info.code === 'INSUFFICIENT_STAKE') {
     // v2.D: seller agent's free stake is below the insurance reservation.
-    // Surface a clear "stake more" CTA. Only seller sees this — the buyer
+    // Surface a clear "stake more" CTA. Only seller sees this; the buyer
     // never triggers the accept call.
     return wrap(
       <div className="space-y-1.5">
-        <p className="font-medium">
-          Your seller agent doesn&apos;t have enough free stake to backstop
-          this deal.
-        </p>
+        <p className="font-medium">{copy.insufficientStakeTitle}</p>
         <p className="text-[11px] opacity-90">{info.message}</p>
         <p className="text-[11px] opacity-90">
           <Link href="/stake" className="underline font-medium">
-            Stake more
+            {copy.insufficientStakeLink}
           </Link>
-          {' '}then return here to accept.
+          {' '}{copy.insufficientStakeSuffix}
         </p>
       </div>,
     );
@@ -2134,7 +2170,7 @@ function DealErrorNote({
   if (info.code === 'ACCEPT_ESCROW_FAILED') {
     return wrap(
       <div className="space-y-1.5">
-        <p className="font-medium">Could not accept the escrow on chain.</p>
+        <p className="font-medium">{copy.acceptEscrowFailedTitle}</p>
         <p className="text-[11px] opacity-90">{info.message}</p>
       </div>,
     );

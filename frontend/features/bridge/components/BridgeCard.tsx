@@ -27,6 +27,8 @@ import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, BRIDGE_STEPS } from '@/shared/guide/tours';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 const STUCK_AFTER_MS = 30 * 60 * 1000;
@@ -58,33 +60,47 @@ function stepIndexFor(phase: BridgePhase): number {
   return STEP_ORDER.indexOf(phase);
 }
 
-function elapsed(ts: number): string {
+function elapsed(ts: number, copy: { secondsTemplate: string; minutesTemplate: string; hoursTemplate: string }): string {
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (s < 60) return `${s}s`;
+  if (s < 60) return copy.secondsTemplate.replace('{n}', String(s));
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
+  if (m < 60) return copy.minutesTemplate.replace('{n}', String(m));
   const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  return copy.hoursTemplate.replace('{h}', String(h)).replace('{m}', String(m % 60));
 }
 
-function phaseLabel(phase: BridgePhase, sourceShortName?: string): string {
+function phaseLabel(
+  phase: BridgePhase,
+  copy: {
+    switchingTo: string;
+    switchingChain: string;
+    approving: string;
+    burning: string;
+    relaying: string;
+    attesting: string;
+    minting: string;
+    done: string;
+    error: string;
+  },
+  sourceShortName?: string,
+): string {
   switch (phase) {
     case 'switching':
-      return sourceShortName ? `Switching to ${sourceShortName}` : 'Switching chain';
+      return sourceShortName ? copy.switchingTo.replace('{chain}', sourceShortName) : copy.switchingChain;
     case 'approving':
-      return 'Approving USDC';
+      return copy.approving;
     case 'burning':
-      return 'Burning';
+      return copy.burning;
     case 'relaying':
-      return 'Submitting to relay';
+      return copy.relaying;
     case 'attesting':
-      return 'Waiting for attestation';
+      return copy.attesting;
     case 'minting':
-      return 'Minting on Arc';
+      return copy.minting;
     case 'done':
-      return 'Bridged';
+      return copy.done;
     case 'error':
-      return 'Failed';
+      return copy.error;
   }
 }
 
@@ -132,6 +148,7 @@ export function BridgeCard({
   /// bridge tour doesn't fire there too. On for the standalone bridge surface.
   tour?: boolean;
 }) {
+  const bc = useTranslations().bridgeCard;
   const { isConnected, address: web3Address } = useAccount();
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
@@ -322,10 +339,10 @@ export function BridgeCard({
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:BRIDGE:]
+          {bc.eyebrow.bridge}
         </span>
         <p className="mt-3 text-[14px] text-[var(--lp-text-sub)]">
-          Buyer agent not configured.
+          {bc.buyerAgentNotConfigured}
         </p>
       </div>
     );
@@ -339,13 +356,13 @@ export function BridgeCard({
       <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:TOP UP AGENT:]
+            {bc.eyebrow.topUpAgent}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            Bridge to Arc
+            {bc.title}
           </h2>
           <p className="mt-2 inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            <span>CCTP V2</span>
+            <span>{bc.cctpV2}</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/circle-logo.png"
@@ -380,7 +397,7 @@ export function BridgeCard({
                 style={{ background: 'var(--lp-accent)' }}
               />
             </span>
-            {activeCount} IN FLIGHT
+            {bc.inFlightTemplate.replace('{n}', String(activeCount))}
           </span>
         )}
       </div>
@@ -390,17 +407,20 @@ export function BridgeCard({
           <CircleSourceFundBanner
             sourceChainKey={sourceKey as CctpChainKey}
             wallet={circleWallet}
+            copy={bc.circleFund}
           />
         )}
         {isCircleUser && sourceIsAppKitOnly && appKitSource && (
-          <AppKitFundBanner source={appKitSource} />
+          <AppKitFundBanner source={appKitSource} copy={bc.appKitFund} />
         )}
-        {!isCircleUser && isConnected && evmSource && <Web3FundHint source={evmSource} />}
+        {!isCircleUser && isConnected && evmSource && (
+          <Web3FundHint source={evmSource} copy={bc.web3Fund} />
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN PICKER */}
           <div data-guide="bridge-source">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:SOURCE CHAIN:]
+              {bc.eyebrow.sourceChain}
             </span>
             <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {(Object.values(SOURCE_CHAINS) as SourceChainConfig[]).map((c) => {
@@ -453,7 +473,7 @@ export function BridgeCard({
                           className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
                           style={{ color: 'var(--lp-text-muted)' }}
                         >
-                          Sepolia · d{c.domain}
+                          {bc.sourceChain.sepoliaDomainTemplate.replace('{domain}', String(c.domain))}
                         </p>
                       </div>
                     </div>
@@ -478,7 +498,7 @@ export function BridgeCard({
                     disabled={disabled}
                     title={
                       disabled
-                        ? 'Solana bridge runs through Circle App Kit. Sign in with a Circle account to use it.'
+                        ? bc.sourceChain.solanaCircleOnlyTitle
                         : undefined
                     }
                     className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
@@ -517,7 +537,7 @@ export function BridgeCard({
                                 background: 'rgba(0,0,0,0.05)',
                               }}
                             >
-                              Circle only
+                              {bc.sourceChain.circleOnlyTag}
                             </span>
                           )}
                         </div>
@@ -525,7 +545,7 @@ export function BridgeCard({
                           className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
                           style={{ color: 'var(--lp-text-muted)' }}
                         >
-                          Devnet · App Kit
+                          {bc.sourceChain.devnetAppKit}
                         </p>
                       </div>
                     </div>
@@ -550,16 +570,16 @@ export function BridgeCard({
           >
             <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:AMOUNT:]
+                {bc.eyebrow.amount}
               </span>
               {sourceBalance != null && Number(sourceBalance) > 0 ? (
                 <button
                   type="button"
                   onClick={() => setAmount(Number(sourceBalance))}
                   className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-                  title="Use full balance"
+                  title={bc.amount.maxTitle}
                 >
-                  Balance {formatUsdc(sourceBalance, { withSuffix: false })} · MAX
+                  {bc.amount.balanceMaxTemplate.replace('{amount}', formatUsdc(sourceBalance, { withSuffix: false }))}
                 </button>
               ) : (
                 <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
@@ -605,7 +625,7 @@ export function BridgeCard({
             <WalletAvatar address={mintRecipient} size={26} />
             <div className="flex-1 min-w-0">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:MINTS TO:]
+                {bc.eyebrow.mintsTo}
               </span>
               <p className="mt-0.5 text-[13px] mono tabular-nums truncate text-[var(--lp-dark)]">
                 {shortAddress(mintRecipient)}
@@ -613,7 +633,7 @@ export function BridgeCard({
             </div>
             <div className="flex items-center gap-1.5 text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
               <ChainMark which="arc" size={16} />
-              <span>Arc Testnet</span>
+              <span>{bc.arcTestnet}</span>
             </div>
           </div>
 
@@ -637,14 +657,14 @@ export function BridgeCard({
               <>
                 <span>
                   {web3CannotSign
-                    ? 'Solana bridge needs a Circle account'
+                    ? bc.submit.solanaNeedsCircle
                     : isCircleUser
-                      ? `Bridge from ${sourceShortName}`
+                      ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
                       : isSwitching
-                        ? `Switching to ${sourceShortName}…`
+                        ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
                         : onWrongChain
-                          ? `Switch to ${sourceShortName}`
-                          : `Bridge from ${sourceShortName}`}
+                          ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
+                          : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
                 </span>
                 <span
                   aria-hidden
@@ -662,7 +682,7 @@ export function BridgeCard({
                 </span>
               </>
             ) : (
-              'Connect wallet to bridge'
+              bc.submit.connectWallet
             )}
           </button>
         </form>
@@ -671,7 +691,7 @@ export function BridgeCard({
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
             <div className="flex items-baseline justify-between gap-3 mb-3.5">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:ACTIVITY:]
+                {bc.eyebrow.activity}
               </span>
               <div className="flex items-baseline gap-3">
                 {inBridges.some((b) => !isActive(b.phase)) && (
@@ -679,13 +699,13 @@ export function BridgeCard({
                     type="button"
                     onClick={clearCompleted}
                     className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-                    title="Remove finished and failed bridges from your local history. Active bridges are kept."
+                    title={bc.activity.clearHistoryTitle}
                   >
-                    Clear history
+                    {bc.activity.clearHistory}
                   </button>
                 )}
                 <p className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {inBridges.length} {inBridges.length === 1 ? 'BRIDGE' : 'BRIDGES'}
+                  {inBridges.length} {inBridges.length === 1 ? bc.activity.bridgeSingular : bc.activity.bridgePlural}
                 </p>
               </div>
             </div>
@@ -699,6 +719,7 @@ export function BridgeCard({
                   onRetry={() => retry(b.id)}
                   onRecheck={() => recheck(b.id)}
                   onDismiss={() => dismiss(b.id)}
+                  copy={bc.row}
                 />
               ))}
             </ul>
@@ -716,6 +737,7 @@ function BridgeRow({
   onRetry,
   onRecheck,
   onDismiss,
+  copy,
 }: {
   bridge: BridgeRecord;
   expanded: boolean;
@@ -723,6 +745,7 @@ function BridgeRow({
   onRetry: () => void;
   onRecheck: () => void;
   onDismiss: () => void;
+  copy: Messages['bridgeCard']['row'];
 }) {
   // Bridge records can be EVM (SOURCE_CHAINS) or App-Kit-only (Solana, in
   // APP_KIT_SOURCES). Use the uniform meta lookup so this row renders for
@@ -776,9 +799,9 @@ function BridgeRow({
             </span>
           </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <PhaseChip tone={tone} label={phaseLabel(bridge.phase, meta.shortName)} />
+            <PhaseChip tone={tone} label={phaseLabel(bridge.phase, copy.phase, meta.shortName)} />
             <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none tabular-nums">
-              {elapsed(bridge.startedAt)}
+              {elapsed(bridge.startedAt, copy.elapsed)}
             </span>
             {isStuck && (
               <span
@@ -793,7 +816,7 @@ function BridgeRow({
                   borderBottomRightRadius: 2,
                 }}
               >
-                STALE
+                {copy.stale}
               </span>
             )}
           </div>
@@ -819,14 +842,14 @@ function BridgeRow({
       </button>
 
       <div className="px-3 pb-3">
-        <SegmentedProgress idx={idx} tone={tone} />
+        <SegmentedProgress idx={idx} tone={tone} copy={copy.progress} />
       </div>
 
       {expanded && (
         <div className="border-t border-[var(--lp-border-light)] px-3 py-3 space-y-3">
-          <BridgeSteps bridge={bridge} />
+          <BridgeSteps bridge={bridge} copy={copy.steps} />
 
-          {bridge.error && <ErrorBanner message={bridge.error} />}
+          {bridge.error && <ErrorBanner message={bridge.error} copy={copy.error} />}
 
           {(bridge.burnTxHash || bridge.mintTxHash) && (
             <div className="space-y-1.5">
@@ -838,7 +861,7 @@ function BridgeRow({
                   className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    BURN · {meta.shortName.toUpperCase()}
+                    {copy.burnLabelTemplate.replace('{chain}', meta.shortName.toUpperCase())}
                   </span>
                   <span className="mono inline-flex items-center gap-1 tabular-nums">
                     {shortHash(bridge.burnTxHash)}
@@ -854,7 +877,7 @@ function BridgeRow({
                   className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    MINT · ARC
+                    {copy.mintLabel}
                   </span>
                   <span className="mono inline-flex items-center gap-1 tabular-nums">
                     {shortHash(bridge.mintTxHash)}
@@ -867,9 +890,7 @@ function BridgeRow({
 
           {isStuck && (
             <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
-              This bridge has been waiting far longer than the usual 10 to 19 minutes. The relay
-              was likely interrupted, or the mint already landed and this card missed the event.
-              Dismissing it only clears the card; the burn on chain and any mint are unaffected.
+              {copy.stuckNote}
             </p>
           )}
 
@@ -888,7 +909,7 @@ function BridgeRow({
                   borderBottomRightRadius: 2,
                 }}
               >
-                Recheck on chain
+                {copy.recheckOnChain}
               </button>
             )}
             {bridge.phase === 'error' && (
@@ -905,7 +926,7 @@ function BridgeRow({
                   borderBottomRightRadius: 2,
                 }}
               >
-                Retry from start
+                {copy.retryFromStart}
               </button>
             )}
             {(bridge.phase === 'done' || bridge.phase === 'error' || isStuck) && (
@@ -914,7 +935,7 @@ function BridgeRow({
                 onClick={onDismiss}
                 className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
               >
-                Dismiss
+                {copy.dismiss}
               </button>
             )}
           </div>
@@ -924,8 +945,16 @@ function BridgeRow({
   );
 }
 
-function SegmentedProgress({ idx, tone }: { idx: number; tone: 'live' | 'positive' | 'critical' }) {
-  const segments = ['Approve', 'Burn', 'Attest', 'Mint'];
+function SegmentedProgress({
+  idx,
+  tone,
+  copy,
+}: {
+  idx: number;
+  tone: 'live' | 'positive' | 'critical';
+  copy: Messages['bridgeCard']['row']['progress'];
+}) {
+  const segments = [copy.approve, copy.burn, copy.attest, copy.mint];
   const fillColor =
     tone === 'positive'
       ? TONE_HEX.positive
@@ -969,15 +998,21 @@ function SegmentedProgress({ idx, tone }: { idx: number; tone: 'live' | 'positiv
   );
 }
 
-function BridgeSteps({ bridge }: { bridge: BridgeRecord }) {
+function BridgeSteps({
+  bridge,
+  copy,
+}: {
+  bridge: BridgeRecord;
+  copy: Messages['bridgeCard']['row']['steps'];
+}) {
   const meta = bridgeChainMeta(bridge.sourceChainKey);
   const idx = stepIndexFor(bridge.phase);
   const errored = bridge.phase === 'error';
   const steps: Array<{ key: BridgePhase; label: string; hint?: string }> = [
-    { key: 'approving', label: `Approve · ${meta.shortName}` },
-    { key: 'burning', label: `Burn · ${meta.shortName}` },
-    { key: 'attesting', label: 'Circle attestation', hint: '~10–19 MIN' },
-    { key: 'minting', label: 'Mint · Arc' },
+    { key: 'approving', label: copy.approveTemplate.replace('{chain}', meta.shortName) },
+    { key: 'burning', label: copy.burnTemplate.replace('{chain}', meta.shortName) },
+    { key: 'attesting', label: copy.circleAttestation, hint: copy.attestationHint },
+    { key: 'minting', label: copy.mintArc },
   ];
 
   return (
@@ -1083,7 +1118,13 @@ function BridgeSteps({ bridge }: { bridge: BridgeRecord }) {
   );
 }
 
-function ErrorBanner({ message }: { message: string }) {
+function ErrorBanner({
+  message,
+  copy,
+}: {
+  message: string;
+  copy: Messages['bridgeCard']['row']['error'];
+}) {
   return (
     <div
       className="overflow-hidden"
@@ -1103,7 +1144,7 @@ function ErrorBanner({ message }: { message: string }) {
       >
         <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-          ERROR
+          {copy.errorBadge}
         </span>
       </div>
       <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">{message}</p>
@@ -1183,9 +1224,11 @@ function PhaseChip({
 function CircleSourceFundBanner({
   sourceChainKey,
   wallet,
+  copy,
 }: {
   sourceChainKey: SourceChainConfig['key'];
   wallet: { address: string; usdcBalance: string | null; gasBalance: string | null } | null;
+  copy: Messages['bridgeCard']['circleFund'];
 }) {
   const [copied, setCopied] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -1213,7 +1256,7 @@ function CircleSourceFundBanner({
     setNote(null);
     try {
       await api.fundSource(address, sourceChainKey);
-      setNote({ kind: 'ok', text: 'Test USDC requested. It lands here in about a minute.' });
+      setNote({ kind: 'ok', text: copy.testUsdcRequested });
     } catch (err) {
       const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
       setNote({ kind: 'err', text: detail ?? (err as Error).message });
@@ -1230,12 +1273,12 @@ function CircleSourceFundBanner({
   const accent = empty ? TONE_HEX.warning : 'var(--lp-accent)';
 
   const statusLine = !wallet
-    ? 'Checking your source-chain wallet…'
+    ? copy.statusChecking
     : empty
-      ? 'This wallet is empty. Send testnet USDC here, then bridge.'
+      ? copy.statusEmpty
       : funded
-        ? 'Funded. You can bridge now.'
-        : 'Send USDC to this address first, then bridge.';
+        ? copy.statusFunded
+        : copy.statusSendUsdc;
 
   return (
     <div
@@ -1270,7 +1313,7 @@ function CircleSourceFundBanner({
             }}
           >
             <span aria-hidden className="inline-block w-[5px] h-[5px]" style={{ background: accent }} />
-            {funded ? 'FUNDED' : 'FUND TO BRIDGE'}
+            {funded ? copy.badgeFunded : copy.badgeFundToBridge}
           </span>
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {statusLine}
@@ -1281,7 +1324,7 @@ function CircleSourceFundBanner({
         <div className="mt-3 flex items-baseline gap-4">
           <div>
             <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              Balance here
+              {copy.balanceHere}
             </p>
             <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {wallet?.usdcBalance == null ? '—' : formatUsdc(wallet.usdcBalance, { withSuffix: false })}
@@ -1292,28 +1335,28 @@ function CircleSourceFundBanner({
           </div>
           <div>
             <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              Gas
+              {copy.gas}
             </p>
             <p
               className="mt-0.5 mono text-[11px] uppercase tracking-[0.12em] leading-none"
               style={{ color: TONE_HEX.positive }}
             >
-              Sponsored
+              {copy.sponsored}
             </p>
           </div>
         </div>
         <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">
-          No ETH needed here. Karwan sponsors the gas for this burn, so you only fund USDC.
+          {copy.gasSponsoredNote}
         </p>
 
         {/* ADDRESS + ACTIONS */}
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              Your source-chain Circle address
+              {copy.addressLabel}
             </p>
             <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
-              {address ?? 'provisioning…'}
+              {address ?? copy.provisioning}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -1330,7 +1373,7 @@ function CircleSourceFundBanner({
                 color: copied ? TONE_HEX.positive : undefined,
               }}
             >
-              {copied ? 'COPIED' : 'COPY'}
+              {copied ? copy.copied : copy.copy}
             </button>
             <button
               type="button"
@@ -1346,7 +1389,7 @@ function CircleSourceFundBanner({
                 borderBottomRightRadius: 2,
               }}
             >
-              {claiming ? 'Requesting' : 'Get USDC'}
+              {claiming ? copy.requesting : copy.getUsdc}
             </button>
           </div>
         </div>
@@ -1365,7 +1408,7 @@ function CircleSourceFundBanner({
             rel="noreferrer"
             className="mono text-[9px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
-            Circle faucet
+            {copy.circleFaucet}
             <ExternalIcon />
           </a>
         </div>
@@ -1382,7 +1425,13 @@ function CircleSourceFundBanner({
 /// (the backend ERC-20 balance read doesn't apply to SPL tokens), so the
 /// banner stays address-only — the faucet links are the user's primary
 /// path because auto-drip is unreliable on devnet.
-function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
+function AppKitFundBanner({
+  source,
+  copy,
+}: {
+  source: AppKitSourceConfig;
+  copy: Messages['bridgeCard']['appKitFund'];
+}) {
   const auth = useAuth();
   const [address, setAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -1437,23 +1486,22 @@ function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
         style={{ background: 'var(--lp-accent)' }}
       />
       <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        [:FUND {source.shortName.toUpperCase()} TO BRIDGE:]
+        {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}
       </p>
       <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-        {source.name} bridges through Circle App Kit. Karwan signs the burn
-        from your dedicated {source.shortName} wallet, so you fund that
-        address with USDC once and {source.nativeSymbol} for blockhash fees.
-        Auto-drip is unreliable on devnet, so claim from the public faucets
-        directly.
+        {copy.descriptionTemplate
+          .replace('{name}', source.name)
+          .replace('{shortName}', source.shortName)
+          .replace('{nativeSymbol}', source.nativeSymbol)}
       </p>
 
       <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Your {source.shortName} Circle address
+            {copy.addressLabelTemplate.replace('{chain}', source.shortName)}
           </p>
           <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
-            {address ?? 'provisioning…'}
+            {address ?? copy.provisioning}
           </p>
         </div>
         <button
@@ -1469,17 +1517,17 @@ function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
             color: copied ? '#0a7553' : undefined,
           }}
         >
-          {copied ? 'COPIED' : 'COPY'}
+          {copied ? copy.copied : copy.copy}
         </button>
       </div>
 
       <div className="mt-3 flex items-center gap-2 flex-wrap">
         {source.faucet && (
           <FaucetLink href={source.faucet}>
-            Claim {source.nativeSymbol} gas
+            {copy.claimGasTemplate.replace('{native}', source.nativeSymbol)}
           </FaucetLink>
         )}
-        <FaucetLink href={USDC_FAUCET}>Get test USDC</FaucetLink>
+        <FaucetLink href={USDC_FAUCET}>{copy.getTestUsdc}</FaucetLink>
       </div>
     </div>
   );
@@ -1489,7 +1537,13 @@ function AppKitFundBanner({ source }: { source: AppKitSourceConfig }) {
 /// Station only sponsors Circle DCWs, so a connected wallet claims its own native
 /// gas from a public faucet (the prominent link). USDC is the one part we can
 /// pool in-app: Circle's faucet drips it straight to the connected wallet.
-function Web3FundHint({ source }: { source: SourceChainConfig }) {
+function Web3FundHint({
+  source,
+  copy,
+}: {
+  source: SourceChainConfig;
+  copy: Messages['bridgeCard']['web3Fund'];
+}) {
   const auth = useAuth();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -1502,7 +1556,7 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
       await api.fundSource(auth.address, source.key);
       setNote({
         kind: 'ok',
-        text: `Test USDC sent to your wallet on ${source.name}. Lands in about a minute, then bridge.`,
+        text: copy.testUsdcSentTemplate.replace('{name}', source.name),
       });
     } catch (err) {
       const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
@@ -1530,14 +1584,17 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
         style={{ background: 'var(--lp-accent)' }}
       />
       <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        [:FUND {source.shortName.toUpperCase()} TO BRIDGE:]
+        {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}
       </p>
       <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-        You sign the burn on {source.name}, so your wallet needs {source.nativeSymbol} for gas.
-        Claim gas from the faucet, then pull test USDC here.
+        {copy.descriptionTemplate
+          .replace('{name}', source.name)
+          .replace('{nativeSymbol}', source.nativeSymbol)}
       </p>
       <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-        <FaucetLink href={GAS_FAUCETS[source.key]}>Claim {source.nativeSymbol} gas</FaucetLink>
+        <FaucetLink href={GAS_FAUCETS[source.key]}>
+          {copy.claimGasTemplate.replace('{native}', source.nativeSymbol)}
+        </FaucetLink>
         <button
           type="button"
           onClick={pullUsdc}
@@ -1553,7 +1610,7 @@ function Web3FundHint({ source }: { source: SourceChainConfig }) {
             borderBottomRightRadius: 2,
           }}
         >
-          {busy ? 'Requesting' : 'Get test USDC'}
+          {busy ? copy.requesting : copy.getTestUsdc}
         </button>
       </div>
       {note && (
