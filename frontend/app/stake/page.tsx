@@ -120,50 +120,52 @@ export default function StakePage() {
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
             {sp.hero.body}
           </p>
+        </div>
 
-          {/* POSITION READOUT — count-up score + tier. */}
-          <div className="mt-9 grid grid-cols-2 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-            <Stat label={sp.position.reputation}>
+        {/* POSITION READOUT — count-up score + tier. Lifted out of the
+            max-w-[60ch] wrapper so the tier column can hold full tier
+            strings like ESTABLISHED without truncation. */}
+        <div className="fade-up mt-9 max-w-[760px] grid grid-cols-2 sm:grid-cols-[1fr_auto_1fr] gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+          <Stat label={sp.position.reputation}>
+            <span className="tabular-nums">
+              <CountUp value={score} />
+            </span>
+            <span className="text-white/35 text-[15px]"> / 1000</span>
+          </Stat>
+          <Stat label={sp.position.tier}>
+            <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
+          </Stat>
+          <Stat
+            label={
+              nextTier
+                ? sp.position.toNextTemplate.replace('{tier}', nextTier)
+                : sp.position.status
+            }
+            wide
+          >
+            {nextTier ? (
               <span className="tabular-nums">
-                <CountUp value={score} />
+                <CountUp value={toNext} />{' '}
+                <span className="text-white/45 text-[15px]">{sp.position.pts}</span>
               </span>
-              <span className="text-white/35 text-[15px]"> / 1000</span>
-            </Stat>
-            <Stat label={sp.position.tier} fit>
-              <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
-            </Stat>
-            <Stat
-              label={
-                nextTier
-                  ? sp.position.toNextTemplate.replace('{tier}', nextTier)
-                  : sp.position.status
-              }
-              wide
-            >
-              {nextTier ? (
-                <span className="tabular-nums">
-                  <CountUp value={toNext} />{' '}
-                  <span className="text-white/45 text-[15px]">{sp.position.pts}</span>
-                </span>
-              ) : (
-                <span style={{ color: TIER_HUE[tier] }}>{sp.position.topTier}</span>
-              )}
-            </Stat>
-          </div>
+            ) : (
+              <span style={{ color: TIER_HUE[tier] }}>{sp.position.topTier}</span>
+            )}
+          </Stat>
         </div>
       </Band>
 
       {/* PROTOCOL RESERVES — read directly from the YieldDistributor.
           Surfaces lifetime accrual, withdrawn share, and outstanding claim. */}
       <Band tone="light" compact>
-        <SectionTag>[:RESERVES:]</SectionTag>
+        <SectionTag>RESERVES</SectionTag>
         <HeroHeadline size="md">
-          Real yield. Real numbers<Punc>.</Punc>
+          Tokenized T-bills<Punc>.</Punc> On-chain yield<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Idle stake accrues real yield through Hashnote USYC, tokenized
-          US Treasuries settled on Arc. Each staker earns a pro-rata share,
-          claimable on demand.
+          Idle stake accrues yield through Hashnote USYC, tokenized US
+          Treasuries settled on Arc. Each staker earns a pro-rata share,
+          non-custodial and claimable on demand.
         </p>
         <div className="mt-9">
           <ReservesWidget />

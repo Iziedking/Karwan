@@ -115,7 +115,7 @@ export const STAKE_TOUR_ID = 'stake-v1';
 export const STAKE_STEPS: TourStep[] = [
   {
     title: 'What staking does',
-    body: 'Lock USDC to build your reputation. A higher tier makes your assistant negotiate better deals for you, and on mainnet the same stake earns yield.',
+    body: 'Lock USDC to build your reputation. A higher tier makes your assistant negotiate better deals, and the same stake accrues yield through tokenized US Treasuries.',
     target: 'stake-total',
   },
   {
@@ -226,7 +226,7 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
     {
       target: 'profile-stake',
       title: 'Build your reputation',
-      body: 'Stake USDC to lift your tier. A higher tier gets you better deals, and on mainnet your stake also earns yield.',
+      body: 'Stake USDC to lift your tier. A higher tier gets you better deals, and the same stake accrues yield through tokenized US Treasuries.',
     },
   ];
 }

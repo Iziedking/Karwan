@@ -5006,9 +5006,9 @@ export const en: MessagesShape = {
     },
     yield: {
       eyebrow: 'LIVE YIELD',
-      bodyPrefix: 'Idle stake routes through',
-      bodyMiddle: 'and earns roughly',
-      bodySuffix: 'APY while it builds your reputation. The cron drops your share into a public claim contract daily.',
+      bodyPrefix: 'Idle stake accrues through',
+      bodyMiddle: 'at roughly',
+      bodySuffix: 'APY while it builds your reputation. Your pro-rata share is non-custodial and claimable on demand.',
     },
     depositForm: {
       label: 'DEPOSIT',
@@ -6468,7 +6468,7 @@ export const en: MessagesShape = {
         passport: { title: 'Public Credit Passport.', body: 'Every wallet has a public reputation page showing tier, score, term breakdown, and on-chain history. Anyone can read it without signing in.' },
         shareable: { title: 'Shareable deal links.', body: 'Open a deal pointed at an email address. The recipient claims with a one-time code and a Circle wallet is provisioned in their browser.' },
         cashout: { title: 'Cashout after settlement.', body: 'Send settled USDC to any wallet on Arc, or bridge out to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana with an inline progress card.' },
-        vault: { title: 'Vault and treasury wired for USYC.', body: 'Idle stake principal routes through the standard ERC-4626 interface that Hashnote USYC uses on mainnet. Testnet runs against a deterministic mock so the demo path works today.' },
+        vault: { title: 'Vault and treasury accrue on USYC.', body: 'Idle stake routes through Hashnote USYC, a tokenized US Treasury fund, via the standard ERC-4626 Teller interface on Arc. A daily distribution credits each staker their pro-rata share, claimable on demand.' },
         terms: { title: 'Terms and Conditions with versioned consent.', body: 'A public terms page and a first-signup consent gate that re-prompts when the version changes.' },
         signin: { title: 'Three sign-in paths.', body: 'Email and passkey, email one-time code, or a web3 wallet through Sign-In with Ethereum.' },
         languages: { title: 'Multi-language framework.', body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },
