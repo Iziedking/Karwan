@@ -52,7 +52,7 @@ export function useAuth(): AuthState & {
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 } {
-  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+  const { address: wagmiAddress, isConnected: wagmiConnected, status: wagmiStatus } = useAccount();
   const { disconnectAsync } = useDisconnect();
   const [session, setSession] = useState<Session | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -88,6 +88,24 @@ export function useAuth(): AuthState & {
   useEffect(() => {
     if (wagmiAddress) refresh();
   }, [wagmiAddress, refresh]);
+
+  // Drop a stale web3 session if wagmi has decisively disconnected. A user can
+  // disconnect from RainbowKit's account modal or their wallet extension
+  // without going through useAuth.signOut(), which would otherwise leave the
+  // backend cookie in place. The result was a confusing half-state: TopNav
+  // shows "Sign in" (wagmi disconnected) while the rest of the app still
+  // renders authed chrome (cookie still valid). Wait for wagmiStatus to land
+  // on 'disconnected' so we don't fight the auto-reconnect on first paint.
+  useEffect(() => {
+    if (!session) return;
+    if (session.method !== 'web3') return;
+    if (wagmiStatus !== 'disconnected') return;
+    setSession(null);
+    api.authLogout().catch(() => {
+      /* clear-local-state already done; backend cookie will expire on its own */
+    });
+    emitAuthChanged();
+  }, [session, wagmiStatus]);
 
   // Sync this instance's circle slice whenever ANY other useAuth() in the app
   // changes the session. Without this, signing out from CircleAccountModal
