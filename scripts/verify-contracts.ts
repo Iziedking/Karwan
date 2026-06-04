@@ -85,10 +85,18 @@ const REGISTRY: Array<{ name: string; contract: string; path: string; address: s
     address: '0xa5516F58Ab4dbF1B4949723715D1310A8FBb6fBA',
   },
   {
+    // v3 is dead source (oracle interface bug); kept here for explorer
+    // bookkeeping. Skip with CONTRACTS=... when re-running.
     name: 'KarwanTreasuryV3',
     contract: 'KarwanTreasury',
     path: 'src/KarwanTreasury.sol:KarwanTreasury',
     address: '0xc761115fa5781bec09112510bA6151f3950aDD72',
+  },
+  {
+    name: 'KarwanTreasuryV4',
+    contract: 'KarwanTreasury',
+    path: 'src/KarwanTreasury.sol:KarwanTreasury',
+    address: '0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573',
   },
   {
     name: 'KarwanYieldDistributor',

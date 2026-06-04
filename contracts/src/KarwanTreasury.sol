@@ -15,9 +15,22 @@ interface IUSYCTeller {
     function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
 }
 
-/// @notice Chainlink-aggregator-style oracle for USYC/USD. 8-decimal price.
+/// @notice Hashnote USYC/USD price oracle on Arc Testnet.
+///         Exposes latestRoundData() returning 18-decimal price; older
+///         Chainlink latestAnswer() is NOT implemented on this feed and
+///         reverts with no data when called. Confirmed empirically against
+///         the production oracle proxy 2026-06-04.
 interface IPriceOracle {
-    function latestAnswer() external view returns (int256);
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
 }
 
 /// @title KarwanTreasury
@@ -58,8 +71,11 @@ contract KarwanTreasury is ReentrancyGuard {
     ///         (entitlement-agnostic path). totalReserves accounts for it.
     uint256 public outForYield;
 
-    /// @notice Price scale of the oracle (8 decimals, 1e8 = $1.00).
-    uint256 private constant PRICE_SCALE = 1e8;
+    /// @notice Price scale of the oracle (18 decimals, 1e18 = $1.00).
+    ///         The Hashnote USYC/USD feed on Arc returns 18-decimal prices
+    ///         via latestRoundData(); the older 8-decimal IPriceOracle wiring
+    ///         (v3) reverted in totalReserves and is no longer supported.
+    uint256 private constant PRICE_SCALE = 1e18;
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -214,8 +230,9 @@ contract KarwanTreasury is ReentrancyGuard {
     function totalReserves() external view returns (uint256) {
         uint256 usdcBal = usdc.balanceOf(address(this));
         uint256 usycBal = usyc.balanceOf(address(this));
-        uint256 p = uint256(oracle.latestAnswer()); // 8dp
-        uint256 usycAsUsdc = (usycBal * p) / PRICE_SCALE; // 6dp * 8dp / 1e8 = 6dp
+        (, int256 rawPrice, , , ) = oracle.latestRoundData();
+        uint256 p = uint256(rawPrice); // 18dp
+        uint256 usycAsUsdc = (usycBal * p) / PRICE_SCALE; // 6dp * 18dp / 1e18 = 6dp
         return usdcBal + usycAsUsdc + outForYield;
     }
 
