@@ -87,7 +87,7 @@ export function StickyTabStrip({
               role="presentation"
               className="shrink-0 md:shrink"
               style={{
-                borderRight: isLast
+                borderInlineEnd: isLast
                   ? 'none'
                   : `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
                 scrollSnapAlign: 'start',

@@ -1139,7 +1139,7 @@ function ActionPanel({
               className="px-3 py-2 mono text-[11px] leading-snug"
               style={{
                 background: 'color-mix(in oklab, var(--lp-accent) 10%, transparent)',
-                borderLeft: '2px solid var(--lp-accent)',
+                borderInlineStart: '2px solid var(--lp-accent)',
                 color: 'var(--lp-accent)',
               }}
             >

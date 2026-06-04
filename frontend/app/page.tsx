@@ -300,7 +300,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                 transition={{ duration: dur.base, ease: ease.out, delay: i * 0.07 }}
                 className="relative px-4 py-6"
                 style={{
-                  borderRight:
+                  borderInlineEnd:
                     i < steps.length - 1 && (i + 1) % 6 !== 0
                       ? '1px solid var(--lp-border-subtle)'
                       : undefined,

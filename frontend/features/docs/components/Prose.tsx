@@ -155,7 +155,7 @@ export function DocsCallout({
   return (
     <aside
       className="mt-6 max-w-[64ch] ps-5 py-1"
-      style={{ borderLeft: `3px solid ${accent}` }}
+      style={{ borderInlineStart: `3px solid ${accent}` }}
     >
       <p
         className="mono text-[10px] uppercase tracking-[0.16em]"
