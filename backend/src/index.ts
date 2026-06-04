@@ -81,7 +81,7 @@ app.use(
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
-    allowHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token'],
   }),
 );
 
