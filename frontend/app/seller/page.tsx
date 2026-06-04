@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
@@ -22,26 +22,10 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { shortAddress } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Watches the chain',
-    body: 'Listens for new requests on Arc as they post.',
-  },
-  {
-    n: '02',
-    title: 'Scores the request',
-    body: 'Matches each request against your skills and ranges. Bids or skips.',
-  },
-  {
-    n: '03',
-    title: 'Bids, negotiates',
-    body: 'Submits on chain. Replies to counters inside your range.',
-  },
-];
 
 export default function SellerPage() {
   const auth = useAuth();
@@ -50,6 +34,7 @@ export default function SellerPage() {
   const { activated, agents } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
+  const sh = useTranslations().sellerHub;
 
   useEffect(() => {
     if (!isConnected || !address) {
@@ -78,11 +63,17 @@ export default function SellerPage() {
     return (
       <SignInGate
         variant="page"
-        tag="SELLER DESK"
-        body="Offers and bids are keyed to your wallet. Sign in to set up the seller agent."
+        tag={sh.signInGate.tag}
+        body={sh.signInGate.body}
       />
     );
   }
+
+  const steps = [
+    { n: '01', title: sh.steps.s1.title, body: sh.steps.s1.body },
+    { n: '02', title: sh.steps.s2.title, body: sh.steps.s2.body },
+    { n: '03', title: sh.steps.s3.title, body: sh.steps.s3.body },
+  ];
 
   return (
     <FullBleed>
@@ -92,19 +83,19 @@ export default function SellerPage() {
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-                SELLER DESK
+                {sh.hero.tag}
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
               <HeroHeadline>
-                Bids land
+                {sh.hero.headlineLine1}
                 <br />
-                while you <Accent>sleep</Accent>
+                {sh.hero.headlineLine2Prefix} <Accent>{sh.hero.headlineAccent}</Accent>
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Listens for requests. Bids inside the ranges you set. Wake up to matched deals.
+              {sh.hero.lede}
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               <a
@@ -117,7 +108,7 @@ export default function SellerPage() {
                   borderBottomRightRadius: 4,
                 }}
               >
-                Post an offer ↓
+                {sh.hero.ctaPostOffer}
               </a>
               {address && (
                 <span className="ms-1">
@@ -127,7 +118,11 @@ export default function SellerPage() {
             </div>
           </div>
           <div className="hidden lg:block fade-up fade-up-4">
-            <SellerAgentVignette activated={activated} bidsCount={activeBids.length} />
+            <SellerAgentVignette
+              activated={activated}
+              bidsCount={activeBids.length}
+              copy={sh.vignette}
+            />
           </div>
         </div>
       </Band>
@@ -138,23 +133,23 @@ export default function SellerPage() {
       <ActivateAgentsNotice role="seller" tone="light" />
 
       {/* PENDING MATCHES. shared component, renders nothing when empty. */}
-      <PendingMatchesBand tone="light" headline="Your bid matched" />
+      <PendingMatchesBand tone="light" headline={sh.pendingMatchesHeadline} />
       {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
       <PendingDealsBand tone="light" />
 
       {/* HOW IT WORKS */}
       <Band tone="light" compact>
-        <SectionTag>HOW IT WORKS</SectionTag>
+        <SectionTag>{sh.howItWorks.tag}</SectionTag>
         <HeroHeadline size="md">
-          Three loops<Punc>.</Punc>
+          {sh.howItWorks.headlineLine1}<Punc>.</Punc>
           <br />
-          <Accent>One agent.</Accent>
+          <Accent>{sh.howItWorks.headlineLine2Accent}</Accent>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Every activated wallet runs a seller agent. Set skills and ranges on profile, post offers here to broadcast supply.
+          {sh.howItWorks.lede}
         </p>
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <div key={s.n} className={`fade-up fade-up-${i + 1}`}>
               <StepCard n={s.n} title={s.title} body={s.body} />
             </div>
@@ -165,14 +160,14 @@ export default function SellerPage() {
       {/* POST LISTING */}
       <Band tone="dark" compact>
         <div id="post-listing" className="scroll-mt-20" />
-        <SectionTag tone="dark">POST WHAT YOU OFFER</SectionTag>
+        <SectionTag tone="dark">{sh.postOffer.tag}</SectionTag>
         <HeroHeadline size="md">
-          Standing offer<Punc>.</Punc>
+          {sh.postOffer.headlineLine1}<Punc>.</Punc>
           <br />
-          Set the floor.
+          {sh.postOffer.headlineLine2}
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          Publish an offer at your asking price. Matches land in your inbox.
+          {sh.postOffer.lede}
         </p>
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
           <div className="min-w-0 lg:col-span-2">
@@ -201,10 +196,10 @@ export default function SellerPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[46ch]">
             <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-              ACTIVE BIDS
+              {sh.activeBids.tag}
             </SectionTag>
             <HeroHeadline size="md">
-              In the auction
+              {sh.activeBids.headline}
               {activeBids.length > 0 && (
                 <>
                   <Punc>.</Punc>
@@ -216,7 +211,7 @@ export default function SellerPage() {
               {activeBids.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
             <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Bids placed on open requests. Counters reply automatically inside your range.
+              {sh.activeBids.lede}
             </p>
           </div>
         </div>
@@ -234,11 +229,11 @@ export default function SellerPage() {
           >
             {!isConnected ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                Connect your wallet to see your active bids.
+                {sh.activeBids.connectPrompt}
               </p>
             ) : fetchState === 'error' ? (
               <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
-                Couldn&apos;t load your bids.
+                {sh.activeBids.errorMessage}
               </p>
             ) : fetchState === 'loading' || fetchState === 'idle' ? (
               <div className="p-8 space-y-3">
@@ -247,7 +242,7 @@ export default function SellerPage() {
               </div>
             ) : activeBids.length === 0 ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                No active bids. Post an offer to start scanning requests.
+                {sh.activeBids.emptyMessage}
               </p>
             ) : (
               <BidsTable bids={activeBids} />
@@ -306,9 +301,11 @@ function StepCard({ n, title, body }: { n: string; title: string; body: string }
 function SellerAgentVignette({
   activated,
   bidsCount,
+  copy,
 }: {
   activated: boolean;
   bidsCount: number;
+  copy: Messages['sellerHub']['vignette'];
 }) {
   return (
     <div
@@ -325,7 +322,7 @@ function SellerAgentVignette({
       <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
         <div className="flex items-center justify-between">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            Agent control
+            {copy.agentControl}
           </span>
           {activated ? (
             <span
@@ -342,35 +339,32 @@ function SellerAgentVignette({
           )}
         </div>
         <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
-          Seller agent{' '}
+          {copy.sellerAgent}{' '}
           <span style={{ color: activated ? 'var(--lp-accent)' : 'rgba(255,255,255,0.5)' }}>
-            {activated ? 'active' : 'idle'}
+            {activated ? copy.statusActive : copy.statusIdle}
           </span>
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
-          {activated
-            ? 'Watching requests. Scoring against skills. Bidding on match.'
-            : 'Activate on profile to start bidding.'}
+          {activated ? copy.activeBlurb : copy.idleBlurb}
         </p>
       </div>
       <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
         <div className="px-4 py-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">In auction</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{copy.inAuction}</p>
           <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
             {bidsCount}
           </p>
         </div>
         <div className="px-4 py-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Counters</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{copy.counters}</p>
           <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
             ∞
           </p>
           <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">
-            within range
+            {copy.withinRange}
           </p>
         </div>
       </div>
     </div>
   );
 }
-

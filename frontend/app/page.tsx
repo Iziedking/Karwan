@@ -3,6 +3,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 /// HeroFlow drives the landing hero animation; StatsTicker lives below the
 /// fold. Dynamically imported so the motion-heavy bundles do not block first
 /// paint on `/`. SSR off because both run animation effects only on the
@@ -20,19 +22,22 @@ import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
 
-const TABS: Tab[] = [
-  { id: 'overview', label: 'OVERVIEW', hash: 'overview' },
-  { id: 'how-it-works', label: 'WORKFLOW SUMMARY', hash: 'how-it-works' },
-  { id: 'flow', label: 'FLOW', hash: 'flow' },
-  { id: 'get-started', label: 'GET STARTED', hash: 'get-started' },
-];
+type LandingCopy = Messages['landingPage'];
 
 export default function HomePage() {
+  const lp = useTranslations().landingPage;
   const [active, setActive] = useState<string>('overview');
+
+  const tabs: Tab[] = [
+    { id: 'overview', label: lp.tabs.overview, hash: 'overview' },
+    { id: 'how-it-works', label: lp.tabs.howItWorks, hash: 'how-it-works' },
+    { id: 'flow', label: lp.tabs.flow, hash: 'flow' },
+    { id: 'get-started', label: lp.tabs.getStarted, hash: 'get-started' },
+  ];
 
   // Drive sticky tab active state from scroll position.
   useEffect(() => {
-    const ids = TABS.map((t) => t.hash).filter(Boolean) as string[];
+    const ids = tabs.map((t) => t.hash).filter(Boolean) as string[];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -47,13 +52,14 @@ export default function HomePage() {
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="-mt-10 -mb-10">
       <StatsTicker />
 
-      <StickyTabStrip tabs={TABS} active={active} onChange={setActive} onDark />
+      <StickyTabStrip tabs={tabs} active={active} onChange={setActive} onDark />
 
       {/* HERO. dark — anchored as OVERVIEW */}
       <Band
@@ -76,22 +82,22 @@ export default function HomePage() {
       >
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="space-y-7">
-            <SectionTag tone="dark">SETTLEMENT NETWORK</SectionTag>
+            <SectionTag tone="dark">{lp.hero.tag}</SectionTag>
             <h1 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]">
-              Agree. Escrow.<br />Deliver.{' '}
-              <span className="text-[var(--lp-accent)]">Settle.</span>
+              {lp.hero.titleLine1}<br />{lp.hero.titleLine2}{' '}
+              <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
             </h1>
             <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
-              On-chain settlement rails for cross-border SME trade. USDC sits in milestone escrow on Arc. Releases as the work lands.
+              {lp.hero.body}
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <CTAPill href="/app">Launch app ↓</CTAPill>
+              <CTAPill href="/app">{lp.hero.ctaPrimary}</CTAPill>
               <CTAPill href="/how-it-works" variant="secondary" tone="dark">
-                How it works →
+                {lp.hero.ctaSecondary}
               </CTAPill>
             </div>
             <p className="mono text-[12px] text-[var(--lp-text-sub)]">
-              Free on Arc Testnet. No mainnet funds.
+              {lp.hero.footnote}
             </p>
           </div>
           <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">
@@ -103,81 +109,81 @@ export default function HomePage() {
       {/* ECOSYSTEM. light */}
       <Band tone="light" compact>
         <div className="space-y-6">
-          <SectionTag>BUILT ON</SectionTag>
+          <SectionTag>{lp.ecosystem.tag}</SectionTag>
           <PartnerLogos />
         </div>
       </Band>
 
       {/* DIRECT DEALS. light */}
       <Band tone="light">
-        <SectionTag>DIRECT DEALS</SectionTag>
+        <SectionTag>{lp.directDeals.tag}</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          Bring your own counterparty.
+          {lp.directDeals.title}
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
-          You already agreed off-platform. Name the wallet, set the amount, fund the escrow. No auction.
+          {lp.directDeals.body}
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
             glyph={<GlyphWallet />}
-            title="Name the wallet"
-            body="Point the escrow at your counterparty. They sign in with that wallet, accept the terms, and deliver."
+            title={lp.directDeals.tile1Title}
+            body={lp.directDeals.tile1Body}
           />
           <FeatureTile
             glyph={<GlyphTranches />}
-            title="Release in tranches"
-            body="A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet."
+            title={lp.directDeals.tile2Title}
+            body={lp.directDeals.tile2Body}
           />
         </div>
       </Band>
 
       {/* MANAGED DEALS. dark */}
       <Band tone="dark">
-        <SectionTag tone="dark">MANAGED DEALS</SectionTag>
+        <SectionTag tone="dark">{lp.managedDeals.tag}</SectionTag>
         <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          Or let an agent find one.
+          {lp.managedDeals.title}
         </h2>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-          Post the request. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.
+          {lp.managedDeals.body}
         </p>
         <div className="mt-10 grid sm:grid-cols-2 gap-5">
           <FeatureTile
             tone="dark"
             glyph={<GlyphAuction />}
-            title="Agents negotiate"
-            body="Buyer and seller agents bid and counter on chain, on their own, inside the ranges you set in your profile."
+            title={lp.managedDeals.tile1Title}
+            body={lp.managedDeals.tile1Body}
           />
           <FeatureTile
             tone="dark"
             glyph={<GlyphSettle />}
-            title="Escrow on acceptance"
-            body="When terms land, the buyer agent funds the milestone escrow. Releases follow the same spine as a direct deal."
+            title={lp.managedDeals.tile2Title}
+            body={lp.managedDeals.tile2Body}
           />
         </div>
       </Band>
 
-      <HowItWorksSection />
-      <FlowSection />
-      <TradeLanesSection />
-      <EarlyTradesSection />
-      <GetStartedSection />
+      <HowItWorksSection copy={lp.howItWorks} />
+      <FlowSection copy={lp.flow} />
+      <TradeLanesSection copy={lp.tradeLanes} />
+      <EarlyTradesSection copy={lp.earlyTrades} />
+      <GetStartedSection copy={lp.getStarted} />
 
       {/* FINAL CTA. dark */}
       <Band tone="dark" className="text-center">
         <div className="mx-auto max-w-2xl space-y-6">
           <SectionTag tone="dark">
-            <span className="sr-only">Get started</span>OPEN A DEAL
+            <span className="sr-only">{lp.finalCta.srLabel}</span>{lp.finalCta.tag}
           </SectionTag>
           <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[1.02] text-balance text-[clamp(1.75rem,3.6vw,3rem)]">
-            Open your first deal in about a minute.
+            {lp.finalCta.title}
           </h2>
           <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-            Direct or agent-run, your call. Every step is a real transaction on Arc Testnet.
+            {lp.finalCta.body}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-            <CTAPill href="/app">Launch app ↓</CTAPill>
+            <CTAPill href="/app">{lp.finalCta.ctaPrimary}</CTAPill>
             <CTAPill href="/how-it-works" variant="secondary" tone="dark">
-              Read how it works →
+              {lp.finalCta.ctaSecondary}
             </CTAPill>
           </div>
         </div>
@@ -189,29 +195,17 @@ export default function HomePage() {
 /* ============================================================================
    HOW IT WORKS — three-rails typographic row, replaces the old "spine" grid
    ============================================================================ */
-function HowItWorksSection() {
+function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
   const rails = [
-    {
-      n: '001',
-      title: 'Escrow in USDC',
-      body: 'Funds settle in milestone tranches on Arc. The chain holds the math.',
-    },
-    {
-      n: '002',
-      title: 'Milestone release',
-      body: 'Releases trigger on signed delivery. Disputes route to human review, never to silence.',
-    },
-    {
-      n: '003',
-      title: 'On-chain proof',
-      body: 'Every state change emits an event. Audit, reputation, payouts read the same source.',
-    },
+    { n: '001', title: copy.rail1Title, body: copy.rail1Body },
+    { n: '002', title: copy.rail2Title, body: copy.rail2Body },
+    { n: '003', title: copy.rail3Title, body: copy.rail3Body },
   ];
   return (
     <Band id="how-it-works" tone="light">
-      <SectionTag>THE RAILS</SectionTag>
+      <SectionTag>{copy.tag}</SectionTag>
       <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-        Three rails. <span className="text-[var(--lp-accent)]">One</span> deal.
+        {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span> {copy.titleEnd}
       </h2>
       <ol className="mt-14 grid md:grid-cols-3 gap-0">
         {rails.map((r, i) => (
@@ -252,26 +246,26 @@ function HowItWorksSection() {
 /* ============================================================================
    FLOW — deal end to end. Six stage chips on a hairline track + three KPIs
    ============================================================================ */
-function FlowSection() {
+function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
   const steps: Array<{
     tag: string;
     label: string;
     state: 'pos' | 'info' | 'warn';
   }> = [
-    { tag: 'POSTED', label: 'Request on chain', state: 'pos' },
-    { tag: 'BIDS', label: 'Agents bid & counter', state: 'info' },
-    { tag: 'ACCEPT', label: 'Buyer signs match', state: 'info' },
-    { tag: 'ESCROW', label: 'USDC funded', state: 'warn' },
-    { tag: 'DELIVER', label: 'Seller marks delivered', state: 'warn' },
-    { tag: 'SETTLE', label: 'Milestones release', state: 'pos' },
+    { tag: copy.steps.posted.tag, label: copy.steps.posted.label, state: 'pos' },
+    { tag: copy.steps.bids.tag, label: copy.steps.bids.label, state: 'info' },
+    { tag: copy.steps.accept.tag, label: copy.steps.accept.label, state: 'info' },
+    { tag: copy.steps.escrow.tag, label: copy.steps.escrow.label, state: 'warn' },
+    { tag: copy.steps.deliver.tag, label: copy.steps.deliver.label, state: 'warn' },
+    { tag: copy.steps.settle.tag, label: copy.steps.settle.label, state: 'pos' },
   ];
   return (
     <Band id="flow" tone="dark">
       <div className="flex items-end justify-between gap-6 flex-wrap mb-12">
         <div>
-          <SectionTag tone="dark">FLOW</SectionTag>
+          <SectionTag tone="dark">{copy.tag}</SectionTag>
           <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-            A deal, end to end.
+            {copy.title}
           </h2>
         </div>
         <p
@@ -283,7 +277,7 @@ function FlowSection() {
             className="inline-block w-[6px] h-[6px]"
             style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
           />
-          LIVE ON ARC TESTNET
+          {copy.liveLabel}
         </p>
       </div>
 
@@ -343,9 +337,9 @@ function FlowSection() {
             className="mt-12 pt-8 grid md:grid-cols-3 gap-8"
             style={{ borderTop: '1px solid var(--lp-border-subtle)' }}
           >
-            <KpiBlock label="AVG SETTLE" value="3.2" unit="MIN" />
-            <KpiBlock label="USDC IN FLIGHT" value="1.42" unit="M" />
-            <KpiBlock label="UPTIME" value="99.98" unit="%" live />
+            <KpiBlock label={copy.kpis.avgSettleLabel} value="3.2" unit={copy.kpis.avgSettleUnit} />
+            <KpiBlock label={copy.kpis.inFlightLabel} value="1.42" unit={copy.kpis.inFlightUnit} />
+            <KpiBlock label={copy.kpis.uptimeLabel} value="99.98" unit="%" live />
           </div>
         </div>
       </div>
@@ -432,29 +426,29 @@ function KpiBlock({
 /* ============================================================================
    TRADE LANES — typographic list of corridors by volume
    ============================================================================ */
-function TradeLanesSection() {
+function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
   const lanes = [
-    { id: 'LANE 001', from: 'LAGOS', to: 'DUBAI', vol: '128K', avg: '4 MIN' },
-    { id: 'LANE 002', from: 'NAIROBI', to: 'LONDON', vol: '94K', avg: '6 MIN' },
-    { id: 'LANE 003', from: 'KARACHI', to: 'SINGAPORE', vol: '72K', avg: '3 MIN' },
-    { id: 'LANE 004', from: 'CAIRO', to: 'FRANKFURT', vol: '58K', avg: '5 MIN' },
-    { id: 'LANE 005', from: 'ACCRA', to: 'NEW YORK', vol: '47K', avg: '7 MIN' },
-    { id: 'LANE 006', from: 'DAR ES SALAAM', to: 'MUMBAI', vol: '41K', avg: '4 MIN' },
+    { id: `${copy.laneIdPrefix} 001`, from: copy.cities.lagos, to: copy.cities.dubai, vol: '128K', avg: `4 ${copy.minutesUnit}` },
+    { id: `${copy.laneIdPrefix} 002`, from: copy.cities.nairobi, to: copy.cities.london, vol: '94K', avg: `6 ${copy.minutesUnit}` },
+    { id: `${copy.laneIdPrefix} 003`, from: copy.cities.karachi, to: copy.cities.singapore, vol: '72K', avg: `3 ${copy.minutesUnit}` },
+    { id: `${copy.laneIdPrefix} 004`, from: copy.cities.cairo, to: copy.cities.frankfurt, vol: '58K', avg: `5 ${copy.minutesUnit}` },
+    { id: `${copy.laneIdPrefix} 005`, from: copy.cities.accra, to: copy.cities.newYork, vol: '47K', avg: `7 ${copy.minutesUnit}` },
+    { id: `${copy.laneIdPrefix} 006`, from: copy.cities.darEsSalaam, to: copy.cities.mumbai, vol: '41K', avg: `4 ${copy.minutesUnit}` },
   ];
   return (
     <Band tone="light">
       <div className="flex items-end justify-between gap-6 flex-wrap mb-14">
         <div>
-          <SectionTag>TRADE LANES</SectionTag>
+          <SectionTag>{copy.tag}</SectionTag>
           <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-            The corridors, by <span className="text-[var(--lp-accent)]">volume</span>.
+            {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span>{copy.titleEnd}
           </h2>
         </div>
         <p
           className="mono text-[11px] uppercase tracking-[0.1em] max-w-[260px]"
           style={{ color: 'var(--lp-text-sub)' }}
         >
-          24h on-chain. Rolling. Every lane settles on Arc.
+          {copy.footnote}
         </p>
       </div>
 
@@ -484,7 +478,7 @@ function TradeLanesSection() {
               style={{ fontSize: 'clamp(18px, 2vw, 28px)', color: 'var(--lp-dark)' }}
             >
               {l.from}{' '}
-              <span style={{ color: 'var(--lp-text-sub)' }} aria-label="to">
+              <span style={{ color: 'var(--lp-text-sub)' }} aria-label={copy.toAria}>
                 →
               </span>{' '}
               {l.to}
@@ -499,7 +493,7 @@ function TradeLanesSection() {
               className="md:text-end mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
               style={{ color: 'var(--lp-text-sub)' }}
             >
-              AVG {l.avg}
+              {copy.avgPrefix} {l.avg}
             </span>
           </motion.li>
         ))}
@@ -511,35 +505,35 @@ function TradeLanesSection() {
 /* ============================================================================
    EARLY TRADES — modular cards grid (testimonial-style, big number visual)
    ============================================================================ */
-function EarlyTradesSection() {
+function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
   const cards = [
     {
-      tag: 'BUYER · LAGOS',
-      title: 'Settled a Dubai logistics invoice in 4 minutes',
+      tag: `${copy.cards.buyerLagos.role} · ${copy.cards.buyerLagos.city}`,
+      title: copy.cards.buyerLagos.title,
       value: '12,400',
-      unit: 'USDC',
-      sub: 'paid in 3 milestones',
+      unit: copy.cards.buyerLagos.unit,
+      sub: copy.cards.buyerLagos.sub,
     },
     {
-      tag: 'SELLER · NAIROBI',
-      title: 'Agent bid 14 requests while I slept, won 3',
+      tag: `${copy.cards.sellerNairobi.role} · ${copy.cards.sellerNairobi.city}`,
+      title: copy.cards.sellerNairobi.title,
       value: '3 / 14',
-      unit: 'WON',
-      sub: 'zero manual touches',
+      unit: copy.cards.sellerNairobi.unit,
+      sub: copy.cards.sellerNairobi.sub,
     },
     {
-      tag: 'BUYER · KARACHI',
-      title: 'Dispute window resolved with no chargeback',
+      tag: `${copy.cards.buyerKarachi.role} · ${copy.cards.buyerKarachi.city}`,
+      title: copy.cards.buyerKarachi.title,
       value: '0',
-      unit: 'DISPUTES',
-      sub: 'last 90 days',
+      unit: copy.cards.buyerKarachi.unit,
+      sub: copy.cards.buyerKarachi.sub,
     },
   ];
   return (
     <Band tone="dark">
-      <SectionTag tone="dark">EARLY TRADES</SectionTag>
+      <SectionTag tone="dark">{copy.tag}</SectionTag>
       <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[20ch]">
-        What&apos;s landing on the rail.
+        {copy.title}
       </h2>
       <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {cards.map((c, i) => (
@@ -617,33 +611,18 @@ function EarlyTradesSection() {
 /* ============================================================================
    GET STARTED — three-step accordion
    ============================================================================ */
-function GetStartedSection() {
+function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
   const steps = [
-    {
-      n: '001',
-      title: 'Sign in',
-      body:
-        'Bring a web3 wallet or sign in with email & passkey. Either way you get a Circle wallet. Your address is the key.',
-    },
-    {
-      n: '002',
-      title: 'Set your ranges',
-      body:
-        'Buyer side, set budget, deadlines, milestone splits. Seller side, set skills, range, response time. Your agents read these on every match.',
-    },
-    {
-      n: '003',
-      title: 'Stake to grow reputation',
-      body:
-        'Deposit USDC in the vault. The longer it sits, the more reputation you earn. On mainnet that same stake also earns yield through USYC. Withdrawals wait 7 days while the system runs fraud checks.',
-    },
+    { n: '001', title: copy.step1Title, body: copy.step1Body },
+    { n: '002', title: copy.step2Title, body: copy.step2Body },
+    { n: '003', title: copy.step3Title, body: copy.step3Body },
   ];
   const [open, setOpen] = useState<string | null>('001');
   return (
     <Band id="get-started" tone="light">
-      <SectionTag>GET STARTED</SectionTag>
+      <SectionTag>{copy.tag}</SectionTag>
       <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-        Three steps to a deal.
+        {copy.title}
       </h2>
 
       <ul className="mt-14">

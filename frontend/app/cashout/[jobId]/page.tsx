@@ -17,9 +17,12 @@ import {
 } from '@/shared/components/Bands';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { formatUsdc, shortAddress, shortHash } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 type DestKey = 'arc' | AppKitBridgeChainKey;
 type WalletKind = 'identity' | 'sellerAgent';
+type CashoutCopy = Messages['cashoutPage'];
 
 const DESTINATIONS: { key: DestKey; name: string; short: string }[] = [
   { key: 'arc', name: 'Arc Testnet', short: 'Arc' },
@@ -62,6 +65,7 @@ export default function CashoutPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params?.jobId ?? '';
   const auth = useAuth();
+  const cp = useTranslations().cashoutPage;
   const [info, setInfo] = useState<CashoutInfo | null>(null);
   const [fetchState, setFetchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -79,26 +83,26 @@ export default function CashoutPage() {
       })
       .catch((err: unknown) => {
         if (!alive) return;
-        setLoadError(err instanceof Error ? err.message : 'could not load');
+        setLoadError(err instanceof Error ? err.message : cp.errors.couldNotLoad);
         setFetchState('error');
       });
     return () => {
       alive = false;
     };
-  }, [auth.isAuthenticated, jobId]);
+  }, [auth.isAuthenticated, jobId, cp.errors.couldNotLoad]);
 
   if (!auth.isAuthenticated) {
     return (
       <SignInGate
-        tag="CASHOUT"
+        tag={cp.signInGate.tag}
         title={
           <>
-            Move your <Accent>USDC</Accent>
+            {cp.signInGate.titleBefore} <Accent>USDC</Accent>
             <Punc>.</Punc>
           </>
         }
-        body="Sign in to the account this deal settled on to withdraw."
-        buttonLabel="Sign in"
+        body={cp.signInGate.body}
+        buttonLabel={cp.signInGate.buttonLabel}
       />
     );
   }
@@ -108,23 +112,23 @@ export default function CashoutPage() {
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="max-w-[60ch] fade-up">
           <SectionTag tone="dark" dot="live">
-            CASHOUT
+            {cp.hero.tag}
           </SectionTag>
           <HeroHeadline size="lg">
-            Move your <Accent>USDC</Accent>
+            {cp.hero.titleBefore} <Accent>USDC</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
             {info
-              ? `You earned ${formatUsdc(info.dealAmountUsdc)} on this deal. Send it to any wallet on Arc, or bridge to another chain.`
-              : 'Loading your earnings…'}
+              ? cp.hero.earnedTemplate.replace('{amount}', formatUsdc(info.dealAmountUsdc))
+              : cp.hero.loading}
           </p>
           <div className="mt-7 flex flex-wrap gap-2 mono text-[10px] uppercase tracking-[0.14em] text-white/55">
             <Link
               href={`/deals/${jobId}`}
               className="inline-flex items-center gap-1.5 hover:text-[var(--lp-accent)] transition-colors"
             >
-              [:back to deal:]
+              [:{cp.hero.backToDeal}:]
             </Link>
           </div>
         </div>
@@ -134,53 +138,61 @@ export default function CashoutPage() {
         {fetchState === 'loading' && (
           <PageCard className="p-6 sm:p-8">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              Loading…
+              {cp.loading.label}
             </p>
           </PageCard>
         )}
         {fetchState === 'error' && (
           <PageCard className="p-6 sm:p-8">
             <p className="text-[14px] text-[var(--lp-text-sub)]">
-              Could not load this deal. {loadError ?? ''}
+              {cp.errors.couldNotLoadDeal} {loadError ?? ''}
             </p>
           </PageCard>
         )}
-        {fetchState === 'ready' && info && <CashoutContent info={info} jobId={jobId} />}
+        {fetchState === 'ready' && info && <CashoutContent info={info} jobId={jobId} copy={cp} />}
       </Band>
 
       <Band tone="light" compact>
-        <SectionTag>COMING SOON</SectionTag>
+        <SectionTag>{cp.comingSoon.tag}</SectionTag>
         <HeroHeadline size="md">
-          Cash out to <Accent>local currency</Accent>
+          {cp.comingSoon.titleBefore} <Accent>{cp.comingSoon.titleAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Direct off-ramp to NGN, KES, INR, AED and more. Powered by Circle.
+          {cp.comingSoon.body}
         </p>
         <div className="mt-7">
-          <ComingSoonTile label="Off-ramp" />
+          <ComingSoonTile label={cp.comingSoon.tileLabel} comingSoonLabel={cp.comingSoon.comingSoon} />
         </div>
       </Band>
     </FullBleed>
   );
 }
 
-function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
+function CashoutContent({
+  info,
+  jobId,
+  copy,
+}: {
+  info: CashoutInfo;
+  jobId: string;
+  copy: CashoutCopy;
+}) {
   if (!info.settledAt) {
     return (
       <PageCard className="p-6 sm:p-8">
-        <SectionTag>NOT READY</SectionTag>
+        <SectionTag>{copy.notReady.tag}</SectionTag>
         <HeroHeadline size="md">
-          Deal isn&apos;t <Accent>settled</Accent> yet
+          {copy.notReady.titleBefore} <Accent>{copy.notReady.titleAccent}</Accent> {copy.notReady.titleAfter}
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Come back once the buyer releases the final milestone.
+          {copy.notReady.body}
         </p>
         <div className="mt-7">
           <Link href={`/deals/${jobId}`}>
             <CTAPill variant="secondary" tone="light">
-              Open the deal
+              {copy.notReady.cta}
             </CTAPill>
           </Link>
         </div>
@@ -191,14 +203,14 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
   if (info.legacyEscrow) {
     return (
       <PageCard className="p-6 sm:p-8">
-        <SectionTag>LEGACY ESCROW</SectionTag>
+        <SectionTag>{copy.legacy.tag}</SectionTag>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          This deal settled on a legacy escrow contract. Cash out from the legacy surface.
+          {copy.legacy.body}
         </p>
         <div className="mt-7">
           <Link href="/legacy">
             <CTAPill variant="secondary" tone="light">
-              Open legacy surface
+              {copy.legacy.cta}
             </CTAPill>
           </Link>
         </div>
@@ -206,34 +218,33 @@ function CashoutContent({ info, jobId }: { info: CashoutInfo; jobId: string }) {
     );
   }
 
-  if (info.accountKind === 'wallet') return <WalletAccountState />;
-  return <CircleWithdrawForm info={info} />;
+  if (info.accountKind === 'wallet') return <WalletAccountState copy={copy} />;
+  return <CircleWithdrawForm info={info} copy={copy} />;
 }
 
-function WalletAccountState() {
+function WalletAccountState({ copy }: { copy: CashoutCopy }) {
   return (
     <PageCard className="p-6 sm:p-8">
-      <SectionTag>WALLET ACCOUNT</SectionTag>
+      <SectionTag>{copy.walletAccount.tag}</SectionTag>
       <HeroHeadline size="md">
-        Your USDC <Accent>already landed</Accent>
+        {copy.walletAccount.titleBefore} <Accent>{copy.walletAccount.titleAccent}</Accent>
         <Punc>.</Punc>
       </HeroHeadline>
       <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        The escrow released straight to your connected wallet on Arc. Use your wallet to bridge
-        or send it elsewhere.
+        {copy.walletAccount.body}
       </p>
       <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
-        In-product wallet withdraw is on the roadmap.
+        {copy.walletAccount.roadmap}
       </p>
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <ComingSoonTile label="Bridge from wallet" />
-        <ComingSoonTile label="Send on Arc" />
+        <ComingSoonTile label={copy.walletAccount.bridgeFromWallet} comingSoonLabel={copy.comingSoon.comingSoon} />
+        <ComingSoonTile label={copy.walletAccount.sendOnArc} comingSoonLabel={copy.comingSoon.comingSoon} />
       </div>
     </PageCard>
   );
 }
 
-function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
+function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) {
   // The wallet picker defaults to the deal wallet because that's where the
   // escrow released to. Sellers who already swept funds into identity can
   // flip the switch.
@@ -275,9 +286,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
         });
         setResult({ txHash: r.txHash, explorerUrl: r.explorerUrl });
       } else if (dest === 'solanaDevnet') {
-        setError(
-          'Solana withdraw is on the roadmap. Use Ethereum Sepolia or another EVM chain for now.',
-        );
+        setError(copy.errors.solanaRoadmap);
       } else {
         const bridgeId = `cashout-${info.jobId.slice(2, 10)}-${Date.now().toString(36)}`;
         const r = await api.bridgeOut({
@@ -297,7 +306,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           ? String(err.detail)
           : err instanceof Error
             ? err.message
-            : 'Withdraw failed';
+            : copy.errors.withdrawFailed;
       setError(message);
     } finally {
       setSubmitting(false);
@@ -307,18 +316,18 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
   if (result) {
     return (
       <PageCard className="p-6 sm:p-8">
-        <SectionTag>SENT</SectionTag>
+        <SectionTag>{copy.sent.tag}</SectionTag>
         <HeroHeadline size="md">
-          {amount} USDC <Accent>on its way</Accent>
+          {amount} USDC <Accent>{copy.sent.titleAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Transfer confirmed on Arc.
+          {copy.sent.body}
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <a href={result.explorerUrl} target="_blank" rel="noreferrer">
             <CTAPill variant="secondary" tone="light">
-              View tx {shortHash(result.txHash)}
+              {copy.sent.viewTx.replace('{hash}', shortHash(result.txHash))}
             </CTAPill>
           </a>
           <CTAPill
@@ -330,7 +339,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
               setRecipient('');
             }}
           >
-            Send more
+            {copy.sent.sendMore}
           </CTAPill>
         </div>
       </PageCard>
@@ -348,29 +357,30 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           setAmount('');
           setRecipient('');
         }}
+        copy={copy}
       />
     );
   }
 
   return (
     <PageCard className="p-6 sm:p-8">
-      <SectionTag>WITHDRAW</SectionTag>
+      <SectionTag>{copy.withdraw.tag}</SectionTag>
       <HeroHeadline size="md">
-        Send your <Accent>USDC</Accent>
+        {copy.withdraw.titleBefore} <Accent>USDC</Accent>
         <Punc>.</Punc>
       </HeroHeadline>
       <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        Pick the source wallet, the destination chain, paste the address, set the amount.
+        {copy.withdraw.body}
       </p>
 
       <div className="mt-7">
         <FieldLabel>
-          From wallet{' '}
+          {copy.withdraw.fromWalletLabel}{' '}
           <span
             className="normal-case text-[var(--lp-text-muted)] cursor-help"
-            title="Released escrow USDC lands on the deal wallet (your per-deal seller agent). Identity wallet is your main address. Switch to whichever currently holds the USDC you want to send."
+            title={copy.withdraw.fromWalletTooltip}
           >
-            (what is this?)
+            ({copy.withdraw.whatIsThis})
           </span>
         </FieldLabel>
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -380,8 +390,10 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
             disabled={!sellerAgentAvail}
             address={info.sellerAgentWallet.address}
             balanceUsdc={info.sellerAgentWallet.arcBalanceUsdc}
-            label="Deal wallet"
-            sub="Where the escrow released"
+            label={copy.withdraw.dealWalletLabel}
+            sub={copy.withdraw.dealWalletSub}
+            activeLabel={copy.withdraw.active}
+            notProvisionedLabel={copy.withdraw.notProvisioned}
             onClick={() => setWalletKind('sellerAgent')}
           />
           <WalletPickerTile
@@ -390,8 +402,10 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
             disabled={!identityAvail}
             address={info.identityWallet.address}
             balanceUsdc={info.identityWallet.arcBalanceUsdc}
-            label="Identity wallet"
-            sub="Your main address"
+            label={copy.withdraw.identityWalletLabel}
+            sub={copy.withdraw.identityWalletSub}
+            activeLabel={copy.withdraw.active}
+            notProvisionedLabel={copy.withdraw.notProvisioned}
             onClick={() => setWalletKind('identity')}
           />
         </div>
@@ -399,18 +413,18 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
 
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Stat
-          label="Source balance"
+          label={copy.withdraw.sourceBalance}
           value={
             activeWallet.arcBalanceUsdc
               ? formatUsdc(activeWallet.arcBalanceUsdc)
               : '—'
           }
         />
-        <Stat label="From deal" value={formatUsdc(info.dealAmountUsdc)} />
+        <Stat label={copy.withdraw.fromDeal} value={formatUsdc(info.dealAmountUsdc)} />
       </div>
 
       <div className="mt-7">
-        <FieldLabel>Destination chain</FieldLabel>
+        <FieldLabel>{copy.withdraw.destinationChain}</FieldLabel>
         <div className="mt-2 flex flex-wrap gap-2">
           {DESTINATIONS.map((d) => {
             const active = dest === d.key;
@@ -445,7 +459,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
 
       <div className="mt-6">
         <FieldLabel>
-          Recipient address{' '}
+          {copy.withdraw.recipientAddress}{' '}
           <span className="text-[var(--lp-text-muted)] normal-case">
             ({dest === 'solanaDevnet' ? 'Solana' : 'EVM'})
           </span>
@@ -454,7 +468,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
           type="text"
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
-          placeholder={dest === 'solanaDevnet' ? 'Base58 address' : '0x…'}
+          placeholder={dest === 'solanaDevnet' ? copy.withdraw.base58Placeholder : '0x…'}
           spellCheck={false}
           className="mt-2 w-full bg-[var(--lp-light)] px-4 py-2.5 text-[14px] mono focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)]"
           style={{
@@ -470,21 +484,23 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
         />
         {recipient && !recipientValid && (
           <p className="mt-1.5 text-[12px] text-[#b03d3a]">
-            That doesn&apos;t look like a valid {dest === 'solanaDevnet' ? 'Solana' : 'EVM'}{' '}
-            address.
+            {copy.withdraw.invalidAddress.replace(
+              '{kind}',
+              dest === 'solanaDevnet' ? 'Solana' : 'EVM',
+            )}
           </p>
         )}
       </div>
 
       <div className="mt-6">
         <div className="flex items-center justify-between gap-3">
-          <FieldLabel>Amount (USDC)</FieldLabel>
+          <FieldLabel>{copy.withdraw.amountLabel}</FieldLabel>
           <button
             type="button"
             onClick={() => setAmount(balance.toString())}
             className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
-            Max
+            {copy.withdraw.max}
           </button>
         </div>
         <input
@@ -509,7 +525,7 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
         />
         {amount && Number(amount) > balance && (
           <p className="mt-1.5 text-[12px] text-[#b03d3a]">
-            Over the source wallet balance of {balance} USDC.
+            {copy.withdraw.overBalance.replace('{balance}', String(balance))}
           </p>
         )}
       </div>
@@ -535,11 +551,11 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
         <CTAPill onClick={onSubmit} disabled={!canSubmit}>
           {submitting
             ? dest === 'arc'
-              ? 'Sending on Arc…'
-              : 'Bridging out…'
+              ? copy.withdraw.sendingOnArc
+              : copy.withdraw.bridgingOut
             : dest === 'arc'
-              ? `Send to ${destLabel(dest)}`
-              : `Bridge to ${destLabel(dest)}`}
+              ? copy.withdraw.sendTo.replace('{chain}', destLabel(dest))
+              : copy.withdraw.bridgeTo.replace('{chain}', destLabel(dest))}
         </CTAPill>
       </div>
     </PageCard>
@@ -548,18 +564,21 @@ function CircleWithdrawForm({ info }: { info: CashoutInfo }) {
 
 /// Maps backend bridge status to a user-facing label and progress percent.
 /// Pipeline: burning -> burned -> attested -> minted.
-function bridgeStageCopy(status: string): { label: string; pct: number; done: boolean; failed: boolean } {
+function bridgeStageCopy(
+  status: string,
+  copy: CashoutCopy['bridgeStage'],
+): { label: string; pct: number; done: boolean; failed: boolean } {
   switch (status) {
     case 'burning':
-      return { label: 'Burning on Arc', pct: 25, done: false, failed: false };
+      return { label: copy.burning, pct: 25, done: false, failed: false };
     case 'burned':
-      return { label: 'Waiting on Circle attestation', pct: 50, done: false, failed: false };
+      return { label: copy.burned, pct: 50, done: false, failed: false };
     case 'attested':
-      return { label: 'Attested. Minting on destination', pct: 75, done: false, failed: false };
+      return { label: copy.attested, pct: 75, done: false, failed: false };
     case 'minted':
-      return { label: 'Minted on destination', pct: 100, done: true, failed: false };
+      return { label: copy.minted, pct: 100, done: true, failed: false };
     case 'error':
-      return { label: 'Bridge errored', pct: 100, done: false, failed: true };
+      return { label: copy.errored, pct: 100, done: false, failed: true };
     default:
       return { label: status, pct: 10, done: false, failed: false };
   }
@@ -570,6 +589,7 @@ interface BridgeProgressCardProps {
   amount: string;
   destLabel: string;
   onSendMore: () => void;
+  copy: CashoutCopy;
 }
 
 /// Inline bridge progress card. Polls every 4s, exposes the burn and mint
@@ -579,6 +599,7 @@ function BridgeProgressCard({
   amount,
   destLabel,
   onSendMore,
+  copy,
 }: BridgeProgressCardProps) {
   const [status, setStatus] = useState<Awaited<ReturnType<typeof api.bridgeStatus>> | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
@@ -597,7 +618,7 @@ function BridgeProgressCard({
         }
       } catch (err) {
         if (!alive) return;
-        setPollError(err instanceof Error ? err.message : 'Could not check status.');
+        setPollError(err instanceof Error ? err.message : copy.bridgeProgress.couldNotCheck);
         timer = setTimeout(tick, 8000);
       }
     }
@@ -606,24 +627,36 @@ function BridgeProgressCard({
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, [bridgeId]);
+  }, [bridgeId, copy.bridgeProgress.couldNotCheck]);
 
-  const stage = bridgeStageCopy(status?.status ?? 'burning');
+  const stage = bridgeStageCopy(status?.status ?? 'burning', copy.bridgeStage);
 
   return (
     <PageCard className="p-6 sm:p-8">
-      <SectionTag>{stage.done ? 'BRIDGED' : stage.failed ? 'BRIDGE FAILED' : 'BRIDGING'}</SectionTag>
+      <SectionTag>
+        {stage.done
+          ? copy.bridgeProgress.tagBridged
+          : stage.failed
+            ? copy.bridgeProgress.tagFailed
+            : copy.bridgeProgress.tagBridging}
+      </SectionTag>
       <HeroHeadline size="md">
         {amount} USDC{' '}
-        <Accent>{stage.done ? 'arrived' : stage.failed ? 'errored' : 'bridging'}</Accent>
+        <Accent>
+          {stage.done
+            ? copy.bridgeProgress.accentArrived
+            : stage.failed
+              ? copy.bridgeProgress.accentErrored
+              : copy.bridgeProgress.accentBridging}
+        </Accent>
         <Punc>.</Punc>
       </HeroHeadline>
       <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
         {stage.done
-          ? `Mint confirmed on ${destLabel}. The USDC is in the recipient address.`
+          ? copy.bridgeProgress.bodyDone.replace('{chain}', destLabel)
           : stage.failed
-            ? 'Something went wrong on the way. The funds are still on the source side. Take a screenshot of this page and ping support.'
-            : `Burn on Arc submitted. Mint will land on ${destLabel} once Circle's attestation clears, usually under a minute on testnet.`}
+            ? copy.bridgeProgress.bodyFailed
+            : copy.bridgeProgress.bodyInProgress.replace('{chain}', destLabel)}
       </p>
 
       <div className="mt-7">
@@ -650,26 +683,34 @@ function BridgeProgressCard({
 
       <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <BridgeFact
-          label="Burn (Arc)"
+          label={copy.bridgeProgress.burnLabel}
           value={status?.sourceTxHash ? shortHash(status.sourceTxHash) : '—'}
           href={status?.sourceTxHash ? `https://testnet.arcscan.app/tx/${status.sourceTxHash}` : undefined}
         />
         <BridgeFact
-          label={`Mint (${destLabel})`}
-          value={status?.mintTxHash ? shortHash(status.mintTxHash) : stage.done ? '—' : 'pending'}
+          label={copy.bridgeProgress.mintLabel.replace('{chain}', destLabel)}
+          value={
+            status?.mintTxHash
+              ? shortHash(status.mintTxHash)
+              : stage.done
+                ? '—'
+                : copy.bridgeProgress.pending
+          }
           href={status?.mintTxHash ? undefined : undefined}
         />
       </dl>
 
       {pollError && (
         <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Retrying status check… {pollError}
+          {copy.bridgeProgress.retrying} {pollError}
         </p>
       )}
 
       {(stage.done || stage.failed) && (
         <div className="mt-7 flex flex-wrap gap-3">
-          <CTAPill onClick={onSendMore}>{stage.done ? 'Send more' : 'Try again'}</CTAPill>
+          <CTAPill onClick={onSendMore}>
+            {stage.done ? copy.bridgeProgress.sendMore : copy.bridgeProgress.tryAgain}
+          </CTAPill>
         </div>
       )}
     </PageCard>
@@ -720,6 +761,8 @@ function WalletPickerTile({
   balanceUsdc,
   label,
   sub,
+  activeLabel,
+  notProvisionedLabel,
   onClick,
 }: {
   kind: WalletKind;
@@ -729,6 +772,8 @@ function WalletPickerTile({
   balanceUsdc: string | null;
   label: string;
   sub: string;
+  activeLabel: string;
+  notProvisionedLabel: string;
   onClick: () => void;
 }) {
   return (
@@ -754,7 +799,7 @@ function WalletPickerTile({
         </p>
         {active && (
           <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
-            ACTIVE
+            {activeLabel}
           </span>
         )}
       </div>
@@ -762,7 +807,7 @@ function WalletPickerTile({
         {sub}
       </p>
       <p className="mt-2 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
-        {address ? shortAddress(address) : 'Not provisioned'}
+        {address ? shortAddress(address) : notProvisionedLabel}
       </p>
       <p className="mt-1.5 font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
         {balanceUsdc ? formatUsdc(balanceUsdc) : '—'}
@@ -806,7 +851,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ComingSoonTile({ label }: { label: string }) {
+function ComingSoonTile({
+  label,
+  comingSoonLabel,
+}: {
+  label: string;
+  comingSoonLabel: string;
+}) {
   return (
     <div
       className="px-5 py-7 text-center relative"
@@ -824,7 +875,7 @@ function ComingSoonTile({ label }: { label: string }) {
         {label}
       </p>
       <p className="mt-2 font-sans text-[16px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-        Coming soon
+        {comingSoonLabel}
       </p>
     </div>
   );

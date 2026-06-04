@@ -23,6 +23,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { api } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -68,6 +70,7 @@ interface Window {
 
 export default function LegacyPage() {
   const { isAuthenticated, address, method } = useAuth();
+  const lp = useTranslations().legacyPage;
   const [windowState, setWindowState] = useState<Window | null>(null);
 
   useEffect(() => {
@@ -87,20 +90,15 @@ export default function LegacyPage() {
   if (!isAuthenticated || !address) {
     return (
       <SignInGate
-        tag="LEGACY · RECOVERY"
+        tag={lp.gate.tag}
         title={
           <>
-            Reclaim from <Accent>previous</Accent> contracts
+            {lp.gate.titleBefore} <Accent>{lp.gate.titleAccent}</Accent> {lp.gate.titleAfter}
             <Punc>.</Punc>
           </>
         }
-        body={
-          <>
-            We redeployed our escrow and vault contracts. Funds and stake parked on the previous
-            contracts stay yours. Sign in to see what you can reclaim.
-          </>
-        }
-        buttonLabel="Sign in to continue"
+        body={<>{lp.gate.body}</>}
+        buttonLabel={lp.gate.button}
       />
     );
   }
@@ -110,14 +108,12 @@ export default function LegacyPage() {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[60ch]">
-            <SectionTag tone="dark">RECOVERY WINDOW</SectionTag>
+            <SectionTag tone="dark">{lp.closed.tag}</SectionTag>
             <HeroHeadline size="md">
-              Closed<Punc>.</Punc>
+              {lp.closed.title}<Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              The 30-day recovery window has ended. The legacy contracts remain live on Arc and
-              can still be called directly via the block explorer if you have funds locked. Reach
-              out on Telegram if you need help and didn't get a chance to reclaim.
+              {lp.closed.body}
             </p>
             <Link
               href="/"
@@ -129,7 +125,7 @@ export default function LegacyPage() {
                 borderBottomRightRadius: 3,
               }}
             >
-              ← Home
+              {lp.closed.home}
             </Link>
           </div>
         </Band>
@@ -142,16 +138,14 @@ export default function LegacyPage() {
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="max-w-[64ch]">
           <SectionTag tone="dark" dot="live">
-            LEGACY · RECOVERY OPEN
+            {lp.hero.tag}
           </SectionTag>
           <HeroHeadline size="md">
-            Reclaim from <Accent>previous</Accent> contracts
+            {lp.hero.titleBefore} <Accent>{lp.hero.titleAccent}</Accent> {lp.hero.titleAfter}
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[58ch]">
-            We upgraded our escrow and vault to v2.D. Anything you staked or any deal you funded
-            on the previous contracts still belongs to you. This page lets you pull it out before
-            the recovery window closes.
+            {lp.hero.body}
           </p>
           <div
             className="mt-7 inline-flex items-center gap-3 px-4 py-2.5"
@@ -165,45 +159,42 @@ export default function LegacyPage() {
             }}
           >
             <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
-              window closes in
+              {lp.hero.windowClosesIn}
             </span>
             <span className="mono text-[14px] sm:text-[16px] font-extrabold text-white tabular-nums">
               {windowState?.closesAtMs ? <Countdown targetMs={windowState.closesAtMs} /> : '...'}
             </span>
           </div>
           <p className="mt-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-relaxed">
-            // AFTER THE WINDOW, THE LEGACY CONTRACTS STAY LIVE ON ARC AND CAN BE CALLED DIRECTLY VIA THE EXPLORER
+            {lp.hero.afterWindowNote}
           </p>
         </div>
       </Band>
 
       <Band tone="light" compact>
-        <SectionTag>LEGACY STAKE</SectionTag>
+        <SectionTag>{lp.stake.tag}</SectionTag>
         <HeroHeadline size="md">
-          Your stake<Punc>.</Punc>
+          {lp.stake.title}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch]">
-          Positions parked on the previous KarwanVault. Cool-down on this contract is 7 days. New
-          deposits go to the v2.D vault. Visit{' '}
-          <Link href="/stake" className="underline underline-offset-2">/stake</Link> for that.
+          {lp.stake.bodyBefore}{' '}
+          <Link href="/stake" className="underline underline-offset-2">{lp.stake.stakeLink}</Link> {lp.stake.bodyAfter}
         </p>
         <div className="mt-8">
-          <LegacyStakeCard address={address} isCircleUser={method === 'circle'} />
+          <LegacyStakeCard address={address} isCircleUser={method === 'circle'} copy={lp} />
         </div>
       </Band>
 
       <Band tone="light" compact>
-        <SectionTag>LEGACY DEALS</SectionTag>
+        <SectionTag>{lp.deals.tag}</SectionTag>
         <HeroHeadline size="md">
-          Pending escrow<Punc>.</Punc>
+          {lp.deals.title}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch]">
-          Deals where USDC is still locked on the previous escrow. Buyer can refund (after the
-          deadline) or release if the seller delivered. Either party can propose a mutual
-          cancellation.
+          {lp.deals.body}
         </p>
         <div className="mt-8">
-          <LegacyDealsList address={address} />
+          <LegacyDealsList address={address} copy={lp} />
         </div>
       </Band>
     </FullBleed>
@@ -235,9 +226,11 @@ type StakeBusy = { kind: 'request' | 'cancel' | 'claim'; positionId: string } | 
 function LegacyStakeCard({
   address,
   isCircleUser,
+  copy,
 }: {
   address: string;
   isCircleUser: boolean;
+  copy: Messages['legacyPage'];
 }) {
   const { data: walletClient } = useWalletClient();
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
@@ -335,9 +328,9 @@ function LegacyStakeCard({
           const r = await route({ address, positionId, generation });
           setLastTx(r.txHash);
         } else {
-          if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+          if (!walletClient || !arcClient) throw new Error(copy.stake.errors.walletNotReady);
           if (!vaultAddrForAction) {
-            throw new Error(`Legacy vault for generation ${generation} is not configured on this build.`);
+            throw new Error(copy.stake.errors.vaultNotConfiguredTemplate.replace('{generation}', String(generation)));
           }
           const fnName = kind === 'cancel' ? 'cancelWithdraw' : 'claim';
           const hash = await walletClient.writeContract({
@@ -358,7 +351,7 @@ function LegacyStakeCard({
         setBusy(null);
       }
     },
-    [onWrongChain, switchChainAsync, isCircleUser, positions, walletClient, arcClient, address, refetch],
+    [onWrongChain, switchChainAsync, isCircleUser, positions, walletClient, arcClient, address, refetch, copy],
   );
 
   const confirmRequest = useCallback(async () => {
@@ -375,9 +368,9 @@ function LegacyStakeCard({
         const r = await api.legacyVaultRequestWithdraw({ address, positionId, generation });
         setLastTx(r.txHash);
       } else {
-        if (!walletClient || !arcClient) throw new Error('Wallet not ready. Reconnect and retry.');
+        if (!walletClient || !arcClient) throw new Error(copy.stake.errors.walletNotReady);
         if (!vaultAddrForAction) {
-          throw new Error(`Legacy vault for generation ${generation} is not configured on this build.`);
+          throw new Error(copy.stake.errors.vaultNotConfiguredTemplate.replace('{generation}', String(generation)));
         }
         const hash = await walletClient.writeContract({
           address: vaultAddrForAction,
@@ -396,7 +389,7 @@ function LegacyStakeCard({
     } finally {
       setBusy(null);
     }
-  }, [pendingRequest, isCircleUser, walletClient, arcClient, address, refetch]);
+  }, [pendingRequest, isCircleUser, walletClient, arcClient, address, refetch, copy]);
 
   if (loading) {
     return <div className="h-32 bg-black/[0.04] animate-pulse rounded-2xl" />;
@@ -405,8 +398,7 @@ function LegacyStakeCard({
   if (positions.length === 0) {
     return (
       <Note tone="info">
-        <span className="font-semibold">Nothing to recover.</span> No positions on the previous
-        vault for this wallet.
+        <span className="font-semibold">{copy.stake.empty.headline}</span> {copy.stake.empty.body}
       </Note>
     );
   }
@@ -417,13 +409,13 @@ function LegacyStakeCard({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Stat label="Active" value={`${formatUsdc(totalActive, { withSuffix: false })} USDC`} />
-        <Stat label="Cooling" value={`${formatUsdc(totalCooling, { withSuffix: false })} USDC`} />
+        <Stat label={copy.stake.stats.active} value={`${formatUsdc(totalActive, { withSuffix: false })} USDC`} />
+        <Stat label={copy.stake.stats.cooling} value={`${formatUsdc(totalCooling, { withSuffix: false })} USDC`} />
       </div>
 
       {onWrongChain && (
         <Note tone="warn">
-          Your wallet is on another network. Switch to Arc to sign legacy actions.
+          {copy.stake.wrongChain}
         </Note>
       )}
 
@@ -433,23 +425,24 @@ function LegacyStakeCard({
         return (
           <PositionGroup
             key={`active-gen-${gen}`}
-            title={`Gen ${gen} active. Start cool-down to recover`}
+            title={copy.stake.groups.activeTitleTemplate.replace('{gen}', String(gen))}
             positions={groupActive}
             busy={busy}
             onAction={runAction}
-            actionLabel={`Start ${cooldownDaysByGen[gen]}-day cool-down`}
+            actionLabel={copy.stake.groups.startCooldownTemplate.replace('{days}', String(cooldownDaysByGen[gen]))}
             actionKind="request"
+            signingLabel={copy.stake.groups.signing}
           />
         );
       })}
 
       {cooling.length > 0 && (
-        <CoolingGroup positions={cooling} busy={busy} onAction={runAction} />
+        <CoolingGroup positions={cooling} busy={busy} onAction={runAction} copy={copy} />
       )}
 
       {lastTx && (
         <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          tx{' '}
+          {copy.stake.txPrefix}{' '}
           <a
             href={ARC_EXPLORER_TX(lastTx)}
             target="_blank"
@@ -464,16 +457,16 @@ function LegacyStakeCard({
 
       <ConfirmDialog
         open={pendingRequest != null}
-        title={`Cool ${pendingRequest?.principal ?? ''} USDC?`}
+        title={copy.stake.confirmDialog.titleTemplate.replace('{principal}', pendingRequest?.principal ?? '')}
         body={
           <>
-            Starts the{' '}
-            {pendingRequest ? cooldownDaysByGen[pendingRequest.generation] : 7}
-            -day cool-down on this legacy position. Once it elapses you can claim the principal back
-            to your wallet. Cooling stake stops earning reputation until you cancel or claim.
+            {copy.stake.confirmDialog.bodyTemplate.replace(
+              '{days}',
+              String(pendingRequest ? cooldownDaysByGen[pendingRequest.generation] : 7),
+            )}
           </>
         }
-        confirmLabel="Start cool-down"
+        confirmLabel={copy.stake.confirmDialog.confirm}
         onCancel={() => setPendingRequest(null)}
         onConfirm={confirmRequest}
       />
@@ -488,6 +481,7 @@ function PositionGroup({
   onAction,
   actionLabel,
   actionKind,
+  signingLabel,
 }: {
   title: string;
   positions: LegacyPosition[];
@@ -499,6 +493,7 @@ function PositionGroup({
   ) => void;
   actionLabel: string;
   actionKind: 'request';
+  signingLabel: string;
 }) {
   return (
     <div className="space-y-2.5">
@@ -545,7 +540,7 @@ function PositionGroup({
                   borderBottomRightRadius: 2,
                 }}
               >
-                {isBusy ? 'Signing…' : actionLabel}
+                {isBusy ? signingLabel : actionLabel}
               </button>
             </li>
           );
@@ -559,6 +554,7 @@ function CoolingGroup({
   positions,
   busy,
   onAction,
+  copy,
 }: {
   positions: LegacyPosition[];
   busy: StakeBusy;
@@ -567,11 +563,12 @@ function CoolingGroup({
     positionId: string,
     generation: 1 | 2 | 3,
   ) => void;
+  copy: Messages['legacyPage'];
 }) {
   return (
     <div className="space-y-2.5">
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        Cooling. Claim once the countdown ends
+        {copy.stake.coolingTitle}
       </p>
       <ul className="space-y-2">
         {positions.map((p) => {
@@ -601,7 +598,9 @@ function CoolingGroup({
                   </span>
                 </p>
                 <p className="mt-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {claimable ? 'claim ready' : `claim in ${days}d ${hours}h`}
+                  {claimable
+                    ? copy.stake.claimReady
+                    : copy.stake.claimInTemplate.replace('{days}', String(days)).replace('{hours}', String(hours))}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -612,7 +611,7 @@ function CoolingGroup({
                     disabled={isBusy}
                     className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
                   >
-                    cancel
+                    {copy.stake.cancelLink}
                   </button>
                 )}
                 {claimable && (
@@ -632,7 +631,7 @@ function CoolingGroup({
                       borderBottomRightRadius: 2,
                     }}
                   >
-                    {isBusy ? 'Claiming…' : 'Claim to wallet'}
+                    {isBusy ? copy.stake.claimingLabel : copy.stake.claimToWallet}
                   </button>
                 )}
               </div>
@@ -673,7 +672,7 @@ interface LegacyDeal {
 
 type DealBusy = { jobId: string; kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' } | null;
 
-function LegacyDealsList({ address }: { address: string }) {
+function LegacyDealsList({ address, copy }: { address: string; copy: Messages['legacyPage'] }) {
   const [deals, setDeals] = useState<LegacyDeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<DealBusy>(null);
@@ -748,7 +747,7 @@ function LegacyDealsList({ address }: { address: string }) {
           setLastTx(r.txHash);
         } else if (kind === 'cancel-propose') {
           const cleaned = (reason ?? '').trim();
-          if (!cleaned) throw new Error('Reason is required to propose a cancellation.');
+          if (!cleaned) throw new Error(copy.deals.errors.reasonRequired);
           const r = await api.legacyDealCancelPropose({
             jobId: deal.jobId,
             address,
@@ -767,7 +766,7 @@ function LegacyDealsList({ address }: { address: string }) {
         setBusy(null);
       }
     },
-    [pendingAction, address, refetch],
+    [pendingAction, address, refetch, copy],
   );
 
   const open = useMemo(
@@ -786,8 +785,7 @@ function LegacyDealsList({ address }: { address: string }) {
   if (deals.length === 0) {
     return (
       <Note tone="info">
-        <span className="font-semibold">No legacy deals.</span> You have no escrow records on the
-        previous contract.
+        <span className="font-semibold">{copy.deals.empty.headline}</span> {copy.deals.empty.body}
       </Note>
     );
   }
@@ -795,11 +793,11 @@ function LegacyDealsList({ address }: { address: string }) {
   return (
     <div className="space-y-6">
       {open.length === 0 ? (
-        <Note tone="info">No open legacy deals. Everything past settled or refunded.</Note>
+        <Note tone="info">{copy.deals.noneOpen}</Note>
       ) : (
         <div className="space-y-2.5">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Open. Actions available
+            {copy.deals.openSectionTitle}
           </p>
           <ul className="space-y-3">
             {open.map((deal) => (
@@ -811,6 +809,7 @@ function LegacyDealsList({ address }: { address: string }) {
                 onRelease={runRelease}
                 onProposeCancel={runProposeCancel}
                 onAcceptCancel={runAcceptCancel}
+                copy={copy}
               />
             ))}
           </ul>
@@ -820,7 +819,7 @@ function LegacyDealsList({ address }: { address: string }) {
       {past.length > 0 && (
         <div className="space-y-2.5">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Past. Already settled or refunded
+            {copy.deals.pastSectionTitle}
           </p>
           <ul className="space-y-2">
             {past.map((deal) => (
@@ -838,7 +837,7 @@ function LegacyDealsList({ address }: { address: string }) {
               >
                 <div className="min-w-0">
                   <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    {deal.role} · {deal.stateLabel}
+                    {(copy.deals.roles[deal.role] ?? deal.role)} · {(copy.deals.stateLabels[deal.stateLabel] ?? deal.stateLabel)}
                   </p>
                   <p className="mt-1 font-sans text-[16px] font-extrabold tabular-nums">
                     {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })} USDC
@@ -855,7 +854,7 @@ function LegacyDealsList({ address }: { address: string }) {
 
       {lastTx && (
         <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          tx{' '}
+          {copy.deals.txPrefix}{' '}
           <a
             href={ARC_EXPLORER_TX(lastTx)}
             target="_blank"
@@ -870,18 +869,18 @@ function LegacyDealsList({ address }: { address: string }) {
 
       <ConfirmDialog
         open={pendingAction != null}
-        title={dialogTitle(pendingAction?.kind, pendingAction?.deal)}
-        body={dialogBody(pendingAction?.kind, pendingAction?.deal)}
+        title={dialogTitle(pendingAction?.kind, pendingAction?.deal, copy)}
+        body={dialogBody(pendingAction?.kind, pendingAction?.deal, copy)}
         reasonPrompt={
           pendingAction?.kind === 'cancel-propose'
             ? {
-                label: 'Reason (shared with the other party)',
-                placeholder: 'No longer needed',
+                label: copy.deals.reasonPrompt.label,
+                placeholder: copy.deals.reasonPrompt.placeholder,
                 required: true,
               }
             : undefined
         }
-        confirmLabel={dialogConfirmLabel(pendingAction?.kind)}
+        confirmLabel={dialogConfirmLabel(pendingAction?.kind, copy)}
         tone={pendingAction?.kind === 'refund' ? 'danger' : 'primary'}
         onCancel={() => setPendingAction(null)}
         onConfirm={executePendingAction}
@@ -893,59 +892,42 @@ function LegacyDealsList({ address }: { address: string }) {
 function dialogTitle(
   kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' | undefined,
   deal: LegacyDeal | undefined,
+  copy: Messages['legacyPage'],
 ): string {
   if (!kind || !deal) return '';
-  if (kind === 'refund') return `Refund ${deal.dealAmountUsdc} USDC to your wallet?`;
-  if (kind === 'release') return `Release ${deal.dealAmountUsdc} USDC to the seller?`;
-  if (kind === 'cancel-propose') return 'Propose a mutual cancellation?';
-  return 'Accept the proposed cancellation?';
+  if (kind === 'refund') return copy.deals.dialogs.refund.titleTemplate.replace('{amount}', deal.dealAmountUsdc);
+  if (kind === 'release') return copy.deals.dialogs.release.titleTemplate.replace('{amount}', deal.dealAmountUsdc);
+  if (kind === 'cancel-propose') return copy.deals.dialogs.cancelPropose.title;
+  return copy.deals.dialogs.cancelAccept.title;
 }
 
 function dialogBody(
   kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' | undefined,
   deal: LegacyDeal | undefined,
+  copy: Messages['legacyPage'],
 ): ReactNode {
   if (!kind || !deal) return null;
   if (kind === 'refund') {
-    return (
-      <>
-        Cancels the deal on the legacy escrow and returns the full {deal.dealAmountUsdc} USDC to
-        your wallet. Reputation is unchanged on this recovery path.
-      </>
-    );
+    return <>{copy.deals.dialogs.refund.bodyTemplate.replace('{amount}', deal.dealAmountUsdc)}</>;
   }
   if (kind === 'release') {
-    return (
-      <>
-        Settles the legacy escrow and pays the seller their {deal.dealAmountUsdc} USDC net of
-        platform fees. Use this when the seller already delivered before the contract migration.
-      </>
-    );
+    return <>{copy.deals.dialogs.release.bodyTemplate.replace('{amount}', deal.dealAmountUsdc)}</>;
   }
   if (kind === 'cancel-propose') {
-    return (
-      <>
-        Sends a cancellation proposal to the other party. They have to accept before the deal
-        cancels. Funds stay locked until they accept or you withdraw the proposal.
-      </>
-    );
+    return <>{copy.deals.dialogs.cancelPropose.body}</>;
   }
-  return (
-    <>
-      The other party proposed cancelling this deal. Accepting refunds you the full{' '}
-      {deal.dealAmountUsdc} USDC and closes the legacy escrow.
-    </>
-  );
+  return <>{copy.deals.dialogs.cancelAccept.bodyTemplate.replace('{amount}', deal.dealAmountUsdc)}</>;
 }
 
 function dialogConfirmLabel(
   kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' | undefined,
+  copy: Messages['legacyPage'],
 ): string {
-  if (kind === 'refund') return 'Refund to buyer';
-  if (kind === 'release') return 'Release to seller';
-  if (kind === 'cancel-propose') return 'Send proposal';
-  if (kind === 'cancel-accept') return 'Accept cancellation';
-  return 'Confirm';
+  if (kind === 'refund') return copy.deals.dialogs.refund.confirm;
+  if (kind === 'release') return copy.deals.dialogs.release.confirm;
+  if (kind === 'cancel-propose') return copy.deals.dialogs.cancelPropose.confirm;
+  if (kind === 'cancel-accept') return copy.deals.dialogs.cancelAccept.confirm;
+  return copy.deals.dialogs.confirmFallback;
 }
 
 function DealRow({
@@ -955,6 +937,7 @@ function DealRow({
   onRelease,
   onProposeCancel,
   onAcceptCancel,
+  copy,
 }: {
   deal: LegacyDeal;
   busy: DealBusy;
@@ -962,6 +945,7 @@ function DealRow({
   onRelease: (d: LegacyDeal) => void;
   onProposeCancel: (d: LegacyDeal) => void;
   onAcceptCancel: (d: LegacyDeal) => void;
+  copy: Messages['legacyPage'];
 }) {
   const isBusy = busy?.jobId === deal.jobId;
   const canRefund =
@@ -992,7 +976,7 @@ function DealRow({
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            [:{deal.role.toUpperCase()} · {deal.stateLabel.toUpperCase()} · GEN {deal.generation}:] {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
+            [:{(copy.deals.roles[deal.role] ?? deal.role).toUpperCase()} · {(copy.deals.stateLabels[deal.stateLabel] ?? deal.stateLabel).toUpperCase()} · {copy.deals.row.genTemplate.replace('{n}', String(deal.generation))}:] {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
           </p>
           <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
             {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
@@ -1002,14 +986,17 @@ function DealRow({
           </p>
         </div>
         <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          {deal.pastDeadline ? 'past deadline' : 'live'} · {deal.delivered ? 'delivered' : 'not delivered'}
+          {deal.pastDeadline ? copy.deals.row.pastDeadline : copy.deals.row.live} · {deal.delivered ? copy.deals.row.delivered : copy.deals.row.notDelivered}
         </span>
       </div>
 
       {deal.hasCancellationProposal && deal.cancellationProposal && (
         <p className="text-[12.5px] leading-snug text-[var(--lp-dark)]">
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] me-2">
-            cancel proposed by {deal.cancellationProposal.proposedBy}:
+            {copy.deals.row.cancelProposedByTemplate.replace(
+              '{role}',
+              copy.deals.roles[deal.cancellationProposal.proposedBy] ?? deal.cancellationProposal.proposedBy,
+            )}
           </span>
           {deal.cancellationProposal.reason}
         </p>
@@ -1021,7 +1008,7 @@ function DealRow({
             tone="primary"
             disabled={isBusy}
             onClick={() => onRefund(deal)}
-            label={isBusy && busy?.kind === 'refund' ? 'Refunding…' : 'Refund to buyer'}
+            label={isBusy && busy?.kind === 'refund' ? copy.deals.actions.refunding : copy.deals.actions.refundToBuyer}
           />
         )}
         {canRelease && (
@@ -1029,7 +1016,7 @@ function DealRow({
             tone="primary"
             disabled={isBusy}
             onClick={() => onRelease(deal)}
-            label={isBusy && busy?.kind === 'release' ? 'Releasing…' : 'Release to seller'}
+            label={isBusy && busy?.kind === 'release' ? copy.deals.actions.releasing : copy.deals.actions.releaseToSeller}
           />
         )}
         {canAcceptCancel && (
@@ -1037,7 +1024,7 @@ function DealRow({
             tone="primary"
             disabled={isBusy}
             onClick={() => onAcceptCancel(deal)}
-            label={isBusy && busy?.kind === 'cancel-accept' ? 'Accepting…' : 'Accept cancellation'}
+            label={isBusy && busy?.kind === 'cancel-accept' ? copy.deals.actions.accepting : copy.deals.actions.acceptCancellation}
           />
         )}
         {canProposeCancel && (
@@ -1045,14 +1032,14 @@ function DealRow({
             tone="ghost"
             disabled={isBusy}
             onClick={() => onProposeCancel(deal)}
-            label={isBusy && busy?.kind === 'cancel-propose' ? 'Proposing…' : 'Propose cancellation'}
+            label={isBusy && busy?.kind === 'cancel-propose' ? copy.deals.actions.proposing : copy.deals.actions.proposeCancellation}
           />
         )}
       </div>
 
       {!canRefund && !canRelease && !canAcceptCancel && !canProposeCancel && (
         <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          No action available for your role on this deal state.
+          {copy.deals.row.noAction}
         </p>
       )}
     </li>

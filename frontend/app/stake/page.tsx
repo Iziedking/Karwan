@@ -15,19 +15,11 @@ import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { TIER_HUE } from '@/features/reputation/tierColors';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
 const ORDER: Tier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
 const BREAKS = [0, 200, 400, 600, 800, 1000];
-// Tier hue + unlock copy. The hue palette is shared (tierColors) so the ladder,
-// the reputation badge on bids/negotiation, and deal/profile all read the same.
-const TIER_UNLOCK: Record<Tier, string> = {
-  NEW: 'New here. Agents add a small premium until you build a record.',
-  COLD: 'Early track record. Agents ease the premium.',
-  ESTABLISHED: 'Trusted profile. Standard terms across the desk.',
-  STRONG: 'Preferred counterparty. Agents move faster, tighter spreads.',
-  ELITE: 'Top tier. Agents accept first look within range, no auction.',
-};
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -85,24 +77,20 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
 export default function StakePage() {
   const { isAuthenticated, address } = useAuth();
   const { data } = useReputation(address);
+  const sp = useTranslations().stakePage;
 
   if (!isAuthenticated) {
     return (
       <SignInGate
-        tag="STAKE"
+        tag={sp.signedOut.tag}
         title={
           <>
-            Earn <Accent>reputation</Accent>
+            {sp.signedOut.titlePrefix} <Accent>{sp.signedOut.titleAccent}</Accent>
             <Punc>.</Punc>
           </>
         }
-        body={
-          <>
-            Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. On
-            mainnet the same stake earns yield through Hashnote USYC.
-          </>
-        }
-        buttonLabel="Log in to stake"
+        body={<>{sp.signedOut.body}</>}
+        buttonLabel={sp.signedOut.buttonLabel}
       />
     );
   }
@@ -119,41 +107,48 @@ export default function StakePage() {
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="max-w-[60ch] fade-up">
           <SectionTag tone="dark" dot="live">
-            STAKE
+            {sp.hero.tag}
           </SectionTag>
           <HeroHeadline size="lg">
-            Earn <Accent>reputation</Accent>
+            {sp.hero.line1Prefix} <Accent>{sp.hero.line1Accent}</Accent>
             <Punc>.</Punc>{' '}
             <br className="hidden md:block" />
-            Earn <Accent>yield</Accent>
+            {sp.hero.line2Prefix} <Accent>{sp.hero.line2Accent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
-            Stake USDC. The longer it sits, the more reputation it earns. Withdraw any time. 7-day
-            cool-down on the way out.
+            {sp.hero.body}
           </p>
           <p className="mt-5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-relaxed">
-            // ON MAINNET THIS STAKE ROUTES THROUGH HASHNOTE USYC FOR ~5% APY
+            {sp.hero.mainnetNote}
           </p>
 
           {/* POSITION READOUT — count-up score + tier. */}
           <div className="mt-9 grid grid-cols-2 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-            <Stat label="Reputation">
+            <Stat label={sp.position.reputation}>
               <span className="tabular-nums">
                 <CountUp value={score} />
               </span>
               <span className="text-white/35 text-[15px]"> / 1000</span>
             </Stat>
-            <Stat label="Tier">
+            <Stat label={sp.position.tier}>
               <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
             </Stat>
-            <Stat label={nextTier ? `To ${nextTier}` : 'Status'} wide>
+            <Stat
+              label={
+                nextTier
+                  ? sp.position.toNextTemplate.replace('{tier}', nextTier)
+                  : sp.position.status
+              }
+              wide
+            >
               {nextTier ? (
                 <span className="tabular-nums">
-                  <CountUp value={toNext} /> <span className="text-white/45 text-[15px]">pts</span>
+                  <CountUp value={toNext} />{' '}
+                  <span className="text-white/45 text-[15px]">{sp.position.pts}</span>
                 </span>
               ) : (
-                <span style={{ color: TIER_HUE[tier] }}>Top tier</span>
+                <span style={{ color: TIER_HUE[tier] }}>{sp.position.topTier}</span>
               )}
             </Stat>
           </div>
@@ -162,9 +157,10 @@ export default function StakePage() {
 
       {/* STAKE INTERFACE — the same KarwanVault card used on /profile. */}
       <Band tone="light" compact>
-        <SectionTag>YOUR STAKE</SectionTag>
+        <SectionTag>{sp.vault.tag}</SectionTag>
         <HeroHeadline size="md">
-          Vault<Punc>.</Punc>
+          {sp.vault.heading}
+          <Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-10">
           <StakeCard />
@@ -173,13 +169,13 @@ export default function StakePage() {
 
       {/* TIER LADDER — what stake unlocks in the agent loop. */}
       <Band tone="light" compact>
-        <SectionTag>TIER LADDER</SectionTag>
+        <SectionTag>{sp.ladder.tag}</SectionTag>
         <HeroHeadline size="md">
-          What stake <Accent>unlocks</Accent>
+          {sp.ladder.headingPrefix} <Accent>{sp.ladder.headingAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Reputation moves your tier. Tier changes how the agents negotiate for you.
+          {sp.ladder.body}
         </p>
         <ul className="mt-9 space-y-2.5">
           {ORDER.map((t, i) => {
@@ -220,7 +216,7 @@ export default function StakePage() {
                               borderRadius: 3,
                             }}
                           >
-                            You
+                            {sp.ladder.youBadge}
                           </span>
                         )}
                       </p>
@@ -230,7 +226,7 @@ export default function StakePage() {
                       </span>
                     </div>
                     <p className="mt-1 text-[13px] leading-snug text-[var(--lp-text-sub)] max-w-[60ch]">
-                      {TIER_UNLOCK[t]}
+                      {sp.ladder.unlock[t]}
                     </p>
                   </div>
                 </li>

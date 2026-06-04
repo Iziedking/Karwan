@@ -187,7 +187,12 @@ function OnboardingInner() {
       await api.saveProfile({
         address,
         role,
-        displayName: displayName.trim() || `Karwan user ${address.slice(0, 6)}`,
+        displayName:
+          displayName.trim() ||
+          t.onboarding.profileStep.defaultDisplayName.replace(
+            '{shortAddress}',
+            address.slice(0, 6),
+          ),
         ...(wantsSeller && {
           seller: {
             skills: skills.split(',').map((s) => s.trim()).filter(Boolean),

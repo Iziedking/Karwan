@@ -15,6 +15,7 @@ import {
 } from '@/shared/components/Bands';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type InviteResponse = Awaited<ReturnType<typeof api.getDealInvite>>;
 
@@ -27,6 +28,7 @@ export default function InvitePage() {
   const params = useParams<{ token: string }>();
   const token = typeof params?.token === 'string' ? params.token : '';
   const auth = useAuth();
+  const ip = useTranslations().invitePage;
 
   const [data, setData] = useState<InviteResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,7 +133,7 @@ export default function InvitePage() {
   async function verifyCode() {
     if (!data) return;
     if (!/^\d{6}$/.test(code.trim())) {
-      setActionError('Code must be 6 digits.');
+      setActionError(ip.errors.codeSixDigits);
       return;
     }
     setBusy(true);
@@ -156,9 +158,9 @@ export default function InvitePage() {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">INVITE</SectionTag>
+          <SectionTag tone="dark">{ip.eyebrow}</SectionTag>
           <HeroHeadline size="md">
-            Loading<Punc>.</Punc>
+            {ip.loading.headline}<Punc>.</Punc>
           </HeroHeadline>
         </Band>
       </FullBleed>
@@ -169,12 +171,12 @@ export default function InvitePage() {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">INVITE</SectionTag>
+          <SectionTag tone="dark">{ip.eyebrow}</SectionTag>
           <HeroHeadline size="md">
-            Not available<Punc>.</Punc>
+            {ip.unavailable.headline}<Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-[15px] text-[var(--lp-text-muted)] leading-relaxed max-w-[58ch]">
-            {loadError ?? 'This invite is no longer valid.'}
+            {loadError ?? ip.unavailable.fallback}
           </p>
         </Band>
       </FullBleed>
@@ -183,25 +185,28 @@ export default function InvitePage() {
 
   const { invite, deal } = data;
 
+  const heroIntroParts = ip.hero.intro.split('{email}');
+  const sendIntroParts = ip.sendCode.intro.split('{email}');
+  const verifyIntroParts = ip.verifyCode.intro.split('{email}');
+
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
         <SectionTag tone="dark" dot="live">
-          INVITE
+          {ip.eyebrow}
         </SectionTag>
         <HeroHeadline size="md">
-          A deal is <Accent>waiting</Accent> for you<Punc>.</Punc>
+          {ip.hero.headlineBefore}<Accent>{ip.hero.headlineAccent}</Accent>{ip.hero.headlineAfter}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[58ch]">
-          {deal.inviterMasked} opened a Karwan deal and shared the link with{' '}
-          <span className="text-white font-semibold">{invite.email}</span>. Verify the email is
-          yours and the escrow is bound to your wallet. No app to install. No signup if you don&apos;t
-          want one later.
+          {heroIntroParts[0].replace('{inviter}', deal.inviterMasked)}
+          <span className="text-white font-semibold">{invite.email}</span>
+          {heroIntroParts[1] ?? ''}
         </p>
       </Band>
 
       <Band tone="light" compact>
-        <SectionTag>DEAL</SectionTag>
+        <SectionTag>{ip.deal.eyebrow}</SectionTag>
         <HeroHeadline size="md">
           {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
           <span className="mono text-[18px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-text-sub)]">
@@ -215,25 +220,25 @@ export default function InvitePage() {
             <div className="px-5 py-4 space-y-4">
               <div>
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-1">
-                  [:TERMS:]
+                  {ip.deal.termsLabel}
                 </p>
                 <p className="text-[14px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
                   {deal.terms}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[var(--lp-border-light)]">
-                <Stat label="On delivery" value={`${deal.firstReleasePct}%`} />
-                <Stat label="On verification" value={`${100 - deal.firstReleasePct}%`} />
+                <Stat label={ip.deal.onDelivery} value={`${deal.firstReleasePct}%`} />
+                <Stat label={ip.deal.onVerification} value={`${100 - deal.firstReleasePct}%`} />
                 <Stat
-                  label="Deadline"
+                  label={ip.deal.deadline}
                   value={
                     deal.deadlineUnix
                       ? relativeTime(deal.deadlineUnix * 1000)
-                      : 'Open-ended'
+                      : ip.deal.openEnded
                   }
                 />
                 <Stat
-                  label="Claim by"
+                  label={ip.deal.claimBy}
                   value={relativeTime(invite.expiresAt)}
                 />
               </div>
@@ -245,8 +250,9 @@ export default function InvitePage() {
           {stage === 'review' && !sessionMatchesEmail && (
             <div className="space-y-4">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                We send a 6-digit code to <strong>{invite.email}</strong>. Enter it on the next step
-                and the escrow is bound to a Karwan wallet on Arc, all yours.
+                {sendIntroParts[0]}
+                <strong>{invite.email}</strong>
+                {sendIntroParts[1] ?? ''}
               </p>
               <button
                 type="button"
@@ -264,7 +270,7 @@ export default function InvitePage() {
                   borderBottomRightRadius: 3,
                 }}
               >
-                {busy ? 'Sending…' : 'Send code to my email'}
+                {busy ? ip.sendCode.busy : ip.sendCode.cta}
               </button>
             </div>
           )}
@@ -272,8 +278,9 @@ export default function InvitePage() {
           {(stage === 'send-code' || stage === 'verify-code') && (
             <div className="space-y-4">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                Enter the 6-digit code we just emailed to <strong>{invite.email}</strong>. If you
-                don&apos;t see it, check your spam folder.
+                {verifyIntroParts[0]}
+                <strong>{invite.email}</strong>
+                {verifyIntroParts[1] ?? ''}
               </p>
               <input
                 type="text"
@@ -299,7 +306,7 @@ export default function InvitePage() {
                     borderBottomRightRadius: 3,
                   }}
                 >
-                  {busy ? 'Verifying…' : 'Verify and claim'}
+                  {busy ? ip.verifyCode.busy : ip.verifyCode.cta}
                 </button>
                 <button
                   type="button"
@@ -307,14 +314,14 @@ export default function InvitePage() {
                   disabled={busy}
                   className="px-4 py-3 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
                 >
-                  Resend
+                  {ip.verifyCode.resend}
                 </button>
               </div>
             </div>
           )}
 
           {stage === 'claiming' && (
-            <p className="text-[14px] text-[var(--lp-text-sub)]">Binding the escrow to your wallet…</p>
+            <p className="text-[14px] text-[var(--lp-text-sub)]">{ip.claiming.status}</p>
           )}
 
           {actionError && (

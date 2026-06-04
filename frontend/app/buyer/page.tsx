@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
@@ -20,6 +20,8 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { shortAddress } from '@/shared/utils/format';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -30,6 +32,7 @@ export default function BuyerPage() {
   const { agents, activated } = useActivation();
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
+  const bh = useTranslations().buyerHub;
 
   useEffect(() => {
     if (!isConnected || !address) {
@@ -60,8 +63,8 @@ export default function BuyerPage() {
     return (
       <SignInGate
         variant="page"
-        tag="BUYER DESK"
-        body="Requests and direct deals are keyed to your wallet. Sign in to continue."
+        tag={bh.signInGate.tag}
+        body={bh.signInGate.body}
       />
     );
   }
@@ -74,19 +77,19 @@ export default function BuyerPage() {
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-                BUYER DESK
+                {bh.hero.sectionTag}
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
               <HeroHeadline>
-                Run the auction
+                {bh.hero.headlineLine1}
                 <Punc>.</Punc>
                 <br />
-                Or name your <Accent>counterparty</Accent>.
+                {bh.hero.headlineLine2Prefix} <Accent>{bh.hero.headlineLine2Accent}</Accent>.
               </HeroHeadline>
             </div>
             <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              Run an auction from a brief, or open a direct deal with a known counterparty.
+              {bh.hero.description}
             </p>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               <a
@@ -99,7 +102,7 @@ export default function BuyerPage() {
                   borderBottomRightRadius: 4,
                 }}
               >
-                Open a deal ↓
+                {bh.hero.openDealCta}
               </a>
               {address && (
                 <span className="ms-1">
@@ -109,7 +112,11 @@ export default function BuyerPage() {
             </div>
           </div>
           <div className="hidden lg:block fade-up fade-up-4">
-            <AgentStatusVignette activated={activated} jobsCount={sortedJobs.length} />
+            <AgentStatusVignette
+              activated={activated}
+              jobsCount={sortedJobs.length}
+              copy={bh.agentVignette}
+            />
           </div>
         </div>
       </Band>
@@ -121,12 +128,13 @@ export default function BuyerPage() {
       {/* NEW DEAL + SIDE COLUMN */}
       <Band tone="light" compact>
         <div id="new-deal" className="scroll-mt-20" />
-        <SectionTag>NEW DEAL</SectionTag>
+        <SectionTag>{bh.newDeal.sectionTag}</SectionTag>
         <HeroHeadline size="md">
-          Open a deal<Punc>.</Punc>
+          {bh.newDeal.headline}
+          <Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          One transaction to escrow.
+          {bh.newDeal.description}
         </p>
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
           <div className="min-w-0 lg:col-span-2">
@@ -147,10 +155,10 @@ export default function BuyerPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[46ch]">
             <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-              MANAGED DEALS
+              {bh.managedDeals.sectionTag}
             </SectionTag>
             <HeroHeadline size="md">
-              Running auctions
+              {bh.managedDeals.headline}
               {sortedJobs.length > 0 && (
                 <>
                   <Punc>.</Punc>
@@ -162,7 +170,7 @@ export default function BuyerPage() {
               {sortedJobs.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
             <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              Live auctions. Bids scored, one counter per round, escrow funded on accept.
+              {bh.managedDeals.description}
             </p>
           </div>
         </div>
@@ -180,11 +188,11 @@ export default function BuyerPage() {
           >
             {!isConnected ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                Connect your wallet to see managed deals.
+                {bh.managedDeals.statesConnect}
               </p>
             ) : fetchState === 'error' ? (
               <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
-                Couldn&apos;t load your managed deals.
+                {bh.managedDeals.statesError}
               </p>
             ) : fetchState === 'loading' || fetchState === 'idle' ? (
               <div className="p-8 space-y-3">
@@ -193,7 +201,7 @@ export default function BuyerPage() {
               </div>
             ) : sortedJobs.length === 0 ? (
               <p className="p-8 text-center text-[13px] text-white/55">
-                No managed deals yet. Post a request to start one.
+                {bh.managedDeals.statesEmpty}
               </p>
             ) : (
               <JobsTable jobs={sortedJobs} />
@@ -208,9 +216,11 @@ export default function BuyerPage() {
 function AgentStatusVignette({
   activated,
   jobsCount,
+  copy,
 }: {
   activated: boolean;
   jobsCount: number;
+  copy: Messages['buyerHub']['agentVignette'];
 }) {
   return (
     <div
@@ -227,7 +237,7 @@ function AgentStatusVignette({
       <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
         <div className="flex items-center justify-between">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            Agent control
+            {copy.eyebrow}
           </span>
           {activated ? (
             <span
@@ -247,31 +257,33 @@ function AgentStatusVignette({
           )}
         </div>
         <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
-          Buyer agent{' '}
+          {copy.titlePrefix}{' '}
           <span style={{ color: activated ? 'var(--lp-accent)' : 'rgba(255,255,255,0.5)' }}>
-            {activated ? 'active' : 'idle'}
+            {activated ? copy.statusActive : copy.statusIdle}
           </span>
         </p>
         <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
-          {activated
-            ? 'Scoring bids. One counter per round. Funding on accept.'
-            : 'Activate on profile to start running auctions.'}
+          {activated ? copy.bodyActive : copy.bodyIdle}
         </p>
       </div>
       <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
         <div className="px-4 py-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Running</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+            {copy.runningLabel}
+          </p>
           <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
             {jobsCount}
           </p>
         </div>
         <div className="px-4 py-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">Round cap</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+            {copy.roundCapLabel}
+          </p>
           <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
             1
           </p>
           <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">
-            counter
+            {copy.counterLabel}
           </p>
         </div>
       </div>

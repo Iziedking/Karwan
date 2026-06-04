@@ -165,6 +165,7 @@ interface MessagesShape {
       };
       saving: string;
       submit: string;
+      defaultDisplayName: string;
     };
     validation: {
       displayName: string;
@@ -2049,6 +2050,474 @@ interface MessagesShape {
       dismiss: string;
     };
   };
+  landingPage: {
+    tabs: { overview: string; howItWorks: string; flow: string; getStarted: string };
+    hero: {
+      tag: string;
+      titleLine1: string;
+      titleLine2: string;
+      titleAccent: string;
+      body: string;
+      ctaPrimary: string;
+      ctaSecondary: string;
+      footnote: string;
+    };
+    ecosystem: { tag: string };
+    directDeals: {
+      tag: string;
+      title: string;
+      body: string;
+      tile1Title: string;
+      tile1Body: string;
+      tile2Title: string;
+      tile2Body: string;
+    };
+    managedDeals: {
+      tag: string;
+      title: string;
+      body: string;
+      tile1Title: string;
+      tile1Body: string;
+      tile2Title: string;
+      tile2Body: string;
+    };
+    howItWorks: {
+      tag: string;
+      titleStart: string;
+      titleAccent: string;
+      titleEnd: string;
+      rail1Title: string;
+      rail1Body: string;
+      rail2Title: string;
+      rail2Body: string;
+      rail3Title: string;
+      rail3Body: string;
+    };
+    flow: {
+      tag: string;
+      title: string;
+      liveLabel: string;
+      steps: {
+        posted: { tag: string; label: string };
+        bids: { tag: string; label: string };
+        accept: { tag: string; label: string };
+        escrow: { tag: string; label: string };
+        deliver: { tag: string; label: string };
+        settle: { tag: string; label: string };
+      };
+      kpis: {
+        avgSettleLabel: string;
+        avgSettleUnit: string;
+        inFlightLabel: string;
+        inFlightUnit: string;
+        uptimeLabel: string;
+      };
+    };
+    tradeLanes: {
+      tag: string;
+      titleStart: string;
+      titleAccent: string;
+      titleEnd: string;
+      footnote: string;
+      laneIdPrefix: string;
+      toAria: string;
+      avgPrefix: string;
+      minutesUnit: string;
+      cities: {
+        lagos: string;
+        dubai: string;
+        nairobi: string;
+        london: string;
+        karachi: string;
+        singapore: string;
+        cairo: string;
+        frankfurt: string;
+        accra: string;
+        newYork: string;
+        darEsSalaam: string;
+        mumbai: string;
+      };
+    };
+    earlyTrades: {
+      tag: string;
+      title: string;
+      cards: {
+        buyerLagos: { role: string; city: string; title: string; unit: string; sub: string };
+        sellerNairobi: { role: string; city: string; title: string; unit: string; sub: string };
+        buyerKarachi: { role: string; city: string; title: string; unit: string; sub: string };
+      };
+    };
+    getStarted: {
+      tag: string;
+      title: string;
+      step1Title: string;
+      step1Body: string;
+      step2Title: string;
+      step2Body: string;
+      step3Title: string;
+      step3Body: string;
+    };
+    finalCta: {
+      tag: string;
+      srLabel: string;
+      title: string;
+      body: string;
+      ctaPrimary: string;
+      ctaSecondary: string;
+    };
+  };
+  legacyPage: {
+    gate: {
+      tag: string;
+      titleBefore: string;
+      titleAccent: string;
+      titleAfter: string;
+      body: string;
+      button: string;
+    };
+    closed: { tag: string; title: string; body: string; home: string };
+    hero: {
+      tag: string;
+      titleBefore: string;
+      titleAccent: string;
+      titleAfter: string;
+      body: string;
+      windowClosesIn: string;
+      afterWindowNote: string;
+    };
+    stake: {
+      tag: string;
+      title: string;
+      bodyBefore: string;
+      stakeLink: string;
+      bodyAfter: string;
+      empty: { headline: string; body: string };
+      stats: { active: string; cooling: string };
+      wrongChain: string;
+      groups: {
+        activeTitleTemplate: string;
+        startCooldownTemplate: string;
+        signing: string;
+      };
+      coolingTitle: string;
+      claimReady: string;
+      claimInTemplate: string;
+      cancelLink: string;
+      claimingLabel: string;
+      claimToWallet: string;
+      txPrefix: string;
+      confirmDialog: {
+        titleTemplate: string;
+        bodyTemplate: string;
+        confirm: string;
+      };
+      errors: {
+        walletNotReady: string;
+        vaultNotConfiguredTemplate: string;
+      };
+    };
+    deals: {
+      tag: string;
+      title: string;
+      body: string;
+      empty: { headline: string; body: string };
+      noneOpen: string;
+      openSectionTitle: string;
+      pastSectionTitle: string;
+      txPrefix: string;
+      roles: { buyer: string; seller: string; both: string };
+      stateLabels: {
+        funded: string;
+        settled: string;
+        disputed: string;
+        refunded: string;
+        unknown: string;
+      };
+      row: {
+        live: string;
+        pastDeadline: string;
+        delivered: string;
+        notDelivered: string;
+        cancelProposedByTemplate: string;
+        noAction: string;
+        genTemplate: string;
+      };
+      actions: {
+        refundToBuyer: string;
+        refunding: string;
+        releaseToSeller: string;
+        releasing: string;
+        acceptCancellation: string;
+        accepting: string;
+        proposeCancellation: string;
+        proposing: string;
+      };
+      dialogs: {
+        refund: { titleTemplate: string; bodyTemplate: string; confirm: string };
+        release: { titleTemplate: string; bodyTemplate: string; confirm: string };
+        cancelPropose: { title: string; body: string; confirm: string };
+        cancelAccept: { title: string; bodyTemplate: string; confirm: string };
+        confirmFallback: string;
+      };
+      reasonPrompt: { label: string; placeholder: string };
+      errors: { reasonRequired: string };
+    };
+  };
+  cashoutPage: {
+    signInGate: {
+      tag: string;
+      titleBefore: string;
+      body: string;
+      buttonLabel: string;
+    };
+    hero: {
+      tag: string;
+      titleBefore: string;
+      earnedTemplate: string;
+      loading: string;
+      backToDeal: string;
+    };
+    loading: { label: string };
+    errors: {
+      couldNotLoad: string;
+      couldNotLoadDeal: string;
+      solanaRoadmap: string;
+      withdrawFailed: string;
+    };
+    comingSoon: {
+      tag: string;
+      titleBefore: string;
+      titleAccent: string;
+      body: string;
+      tileLabel: string;
+      comingSoon: string;
+    };
+    notReady: {
+      tag: string;
+      titleBefore: string;
+      titleAccent: string;
+      titleAfter: string;
+      body: string;
+      cta: string;
+    };
+    legacy: { tag: string; body: string; cta: string };
+    walletAccount: {
+      tag: string;
+      titleBefore: string;
+      titleAccent: string;
+      body: string;
+      roadmap: string;
+      bridgeFromWallet: string;
+      sendOnArc: string;
+    };
+    withdraw: {
+      tag: string;
+      titleBefore: string;
+      body: string;
+      fromWalletLabel: string;
+      fromWalletTooltip: string;
+      whatIsThis: string;
+      dealWalletLabel: string;
+      dealWalletSub: string;
+      identityWalletLabel: string;
+      identityWalletSub: string;
+      active: string;
+      notProvisioned: string;
+      sourceBalance: string;
+      fromDeal: string;
+      destinationChain: string;
+      recipientAddress: string;
+      base58Placeholder: string;
+      invalidAddress: string;
+      amountLabel: string;
+      max: string;
+      overBalance: string;
+      sendingOnArc: string;
+      bridgingOut: string;
+      sendTo: string;
+      bridgeTo: string;
+    };
+    sent: {
+      tag: string;
+      titleAccent: string;
+      body: string;
+      viewTx: string;
+      sendMore: string;
+    };
+    bridgeStage: {
+      burning: string;
+      burned: string;
+      attested: string;
+      minted: string;
+      errored: string;
+    };
+    bridgeProgress: {
+      tagBridged: string;
+      tagFailed: string;
+      tagBridging: string;
+      accentArrived: string;
+      accentErrored: string;
+      accentBridging: string;
+      bodyDone: string;
+      bodyFailed: string;
+      bodyInProgress: string;
+      burnLabel: string;
+      mintLabel: string;
+      pending: string;
+      retrying: string;
+      couldNotCheck: string;
+      sendMore: string;
+      tryAgain: string;
+    };
+  };
+  sellerHub: {
+    signInGate: { tag: string; body: string };
+    hero: {
+      tag: string;
+      headlineLine1: string;
+      headlineLine2Prefix: string;
+      headlineAccent: string;
+      lede: string;
+      ctaPostOffer: string;
+    };
+    vignette: {
+      agentControl: string;
+      sellerAgent: string;
+      statusActive: string;
+      statusIdle: string;
+      activeBlurb: string;
+      idleBlurb: string;
+      inAuction: string;
+      counters: string;
+      withinRange: string;
+    };
+    pendingMatchesHeadline: string;
+    howItWorks: {
+      tag: string;
+      headlineLine1: string;
+      headlineLine2Accent: string;
+      lede: string;
+    };
+    steps: {
+      s1: { title: string; body: string };
+      s2: { title: string; body: string };
+      s3: { title: string; body: string };
+    };
+    postOffer: {
+      tag: string;
+      headlineLine1: string;
+      headlineLine2: string;
+      lede: string;
+    };
+    activeBids: {
+      tag: string;
+      headline: string;
+      lede: string;
+      connectPrompt: string;
+      errorMessage: string;
+      emptyMessage: string;
+    };
+  };
+  invitePage: {
+    eyebrow: string;
+    loading: { headline: string };
+    unavailable: { headline: string; fallback: string };
+    hero: {
+      headlineBefore: string;
+      headlineAccent: string;
+      headlineAfter: string;
+      intro: string;
+    };
+    deal: {
+      eyebrow: string;
+      termsLabel: string;
+      onDelivery: string;
+      onVerification: string;
+      deadline: string;
+      openEnded: string;
+      claimBy: string;
+    };
+    sendCode: { intro: string; cta: string; busy: string };
+    verifyCode: { intro: string; cta: string; busy: string; resend: string };
+    claiming: { status: string };
+    errors: { codeSixDigits: string };
+  };
+  buyerHub: {
+    signInGate: { tag: string; body: string };
+    hero: {
+      sectionTag: string;
+      headlineLine1: string;
+      headlineLine2Prefix: string;
+      headlineLine2Accent: string;
+      description: string;
+      openDealCta: string;
+    };
+    newDeal: {
+      sectionTag: string;
+      headline: string;
+      description: string;
+    };
+    managedDeals: {
+      sectionTag: string;
+      headline: string;
+      description: string;
+      statesConnect: string;
+      statesError: string;
+      statesEmpty: string;
+    };
+    agentVignette: {
+      eyebrow: string;
+      titlePrefix: string;
+      statusActive: string;
+      statusIdle: string;
+      bodyActive: string;
+      bodyIdle: string;
+      runningLabel: string;
+      roundCapLabel: string;
+      counterLabel: string;
+    };
+  };
+  stakePage: {
+    signedOut: {
+      tag: string;
+      titlePrefix: string;
+      titleAccent: string;
+      body: string;
+      buttonLabel: string;
+    };
+    hero: {
+      tag: string;
+      line1Prefix: string;
+      line1Accent: string;
+      line2Prefix: string;
+      line2Accent: string;
+      body: string;
+      mainnetNote: string;
+    };
+    position: {
+      reputation: string;
+      tier: string;
+      toNextTemplate: string;
+      status: string;
+      pts: string;
+      topTier: string;
+    };
+    vault: { tag: string; heading: string };
+    ladder: {
+      tag: string;
+      headingPrefix: string;
+      headingAccent: string;
+      body: string;
+      youBadge: string;
+      unlock: {
+        NEW: string;
+        COLD: string;
+        ESTABLISHED: string;
+        STRONG: string;
+        ELITE: string;
+      };
+    };
+  };
   balancesCard: {
     eyebrow: string;
     signedOutBody: string;
@@ -2653,6 +3122,7 @@ export const en: MessagesShape = {
       },
       saving: 'Saving…',
       submit: 'Save & activate ↗',
+      defaultDisplayName: 'Karwan user {shortAddress}',
     },
     validation: {
       displayName: 'Add a display name.',
@@ -4621,6 +5091,498 @@ export const en: MessagesShape = {
       stuckNote: 'This transfer has not confirmed in a while. Likely a dropped tx. Retry to send a fresh one, or dismiss it.',
       retry: 'Retry',
       dismiss: 'Dismiss',
+    },
+  },
+  landingPage: {
+    tabs: { overview: 'OVERVIEW', howItWorks: 'WORKFLOW SUMMARY', flow: 'FLOW', getStarted: 'GET STARTED' },
+    hero: {
+      tag: 'SETTLEMENT NETWORK',
+      titleLine1: 'Agree. Escrow.',
+      titleLine2: 'Deliver.',
+      titleAccent: 'Settle.',
+      body: 'On-chain settlement rails for cross-border SME trade. USDC sits in milestone escrow on Arc. Releases as the work lands.',
+      ctaPrimary: 'Launch app ↓',
+      ctaSecondary: 'How it works →',
+      footnote: 'Free on Arc Testnet. No mainnet funds.',
+    },
+    ecosystem: { tag: 'BUILT ON' },
+    directDeals: {
+      tag: 'DIRECT DEALS',
+      title: 'Bring your own counterparty.',
+      body: 'You already agreed off-platform. Name the wallet, set the amount, fund the escrow. No auction.',
+      tile1Title: 'Name the wallet',
+      tile1Body: 'Point the escrow at your counterparty. They sign in with that wallet, accept the terms, and deliver.',
+      tile2Title: 'Release in tranches',
+      tile2Body: 'A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet.',
+    },
+    managedDeals: {
+      tag: 'MANAGED DEALS',
+      title: 'Or let an agent find one.',
+      body: 'Post the request. Your agent watches the marketplace and surfaces matches. You approve, escrow funds, milestones release.',
+      tile1Title: 'Agents negotiate',
+      tile1Body: 'Buyer and seller agents bid and counter on chain, on their own, inside the ranges you set in your profile.',
+      tile2Title: 'Escrow on acceptance',
+      tile2Body: 'When terms land, the buyer agent funds the milestone escrow. Releases follow the same spine as a direct deal.',
+    },
+    howItWorks: {
+      tag: 'THE RAILS',
+      titleStart: 'Three rails.',
+      titleAccent: 'One',
+      titleEnd: 'deal.',
+      rail1Title: 'Escrow in USDC',
+      rail1Body: 'Funds settle in milestone tranches on Arc. The chain holds the math.',
+      rail2Title: 'Milestone release',
+      rail2Body: 'Releases trigger on signed delivery. Disputes route to human review, never to silence.',
+      rail3Title: 'On-chain proof',
+      rail3Body: 'Every state change emits an event. Audit, reputation, payouts read the same source.',
+    },
+    flow: {
+      tag: 'FLOW',
+      title: 'A deal, end to end.',
+      liveLabel: 'LIVE ON ARC TESTNET',
+      steps: {
+        posted: { tag: 'POSTED', label: 'Request on chain' },
+        bids: { tag: 'BIDS', label: 'Agents bid &amp; counter' },
+        accept: { tag: 'ACCEPT', label: 'Buyer signs match' },
+        escrow: { tag: 'ESCROW', label: 'USDC funded' },
+        deliver: { tag: 'DELIVER', label: 'Seller marks delivered' },
+        settle: { tag: 'SETTLE', label: 'Milestones release' },
+      },
+      kpis: {
+        avgSettleLabel: 'AVG SETTLE',
+        avgSettleUnit: 'MIN',
+        inFlightLabel: 'USDC IN FLIGHT',
+        inFlightUnit: 'M',
+        uptimeLabel: 'UPTIME',
+      },
+    },
+    tradeLanes: {
+      tag: 'TRADE LANES',
+      titleStart: 'The corridors, by',
+      titleAccent: 'volume',
+      titleEnd: '.',
+      footnote: '24h on-chain. Rolling. Every lane settles on Arc.',
+      laneIdPrefix: 'LANE',
+      toAria: 'to',
+      avgPrefix: 'AVG',
+      minutesUnit: 'MIN',
+      cities: {
+        lagos: 'LAGOS',
+        dubai: 'DUBAI',
+        nairobi: 'NAIROBI',
+        london: 'LONDON',
+        karachi: 'KARACHI',
+        singapore: 'SINGAPORE',
+        cairo: 'CAIRO',
+        frankfurt: 'FRANKFURT',
+        accra: 'ACCRA',
+        newYork: 'NEW YORK',
+        darEsSalaam: 'DAR ES SALAAM',
+        mumbai: 'MUMBAI',
+      },
+    },
+    earlyTrades: {
+      tag: 'EARLY TRADES',
+      title: "What's landing on the rail.",
+      cards: {
+        buyerLagos: { role: 'BUYER', city: 'LAGOS', title: 'Settled a Dubai logistics invoice in 4 minutes', unit: 'USDC', sub: 'paid in 3 milestones' },
+        sellerNairobi: { role: 'SELLER', city: 'NAIROBI', title: 'Agent bid 14 requests while I slept, won 3', unit: 'WON', sub: 'zero manual touches' },
+        buyerKarachi: { role: 'BUYER', city: 'KARACHI', title: 'Dispute window resolved with no chargeback', unit: 'DISPUTES', sub: 'last 90 days' },
+      },
+    },
+    getStarted: {
+      tag: 'GET STARTED',
+      title: 'Three steps to a deal.',
+      step1Title: 'Sign in',
+      step1Body: 'Bring a web3 wallet or sign in with email &amp; passkey. Either way you get a Circle wallet. Your address is the key.',
+      step2Title: 'Set your ranges',
+      step2Body: 'Buyer side, set budget, deadlines, milestone splits. Seller side, set skills, range, response time. Your agents read these on every match.',
+      step3Title: 'Stake to grow reputation',
+      step3Body: 'Deposit USDC in the vault. The longer it sits, the more reputation you earn. On mainnet that same stake also earns yield through USYC. Withdrawals wait 7 days while the system runs fraud checks.',
+    },
+    finalCta: {
+      tag: 'OPEN A DEAL',
+      srLabel: 'Get started',
+      title: 'Open your first deal in about a minute.',
+      body: 'Direct or agent-run, your call. Every step is a real transaction on Arc Testnet.',
+      ctaPrimary: 'Launch app ↓',
+      ctaSecondary: 'Read how it works →',
+    },
+  },
+  legacyPage: {
+    gate: {
+      tag: 'LEGACY · RECOVERY',
+      titleBefore: 'Reclaim from',
+      titleAccent: 'previous',
+      titleAfter: 'contracts',
+      body: 'We redeployed our escrow and vault contracts. Funds and stake parked on the previous contracts stay yours. Sign in to see what you can reclaim.',
+      button: 'Sign in to continue',
+    },
+    closed: {
+      tag: 'RECOVERY WINDOW',
+      title: 'Closed',
+      body: "The 30-day recovery window has ended. The legacy contracts remain live on Arc and can still be called directly via the block explorer if you have funds locked. Reach out on Telegram if you need help and didn't get a chance to reclaim.",
+      home: '← Home',
+    },
+    hero: {
+      tag: 'LEGACY · RECOVERY OPEN',
+      titleBefore: 'Reclaim from',
+      titleAccent: 'previous',
+      titleAfter: 'contracts',
+      body: 'We upgraded our escrow and vault to v2.D. Anything you staked or any deal you funded on the previous contracts still belongs to you. This page lets you pull it out before the recovery window closes.',
+      windowClosesIn: 'window closes in',
+      afterWindowNote: '// AFTER THE WINDOW, THE LEGACY CONTRACTS STAY LIVE ON ARC AND CAN BE CALLED DIRECTLY VIA THE EXPLORER',
+    },
+    stake: {
+      tag: 'LEGACY STAKE',
+      title: 'Your stake',
+      bodyBefore: 'Positions parked on the previous KarwanVault. Cool-down on this contract is 7 days. New deposits go to the v2.D vault. Visit',
+      stakeLink: '/stake',
+      bodyAfter: 'for that.',
+      empty: { headline: 'Nothing to recover.', body: 'No positions on the previous vault for this wallet.' },
+      stats: { active: 'Active', cooling: 'Cooling' },
+      wrongChain: 'Your wallet is on another network. Switch to Arc to sign legacy actions.',
+      groups: {
+        activeTitleTemplate: 'Gen {gen} active. Start cool-down to recover',
+        startCooldownTemplate: 'Start {days}-day cool-down',
+        signing: 'Signing…',
+      },
+      coolingTitle: 'Cooling. Claim once the countdown ends',
+      claimReady: 'claim ready',
+      claimInTemplate: 'claim in {days}d {hours}h',
+      cancelLink: 'cancel',
+      claimingLabel: 'Claiming…',
+      claimToWallet: 'Claim to wallet',
+      txPrefix: 'tx',
+      confirmDialog: {
+        titleTemplate: 'Cool {principal} USDC?',
+        bodyTemplate: 'Starts the {days}-day cool-down on this legacy position. Once it elapses you can claim the principal back to your wallet. Cooling stake stops earning reputation until you cancel or claim.',
+        confirm: 'Start cool-down',
+      },
+      errors: {
+        walletNotReady: 'Wallet not ready. Reconnect and retry.',
+        vaultNotConfiguredTemplate: 'Legacy vault for generation {generation} is not configured on this build.',
+      },
+    },
+    deals: {
+      tag: 'LEGACY DEALS',
+      title: 'Pending escrow',
+      body: 'Deals where USDC is still locked on the previous escrow. Buyer can refund (after the deadline) or release if the seller delivered. Either party can propose a mutual cancellation.',
+      empty: { headline: 'No legacy deals.', body: 'You have no escrow records on the previous contract.' },
+      noneOpen: 'No open legacy deals. Everything past settled or refunded.',
+      openSectionTitle: 'Open. Actions available',
+      pastSectionTitle: 'Past. Already settled or refunded',
+      txPrefix: 'tx',
+      roles: { buyer: 'buyer', seller: 'seller', both: 'both' },
+      stateLabels: { funded: 'funded', settled: 'settled', disputed: 'disputed', refunded: 'refunded', unknown: 'unknown' },
+      row: {
+        live: 'live',
+        pastDeadline: 'past deadline',
+        delivered: 'delivered',
+        notDelivered: 'not delivered',
+        cancelProposedByTemplate: 'cancel proposed by {role}:',
+        noAction: 'No action available for your role on this deal state.',
+        genTemplate: 'GEN {n}',
+      },
+      actions: {
+        refundToBuyer: 'Refund to buyer',
+        refunding: 'Refunding…',
+        releaseToSeller: 'Release to seller',
+        releasing: 'Releasing…',
+        acceptCancellation: 'Accept cancellation',
+        accepting: 'Accepting…',
+        proposeCancellation: 'Propose cancellation',
+        proposing: 'Proposing…',
+      },
+      dialogs: {
+        refund: {
+          titleTemplate: 'Refund {amount} USDC to your wallet?',
+          bodyTemplate: 'Cancels the deal on the legacy escrow and returns the full {amount} USDC to your wallet. Reputation is unchanged on this recovery path.',
+          confirm: 'Refund to buyer',
+        },
+        release: {
+          titleTemplate: 'Release {amount} USDC to the seller?',
+          bodyTemplate: 'Settles the legacy escrow and pays the seller their {amount} USDC net of platform fees. Use this when the seller already delivered before the contract migration.',
+          confirm: 'Release to seller',
+        },
+        cancelPropose: {
+          title: 'Propose a mutual cancellation?',
+          body: 'Sends a cancellation proposal to the other party. They have to accept before the deal cancels. Funds stay locked until they accept or you withdraw the proposal.',
+          confirm: 'Send proposal',
+        },
+        cancelAccept: {
+          title: 'Accept the proposed cancellation?',
+          bodyTemplate: 'The other party proposed cancelling this deal. Accepting refunds you the full {amount} USDC and closes the legacy escrow.',
+          confirm: 'Accept cancellation',
+        },
+        confirmFallback: 'Confirm',
+      },
+      reasonPrompt: { label: 'Reason (shared with the other party)', placeholder: 'No longer needed' },
+      errors: { reasonRequired: 'Reason is required to propose a cancellation.' },
+    },
+  },
+  cashoutPage: {
+    signInGate: {
+      tag: 'CASHOUT',
+      titleBefore: 'Move your',
+      body: 'Sign in to the account this deal settled on to withdraw.',
+      buttonLabel: 'Sign in',
+    },
+    hero: {
+      tag: 'CASHOUT',
+      titleBefore: 'Move your',
+      earnedTemplate: 'You earned {amount} on this deal. Send it to any wallet on Arc, or bridge to another chain.',
+      loading: 'Loading your earnings…',
+      backToDeal: 'back to deal',
+    },
+    loading: { label: 'Loading…' },
+    errors: {
+      couldNotLoad: 'could not load',
+      couldNotLoadDeal: 'Could not load this deal.',
+      solanaRoadmap: 'Solana withdraw is on the roadmap. Use Ethereum Sepolia or another EVM chain for now.',
+      withdrawFailed: 'Withdraw failed',
+    },
+    comingSoon: {
+      tag: 'COMING SOON',
+      titleBefore: 'Cash out to',
+      titleAccent: 'local currency',
+      body: 'Direct off-ramp to NGN, KES, INR, AED and more. Powered by Circle.',
+      tileLabel: 'Off-ramp',
+      comingSoon: 'Coming soon',
+    },
+    notReady: {
+      tag: 'NOT READY',
+      titleBefore: "Deal isn’t",
+      titleAccent: 'settled',
+      titleAfter: 'yet',
+      body: 'Come back once the buyer releases the final milestone.',
+      cta: 'Open the deal',
+    },
+    legacy: {
+      tag: 'LEGACY ESCROW',
+      body: 'This deal settled on a legacy escrow contract. Cash out from the legacy surface.',
+      cta: 'Open legacy surface',
+    },
+    walletAccount: {
+      tag: 'WALLET ACCOUNT',
+      titleBefore: 'Your USDC',
+      titleAccent: 'already landed',
+      body: 'The escrow released straight to your connected wallet on Arc. Use your wallet to bridge or send it elsewhere.',
+      roadmap: 'In-product wallet withdraw is on the roadmap.',
+      bridgeFromWallet: 'Bridge from wallet',
+      sendOnArc: 'Send on Arc',
+    },
+    withdraw: {
+      tag: 'WITHDRAW',
+      titleBefore: 'Send your',
+      body: 'Pick the source wallet, the destination chain, paste the address, set the amount.',
+      fromWalletLabel: 'From wallet',
+      fromWalletTooltip: 'Released escrow USDC lands on the deal wallet (your per-deal seller agent). Identity wallet is your main address. Switch to whichever currently holds the USDC you want to send.',
+      whatIsThis: 'what is this?',
+      dealWalletLabel: 'Deal wallet',
+      dealWalletSub: 'Where the escrow released',
+      identityWalletLabel: 'Identity wallet',
+      identityWalletSub: 'Your main address',
+      active: 'ACTIVE',
+      notProvisioned: 'Not provisioned',
+      sourceBalance: 'Source balance',
+      fromDeal: 'From deal',
+      destinationChain: 'Destination chain',
+      recipientAddress: 'Recipient address',
+      base58Placeholder: 'Base58 address',
+      invalidAddress: "That doesn’t look like a valid {kind} address.",
+      amountLabel: 'Amount (USDC)',
+      max: 'Max',
+      overBalance: 'Over the source wallet balance of {balance} USDC.',
+      sendingOnArc: 'Sending on Arc…',
+      bridgingOut: 'Bridging out…',
+      sendTo: 'Send to {chain}',
+      bridgeTo: 'Bridge to {chain}',
+    },
+    sent: {
+      tag: 'SENT',
+      titleAccent: 'on its way',
+      body: 'Transfer confirmed on Arc.',
+      viewTx: 'View tx {hash}',
+      sendMore: 'Send more',
+    },
+    bridgeStage: {
+      burning: 'Burning on Arc',
+      burned: 'Waiting on Circle attestation',
+      attested: 'Attested. Minting on destination',
+      minted: 'Minted on destination',
+      errored: 'Bridge errored',
+    },
+    bridgeProgress: {
+      tagBridged: 'BRIDGED',
+      tagFailed: 'BRIDGE FAILED',
+      tagBridging: 'BRIDGING',
+      accentArrived: 'arrived',
+      accentErrored: 'errored',
+      accentBridging: 'bridging',
+      bodyDone: 'Mint confirmed on {chain}. The USDC is in the recipient address.',
+      bodyFailed: 'Something went wrong on the way. The funds are still on the source side. Take a screenshot of this page and ping support.',
+      bodyInProgress: "Burn on Arc submitted. Mint will land on {chain} once Circle’s attestation clears, usually under a minute on testnet.",
+      burnLabel: 'Burn (Arc)',
+      mintLabel: 'Mint ({chain})',
+      pending: 'pending',
+      retrying: 'Retrying status check…',
+      couldNotCheck: 'Could not check status.',
+      sendMore: 'Send more',
+      tryAgain: 'Try again',
+    },
+  },
+  sellerHub: {
+    signInGate: { tag: 'SELLER DESK', body: 'Offers and bids are keyed to your wallet. Sign in to set up the seller agent.' },
+    hero: {
+      tag: 'SELLER DESK',
+      headlineLine1: 'Bids land',
+      headlineLine2Prefix: 'while you',
+      headlineAccent: 'sleep',
+      lede: 'Listens for requests. Bids inside the ranges you set. Wake up to matched deals.',
+      ctaPostOffer: 'Post an offer ↓',
+    },
+    vignette: {
+      agentControl: 'Agent control',
+      sellerAgent: 'Seller agent',
+      statusActive: 'active',
+      statusIdle: 'idle',
+      activeBlurb: 'Watching requests. Scoring against skills. Bidding on match.',
+      idleBlurb: 'Activate on profile to start bidding.',
+      inAuction: 'In auction',
+      counters: 'Counters',
+      withinRange: 'within range',
+    },
+    pendingMatchesHeadline: 'Your bid matched',
+    howItWorks: {
+      tag: 'HOW IT WORKS',
+      headlineLine1: 'Three loops',
+      headlineLine2Accent: 'One agent.',
+      lede: 'Every activated wallet runs a seller agent. Set skills and ranges on profile, post offers here to broadcast supply.',
+    },
+    steps: {
+      s1: { title: 'Watches the chain', body: 'Listens for new requests on Arc as they post.' },
+      s2: { title: 'Scores the request', body: 'Matches each request against your skills and ranges. Bids or skips.' },
+      s3: { title: 'Bids, negotiates', body: 'Submits on chain. Replies to counters inside your range.' },
+    },
+    postOffer: {
+      tag: 'POST WHAT YOU OFFER',
+      headlineLine1: 'Standing offer',
+      headlineLine2: 'Set the floor.',
+      lede: 'Publish an offer at your asking price. Matches land in your inbox.',
+    },
+    activeBids: {
+      tag: 'ACTIVE BIDS',
+      headline: 'In the auction',
+      lede: 'Bids placed on open requests. Counters reply automatically inside your range.',
+      connectPrompt: 'Connect your wallet to see your active bids.',
+      errorMessage: "Couldn't load your bids.",
+      emptyMessage: 'No active bids. Post an offer to start scanning requests.',
+    },
+  },
+  invitePage: {
+    eyebrow: 'INVITE',
+    loading: { headline: 'Loading' },
+    unavailable: { headline: 'Not available', fallback: 'This invite is no longer valid.' },
+    hero: {
+      headlineBefore: 'A deal is ',
+      headlineAccent: 'waiting',
+      headlineAfter: ' for you',
+      intro: "{inviter} opened a Karwan deal and shared the link with {email}. Verify the email is yours and the escrow is bound to your wallet. No app to install. No signup if you don't want one later.",
+    },
+    deal: {
+      eyebrow: 'DEAL',
+      termsLabel: '[:TERMS:]',
+      onDelivery: 'On delivery',
+      onVerification: 'On verification',
+      deadline: 'Deadline',
+      openEnded: 'Open-ended',
+      claimBy: 'Claim by',
+    },
+    sendCode: {
+      intro: 'We send a 6-digit code to {email}. Enter it on the next step and the escrow is bound to a Karwan wallet on Arc, all yours.',
+      cta: 'Send code to my email',
+      busy: 'Sending…',
+    },
+    verifyCode: {
+      intro: "Enter the 6-digit code we just emailed to {email}. If you don't see it, check your spam folder.",
+      cta: 'Verify and claim',
+      busy: 'Verifying…',
+      resend: 'Resend',
+    },
+    claiming: { status: 'Binding the escrow to your wallet…' },
+    errors: { codeSixDigits: 'Code must be 6 digits.' },
+  },
+  buyerHub: {
+    signInGate: { tag: 'BUYER DESK', body: 'Requests and direct deals are keyed to your wallet. Sign in to continue.' },
+    hero: {
+      sectionTag: 'BUYER DESK',
+      headlineLine1: 'Run the auction',
+      headlineLine2Prefix: 'Or name your',
+      headlineLine2Accent: 'counterparty',
+      description: 'Run an auction from a brief, or open a direct deal with a known counterparty.',
+      openDealCta: 'Open a deal ↓',
+    },
+    newDeal: { sectionTag: 'NEW DEAL', headline: 'Open a deal', description: 'One transaction to escrow.' },
+    managedDeals: {
+      sectionTag: 'MANAGED DEALS',
+      headline: 'Running auctions',
+      description: 'Live auctions. Bids scored, one counter per round, escrow funded on accept.',
+      statesConnect: 'Connect your wallet to see managed deals.',
+      statesError: "Couldn’t load your managed deals.",
+      statesEmpty: 'No managed deals yet. Post a request to start one.',
+    },
+    agentVignette: {
+      eyebrow: 'Agent control',
+      titlePrefix: 'Buyer agent',
+      statusActive: 'active',
+      statusIdle: 'idle',
+      bodyActive: 'Scoring bids. One counter per round. Funding on accept.',
+      bodyIdle: 'Activate on profile to start running auctions.',
+      runningLabel: 'Running',
+      roundCapLabel: 'Round cap',
+      counterLabel: 'counter',
+    },
+  },
+  stakePage: {
+    signedOut: {
+      tag: 'STAKE',
+      titlePrefix: 'Earn',
+      titleAccent: 'reputation',
+      body: 'Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. On mainnet the same stake earns yield through Hashnote USYC.',
+      buttonLabel: 'Log in to stake',
+    },
+    hero: {
+      tag: 'STAKE',
+      line1Prefix: 'Earn',
+      line1Accent: 'reputation',
+      line2Prefix: 'Earn',
+      line2Accent: 'yield',
+      body: 'Stake USDC. The longer it sits, the more reputation it earns. Withdraw any time. 7-day cool-down on the way out.',
+      mainnetNote: '// ON MAINNET THIS STAKE ROUTES THROUGH HASHNOTE USYC FOR ~5% APY',
+    },
+    position: {
+      reputation: 'Reputation',
+      tier: 'Tier',
+      toNextTemplate: 'To {tier}',
+      status: 'Status',
+      pts: 'pts',
+      topTier: 'Top tier',
+    },
+    vault: { tag: 'YOUR STAKE', heading: 'Vault' },
+    ladder: {
+      tag: 'TIER LADDER',
+      headingPrefix: 'What stake',
+      headingAccent: 'unlocks',
+      body: 'Reputation moves your tier. Tier changes how the agents negotiate for you.',
+      youBadge: 'You',
+      unlock: {
+        NEW: 'New here. Agents add a small premium until you build a record.',
+        COLD: 'Early track record. Agents ease the premium.',
+        ESTABLISHED: 'Trusted profile. Standard terms across the desk.',
+        STRONG: 'Preferred counterparty. Agents move faster, tighter spreads.',
+        ELITE: 'Top tier. Agents accept first look within range, no auction.',
+      },
     },
   },
   balancesCard: {
