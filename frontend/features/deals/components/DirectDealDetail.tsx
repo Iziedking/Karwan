@@ -959,8 +959,17 @@ function ProgressTrack({
 }
 
 function fmtCountdown(ms: number): string {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const days = Math.floor(total / 86_400);
+  const hours = Math.floor((total % 86_400) / 3_600);
+  const minutes = Math.floor((total % 3_600) / 60);
+  const seconds = total % 60;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0 || days > 0) parts.push(`${String(hours).padStart(2, '0')}h`);
+  parts.push(`${String(minutes).padStart(2, '0')}m`);
+  parts.push(`${String(seconds).padStart(2, '0')}s`);
+  return parts.join(' ');
 }
 
 function ActionPanel({
@@ -1131,7 +1140,7 @@ function ActionPanel({
               style={{
                 background: 'color-mix(in oklab, var(--lp-accent) 10%, transparent)',
                 borderLeft: '2px solid var(--lp-accent)',
-                color: 'var(--lp-band-dark)',
+                color: 'var(--lp-accent)',
               }}
             >
               {copy.awaitingAcceptance.trustedMatchPrefix}{' '}
