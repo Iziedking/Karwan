@@ -124,19 +124,37 @@ function OnboardingInner() {
   const canSubmit = !!role && validationIssues.length === 0 && !submitting;
 
   useEffect(() => {
-    if (isConnected && (step === 'connect' || step === 'language')) setStep('role');
+    // Auto-skip the wallet-connect step when wagmi reconnects from cache,
+    // but NEVER skip the language step. A returning visitor with a cached
+    // wallet still needs to confirm or change their language before the
+    // rest of onboarding renders in it.
+    if (isConnected && step === 'connect') setStep('role');
   }, [isConnected, step]);
 
+  // True from when we know there's an address until we either finish the
+  // profile check (no profile → reveal the form) or fire a redirect (profile
+  // exists → stay loading until the route changes). Prevents the body from
+  // flashing on returning users with a cached wallet.
+  const [profileGate, setProfileGate] = useState(false);
+
   useEffect(() => {
-    if (!address) return;
+    if (!address) {
+      setProfileGate(false);
+      return;
+    }
+    setProfileGate(true);
     let cancelled = false;
     api
       .getProfile(address)
       .then((res) => {
         if (cancelled) return;
-        if (!res.profile) return;
+        if (!res.profile) {
+          setProfileGate(false);
+          return;
+        }
         if (!editMode) {
           router.replace('/app');
+          // Keep the gate up; we're navigating away.
           return;
         }
         // Edit mode: hydrate the form fields from the saved profile so the
@@ -163,8 +181,12 @@ function OnboardingInner() {
         // (e.g. a seller adding buyer capability). The Continue button takes
         // them into the form with the new role's fields revealed.
         setStep('role');
+        setProfileGate(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (cancelled) return;
+        setProfileGate(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -225,6 +247,14 @@ function OnboardingInner() {
 
   const stepN =
     step === 'language' ? 1 : step === 'connect' ? 2 : step === 'role' ? 3 : 4;
+
+  // Hold the body until the profile check resolves. Returning users with a
+  // cached wallet would otherwise see the language step flash before the
+  // redirect to /app fires. New users hit this for a single fetch round-trip
+  // — usually <100ms — then the form renders.
+  if (profileGate) {
+    return <OnboardingShell />;
+  }
 
   return (
     <FullBleed>

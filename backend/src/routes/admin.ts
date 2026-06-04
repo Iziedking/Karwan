@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { formatUnits } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
-import { listAllAgentWallets } from '../db/agentWallets.js';
+import { getAgentWallets, listAllAgentWallets } from '../db/agentWallets.js';
+import { listAllDeals } from '../db/deals.js';
+import { reputation } from '../chain/contracts.js';
 import { getProfile } from '../db/profiles.js';
 import {
   listAllMatchProposals,
@@ -153,6 +155,72 @@ adminRoutes.get('/errors', (c) => {
   const limitParam = c.req.query('limit');
   const limit = Math.min(100, Math.max(1, Number(limitParam ?? 50) || 50));
   return c.json({ errors: recentErrors(limit) });
+});
+
+/// Diagnostic: full reputation read for one address. Surfaces the three
+/// chain targets (identity + buyer agent + seller agent) with the raw
+/// `scores` triple from KarwanReputation per target, plus the DB-side
+/// deal counts (settled / cancelled) for the same identity. Lets us
+/// answer "did the wallet just never settle, or did recordCompletion
+/// silently fail?" without grepping logs.
+adminRoutes.get('/reputation-debug', async (c) => {
+  const address = (c.req.query('address') ?? '').toLowerCase();
+  const parsed = addrSchema.safeParse(address);
+  if (!parsed.success) return c.json({ error: 'bad address' }, 400);
+
+  const wallets = await getAgentWallets(address).catch(() => null);
+  const targets: { label: string; address: string }[] = [
+    { label: 'identity', address },
+  ];
+  if (wallets?.buyerAddress) targets.push({ label: 'buyerAgent', address: wallets.buyerAddress });
+  if (wallets?.sellerAddress) targets.push({ label: 'sellerAgent', address: wallets.sellerAddress });
+
+  const chainScores = await Promise.all(
+    targets.map(async (t) => {
+      try {
+        const s = (await reputation.read.scores([t.address as `0x${string}`])) as readonly [
+          bigint,
+          bigint,
+          bigint,
+        ];
+        return {
+          label: t.label,
+          address: t.address,
+          successCount: Number(s[0]),
+          disputedCount: Number(s[1]),
+          failedCount: Number(s[2]),
+        };
+      } catch (err) {
+        return { label: t.label, address: t.address, error: (err as Error).message };
+      }
+    }),
+  );
+
+  const allDeals = await listAllDeals();
+  const involved = allDeals.filter(
+    (d) => d.buyer?.toLowerCase() === address || d.seller?.toLowerCase() === address,
+  );
+  const dbSettled = involved.filter((d) => !!d.settledAt);
+  const dbCancelled = involved.filter((d) => !!d.cancelledAt);
+
+  return c.json({
+    address,
+    wallets: wallets ?? null,
+    chainScores,
+    db: {
+      totalInvolved: involved.length,
+      settledCount: dbSettled.length,
+      cancelledCount: dbCancelled.length,
+      settledSample: dbSettled.slice(0, 5).map((d) => ({
+        jobId: d.jobId,
+        role: d.buyer?.toLowerCase() === address ? 'buyer' : 'seller',
+        buyer: d.buyer,
+        seller: d.seller,
+        settledAt: d.settledAt,
+        dealAmountUsdc: d.dealAmountUsdc,
+      })),
+    },
+  });
 });
 
 /// Read-only marketplace view: every activated user, their agent addresses, and
