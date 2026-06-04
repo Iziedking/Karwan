@@ -405,7 +405,7 @@ function ScoreBand({ score, tier }: { score: number; tier: CompositeTier }) {
             key={b.tier}
             aria-hidden
             className="absolute top-1/2 -translate-y-1/2 w-px h-3"
-            style={{ left: `${(b.start / 1000) * 100}%`, background: 'var(--color-line-strong)' }}
+            style={{ insetInlineStart: `${(b.start / 1000) * 100}%`, background: 'var(--color-line-strong)' }}
           />
         ))}
       </div>

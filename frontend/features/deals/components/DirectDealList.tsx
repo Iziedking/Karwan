@@ -322,11 +322,14 @@ function SwipeableRow({
         return;
       }
 
-      // Horizontal drag: respond to leftward motion, clamp, and own the gesture
-      // so the browser doesn't try to scroll the page sideways.
+      // Horizontal drag: respond to motion toward the inline-end edge, clamp,
+      // and own the gesture so the browser doesn't try to scroll the page
+      // sideways. In LTR that's leftward (negative dx); in RTL it's rightward
+      // (positive dx) since the end edge sits on the visual left under rtl.
       draggedRef.current = true;
       if (e.cancelable) e.preventDefault();
-      const clamped = Math.max(-180, Math.min(0, dx));
+      const isRtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+      const clamped = isRtl ? Math.min(180, Math.max(0, dx)) : Math.max(-180, Math.min(0, dx));
       setDragX(clamped);
     },
     [dismissable],
@@ -337,9 +340,12 @@ function SwipeableRow({
       reset();
       return;
     }
-    if (axisRef.current === 'horizontal' && dragX <= -DISMISS_THRESHOLD_PX) {
-      // Past the threshold: slide off and dismiss after the animation lands.
-      setDragX(-window.innerWidth);
+    const isRtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+    const past = isRtl ? dragX >= DISMISS_THRESHOLD_PX : dragX <= -DISMISS_THRESHOLD_PX;
+    if (axisRef.current === 'horizontal' && past) {
+      // Past the threshold: slide off toward the inline-end edge and dismiss
+      // after the animation lands.
+      setDragX(isRtl ? window.innerWidth : -window.innerWidth);
       window.setTimeout(() => onDismiss(), 180);
       return;
     }

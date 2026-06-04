@@ -561,3 +561,74 @@ html[data-theme="dark"] .form-input::placeholder {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── RTL direction-mirror helpers ──────────────────────────────────────────
+   The product flips html[dir=rtl] for Arabic. Logical Tailwind utilities
+   (ms-/me-/ps-/pe-/start-/end-) handle most layout, but a handful of
+   patterns need explicit mirroring: hover-arrow nudges, decorative slide-in,
+   marquee/shimmer sweeps, and inline arrow glyphs. */
+
+[dir="rtl"] @keyframes slide-in {
+  0% { opacity: 0; transform: translateX(4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+[dir="rtl"] @keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+[dir="rtl"] @keyframes stat-sweep {
+  0% { transform: translateX(110%); }
+  100% { transform: translateX(-330%); }
+}
+[dir="rtl"] @keyframes bridgeShimmer {
+  0%   { transform: translateX(100%); opacity: 0.45; }
+  60%  { transform: translateX(-80%); opacity: 1; }
+  100% { transform: translateX(-180%); opacity: 0; }
+}
+[dir="rtl"] @keyframes cardShimmer {
+  0%   { transform: translateX(120%) skewX(12deg); }
+  100% { transform: translateX(-220%) skewX(12deg); }
+}
+[dir="rtl"] .card-shimmer::after {
+  background: linear-gradient(
+    65deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.10) 50%,
+    transparent 70%
+  );
+  transform: translateX(120%) skewX(12deg);
+}
+[dir="rtl"] .card-shimmer:hover::after { transform: translateX(-220%) skewX(12deg); }
+
+[dir="rtl"] @keyframes celebrateSheen {
+  0%   { transform: translateX(130%) skewX(14deg); opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translateX(-260%) skewX(14deg); opacity: 0; }
+}
+
+/* Direction-aware glyph flip. Wrap any forward/back arrow character or SVG
+   in `<span className="rtl-flip">` to mirror it under RTL. Internally-symmetric
+   decorative SVG (logos, dots) should NOT use this. */
+.rtl-flip { display: inline-block; }
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+/* Direction-aware micro-nudges on group-hover. Replace hover translate-x-0.5
+   call-sites with these utility classes so forward/back affordances move the
+   right way in either reading direction. */
+.nudge-fwd { transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.group:hover .nudge-fwd { transform: translateX(2px); }
+[dir="rtl"] .group:hover .nudge-fwd { transform: translateX(-2px); }
+.nudge-back { transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.group:hover .nudge-back { transform: translateX(-2px); }
+[dir="rtl"] .group:hover .nudge-back { transform: translateX(2px); }
+
+/* Diagonal sheen anchored to the inline-start top corner. Use on banners
+   whose first signal (icon, eyebrow) sits at the start of the row, so the
+   sheen reads as light spilling from where the eye lands first. Pass the
+   color stops via `--sheen-color` (default lime). */
+.sheen-tl {
+  background-image: linear-gradient(120deg, var(--sheen-color, rgba(175,201,91,0.18)) 0%, transparent 60%);
+}
+[dir="rtl"] .sheen-tl {
+  background-image: linear-gradient(60deg, var(--sheen-color, rgba(175,201,91,0.18)) 0%, transparent 60%);
+}

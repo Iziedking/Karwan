@@ -303,6 +303,7 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
   return (
     <figure>
       <div
+        dir="ltr"
         className="relative overflow-hidden"
         style={{
           background: 'rgba(255,255,255,0.03)',

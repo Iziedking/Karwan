@@ -33,11 +33,8 @@ export function MigrationBanner() {
     >
       <div
         aria-hidden
-        className="absolute inset-0 pointer-events-none opacity-50"
-        style={{
-          backgroundImage:
-            'linear-gradient(120deg, rgba(255,184,0,0.18), transparent 60%)',
-        }}
+        className="sheen-tl absolute inset-0 pointer-events-none opacity-50"
+        style={{ ['--sheen-color' as string]: 'rgba(255,184,0,0.18)' }}
       />
       <div className="relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-4 sm:py-5 flex items-center justify-between gap-4 flex-wrap">
         <div className="min-w-0 flex-1 flex items-start gap-3 sm:gap-4">

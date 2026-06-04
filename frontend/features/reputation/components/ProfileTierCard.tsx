@@ -80,7 +80,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
             key={b}
             aria-hidden
             className="absolute top-0 bottom-0 w-px bg-[var(--lp-band-dark)]/70"
-            style={{ left: `${(b / 1000) * 100}%` }}
+            style={{ insetInlineStart: `${(b / 1000) * 100}%` }}
           />
         ))}
       </div>

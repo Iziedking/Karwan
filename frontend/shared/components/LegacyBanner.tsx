@@ -67,11 +67,8 @@ export function LegacyBanner() {
     >
       <div
         aria-hidden
-        className="absolute inset-0 pointer-events-none opacity-60"
-        style={{
-          backgroundImage:
-            'linear-gradient(120deg, color-mix(in oklab, var(--lp-accent) 28%, transparent), transparent 55%)',
-        }}
+        className="sheen-tl absolute inset-0 pointer-events-none opacity-60"
+        style={{ ['--sheen-color' as string]: 'color-mix(in oklab, var(--lp-accent) 28%, transparent)' }}
       />
       <div
         aria-hidden
