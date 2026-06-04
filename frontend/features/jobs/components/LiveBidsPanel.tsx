@@ -5,6 +5,8 @@ import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { ProfilePeekModal } from './ProfilePeekModal';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import type { Messages } from '@/shared/i18n/messages/en';
 
 const REFRESH_TRIGGERS = new Set([
   'bid.submitted',
@@ -15,6 +17,7 @@ const REFRESH_TRIGGERS = new Set([
 ]);
 
 export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
+  const lb = useTranslations().liveBidsPanel;
   const [job, setJob] = useState(initial);
   // Profile peek state. We open by USER address (not agent), since profiles
   // are keyed by user. Falls back to agent address when the bid lacks a
@@ -34,10 +37,8 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   if (job.bids.length === 0) {
     return (
       <div className="px-5 py-10 text-center">
-        <p className="text-[13px] text-[var(--color-ink-dim)]">No bids yet.</p>
-        <p className="text-[11px] text-[var(--color-ink-faint)] mt-1">
-          The seller agent is scoring your request.
-        </p>
+        <p className="text-[13px] text-[var(--color-ink-dim)]">{lb.empty.title}</p>
+        <p className="text-[11px] text-[var(--color-ink-faint)] mt-1">{lb.empty.body}</p>
       </div>
     );
   }
@@ -62,6 +63,7 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
               bid={b}
               isLead={isLead && i === 0}
               onPeek={() => setPeekSeller(b.sellerUserAddress ?? b.seller)}
+              copy={lb}
             />
           );
         })}
@@ -77,7 +79,17 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   );
 }
 
-function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPeek: () => void }) {
+function BidRow({
+  bid,
+  isLead,
+  onPeek,
+  copy,
+}: {
+  bid: BuyerBid;
+  isLead: boolean;
+  onPeek: () => void;
+  copy: Messages['liveBidsPanel'];
+}) {
   const price = formatUsdc(bid.priceUsdc, { withSuffix: false });
   const counter = bid.suggestedCounterPrice
     ? formatUsdc(bid.suggestedCounterPrice, { withSuffix: false })
@@ -100,8 +112,14 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
       <button
         type="button"
         onClick={onPeek}
-        title={`View ${bid.sellerDisplayName ?? shortAddress(bid.seller)}'s profile`}
-        aria-label={`View profile for ${bid.sellerDisplayName ?? shortAddress(bid.seller)}`}
+        title={copy.profileTitleTemplate.replace(
+          '{name}',
+          bid.sellerDisplayName ?? shortAddress(bid.seller),
+        )}
+        aria-label={copy.profileAriaTemplate.replace(
+          '{name}',
+          bid.sellerDisplayName ?? shortAddress(bid.seller),
+        )}
         className="w-full flex items-center justify-between gap-3 -mx-1 px-1 py-0.5 rounded-sm transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -110,7 +128,7 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
               className="text-[9px] tracking-[0.16em] uppercase font-semibold"
               style={{ color: 'var(--color-accent)' }}
             >
-              Lead
+              {copy.leadBadge}
             </span>
           )}
           {bid.sellerDisplayName ? (
@@ -157,7 +175,7 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
               {score}
             </span>
             <span className="text-[9px] tracking-[0.08em] text-[var(--color-ink-faint)]">
-              /100
+              {copy.scoreOutOf}
             </span>
           </div>
         )}
@@ -185,14 +203,14 @@ function BidRow({ bid, isLead, onPeek }: { bid: BuyerBid; isLead: boolean; onPee
       {(counter || bid.suggestedCounterDeadlineDays != null) && (
         <div className="mt-3 flex border-t border-[var(--color-line)]">
           {counter && (
-            <KeyValue label="Counter" value={`${counter} USDC`} />
+            <KeyValue label={copy.counter} value={`${counter} USDC`} />
           )}
           {counter && bid.suggestedCounterDeadlineDays != null && (
             <span aria-hidden className="w-px my-2 bg-[var(--color-line)]" />
           )}
           {bid.suggestedCounterDeadlineDays != null && (
             <KeyValue
-              label="ETA"
+              label={copy.eta}
               value={`${bid.suggestedCounterDeadlineDays}d`}
             />
           )}

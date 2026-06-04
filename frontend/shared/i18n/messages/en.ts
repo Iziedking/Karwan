@@ -1169,6 +1169,100 @@ interface MessagesShape {
       verifiedLink: string;
     };
   };
+  feedback: {
+    hero: {
+      tag: string;
+      headline: string;
+      body: string;
+    };
+    categories: {
+      bug: { label: string; blurb: string };
+      improvement: { label: string; blurb: string };
+      other: { label: string; blurb: string };
+      praise: { label: string; blurb: string };
+    };
+    fields: {
+      categoryEyebrow: string;
+      titleEyebrow: string;
+      messageEyebrow: string;
+      screenshotsEyebrowTemplate: string;
+      whereEyebrow: string;
+      contactEyebrow: string;
+    };
+    placeholders: {
+      title: string;
+      message: string;
+      where: string;
+      contact: string;
+    };
+    dropZone: {
+      bodyBefore: string;
+      chooseFiles: string;
+      bodyAfter: string;
+      formatLine: string;
+      removeAria: string;
+    };
+    errors: {
+      maxShotsTemplate: string;
+      imageReadFailed: string;
+      shortTitle: string;
+      shortMessage: string;
+      submitFailed: string;
+    };
+    submit: {
+      sending: string;
+      cta: string;
+      noAccountNeeded: string;
+      sendingAsTemplate: string;
+    };
+    success: {
+      headline: string;
+      body: string;
+      sendAnother: string;
+      backToApp: string;
+    };
+  };
+  extensionRequest: {
+    ariaLabel: string;
+    tag: string;
+    title: string;
+    body: string;
+    durationEyebrow: string;
+    reasonEyebrow: string;
+    reasonPlaceholder: string;
+    presets: {
+      sixHours: string;
+      twelveHours: string;
+      oneDay: string;
+      threeDays: string;
+      sevenDays: string;
+    };
+    errorFallback: string;
+    sending: string;
+    send: string;
+    cancel: string;
+  };
+  chatPanel: {
+    withCounterpartyTemplate: string;
+    telegramNote: string;
+    loadError: string;
+    emptyMessage: string;
+    inputPlaceholder: string;
+    sending: string;
+    send: string;
+  };
+  liveBidsPanel: {
+    empty: {
+      title: string;
+      body: string;
+    };
+    leadBadge: string;
+    profileTitleTemplate: string;
+    profileAriaTemplate: string;
+    counter: string;
+    eta: string;
+    scoreOutOf: string;
+  };
   jobPage: {
     loading: {
       tag: string;
@@ -2841,6 +2935,100 @@ export const en: MessagesShape = {
       disclaimer: 'Composite of deal history, stake, and tenure. Reputation is recorded on Arc and travels with the wallet across deals.',
       verifiedLink: 'Verified on Arc ↗',
     },
+  },
+  feedback: {
+    hero: {
+      tag: 'FEEDBACK',
+      headline: 'Tell us what you hit',
+      body: 'You are testing on Arc Testnet, so things will break. A bug, a rough edge, an idea, anything. Paste a screenshot straight in. It goes to the team the moment you send it.',
+    },
+    categories: {
+      bug: { label: 'Bug', blurb: 'Something broke or behaved wrong' },
+      improvement: { label: 'Improvement', blurb: 'An idea to make it better' },
+      other: { label: 'Other', blurb: 'A question or general note' },
+      praise: { label: 'Praise', blurb: 'Something you liked' },
+    },
+    fields: {
+      categoryEyebrow: 'WHAT KIND OF FEEDBACK',
+      titleEyebrow: 'TITLE',
+      messageEyebrow: 'WHAT HAPPENED',
+      screenshotsEyebrowTemplate: 'SCREENSHOTS ({n}/{max})',
+      whereEyebrow: 'WHERE (OPTIONAL)',
+      contactEyebrow: 'CONTACT (OPTIONAL)',
+    },
+    placeholders: {
+      title: 'Short summary, e.g. Bridge stuck on attesting',
+      message: 'What you did, what you expected, what happened instead. You can paste a screenshot right here.',
+      where: 'Page or screen, e.g. /bridge on mobile',
+      contact: 'Email or @handle to follow up',
+    },
+    dropZone: {
+      bodyBefore: 'Paste, drop, or ',
+      chooseFiles: 'choose files',
+      bodyAfter: '.',
+      formatLine: 'PNG or JPG, up to {n}',
+      removeAria: 'Remove screenshot',
+    },
+    errors: {
+      maxShotsTemplate: 'You can attach up to {n} screenshots.',
+      imageReadFailed: 'One image could not be read. Try a PNG or JPG.',
+      shortTitle: 'Add a short title (at least 3 characters).',
+      shortMessage: 'Tell us a little more in the description.',
+      submitFailed: 'Could not send feedback. Please try again.',
+    },
+    submit: {
+      sending: 'Sending…',
+      cta: 'Send feedback',
+      noAccountNeeded: 'No account needed.',
+      sendingAsTemplate: 'Sending as {address}',
+    },
+    success: {
+      headline: 'Got it. Thank you',
+      body: 'Your feedback reached the team. If you left a contact, we may follow up. Found something else? Send another.',
+      sendAnother: 'Send another',
+      backToApp: 'Back to app',
+    },
+  },
+  extensionRequest: {
+    ariaLabel: 'Request more delivery time',
+    tag: '[:REQUEST EXTENSION:]',
+    title: 'Ask the buyer for more time.',
+    body: 'Pick how much more time you need. If they approve, the delivery deadline shifts by that amount.',
+    durationEyebrow: '[:DURATION:]',
+    reasonEyebrow: '[:REASON. OPTIONAL:]',
+    reasonPlaceholder: 'A short note for the buyer.',
+    presets: {
+      sixHours: '+6 hours',
+      twelveHours: '+12 hours',
+      oneDay: '+1 day',
+      threeDays: '+3 days',
+      sevenDays: '+7 days',
+    },
+    errorFallback: 'Could not send the request.',
+    sending: 'Sending…',
+    send: 'Send request',
+    cancel: 'Cancel',
+  },
+  chatPanel: {
+    withCounterpartyTemplate: '[:WITH {name}:]',
+    telegramNote: 'Also delivered to Telegram when linked',
+    loadError: 'Could not load chat history.',
+    emptyMessage: 'No messages yet. Say hello.',
+    inputPlaceholder: 'Write a message…',
+    sending: 'Sending…',
+    send: 'Send',
+  },
+  liveBidsPanel: {
+    empty: {
+      title: 'No bids yet.',
+      body: 'The seller agent is scoring your request.',
+    },
+    leadBadge: 'Lead',
+    profileTitleTemplate: "View {name}'s profile",
+    profileAriaTemplate: 'View profile for {name}',
+    counter: 'Counter',
+    eta: 'ETA',
+    scoreOutOf: '/100',
   },
   jobPage: {
     loading: {

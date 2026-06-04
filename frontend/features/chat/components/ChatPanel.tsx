@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useChat } from '../hooks/useChat';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Per-deal end-to-end chat between the buyer and seller. Lives inside the
 /// deal detail page; sound on incoming, live via SSE, plus a Telegram fan-out
@@ -24,6 +25,7 @@ export function ChatPanel({
   /// same string twice in a row.
   draftSeedKey?: number;
 }) {
+  const cp = useTranslations().chatPanel;
   const { messages, fetchState, send, sending } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
   const me = caller.toLowerCase();
@@ -63,10 +65,10 @@ export function ChatPanel({
     <div className="overflow-hidden">
       <div className="px-6 pt-6 pb-4 border-b border-[var(--lp-border-light)]">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:WITH {counterpartyLabel.toUpperCase()}:]
+          {cp.withCounterpartyTemplate.replace('{name}', counterpartyLabel.toUpperCase())}
         </span>
         <p className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Also delivered to Telegram when linked
+          {cp.telegramNote}
         </p>
       </div>
 
@@ -109,12 +111,12 @@ export function ChatPanel({
               borderBottomRightRadius: 3,
             }}
           >
-            Could not load chat history.
+            {cp.loadError}
           </div>
         )}
         {fetchState === 'ready' && messages.length === 0 && (
           <p className="py-6 text-center mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            No messages yet. Say hello.
+            {cp.emptyMessage}
           </p>
         )}
         {messages.map((m) => {
@@ -159,7 +161,7 @@ export function ChatPanel({
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a message…"
+          placeholder={cp.inputPlaceholder}
           maxLength={2000}
           className="chat-input flex-1 bg-[var(--lp-light)] px-4 py-2.5 text-[13px] focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] transition-shadow"
           style={{
@@ -182,7 +184,7 @@ export function ChatPanel({
             boxShadow: !sending && draft.trim() ? '0 3px 0 rgba(0,0,0,0.22)' : 'none',
           }}
         >
-          {sending ? 'Sending…' : 'Send'}
+          {sending ? cp.sending : cp.send}
           {!sending && <span aria-hidden>→</span>}
         </button>
       </form>
