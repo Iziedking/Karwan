@@ -27,6 +27,13 @@
  *   OPERATOR_PRIVATE_KEY                  — 0x-prefixed hex private key
  *   YIELD_BUFFER_BPS                      — default 500 (5% slack over reserves)
  *   MIN_DISTRIBUTION_USDC                 — default 1000000 (1 USDC, 6d), skip if total < this
+ *   YIELD_FUNDING_MODE                    — 'operator' (default) | 'vault'
+ *     operator: bulkCredit funded from operator's own USDC balance. Operator
+ *               wallet must hold >= today's total. No vault permissions needed
+ *               beyond reads. Periodic top-ups from deployer or treasury.
+ *     vault:    operator calls vault.withdrawForYield(total) to pull USDC, then
+ *               funds bulkCredit. Requires OPERATOR_PRIVATE_KEY's address to
+ *               equal vault.operator. Tightest coupling, no manual top-ups.
  *
  * CLI flags:
  *   --dry-run   compute + print breakdown, no tx
@@ -69,6 +76,11 @@ const PK = process.env.OPERATOR_PRIVATE_KEY;
 const DAILY_APY_BPS = BigInt(process.env.USER_DAILY_APY_BPS || '14');
 const BUFFER_BPS = BigInt(process.env.YIELD_BUFFER_BPS || '500');
 const MIN_DISTRIBUTION = BigInt(process.env.MIN_DISTRIBUTION_USDC || '1000000');
+const FUNDING_MODE = (process.env.YIELD_FUNDING_MODE || 'operator').toLowerCase();
+if (FUNDING_MODE !== 'operator' && FUNDING_MODE !== 'vault') {
+  console.error(`YIELD_FUNDING_MODE must be 'operator' or 'vault' (got: ${FUNDING_MODE})`);
+  process.exit(1);
+}
 
 if (!RPC_URL || !VAULT || !DISTRIBUTOR) {
   console.error('missing ARC_TESTNET_RPC_URL / KARWAN_VAULT_ADDR / KARWAN_YIELD_DISTRIBUTOR_ADDR');
@@ -238,36 +250,52 @@ async function run() {
     return;
   }
 
-  // ── 2. Verify vault has the liquidity ────────────────────────────
-  const vaultUsdc = await publicClient.readContract({
-    address: USDC,
-    abi: erc20Abi,
-    functionName: 'balanceOf',
-    args: [VAULT],
-  });
+  // ── 2. Verify the funding source has the liquidity ──────────────
   const headroom = (total * (10_000n + BUFFER_BPS)) / 10_000n;
-  if (vaultUsdc < headroom) {
-    console.error(
-      `vault USDC ${formatUnits(vaultUsdc, USDC_DECIMALS)} below required headroom ${formatUnits(headroom, USDC_DECIMALS)} (total + ${BUFFER_BPS}bps buffer). manual unwrap or pause distribution.`,
-    );
-    process.exit(2);
+  const fundingSource = FUNDING_MODE === 'vault' ? VAULT : (account ? account.address : null);
+  if (FUNDING_MODE === 'operator' && !DRY_RUN && !account) {
+    console.error('operator mode requires OPERATOR_PRIVATE_KEY for the balance check.');
+    process.exit(1);
+  }
+  if (fundingSource) {
+    const sourceBal = await publicClient.readContract({
+      address: USDC,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [fundingSource],
+    });
+    if (sourceBal < headroom) {
+      console.error(
+        `${FUNDING_MODE} USDC ${formatUnits(sourceBal, USDC_DECIMALS)} below required headroom ${formatUnits(headroom, USDC_DECIMALS)} (total + ${BUFFER_BPS}bps buffer).`,
+      );
+      console.error(
+        FUNDING_MODE === 'operator'
+          ? `Top up the operator wallet ${fundingSource} with USDC before next run.`
+          : 'Manual vault unwrap or pause distribution.',
+      );
+      process.exit(2);
+    }
   }
 
   if (DRY_RUN) {
-    console.log('dry-run complete. no tx broadcast.');
+    console.log(`dry-run complete (funding mode: ${FUNDING_MODE}). no tx broadcast.`);
     return;
   }
 
-  // ── 3. withdrawForYield from vault ────────────────────────────────
-  log(`withdrawing ${formatUnits(total, USDC_DECIMALS)} USDC from vault → operator ${account.address}`);
-  const withdrawHash = await walletClient.writeContract({
-    address: VAULT,
-    abi: vaultAbi,
-    functionName: 'withdrawForYield',
-    args: [total],
-  });
-  await publicClient.waitForTransactionReceipt({ hash: withdrawHash });
-  log(`vault withdraw tx: ${withdrawHash}`);
+  // ── 3. Optional: pull USDC from vault into operator (vault mode) ─
+  if (FUNDING_MODE === 'vault') {
+    log(`withdrawing ${formatUnits(total, USDC_DECIMALS)} USDC from vault → operator ${account.address}`);
+    const withdrawHash = await walletClient.writeContract({
+      address: VAULT,
+      abi: vaultAbi,
+      functionName: 'withdrawForYield',
+      args: [total],
+    });
+    await publicClient.waitForTransactionReceipt({ hash: withdrawHash });
+    log(`vault withdraw tx: ${withdrawHash}`);
+  } else {
+    log(`operator-funded mode: ${formatUnits(total, USDC_DECIMALS)} USDC from ${account.address}`);
+  }
 
   // ── 4. Approve distributor if allowance short ────────────────────
   const currentAllowance = await publicClient.readContract({

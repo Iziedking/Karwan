@@ -61,6 +61,12 @@ RUN npm ci --omit=dev --workspace=backend --include-workspace-root \
 # Compiled output
 COPY --from=builder /app/backend/dist backend/dist
 
+# Standalone scripts that the host cron invokes via
+# `docker compose exec -T karwan-api node scripts/<name>.mjs`. Plain ESM,
+# no compile step. Keep small + use only deps already installed for the
+# backend (viem, dotenv).
+COPY scripts backend/scripts
+
 # Flat-file data dir (mounted from the host in docker-compose). The fallback
 # stores survive container restarts when Postgres isn't configured. With
 # DATABASE_URL set, this stays mostly empty.

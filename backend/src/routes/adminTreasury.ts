@@ -73,44 +73,38 @@ async function readTreasury(addr: string | undefined, label: string): Promise<Tr
     };
   }
   const usdcAddr = config.USDC_ADDR as `0x${string}`;
-  try {
-    const [usdcBal, totalReserves, owner, keeper] = await Promise.all([
-      publicClient.readContract({
-        address: usdcAddr,
-        abi: erc20Abi,
-        functionName: 'balanceOf',
-        args: [addr as `0x${string}`],
-      }),
-      publicClient.readContract({
-        address: addr as `0x${string}`,
-        abi: treasuryAbi,
-        functionName: 'totalReserves',
-      }),
-      publicClient.readContract({
-        address: addr as `0x${string}`,
-        abi: treasuryAbi,
-        functionName: 'owner',
-      }),
-      publicClient.readContract({
-        address: addr as `0x${string}`,
-        abi: treasuryAbi,
-        functionName: 'keeper',
-      }),
-    ]);
-    return {
-      address: addr,
-      label,
-      configured: true,
-      usdc: formatUnits(usdcBal as bigint, 6),
-      totalReserves: formatUnits(totalReserves as bigint, 6),
-      owner: (owner as string).toLowerCase(),
-      keeper: (keeper as string).toLowerCase(),
-      error: null,
-    };
-  } catch (err) {
+  /// Read each field independently so an oracle-gated `totalReserves`
+  /// (which reverts pre-whitelist on v3) doesn't take the whole card
+  /// down. The admin needs at least `owner` to know whether to expose
+  /// the payout form; everything else is nice-to-have display data.
+  const [usdcSettled, totalReservesSettled, ownerSettled, keeperSettled] = await Promise.allSettled([
+    publicClient.readContract({
+      address: usdcAddr,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [addr as `0x${string}`],
+    }),
+    publicClient.readContract({
+      address: addr as `0x${string}`,
+      abi: treasuryAbi,
+      functionName: 'totalReserves',
+    }),
+    publicClient.readContract({
+      address: addr as `0x${string}`,
+      abi: treasuryAbi,
+      functionName: 'owner',
+    }),
+    publicClient.readContract({
+      address: addr as `0x${string}`,
+      abi: treasuryAbi,
+      functionName: 'keeper',
+    }),
+  ]);
+
+  if (ownerSettled.status === 'rejected') {
     logger.warn(
-      { err: (err as Error).message, addr, label },
-      'admin treasury read failed',
+      { err: ownerSettled.reason?.message, addr, label },
+      'admin treasury read failed: owner() unreadable',
     );
     return {
       address: addr,
@@ -123,6 +117,31 @@ async function readTreasury(addr: string | undefined, label: string): Promise<Tr
       error: 'read failed; contract may not be a KarwanTreasury',
     };
   }
+
+  const partial =
+    usdcSettled.status === 'rejected' ||
+    totalReservesSettled.status === 'rejected' ||
+    keeperSettled.status === 'rejected';
+
+  return {
+    address: addr,
+    label,
+    configured: true,
+    usdc:
+      usdcSettled.status === 'fulfilled'
+        ? formatUnits(usdcSettled.value as bigint, 6)
+        : null,
+    totalReserves:
+      totalReservesSettled.status === 'fulfilled'
+        ? formatUnits(totalReservesSettled.value as bigint, 6)
+        : null,
+    owner: (ownerSettled.value as string).toLowerCase(),
+    keeper:
+      keeperSettled.status === 'fulfilled'
+        ? (keeperSettled.value as string).toLowerCase()
+        : null,
+    error: partial ? 'some fields unreadable (oracle gate pending whitelist?)' : null,
+  };
 }
 
 /// Returns balances + owner/keeper for both treasuries side by side. The
