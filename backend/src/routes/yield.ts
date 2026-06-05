@@ -1,11 +1,94 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { formatUnits, parseAbiItem, getAddress } from 'viem';
+import { formatUnits, parseAbiItem, getAddress, type AbiEvent } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
 import { logger } from '../logger.js';
+
+/// Arc public RPC silently returns empty on wide getLogs windows. Same fix
+/// shape as backend/src/chain/networkStats.ts: chunk the scan into 5k-block
+/// windows, retry each window up to 3 times, and run chunks in parallel
+/// batches so the build finishes inside the route's request timeout even on
+/// long ranges. Throws if any chunk fails every retry so the route returns
+/// 502 rather than dressing up partial data.
+const SCAN_CHUNK_BLOCKS = 5_000n;
+const SCAN_CHUNK_RETRIES = 3;
+const SCAN_CHUNK_BACKOFF_MS = 400;
+const SCAN_CONCURRENCY = 8;
+
+async function scanOneChunk(opts: {
+  address: `0x${string}`;
+  event: AbiEvent;
+  fromBlock: bigint;
+  toBlock: bigint;
+  args?: Record<string, unknown>;
+}): Promise<Array<{ args: Record<string, unknown> }>> {
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < SCAN_CHUNK_RETRIES; attempt++) {
+    try {
+      const logs = await publicClient.getLogs({
+        address: opts.address,
+        event: opts.event,
+        fromBlock: opts.fromBlock,
+        toBlock: opts.toBlock,
+        args: opts.args as never,
+      });
+      return logs.map((l) => ({ args: (l.args ?? {}) as Record<string, unknown> }));
+    } catch (err) {
+      lastErr = err as Error;
+      if (attempt < SCAN_CHUNK_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, SCAN_CHUNK_BACKOFF_MS * (attempt + 1)));
+      }
+    }
+  }
+  logger.warn(
+    {
+      err: lastErr?.message,
+      address: opts.address,
+      fromBlock: opts.fromBlock.toString(),
+      toBlock: opts.toBlock.toString(),
+    },
+    'yield route chunk failed after retries',
+  );
+  throw lastErr ?? new Error('scan failed');
+}
+
+async function chunkedGetLogs(opts: {
+  address: `0x${string}`;
+  event: AbiEvent;
+  fromBlock: bigint;
+  toBlock: bigint;
+  args?: Record<string, unknown>;
+}): Promise<Array<{ args: Record<string, unknown> }>> {
+  if (opts.fromBlock > opts.toBlock) return [];
+  const windows: Array<{ from: bigint; to: bigint }> = [];
+  let cursor = opts.fromBlock;
+  while (cursor <= opts.toBlock) {
+    const end = cursor + SCAN_CHUNK_BLOCKS - 1n;
+    const windowEnd = end > opts.toBlock ? opts.toBlock : end;
+    windows.push({ from: cursor, to: windowEnd });
+    cursor = windowEnd + 1n;
+  }
+  const out: Array<{ args: Record<string, unknown> }> = [];
+  for (let i = 0; i < windows.length; i += SCAN_CONCURRENCY) {
+    const batch = windows.slice(i, i + SCAN_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((w) =>
+        scanOneChunk({
+          address: opts.address,
+          event: opts.event,
+          fromBlock: w.from,
+          toBlock: w.to,
+          args: opts.args,
+        }),
+      ),
+    );
+    for (const r of results) out.push(...r);
+  }
+  return out;
+}
 
 /// Yield distribution surface. The daily `scripts/yield-distribute.mjs` cron
 /// reads vault positions, computes each staker's daily slice, and credits
@@ -149,14 +232,14 @@ yieldRoutes.get('/me', async (c) => {
         functionName: 'claimable',
         args: [checksummed],
       }) as Promise<bigint>,
-      publicClient.getLogs({
+      chunkedGetLogs({
         address: distributor,
         event: YieldCreditedEvent,
         fromBlock: start,
         toBlock: head,
         args: { staker: checksummed },
       }),
-      publicClient.getLogs({
+      chunkedGetLogs({
         address: distributor,
         event: YieldClaimedEvent,
         fromBlock: start,
@@ -166,9 +249,9 @@ yieldRoutes.get('/me', async (c) => {
     ]);
 
     let lifetimeCredited = 0n;
-    for (const log of creditedLogs) lifetimeCredited += log.args.amount ?? 0n;
+    for (const log of creditedLogs) lifetimeCredited += (log.args.amount as bigint | undefined) ?? 0n;
     let lifetimeClaimed = 0n;
-    for (const log of claimedLogs) lifetimeClaimed += log.args.amount ?? 0n;
+    for (const log of claimedLogs) lifetimeClaimed += (log.args.amount as bigint | undefined) ?? 0n;
 
     const snapshot: MeSnapshot = {
       claimableUsdc: formatUnits(claimable, USDC_DECIMALS),
@@ -300,7 +383,7 @@ yieldRoutes.get('/history', async (c) => {
     const fallbackBack = 14n * 24n * 60n * 60n / 1n;
     const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
 
-    const logs = await publicClient.getLogs({
+    const logs = await chunkedGetLogs({
       address: distributor,
       event: YieldCreditedEvent,
       fromBlock: start,
@@ -312,8 +395,8 @@ yieldRoutes.get('/history', async (c) => {
     /// `block.timestamp / 86400`, an integer day index.
     const perDay = new Map<number, bigint>();
     for (const log of logs) {
-      const day = Number(log.args.day ?? 0n);
-      const amount = log.args.amount ?? 0n;
+      const day = Number((log.args.day as bigint | number | undefined) ?? 0n);
+      const amount = (log.args.amount as bigint | undefined) ?? 0n;
       perDay.set(day, (perDay.get(day) ?? 0n) + amount);
     }
 

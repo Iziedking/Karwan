@@ -35,23 +35,33 @@ export function ReservesWidget() {
 
   useEffect(() => {
     let cancelled = false;
+    /// Settle the two fetches independently. If `/history` 502s (Arc public
+    /// RPC silently dropping a wide getLogs window), the tiles still render
+    /// from `/protocol`'s view-function reads. Promise.all here used to
+    /// reject and blank the entire widget.
     const fetchOnce = async () => {
-      try {
-        const [r, h] = await Promise.all([api.yieldProtocol(), api.yieldHistory()]);
-        if (cancelled) return;
+      const [protocolResult, historyResult] = await Promise.allSettled([
+        api.yieldProtocol(),
+        api.yieldHistory(),
+      ]);
+      if (cancelled) return;
+
+      if (protocolResult.status === 'fulfilled') {
+        const r = protocolResult.value;
         if (!r.configured) {
           setConfigured(false);
-          return;
+        } else {
+          setConfigured(true);
+          setData({
+            totalCreditedUsdc: r.totalCreditedUsdc ?? '0',
+            totalClaimedUsdc: r.totalClaimedUsdc ?? '0',
+            outstandingUsdc: r.outstandingUsdc ?? '0',
+          });
         }
-        setConfigured(true);
-        setData({
-          totalCreditedUsdc: r.totalCreditedUsdc ?? '0',
-          totalClaimedUsdc: r.totalClaimedUsdc ?? '0',
-          outstandingUsdc: r.outstandingUsdc ?? '0',
-        });
-        setHistory(h.history ?? []);
-      } catch {
-        // keep last good value
+      }
+
+      if (historyResult.status === 'fulfilled') {
+        setHistory(historyResult.value.history ?? []);
       }
     };
     fetchOnce();

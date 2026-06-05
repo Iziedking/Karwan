@@ -125,7 +125,7 @@ export const STAKE_STEPS: TourStep[] = [
   },
   {
     title: 'Taking it back',
-    body: 'Withdrawing starts a 7-day cool-down. After that you claim it back to your wallet. Cancel any time during the wait to keep earning.',
+    body: 'Withdrawing starts a 3-day cool-down. After that you claim it back to your wallet. Cancel any time during the wait to keep earning.',
     target: 'stake-withdraw',
   },
 ];

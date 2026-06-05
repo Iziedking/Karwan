@@ -11,11 +11,17 @@ const USDC_DECIMALS = 6;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SERIES_DAYS = 30;
 const CACHE_TTL_MS = 60_000;
-// Arc public RPC silently returns empty on overly wide getLogs windows AND
-// on windows that produce too many logs to fit one response. 2k-block chunks
-// stay well clear of both limits on the production deploy. A 1M-block range
-// is ~500 chunks at ~80ms each, well within the 60s cache TTL.
-const SCAN_CHUNK_BLOCKS = 2_000n;
+// Arc public RPC silently returns empty on overly wide getLogs windows.
+// 5k-block chunks are a compromise between staying under the RPC's hidden
+// per-response cap and keeping the total chunk count low enough that the
+// build finishes inside the 60s cache TTL. The monotonic + invariant guards
+// in getNetworkStats are the real safety net against silent drops; chunking
+// just makes the drops rare. Chunks within a single scan run in parallel
+// batches (see SCAN_CONCURRENCY).
+const SCAN_CHUNK_BLOCKS = 5_000n;
+/// How many chunks per event scan to run in parallel. Higher = faster build
+/// but more pressure on the RPC. 8 is comfortable for the public Arc RPC.
+const SCAN_CONCURRENCY = 8;
 
 const EVENT_ESCROW_FUNDED = parseAbiItem(
   'event EscrowFunded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint256 dealAmount, uint256 fundedAmount, uint256 feeTotal, uint8[] milestonePcts, uint16 reservationBps)',
@@ -145,6 +151,50 @@ interface ScanInputs {
 const SCAN_CHUNK_RETRIES = 3;
 const SCAN_CHUNK_BACKOFF_MS = 400;
 
+async function scanOneChunk(
+  inputs: ScanInputs,
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<
+  Array<{ args: Record<string, unknown>; blockNumber: bigint; blockHash: `0x${string}` | null }>
+> {
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < SCAN_CHUNK_RETRIES; attempt++) {
+    try {
+      const logs = await publicClient.getLogs({
+        address: inputs.address as `0x${string}`,
+        event: inputs.event,
+        fromBlock,
+        toBlock,
+      });
+      return logs.map((l) => ({
+        args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
+          string,
+          unknown
+        >,
+        blockNumber: l.blockNumber ?? 0n,
+        blockHash: l.blockHash ?? null,
+      }));
+    } catch (err) {
+      lastErr = err as Error;
+      if (attempt < SCAN_CHUNK_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, SCAN_CHUNK_BACKOFF_MS * (attempt + 1)));
+      }
+    }
+  }
+  logger.warn(
+    {
+      err: lastErr?.message,
+      address: inputs.address,
+      fromBlock: fromBlock.toString(),
+      toBlock: toBlock.toString(),
+      attempts: SCAN_CHUNK_RETRIES,
+    },
+    'network stats chunk failed after retries; throwing so the cache can serve last good',
+  );
+  throw lastErr ?? new Error('scan failed');
+}
+
 async function safeScan(
   inputs: ScanInputs,
   fromBlock: bigint,
@@ -153,63 +203,30 @@ async function safeScan(
   Array<{ args: Record<string, unknown>; blockNumber: bigint; blockHash: `0x${string}` | null }>
 > {
   if (!inputs.address || fromBlock > toBlock) return [];
+
+  /// Build the chunk window list up front so we can run them in bounded
+  /// parallel batches instead of one-at-a-time. Sequential chunks were taking
+  /// ~50ms each — fine for a 100-block range, painful for 100k+.
+  const windows: Array<{ from: bigint; to: bigint }> = [];
+  let cursor = fromBlock;
+  while (cursor <= toBlock) {
+    const end = cursor + SCAN_CHUNK_BLOCKS - 1n;
+    const windowEnd = end > toBlock ? toBlock : end;
+    windows.push({ from: cursor, to: windowEnd });
+    cursor = windowEnd + 1n;
+  }
+
   const out: Array<{
     args: Record<string, unknown>;
     blockNumber: bigint;
     blockHash: `0x${string}` | null;
   }> = [];
-  let cursor = fromBlock;
-  while (cursor <= toBlock) {
-    const end = cursor + SCAN_CHUNK_BLOCKS - 1n;
-    const windowEnd = end > toBlock ? toBlock : end;
-
-    // Retry the chunk on transient RPC failure. If every attempt fails we
-    // THROW — silently dropping a chunk made counts swing between refreshes
-    // (each refresh saw a different random subset of failures), so users
-    // got partial data dressed up as ground truth. Better to fail loud here
-    // and let getNetworkStats serve the last cached snapshot.
-    let lastErr: Error | null = null;
-    for (let attempt = 0; attempt < SCAN_CHUNK_RETRIES; attempt++) {
-      try {
-        const logs = await publicClient.getLogs({
-          address: inputs.address,
-          event: inputs.event,
-          fromBlock: cursor,
-          toBlock: windowEnd,
-        });
-        for (const l of logs) {
-          out.push({
-            args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
-              string,
-              unknown
-            >,
-            blockNumber: l.blockNumber ?? 0n,
-            blockHash: l.blockHash ?? null,
-          });
-        }
-        lastErr = null;
-        break;
-      } catch (err) {
-        lastErr = err as Error;
-        if (attempt < SCAN_CHUNK_RETRIES - 1) {
-          await new Promise((r) => setTimeout(r, SCAN_CHUNK_BACKOFF_MS * (attempt + 1)));
-        }
-      }
-    }
-    if (lastErr) {
-      logger.warn(
-        {
-          err: lastErr.message,
-          address: inputs.address,
-          fromBlock: cursor.toString(),
-          toBlock: windowEnd.toString(),
-          attempts: SCAN_CHUNK_RETRIES,
-        },
-        'network stats scan failed after retries; throwing so the cache can serve last good',
-      );
-      throw lastErr;
-    }
-    cursor = windowEnd + 1n;
+  for (let i = 0; i < windows.length; i += SCAN_CONCURRENCY) {
+    const batch = windows.slice(i, i + SCAN_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((w) => scanOneChunk(inputs, w.from, w.to)),
+    );
+    for (const r of results) out.push(...r);
   }
   return out;
 }

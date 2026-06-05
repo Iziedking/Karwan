@@ -3917,7 +3917,7 @@ export const en: MessagesShape = {
       tag: 'STAKE',
       headlinePrefix: 'Earn ',
       headlineAccent: 'reputation',
-      body: 'Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 7-day cool-down on withdrawal.',
+      body: 'Deposit USDC into KarwanVault. The longer it sits, the more reputation it earns. 3-day cool-down on withdrawal.',
     },
     preferences: {
       tag: 'PREFERENCES',
@@ -6043,7 +6043,7 @@ export const en: MessagesShape = {
       line1Accent: 'reputation',
       line2Prefix: 'Earn',
       line2Accent: 'yield',
-      body: 'Stake USDC. The longer it sits, the more reputation it earns. Withdraw any time. 7-day cool-down on the way out.',
+      body: 'Stake USDC. The longer it sits, the more reputation it earns. Withdraw any time. 3-day cool-down on the way out.',
       mainnetNote: '// IDLE STAKE ROUTES THROUGH HASHNOTE USYC FOR ~5% APY, CREDITED DAILY',
     },
     position: {
