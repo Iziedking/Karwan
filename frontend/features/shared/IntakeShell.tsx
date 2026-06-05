@@ -4,11 +4,18 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 
 /// Shared shell for the three intake composers (Direct Deal, Brief, Listing).
-/// Renders the mode chooser at top + either a free-text intake (textarea +
-/// Extract) or the structured form. After a successful extraction, the
-/// shell sets the URL params named by `mapToParams` and forces a remount
-/// of the form via `key` so its useState(initial...) reads the fresh
-/// values. Choice persists per browser via localStorage.
+/// Two modes, with a tooltip on each so the chooser is self-explanatory:
+///   - "Type it out" (default, more user-friendly): textarea + Extract. The
+///     shell calls the parent's `directPost(extracted)` and on success the
+///     parent navigates. If the post can't run yet because the LLM left
+///     required fields blank, the shell falls back to "Fill the form" mode
+///     with the extracted values pre-filled (via URL params + a key bump on
+///     the form). The user can edit and submit normally.
+///   - "Fill the form": the existing structured form, no LLM in the path.
+///
+/// Default mode is 'text' (the user explicitly asked for this) and the
+/// choice persists per surface in localStorage so a repeat user lands on
+/// whichever mode they last used.
 
 type Mode = 'text' | 'form';
 
@@ -25,26 +32,30 @@ export type ExtractedDeal = {
   notes: string[];
 };
 
+/// Result the parent's directPost returns. Discriminated by `kind`:
+///   - 'posted' → parent already navigated, shell does nothing more
+///   - 'review' → shell switches to form mode with params merged into URL,
+///     key bumped, notes shown above the form
+///   - 'error'  → shell shows an inline error, stays on text mode
+export type DirectPostResult =
+  | { kind: 'posted' }
+  | { kind: 'review'; params: URLSearchParams; notes: string[] }
+  | { kind: 'error'; error: string };
+
 export interface IntakeShellProps {
   surface: 'direct' | 'brief' | 'listing';
-  /// localStorage key under which the user's preferred mode persists. Use a
-  /// distinct key per surface so a buyer's Brief preference doesn't override
-  /// their Direct Deal preference.
   storageKey: string;
-  /// Placeholder shown in the textarea. Surface-specific.
   placeholder: string;
-  /// One-liner hint under the chooser.
   helper: string;
-  /// Build the URLSearchParams that drive the form prefill. Receives the
-  /// extracted object; returns the params to merge into the URL.
-  mapToParams: (e: ExtractedDeal, current: URLSearchParams) => URLSearchParams;
-  /// Build the notes panel content. Receives the extracted object; returns
-  /// any human-readable lines to surface above the form (extracted fields
-  /// that didn't fit the URL prefill, model uncertainty, etc.).
-  notesFor: (e: ExtractedDeal) => string[];
-  /// The structured form rendered when mode is 'form'. The shell bumps `key`
-  /// after every successful extraction to force the form to remount and
-  /// re-read URL params as its initial state.
+  /// Hover/long-press tooltip for the "Type it out" chooser pill.
+  textTooltip: string;
+  /// Hover/long-press tooltip for the "Fill the form" chooser pill.
+  formTooltip: string;
+  /// Called when the user clicks Extract. The parent decides what to do
+  /// with the extracted data — usually post the entity and navigate. If
+  /// posting can't happen yet, return { needsReview: true, params, notes }
+  /// to fall back to form mode with prefilled values for editing.
+  directPost: (e: ExtractedDeal) => Promise<DirectPostResult>;
   renderForm: (formKey: number) => ReactNode;
 }
 
@@ -53,14 +64,15 @@ export function IntakeShell({
   storageKey,
   placeholder,
   helper,
-  mapToParams,
-  notesFor,
+  textTooltip,
+  formTooltip,
+  directPost,
   renderForm,
 }: IntakeShellProps) {
   const router = useRouter();
   const search = useSearchParams();
 
-  const [mode, setMode] = useState<Mode>('form');
+  const [mode, setMode] = useState<Mode>('text');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,15 +108,24 @@ export function IntakeShell({
     try {
       const res = await api.extractDeal({ text: trimmed, surface });
       const extracted = res.extracted as ExtractedDeal;
-      const next = mapToParams(extracted, new URLSearchParams(search.toString()));
-      router.replace(`?${next.toString()}`, { scroll: false });
-      setNotes(notesFor(extracted).slice(0, 8));
-      setFormKey((k) => k + 1);
-      pickMode('form');
+      const outcome = await directPost(extracted);
+
+      if (outcome.kind === 'posted') {
+        // Parent navigated. Nothing more to do.
+        return;
+      }
+      if (outcome.kind === 'review') {
+        router.replace(`?${outcome.params.toString()}`, { scroll: false });
+        setNotes(outcome.notes.slice(0, 8));
+        setFormKey((k) => k + 1);
+        pickMode('form');
+        return;
+      }
+      setError(outcome.error);
     } catch (err) {
       setError(
         (err as Error).message ??
-          'Could not parse that description. You can fill the form instead.',
+          'Could not parse that description. Try the form instead.',
       );
     } finally {
       setBusy(false);
@@ -114,10 +135,18 @@ export function IntakeShell({
   return (
     <div className="space-y-7">
       <div className="inline-flex p-1 gap-1" style={CHOOSER_BG}>
-        <ChooserButton active={mode === 'text'} onClick={() => pickMode('text')}>
+        <ChooserButton
+          active={mode === 'text'}
+          onClick={() => pickMode('text')}
+          tooltip={textTooltip}
+        >
           Type it out
         </ChooserButton>
-        <ChooserButton active={mode === 'form'} onClick={() => pickMode('form')}>
+        <ChooserButton
+          active={mode === 'form'}
+          onClick={() => pickMode('form')}
+          tooltip={formTooltip}
+        >
           Fill the form
         </ChooserButton>
       </div>
@@ -160,7 +189,7 @@ export function IntakeShell({
                 borderBottomRightRadius: 3,
               }}
             >
-              {busy ? 'Extracting' : 'Extract fields →'}
+              {busy ? 'Posting' : 'Post →'}
             </button>
           </div>
           {error ? (
@@ -195,7 +224,7 @@ export function IntakeShell({
               }}
             >
               <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-                [:NOTES FROM EXTRACTION:]
+                [:NEEDS YOUR INPUT:]
               </p>
               <ul className="mt-2 space-y-1.5 text-[13px] leading-snug text-[var(--lp-dark)]">
                 {notes.map((n, i) => (
@@ -233,16 +262,20 @@ const CHOOSER_RADII = {
 function ChooserButton({
   active,
   onClick,
+  tooltip,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  tooltip: string;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={tooltip}
+      aria-label={tooltip}
       className="px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
       style={{
         background: active ? 'var(--lp-dark)' : 'transparent',

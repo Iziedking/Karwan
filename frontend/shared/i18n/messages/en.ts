@@ -3722,7 +3722,7 @@ export const en: MessagesShape = {
   },
   dealPanel: {
     managedLabel: 'Find me a seller',
-    managedBlurb: 'Post a request. Your agent runs the bidding. You wake up to a settled deal.',
+    managedBlurb: 'Post a request. Your agent runs the bidding. You wake up to a matched deal, ready for you to fund.',
     directLabel: 'I have a seller',
     directBlurb: 'You already agreed with a counterparty. Open an escrow naming their wallet, skip the auction.',
   },
