@@ -362,6 +362,19 @@ export async function backfillBusFromChain(
   const jobBoardAddr = (config.KARWAN_JOBBOARD_ADDR ?? null) as `0x${string}` | null;
   const repAddr = (config.KARWAN_REPUTATION_ADDR ?? null) as `0x${string}` | null;
 
+  logger.info(
+    {
+      force: !!opts.force,
+      existingHistory: bus.historyLength(),
+      head: head.toString(),
+      lowerBound: lowerBound.toString(),
+      escrowAddr,
+      jobBoardAddr,
+      repAddr,
+    },
+    'event backfill: starting chain replay',
+  );
+
   /// Resolve each event once. A null result means the ABI doesn't have it
   /// (logged in resolveEvent); the corresponding scan is skipped and the
   /// rest still run. This is what stops a renamed event from crashing boot.

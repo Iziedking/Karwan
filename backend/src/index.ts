@@ -276,7 +276,16 @@ async function boot() {
   /// completes immediately, the replay populates the bus in the background,
   /// and the next /api/activity read after it finishes returns the seeded
   /// history. Skips itself if the bus already loaded from disk.
-  backfillBusFromChain().catch((err) =>
+  ///
+  /// FORCE_EVENT_BACKFILL=1 on the env bypasses the skip-guard and replays
+  /// unconditionally. Use after a contract redeploy, after a VPS rebuild
+  /// that left a stale data/events.json behind, or any time /activity shows
+  /// zero on a chain that obviously has history. Safe to leave on; the
+  /// replay dedupes by (type|jobId|ts) when injecting.
+  const forceBackfill =
+    (process.env.FORCE_EVENT_BACKFILL ?? '').toLowerCase() === '1' ||
+    (process.env.FORCE_EVENT_BACKFILL ?? '').toLowerCase() === 'true';
+  backfillBusFromChain({ force: forceBackfill }).catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'event backfill failed'),
   );
 }
