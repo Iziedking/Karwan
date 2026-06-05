@@ -151,8 +151,8 @@ export function OnChainProofBand() {
           loading={!stats}
         />
         <SmallStat
-          label={t.smallStats.vaultClaims}
-          value={stats?.totals.vaultClaims ?? 0}
+          label="Yield claims"
+          value={stats?.totals.yieldClaims ?? 0}
           loading={!stats}
         />
         <SmallStat
@@ -176,6 +176,12 @@ export function OnChainProofBand() {
             <ContractRow label={t.sourceContracts.labels.reputation} address={stats.contracts.reputation} />
             <ContractRow label={t.sourceContracts.labels.treasury} address={stats.contracts.treasury} />
             <ContractRow label={t.sourceContracts.labels.jobBoard} address={stats.contracts.jobBoard} />
+            {stats.contracts.yieldDistributor ? (
+              <ContractRow
+                label="Yield distributor"
+                address={stats.contracts.yieldDistributor}
+              />
+            ) : null}
           </ul>
         </div>
       )}

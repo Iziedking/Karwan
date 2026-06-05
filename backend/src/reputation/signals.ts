@@ -212,30 +212,32 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   };
 }
 
-/// KarwanReputation.recordCompletion writes scores against the *agent* wallet
-/// counterparty, never the user's owner address. Specifically:
-///   subject = msg.sender == buyer ? seller : buyer
-/// where msg.sender, buyer, seller are all agent wallet addresses (the
-/// escrow on-chain "buyer" is the buyer's agent, not the user). So a user
-/// who's sold into 15 deals has scores[sellerAgent] = (15, 0, 0) but
-/// scores[ownerAddress] = (0, 0, 0). Reading scores against the owner
-/// address therefore returns zero even when the chain has the full record.
+/// Score-aggregation history:
+///   - Pre-v2.E: KarwanReputation.recordCompletion was called with AGENT
+///     wallet addresses for buyer + seller. Scores accumulated on each
+///     agent's address; the identity address read zero.
+///   - v2.E (task #257, "Escrow: per-deal reservationBps + identity
+///     resolve"): the escrow now resolves agents back to identity BEFORE
+///     calling recordCompletion. New deals credit the identity address;
+///     reads against the identity return the real count.
 ///
-/// To surface the user's true on-chain credit, look up both their buyer
-/// agent + seller agent addresses and sum the scores. Falls back to a
-/// direct read when no agent wallets are bound (caller queried with an
-/// agent address that doesn't own others, or a fresh wallet pre-activation).
+/// Both shapes coexist on chain: a wallet active across both generations
+/// has some credits on agents and some on identity. Summing identity +
+/// buyer agent + seller agent covers every history slice with no double-
+/// counting (a single deal fires CompletionRecorded once, against EITHER
+/// identity OR agent depending on which generation settled it).
 async function readChainScores(
   address: string,
 ): Promise<{ successCount: number; disputedCount: number; failedCount: number }> {
   const wallets = await getAgentWallets(address).catch(() => null);
-  const targets: string[] = [];
-  if (wallets?.buyerAddress) targets.push(wallets.buyerAddress);
-  if (wallets?.sellerAddress) targets.push(wallets.sellerAddress);
-  // Either the address has no agent record (read it directly as a fallback)
-  // or it IS an agent address whose owner we couldn't resolve — read it too
-  // so a query against an agent address still returns the agent's credits.
-  if (targets.length === 0) targets.push(address);
+  // Identity ALWAYS in the target set — that's where v2.E+ credits land.
+  const targets: string[] = [address];
+  if (wallets?.buyerAddress && wallets.buyerAddress.toLowerCase() !== address.toLowerCase()) {
+    targets.push(wallets.buyerAddress);
+  }
+  if (wallets?.sellerAddress && wallets.sellerAddress.toLowerCase() !== address.toLowerCase()) {
+    targets.push(wallets.sellerAddress);
+  }
 
   const reads = await Promise.all(targets.map(readSingleScores));
   return reads.reduce(

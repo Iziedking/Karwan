@@ -413,6 +413,9 @@ export interface NetworkOnchainStats {
     treasury: string;
     reputation: string;
     jobBoard: string;
+    /// KarwanYieldDistributor — the per-address USDC claim contract for
+    /// daily-credited staker yield. Empty string when not configured.
+    yieldDistributor: string;
   };
   totals: {
     jobsPosted: number;
@@ -425,6 +428,7 @@ export interface NetworkOnchainStats {
     vaultClaims: number;
     vaultSlashes: number;
     reputationRecords: number;
+    yieldClaims: number;
   };
   volumes: {
     fundedUsdc: string;

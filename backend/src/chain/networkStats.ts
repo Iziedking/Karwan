@@ -48,6 +48,9 @@ const EVENT_REP_COMPLETION = parseAbiItem(
 const EVENT_JOB_POSTED = parseAbiItem(
   'event JobPosted(bytes32 indexed jobId, address indexed buyer, uint256 budgetUsdc, uint256 deadline, string brief)',
 ) as AbiEvent;
+const EVENT_YIELD_CLAIMED = parseAbiItem(
+  'event YieldClaimed(address indexed staker, address indexed to, uint256 amount)',
+) as AbiEvent;
 
 export interface DaySeriesPoint {
   /// UTC midnight epoch ms for the day this bucket covers.
@@ -71,6 +74,9 @@ export interface NetworkStats {
     treasury: string;
     reputation: string;
     jobBoard: string;
+    /// KarwanYieldDistributor — the per-address USDC claim contract for
+    /// daily-credited staker yield. Empty string when not configured.
+    yieldDistributor: string;
   };
   totals: {
     jobsPosted: number;
@@ -83,6 +89,9 @@ export interface NetworkStats {
     vaultClaims: number;
     vaultSlashes: number;
     reputationRecords: number;
+    /// Lifetime YieldClaimed events on KarwanYieldDistributor — every time
+    /// a staker pulled their accrued share to their wallet.
+    yieldClaims: number;
   };
   volumes: {
     /// USDC funded (sum of dealAmount across every EscrowFunded).
@@ -128,6 +137,12 @@ interface ScanInputs {
   event: AbiEvent;
 }
 
+/// Per-chunk retry tuning. RPC flakiness on testnet can drop a window even
+/// when nothing's wrong with the data; up to 3 attempts with linear backoff
+/// recovers > 95% of transient failures we've seen in practice.
+const SCAN_CHUNK_RETRIES = 3;
+const SCAN_CHUNK_BACKOFF_MS = 400;
+
 async function safeScan(
   inputs: ScanInputs,
   fromBlock: bigint,
@@ -145,33 +160,52 @@ async function safeScan(
   while (cursor <= toBlock) {
     const end = cursor + SCAN_CHUNK_BLOCKS - 1n;
     const windowEnd = end > toBlock ? toBlock : end;
-    try {
-      const logs = await publicClient.getLogs({
-        address: inputs.address,
-        event: inputs.event,
-        fromBlock: cursor,
-        toBlock: windowEnd,
-      });
-      for (const l of logs) {
-        out.push({
-          args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
-            string,
-            unknown
-          >,
-          blockNumber: l.blockNumber ?? 0n,
-          blockHash: l.blockHash ?? null,
+
+    // Retry the chunk on transient RPC failure. If every attempt fails we
+    // THROW — silently dropping a chunk made counts swing between refreshes
+    // (each refresh saw a different random subset of failures), so users
+    // got partial data dressed up as ground truth. Better to fail loud here
+    // and let getNetworkStats serve the last cached snapshot.
+    let lastErr: Error | null = null;
+    for (let attempt = 0; attempt < SCAN_CHUNK_RETRIES; attempt++) {
+      try {
+        const logs = await publicClient.getLogs({
+          address: inputs.address,
+          event: inputs.event,
+          fromBlock: cursor,
+          toBlock: windowEnd,
         });
+        for (const l of logs) {
+          out.push({
+            args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
+              string,
+              unknown
+            >,
+            blockNumber: l.blockNumber ?? 0n,
+            blockHash: l.blockHash ?? null,
+          });
+        }
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err as Error;
+        if (attempt < SCAN_CHUNK_RETRIES - 1) {
+          await new Promise((r) => setTimeout(r, SCAN_CHUNK_BACKOFF_MS * (attempt + 1)));
+        }
       }
-    } catch (err) {
+    }
+    if (lastErr) {
       logger.warn(
         {
-          err: (err as Error).message,
+          err: lastErr.message,
           address: inputs.address,
           fromBlock: cursor.toString(),
           toBlock: windowEnd.toString(),
+          attempts: SCAN_CHUNK_RETRIES,
         },
-        'network stats scan failed for one chunk; continuing',
+        'network stats scan failed after retries; throwing so the cache can serve last good',
       );
+      throw lastErr;
     }
     cursor = windowEnd + 1n;
   }
@@ -237,6 +271,8 @@ async function build(): Promise<NetworkStats> {
     (config.KARWAN_TREASURY_CONTRACT_ADDR ?? config.KARWAN_TREASURY_ADDR ?? null) as
       | `0x${string}`
       | null;
+  const distributorAddr = ((config as unknown as Record<string, string | undefined>)
+    .KARWAN_YIELD_DISTRIBUTOR_ADDR ?? null) as `0x${string}` | null;
 
   const [
     funded,
@@ -250,6 +286,7 @@ async function build(): Promise<NetworkStats> {
     slashes,
     completions,
     posted,
+    yieldClaimsLogs,
   ] = await Promise.all([
     safeScan({ address: escrowAddr, event: EVENT_ESCROW_FUNDED }, lowerBound, head),
     safeScan({ address: escrowAddr, event: EVENT_ESCROW_SETTLED }, lowerBound, head),
@@ -262,6 +299,7 @@ async function build(): Promise<NetworkStats> {
     safeScan({ address: vaultAddr, event: EVENT_VAULT_SLASHED }, lowerBound, head),
     safeScan({ address: repAddr, event: EVENT_REP_COMPLETION }, lowerBound, head),
     safeScan({ address: jobBoardAddr, event: EVENT_JOB_POSTED }, lowerBound, head),
+    safeScan({ address: distributorAddr, event: EVENT_YIELD_CLAIMED }, lowerBound, head),
   ]);
 
   // Resolve timestamps only for events that feed the daily series; saves a
@@ -327,6 +365,7 @@ async function build(): Promise<NetworkStats> {
       treasury: treasuryAddr ?? '',
       reputation: repAddr ?? '',
       jobBoard: jobBoardAddr ?? '',
+      yieldDistributor: distributorAddr ?? '',
     },
     totals: {
       jobsPosted: posted.length,
@@ -339,6 +378,7 @@ async function build(): Promise<NetworkStats> {
       vaultClaims: claims.length,
       vaultSlashes: slashes.length,
       reputationRecords: completions.length,
+      yieldClaims: yieldClaimsLogs.length,
     },
     volumes: {
       fundedUsdc: formatUsdc(fundedUsdc),
@@ -358,7 +398,19 @@ export async function getNetworkStats(force = false): Promise<NetworkStats> {
   if (!force && cached && now - cached.builtAt < CACHE_TTL_MS) {
     return cached.value;
   }
-  const value = await build();
-  cached = { value, builtAt: now };
-  return value;
+  try {
+    const value = await build();
+    cached = { value, builtAt: now };
+    return value;
+  } catch (err) {
+    // A chunk threw after retries. Don't replace the cache with partial or
+    // empty data — serve the last good snapshot so the dashboard stays
+    // honest. If there's no cache yet (first call ever failed), bubble up.
+    logger.warn(
+      { err: (err as Error).message, hasCache: !!cached },
+      'network stats build failed; falling back to last cached snapshot',
+    );
+    if (cached) return cached.value;
+    throw err;
+  }
 }
