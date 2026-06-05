@@ -186,19 +186,44 @@ async function gzipEnv(outPath: string): Promise<boolean> {
   return true;
 }
 
+/// Retry transient B2/S3 stream errors. The AWS SDK calls some failures
+/// "non-retryable streaming requests" — TLS resets, HTTP/2 GOAWAYs, brief
+/// 5xx with an unrewindable body — and bails on the first one. We've seen
+/// the backup crash on the env upload (the third PUT) after db+data went
+/// through fine, taking the heartbeat down with it. Each attempt opens a
+/// fresh ReadStream because Node streams aren't replayable.
+const UPLOAD_RETRIES = 3;
+const UPLOAD_BACKOFF_MS = 1_500;
+
 async function upload(key: string, filePath: string): Promise<void> {
-  const body = createReadStream(filePath);
   const size = statSync(filePath).size;
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: B2_BUCKET,
-      Key: key,
-      Body: body,
-      ContentLength: size,
-      ContentType: 'application/gzip',
-    }),
-  );
-  log.info({ key, size }, 'uploaded');
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= UPLOAD_RETRIES; attempt++) {
+    try {
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: B2_BUCKET,
+          Key: key,
+          Body: createReadStream(filePath),
+          ContentLength: size,
+          ContentType: 'application/gzip',
+        }),
+      );
+      if (attempt > 1) log.warn({ key, attempt }, 'upload recovered after retry');
+      log.info({ key, size }, 'uploaded');
+      return;
+    } catch (err) {
+      lastErr = err as Error;
+      log.warn(
+        { key, attempt, err: lastErr.message },
+        attempt < UPLOAD_RETRIES ? 'upload failed; retrying' : 'upload failed; giving up',
+      );
+      if (attempt < UPLOAD_RETRIES) {
+        await new Promise((r) => setTimeout(r, UPLOAD_BACKOFF_MS * attempt));
+      }
+    }
+  }
+  throw lastErr ?? new Error(`upload ${key} failed`);
 }
 
 /// Walk the bucket for the prefix, delete anything older than the retention
@@ -227,16 +252,21 @@ async function pruneOld(prefix: string): Promise<void> {
   if (pruned > 0) log.info({ prefix, pruned, retentionDays: RETENTION_DAYS }, 'prune ok');
 }
 
-async function pingHeartbeat(): Promise<void> {
+/// Healthchecks.io convention: GET <base>  → success, GET <base>/fail → fail,
+/// GET <base>/start → "started, expecting a success ping". Sending a fail
+/// ping on crash gives the operator a real failure email instead of a
+/// silent "no ping arrived in time" timeout an hour later.
+async function pingHeartbeat(kind: 'ok' | 'fail' = 'ok'): Promise<void> {
   if (!HEARTBEAT_URL) return;
+  const url = kind === 'fail' ? `${HEARTBEAT_URL.replace(/\/+$/, '')}/fail` : HEARTBEAT_URL;
   try {
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 10_000);
-    await fetch(HEARTBEAT_URL, { signal: ctl.signal });
+    await fetch(url, { signal: ctl.signal });
     clearTimeout(to);
-    log.info('heartbeat ok');
+    log.info({ kind }, 'heartbeat sent');
   } catch (err) {
-    log.warn({ err: (err as Error).message }, 'heartbeat failed (non-fatal)');
+    log.warn({ err: (err as Error).message, kind }, 'heartbeat send failed (non-fatal)');
   }
 }
 
@@ -267,7 +297,12 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   log.error({ err: (err as Error).message }, 'backup crashed');
+  // Tell healthchecks.io explicitly the run failed. Without this, the next
+  // success-only ping never lands and the operator gets a delayed "DOWN
+  // (no ping in time)" email — the active /fail variant arrives within
+  // seconds.
+  await pingHeartbeat('fail');
   process.exit(1);
 });
