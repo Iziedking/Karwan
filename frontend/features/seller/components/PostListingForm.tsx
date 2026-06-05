@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { api, ApiError, type Listing } from '@/core/api';
@@ -22,10 +22,26 @@ export function PostListingForm() {
   const isConnected = auth.isAuthenticated;
   const { activate, activating } = useActivation();
   const { recordAction } = useGuide();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState<number | ''>('');
-  const [tolerance, setTolerance] = useState<number | ''>('');
+  // Initial values from URL query params. ListingComposer sets these after
+  // the natural-language extractor lands so the form mounts pre-filled.
+  // Parsing is defensive: bad values fall through to the empty defaults.
+  const search = useSearchParams();
+  const initialTitle = search.get('title') ?? '';
+  const initialDescription = search.get('description') ?? '';
+  const initialPriceRaw = search.get('price');
+  const initialPrice =
+    initialPriceRaw != null && Number.isFinite(Number(initialPriceRaw))
+      ? Number(initialPriceRaw)
+      : null;
+  const initialToleranceRaw = search.get('tolerance');
+  const initialTolerance =
+    initialToleranceRaw != null && Number.isFinite(Number(initialToleranceRaw))
+      ? Number(initialToleranceRaw)
+      : null;
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
+  const [price, setPrice] = useState<number | ''>(initialPrice ?? '');
+  const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
   // Listing window in days. Backend caps at 90; default 30 lines up with
   // most marketplaces' "your post stays live for a month" convention.
   // Listing window expressed as { value, unit }. Backend takes ttlDays as a

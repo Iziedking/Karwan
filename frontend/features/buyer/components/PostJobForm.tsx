@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -24,17 +24,33 @@ export function PostJobForm() {
   const { activate, activating } = useActivation();
   const { profile, loading: profileLoading } = useUserProfile();
   const { recordAction } = useGuide();
-  const [brief, setBrief] = useState('');
-  const [budget, setBudget] = useState<number | ''>('');
+  // Initial values from URL query params. BriefComposer sets these after the
+  // natural-language extractor lands so the form mounts pre-filled. Parsing
+  // is defensive: bad values fall through to the empty defaults.
+  const search = useSearchParams();
+  const initialBrief = search.get('brief') ?? '';
+  const initialBudgetRaw = search.get('budget');
+  const initialBudget =
+    initialBudgetRaw != null && Number.isFinite(Number(initialBudgetRaw))
+      ? Number(initialBudgetRaw)
+      : null;
+  const initialToleranceRaw = search.get('tolerance');
+  const initialTolerance =
+    initialToleranceRaw != null && Number.isFinite(Number(initialToleranceRaw))
+      ? Number(initialToleranceRaw)
+      : null;
+  const initialTrustedMatch = search.get('trustedMatch') === '1';
+  const [brief, setBrief] = useState(initialBrief);
+  const [budget, setBudget] = useState<number | ''>(initialBudget ?? '');
   // Deadline split: a raw `value` and a `unit`. Submit converts to seconds.
   // Defaults adapt per unit so switching feels natural (5d → 2h → 15m).
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
-  const [tolerance, setTolerance] = useState<number | ''>('');
+  const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
   // Trusted Match: when on, the agent loop weights seller reputation + stake
   // above price and gates bids on the seller's free stake covering the deal's
   // insurance reservation. For higher-value or one-shot deals.
-  const [trustedMatch, setTrustedMatch] = useState(false);
+  const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);

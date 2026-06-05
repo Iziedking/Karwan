@@ -629,6 +629,30 @@ export const api = {
     json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
+  /// Natural-language deal extractor for the hybrid intake. Free text in,
+  /// structured fields + per-field confidence out. The form remains the
+  /// source of truth; every field returned here is editable before posting.
+  /// `surface` selects which fields the model focuses on; irrelevant fields
+  /// stay null and the per-surface composer maps the subset it cares about.
+  extractDeal: (body: { text: string; surface: 'direct' | 'brief' | 'listing' }) =>
+    json<{
+      ok: true;
+      extracted: {
+        amountUsdc: number | null;
+        deadlineDays: number | null;
+        terms: string;
+        title: string | null;
+        tolerancePct: number | null;
+        suggestedFirstMilestonePct: number | null;
+        suggestedTrustedMatch: boolean | null;
+        counterpartyHint: string | null;
+        confidence: { amount: number; deadline: number; terms: number };
+        notes: string[];
+      };
+    }>('/api/agents/extract-deal', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   job: (id: string, caller?: string | null) =>
     json<BuyerJob>(withCaller(`/api/jobs/${id}`, caller)),
   matchProposal: (jobId: string, caller?: string | null) =>

@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PostJobForm } from '@/features/buyer/components/PostJobForm';
+import { BriefComposer } from '@/features/buyer/components/BriefComposer';
 import { ActivationGate } from '@/shared/components/ActivationGate';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { DirectDealForm } from './DirectDealForm';
+import { DirectDealComposer } from './DirectDealComposer';
 
 type Mode = 'managed' | 'direct';
 
@@ -65,7 +65,7 @@ export function NewDealPanel() {
       </div>
 
       <ActivationGate>
-        {mode === 'managed' ? <PostJobForm /> : <DirectDealForm />}
+        {mode === 'managed' ? <BriefComposer /> : <DirectDealComposer />}
       </ActivationGate>
     </div>
   );

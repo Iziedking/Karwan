@@ -6,7 +6,7 @@ import { PendingMatchesBand } from '@/features/notifications/components/PendingM
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
-import { PostListingForm } from '@/features/seller/components/PostListingForm';
+import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
@@ -183,7 +183,7 @@ export default function SellerPage() {
               }}
             >
               <div className="p-6 md:p-8">
-                <PostListingForm />
+                <ListingComposer />
               </div>
             </div>
           </div>
