@@ -115,9 +115,30 @@ contract MockUSYC {
         return PRICE_SCALE + growth;
     }
 
-    /// @notice Chainlink-aggregator-style price read.
+    /// @notice Chainlink-aggregator-style price read. 8-decimal, legacy
+    ///         interface; KarwanTreasury v3 used this before being patched.
     function latestAnswer() external view returns (int256) {
         return int256(price());
+    }
+
+    /// @notice Modern Chainlink interface used by KarwanTreasury v4+. The
+    ///         real Hashnote USYC oracle on Arc Testnet exposes only this,
+    ///         returning 18-decimal prices. The mock scales the internal
+    ///         8-decimal `price()` up by 1e10 to match that surface so
+    ///         tests against the patched Treasury read sane numbers.
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt_,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
+        uint256 p18 = price() * 1e10;
+        return (uint80(1), int256(p18), block.timestamp, block.timestamp, uint80(1));
     }
 
     /* =============================================================== */
