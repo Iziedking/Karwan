@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { formatUnits } from 'viem';
+import { formatUnits, parseAbiItem, getAddress } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -88,11 +88,28 @@ function distributorAddress(): `0x${string}` | null {
   return v ? (v as `0x${string}`) : null;
 }
 
-/// Per-staker yield snapshot. Returns claimable (current pull amount) plus a
-/// rough lifetime hint via the contract's monotonic totals — the totals here
-/// are protocol-wide, but the UI uses them to show "you have X claimable, and
-/// the protocol has credited Y in total today." The frontend can also show
-/// the user's count-up just from `claimable`.
+/// Per-staker yield snapshot. Returns:
+///   - claimableUsdc          live, from the contract view
+///   - lifetimeCreditedUsdc   sum of YieldCredited for this staker (events)
+///   - lifetimeClaimedUsdc    sum of YieldClaimed for this staker (events)
+///
+/// The lifetime totals come from event scans so we surface them without
+/// needing per-address view functions on the contract. Both events are
+/// indexed by staker so the RPC filter is cheap. Cached 30s per address.
+
+const YieldClaimedEvent = parseAbiItem(
+  'event YieldClaimed(address indexed staker, address indexed to, uint256 amount)',
+);
+
+interface MeSnapshot {
+  claimableUsdc: string;
+  lifetimeCreditedUsdc: string;
+  lifetimeClaimedUsdc: string;
+}
+
+const meCache = new Map<string, { at: number; data: MeSnapshot }>();
+const ME_TTL_MS = 30_000;
+
 yieldRoutes.get('/me', async (c) => {
   const distributor = distributorAddress();
   if (!distributor) {
@@ -100,6 +117,8 @@ yieldRoutes.get('/me', async (c) => {
       configured: false,
       address: null,
       claimableUsdc: '0',
+      lifetimeCreditedUsdc: '0',
+      lifetimeClaimedUsdc: '0',
       detail: 'KARWAN_YIELD_DISTRIBUTOR_ADDR not set',
     });
   }
@@ -108,17 +127,60 @@ yieldRoutes.get('/me', async (c) => {
   if (!parsed.success) {
     return c.json({ error: 'address required' }, 400);
   }
-  try {
-    const claimable = (await publicClient.readContract({
-      address: distributor,
-      abi: distributorAbi,
-      functionName: 'claimable',
-      args: [parsed.data as `0x${string}`],
-    })) as bigint;
+  const checksummed = getAddress(parsed.data) as `0x${string}`;
+  const cached = meCache.get(checksummed);
+  if (cached && Date.now() - cached.at < ME_TTL_MS) {
     return c.json({
       configured: true,
       address: distributor,
+      ...cached.data,
+    });
+  }
+  try {
+    const head = await publicClient.getBlockNumber();
+    const deploy = distributorDeployBlock();
+    const fallbackBack = 14n * 24n * 60n * 60n / 1n;
+    const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
+
+    const [claimable, creditedLogs, claimedLogs] = await Promise.all([
+      publicClient.readContract({
+        address: distributor,
+        abi: distributorAbi,
+        functionName: 'claimable',
+        args: [checksummed],
+      }) as Promise<bigint>,
+      publicClient.getLogs({
+        address: distributor,
+        event: YieldCreditedEvent,
+        fromBlock: start,
+        toBlock: head,
+        args: { staker: checksummed },
+      }),
+      publicClient.getLogs({
+        address: distributor,
+        event: YieldClaimedEvent,
+        fromBlock: start,
+        toBlock: head,
+        args: { staker: checksummed },
+      }),
+    ]);
+
+    let lifetimeCredited = 0n;
+    for (const log of creditedLogs) lifetimeCredited += log.args.amount ?? 0n;
+    let lifetimeClaimed = 0n;
+    for (const log of claimedLogs) lifetimeClaimed += log.args.amount ?? 0n;
+
+    const snapshot: MeSnapshot = {
       claimableUsdc: formatUnits(claimable, USDC_DECIMALS),
+      lifetimeCreditedUsdc: formatUnits(lifetimeCredited, USDC_DECIMALS),
+      lifetimeClaimedUsdc: formatUnits(lifetimeClaimed, USDC_DECIMALS),
+    };
+    meCache.set(checksummed, { at: Date.now(), data: snapshot });
+
+    return c.json({
+      configured: true,
+      address: distributor,
+      ...snapshot,
     });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'yield /me read failed');
@@ -174,6 +236,105 @@ yieldRoutes.get('/protocol', async (c) => {
     });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'yield /protocol read failed');
+    return c.json({ error: 'read failed', detail: (err as Error).message }, 502);
+  }
+});
+
+/// Daily yield-distribution timeseries. Reads YieldCredited events from
+/// the distributor and groups them by unix day to render the protocol
+/// (or a single staker) distribution chart. Returns ascending by day.
+///
+/// Optional `address` query filters to a single staker. Without it, we
+/// aggregate across every staker — the protocol's total accrual curve.
+///
+/// Cached for 30s in memory to absorb the chart's 30s poll without hammering
+/// the RPC. Block range is bounded by KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK
+/// when set, otherwise scans the last ~14 days of blocks (1.2s avg block).
+
+const YieldCreditedEvent = parseAbiItem(
+  'event YieldCredited(address indexed staker, uint256 amount, uint32 indexed day)',
+);
+
+interface HistoryPoint {
+  day: string;
+  dailyCreditedUsdc: string;
+  cumulativeCreditedUsdc: string;
+}
+
+const historyCache = new Map<string, { at: number; data: HistoryPoint[] }>();
+const HISTORY_TTL_MS = 30_000;
+
+function distributorDeployBlock(): bigint {
+  const v = (config as unknown as Record<string, string | undefined>)
+    .KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK;
+  if (v && /^\d+$/.test(v)) return BigInt(v);
+  return 0n;
+}
+
+yieldRoutes.get('/history', async (c) => {
+  const distributor = distributorAddress();
+  if (!distributor) {
+    return c.json({ configured: false, history: [] });
+  }
+
+  const addressParam = c.req.query('address') ?? '';
+  let filterAddress: `0x${string}` | null = null;
+  if (addressParam) {
+    const parsed = addrSchema.safeParse(addressParam);
+    if (!parsed.success) {
+      return c.json({ error: 'invalid address' }, 400);
+    }
+    filterAddress = getAddress(parsed.data) as `0x${string}`;
+  }
+
+  const cacheKey = filterAddress ?? 'protocol';
+  const cached = historyCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < HISTORY_TTL_MS) {
+    return c.json({ configured: true, history: cached.data });
+  }
+
+  try {
+    const head = await publicClient.getBlockNumber();
+    const deploy = distributorDeployBlock();
+    // Fallback to ~14 days of blocks at 1.2s avg if deploy block unknown.
+    const fallbackBack = 14n * 24n * 60n * 60n / 1n;
+    const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
+
+    const logs = await publicClient.getLogs({
+      address: distributor,
+      event: YieldCreditedEvent,
+      fromBlock: start,
+      toBlock: head,
+      args: filterAddress ? { staker: filterAddress } : undefined,
+    });
+
+    /// Sum credits per unix day. The `day` topic on the event is
+    /// `block.timestamp / 86400`, an integer day index.
+    const perDay = new Map<number, bigint>();
+    for (const log of logs) {
+      const day = Number(log.args.day ?? 0n);
+      const amount = log.args.amount ?? 0n;
+      perDay.set(day, (perDay.get(day) ?? 0n) + amount);
+    }
+
+    const sortedDays = [...perDay.keys()].sort((a, b) => a - b);
+    let running = 0n;
+    const history: HistoryPoint[] = [];
+    for (const day of sortedDays) {
+      const daily = perDay.get(day) ?? 0n;
+      running += daily;
+      const iso = new Date(day * 86_400_000).toISOString().slice(0, 10);
+      history.push({
+        day: iso,
+        dailyCreditedUsdc: formatUnits(daily, USDC_DECIMALS),
+        cumulativeCreditedUsdc: formatUnits(running, USDC_DECIMALS),
+      });
+    }
+
+    historyCache.set(cacheKey, { at: Date.now(), data: history });
+    return c.json({ configured: true, history });
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'yield /history read failed');
     return c.json({ error: 'read failed', detail: (err as Error).message }, 502);
   }
 });

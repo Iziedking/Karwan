@@ -13,6 +13,7 @@ import {
 import { SignInGate } from '@/shared/components/SignInGate';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
+import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPanel';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { TIER_HUE } from '@/features/reputation/tierColors';
@@ -122,10 +123,11 @@ export default function StakePage() {
           </p>
         </div>
 
-        {/* POSITION READOUT — count-up score + tier. Lifted out of the
-            max-w-[60ch] wrapper so the tier column can hold full tier
-            strings like ESTABLISHED without truncation. */}
-        <div className="fade-up mt-9 max-w-[760px] grid grid-cols-2 sm:grid-cols-[1fr_auto_1fr] gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+        {/* POSITION READOUT — count-up score + tier. The tier column has a
+            hard 200px minimum and fits to content, so long tier strings
+            like ESTABLISHED render in full without ever truncating. The
+            other two columns share the remaining width. */}
+        <div className="fade-up mt-9 max-w-[760px] grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_minmax(200px,max-content)_minmax(0,1fr)] gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
           <Stat label={sp.position.reputation}>
             <span className="tabular-nums">
               <CountUp value={score} />
@@ -155,20 +157,36 @@ export default function StakePage() {
         </div>
       </Band>
 
-      {/* PROTOCOL RESERVES — read directly from the YieldDistributor.
-          Surfaces lifetime accrual, withdrawn share, and outstanding claim. */}
+      {/* NETWORK YIELD — protocol-wide accrual, three tiles + live chart. */}
       <Band tone="light" compact>
-        <SectionTag>RESERVES</SectionTag>
+        <SectionTag>NETWORK YIELD</SectionTag>
         <HeroHeadline size="md">
-          Tokenized T-bills<Punc>.</Punc> On-chain yield<Punc>.</Punc>
+          Tokenized T-bills<Punc>.</Punc> Verified yield<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          Idle stake accrues yield through Hashnote USYC, tokenized US
-          Treasuries settled on Arc. Each staker earns a pro-rata share,
-          non-custodial and claimable on demand.
+        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
+          Idle stake accrues through Hashnote USYC, a regulated tokenized
+          money-market fund backed by short-duration US Treasuries. Lifetime
+          distribution to every staker on the protocol, settled on Arc and
+          provable on chain.
         </p>
         <div className="mt-9">
           <ReservesWidget />
+        </div>
+      </Band>
+
+      {/* PER-ACCOUNT YIELD — the connected wallet's slice + Claim CTA. */}
+      <Band tone="light" compact>
+        <SectionTag>YOUR YIELD</SectionTag>
+        <HeroHeadline size="md">
+          Earned by you<Punc>.</Punc> Claimable by you<Punc>.</Punc>
+        </HeroHeadline>
+        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
+          Your share of the protocol&apos;s lifetime accrual. The longer and
+          larger your active stake, the bigger the slice. Claim to your
+          connected wallet at any time, non-custodial and on demand.
+        </p>
+        <div className="mt-9">
+          <YieldClaimPanel />
         </div>
       </Band>
 

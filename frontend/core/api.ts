@@ -1000,14 +1000,16 @@ export const api = {
       /// `true` for back-compat.
       synced?: boolean;
     }>(`/api/vault/positions?address=${address}`),
-  /// KarwanYieldDistributor: this address's current claimable USDC. The
-  /// daily cron credits balances; users claim from their wallet (web3) or
-  /// via the backend signing path (Circle).
+  /// KarwanYieldDistributor: this address's claimable + lifetime totals.
+  /// Lifetime credited and claimed come from event scans (YieldCredited /
+  /// YieldClaimed indexed by staker), cached 30s on the backend.
   yieldMe: (address: string) =>
     json<{
       configured: boolean;
       address: string | null;
       claimableUsdc: string;
+      lifetimeCreditedUsdc: string;
+      lifetimeClaimedUsdc: string;
       detail?: string;
     }>(`/api/yield/me?address=${address}`),
   /// Protocol-wide yield reserves for the /stake widget.
@@ -1020,6 +1022,18 @@ export const api = {
       outstandingUsdc?: string;
       usdcBalance?: string;
     }>('/api/yield/protocol'),
+  /// Per-day distribution timeseries. Without `address`, returns the
+  /// protocol's aggregate accrual curve. With `address`, returns the
+  /// per-staker series. Both cached 30s on the backend.
+  yieldHistory: (address?: string) =>
+    json<{
+      configured: boolean;
+      history: Array<{
+        day: string;
+        dailyCreditedUsdc: string;
+        cumulativeCreditedUsdc: string;
+      }>;
+    }>(`/api/yield/history${address ? `?address=${address}` : ''}`),
   /// Circle-user claim path. Web3 users sign claim() directly from their
   /// own wallet; they do not call this endpoint.
   yieldClaim: (body: { address: string }) =>

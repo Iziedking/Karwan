@@ -9,11 +9,10 @@ import {
   KARWAN_YIELD_DISTRIBUTOR_ADDRESS,
 } from '../../profile/config';
 
-/// Per-staker yield surface. Reads `claimable(address)` off the
-/// KarwanYieldDistributor every 12s while open. Web3 users sign `claim()`
-/// from their connected wallet; Circle users route through the backend
-/// DCW signing path. Compact, lime-accented, plain numbers up front — the
-/// staker's mental model is "how much can I pull right now."
+/// Per-account yield surface. Mirrors the network block's three-tile shape
+/// but for the connected wallet: distributed-to-you, claimed-by-you,
+/// available-to-claim. Inline Claim CTA pulls available USDC into the
+/// connected wallet (web3) or through the backend DCW (Circle).
 
 const distributorAbi = [
   {
@@ -24,6 +23,16 @@ const distributorAbi = [
     outputs: [{ type: 'uint256' }],
   },
 ] as const;
+
+function fmt(s: string | undefined): string {
+  if (!s) return '—';
+  const n = Number(s);
+  if (!Number.isFinite(n)) return '—';
+  if (n === 0) return '0';
+  if (n < 1) return n.toFixed(4);
+  if (n < 1000) return n.toFixed(2);
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
 
 function shortHash(h: string): string {
   return `${h.slice(0, 8)}...${h.slice(-6)}`;
@@ -39,6 +48,8 @@ export function YieldClaimPanel() {
   const { switchChainAsync } = useSwitchChain();
 
   const [claimable, setClaimable] = useState('0');
+  const [lifetimeCredited, setLifetimeCredited] = useState('0');
+  const [lifetimeClaimed, setLifetimeClaimed] = useState('0');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null);
@@ -53,8 +64,10 @@ export function YieldClaimPanel() {
         return;
       }
       setClaimable(r.claimableUsdc);
+      setLifetimeCredited(r.lifetimeCreditedUsdc);
+      setLifetimeClaimed(r.lifetimeClaimedUsdc);
     } catch {
-      // silent — UI shows "—" if it stays unset
+      // silent — tiles render — when fetch first lands
     } finally {
       setLoading(false);
     }
@@ -66,7 +79,7 @@ export function YieldClaimPanel() {
       return;
     }
     refetch();
-    const id = setInterval(refetch, 12_000);
+    const id = setInterval(refetch, 30_000);
     return () => clearInterval(id);
   }, [address, refetch]);
 
@@ -108,63 +121,99 @@ export function YieldClaimPanel() {
     }
   }, [address, claimableNum, isCircleUser, walletClient, arcClient, chainId, switchChainAsync, refetch]);
 
-  if (!address) return null;
+  if (!address) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-6 text-[13px] text-[var(--lp-text-muted)]">
+        Sign in to see your accrued yield and claim it to your wallet.
+      </div>
+    );
+  }
 
-  const displayAmount = loading ? '—' : Number(claimable).toFixed(4);
+  const tiles: Array<{ label: string; value: string; hint: string }> = [
+    {
+      label: 'Distributed to you',
+      value: loading ? '—' : fmt(lifetimeCredited),
+      hint: 'Lifetime credited to your stake',
+    },
+    {
+      label: 'Claimed by you',
+      value: loading ? '—' : fmt(lifetimeClaimed),
+      hint: 'Withdrawn to your wallet',
+    },
+    {
+      label: 'Available to claim',
+      value: loading ? '—' : fmt(claimable),
+      hint: 'Ready to pull right now',
+    },
+  ];
 
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{
-        background: 'var(--lp-band-dark)',
-        color: 'var(--lp-cream)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 4,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.18)',
-      }}
-    >
-      {/* Geometric corner mark, flat fill, not a gradient. */}
-      <div
-        aria-hidden
-        className="absolute -top-px -end-px h-16 w-16 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(225deg, var(--lp-accent) 0% 8%, transparent 9%)',
-        }}
-      />
-
-      <div className="relative px-5 py-5 sm:px-7 sm:py-6">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent)]">
-            [:LIVE YIELD:]
-          </p>
-          <a
-            href={`https://testnet.arcscan.app/address/${KARWAN_YIELD_DISTRIBUTOR_ADDRESS}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mono text-[9px] uppercase tracking-[0.14em] text-white/40 hover:text-white/70"
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)]">
+        {tiles.map((t) => (
+          <div
+            key={t.label}
+            className="bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
           >
-            contract ↗
-          </a>
-        </div>
-
-        <div className="mt-4 flex items-end justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <p className="font-sans text-[44px] sm:text-[56px] font-extrabold leading-none tracking-[-0.03em] tabular-nums">
-              {displayAmount}
-              <span className="ms-2 align-bottom text-[16px] font-semibold text-white/45 tracking-normal">
+            <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+              {t.label}
+            </p>
+            <p className="mt-1.5 font-sans text-[24px] sm:text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
+              {t.value}
+              <span className="ms-1.5 text-[13px] font-semibold text-[var(--lp-text-muted)] tracking-normal">
                 USDC
               </span>
             </p>
-            <p className="mt-1.5 text-[12px] text-white/55">
-              Your accrued share of protocol yield. Claim directly to
-              your wallet.
+            <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)]">
+              {t.hint}
             </p>
           </div>
+        ))}
+      </div>
 
-          <div className="flex flex-col items-stretch gap-1.5 min-w-[160px]">
+      <div
+        className="relative overflow-hidden"
+        style={{
+          background: 'var(--lp-band-dark)',
+          color: 'var(--lp-cream)',
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          borderBottomLeftRadius: 18,
+          borderBottomRightRadius: 4,
+        }}
+      >
+        <div
+          aria-hidden
+          className="absolute -top-px -end-px h-16 w-16 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(225deg, var(--lp-accent) 0% 8%, transparent 9%)',
+          }}
+        />
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-5 py-5 sm:px-7 sm:py-6">
+          <div className="min-w-0">
+            <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+              [:CLAIM:]
+            </p>
+            <p className="mt-2 font-sans text-[28px] sm:text-[32px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
+              {loading ? '—' : Number(claimable).toFixed(4)}
+              <span className="ms-2 text-[14px] font-semibold text-white/45 tracking-normal">
+                USDC ready
+              </span>
+            </p>
+            {lastTx ? (
+              <a
+                href={ARC_EXPLORER_TX(lastTx)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
+              >
+                tx {shortHash(lastTx)} ↗
+              </a>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col items-stretch gap-1.5 min-w-[180px]">
             {onWrongChain ? (
               <button
                 onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
@@ -189,30 +238,20 @@ export function YieldClaimPanel() {
                     : 'Nothing yet'}
               </button>
             )}
-            {lastTx ? (
-              <a
-                href={ARC_EXPLORER_TX(lastTx)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
-              >
-                tx {shortHash(lastTx)} ↗
-              </a>
-            ) : null}
+            <a
+              href={`https://testnet.arcscan.app/address/${KARWAN_YIELD_DISTRIBUTOR_ADDRESS}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-center mono text-[9px] uppercase tracking-[0.14em] text-white/40 hover:text-white/70"
+            >
+              contract ↗
+            </a>
           </div>
         </div>
-
         {error ? (
-          <p className="mt-3 text-[11px] text-red-200/90 break-all">{error}</p>
-        ) : null}
-
-        {claimableNum === 0 && !loading ? (
-          <p className="mt-3 text-[11px] text-white/45">
-            Yield accrues daily. Your share scales with the size and
-            tenure of your active stake.
-          </p>
+          <p className="relative px-5 sm:px-7 pb-4 text-[11px] text-red-200/90 break-all">{error}</p>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }

@@ -19,7 +19,6 @@ import {
   ARC_USDC_DECIMALS,
   KARWAN_VAULT_ADDRESS,
 } from '../../profile/config';
-import { YieldClaimPanel } from './YieldClaimPanel';
 
 /// SKILL-grade staking surface. Reads positions from /api/vault/positions
 /// every 10s while open; supports deposit + request-withdraw + cancel-
@@ -708,12 +707,10 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         </Note>
       )}
 
-      {/* LIVE YIELD. The vault routes idle stake through Hashnote USYC and
-          the daily cron credits each staker their share into the
-          KarwanYieldDistributor. This panel reads claimable directly and
-          lets the user pull whenever they want. Replaces the older
-          mainnet-promise YieldNote. */}
-      <YieldClaimPanel />
+      {/* The live yield + claim surface used to live here. On /stake it now
+          lives in its own band as <YieldClaimPanel />. On /profile this
+          card stays focused on the deposit/withdraw lifecycle; the
+          standalone /stake page is the canonical claim surface. */}
 
 
       {/* DEPOSIT + WITHDRAW. side-by-side on md+, stacked on mobile. The
