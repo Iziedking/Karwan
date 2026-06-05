@@ -11,9 +11,11 @@ const USDC_DECIMALS = 6;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SERIES_DAYS = 30;
 const CACHE_TTL_MS = 60_000;
-// Arc public RPC silently returns empty on overly wide getLogs windows.
-// Chunk into 10k-block windows so the full deploy-to-head range comes back.
-const SCAN_CHUNK_BLOCKS = 10_000n;
+// Arc public RPC silently returns empty on overly wide getLogs windows AND
+// on windows that produce too many logs to fit one response. 2k-block chunks
+// stay well clear of both limits on the production deploy. A 1M-block range
+// is ~500 chunks at ~80ms each, well within the 60s cache TTL.
+const SCAN_CHUNK_BLOCKS = 2_000n;
 
 const EVENT_ESCROW_FUNDED = parseAbiItem(
   'event EscrowFunded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint256 dealAmount, uint256 fundedAmount, uint256 feeTotal, uint8[] milestonePcts, uint16 reservationBps)',
@@ -393,6 +395,50 @@ async function build(): Promise<NetworkStats> {
   };
 }
 
+/// Every counter and volume in NetworkStats is strictly cumulative on chain.
+/// If a fresh build returns numbers BELOW the cached snapshot for the same
+/// contracts, Arc's RPC silently dropped logs in some window (no throw, just
+/// an empty response). Discard the bad build and keep the cache so the
+/// dashboard doesn't oscillate.
+function isMonotonicallyHealthy(fresh: NetworkStats, prev: NetworkStats): boolean {
+  if (fresh.contracts.escrow !== prev.contracts.escrow) return true;
+  if (fresh.contracts.vault !== prev.contracts.vault) return true;
+  const t1 = fresh.totals;
+  const t0 = prev.totals;
+  if (
+    t1.escrowsFunded < t0.escrowsFunded ||
+    t1.escrowsSettled < t0.escrowsSettled ||
+    t1.escrowsDisputed < t0.escrowsDisputed ||
+    t1.escrowsRefunded < t0.escrowsRefunded ||
+    t1.milestoneReleases < t0.milestoneReleases ||
+    t1.vaultDeposits < t0.vaultDeposits ||
+    t1.vaultClaims < t0.vaultClaims ||
+    t1.vaultSlashes < t0.vaultSlashes ||
+    t1.reputationRecords < t0.reputationRecords ||
+    t1.yieldClaims < t0.yieldClaims ||
+    t1.jobsPosted < t0.jobsPosted
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/// Sanity-check on-chain invariants. Released can never exceed funded.
+/// Refunded + slashed can never exceed funded. If either is violated the
+/// build clearly missed some funded events.
+function hasInvariantViolations(s: NetworkStats): string | null {
+  try {
+    const funded = BigInt(Math.round(Number(s.volumes.fundedUsdc) * 1e6));
+    const released = BigInt(Math.round(Number(s.volumes.releasedUsdc) * 1e6));
+    const refunded = BigInt(Math.round(Number(s.volumes.refundedUsdc) * 1e6));
+    if (released > funded) return `released ${s.volumes.releasedUsdc} > funded ${s.volumes.fundedUsdc}`;
+    if (refunded > funded) return `refunded ${s.volumes.refundedUsdc} > funded ${s.volumes.fundedUsdc}`;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getNetworkStats(force = false): Promise<NetworkStats> {
   const now = Date.now();
   if (!force && cached && now - cached.builtAt < CACHE_TTL_MS) {
@@ -400,6 +446,27 @@ export async function getNetworkStats(force = false): Promise<NetworkStats> {
   }
   try {
     const value = await build();
+
+    if (cached && !isMonotonicallyHealthy(value, cached.value)) {
+      logger.warn(
+        {
+          prevTotals: cached.value.totals,
+          freshTotals: value.totals,
+        },
+        'network stats build went BACKWARDS vs cache (silent RPC drop); keeping last good snapshot',
+      );
+      return cached.value;
+    }
+
+    const violation = hasInvariantViolations(value);
+    if (violation) {
+      logger.warn(
+        { violation, totals: value.totals, volumes: value.volumes },
+        'network stats build violated on-chain invariants; keeping last good snapshot if available',
+      );
+      if (cached) return cached.value;
+    }
+
     cached = { value, builtAt: now };
     return value;
   } catch (err) {
