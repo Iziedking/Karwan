@@ -32,7 +32,15 @@ function eventByName(abi: readonly unknown[], name: string): AbiEvent {
 /// rows) have no log to recover from and stay missing until live traffic.
 
 const USDC_DECIMALS = 6;
-const SCAN_CHUNK_BLOCKS = 10_000n;
+/// 5k matches the networkStats + yield route chunkers. Arc's public RPC
+/// silently returns empty windows wider than that on a non-trivial fraction
+/// of calls. Combined with per-chunk retry + parallel batching, this gives
+/// the backfill a real chance to recover after a docker restart that wiped
+/// data/events.json.
+const SCAN_CHUNK_BLOCKS = 5_000n;
+const SCAN_CHUNK_RETRIES = 3;
+const SCAN_CHUNK_BACKOFF_MS = 400;
+const SCAN_CONCURRENCY = 8;
 const HISTORY_CAPACITY = 500;
 
 /// Resolve every event the backfill needs up front. A missing name is logged
@@ -73,6 +81,48 @@ interface LogRow {
   transactionHash: `0x${string}` | null;
 }
 
+async function scanOneChunk(
+  address: `0x${string}`,
+  event: AbiEvent,
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<LogRow[]> {
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < SCAN_CHUNK_RETRIES; attempt++) {
+    try {
+      const logs = await publicClient.getLogs({
+        address,
+        event,
+        fromBlock,
+        toBlock,
+      });
+      return logs.map((l) => ({
+        args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
+          string,
+          unknown
+        >,
+        blockNumber: l.blockNumber ?? 0n,
+        transactionHash: l.transactionHash ?? null,
+      }));
+    } catch (err) {
+      lastErr = err as Error;
+      if (attempt < SCAN_CHUNK_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, SCAN_CHUNK_BACKOFF_MS * (attempt + 1)));
+      }
+    }
+  }
+  logger.warn(
+    {
+      err: lastErr?.message,
+      address,
+      fromBlock: fromBlock.toString(),
+      toBlock: toBlock.toString(),
+    },
+    'event backfill chunk failed after retries; continuing without it',
+  );
+  return [];
+}
+
 async function scanLogs(
   address: `0x${string}` | null,
   event: AbiEvent,
@@ -80,40 +130,21 @@ async function scanLogs(
   toBlock: bigint,
 ): Promise<LogRow[]> {
   if (!address || fromBlock > toBlock) return [];
-  const out: LogRow[] = [];
+  const windows: Array<{ from: bigint; to: bigint }> = [];
   let cursor = fromBlock;
   while (cursor <= toBlock) {
     const end = cursor + SCAN_CHUNK_BLOCKS - 1n;
     const windowEnd = end > toBlock ? toBlock : end;
-    try {
-      const logs = await publicClient.getLogs({
-        address,
-        event,
-        fromBlock: cursor,
-        toBlock: windowEnd,
-      });
-      for (const l of logs) {
-        out.push({
-          args: ((l as unknown as { args?: Record<string, unknown> }).args ?? {}) as Record<
-            string,
-            unknown
-          >,
-          blockNumber: l.blockNumber ?? 0n,
-          transactionHash: l.transactionHash ?? null,
-        });
-      }
-    } catch (err) {
-      logger.warn(
-        {
-          err: (err as Error).message,
-          address,
-          fromBlock: cursor.toString(),
-          toBlock: windowEnd.toString(),
-        },
-        'event backfill chunk failed; continuing',
-      );
-    }
+    windows.push({ from: cursor, to: windowEnd });
     cursor = windowEnd + 1n;
+  }
+  const out: LogRow[] = [];
+  for (let i = 0; i < windows.length; i += SCAN_CONCURRENCY) {
+    const batch = windows.slice(i, i + SCAN_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((w) => scanOneChunk(address, event, w.from, w.to)),
+    );
+    for (const r of results) out.push(...r);
   }
   return out;
 }
@@ -304,14 +335,20 @@ interface ScanGroup {
   map: (row: LogRow) => MappedEvent | null;
 }
 
-export async function backfillBusFromChain(): Promise<{ scanned: number; injected: number }> {
-  /// If the bus already holds events (disk snapshot loaded a prior history),
-  /// don't repeat the scan; the bus stays in sync as live events fire and the
-  /// historical pass is unnecessary RPC traffic.
-  if (bus.historyLength() > 0) {
+export async function backfillBusFromChain(
+  opts: { force?: boolean } = {},
+): Promise<{ scanned: number; injected: number }> {
+  /// If the bus is already well-populated (disk snapshot loaded a prior
+  /// history), skip the chain replay — it's RPC traffic with no payoff. But
+  /// don't gate on >0 alone: a partial backfill from a previous boot could
+  /// leave a handful of events that pass the >0 check yet are missing most
+  /// of the history. 50 is the threshold below which we re-scan; pass
+  /// `force: true` to bypass (admin endpoint, post-redeploy).
+  const MIN_HEALTHY_HISTORY = 50;
+  if (!opts.force && bus.historyLength() >= MIN_HEALTHY_HISTORY) {
     logger.info(
       { existing: bus.historyLength() },
-      'event backfill: bus history non-empty; skipping chain replay',
+      'event backfill: bus history looks healthy; skipping chain replay',
     );
     return { scanned: 0, injected: 0 };
   }

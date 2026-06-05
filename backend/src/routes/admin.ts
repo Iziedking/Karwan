@@ -20,6 +20,7 @@ import {
   patchDeal,
 } from '../db/deals.js';
 import { reconcileReputationOnce } from '../reputation/reconciler.js';
+import { backfillBusFromChain } from '../chain/eventBackfill.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
@@ -146,6 +147,21 @@ adminRoutes.post('/reputation/backfill', async (c) => {
     filterAddr,
     ...result,
   });
+});
+
+/// Force-replay the chain event backfill into the in-memory bus + persisted
+/// data/events.json. The boot-time backfill only runs when the bus is small
+/// (under 50 events) to avoid wasted RPC traffic, so a stale or partial
+/// history won't auto-recover. Call this after a contract redeploy, after a
+/// VPS rebuild that wiped data/events.json without a fresh boot, or any
+/// time the /activity feed looks empty.
+///
+/// Returns the scan + injection counts so the operator can confirm the
+/// replay actually pulled events.
+adminRoutes.post('/events/backfill', async (c) => {
+  const result = await backfillBusFromChain({ force: true });
+  logger.info({ ...result }, 'admin: event backfill forced');
+  return c.json({ ok: true, ...result });
 });
 
 /// Backend runtime errors captured by the process-wide tracker. Returns up
