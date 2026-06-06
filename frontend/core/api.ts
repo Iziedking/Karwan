@@ -266,6 +266,11 @@ export interface DirectDeal {
   /// Grace ms until the seller becomes eligible to raise a delay appeal after
   /// the first milestone is released. Surfaced by the backend.
   delayAppealGraceMs?: number;
+  /// Backend mirror of on-chain Settled. Set the moment the escrow settles
+  /// (auto-release watcher or manual final-release handler). Authoritative
+  /// even when the on-chain snapshot is missing from the response — a
+  /// transient chain-read failure otherwise let `stageOf` slide a settled
+  /// deal back to a "pending" stage and reappear in the pending bands.
   settledAt?: number;
   fundTxHash?: string;
   createdAt: number;

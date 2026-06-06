@@ -25,6 +25,14 @@ export interface Tab {
 
 const LAYOUT_ID = 'skill-tab-strip-indicator';
 
+/// TopNav owns the first 68px of the viewport (`sticky top-0 z-30`, see
+/// shared/components/TopNav.tsx). The tab strip docks immediately below it
+/// so the two stack instead of fighting for the same `top: 0` slot —
+/// without this anchor the strip slid behind the TopNav and read as
+/// "vanishing on scroll" to the user. Mobile keeps the same offset; the
+/// TopNav is the same height on small screens.
+const TOPNAV_OFFSET_PX = 68;
+
 export function StickyTabStrip({
   tabs,
   active,
@@ -49,21 +57,36 @@ export function StickyTabStrip({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  /// Frosted surface tuned for both contexts: starts as the dark hero
+  /// reads at rest, switches to a near-opaque pane on scroll so labels
+  /// stay legible no matter what light/dark band is sliding behind it.
+  const surface = stuck
+    ? onDark
+      ? 'color-mix(in srgb, var(--lp-band-dark) 88%, transparent)'
+      : 'color-mix(in srgb, var(--lp-card) 92%, transparent)'
+    : onDark
+      ? 'color-mix(in srgb, var(--lp-band-dark) 70%, transparent)'
+      : 'color-mix(in srgb, var(--lp-card) 70%, transparent)';
+
   return (
     <nav
       className={cn(
-        'sticky top-0 z-30 transition-[background,border-color,backdrop-filter] duration-[var(--dur-fast)]',
+        'sticky z-20 transition-[background,border-color,box-shadow,backdrop-filter] duration-[var(--dur-fast)]',
         className,
       )}
       style={{
-        background: stuck
+        // Below the TopNav so they stack; z-20 keeps the TopNav (z-30)
+        // visually on top if any margin ever overlaps.
+        top: TOPNAV_OFFSET_PX,
+        background: surface,
+        backdropFilter: 'blur(14px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+        borderBottom: `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
+        boxShadow: stuck
           ? onDark
-            ? 'rgba(10,10,11,0.72)'
-            : 'rgba(244,244,241,0.78)'
-          : 'transparent',
-        backdropFilter: stuck ? 'blur(12px) saturate(140%)' : 'none',
-        WebkitBackdropFilter: stuck ? 'blur(12px) saturate(140%)' : 'none',
-        borderBottom: `1px solid ${stuck ? (onDark ? 'var(--rule-dark)' : 'var(--rule-light)') : 'transparent'}`,
+            ? '0 8px 24px -16px rgba(0,0,0,0.6)'
+            : '0 8px 24px -16px rgba(12,14,16,0.18)'
+          : 'none',
       }}
       aria-label="Section navigation"
     >

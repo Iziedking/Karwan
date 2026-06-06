@@ -1,5 +1,6 @@
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import type { Persister } from '@tanstack/react-query-persist-client';
+import type { Query } from '@tanstack/react-query';
 
 /// localStorage-backed cache persister. A hard refresh used to blank every
 /// surface for a full network round-trip; with this in place the persisted
@@ -10,9 +11,32 @@ import type { Persister } from '@tanstack/react-query-persist-client';
 /// changes; a mismatch wipes the entire cache rather than handing a stale
 /// shape to a new code path. Tied to the deploy tag so a redeploy with a
 /// schema change automatically discards old blobs.
-const BUSTER = 'rq-v1-2026-06-06';
+const BUSTER = 'rq-v2-2026-06-06';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const STORAGE_KEY = 'karwan:rq-cache';
+
+/// Only stable, non-state-machine queries are safe to persist. Volatile
+/// queries (deal lifecycle, job auction state, notifications) get re-fetched
+/// fresh on every mount so the user never sees a stale snapshot of a deal
+/// that has since moved on. The "old deals flash on home / profile" bug
+/// was the deal-list cache being rehydrated with snapshots from before the
+/// deals settled or cancelled.
+const PERSISTABLE_PREFIXES = new Set([
+  'reputation',
+  'profile',
+  'wallet-overview',
+  'balances',
+  'vault',
+  'yield',
+  'api', // status + dealsStats: network-wide counters, fine to seed
+  'terms',
+  'activation',
+]);
+
+function isPersistable(query: Query): boolean {
+  const root = query.queryKey[0];
+  return typeof root === 'string' && PERSISTABLE_PREFIXES.has(root);
+}
 
 export function makeQueryPersister(): Persister | null {
   if (typeof window === 'undefined') return null;
@@ -26,4 +50,10 @@ export function makeQueryPersister(): Persister | null {
 export const persistOptions = {
   buster: BUSTER,
   maxAge: MAX_AGE_MS,
+  dehydrateOptions: {
+    /// Filter at dehydrate time so the persisted blob never carries deal
+    /// or job snapshots; rehydration can't paint stale lifecycle data
+    /// even if a malformed entry sneaks into storage.
+    shouldDehydrateQuery: isPersistable,
+  },
 };

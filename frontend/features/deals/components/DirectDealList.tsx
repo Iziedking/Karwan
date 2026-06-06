@@ -30,10 +30,22 @@ export function stageOf(deal: DirectDeal): DealStage {
   if (deal.cancelledAt || state === 5) return 'cancelled';
   if (deal.disputed || state === 4) return 'disputed';
   const released = deal.onChain?.milestonesReleased ?? 0;
-  // Settled if either the chain says so, or both milestones have released,
-  // or the auto-release path completed. Any of these means the money has
-  // moved and the row should never read as pending.
-  if (state === 3 || released >= 2 || deal.autoReleasedAt) return 'settled';
+  // Settled if any one of:
+  //   - the backend record carries settledAt (manual or auto release path),
+  //   - the chain says Settled,
+  //   - the released-milestone count is at the cap,
+  //   - the auto-release path completed.
+  // settledAt was added because backends sometimes ship onChain:null on a
+  // transient chain-read failure, which used to let a settled deal fall
+  // through to `awaiting-first-release` and reappear in the pending bands.
+  if (
+    deal.settledAt ||
+    state === 3 ||
+    released >= 2 ||
+    deal.autoReleasedAt
+  ) {
+    return 'settled';
+  }
   if (released >= 1 || deal.firstAutoReleased) return 'awaiting-final-release';
   if (deal.delivered || deal.deliveredAt) return 'awaiting-first-release';
   if (deal.acceptedAt) return 'awaiting-delivery';

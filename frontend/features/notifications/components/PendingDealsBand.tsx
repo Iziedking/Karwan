@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { api, type DirectDeal } from '@/core/api';
+import { type DirectDeal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { Band, SectionTag, HeroHeadline, Punc } from '@/shared/components/Bands';
@@ -61,30 +61,13 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
   const t = useTranslations().pending;
   const resolvedHeadline = headline ?? t.deals.headline;
   const address = auth.address;
-  const isAuthed = auth.isAuthenticated;
-  const [deals, setDeals] = useState<DirectDeal[]>([]);
-
-  useEffect(() => {
-    if (!isAuthed || !address) {
-      setDeals([]);
-      return;
-    }
-    let cancelled = false;
-    function refresh() {
-      api
-        .directDeals(address!)
-        .then((d) => {
-          if (!cancelled) setDeals(d.deals);
-        })
-        .catch(() => {});
-    }
-    refresh();
-    const id = setInterval(refresh, 10_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [address, isAuthed]);
+  /// Single source of truth for deal lists. Inheriting the shared cache
+  /// kills the duplicate fetch this component used to fire on every
+  /// mount, and the persister excludes the deals namespace, so the band
+  /// never renders a stale snapshot — it shows nothing until the fresh
+  /// fetch lands. That removes the "old deals flash on home / profile"
+  /// regression cleanly.
+  const { deals, fetchState } = useDirectDeals();
 
   const me = address?.toLowerCase() ?? '';
   const rows = deals
@@ -101,6 +84,11 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
       } => x !== null,
     );
 
+  /// While the first fetch is in flight, render nothing instead of an
+  /// empty list — keeps the layout from briefly hopping into the page
+  /// before the truth arrives. Once we have a response (even one with
+  /// zero rows), the band hides as before.
+  if (fetchState !== 'success') return null;
   if (rows.length === 0) return null;
 
   const dark = tone === 'dark';
