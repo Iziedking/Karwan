@@ -1,112 +1,82 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, type DirectDeal } from '@/core/api';
-import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { qk } from '@/core/queryKeys';
 import { useAuth } from '@/shared/hooks/useAuth';
+
+/// react-query backed deal hooks. Sibling components asking for the same
+/// list share a single fetch; cache survives mount + hard refresh through
+/// the persister; SSE-driven invalidation lives in QueryInvalidator and
+/// matches by `qk.deals.all()` prefix, so no per-hook event subscriptions.
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
-const REFRESH_TYPES = new Set([
-  'deal.direct.created',
-  'deal.accepted',
-  'deal.delivered',
-  'escrow.milestone.released',
-  'escrow.settled',
-  'deal.review.started',
-  'deal.review.heartbeat',
-  'deal.auto_released',
-  'deal.disputed',
-  'deal.cancelled',
-  // Cancellation proposal lifecycle. Without these, the seller's deal page
-  // does not react to a buyer-side propose/decline until manual refresh,
-  // even though notifications fire.
-  'deal.cancel.proposed',
-  'deal.cancel.declined',
-]);
+function stateOf(query: {
+  isPending: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  fetchStatus: 'fetching' | 'paused' | 'idle';
+}, enabled: boolean): FetchState {
+  if (!enabled) return 'idle';
+  if (query.isError) return 'error';
+  if (query.isSuccess) return 'success';
+  return 'loading';
+}
 
 export function useDirectDeals() {
   const auth = useAuth();
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
-  const [deals, setDeals] = useState<DirectDeal[]>([]);
-  const [fetchState, setFetchState] = useState<FetchState>('idle');
+  const qc = useQueryClient();
 
-  const refresh = useCallback(() => {
-    if (!address) return;
-    api
-      .directDeals(address)
-      .then((res) => {
-        setDeals(res.deals);
-        setFetchState('success');
-      })
-      .catch(() => setFetchState('error'));
-  }, [address]);
+  const query = useQuery({
+    queryKey: qk.deals.list(address),
+    queryFn: () => api.directDeals(address!).then((r) => r.deals),
+    enabled: isAuthed && !!address,
+    /// 30s matches the QueryClient default; named explicitly here so a
+    /// future tweak only touches this surface. SSE invalidation pre-empts
+    /// the timer anyway whenever a deal lifecycle event lands.
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    if (!isAuthed || !address) {
-      setDeals([]);
-      setFetchState('idle');
-      return;
-    }
-    setFetchState('loading');
-    refresh();
-  }, [address, isAuthed, refresh]);
-
-  // SSE: refetch when a relevant deal event lands.
-  useEffect(() => {
-    if (!isAuthed || !address) return;
-    return subscribeLiveEvents((e) => {
-      if (REFRESH_TYPES.has(e.type)) {
-        // Small delay so the backend has written its store update.
-        setTimeout(refresh, 400);
-      }
-    });
-  }, [address, isAuthed, refresh]);
-
-  return { deals, fetchState, refresh };
+  return {
+    deals: (query.data ?? []) as DirectDeal[],
+    fetchState: stateOf(query, isAuthed && !!address),
+    refresh: () => {
+      qc.invalidateQueries({ queryKey: qk.deals.list(address) });
+    },
+  };
 }
 
 export function useDirectDeal(jobId: string) {
   const auth = useAuth();
-  const [deal, setDeal] = useState<DirectDeal | null>(null);
-  const [fetchState, setFetchState] = useState<FetchState>('loading');
-  // Distinguish a privacy 403 ('private') from a genuine miss so the page can
-  // say "this deal is private" instead of "not found" to non-parties.
-  const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
+  const qc = useQueryClient();
+  const viewer = auth.address;
 
-  const refresh = useCallback(() => {
-    // Pass the viewer address as the privacy-gate caller hint. Web3 users have
-    // no backend session, so without this the gate reads them as a non-party
-    // and returns 403 'private' even on their own deal (the refresh bug).
-    api
-      .directDeal(jobId, auth.address)
-      .then((res) => {
-        setDeal(res.deal);
-        setFetchState('success');
-        setErrorCode(undefined);
-      })
-      .catch((err) => {
-        setErrorCode(err instanceof ApiError ? err.code : undefined);
-        setFetchState('error');
-      });
-  }, [jobId, auth.address]);
+  const query = useQuery({
+    queryKey: qk.deals.item(jobId, viewer),
+    queryFn: () => api.directDeal(jobId, viewer).then((r) => r.deal),
+    /// Wait until auth has resolved before the first fetch. Fetching while
+    /// auth is still loading sends no caller hint, which the backend reads
+    /// as a non-party and returns 403 'private' even on a party's own deal.
+    enabled: !auth.isLoading,
+    staleTime: 30_000,
+    retry: (failureCount, err) => {
+      // A 403 'private' is a stable answer for non-parties — never retry it.
+      if (err instanceof ApiError && err.code === 'private') return false;
+      return failureCount < 1;
+    },
+  });
 
-  useEffect(() => {
-    // Wait until auth resolves before the first fetch. Fetching while auth is
-    // still loading sends no caller, which reads as a non-party and wrongly
-    // shows the private view on refresh.
-    if (auth.isLoading) return;
-    setFetchState('loading');
-    refresh();
-  }, [refresh, auth.isLoading]);
+  const errorCode =
+    query.error instanceof ApiError ? query.error.code : undefined;
 
-  useEffect(() => {
-    return subscribeLiveEvents((e) => {
-      if (e.jobId === jobId && REFRESH_TYPES.has(e.type)) {
-        setTimeout(refresh, 400);
-      }
-    });
-  }, [jobId, refresh]);
-
-  return { deal, fetchState, refresh, errorCode };
+  return {
+    deal: (query.data ?? null) as DirectDeal | null,
+    fetchState: stateOf(query, !auth.isLoading) as FetchState,
+    refresh: () => {
+      qc.invalidateQueries({ queryKey: qk.deals.item(jobId, viewer) });
+    },
+    errorCode,
+  };
 }

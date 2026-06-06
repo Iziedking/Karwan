@@ -20,19 +20,22 @@ export type DealStage =
 
 export function stageOf(deal: DirectDeal): DealStage {
   // v2.D EscrowState enum: None=0, Funded=1, Accepted=2, Settled=3, Disputed=4,
-  // Refunded=5. Earlier versions used Settled=2 / Disputed=3 / Refunded=4 — the
-  // pre-v2.D mapping that lived here treated Accepted(2) as Settled, Settled(3)
-  // as Disputed, and Disputed(4) as Refunded. That's why deal 0x0765 (v2.D
-  // Settled, state=3) was rendering the "in dispute" banner. Anything routed
-  // via deal.legacyEscrow already short-circuits through the legacy reader so
-  // the legacy enum doesn't reach this function.
-  const state = deal.onChain?.state ?? 1;
-  if (state === 3) return 'settled';
+  // Refunded=5. Off-chain lifecycle fields lead; the on-chain state only
+  // confirms the terminal hops (Settled, Refunded). This ordering matters:
+  // when `onChain` is briefly absent on a fresh fetch, the cached snapshot
+  // used to default state to 1 (Funded), which then mapped a long-settled
+  // deal to `awaiting-acceptance` — the "completed deal flashes as pending"
+  // bug on the home book.
+  const state = deal.onChain?.state;
   if (deal.cancelledAt || state === 5) return 'cancelled';
   if (deal.disputed || state === 4) return 'disputed';
   const released = deal.onChain?.milestonesReleased ?? 0;
-  if (released >= 1) return 'awaiting-final-release';
-  if (deal.delivered) return 'awaiting-first-release';
+  // Settled if either the chain says so, or both milestones have released,
+  // or the auto-release path completed. Any of these means the money has
+  // moved and the row should never read as pending.
+  if (state === 3 || released >= 2 || deal.autoReleasedAt) return 'settled';
+  if (released >= 1 || deal.firstAutoReleased) return 'awaiting-final-release';
+  if (deal.delivered || deal.deliveredAt) return 'awaiting-first-release';
   if (deal.acceptedAt) return 'awaiting-delivery';
   return 'awaiting-acceptance';
 }

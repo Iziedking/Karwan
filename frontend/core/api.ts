@@ -68,6 +68,12 @@ export interface BuyerBid {
   /// Seller's display name from their profile. Surfaced inline on the bid
   /// card. Null when unset or on legacy bids.
   sellerDisplayName: string | null;
+  /// Topical-match percentage (0-100): how well the seller's profile
+  /// keywords cover the brief's. The buyer agent ranks by match band
+  /// FIRST, so this is what actually decides who wins — not the LLM
+  /// `score`. Mirroring the same rank on the UI is the only way the
+  /// "LEAD" pill stays honest.
+  topicalMatch: number | null;
 }
 
 export interface BuyerJob {
@@ -995,8 +1001,11 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ address, chain }) },
     ),
   /// KarwanVault: list every staking position for an address with state +
-  /// tenure. Used by /profile StakeCard to render the position list.
-  vaultPositions: (address: string) =>
+  /// tenure. Used by /profile StakeCard to render the position list. Pass
+  /// `fresh=true` after a web3 deposit/withdraw lands so the backend force-
+  /// scans before serving; otherwise the 5-minute periodic scan cadence
+  /// makes the new position invisible for several minutes.
+  vaultPositions: (address: string, fresh?: boolean) =>
     json<{
       vaultAddress: string | null;
       positions: Array<{
@@ -1027,7 +1036,9 @@ export const api = {
       /// indicator and refetch shortly. Absent on older deploys; treat as
       /// `true` for back-compat.
       synced?: boolean;
-    }>(`/api/vault/positions?address=${address}`),
+    }>(
+      `/api/vault/positions?address=${address}${fresh ? '&refresh=1' : ''}`,
+    ),
   /// KarwanYieldDistributor: this address's claimable + lifetime totals.
   /// Lifetime credited and claimed come from event scans (YieldCredited /
   /// YieldClaimed indexed by staker), cached 30s on the backend.

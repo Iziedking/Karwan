@@ -1,49 +1,26 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type BalanceRow } from '@/core/api';
-import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { qk } from '@/core/queryKeys';
 
-const REFRESH_TRIGGERS = new Set([
-  'escrow.approved',
-  'escrow.funded',
-  'escrow.milestone.released',
-  'escrow.settled',
-  'bid.submitted',
-  'counter.issued',
-  'counter.response.submitted',
-  'bid.accepted',
-]);
-
+/// react-query backed balances hook. SSE-driven invalidation is handled
+/// centrally in QueryInvalidator; the 15s polling interval is the floor
+/// for stale-state detection between events.
 export function useBalances() {
-  const [balances, setBalances] = useState<BalanceRow[] | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const events = useLiveEvents(undefined, 20);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: qk.balances.me(),
+    queryFn: () => api.balances(),
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+  });
 
-  async function load() {
-    try {
-      const res = await api.balances();
-      setBalances(res.wallets);
-      setFetchedAt(res.fetchedAt);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }
-
-  useEffect(() => {
-    load();
-    const interval = setInterval(load, 15_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (events.length === 0) return;
-    if (REFRESH_TRIGGERS.has(events[0]!.type)) {
-      const t = setTimeout(load, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [events]);
-
-  return { balances, fetchedAt, error, refresh: load };
+  return {
+    balances: (query.data?.wallets ?? null) as BalanceRow[] | null,
+    fetchedAt: query.data?.fetchedAt ?? null,
+    error: query.error ? (query.error as Error).message : null,
+    refresh: () => {
+      qc.invalidateQueries({ queryKey: qk.balances.me() });
+    },
+  };
 }

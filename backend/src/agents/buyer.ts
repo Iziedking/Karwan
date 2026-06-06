@@ -2085,6 +2085,13 @@ export interface BuyerJobSnapshot {
     /// Profile display name for the seller, if set. Bid card shows this
     /// inline; falls back to the masked address when null.
     sellerDisplayName: string | null;
+    /// Topical-match percentage (0-100) — how well the seller's profile
+    /// keywords cover the brief's. This is the FIRST sort key in
+    /// finalizeBidCollection (match band → deterministic score →
+    /// reputation), so a higher topicalMatch beats a higher LLM score
+    /// every time. Surfaced to the UI so the bid card can show why one
+    /// seller leads over another without lying with a score-only sort.
+    topicalMatch: number | null;
   }>;
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
@@ -2152,6 +2159,7 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
         sellerTier: b.sellerTier ?? null,
         sellerUserAddress: b.sellerUserAddress ?? null,
         sellerDisplayName: b.sellerDisplayName ?? null,
+        topicalMatch: b.topicalMatch ?? null,
       })),
       lastCounterPriceBySeller: Object.fromEntries(s.lastCounterPriceBySeller),
       counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),

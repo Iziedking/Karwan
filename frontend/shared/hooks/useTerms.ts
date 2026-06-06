@@ -1,6 +1,8 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { useAuth } from './useAuth';
 
 interface TermsState {
@@ -18,46 +20,38 @@ interface TermsState {
 
 /// Reads /api/terms/status on auth change and exposes a one-shot `accept()`.
 /// Skipped for unauthenticated viewers so the public surface (landing, docs,
-/// /terms itself) is not gated by an API call that the backend would refuse.
+/// /terms itself) is not gated by an API call the backend would refuse.
 export function useTerms(): TermsState {
   const auth = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [currentVersion, setCurrentVersion] = useState<number | null>(null);
-  const [acceptedVersion, setAcceptedVersion] = useState<number | null>(null);
+  const qc = useQueryClient();
+  const enabled = auth.isAuthenticated && !!auth.address;
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!auth.isAuthenticated || !auth.address) {
-      setLoading(false);
-      setCurrentVersion(null);
-      setAcceptedVersion(null);
-      return;
-    }
-    setLoading(true);
-    try {
-      const r = await api.termsStatus(auth.address);
-      setCurrentVersion(r.currentVersion);
-      setAcceptedVersion(r.acceptedVersion);
-    } catch {
-      // Soft-fail: leave loading false, treat as no-acceptance-needed. We
-      // don't want a backend hiccup to block the entire signed-in surface.
-      setCurrentVersion(null);
-      setAcceptedVersion(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [auth.isAuthenticated, auth.address]);
+  const query = useQuery({
+    queryKey: qk.terms(auth.address),
+    queryFn: () => api.termsStatus(auth.address!),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const currentVersion = query.data?.currentVersion ?? null;
+  const acceptedVersion = query.data?.acceptedVersion ?? null;
+  const loading = enabled && query.isPending;
+
+  const refresh = useCallback(async () => {
+    if (!enabled) return;
+    await qc.invalidateQueries({ queryKey: qk.terms(auth.address) });
+  }, [enabled, qc, auth.address]);
 
   const accept = useCallback(async () => {
     if (currentVersion == null) return;
     setError(null);
     try {
       await api.acceptTerms(currentVersion);
-      setAcceptedVersion(currentVersion);
+      qc.setQueryData(qk.terms(auth.address), {
+        currentVersion,
+        acceptedVersion: currentVersion,
+      });
     } catch (err) {
       const message =
         (err as { detail?: unknown }).detail
@@ -66,7 +60,7 @@ export function useTerms(): TermsState {
       setError(message);
       throw err;
     }
-  }, [currentVersion]);
+  }, [currentVersion, qc, auth.address]);
 
   const needsAcceptance =
     auth.isAuthenticated &&

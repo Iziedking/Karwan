@@ -5,6 +5,7 @@ import { formatUnits, parseUnits } from 'viem';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '../hooks/useReputation';
+import { useVaultPositions } from '../hooks/useVaultPositions';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc } from '@/shared/utils/format';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -162,32 +163,28 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     }
   }, [switchChainAsync]);
 
-  const [positions, setPositions] = useState<
-    Array<{
-      positionId: string;
-      principalUsdc: string;
-      depositedAt: number;
-      claimableAt: number;
-      state: 'active' | 'cooling' | 'claimed';
-      tenureDays: number;
-    }>
-  >([]);
-  const [totalActive, setTotalActive] = useState('0');
-  /// False while the backend is still walking the vault's event log for this
-  /// owner. Drives the "syncing" pill so the user doesn't take a mid-scan
-  /// total as final.
-  const [synced, setSynced] = useState(true);
-  const [totalCooling, setTotalCooling] = useState('0');
+  /// Vault state is owned by the react-query cache. Every field below is
+  /// derived from the same snapshot the QueryInvalidator keeps fresh, so
+  /// two surfaces (eg /profile + /stake) never disagree.
+  const { data: vault, isLoading: vaultLoading, refresh: refreshVault } =
+    useVaultPositions(address);
+  const positions = vault?.positions ?? [];
+  const totalActive = vault?.totalActiveUsdc ?? '0';
+  const totalCooling = vault?.totalCoolingUsdc ?? '0';
   /// v2.D insurance: amount of active stake locked against open deals.
   /// Cannot be cooled until the related deal settles or refunds. Absent on
   /// pre-v2.D backends; treated as '0' there.
-  const [reservedUsdc, setReservedUsdc] = useState('0');
+  const reservedUsdc = vault?.reservedUsdc ?? '0';
   /// v2.D: totalActive minus reservedUsdc. The portion the user can cool
   /// down or use to accept new deals.
-  const [freeStakeUsdc, setFreeStakeUsdc] = useState('0');
-  const [cooldownDays, setCooldownDays] = useState(7);
-  const [vaultDeployed, setVaultDeployed] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
+  const freeStakeUsdc = vault?.freeStakeUsdc ?? totalActive;
+  const cooldownDays = vault?.cooldownDays ?? 7;
+  const vaultDeployed = vault ? vault.vaultAddress != null : null;
+  /// False while the backend is still walking the vault's event log for
+  /// this owner. Drives the "syncing" pill so the user doesn't take a
+  /// mid-scan total as final.
+  const synced = vault?.synced !== false;
+  const loading = vaultLoading && !vault;
 
   const [depositAmount, setDepositAmount] = useState<number | ''>('');
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
@@ -231,38 +228,18 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   const withdrawExceedsActive =
     typeof withdrawAmount === 'number' && withdrawAmount > Number(freeStakeUsdc);
 
-  const refetchPositions = useCallback(async () => {
-    if (!address) return;
-    try {
-      const r = await api.vaultPositions(address);
-      setPositions(r.positions);
-      setTotalActive(r.totalActiveUsdc);
-      setTotalCooling(r.totalCoolingUsdc);
-      // v2.D reservation fields. Pre-v2.D backends omit them; fall back to
-      // zero reservation, free = active so the UI stays correct.
-      setReservedUsdc(r.reservedUsdc ?? '0');
-      setFreeStakeUsdc(r.freeStakeUsdc ?? r.totalActiveUsdc);
-      setCooldownDays(r.cooldownDays);
-      setVaultDeployed(r.vaultAddress != null);
-      // synced is optional for back-compat with older backends.
-      setSynced(r.synced !== false);
-    } catch {
-      // Silent — UI shows "could not load" if it stays empty.
-    } finally {
-      setLoading(false);
-    }
-  }, [address]);
+  /// Thin wrapper that forwards to the shared cache hook. `fresh=true`
+  /// passes a `?refresh=1` to the backend so the periodic 5-minute vault
+  /// scan can't mask a just-landed deposit/withdraw.
+  const refetchPositions = useCallback(
+    async (fresh = false) => {
+      await refreshVault(fresh);
+    },
+    [refreshVault],
+  );
 
-  useEffect(() => {
-    if (!address) {
-      setPositions([]);
-      setLoading(false);
-      return;
-    }
-    refetchPositions();
-    const id = setInterval(refetchPositions, 10_000);
-    return () => clearInterval(id);
-  }, [address, refetchPositions]);
+  /// useVaultPositions owns the 10s polling cadence and address-change
+  /// re-key; no per-mount interval bookkeeping needed here.
 
   const pushLog = useCallback((entry: Omit<ActionLog, 'id'>) => {
     const id = `${entry.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -342,7 +319,9 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         patchLog(logId, { status: 'done', txHash: depositHash });
       }
       recordAction('stake-deposit');
-      await refetchPositions();
+      // fresh=true forces the backend to scan the vault now so the new
+      // position appears in this refetch instead of after the periodic tick.
+      await refetchPositions(true);
       await refetchRep();
     } catch (err) {
       patchLog(logId, { status: 'failed', error: (err as Error).message });
@@ -475,7 +454,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     }
     setBusyKind(null);
     setWithdrawAmount('');
-    await refetchPositions();
+    await refetchPositions(true);
     await refetchRep();
   }, [
     address,
@@ -542,7 +521,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           await arcClient.waitForTransactionReceipt({ hash });
           patchLog(logId, { status: 'done', txHash: hash });
         }
-        await refetchPositions();
+        await refetchPositions(true);
         await refetchRep();
       } catch (err) {
         patchLog(logId, { status: 'failed', error: (err as Error).message });

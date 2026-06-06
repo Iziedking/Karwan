@@ -1,38 +1,31 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api, type BuyerJob, type BuyerBid } from '@/core/api';
-import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { qk } from '@/core/queryKeys';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { ProfilePeekModal } from './ProfilePeekModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
-const REFRESH_TRIGGERS = new Set([
-  'bid.submitted',
-  'bid.scored',
-  'counter.issued',
-  'counter.response.submitted',
-  'bid.accepted',
-]);
-
 export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   const lb = useTranslations().liveBidsPanel;
-  const [job, setJob] = useState(initial);
+  /// Reads from the same `qk.job.snapshot` slot useJobSnapshot writes to,
+  /// so the bid panel and the page header stay in lockstep without two
+  /// separate fetches. SSE bid/counter events invalidate the prefix in
+  /// QueryInvalidator; this hook just picks up the new data.
+  const jobQuery = useQuery({
+    queryKey: qk.job.snapshot(initial.jobId),
+    queryFn: () => api.job(initial.jobId),
+    initialData: initial,
+    staleTime: 15_000,
+  });
+  const job = jobQuery.data ?? initial;
   // Profile peek state. We open by USER address (not agent), since profiles
   // are keyed by user. Falls back to agent address when the bid lacks a
   // resolved user — the peek still shows the masked address gracefully.
   const [peekSeller, setPeekSeller] = useState<string | null>(null);
-  const events = useLiveEvents(initial.jobId, 50);
-
-  useEffect(() => {
-    const latest = events[0];
-    if (!latest || !REFRESH_TRIGGERS.has(latest.type)) return;
-    const t = setTimeout(() => {
-      api.job(initial.jobId).then(setJob).catch(() => {});
-    }, 400);
-    return () => clearTimeout(t);
-  }, [events, initial.jobId]);
 
   if (job.bids.length === 0) {
     return (
@@ -43,25 +36,35 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
     );
   }
 
-  // Sort: highest score first, then lowest price.
+  /// Sort to match `finalizeBidCollection` in backend/src/agents/buyer.ts.
+  /// Match-band FIRST (skill-fit decides), then the bid score (price + tier
+  /// + completion), then lowest price as a final tiebreak. A bid card sorted
+  /// only by LLM score puts LEAD on a high-rep seller with a mediocre skill
+  /// fit, while the agent ACTUALLY picks the seller with the better skill
+  /// fit. Mirroring the same key keeps LEAD honest.
+  const MATCH_BAND_SIZE = 25;
+  const bandOf = (b: BuyerBid) =>
+    b.topicalMatch != null ? Math.floor(b.topicalMatch / MATCH_BAND_SIZE) : -1;
   const sorted = [...job.bids].sort((a, b) => {
+    const bandDelta = bandOf(b) - bandOf(a);
+    if (bandDelta !== 0) return bandDelta;
     const sa = a.score ?? 0;
     const sb = b.score ?? 0;
     if (sa !== sb) return sb - sa;
     return Number(a.priceUsdc) - Number(b.priceUsdc);
   });
-  const topScore = sorted[0]?.score ?? null;
+  const leadSeller = sorted[0]?.seller ?? null;
 
   return (
     <>
       <ul className="divide-y divide-[var(--color-line)]">
-        {sorted.map((b, i) => {
-          const isLead = topScore != null && b.score === topScore;
+        {sorted.map((b) => {
+          const isLead = b.seller === leadSeller;
           return (
             <BidRow
               key={b.seller}
               bid={b}
-              isLead={isLead && i === 0}
+              isLead={isLead}
               onPeek={() => setPeekSeller(b.sellerUserAddress ?? b.seller)}
               copy={lb}
             />
@@ -200,8 +203,16 @@ function BidRow({
         </div>
       )}
 
-      {(counter || bid.suggestedCounterDeadlineDays != null) && (
+      {(counter || bid.suggestedCounterDeadlineDays != null || bid.topicalMatch != null) && (
         <div className="mt-3 flex border-t border-[var(--color-line)]">
+          {bid.topicalMatch != null && (
+            <>
+              <KeyValue label="SKILL" value={`${bid.topicalMatch}%`} />
+              {(counter || bid.suggestedCounterDeadlineDays != null) && (
+                <span aria-hidden className="w-px my-2 bg-[var(--color-line)]" />
+              )}
+            </>
+          )}
           {counter && (
             <KeyValue label={copy.counter} value={`${counter} USDC`} />
           )}

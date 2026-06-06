@@ -1,11 +1,10 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { api, type DirectDeal } from '@/core/api';
+import { useMemo, useState } from 'react';
 import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealList';
+import { useDirectDeals } from '../hooks/useDirectDeals';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc, shortAddress, shortHash, relativeTime } from '@/shared/utils/format';
-import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Filter = 'all' | 'active' | 'completed';
@@ -23,37 +22,17 @@ const ACTIVE_STAGES: DealStage[] = [
 /// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
   const tr = useTranslations().dealsFeed;
-  const auth = useAuth();
-  const address = auth.address;
-  const [deals, setDeals] = useState<DirectDeal[]>([]);
-  const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const { deals, fetchState: hookState } = useDirectDeals();
+  // Map the shared hook's states onto this component's prior tri-state so the
+  // existing branches below stay untouched. 'idle' (signed-out) reads as
+  // 'ready' here because the empty-list branch handles both.
+  const fetchState: 'loading' | 'ready' | 'error' =
+    hookState === 'error' ? 'error' : hookState === 'success' || hookState === 'idle' ? 'ready' : 'loading';
   const [filter, setFilter] = useState<Filter>('all');
   const [page, setPage] = useState(0);
   // Rows per page. The book grows over time; pagination keeps the home page
   // from becoming a scroll trap.
   const PAGE_SIZE = 6;
-
-  useEffect(() => {
-    if (!address) {
-      setDeals([]);
-      setFetchState('ready');
-      return;
-    }
-    let cancelled = false;
-    api
-      .directDeals(address)
-      .then((d) => {
-        if (cancelled) return;
-        setDeals(d.deals);
-        setFetchState('ready');
-      })
-      .catch(() => {
-        if (!cancelled) setFetchState('error');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address]);
 
   const withStage = useMemo(
     () => deals.map((d) => ({ deal: d, stage: stageOf(d) })),

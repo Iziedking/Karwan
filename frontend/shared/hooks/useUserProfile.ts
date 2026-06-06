@@ -1,7 +1,9 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type UserProfile } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { useAuth } from './useAuth';
 
 type FetchState = 'idle' | 'loading' | 'success' | 'error';
@@ -12,57 +14,55 @@ type FetchState = 'idle' | 'loading' | 'success' | 'error';
 export const PROFILE_SAVED_EVENT = 'karwan:profile-saved';
 
 /// Reads the user's profile by the auth-resolved address (web3 wallet OR
-/// Circle session, whichever the user signed in with). Returns the address
-/// + isConnected shape the rest of the app already consumes.
+/// Circle session). Returns the address + isConnected shape the rest of
+/// the app already consumes.
 export function useUserProfile() {
   const auth = useAuth();
   const pathname = usePathname();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [fetchState, setFetchState] = useState<FetchState>('idle');
-  const [refreshCount, setRefreshCount] = useState(0);
+  const qc = useQueryClient();
+  const enabled = auth.isAuthenticated && !!auth.address;
 
-  const refresh = useCallback(() => setRefreshCount((n) => n + 1), []);
+  const query = useQuery({
+    queryKey: qk.profile.me(auth.address),
+    queryFn: () => api.getProfile(auth.address!).then((r) => r.profile),
+    enabled,
+    staleTime: 60_000,
+  });
 
+  /// Refetch on route change (returning from /onboarding) — the profile
+  /// row may have flipped role / displayName since last fetch.
   useEffect(() => {
-    if (!auth.isAuthenticated || !auth.address) {
-      setProfile(null);
-      setFetchState('idle');
-      return;
-    }
-    let cancelled = false;
-    setFetchState('loading');
-    api
-      .getProfile(auth.address)
-      .then((res) => {
-        if (cancelled) return;
-        setProfile(res.profile);
-        setFetchState('success');
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setProfile(null);
-        setFetchState('error');
-      });
-    return () => {
-      cancelled = true;
-    };
-    // Refetch on address change, route change (returning from /onboarding),
-    // or explicit refresh().
-  }, [auth.address, auth.isAuthenticated, pathname, refreshCount]);
+    if (!enabled) return;
+    qc.invalidateQueries({ queryKey: qk.profile.me(auth.address) });
+    // We deliberately list pathname, not the address, so the refetch is
+    // scoped to navigation events; address change is already handled by
+    // useQuery's key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onSaved = () => refresh();
+    const onSaved = () => {
+      qc.invalidateQueries({ queryKey: qk.profile.me(auth.address) });
+    };
     window.addEventListener(PROFILE_SAVED_EVENT, onSaved);
     return () => window.removeEventListener(PROFILE_SAVED_EVENT, onSaved);
-  }, [refresh]);
+  }, [qc, auth.address]);
+
+  let fetchState: FetchState = 'idle';
+  if (!enabled) fetchState = 'idle';
+  else if (query.isError) fetchState = 'error';
+  else if (query.isSuccess) fetchState = 'success';
+  else fetchState = 'loading';
 
   return {
-    profile,
+    profile: (query.data ?? null) as UserProfile | null,
     address: auth.address,
     isConnected: auth.isAuthenticated,
     fetchState,
     loading: fetchState === 'loading' || fetchState === 'idle',
-    refresh,
+    refresh: () => {
+      qc.invalidateQueries({ queryKey: qk.profile.me(auth.address) });
+    },
   };
 }

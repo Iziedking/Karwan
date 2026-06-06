@@ -1,10 +1,14 @@
 'use client';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { WagmiProvider } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { RainbowKitProvider, lightTheme, darkTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { wagmiConfig } from '@/core/wagmi';
+import { makeQueryClient } from '@/core/queryClient';
+import { makeQueryPersister, persistOptions } from '@/core/queryPersister';
+import { QueryInvalidator } from '@/core/queryInvalidator';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
 import { SiweGate } from '@/shared/components/SiweGate';
@@ -19,8 +23,14 @@ export function AppProviders({
   children: ReactNode;
   initialLocale?: Locale;
 }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => makeQueryClient());
   const [mode, setMode] = useState<Mode>('light');
+
+  /// The persister is built lazily so it only constructs on the client
+  /// (localStorage isn't available during SSR). When null — SSR or storage
+  /// disabled — fall through to the plain QueryClientProvider so the app
+  /// still works without persistence.
+  const persister = useMemo(() => makeQueryPersister(), []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -46,15 +56,27 @@ export function AppProviders({
           fontStack: 'system',
         });
 
+  const inner = (
+    <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
+      <SiweGate />
+      <QueryInvalidator />
+      <GuideProvider>{children}</GuideProvider>
+    </RainbowKitProvider>
+  );
+
   return (
     <LocaleProvider initialLocale={initialLocale}>
       <WagmiProvider config={wagmiConfig}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
-            <SiweGate />
-            <GuideProvider>{children}</GuideProvider>
-          </RainbowKitProvider>
-        </QueryClientProvider>
+        {persister ? (
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{ persister, ...persistOptions }}
+          >
+            {inner}
+          </PersistQueryClientProvider>
+        ) : (
+          <QueryClientProvider client={queryClient}>{inner}</QueryClientProvider>
+        )}
       </WagmiProvider>
     </LocaleProvider>
   );

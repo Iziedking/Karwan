@@ -1,16 +1,10 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { api } from '@/core/api';
+import { useMemo } from 'react';
+import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
 
 /// Network-side yield readout. Three tiles + a cumulative accrual chart.
-/// Both polls land every 30s so the chart adds a new point each day-tick
-/// without hammering the RPC (backend caches at 30s too).
-
-interface ProtocolReserves {
-  totalCreditedUsdc: string;
-  totalClaimedUsdc: string;
-  outstandingUsdc: string;
-}
+/// Both polls land every 30s through the shared react-query cache so the
+/// chart adds a new point each day-tick without hammering the RPC.
 
 interface HistoryPoint {
   day: string;
@@ -29,50 +23,23 @@ function fmt(s: string | undefined): string {
 }
 
 export function ReservesWidget() {
-  const [data, setData] = useState<ProtocolReserves | null>(null);
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [configured, setConfigured] = useState<boolean | null>(null);
+  const protocol = useYieldProtocol();
+  const historyQ = useYieldHistory();
 
-  useEffect(() => {
-    let cancelled = false;
-    /// Settle the two fetches independently. If `/history` 502s (Arc public
-    /// RPC silently dropping a wide getLogs window), the tiles still render
-    /// from `/protocol`'s view-function reads. Promise.all here used to
-    /// reject and blank the entire widget.
-    const fetchOnce = async () => {
-      const [protocolResult, historyResult] = await Promise.allSettled([
-        api.yieldProtocol(),
-        api.yieldHistory(),
-      ]);
-      if (cancelled) return;
+  /// When the backend reports yield as not configured (no Treasury wired),
+  /// hide the widget entirely. Pre-configured shape: `configured: false`.
+  if (protocol.data && !protocol.data.configured) return null;
 
-      if (protocolResult.status === 'fulfilled') {
-        const r = protocolResult.value;
-        if (!r.configured) {
-          setConfigured(false);
-        } else {
-          setConfigured(true);
-          setData({
-            totalCreditedUsdc: r.totalCreditedUsdc ?? '0',
-            totalClaimedUsdc: r.totalClaimedUsdc ?? '0',
-            outstandingUsdc: r.outstandingUsdc ?? '0',
-          });
-        }
+  const tilesLoading = protocol.isLoading;
+  const historyLoaded = !historyQ.isLoading;
+  const history: HistoryPoint[] = historyQ.history;
+  const data = protocol.data?.configured
+    ? {
+        totalCreditedUsdc: protocol.data.totalCreditedUsdc ?? '0',
+        totalClaimedUsdc: protocol.data.totalClaimedUsdc ?? '0',
+        outstandingUsdc: protocol.data.outstandingUsdc ?? '0',
       }
-
-      if (historyResult.status === 'fulfilled') {
-        setHistory(historyResult.value.history ?? []);
-      }
-    };
-    fetchOnce();
-    const id = setInterval(fetchOnce, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
-  if (configured === false) return null;
+    : null;
 
   const tiles: Array<{ label: string; value: string; hint: string }> = [
     {
@@ -103,12 +70,16 @@ export function ReservesWidget() {
             <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
             </p>
-            <p className="mt-1.5 font-sans text-[24px] sm:text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
-              {t.value}
-              <span className="ms-1.5 text-[13px] font-semibold text-[var(--lp-text-muted)] tracking-normal">
-                USDC
-              </span>
-            </p>
+            {tilesLoading ? (
+              <div className="mt-1.5 h-[28px] w-3/4 rounded-md bg-[var(--lp-border-light)] animate-pulse" />
+            ) : (
+              <p className="mt-1.5 font-sans text-[24px] sm:text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
+                {t.value}
+                <span className="ms-1.5 text-[13px] font-semibold text-[var(--lp-text-muted)] tracking-normal">
+                  USDC
+                </span>
+              </p>
+            )}
             <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)]">
               {t.hint}
             </p>
@@ -116,14 +87,14 @@ export function ReservesWidget() {
         ))}
       </div>
 
-      <AccrualChart history={history} />
+      <AccrualChart history={history} loaded={historyLoaded} />
     </div>
   );
 }
 
 /// Lime-accented area chart. Cumulative USDC distributed on y, days on x.
 /// Hand-rolled SVG; no chart-library dependency for this single surface.
-function AccrualChart({ history }: { history: HistoryPoint[] }) {
+function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: boolean }) {
   const padded = useMemo(() => {
     if (history.length === 0) return [];
     if (history.length === 1) {
@@ -136,6 +107,27 @@ function AccrualChart({ history }: { history: HistoryPoint[] }) {
     }
     return history;
   }, [history]);
+
+  if (!loaded) {
+    return (
+      <div
+        className="rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
+      >
+        <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
+          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            Cumulative distribution
+          </p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+            USDC
+          </p>
+        </div>
+        <div
+          className="rounded-md bg-[var(--lp-border-light)] animate-pulse"
+          style={{ height: 220 }}
+        />
+      </div>
+    );
+  }
 
   if (padded.length === 0) {
     return (

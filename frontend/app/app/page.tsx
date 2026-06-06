@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/shared/utils/cn';
-import { api, type ApiStatus } from '@/core/api';
+import { api } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -62,37 +64,34 @@ export default function AppHome() {
   const t = useTranslations().appHome;
   const router = useRouter();
   const { profile, isConnected, loading, fetchState } = useUserProfile();
-  const [status, setStatus] = useState<ApiStatus | null>(null);
-  const [statusChecked, setStatusChecked] = useState(false);
-  const [stats, setStats] = useState<NetStats | null>(null);
 
-  useEffect(() => {
-    api
-      .status()
-      .then((s) => {
-        setStatus(s);
-        setStatusChecked(true);
-      })
-      .catch(() => {
-        setStatus(null);
-        setStatusChecked(true);
-      });
-  }, []);
+  /// Backend health probe + network-wide stats. Both ride the shared
+  /// QueryClient cache, so navigating away and back doesn't re-blank the
+  /// hero stat tiles. The dealsStats key is invalidated by the SSE bridge
+  /// on every deal lifecycle event.
+  const statusQuery = useQuery({
+    queryKey: qk.status(),
+    queryFn: () => api.status(),
+    staleTime: 60_000,
+  });
+  const status = statusQuery.data ?? null;
+  const statusChecked = !statusQuery.isPending;
 
-  useEffect(() => {
-    api
-      .dealsStats()
-      .then((s) => {
-        setStats({
-          deals: s.total,
-          direct: s.direct,
-          agent: s.agent,
-          settled: s.settled,
-          usdc: s.volumeUsdc,
-        });
-      })
-      .catch(() => {});
-  }, []);
+  const statsQuery = useQuery({
+    queryKey: qk.dealsStats(),
+    queryFn: () => api.dealsStats(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const stats: NetStats | null = statsQuery.data
+    ? {
+        deals: statsQuery.data.total,
+        direct: statsQuery.data.direct,
+        agent: statsQuery.data.agent,
+        settled: statsQuery.data.settled,
+        usdc: statsQuery.data.volumeUsdc,
+      }
+    : null;
 
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {

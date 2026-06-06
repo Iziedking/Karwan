@@ -1,9 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { qk } from '@/core/queryKeys';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
-import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { Band, SectionTag } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -19,18 +21,6 @@ const ACTIVE_STAGES: DealStage[] = [
   'awaiting-final-release',
 ];
 
-const REFRESH_TYPES = new Set([
-  'deal.direct.created',
-  'deal.accepted',
-  'deal.matched',
-  'deal.match.approved',
-  'escrow.funded',
-  'escrow.milestone.released',
-  'escrow.settled',
-  'deal.auto_released',
-  'deal.cancelled',
-]);
-
 function money(n: number | null): string {
   if (n == null) return '—';
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -39,52 +29,43 @@ function money(n: number | null): string {
 export function MoneyStrip() {
   const ms = useTranslations().moneyStrip;
   const { address, isAuthenticated } = useAuth();
-  const [available, setAvailable] = useState<number | null>(null);
-  const [inEscrow, setInEscrow] = useState<number | null>(null);
-  const [earned, setEarned] = useState<number | null>(null);
+  // Reuse the shared deal cache so the in-escrow / earned tiles paint from
+  // the same source as DealsFeed without a second round-trip.
+  const { deals } = useDirectDeals();
 
-  useEffect(() => {
-    if (!isAuthenticated || !address) return;
-    let cancelled = false;
+  /// Wallet-overview reads three on-chain balances (identity + buyer
+  /// agent + seller agent). The QueryInvalidator pokes this key on any
+  /// money-moving event via the `wallet-overview` prefix.
+  const overviewQuery = useQuery({
+    queryKey: address ? qk.walletOverview(address) : ['wallet-overview', 'anon'],
+    queryFn: () => api.walletOverview(address!),
+    enabled: isAuthenticated && !!address,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+  const available = overviewQuery.data
+    ? (() => {
+        const a =
+          Number(overviewQuery.data.identity?.usdcBalance ?? 0) +
+          Number(overviewQuery.data.agents?.buyer?.usdcBalance ?? 0) +
+          Number(overviewQuery.data.agents?.seller?.usdcBalance ?? 0);
+        return Number.isFinite(a) ? a : 0;
+      })()
+    : null;
+
+  const { inEscrow, earned } = useMemo(() => {
+    if (!address || deals.length === 0) return { inEscrow: null, earned: null };
     const me = address.toLowerCase();
-    const load = () => {
-      api
-        .walletOverview(address)
-        .then((o) => {
-          if (cancelled) return;
-          const a =
-            Number(o.identity?.usdcBalance ?? 0) +
-            Number(o.agents?.buyer?.usdcBalance ?? 0) +
-            Number(o.agents?.seller?.usdcBalance ?? 0);
-          setAvailable(Number.isFinite(a) ? a : 0);
-        })
-        .catch(() => {});
-      api
-        .directDeals(address)
-        .then(({ deals }) => {
-          if (cancelled) return;
-          let esc = 0;
-          let earn = 0;
-          for (const d of deals) {
-            const amt = Number(d.dealAmountUsdc) || 0;
-            const stage = stageOf(d);
-            if (ACTIVE_STAGES.includes(stage)) esc += amt;
-            else if (stage === 'settled' && d.seller.toLowerCase() === me) earn += amt;
-          }
-          setInEscrow(esc);
-          setEarned(earn);
-        })
-        .catch(() => {});
-    };
-    load();
-    const unsub = subscribeLiveEvents((e) => {
-      if (REFRESH_TYPES.has(e.type)) setTimeout(load, 600);
-    });
-    return () => {
-      cancelled = true;
-      unsub();
-    };
-  }, [address, isAuthenticated]);
+    let esc = 0;
+    let earn = 0;
+    for (const d of deals) {
+      const amt = Number(d.dealAmountUsdc) || 0;
+      const stage = stageOf(d);
+      if (ACTIVE_STAGES.includes(stage)) esc += amt;
+      else if (stage === 'settled' && d.seller.toLowerCase() === me) earn += amt;
+    }
+    return { inEscrow: esc, earned: earn };
+  }, [deals, address]);
 
   if (!isAuthenticated || !address) return null;
 

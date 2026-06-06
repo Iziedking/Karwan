@@ -1,7 +1,9 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api } from '@/core/api';
+import { api, type DirectDeal } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import {
@@ -420,6 +422,7 @@ export function subscribeToToasts(fn: ToastListener) {
 
 export function useNotifications() {
   const auth = useAuth();
+  const qc = useQueryClient();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -451,10 +454,16 @@ export function useNotifications() {
     if (!address) return;
     const me = address.toLowerCase();
     try {
-      const res = await api.directDeals(address);
+      /// Read through the shared deal-list query so we don't double-fetch
+      /// every connect; useDirectDeals already keeps this fresh and
+      /// SSE-invalidated. fetchQuery returns cached data if fresh.
+      const deals = await qc.fetchQuery({
+        queryKey: qk.deals.list(address),
+        queryFn: () => api.directDeals(address).then((r) => r.deals),
+      });
       const ids = new Set<string>();
       const roles = new Map<string, Role>();
-      for (const d of res.deals) {
+      for (const d of (deals as DirectDeal[])) {
         const j = d.jobId.toLowerCase();
         ids.add(j);
         roles.set(j, d.buyer.toLowerCase() === me ? 'buyer' : 'seller');
@@ -464,7 +473,7 @@ export function useNotifications() {
     } catch {
       /* keep whatever we have */
     }
-  }, [address]);
+  }, [address, qc]);
 
   // Backfill historical events on hydrate so notifications that fired while
   // the user was offline (a match landed, a brief expired) still surface in

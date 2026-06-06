@@ -1,40 +1,24 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type MatchProposal } from '@/core/api';
-import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
-
-const REFRESH_TRIGGERS = new Set([
-  'deal.matched',
-  'deal.match.approved',
-  'deal.match.declined',
-  'escrow.funded',
-]);
+import { qk } from '@/core/queryKeys';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 export function useMatchProposal(jobId: string) {
-  const [proposal, setProposal] = useState<MatchProposal | null>(null);
-  const events = useLiveEvents(jobId, 30);
+  const { address } = useAuth();
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: qk.job.matchProposal(jobId, address),
+    queryFn: () => api.matchProposal(jobId).then((r) => r.proposal),
+    staleTime: 15_000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .matchProposal(jobId)
-      .then((r) => {
-        if (!cancelled) setProposal(r.proposal);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [jobId]);
-
-  useEffect(() => {
-    const latest = events[0];
-    if (!latest || !REFRESH_TRIGGERS.has(latest.type)) return;
-    const t = setTimeout(() => {
-      api.matchProposal(jobId).then((r) => setProposal(r.proposal)).catch(() => {});
-    }, 300);
-    return () => clearTimeout(t);
-  }, [events, jobId]);
-
-  return { proposal, refresh: () => api.matchProposal(jobId).then((r) => setProposal(r.proposal)) };
+  return {
+    proposal: (query.data ?? null) as MatchProposal | null,
+    refresh: async () => {
+      await qc.invalidateQueries({
+        queryKey: qk.job.matchProposal(jobId, address),
+      });
+    },
+  };
 }

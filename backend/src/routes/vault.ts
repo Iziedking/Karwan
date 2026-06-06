@@ -182,6 +182,20 @@ vaultRoutes.get('/positions', async (c) => {
     });
   }
 
+  // `?refresh=1` forces a synchronous scan before serving. Web3 deposits
+  // sign the tx directly through wagmi and the backend never sees them
+  // until the next 5-minute scan tick; the frontend passes refresh=1 on
+  // its post-deposit refetch so the new position appears immediately.
+  const refresh = c.req.query('refresh');
+  if (refresh === '1' || refresh === 'true') {
+    await refreshVaultScan().catch((err) =>
+      logger.warn(
+        { err: (err as Error).message },
+        'on-demand vault scan refresh failed',
+      ),
+    );
+  }
+
   try {
     const { positions, synced } = await readPositions(parsed.data);
     let cooldownDays = 7;

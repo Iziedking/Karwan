@@ -1,5 +1,6 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useYieldMe } from '../hooks/useYield';
 import { useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -47,41 +48,18 @@ export function YieldClaimPanel() {
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
 
-  const [claimable, setClaimable] = useState('0');
-  const [lifetimeCredited, setLifetimeCredited] = useState('0');
-  const [lifetimeClaimed, setLifetimeClaimed] = useState('0');
-  const [loading, setLoading] = useState(true);
+  const { data: yieldData, isLoading: yieldLoading, refresh } = useYieldMe(address);
+  const claimable = yieldData?.configured ? yieldData.claimableUsdc : '0';
+  const lifetimeCredited = yieldData?.configured ? yieldData.lifetimeCreditedUsdc : '0';
+  const lifetimeClaimed = yieldData?.configured ? yieldData.lifetimeClaimedUsdc : '0';
+  const loading = yieldLoading;
   const [busy, setBusy] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
-    if (!address) return;
-    try {
-      const r = await api.yieldMe(address);
-      if (!r.configured) {
-        setClaimable('0');
-        return;
-      }
-      setClaimable(r.claimableUsdc);
-      setLifetimeCredited(r.lifetimeCreditedUsdc);
-      setLifetimeClaimed(r.lifetimeClaimedUsdc);
-    } catch {
-      // silent — tiles render — when fetch first lands
-    } finally {
-      setLoading(false);
-    }
-  }, [address]);
-
-  useEffect(() => {
-    if (!address) {
-      setLoading(false);
-      return;
-    }
-    refetch();
-    const id = setInterval(refetch, 30_000);
-    return () => clearInterval(id);
-  }, [address, refetch]);
+    refresh();
+  }, [refresh]);
 
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
   const claimableNum = Number(claimable);

@@ -1,47 +1,29 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
-import { api, type ActivationStatus, type AgentNames } from '@/core/api';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, type AgentNames } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { useAuth } from './useAuth';
 
-type FetchState = 'idle' | 'loading' | 'success' | 'error';
-
 /// Tracks whether the signed-in user (wagmi OR Circle session) has provisioned
-/// agent wallets, and exposes an activate() call. Activation is idempotent on
-/// the backend and works for both auth methods. circle users start without
-/// agents too. they just signed up; activation runs the same flow.
+/// agent wallets, and exposes activate() + renameAgents() calls. Activation is
+/// idempotent on the backend and works for both auth methods.
 export function useActivation() {
   const auth = useAuth();
+  const qc = useQueryClient();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
-  const [status, setStatus] = useState<ActivationStatus | null>(null);
-  const [fetchState, setFetchState] = useState<FetchState>('idle');
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isConnected || !address) {
-      setStatus(null);
-      setFetchState('idle');
-      return;
-    }
-    let cancelled = false;
-    setFetchState('loading');
-    api
-      .activationStatus(address)
-      .then((res) => {
-        if (cancelled) return;
-        setStatus(res);
-        setFetchState('success');
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setStatus(null);
-        setFetchState('error');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [address, isConnected]);
+  const enabled = isConnected && !!address;
+  const query = useQuery({
+    queryKey: qk.activation(address),
+    queryFn: () => api.activationStatus(address!),
+    enabled,
+    staleTime: 60_000,
+  });
+  const status = query.data ?? null;
 
   const activate = useCallback(
     async (names?: AgentNames) => {
@@ -50,8 +32,7 @@ export function useActivation() {
       setError(null);
       try {
         const res = await api.activate(address, names);
-        setStatus(res);
-        setFetchState('success');
+        qc.setQueryData(qk.activation(address), res);
         return res;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'activation failed');
@@ -60,7 +41,7 @@ export function useActivation() {
         setActivating(false);
       }
     },
-    [address],
+    [address, qc],
   );
 
   /// Rename the agents after activation (display-only, no on-chain effect).
@@ -71,8 +52,7 @@ export function useActivation() {
       setError(null);
       try {
         const res = await api.setAgentNames(address, names);
-        setStatus(res);
-        setFetchState('success');
+        qc.setQueryData(qk.activation(address), res);
         return res;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'rename failed');
@@ -81,7 +61,7 @@ export function useActivation() {
         setActivating(false);
       }
     },
-    [address],
+    [address, qc],
   );
 
   return {
@@ -90,7 +70,7 @@ export function useActivation() {
     status,
     activated: status?.activated ?? false,
     agents: status?.agents ?? null,
-    loading: fetchState === 'loading' || fetchState === 'idle',
+    loading: enabled && query.isPending,
     activating,
     error,
     activate,

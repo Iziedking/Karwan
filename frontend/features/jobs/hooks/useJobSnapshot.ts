@@ -1,48 +1,24 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type BuyerJob } from '@/core/api';
-import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { qk } from '@/core/queryKeys';
 
-const REFRESH_TRIGGERS = new Set([
-  'job.tracked',
-  'bid.scored',
-  'bid.submitted',
-  'counter.issued',
-  'counter.response.submitted',
-  'bid.accepted',
-  'escrow.approved',
-  'escrow.funded',
-  'escrow.milestone.released',
-  'escrow.settled',
-]);
-
+/// Job snapshot for the live auction page. The QueryInvalidator handles
+/// SSE-driven invalidation on bid/counter/escrow events at the qk.job
+/// prefix; this hook just exposes the cache slot.
 export function useJobSnapshot(initial: BuyerJob) {
-  const [job, setJob] = useState<BuyerJob>(initial);
-  const events = useLiveEvents(initial.jobId, 80);
-  const lastFetchedTsRef = useRef(0);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: qk.job.snapshot(initial.jobId),
+    queryFn: () => api.job(initial.jobId),
+    initialData: initial,
+    staleTime: 15_000,
+  });
 
-  useEffect(() => {
-    const latest = events[0];
-    if (!latest || !REFRESH_TRIGGERS.has(latest.type)) return;
-    if (latest.ts <= lastFetchedTsRef.current) return;
-    lastFetchedTsRef.current = latest.ts;
-    const t = setTimeout(() => {
-      api.job(initial.jobId).then(setJob).catch(() => {});
-    }, 350);
-    return () => clearTimeout(t);
-  }, [events, initial.jobId]);
-
-  /// Force a fresh fetch from the backend. Caller-triggered (eg after the
-  /// buyer edits the brief text, since the edit does not fire one of the
-  /// REFRESH_TRIGGERS events).
-  async function refresh(): Promise<void> {
-    try {
-      const next = await api.job(initial.jobId);
-      setJob(next);
-    } catch {
-      // Stay on the last good snapshot if the fetch fails.
-    }
-  }
-
-  return { job, events, refresh };
+  return {
+    job: (query.data ?? initial) as BuyerJob,
+    refresh: async () => {
+      await qc.invalidateQueries({ queryKey: qk.job.snapshot(initial.jobId) });
+    },
+  };
 }

@@ -11,7 +11,9 @@
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@simplewebauthn/browser": "^13.3.0",
+    "@tanstack/query-sync-storage-persister": "^5.101.0",
     "@tanstack/react-query": "^5.100.10",
+    "@tanstack/react-query-persist-client": "^5.101.0",
     "@vercel/speed-insights": "^2.0.0",
     "motion": "^12.38.0",
     "next": "^15.0.3",
