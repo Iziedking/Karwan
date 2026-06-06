@@ -6218,7 +6218,7 @@ export const en: MessagesShape = {
   docsIndexPage: {
     eyebrow: 'OVERVIEW',
     headline: 'How Karwan works',
-    intro: 'Karwan settles cross-border service deals on chain. USDC sits in a milestone escrow on Arc while the work gets done, and releases as the buyer signs off. Two agents handle the matching and the negotiation, then bring the final terms back to you for sign-off before any money moves. This guide walks every part you will touch.',
+    intro: 'Karwan is on-chain commerce rails for p2p and b2b trade. USDC sits in milestone escrow on Arc while the work gets done, and releases as the buyer signs off. Two agents handle matching and negotiation, then bring the final terms back to you for sign-off before any money moves. The platform supports small p2p deals up to b2b trade lanes, with treasury reserves earning real Hashnote USYC yield on Arc today. This guide walks every part you will touch.',
     twoWays: {
       title: 'The two ways to trade',
       lede: 'Pick the flow that fits whether you already have a counterparty.',
@@ -6400,6 +6400,7 @@ export const en: MessagesShape = {
       { q: 'What if the buyer is slow to release?', a: 'The seller can extend the deal once they mark delivered. If the buyer goes quiet past a short delay-appeal window, Karwan auto-releases the first milestone for them. The final tranche always needs an explicit buyer click, so a silent buyer cannot accidentally settle a deal they never verified.' },
       { q: 'Why does the bridge take so long?', a: 'Standard cross-chain transfers wait for the source chain to finalize, which is ten to nineteen minutes on Sepolia testnets. The mint lands automatically once Circle confirms the burn. The bridge card on the page tracks every stage so you always know where things are.' },
       { q: 'How do I raise my reputation?', a: 'Complete deals cleanly, stake USDC in the vault, and stay active. The score combines six factors on a curve where the first units of effort matter most, so steady behaviour over time grows the score faster than any single big move.' },
+      { q: 'Does the treasury actually earn yield, or is that a roadmap?', a: 'Real yield, today on testnet. As of 2026-06-06, Karwan Treasury V3 was whitelisted by Circle on Hashnote\'s USYC entitlements contract on Arc Testnet. Idle USDC fees subscribe into real Hashnote USYC through the standard ERC-4626 Teller, not a mock. The vault side (idle user stake earning the same USYC) is queued for the same whitelist and flips live as soon as the second confirmation lands.' },
       { q: 'Where do I cash out after a deal settles?', a: 'From the Cashout page. Send USDC to any wallet on Arc instantly, or bridge out to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana. The page shows every stage of the bridge in real time.' },
       { q: 'Does Karwan custody my funds?', a: "No. Funds sit in the on-chain escrow contract during the deal. The platform never has the keys to release them; only the contract's rules and your sign-off do. When you cash out, the funds move from your Karwan wallet to wherever you point them." },
     ],
@@ -6468,7 +6469,7 @@ export const en: MessagesShape = {
         passport: { title: 'Public Credit Passport.', body: 'Every wallet has a public reputation page showing tier, score, term breakdown, and on-chain history. Anyone can read it without signing in.' },
         shareable: { title: 'Shareable deal links.', body: 'Open a deal pointed at an email address. The recipient claims with a one-time code and a Circle wallet is provisioned in their browser.' },
         cashout: { title: 'Cashout after settlement.', body: 'Send settled USDC to any wallet on Arc, or bridge out to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana with an inline progress card.' },
-        vault: { title: 'Vault and treasury accrue on USYC.', body: 'Idle stake routes through Hashnote USYC, a tokenized US Treasury fund, via the standard ERC-4626 Teller interface on Arc. A daily distribution credits each staker their pro-rata share, claimable on demand.' },
+        vault: { title: 'Treasury earns real Hashnote USYC.', body: 'Platform fee reserves route through real Hashnote USYC on Arc Testnet via the standard ERC-4626 Teller interface. Live since 2026-06-06 after Circle whitelisted Treasury V3 on Hashnote\'s entitlements contract. A daily distribution credits each staker their pro-rata share, claimable on demand. Vault USYC routing is queued on the same support thread and flips live the moment Circle confirms the second whitelist.' },
         terms: { title: 'Terms and Conditions with versioned consent.', body: 'A public terms page and a first-signup consent gate that re-prompts when the version changes.' },
         signin: { title: 'Three sign-in paths.', body: 'Email and passkey, email one-time code, or a web3 wallet through Sign-In with Ethereum.' },
         languages: { title: 'Multi-language framework.', body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },
@@ -6502,7 +6503,7 @@ export const en: MessagesShape = {
     },
     callout: {
       title: 'TESTNET TODAY',
-      body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Mainnet items, including treasury yield through Hashnote USYC, ship after the contracts pass a professional external audit.',
+      body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Treasury yield through real Hashnote USYC is already live on testnet. Mainnet ships after the contracts pass a professional external audit.',
     },
   },
   howItWorksPage: {

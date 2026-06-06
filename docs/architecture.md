@@ -10,13 +10,8 @@
   asymmetric negotiation walk, the deal watcher that runs review-window
   timers and the auto-release ladder, the CCTP relay (both directions),
   the SSE event bus, the OTP and SIWE auth flow, and the cashout router.
-- **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`,
-  `KarwanVault`, `KarwanTreasury` on Arc Testnet (chain 5042002). USDC is
-  the native gas asset. Older generations stay registered so legacy
-  positions remain reachable through `/legacy`. See the contract table in
-  the [README](../README.md).
-- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2, App Kit,
-  Gas Station. See [circle-integration.md](./circle-integration.md).
+- **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury` V3, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002). USDC is the native gas asset. Treasury V3 subscribes idle USDC into real Hashnote USYC via the ERC-4626 Teller (live since 2026-06-06). Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
+- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2, App Kit, Gas Station, Hashnote USYC. See [circle-integration.md](./circle-integration.md).
 - **Storage.** Postgres (via Drizzle) for profile and direct-deal metadata,
   with a flat-file fallback that mirrors the same shape for fast cold
   starts. The chain is the source of truth for everything financial;

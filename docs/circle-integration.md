@@ -79,18 +79,18 @@ the backend.
 
 ### USYC (Hashnote, via ERC-4626 Teller)
 
-On mainnet, `KarwanVault` routes idle stake principal into Hashnote USYC,
-the tokenized T-bill product, through the standard ERC-4626 Teller
-interface. The principal earns the short rate while it waits, and stays
-available to release back to free stake on demand.
+**Live on Arc Testnet as of 2026-06-06.** `KarwanTreasury` V3 (`0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573`) holds platform fee USDC and subscribes idle balance into real Hashnote USYC via the standard ERC-4626 Teller interface. Circle whitelisted the Treasury on Hashnote's RolesAuthority entitlements contract (`0xcc205224862c7641930c87679e98999d23c26113`), granting role 0, the subscriber capability. A first smoke test on the live wiring subscribed 12 USDC into 10.745840 USYC against the real Hashnote rate, so the on-chain accounting reads through to real yield, not a mock.
 
-On testnet we ship a `MockUSYC` adapter speaking the same subscribe and
-redeem surface. The mainnet flip is a constructor flag on the vault
-deploy. The integration is real production wiring with a deterministic
-adapter; we did this so the demo is not gated on Circle's USYC
-entitlement, which is still pending on our Arc Testnet wallets.
+`KarwanVault` is wired through the same interface for idle user stake principal. Whitelisting on the vault address is queued on the same support thread. The moment Circle confirms, an operator-only call to `vault.setTeller(realTeller, realUsyc)` swaps the vault's adapter from the testnet mock to real USYC. No vault redeploy needed; the setter is mutable behind the operator role.
 
-`KarwanTreasury` follows the same pattern for collected fees.
+Contract addresses on Arc Testnet, verified against Circle's published list:
+
+| Contract | Address |
+|---|---|
+| Hashnote USYC Token | `0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C` |
+| Hashnote USYC Teller (USDC) | `0x9fdF14c5B14173D74C08Af27AebFf39240dC105A` |
+| Hashnote USYC/USD Oracle | `0x52b56c7642E71dc54714d879127d97cd0B3D4581` |
+| Hashnote Entitlements (RolesAuthority) | `0xcc205224862c7641930c87679e98999d23c26113` |
 
 ## Wallet topology
 

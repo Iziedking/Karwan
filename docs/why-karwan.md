@@ -1,27 +1,14 @@
 # Why Karwan
 
-This document is the technical brief. Spend five minutes here and understand why Karwan is not just an
-escrow form on Arc.
+The technical brief. Spend five minutes here and understand why Karwan is not another escrow form on Arc.
 
 ## In one paragraph
 
-Karwan is an on-chain settlement platform for cross-border service deals.
-Two parties open a deal; USDC sits in milestone escrow on Arc while the
-work gets done; the buyer releases in tranches; the deal settles. The
-differentiator is the layer above the escrow: a pair of LLM-driven agents
-that find each other, negotiate price and deadline like humans do, hand
-the final terms back to their principals for sign-off, and follow the
-deal through to settlement. Reputation is on-chain and portable. Treasury
-idle USDC routes through Hashnote USYC on mainnet. The product ships in
-five languages today and is built for global service trade, with early
-focus on corridors where bank rails are slowest.
+Karwan is an on-chain commerce platform for p2p and b2b trade. Two parties open a deal, USDC sits in milestone escrow on Arc while the work gets done, the buyer releases in tranches, the deal settles. The differentiator is the layer above the escrow. A pair of LLM-driven agents find each other, negotiate price and deadline the way humans do, hand the final terms back to their principals for sign-off, and follow the deal through to settlement. Reputation is on-chain and portable. Treasury idle reserves route through real Hashnote USYC on Arc Testnet today (live as of 2026-06-06), not a mock. The product ships in five languages and is built for global service trade, with an early focus on corridors where bank rails are slowest.
 
 ## What makes Karwan different
 
-most escrow projects on Arc stop at "buyer types a seller address
-into a form, funds the escrow, releases on delivery." Karwan does this too,
-but most users never see it because the agents handle the matching and
-negotiation upstream of the escrow.
+Most escrow projects on Arc stop at "buyer types a seller address into a form, funds the escrow, releases on delivery." Karwan does this too, but most users never see it because the agents handle the matching and negotiation upstream of the escrow.
 
 Four things, in order of how much they shape the user experience.
 
@@ -100,12 +87,8 @@ Karwan ships two principal contracts, not one.
 - **`KarwanEscrow`** runs the deal. Milestone funding, 150-bps platform fee
   split evenly between buyer and seller, release in tranches, review-window
   auto-release, dispute path, mutual-cancel taxonomy.
-- **`KarwanVault`** runs the reputation stake. Users deposit USDC to lift
-  their tier; deposits are withdrawable anytime with a 3-day cooling window
-  for fraud checks. On mainnet, the same vault routes USDC through Hashnote
-  USYC so the locked principal also earns ~5% APY in tokenized T-bills.
-  Treasury fees walk the same path on mainnet, so platform revenue compounds
-  in real-world assets instead of sitting idle.
+- **`KarwanVault`** runs the reputation stake. Users deposit USDC to lift their tier, deposits are withdrawable anytime with a 3-day cooling window for fraud checks. The vault is wired to route idle stake through Hashnote USYC, so locked principal earns a real tokenized T-bill yield. Vault USYC routing flips live the moment Circle whitelists the vault address on Hashnote's RolesAuthority (Treasury V3 was whitelisted on 2026-06-06; vault follow-up is queued on the same ticket).
+- **`KarwanTreasury` V3** holds platform fees and parks idle USDC in real Hashnote USYC on Arc Testnet. Live since 2026-06-06. Subscribe and redeem run against Hashnote's ERC-4626 Teller, so the on-chain accounting reads through to real yield, not a mock.
 
 
 ## Cross-chain ingress: CCTP V2
@@ -194,10 +177,7 @@ The bundle that was scoped for v2 is mostly live on Arc Testnet.
   reasoning, opening-bid anchoring, cascading candidate queue. Trusted
   Match mode is the strict variant that gates bidding on stake and on
   reputation tier.
-- **Phase 2 d3-5: MockUSYC + KarwanTreasury (ERC-4626) + Vault USYC
-  adapter.** The mainnet path is wired through the same Teller interface
-  Hashnote USYC speaks. Testnet uses a deterministic mock adapter so the
-  demo is not gated on Circle's USYC entitlement.
+- **Real Hashnote USYC live on Treasury V3 (2026-06-06).** KarwanTreasury V3 was whitelisted on Hashnote's RolesAuthority (role 0, the subscriber capability) and subscribed real USYC against Circle's published Arc Testnet addresses. The path runs through the same ERC-4626 Teller interface mainnet uses. Vault USYC routing is queued on the same support thread and flips live as soon as Circle confirms the second whitelist.
 - **Phase 2 d6-7: Credit Passport public page.** Every wallet has a
   public reputation surface at `/credit-passport/0x...` rendering tier,
   score, term breakdown, deal count, success ratio, stake position, and
@@ -206,27 +186,27 @@ The bundle that was scoped for v2 is mostly live on Arc Testnet.
   deal links + cashout + extension requests** all shipped on the same
   release train.
 
-## What's next
+## What is coming
 
-- **x402 nanopayment rails for agents** (headline). Wire Circle's x402
-  micropayment surface so the agents can pay sub-cent fees for live data
-  during a negotiation: market medians from paid APIs, skill demand
-  snapshots, credit-feed reads against a passport, news during a
-  delivery review window. Every round can pull a fresh outside signal for
-  thousandths of a cent. Result: richer match decisions and pricing that
-  tracks the real world.
-- **Invoice factoring.** Financier funds an accepted deal at a discount;
-  the escrow's payee slot switches to the financier for that release; the
-  seller gets paid early. Reputation tier sets the discount floor.
-- **Symmetric reputation crediting** so both buyer and seller earn an
-  on-chain Success record on a clean settlement, not just the seller.
-- **External smart-contract audit** as the gate before mainnet.
-- **Safe multisig treasury** replacing the deployer EOA before mainnet.
+The next phase expands along three tracks. Each one is partly built; the headline below is what closes it out.
+
+### Full SME trade rails with x402 nanopayment for agents
+
+The b2b path needs richer context than p2p. A supplier negotiating a six-figure invoice cares about market medians, current shipping rates, and a buyer's payment history more than a freelancer pricing a logo does. We wire Circle's x402 micropayment surface into both the buyer and seller agents, so every negotiation round can pull a fresh outside signal for thousandths of a cent. Market rate medians from paid APIs, skill demand snapshots, news during a review window, deeper credit checks against the passport. The marketplace stops pricing against our cached view and starts pricing against the real world.
+
+### Invoice factoring with tier-based discounts
+
+A seller does not always want to wait for the deal to settle. A financier steps in, pays the seller right away at a small discount, and on release the escrow routes to the financier instead of the seller. The seller got their money early, the financier earned a small spread, the buyer paid the same total they were always going to pay. The discount the financier charges depends on the seller's tier. Strong on-chain track record gets factored at a tighter spread because the risk is lower. A new seller pays a wider spread because there is more uncertainty for the financier to underwrite. Reputation finally has a number that lenders care about.
+
+### Vault USYC and the rest of the hardening list
+
+- **Vault USYC routing** flips the moment Circle confirms the second whitelist on Hashnote's RolesAuthority. Idle stake principal earns the same real Hashnote yield rate that Treasury V3 already does.
+- **Symmetric reputation crediting** so both buyer and seller earn an on-chain Success record on a clean settlement.
+- **External smart contract audit** as the gate before any mainnet exposure.
+- **Safe multisig treasury** replacing the deployer EOA before the contracts go mainnet.
 - **Foundry coverage above 80%** on the escrow and vault branches.
-- **v2.H: Full UI string extraction and RTL audit.** Five locales get
-  full coverage; Arabic gets a real RTL layout pass.
-- **v2.F: GitBook handbook** for buyers, sellers, financiers, and agent
-  operators.
+- **Full UI string extraction and RTL audit** so Arabic gets a real layout pass instead of falling back to English.
+- **GitBook handbook** for buyers, sellers, financiers, and agent operators.
 
 ## Technical approach in one paragraph
 
@@ -244,13 +224,4 @@ DB caches signals that feed the strategy core. The frontend is a Next.js
 
 ## The five-line summary
 
-> Karwan turns an on-chain milestone escrow into a cross-border service
-> settlement product by adding LLM-driven asymmetric negotiation agents,
-> an ERC-8004 reputation registry that gates agent behavior, a
-> yield-bearing reputation stake that funds itself on mainnet via Hashnote
-> USYC, multi-chain USDC ingress via CCTP V2, and a multi-language front
-> door for the trade corridors it serves first. The agents cascade through
-> the candidate pool when the first negotiation fails, accept on the final
-> round when the offer is inside tolerance, and apply tier-aware concession
-> decay so the price walk looks human. Two parties trade across a border
-> with one click and a passkey.
+> Karwan turns an on-chain milestone escrow into a global commerce product for p2p and b2b trade. The layer above the escrow adds LLM-driven asymmetric negotiation agents, an ERC-8004 reputation registry that gates agent behavior, a yield-bearing reputation stake that earns real Hashnote USYC on Arc Testnet today, multi-chain USDC ingress via CCTP V2, and a multi-language front door for the corridors it serves first. The agents cascade through the candidate pool when the first negotiation fails, accept on the final round when the offer is inside tolerance, and apply tier-aware concession decay so the price walk looks human. Two parties trade across a border with one click and a passkey.
