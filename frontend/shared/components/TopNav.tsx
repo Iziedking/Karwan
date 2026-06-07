@@ -184,8 +184,19 @@ export function TopNav() {
           ) : isApp ? (
             // Signed-out app chrome: just the Sign in button. Don't tease the
             // app surface (nav rail, balance, bell, settings) before the user
-            // has signed in.
-            !authLoading && <ConnectWalletButton />
+            // has signed in. While auth is still resolving, reserve the same
+            // approximate width so the bar doesn't shift content once the
+            // button paints — this was one of the dominant CLS contributors
+            // across every app route (RES dashboard, last 7 days).
+            authLoading ? (
+              <span
+                aria-hidden
+                className="inline-block rounded-full bg-[var(--color-surface-2)] motion-safe:animate-pulse motion-reduce:animate-none"
+                style={{ width: 132, height: 36 }}
+              />
+            ) : (
+              <ConnectWalletButton />
+            )
           ) : (
             <>
               <div className="hidden sm:inline-flex">
