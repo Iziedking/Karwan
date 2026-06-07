@@ -2878,7 +2878,7 @@ interface MessagesShape {
     stack: {
       eyebrow: string; title: string;
       usdc: string; dcw: string; cctp: string; appKit: string;
-      gasStation: string; arc: string; resend: string; usyc: string;
+      gasStation: string; arc: string; usyc: string;
     };
     roadmap: {
       eyebrow: string; title: string; body: string;
@@ -6557,8 +6557,7 @@ export const en: MessagesShape = {
       appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. Reuses our Developer-Controlled Wallets as the source so we add new cross-chain features without managing extra credentials.',
       gasStation: 'Sponsors source-chain gas for our Circle wallet users on Base Sepolia and Ethereum Sepolia, so a non-crypto user only ever holds USDC. No buy ETH first detour.',
       arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
-      resend: 'Transactional email for one-time code sign-in, deal invites, and deal alerts. Inline brand logo, dark-mode safe template.',
-      usyc: 'On mainnet the vault and treasury route idle USDC through Hashnote USYC via the standard ERC-4626 interface, so locked principal earns the short rate while reputation is unchanged. Testnet runs against a deterministic mock adapter on the same interface so the demo path works today.',
+      usyc: 'Treasury reserves earn real Hashnote USYC on Arc Testnet via the standard ERC-4626 Teller interface. Live since 2026-06-06 after Circle whitelisted Treasury V3 on the Hashnote entitlements contract. The vault side (idle stake principal earning the same yield) is queued on the same support thread and flips live once Circle confirms the second whitelist.',
     },
     roadmap: {
       eyebrow: 'Roadmap',

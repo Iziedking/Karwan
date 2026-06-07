@@ -175,11 +175,7 @@ export default function HowItWorksPage() {
             role={t.stack.arc}
           />
           <StackTile
-            name="Resend"
-            role={t.stack.resend}
-          />
-          <StackTile
-            name="Hashnote USYC (mainnet)"
+            name="Hashnote USYC"
             role={t.stack.usyc}
           />
         </div>

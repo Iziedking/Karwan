@@ -3033,7 +3033,6 @@ export const fr: Messages = {
       appKit: 'Le SDK unifié de Circle pour pont, swap, envoi et solde unifié. Réutilise nos Developer-Controlled Wallets comme source, ce qui permet d\'ajouter de nouvelles fonctions cross-chain sans gérer d\'identifiants supplémentaires.',
       gasStation: 'Sponsorise le gaz source-chain pour nos utilisateurs de portefeuilles Circle sur Base Sepolia et Ethereum Sepolia, pour qu\'un utilisateur non crypto ne détienne jamais que des USDC. Pas de détour acheter de l\'ETH d\'abord.',
       arc: 'Chaîne 5042002. Les blocs finalisent en moins d\'une seconde. USDC est le jeton de gaz natif, et les registres d\'identité et de réputation ERC-8004 sont déjà déployés.',
-      resend: 'E-mail transactionnel pour la connexion par code à usage unique, les invitations aux transactions et les alertes. Logo de marque intégré, gabarit compatible mode sombre.',
       usyc: 'Sur mainnet, le vault et la trésorerie routent les USDC inactifs via Hashnote USYC sur l\'interface ERC-4626 standard, pour que le principal verrouillé gagne le taux court sans toucher à la réputation. Le testnet tourne contre un adaptateur mock déterministe sur la même interface, pour que le chemin de démo fonctionne aujourd\'hui.',
     },
     roadmap: {

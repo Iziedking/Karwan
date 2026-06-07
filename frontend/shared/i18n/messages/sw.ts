@@ -3033,7 +3033,6 @@ export const sw: Messages = {
       appKit: 'SDK iliyounganishwa ya Circle kwa daraja, ubadilishaji, kutuma, na salio iliyounganishwa. Inatumia tena Developer-Controlled Wallets zetu kama chanzo, hivyo tunaongeza vipengele vipya vya kuvuka mnyororo bila kusimamia stakabadhi za ziada.',
       gasStation: 'Inadhamini gesi ya mnyororo wa chanzo kwa watumiaji wetu wa mkoba wa Circle kwenye Base Sepolia na Ethereum Sepolia, ili mtumiaji asiye wa crypto ashike USDC tu. Hakuna mzunguko wa nunua ETH kwanza.',
       arc: 'Chenya 5042002. Vibao vinakamilika chini ya sekunde moja. USDC ni token asilia ya gesi, na rejista za utambulisho na sifa za ERC-8004 tayari zimewekwa.',
-      resend: 'Barua pepe za muamala kwa kuingia kwa msimbo wa mara moja, mialiko ya deal, na arifa za deal. Nembo ya chapa ndani ya mwili, kiolezo salama kwa hali ya giza.',
       usyc: 'Kwenye mainnet, vault na treasury zinapeleka USDC iliyokaa wakati kupitia Hashnote USYC kupitia kiolesura cha kawaida cha ERC-4626, ili mtaji uliofungwa upate kiwango cha muda mfupi huku sifa ikibaki bila kubadilika. Testnet inakimbia dhidi ya kibadilishaji bandia cha uhakika kwenye kiolesura kile kile ili njia ya demo ifanye kazi leo.',
     },
     roadmap: {
