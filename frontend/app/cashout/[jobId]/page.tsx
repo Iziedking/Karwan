@@ -15,7 +15,7 @@ import {
   CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { formatUsdc, shortAddress, shortHash } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -62,6 +62,25 @@ interface CashoutInfo {
 }
 
 export default function CashoutPage() {
+  const cp = useTranslations().cashoutPage;
+  return (
+    <AuthGuard
+      gateTag={cp.signInGate.tag}
+      gateTitle={
+        <>
+          {cp.signInGate.titleBefore} <Accent>USDC</Accent>
+          <Punc>.</Punc>
+        </>
+      }
+      gateBody={cp.signInGate.body}
+      gateButtonLabel={cp.signInGate.buttonLabel}
+    >
+      <CashoutPageInner />
+    </AuthGuard>
+  );
+}
+
+function CashoutPageInner() {
   const params = useParams<{ jobId: string }>();
   const jobId = params?.jobId ?? '';
   const auth = useAuth();
@@ -71,7 +90,7 @@ export default function CashoutPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth.isAuthenticated || !jobId) return;
+    if (!jobId) return;
     let alive = true;
     setFetchState('loading');
     api
@@ -89,23 +108,7 @@ export default function CashoutPage() {
     return () => {
       alive = false;
     };
-  }, [auth.isAuthenticated, jobId, cp.errors.couldNotLoad]);
-
-  if (!auth.isAuthenticated) {
-    return (
-      <SignInGate
-        tag={cp.signInGate.tag}
-        title={
-          <>
-            {cp.signInGate.titleBefore} <Accent>USDC</Accent>
-            <Punc>.</Punc>
-          </>
-        }
-        body={cp.signInGate.body}
-        buttonLabel={cp.signInGate.buttonLabel}
-      />
-    );
-  }
+  }, [jobId, cp.errors.couldNotLoad]);
 
   return (
     <FullBleed>

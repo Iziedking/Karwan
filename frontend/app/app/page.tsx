@@ -34,6 +34,7 @@ const PendingDealsBand = dynamic(
   { ssr: false },
 );
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
@@ -64,6 +65,12 @@ export default function AppHome() {
   const t = useTranslations().appHome;
   const router = useRouter();
   const { profile, isConnected, loading, fetchState } = useUserProfile();
+  /// Pull `isLoading` from useAuth directly so we can hold the skeleton
+  /// until auth resolves. Otherwise the page paints `SignInGate variant="hero"`
+  /// briefly for already-authed users, then snaps to the real content —
+  /// that flip was a major CLS contributor on /app (Speed Insights showed
+  /// 0.82 sustained).
+  const { isLoading: authLoading } = useAuth();
 
   /// Backend health probe + network-wide stats. Both ride the shared
   /// QueryClient cache, so navigating away and back doesn't re-blank the
@@ -99,7 +106,7 @@ export default function AppHome() {
     }
   }, [isConnected, fetchState, profile, router]);
 
-  if (!statusChecked) {
+  if (!statusChecked || authLoading) {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>

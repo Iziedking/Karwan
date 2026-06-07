@@ -1,8 +1,7 @@
 ﻿import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import localFont from 'next/font/local';
-import { DEFAULT_LOCALE, isLocale, isRtl, type Locale } from '@/shared/i18n/locales';
+import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
 import { ProfileNudge } from '@/shared/components/ProfileNudge';
@@ -94,20 +93,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Read the locale cookie at SSR so <html lang/dir> ships correctly on first
-  // paint. Without this, the page renders LTR, then the LocaleProvider client
-  // effect flips dir mid-frame, which jolts the layout and pushes the initial
-  // scroll position to the wrong edge for RTL locales.
-  const cookieStore = await cookies();
-  const rawLocale = cookieStore.get('karwan-locale')?.value;
-  const locale: Locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
-  const dir = isRtl(locale) ? 'rtl' : 'ltr';
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // The layout used to read the karwan-locale cookie at SSR via `await
+  // cookies()` so that <html lang/dir> shipped correctly on the first paint.
+  // That single call forced every route into dynamic rendering on Vercel,
+  // which pushed TTFB into the 2-4s range across the site (Speed Insights
+  // showed /docs/reputation 4.24s, /market 3.93s, /onboarding 3.29s, etc).
+  // The layout now ships statically. A tiny pre-hydration inline script in
+  // <head> reads the cookie on the client and applies <html lang/dir> BEFORE
+  // the first paint, so Arabic + other RTL locales still avoid the visual
+  // layout jolt. Translations briefly render in English on first paint for
+  // non-English users before the LocaleProvider's mount effect swaps to the
+  // cookie locale (handled in shared/i18n/LocaleProvider.tsx). The TTFB win
+  // is global; the text flash is bounded to ~80-200ms and only affects
+  // returning non-English users.
   return (
     <html
-      lang={locale}
-      dir={dir}
+      lang={DEFAULT_LOCALE}
+      dir="ltr"
       className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable}`}
       suppressHydrationWarning
     >
@@ -117,9 +120,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
           }}
         />
+        {/* Pre-hydration locale flip. Reads the karwan-locale cookie and
+            applies <html lang/dir> before the React tree paints, so RTL
+            users (Arabic) don't see an LTR → RTL jolt mid-frame. The
+            translations still re-render after hydration, but the layout
+            direction is already correct. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var c=document.cookie.split(';').map(function(s){return s.trim();}).find(function(s){return s.indexOf('karwan-locale=')===0;});if(!c)return;var v=decodeURIComponent(c.slice('karwan-locale='.length));var rtl={ar:1};if(['en','ar','fr','hi','sw'].indexOf(v)<0)return;document.documentElement.lang=v;document.documentElement.dir=rtl[v]?'rtl':'ltr';}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
-        <AppProviders initialLocale={locale}>
+        <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           {/* No overflow clip here on purpose: full-bleed sections use the
               scrollbar-aware `.w-bleed` width so they don't over-shoot at normal

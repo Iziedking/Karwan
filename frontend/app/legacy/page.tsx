@@ -16,7 +16,7 @@ import {
   Punc,
   Accent,
 } from '@/shared/components/Bands';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { Countdown } from '@/shared/components/Countdown';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -69,7 +69,26 @@ interface Window {
 }
 
 export default function LegacyPage() {
-  const { isAuthenticated, address, method } = useAuth();
+  const lp = useTranslations().legacyPage;
+  return (
+    <AuthGuard
+      gateTag={lp.gate.tag}
+      gateTitle={
+        <>
+          {lp.gate.titleBefore} <Accent>{lp.gate.titleAccent}</Accent> {lp.gate.titleAfter}
+          <Punc>.</Punc>
+        </>
+      }
+      gateBody={<>{lp.gate.body}</>}
+      gateButtonLabel={lp.gate.button}
+    >
+      <LegacyPageInner />
+    </AuthGuard>
+  );
+}
+
+function LegacyPageInner() {
+  const { address, method } = useAuth();
   const lp = useTranslations().legacyPage;
   const [windowState, setWindowState] = useState<Window | null>(null);
 
@@ -87,21 +106,7 @@ export default function LegacyPage() {
       .catch(() => setWindowState({ open: false, closesAtMs: null, hasLegacyEscrow: false, hasLegacyVault: false }));
   }, []);
 
-  if (!isAuthenticated || !address) {
-    return (
-      <SignInGate
-        tag={lp.gate.tag}
-        title={
-          <>
-            {lp.gate.titleBefore} <Accent>{lp.gate.titleAccent}</Accent> {lp.gate.titleAfter}
-            <Punc>.</Punc>
-          </>
-        }
-        body={<>{lp.gate.body}</>}
-        buttonLabel={lp.gate.button}
-      />
-    );
-  }
+  if (!address) return null;
 
   if (windowState && !windowState.open) {
     return (
