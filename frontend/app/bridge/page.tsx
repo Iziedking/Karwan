@@ -1,10 +1,37 @@
 'use client';
 import { useState } from 'react';
-import { useAuth } from '@/shared/hooks/useAuth';
+import dynamic from 'next/dynamic';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
-import { BridgeOutCard } from '@/features/bridge/components/BridgeOutCard';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
+
+/// BridgeOutCard ships its own form, balance polling, and Solana branch — a
+/// chunky module that's never visible until the user toggles direction. Lazy
+/// load it so the initial `/bridge` paint isn't paying for the out-flow JS.
+const BridgeOutCard = dynamic(
+  () =>
+    import('@/features/bridge/components/BridgeOutCard').then((m) => ({
+      default: m.BridgeOutCard,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden
+        className="motion-safe:animate-pulse motion-reduce:animate-none"
+        style={{
+          minHeight: 520,
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+        }}
+      />
+    ),
+  },
+);
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   FullBleed,
@@ -20,19 +47,17 @@ type Direction = 'in' | 'out';
 
 export default function BridgePage() {
   const t = useTranslations().bridge;
-  const { isAuthenticated } = useAuth();
+  return (
+    <AuthGuard gateTag={t.signInGate.tag} gateBody={t.signInGate.body}>
+      <BridgePageInner />
+    </AuthGuard>
+  );
+}
+
+function BridgePageInner() {
+  const t = useTranslations().bridge;
   const { agents } = useActivation();
   const [direction, setDirection] = useState<Direction>('in');
-
-  if (!isAuthenticated) {
-    return (
-      <SignInGate
-        variant="page"
-        tag={t.signInGate.tag}
-        body={t.signInGate.body}
-      />
-    );
-  }
 
   return (
     <FullBleed>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { ActivationModal } from '@/shared/components/ActivationModal';
@@ -39,6 +39,15 @@ import {
 } from '@/shared/components/Bands';
 
 export default function ProfilePage() {
+  const t = useTranslations().profile;
+  return (
+    <AuthGuard gateTag={t.signInGate.tag} gateBody={t.signInGate.body}>
+      <ProfilePageInner />
+    </AuthGuard>
+  );
+}
+
+function ProfilePageInner() {
   const t = useTranslations().profile;
   const router = useRouter();
   const { profile: loadedProfile, address, isConnected, fetchState } = useUserProfile();
@@ -84,16 +93,6 @@ export default function ProfilePage() {
     seller: activation.agents?.seller,
   };
   const defaultAgent: 'buyer' | 'seller' = profile?.role === 'seller' ? 'seller' : 'buyer';
-
-  if (!isConnected) {
-    return (
-      <SignInGate
-        variant="page"
-        tag={t.signInGate.tag}
-        body={t.signInGate.body}
-      />
-    );
-  }
 
   if (fetchState === 'error') {
     return (

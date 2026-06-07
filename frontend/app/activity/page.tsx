@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
-import { useAuth } from '@/shared/hooks/useAuth';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivityView } from '@/features/activity/components/ActivityView';
 import { PageTour } from '@/shared/guide/PageTour';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -20,7 +19,6 @@ import {
 
 export default function ActivityPage() {
   const t = useTranslations().activity;
-  const { isAuthenticated, isLoading } = useAuth();
   const [explorer, setExplorer] = useState<string>('https://testnet.arcscan.app');
 
   useEffect(() => {
@@ -32,18 +30,20 @@ export default function ActivityPage() {
       });
   }, []);
 
-  if (isLoading) return null;
+  return (
+    <AuthGuard gateTag={t.signInGate.tag} gateBody={t.signInGate.body}>
+      <ActivityPageInner t={t} explorer={explorer} />
+    </AuthGuard>
+  );
+}
 
-  if (!isAuthenticated) {
-    return (
-      <SignInGate
-        variant="page"
-        tag={t.signInGate.tag}
-        body={t.signInGate.body}
-      />
-    );
-  }
-
+function ActivityPageInner({
+  t,
+  explorer,
+}: {
+  t: ReturnType<typeof useTranslations>['activity'];
+  explorer: string;
+}) {
   return (
     <FullBleed>
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />

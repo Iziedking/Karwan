@@ -8,7 +8,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
   FullBleed,
@@ -28,16 +28,24 @@ import type { Messages } from '@/shared/i18n/messages/en';
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export default function SellerPage() {
+  const sh = useTranslations().sellerHub;
+  return (
+    <AuthGuard gateTag={sh.signInGate.tag} gateBody={sh.signInGate.body}>
+      <SellerPageInner />
+    </AuthGuard>
+  );
+}
+
+function SellerPageInner() {
   const auth = useAuth();
   const address = auth.address;
-  const isConnected = auth.isAuthenticated;
   const { activated, agents } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const sh = useTranslations().sellerHub;
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!address) {
       setActiveBids([]);
       setFetchState('idle');
       return;
@@ -57,17 +65,7 @@ export default function SellerPage() {
     return () => {
       cancelled = true;
     };
-  }, [address, isConnected]);
-
-  if (!isConnected) {
-    return (
-      <SignInGate
-        variant="page"
-        tag={sh.signInGate.tag}
-        body={sh.signInGate.body}
-      />
-    );
-  }
+  }, [address]);
 
   const steps = [
     { n: '01', title: sh.steps.s1.title, body: sh.steps.s1.body },
@@ -227,11 +225,7 @@ export default function SellerPage() {
               borderBottomRightRadius: 5,
             }}
           >
-            {!isConnected ? (
-              <p className="p-8 text-center text-[13px] text-white/55">
-                {sh.activeBids.connectPrompt}
-              </p>
-            ) : fetchState === 'error' ? (
+            {fetchState === 'error' ? (
               <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
                 {sh.activeBids.errorMessage}
               </p>

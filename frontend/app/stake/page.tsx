@@ -10,7 +10,7 @@ import {
   Punc,
   Accent,
 } from '@/shared/components/Bands';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
 import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPanel';
@@ -77,25 +77,28 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
 }
 
 export default function StakePage() {
-  const { isAuthenticated, address } = useAuth();
+  const sp = useTranslations().stakePage;
+  return (
+    <AuthGuard
+      gateTag={sp.signedOut.tag}
+      gateTitle={
+        <>
+          {sp.signedOut.titlePrefix} <Accent>{sp.signedOut.titleAccent}</Accent>
+          <Punc>.</Punc>
+        </>
+      }
+      gateBody={<>{sp.signedOut.body}</>}
+      gateButtonLabel={sp.signedOut.buttonLabel}
+    >
+      <StakePageInner />
+    </AuthGuard>
+  );
+}
+
+function StakePageInner() {
+  const { address } = useAuth();
   const { data } = useReputation(address);
   const sp = useTranslations().stakePage;
-
-  if (!isAuthenticated) {
-    return (
-      <SignInGate
-        tag={sp.signedOut.tag}
-        title={
-          <>
-            {sp.signedOut.titlePrefix} <Accent>{sp.signedOut.titleAccent}</Accent>
-            <Punc>.</Punc>
-          </>
-        }
-        body={<>{sp.signedOut.body}</>}
-        buttonLabel={sp.signedOut.buttonLabel}
-      />
-    );
-  }
 
   const tier = (data?.tier ?? 'NEW') as Tier;
   const score = Math.round(data?.score ?? 0);

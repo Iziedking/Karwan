@@ -6,7 +6,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
-import { SignInGate } from '@/shared/components/SignInGate';
+import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
   FullBleed,
@@ -26,16 +26,24 @@ import type { Messages } from '@/shared/i18n/messages/en';
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export default function BuyerPage() {
+  const bh = useTranslations().buyerHub;
+  return (
+    <AuthGuard gateTag={bh.signInGate.tag} gateBody={bh.signInGate.body}>
+      <BuyerPageInner />
+    </AuthGuard>
+  );
+}
+
+function BuyerPageInner() {
   const auth = useAuth();
   const address = auth.address;
-  const isConnected = auth.isAuthenticated;
   const { agents, activated } = useActivation();
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const bh = useTranslations().buyerHub;
 
   useEffect(() => {
-    if (!isConnected || !address) {
+    if (!address) {
       setJobs([]);
       setFetchState('idle');
       return;
@@ -55,19 +63,9 @@ export default function BuyerPage() {
     return () => {
       cancelled = true;
     };
-  }, [address, isConnected]);
+  }, [address]);
 
   const sortedJobs = [...jobs].sort((a, b) => b.deadlineUnix - a.deadlineUnix);
-
-  if (!isConnected) {
-    return (
-      <SignInGate
-        variant="page"
-        tag={bh.signInGate.tag}
-        body={bh.signInGate.body}
-      />
-    );
-  }
 
   return (
     <FullBleed>
@@ -186,11 +184,7 @@ export default function BuyerPage() {
               borderBottomRightRadius: 5,
             }}
           >
-            {!isConnected ? (
-              <p className="p-8 text-center text-[13px] text-white/55">
-                {bh.managedDeals.statesConnect}
-              </p>
-            ) : fetchState === 'error' ? (
+            {fetchState === 'error' ? (
               <p className="p-8 text-center text-[13px] text-[#ff8a7a]">
                 {bh.managedDeals.statesError}
               </p>
