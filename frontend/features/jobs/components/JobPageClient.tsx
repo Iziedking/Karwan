@@ -107,11 +107,14 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   if (state.kind === 'loading') {
     // Match the loading.tsx feel: render the route shell so the transition
     // doesn't look broken. The shared loading.tsx covers the inter-route
-    // hop; this state covers data-fetch latency once we've landed.
+    // hop; this state covers data-fetch latency once we've landed. The
+    // min-h reserves roughly the height of the resolved LiveJobPage hero
+    // so the swap into the real page doesn't shift the bands below — the
+    // dominant CLS source on /jobs/[id] before this pass.
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[48ch] fade-up">
+          <div className="max-w-[48ch] fade-up min-h-[44vh]">
             <SectionTag tone="dark">{jp.loading.tag}</SectionTag>
             <HeroHeadline size="md">
               {jp.loading.headline}

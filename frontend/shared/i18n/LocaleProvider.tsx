@@ -1,5 +1,13 @@
 'use client';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  startTransition,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { DEFAULT_LOCALE, isLocale, isRtl, type Locale } from './locales';
 import { MESSAGES, type Messages } from './messages';
 
@@ -64,9 +72,17 @@ export function LocaleProvider({
     document.documentElement.dir = isRtl(locale) ? 'rtl' : 'ltr';
   }, [locale]);
 
+  /// Wrap the state flip in startTransition so the locale swap doesn't block
+  /// the click that fired it. The MESSAGES slice change re-renders every
+  /// useTranslations() consumer (the whole app), which DevTools Performance
+  /// showed as a 256ms INP on the language picker. Cookie write stays
+  /// synchronous so a subsequent page load lands on the new locale even if
+  /// React defers the in-page re-render.
   const setLocale = useCallback((next: Locale) => {
     writeCookieLocale(next);
-    setLocaleState(next);
+    startTransition(() => {
+      setLocaleState(next);
+    });
   }, []);
 
   const value = useMemo<LocaleContextValue>(

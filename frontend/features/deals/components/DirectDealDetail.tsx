@@ -134,10 +134,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   }, []);
 
   if (fetchState === 'loading') {
+    /// Reserve roughly the height of the resolved deal hero band so the
+    /// swap into the real deal page doesn't shift the bands below — the
+    /// dominant CLS source on /deals/[id] before this pass.
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="space-y-4 max-w-[44ch]">
+          <div className="space-y-4 max-w-[44ch] min-h-[44vh]">
             <div className="h-3 w-32 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
             <div className="h-12 w-72 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
             <div className="h-3 w-48 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />

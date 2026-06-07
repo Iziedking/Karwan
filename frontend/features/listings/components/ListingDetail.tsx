@@ -94,10 +94,14 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   }
 
   if (fetchState === 'loading') {
+    /// Reserve roughly the height of the resolved hero band so the swap into
+    /// the real listing doesn't shift the content bands below — the dominant
+    /// CLS source on /listings/[id] before this pass. The skeleton bars sit
+    /// flush at the top; min-h carries the rest.
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="space-y-4 max-w-[44ch]">
+          <div className="space-y-4 max-w-[44ch] min-h-[44vh]">
             <div className="h-3 w-32 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
             <div className="h-12 w-72 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
             <div className="h-3 w-48 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
