@@ -78,6 +78,8 @@ const B2_REGION = required('B2_REGION');
 const RETENTION_DAYS = Number(env.KARWAN_BACKUP_RETENTION_DAYS ?? '28');
 const DATA_DIR = env.KARWAN_BACKUP_DATA_DIR ?? '/app/backend/data';
 const ENV_SNAPSHOT_PATH = env.KARWAN_BACKUP_ENV_PATH ?? '/app/backend/.env-snapshot';
+const CRONTAB_SNAPSHOT_PATH =
+  env.KARWAN_BACKUP_CRONTAB_PATH ?? '/app/backend/.host-crontab-snapshot';
 const HEARTBEAT_URL = env.KARWAN_BACKUP_HEARTBEAT_URL ?? '';
 
 const s3 = new S3Client({
@@ -151,20 +153,22 @@ async function tarData(outPath: string): Promise<void> {
   log.info({ size }, 'tar ok');
 }
 
-/// Gzip the .env snapshot to its own blob. We don't tar it — it's a single
-/// file, gzip alone is faster + still decompresses cleanly via `gunzip`.
-/// Missing snapshot = a soft warning, not a failure: the operator may not
-/// have the mount wired yet on first deploy.
-async function gzipEnv(outPath: string): Promise<boolean> {
-  if (!existsSync(ENV_SNAPSHOT_PATH)) {
-    log.warn(
-      { ENV_SNAPSHOT_PATH },
-      'env snapshot not mounted; skipping. Add `./.env:/app/backend/.env-snapshot:ro` to docker-compose.yml',
-    );
+/// Gzip a single host-mounted file to its own blob. We don't tar these —
+/// they're single files, gzip alone is faster and still decompresses
+/// cleanly via `gunzip`. Missing source = a soft warning, not a failure:
+/// the operator may not have the mount wired yet on first deploy.
+async function gzipFile(
+  label: string,
+  srcPath: string,
+  outPath: string,
+  missingHint: string,
+): Promise<boolean> {
+  if (!existsSync(srcPath)) {
+    log.warn({ srcPath, label }, missingHint);
     return false;
   }
-  log.info({ outPath, src: ENV_SNAPSHOT_PATH }, 'gzip env start');
-  const gz = spawn('gzip', ['-c', ENV_SNAPSHOT_PATH], {
+  log.info({ outPath, src: srcPath, label }, 'gzip start');
+  const gz = spawn('gzip', ['-c', srcPath], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const stderr: string[] = [];
@@ -178,11 +182,11 @@ async function gzipEnv(outPath: string): Promise<boolean> {
   await piped;
   const code = await gzExit;
   if (code !== 0) {
-    log.error({ code, stderr: stderr.join('') }, 'gzip env failed');
-    throw new Error(`gzip exited ${code}`);
+    log.error({ code, stderr: stderr.join(''), label }, 'gzip failed');
+    throw new Error(`gzip ${label} exited ${code}`);
   }
   const size = statSync(outPath).size;
-  log.info({ size }, 'gzip env ok');
+  log.info({ size, label }, 'gzip ok');
   return true;
 }
 
@@ -277,18 +281,37 @@ async function main(): Promise<void> {
     const dbFile = join(dir, `karwan-db-${stamp}.sql.gz`);
     const dataFile = join(dir, `karwan-data-${stamp}.tar.gz`);
     const envFile = join(dir, `karwan-env-${stamp}.gz`);
+    const cronFile = join(dir, `karwan-crontab-${stamp}.gz`);
 
     await dumpPostgres(dbFile);
     await tarData(dataFile);
-    const envOk = await gzipEnv(envFile);
+    const envOk = await gzipFile(
+      'env',
+      ENV_SNAPSHOT_PATH,
+      envFile,
+      'env snapshot not mounted; skipping. Add `./.env:/app/backend/.env-snapshot:ro` to docker-compose.yml',
+    );
+    /// Host crontab snapshot. The cron line that invokes this script writes
+    /// `crontab -l` to ~/karwan/host-crontab.txt before exec'ing, and the
+    /// host mounts that file in read-only at .host-crontab-snapshot. Missing
+    /// = the operator either skipped the mount or hasn't run cron yet; either
+    /// way, the rest of the backup still ships clean.
+    const cronOk = await gzipFile(
+      'crontab',
+      CRONTAB_SNAPSHOT_PATH,
+      cronFile,
+      'crontab snapshot not mounted; skipping. Add `./host-crontab.txt:/app/backend/.host-crontab-snapshot:ro` to docker-compose.yml and chain `crontab -l > ~/karwan/host-crontab.txt` into the backup cron line',
+    );
 
     await upload(`db/${stamp}.sql.gz`, dbFile);
     await upload(`data/${stamp}.tar.gz`, dataFile);
     if (envOk) await upload(`env/${stamp}.env.gz`, envFile);
+    if (cronOk) await upload(`crontab/${stamp}.crontab.gz`, cronFile);
 
     await pruneOld('db/');
     await pruneOld('data/');
     await pruneOld('env/');
+    await pruneOld('crontab/');
 
     await pingHeartbeat();
     log.info({ stamp, bucket: B2_BUCKET }, 'backup complete');

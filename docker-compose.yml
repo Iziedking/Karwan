@@ -45,6 +45,13 @@ services:
       # the B2 credentials themselves. Mounted read-only so a compromised
       # container can't rewrite your secrets file.
       - ./.env:/app/backend/.env-snapshot:ro
+      # Read-only mount of host-crontab.txt so the backup script can ship
+      # the host crontab alongside the DB and data. The cron line that
+      # fires the backup also refreshes this file via
+      # `crontab -l > ~/karwan/host-crontab.txt` so the snapshot is always
+      # current. Touch the file once before first `docker compose up -d`
+      # so Docker mounts it as a file rather than creating a directory.
+      - ./host-crontab.txt:/app/backend/.host-crontab-snapshot:ro
     # The container listens on 8787 internally. We DON'T publish to host —
     # only Caddy talks to it over the internal network.
     expose:
