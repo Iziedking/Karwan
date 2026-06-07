@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -174,6 +175,11 @@ export function BridgeCard({
   const [sourceKey, setSourceKey] = useState<AnySourceChainKey>('sepolia');
   const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  /// Bridge activity used to render as an always-on list under the form,
+  /// which pushed the card height as in-flight bridges accumulated. Behind
+  /// a button + portal modal now: the form stays clean, and the same
+  /// retry/recheck/dismiss controls live inside the modal.
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const sourceIsAppKitOnly = isAppKitOnlyChainKey(sourceKey);
 
@@ -692,44 +698,45 @@ export function BridgeCard({
         </form>
 
         {inBridges.length > 0 && (
-          <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
-            <div className="flex items-baseline justify-between gap-3 mb-3.5">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {bc.eyebrow.activity}
+          <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              {bc.eyebrow.activity}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-3 py-1.5 border border-black/15 inline-flex items-center gap-2"
+              style={{
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              <span>
+                {inBridges.length}{' '}
+                {inBridges.length === 1
+                  ? bc.activity.bridgeSingular
+                  : bc.activity.bridgePlural}
               </span>
-              <div className="flex items-baseline gap-3">
-                {inBridges.some((b) => !isActive(b.phase)) && (
-                  <button
-                    type="button"
-                    onClick={clearCompleted}
-                    className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-                    title={bc.activity.clearHistoryTitle}
-                  >
-                    {bc.activity.clearHistory}
-                  </button>
-                )}
-                <p className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {inBridges.length} {inBridges.length === 1 ? bc.activity.bridgeSingular : bc.activity.bridgePlural}
-                </p>
-              </div>
-            </div>
-            <ul className="space-y-2">
-              {inBridges.map((b) => (
-                <BridgeRow
-                  key={b.id}
-                  bridge={b}
-                  expanded={expandedId === b.id}
-                  onToggle={() => setExpandedId(expandedId === b.id ? null : b.id)}
-                  onRetry={() => retry(b.id)}
-                  onRecheck={() => recheck(b.id)}
-                  onDismiss={() => dismiss(b.id)}
-                  copy={bc.row}
-                />
-              ))}
-            </ul>
+              <span aria-hidden>›</span>
+            </button>
           </div>
         )}
       </div>
+      <BridgeHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        bridges={inBridges}
+        expandedId={expandedId}
+        onToggle={(id) => setExpandedId(expandedId === id ? null : id)}
+        onRetry={retry}
+        onRecheck={recheck}
+        onDismiss={dismiss}
+        onClearCompleted={clearCompleted}
+        isActive={isActive}
+        copy={bc}
+      />
     </div>
   );
 }
@@ -1661,5 +1668,127 @@ function ExternalIcon() {
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+/// Portal-based history overlay. The bridge card form stays calm; this modal
+/// is where every in-flight, settled, and failed bridge lives. Same
+/// retry/recheck/dismiss controls as the old inline list — pending rows
+/// keep their actions but cannot be dismissed (Dismiss is gated on
+/// !isActive inside BridgeRow already, so the modal just renders the rows
+/// and the existing UI law plays out).
+function BridgeHistoryModal({
+  open,
+  onClose,
+  bridges,
+  expandedId,
+  onToggle,
+  onRetry,
+  onRecheck,
+  onDismiss,
+  onClearCompleted,
+  isActive,
+  copy,
+}: {
+  open: boolean;
+  onClose: () => void;
+  bridges: BridgeRecord[];
+  expandedId: string | null;
+  onToggle: (id: string) => void;
+  onRetry: (id: string) => void;
+  onRecheck: (id: string) => void;
+  onDismiss: (id: string) => void;
+  onClearCompleted: () => void;
+  isActive: (phase: BridgePhase) => boolean;
+  copy: Messages['bridgeCard'];
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    /// Lock body scroll while the modal is open so users on long bridge
+    /// histories don't accidentally scroll the page underneath.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!open || !mounted) return null;
+  const hasCompleted = bridges.some((b) => !isActive(b.phase));
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={copy.eyebrow.activity}
+    >
+      <div
+        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+      <div
+        className="relative w-full sm:max-w-[640px] max-h-[88vh] overflow-hidden flex flex-col"
+        style={{
+          background: 'var(--lp-card)',
+          color: 'var(--lp-dark)',
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          borderBottomLeftRadius: 18,
+          borderBottomRightRadius: 4,
+          border: '1px solid var(--lp-border-light)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--lp-border-light)]">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            {copy.eyebrow.activity}
+          </span>
+          <div className="flex items-center gap-3">
+            {hasCompleted && (
+              <button
+                type="button"
+                onClick={onClearCompleted}
+                className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                title={copy.activity.clearHistoryTitle}
+              >
+                {copy.activity.clearHistory}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-[18px] leading-none text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors px-1"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto px-5 py-4">
+          <ul className="space-y-2">
+            {bridges.map((b) => (
+              <BridgeRow
+                key={b.id}
+                bridge={b}
+                expanded={expandedId === b.id}
+                onToggle={() => onToggle(b.id)}
+                onRetry={() => onRetry(b.id)}
+                onRecheck={() => onRecheck(b.id)}
+                onDismiss={() => onDismiss(b.id)}
+                copy={copy.row}
+              />
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
