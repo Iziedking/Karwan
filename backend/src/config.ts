@@ -123,10 +123,17 @@ const envSchema = z.object({
   // Optional: when unset, GET /api/admin/treasury reports not-configured.
   // Populated after `forge script DeployTreasury`.
   KARWAN_TREASURY_CONTRACT_ADDR: optionalAddr,
-  // KarwanTreasury v3 — the redeployed treasury wired to real Hashnote USYC on
-  // Arc Testnet. The legacy KARWAN_TREASURY_CONTRACT_ADDR stays as the live
-  // fee sink until escrow is repointed; v3 is what the admin console drains
-  // INTO and what holds USYC after Circle whitelisting landed 2026-06-04.
+  // KarwanTreasury wired to real Hashnote USYC on Arc Testnet. The legacy
+  // KARWAN_TREASURY_CONTRACT_ADDR stays as the live fee sink until escrow is
+  // repointed; this contract is what the admin console drains INTO and what
+  // holds USYC after Circle whitelisting landed 2026-06-06.
+  // Renamed 2026-06-06 from KARWAN_TREASURY_V3_ADDR. The old name is still
+  // accepted as a fallback in the routes that consume this value, so a
+  // VPS still on the old key keeps working until the env swap.
+  KARWAN_TREASURY_USYC_ADDR: optionalAddr,
+  // Deprecated alias. Kept temporarily so the existing VPS .env keeps
+  // resolving while you swap the key name. Remove after the rename ships
+  // to production env files.
   KARWAN_TREASURY_V3_ADDR: optionalAddr,
   // KarwanYieldDistributor — per-address USDC claim contract that the daily
   // yield-distribute cron credits via bulkCredit. Stakers pull from here via

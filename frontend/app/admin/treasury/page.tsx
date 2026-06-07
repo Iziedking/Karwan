@@ -245,14 +245,30 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
         ) : null}
 
         {data ? (
-          <>
-            <WalletStrip />
-            <section className="mt-6 grid gap-4 lg:grid-cols-2">
-              <TreasuryCard which="live" view={data.live} onTx={refresh} />
-              <TreasuryCard which="v3" view={data.v3} onTx={refresh} />
-            </section>
-            <DrainControl live={data.live} v3={data.v3} onTx={refresh} />
-          </>
+          (() => {
+            /// When KARWAN_TREASURY_CONTRACT_ADDR has been swapped to point
+            /// at the whitelisted USYC treasury (the V4 contract), the two
+            /// addresses match. Render a single card and hide the drain
+            /// control, since there is nothing left to drain.
+            const merged =
+              !!data.live.address &&
+              !!data.v3.address &&
+              data.live.address.toLowerCase() === data.v3.address.toLowerCase();
+            return (
+              <>
+                <WalletStrip />
+                <section className={`mt-6 grid gap-4 ${merged ? '' : 'lg:grid-cols-2'}`}>
+                  <TreasuryCard which="live" view={data.live} onTx={refresh} />
+                  {!merged && (
+                    <TreasuryCard which="v3" view={data.v3} onTx={refresh} />
+                  )}
+                </section>
+                {!merged && (
+                  <DrainControl live={data.live} v3={data.v3} onTx={refresh} />
+                )}
+              </>
+            );
+          })()
         ) : null}
       </div>
     </main>
@@ -309,7 +325,7 @@ function TreasuryCard({
     <article className="rounded-2xl border border-zinc-200 bg-white p-5">
       <header className="flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-tight">
-          {which === 'live' ? 'Live Treasury' : 'Treasury v3'}
+          {which === 'live' ? 'Live Treasury' : 'Treasury (real USYC)'}
         </h2>
         <span className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">
           {view.label}
@@ -318,7 +334,7 @@ function TreasuryCard({
 
       {!view.configured ? (
         <p className="mt-4 text-sm text-zinc-500">
-          Not configured. Set {which === 'live' ? 'KARWAN_TREASURY_CONTRACT_ADDR' : 'KARWAN_TREASURY_V3_ADDR'} in backend env.
+          Not configured. Set {which === 'live' ? 'KARWAN_TREASURY_CONTRACT_ADDR' : 'KARWAN_TREASURY_USYC_ADDR'} in backend env.
         </p>
       ) : view.owner === null ? (
         <p className="mt-4 text-sm text-red-800">{view.error ?? 'read failed'}</p>

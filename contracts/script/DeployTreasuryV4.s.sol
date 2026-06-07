@@ -23,7 +23,7 @@ import {KarwanTreasury} from "../src/KarwanTreasury.sol";
 /// Sequence:
 ///   1. forge build (to confirm clean compile of the patched source).
 ///   2. Run this script with the deployer keystore.
-///   3. Copy the printed address into .env as KARWAN_TREASURY_V3_ADDR
+///   3. Copy the printed address into .env as KARWAN_TREASURY_USYC_ADDR
 ///      (frontend + admin route variable; the name stays even though the
 ///      contract is now v4 — no rename required).
 ///   4. Email Circle customer support with the new contract address for
@@ -85,8 +85,8 @@ contract DeployTreasuryV4 is Script {
         console.log("  Idle threshold (USDC, 6d):   ", idleThreshold);
         console.log("");
         console.log("NEXT STEPS:");
-        console.log("  1. Set KARWAN_TREASURY_V3_ADDR =", address(treasury));
-        console.log("     (env var name stays the same; v3 is the slot, v4 is the contract.)");
+        console.log("  1. Set KARWAN_TREASURY_USYC_ADDR =", address(treasury));
+        console.log("     (renamed from KARWAN_TREASURY_V3_ADDR; old name still resolved as fallback.)");
         console.log("  2. Email Circle support to whitelist this address; mention v3 is");
         console.log("     replaced because totalReserves() reverted on its oracle path.");
         console.log("  3. Once whitelisted, refresh /admin/treasury -- the v3 card shows full data.");

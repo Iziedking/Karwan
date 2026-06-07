@@ -149,12 +149,25 @@ async function readTreasury(addr: string | undefined, label: string): Promise<Tr
 /// the "are you connected as owner?" check before exposing write
 /// affordances. The on-chain `onlyOwner` modifier is the real gate.
 adminTreasuryRoutes.get('/', async (c) => {
-  const liveAddr = (config as unknown as Record<string, string | undefined>).KARWAN_TREASURY_CONTRACT_ADDR;
-  const v3Addr = (config as unknown as Record<string, string | undefined>).KARWAN_TREASURY_V3_ADDR;
+  const cfg = config as unknown as Record<string, string | undefined>;
+  const liveAddr = cfg.KARWAN_TREASURY_CONTRACT_ADDR;
+  /// Prefer the renamed `KARWAN_TREASURY_USYC_ADDR`; fall back to the old
+  /// `KARWAN_TREASURY_V3_ADDR` so a VPS still on the old key keeps the
+  /// admin console working through the rename rollout.
+  const usycAddr =
+    cfg.KARWAN_TREASURY_USYC_ADDR ?? cfg.KARWAN_TREASURY_V3_ADDR;
+
+  /// Labels reflect the post-2026-06-06 state. The whitelisted contract
+  /// (stored in KARWAN_TREASURY_USYC_ADDR) subscribes real Hashnote USYC.
+  /// The legacy live treasury keeps the "fees flow here" tag only until
+  /// the escrow gets redeployed with the whitelisted treasury baked into
+  /// its immutable `treasury` slot.
+  const sameAddress =
+    !!liveAddr && !!usycAddr && liveAddr.toLowerCase() === usycAddr.toLowerCase();
 
   const [live, v3] = await Promise.all([
-    readTreasury(liveAddr, 'live (fees flow here)'),
-    readTreasury(v3Addr, 'v3 (real USYC, awaiting Circle whitelist)'),
+    readTreasury(liveAddr, sameAddress ? 'live (real USYC, whitelisted)' : 'live (fees flow here)'),
+    readTreasury(usycAddr, 'real USYC (whitelisted)'),
   ]);
 
   return c.json({

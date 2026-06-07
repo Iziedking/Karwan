@@ -22,7 +22,7 @@ import {KarwanTreasury} from "../src/KarwanTreasury.sol";
 ///     real USYC. Avoids a cascading legacy-escrow generation.
 ///
 /// Sequence after this script runs:
-///   1. Copy the printed treasury address into .env as KARWAN_TREASURY_V3_ADDR.
+///   1. Copy the printed treasury address into .env as KARWAN_TREASURY_USYC_ADDR.
 ///   2. Email Circle customer support (the ticket from 2026-06-03) with TWO
 ///      addresses for whitelisting:
 ///        - The existing KarwanVault (Gen 4)
@@ -92,7 +92,7 @@ contract DeployTreasuryRealUSYC is Script {
         console.log("  Idle threshold (USDC, 6d):   ", idleThreshold);
         console.log("");
         console.log("NEXT STEPS:");
-        console.log("  1. Set KARWAN_TREASURY_V3_ADDR =", address(treasury));
+        console.log("  1. Set KARWAN_TREASURY_USYC_ADDR =", address(treasury));
         console.log("  2. Email Circle customer support with this address");
         console.log("     AND the existing KarwanVault address for USYC whitelisting.");
         console.log("  3. After Circle confirms: call vault.setTeller(teller, usyc)");

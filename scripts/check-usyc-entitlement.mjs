@@ -28,7 +28,7 @@
  * Env vars (sourced from backend/.env or repo .env):
  *   ARC_TESTNET_RPC_URL       — required
  *   KARWAN_VAULT_ADDR         — required, the Gen 4 KarwanVault address
- *   KARWAN_TREASURY_V3_ADDR   — required, the new Treasury wired to real USYC
+ *   KARWAN_TREASURY_USYC_ADDR   — required, the new Treasury wired to real USYC
  *   USYC_ENTITLEMENTS_ADDR    — optional, defaults to the Arc Testnet address
  */
 
@@ -40,7 +40,10 @@ const ENTITLEMENTS_ARC_TESTNET = '0xcc205224862c7641930c87679e98999d23c26113';
 
 const RPC_URL = process.env.ARC_TESTNET_RPC_URL;
 const VAULT = process.env.KARWAN_VAULT_ADDR;
-const TREASURY = process.env.KARWAN_TREASURY_V3_ADDR;
+/// Accept either the new key or the old one so the script keeps working
+/// against a VPS .env that has not been migrated yet.
+const TREASURY =
+  process.env.KARWAN_TREASURY_USYC_ADDR ?? process.env.KARWAN_TREASURY_V3_ADDR;
 const ENTITLEMENTS =
   process.env.USYC_ENTITLEMENTS_ADDR || ENTITLEMENTS_ARC_TESTNET;
 
@@ -49,7 +52,7 @@ if (!RPC_URL) {
   process.exit(1);
 }
 if (!VAULT || !TREASURY) {
-  console.error('missing KARWAN_VAULT_ADDR or KARWAN_TREASURY_V3_ADDR');
+  console.error('missing KARWAN_VAULT_ADDR or KARWAN_TREASURY_USYC_ADDR');
   process.exit(1);
 }
 
