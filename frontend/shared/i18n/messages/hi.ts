@@ -1412,6 +1412,11 @@ export const hi: Messages = {
       destinationEyebrow: '[:गंतव्य:]',
       destinationPlaceholder: '0x...',
       yourWalletHint: 'आपका वॉलेट.',
+      verify: {
+        checking: 'Arc पर पता जाँचा जा रहा है',
+        verifiedEoa: 'वॉलेट पता सत्यापित',
+        contractDanger: 'कॉन्ट्रैक्ट पता. यहाँ भेजा गया फंड लॉक हो सकता है. निकालने से पहले दोबारा जाँचें.',
+      },
     },
     submit: {
       signIn: 'निकालने के लिए साइन इन करें',
@@ -1463,6 +1468,23 @@ export const hi: Messages = {
       clearHistoryTitle: 'अपने स्थानीय इतिहास से पूर्ण और असफल ब्रिज हटाएँ। चालू ब्रिज रखे जाते हैं।',
       bridgeSingular: 'ब्रिज',
       bridgePlural: 'ब्रिज',
+    },
+    recipient: {
+      eyebrowChoose: '[:प्राप्तकर्ता चुनें:]',
+      identityLabel: 'आपका वॉलेट',
+      identityHint: 'पहचान',
+      buyerLabel: 'बायर एजेंट',
+      sellerLabel: 'सेलर एजेंट',
+      customLabel: 'कस्टम',
+      customPlaceholder: '0x...',
+      customWarning: 'केवल अपने नियंत्रण वाले वॉलेट को भेजें। गलत पते पर भेजे गए फंड वापस नहीं मिलते।',
+      notConfigured: 'सेट नहीं',
+      verify: {
+        checking: 'Arc पर पता जाँचा जा रहा है',
+        verifiedEoa: 'वॉलेट पता सत्यापित',
+        contractDanger: 'कॉन्ट्रैक्ट पता. यहाँ ब्रिज करने पर फंड लॉक हो सकता है।',
+        invalid: '20-बाइट पता नहीं',
+      },
     },
     row: {
       stale: 'पुराना',
@@ -3360,6 +3382,7 @@ export const hi: Messages = {
       maxPerDay: 'अधिकतम {max} / दिन',
       loading: 'चेन पढ़ रहे हैं',
       error: 'चेन रीड विफल',
+      retry: 'पुनः प्रयास',
       empty: 'पिछले 30 दिनों में अभी कोई गतिविधि नहीं',
       legend: {
         funded: 'फंडेड',

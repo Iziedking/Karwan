@@ -1318,6 +1318,11 @@ interface MessagesShape {
       destinationEyebrow: string;
       destinationPlaceholder: string;
       yourWalletHint: string;
+      verify: {
+        checking: string;
+        verifiedEoa: string;
+        contractDanger: string;
+      };
     };
     submit: {
       signIn: string;
@@ -1369,6 +1374,23 @@ interface MessagesShape {
       clearHistoryTitle: string;
       bridgeSingular: string;
       bridgePlural: string;
+    };
+    recipient: {
+      eyebrowChoose: string;
+      identityLabel: string;
+      identityHint: string;
+      buyerLabel: string;
+      sellerLabel: string;
+      customLabel: string;
+      customPlaceholder: string;
+      customWarning: string;
+      notConfigured: string;
+      verify: {
+        checking: string;
+        verifiedEoa: string;
+        contractDanger: string;
+        invalid: string;
+      };
     };
     row: {
       stale: string;
@@ -3199,6 +3221,7 @@ interface MessagesShape {
       maxPerDay: string;
       loading: string;
       error: string;
+      retry: string;
       empty: string;
       legend: {
         funded: string;
@@ -4846,6 +4869,11 @@ export const en: MessagesShape = {
       destinationEyebrow: '[:DESTINATION:]',
       destinationPlaceholder: '0x...',
       yourWalletHint: 'Your wallet.',
+      verify: {
+        checking: 'Checking address on Arc',
+        verifiedEoa: 'Wallet address verified',
+        contractDanger: 'Contract address. Funds sent here may be locked. Double-check before withdrawing.',
+      },
     },
     submit: {
       signIn: 'Sign in to withdraw',
@@ -4897,6 +4925,23 @@ export const en: MessagesShape = {
       clearHistoryTitle: 'Remove finished and failed bridges from your local history. Active bridges are kept.',
       bridgeSingular: 'BRIDGE',
       bridgePlural: 'BRIDGES',
+    },
+    recipient: {
+      eyebrowChoose: '[:CHOOSE RECIPIENT:]',
+      identityLabel: 'Your wallet',
+      identityHint: 'Identity',
+      buyerLabel: 'Buyer agent',
+      sellerLabel: 'Seller agent',
+      customLabel: 'Custom',
+      customPlaceholder: '0x...',
+      customWarning: 'Send only to a wallet you control. Funds bridged to the wrong address are gone.',
+      notConfigured: 'not configured',
+      verify: {
+        checking: 'Checking address on Arc',
+        verifiedEoa: 'Wallet address verified',
+        contractDanger: 'Contract address. Bridging here may lock your funds.',
+        invalid: 'Not a 20-byte address',
+      },
     },
     row: {
       stale: 'STALE',
@@ -6888,6 +6933,7 @@ export const en: MessagesShape = {
       maxPerDay: 'MAX {max} / DAY',
       loading: 'Reading chain',
       error: 'Chain read failed',
+      retry: 'Retry',
       empty: 'No activity in the last 30 days yet',
       legend: {
         funded: 'Funded',

@@ -1412,6 +1412,11 @@ export const ar: Messages = {
       destinationEyebrow: '[:الوجهة:]',
       destinationPlaceholder: '0x...',
       yourWalletHint: 'محفظتك.',
+      verify: {
+        checking: 'يجري التحقق من العنوان على Arc',
+        verifiedEoa: 'تم التحقق من عنوان المحفظة',
+        contractDanger: 'عنوان عقد. قد تُحجز الأموال المرسلة هنا. تحقّق قبل السحب.',
+      },
     },
     submit: {
       signIn: 'سجّل الدخول للسحب',
@@ -1463,6 +1468,23 @@ export const ar: Messages = {
       clearHistoryTitle: 'إزالة عمليات الجسر المنتهية والفاشلة من السجل المحلي. تبقى العمليات النشطة.',
       bridgeSingular: 'جسر',
       bridgePlural: 'جسور',
+    },
+    recipient: {
+      eyebrowChoose: '[:اختر المستلم:]',
+      identityLabel: 'محفظتك',
+      identityHint: 'الهوية',
+      buyerLabel: 'وكيل المشتري',
+      sellerLabel: 'وكيل البائع',
+      customLabel: 'مخصص',
+      customPlaceholder: '0x...',
+      customWarning: 'أرسل فقط إلى محفظة تملكها. الأموال المرسلة إلى عنوان خاطئ تُفقد.',
+      notConfigured: 'غير مُعد',
+      verify: {
+        checking: 'يجري التحقق من العنوان على Arc',
+        verifiedEoa: 'تم التحقق من عنوان المحفظة',
+        contractDanger: 'عنوان عقد. الجسر هنا قد يُجمّد أموالك.',
+        invalid: 'ليس عنوان 20 بايت',
+      },
     },
     row: {
       stale: 'قديم',
@@ -3360,6 +3382,7 @@ export const ar: Messages = {
       maxPerDay: 'الأقصى {max} / اليوم',
       loading: 'جارٍ قراءة السلسلة',
       error: 'تعذّر قراءة السلسلة',
+      retry: 'إعادة المحاولة',
       empty: 'لا نشاط خلال الأيام الثلاثين الماضية بعد',
       legend: {
         funded: 'ممولة',

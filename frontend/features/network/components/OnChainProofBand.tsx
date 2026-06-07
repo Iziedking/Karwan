@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type NetworkOnchainDayPoint, type NetworkOnchainStats } from '@/core/api';
 import {
   Band,
@@ -20,30 +20,47 @@ export function OnChainProofBand() {
   const t = useTranslations().onChainProof;
   const [stats, setStats] = useState<NetworkOnchainStats | null>(null);
   const [errored, setErrored] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  /// Fetch the snapshot with a 25s wall clock. Cold-cache builds on the
+  /// backend chunk through 30 days of log history; if the wait passes that
+  /// budget we'd rather flip into a visible error with a retry than leave
+  /// the user staring at READING CHAIN forever. Each call cancels any
+  /// in-flight predecessor so manual retry + interval poll don't stack.
+  const fetchOnce = useCallback(async () => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const timer = setTimeout(() => ctrl.abort(), 25_000);
+    try {
+      const s = await api.networkOnchain({ signal: ctrl.signal });
+      if (ctrl.signal.aborted) return;
+      setStats(s);
+      setErrored(false);
+    } catch {
+      if (!ctrl.signal.aborted || abortRef.current === ctrl) {
+        setErrored(true);
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const fetchOnce = () =>
-      api
-        .networkOnchain()
-        .then((s) => {
-          if (!cancelled) {
-            setStats(s);
-            setErrored(false);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setErrored(true);
-        });
     fetchOnce();
-    // Re-poll every 60s so funding/settle events show up without a refresh.
-    // The backend caches for 60s, so this lands at most ~2 cache windows behind.
-    const id = setInterval(fetchOnce, 60_000);
     return () => {
-      cancelled = true;
-      clearInterval(id);
+      abortRef.current?.abort();
     };
-  }, []);
+  }, [fetchOnce]);
+
+  /// While we have a good snapshot, refresh every 60s (matching the backend
+  /// cache TTL). While we don't, back off to a faster 20s heartbeat so a
+  /// transient RPC blip self-heals without the user touching anything.
+  useEffect(() => {
+    const everyMs = stats ? 60_000 : 20_000;
+    const id = setInterval(fetchOnce, everyMs);
+    return () => clearInterval(id);
+  }, [stats, fetchOnce]);
 
   const fundedUsdc = numericUsdc(stats?.volumes.fundedUsdc);
   const releasedUsdc = numericUsdc(stats?.volumes.releasedUsdc);
@@ -79,6 +96,7 @@ export function OnChainProofBand() {
           series={stats?.series ?? null}
           loading={!stats && !errored}
           errored={errored}
+          onRetry={fetchOnce}
         />
       </div>
 
@@ -193,6 +211,7 @@ interface DailyAreaChartProps {
   series: NetworkOnchainDayPoint[] | null;
   loading: boolean;
   errored: boolean;
+  onRetry?: () => void;
 }
 
 /// Pure-SVG area chart. Three layered series (Funded, Settled, Disputes
@@ -200,7 +219,7 @@ interface DailyAreaChartProps {
 /// of x-axis day markers so the eye has anchors without clutter. A hover
 /// layer reads the cursor x and surfaces a day-detail card so a reader can
 /// pull exact counts without us crowding the chart with labels.
-function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
+function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartProps) {
   const t = useTranslations().onChainProof.chart;
   const VIEW_W = 1000;
   const VIEW_H = 280;
@@ -244,7 +263,7 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
   if (errored || !series || series.length === 0) {
     return (
       <div
-        className="relative overflow-hidden flex items-center justify-center"
+        className="relative overflow-hidden flex flex-col items-center justify-center gap-3"
         style={{
           height: 280,
           background: 'rgba(255,255,255,0.03)',
@@ -258,6 +277,16 @@ function DailyAreaChart({ series, loading, errored }: DailyAreaChartProps) {
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
           {errored ? t.error : t.empty}
         </p>
+        {errored && onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-white/20 text-white/85 hover:text-white hover:border-white/40 transition-colors"
+            style={{ borderRadius: 999 }}
+          >
+            {t.retry}
+          </button>
+        )}
       </div>
     );
   }

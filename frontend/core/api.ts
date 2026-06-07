@@ -779,7 +779,11 @@ export const api = {
     ),
   /// Provable on-chain stats scanned from current contract events. Counts,
   /// USDC volumes, and a 30-day daily series of funded/settled/disputed/refunded.
-  networkOnchain: () => json<NetworkOnchainStats>('/api/network/onchain'),
+  /// Accepts a RequestInit so callers can attach an AbortSignal — cold-cache
+  /// builds chunk through 30 days of log history and occasionally outlive a
+  /// reasonable wait.
+  networkOnchain: (init?: RequestInit) =>
+    json<NetworkOnchainStats>('/api/network/onchain', init),
   submitFeedback: (body: {
     category: 'bug' | 'improvement' | 'other' | 'praise';
     title: string;

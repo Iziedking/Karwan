@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
-import { formatUnits } from 'viem';
+import { formatUnits, isAddress } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { api, ApiError } from '@/core/api';
 import {
   SOURCE_CHAINS,
@@ -141,10 +142,13 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 }
 
 export function BridgeCard({
-  mintRecipient,
+  agents,
   tour = true,
 }: {
-  mintRecipient?: `0x${string}`;
+  /// Buyer + seller agent EVM addresses, when the signed-in user has them
+  /// provisioned. Both are surfaced in the recipient picker alongside the
+  /// user's own identity wallet and a Custom option.
+  agents?: { buyer?: string; seller?: string };
   /// Off when embedded in /profile so the Profile tour owns that page and the
   /// bridge tour doesn't fire there too. On for the standalone bridge surface.
   tour?: boolean;
@@ -155,6 +159,9 @@ export function BridgeCard({
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
+  const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
+  const buyerAgent = agents?.buyer ? (agents.buyer as `0x${string}`) : undefined;
+  const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
   const {
     bridges,
     start,
@@ -180,6 +187,63 @@ export function BridgeCard({
   /// a button + portal modal now: the form stays clean, and the same
   /// retry/recheck/dismiss controls live inside the modal.
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  /// Recipient selector: identity wallet, either agent, or a custom paste.
+  /// Bridges used to mint straight to the buyer agent, which forced anyone
+  /// who wanted USDC on their own wallet (or the seller agent) to send a
+  /// follow-up transfer. The picker lets the user choose up front, with a
+  /// Custom paste guarded by an Arc Testnet bytecode check so a contract
+  /// address doesn't get a silent burn.
+  type RecipientKind = 'identity' | 'buyer' | 'seller' | 'custom';
+  const defaultKind: RecipientKind = buyerAgent ? 'buyer' : 'identity';
+  const [recipientKind, setRecipientKind] = useState<RecipientKind>(defaultKind);
+  const [customAddress, setCustomAddress] = useState('');
+  /// If the user lands on the page before the agents resolve, snap into the
+  /// buyer agent selection once it does — matches the prior default while
+  /// keeping the picker honest if the user has already chosen otherwise.
+  useEffect(() => {
+    if (recipientKind === 'identity' && buyerAgent && !customAddress) {
+      setRecipientKind('buyer');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buyerAgent]);
+
+  /// The selected recipient address, resolved per kind. For Custom we feed
+  /// the raw input through viem's checksum to keep the on-chain payload
+  /// canonical even when a user pastes lowercase.
+  const customCandidate = useMemo(() => {
+    const trimmed = customAddress.trim();
+    return isAddress(trimmed) ? (trimmed as `0x${string}`) : null;
+  }, [customAddress]);
+
+  /// EOA-vs-contract check on the chosen recipient. Identity + known agents
+  /// short-circuit the RPC read by being passed in as trusted; Custom hits
+  /// Arc Testnet's `eth_getCode` after a debounce.
+  const trustedAddresses = useMemo(
+    () => [identityAddress, buyerAgent, sellerAgent],
+    [identityAddress, buyerAgent, sellerAgent],
+  );
+  const customKind = useAddressKind(customAddress, {
+    enabled: recipientKind === 'custom',
+    trustedAddresses,
+  });
+
+  const mintRecipient: `0x${string}` | undefined =
+    recipientKind === 'identity'
+      ? identityAddress
+      : recipientKind === 'buyer'
+        ? buyerAgent
+        : recipientKind === 'seller'
+          ? sellerAgent
+          : (customCandidate ?? undefined);
+
+  /// Custom must resolve to an EOA before bridging proceeds. Trusted wallets
+  /// resolve immediately; for fresh paste the verify hook flips to `eoa`
+  /// within ~350ms, or stays `checking` while waiting on the RPC.
+  const recipientReady =
+    recipientKind === 'custom'
+      ? customKind.kind === 'eoa' && !!customCandidate
+      : !!mintRecipient;
 
   const sourceIsAppKitOnly = isAppKitOnlyChainKey(sourceKey);
 
@@ -289,13 +353,15 @@ export function BridgeCard({
     typeof amount === 'number' &&
     amount > 0 &&
     !!mintRecipient &&
+    recipientReady &&
     !isSwitching;
   const canBridgeCircle =
     isCircleUser &&
     !!auth.address &&
     typeof amount === 'number' &&
     amount > 0 &&
-    !!mintRecipient;
+    !!mintRecipient &&
+    recipientReady;
   const canSubmit =
     !web3CannotSign && (canBridgeCircle || canSwitch || canBurn);
 
@@ -345,7 +411,11 @@ export function BridgeCard({
     });
   }
 
-  if (!mintRecipient) {
+  /// The signed-in user always has at least an identity address, so the
+  /// older "buyer agent not configured" full-card fallback no longer fits.
+  /// If something genuinely upstream is broken (no identity), guard early
+  /// rather than render the picker against an empty option set.
+  if (!identityAddress && !buyerAgent && !sellerAgent) {
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -620,32 +690,21 @@ export function BridgeCard({
             `}</style>
           </div>
 
-          {/* MINTS TO */}
-          <div
-            className="px-4 py-3 flex items-center gap-3"
-            style={{
-              background: 'var(--lp-light)',
-              border: '1px dashed rgba(0,0,0,0.18)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
-            }}
-          >
-            <WalletAvatar address={mintRecipient} size={26} />
-            <div className="flex-1 min-w-0">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {bc.eyebrow.mintsTo}
-              </span>
-              <p className="mt-0.5 text-[13px] mono tabular-nums truncate text-[var(--lp-dark)]">
-                {shortAddress(mintRecipient)}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
-              <ChainMark which="arc" size={16} />
-              <span>{bc.arcTestnet}</span>
-            </div>
-          </div>
+          {/* MINTS TO — picker + optional Custom paste */}
+          <RecipientPicker
+            kind={recipientKind}
+            setKind={setRecipientKind}
+            identityAddress={identityAddress}
+            buyerAgent={buyerAgent}
+            sellerAgent={sellerAgent}
+            customAddress={customAddress}
+            setCustomAddress={setCustomAddress}
+            customKind={customKind.kind}
+            resolved={mintRecipient}
+            copy={bc.recipient}
+            mintsToEyebrow={bc.eyebrow.mintsTo}
+            arcLabel={bc.arcTestnet}
+          />
 
           {/* SUBMIT */}
           <button
@@ -1790,5 +1849,217 @@ function BridgeHistoryModal({
       </div>
     </div>,
     document.body,
+  );
+}
+
+/// Recipient picker for the bridge form. Surfaces the three known-good
+/// wallets (identity, buyer agent, seller agent) as one-click choices and a
+/// Custom paste box guarded by an on-chain bytecode check. The picker keeps
+/// the form clean — only the Custom branch renders the input + warning band.
+function RecipientPicker({
+  kind,
+  setKind,
+  identityAddress,
+  buyerAgent,
+  sellerAgent,
+  customAddress,
+  setCustomAddress,
+  customKind,
+  resolved,
+  copy,
+  mintsToEyebrow,
+  arcLabel,
+}: {
+  kind: 'identity' | 'buyer' | 'seller' | 'custom';
+  setKind: (k: 'identity' | 'buyer' | 'seller' | 'custom') => void;
+  identityAddress?: `0x${string}`;
+  buyerAgent?: `0x${string}`;
+  sellerAgent?: `0x${string}`;
+  customAddress: string;
+  setCustomAddress: (v: string) => void;
+  customKind: 'idle' | 'invalid' | 'checking' | 'eoa' | 'contract';
+  resolved?: `0x${string}`;
+  copy: Messages['bridgeCard']['recipient'];
+  mintsToEyebrow: string;
+  arcLabel: string;
+}) {
+  type Choice = {
+    key: 'identity' | 'buyer' | 'seller' | 'custom';
+    label: string;
+    address?: `0x${string}`;
+    isCustom?: boolean;
+  };
+  const choices: Choice[] = [
+    { key: 'identity', label: copy.identityLabel, address: identityAddress },
+    { key: 'buyer', label: copy.buyerLabel, address: buyerAgent },
+    { key: 'seller', label: copy.sellerLabel, address: sellerAgent },
+    { key: 'custom', label: copy.customLabel, isCustom: true },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          {copy.eyebrowChoose}
+        </span>
+        <div className="flex items-center gap-1.5 text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] shrink-0">
+          <ChainMark which="arc" size={14} />
+          <span>{arcLabel}</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {choices.map((c) => {
+          const active = kind === c.key;
+          const disabled = !c.isCustom && !c.address;
+          return (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => !disabled && setKind(c.key)}
+              disabled={disabled}
+              aria-pressed={active}
+              className="relative overflow-hidden text-start px-3 py-2.5 transition-colors"
+              style={{
+                background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+                border: active
+                  ? '1px solid var(--lp-accent)'
+                  : '1px solid var(--lp-border-light)',
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+                opacity: disabled ? 0.5 : 1,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <p className="text-[12px] font-semibold leading-tight text-[var(--lp-dark)]">
+                {c.label}
+              </p>
+              <p className="mt-0.5 mono text-[10px] tabular-nums text-[var(--lp-text-muted)] truncate">
+                {c.isCustom
+                  ? '0x...'
+                  : c.address
+                    ? shortAddress(c.address)
+                    : copy.notConfigured}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {kind === 'custom' ? (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={customAddress}
+            onChange={(e) => setCustomAddress(e.target.value)}
+            placeholder={copy.customPlaceholder}
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
+            style={{
+              border: '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 2,
+            }}
+          />
+          <VerifyBanner kind={customKind} copy={copy} />
+          <p className="text-[11.5px] leading-snug text-[var(--lp-text-sub)]">
+            {copy.customWarning}
+          </p>
+        </div>
+      ) : (
+        resolved && (
+          <div
+            className="px-4 py-3 flex items-center gap-3"
+            style={{
+              background: 'var(--lp-light)',
+              border: '1px dashed rgba(0,0,0,0.18)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <WalletAvatar address={resolved} size={24} />
+            <div className="flex-1 min-w-0">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                {mintsToEyebrow}
+              </span>
+              <p className="mt-0.5 text-[13px] mono tabular-nums truncate text-[var(--lp-dark)]">
+                {shortAddress(resolved)}
+              </p>
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-1 mono text-[10px] uppercase tracking-[0.14em]"
+              style={{
+                background: 'rgba(10, 117, 83, 0.10)',
+                color: '#0a7553',
+                border: '1px solid rgba(10, 117, 83, 0.30)',
+                borderRadius: 4,
+              }}
+            >
+              <span
+                aria-hidden
+                className="inline-block w-[5px] h-[5px]"
+                style={{ background: '#0a7553', borderRadius: 1 }}
+              />
+              {copy.verify.verifiedEoa}
+            </span>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+function VerifyBanner({
+  kind,
+  copy,
+}: {
+  kind: 'idle' | 'invalid' | 'checking' | 'eoa' | 'contract';
+  copy: Messages['bridgeCard']['recipient'];
+}) {
+  if (kind === 'idle') return null;
+  const tone =
+    kind === 'eoa'
+      ? { bg: 'rgba(10, 117, 83, 0.10)', text: '#0a7553', border: 'rgba(10, 117, 83, 0.30)' }
+      : kind === 'contract' || kind === 'invalid'
+        ? { bg: 'rgba(176, 61, 58, 0.10)', text: '#b03d3a', border: 'rgba(176, 61, 58, 0.30)' }
+        : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };
+  const label =
+    kind === 'checking'
+      ? copy.verify.checking
+      : kind === 'eoa'
+        ? copy.verify.verifiedEoa
+        : kind === 'contract'
+          ? copy.verify.contractDanger
+          : copy.verify.invalid;
+  return (
+    <div
+      className="inline-flex items-center gap-2 px-3 py-2 text-[11.5px] mono"
+      style={{
+        background: tone.bg,
+        color: tone.text,
+        border: `1px solid ${tone.border}`,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 2,
+      }}
+    >
+      <span
+        aria-hidden
+        className={
+          kind === 'checking'
+            ? 'inline-block w-[6px] h-[6px] rounded-full animate-pulse motion-reduce:animate-none'
+            : 'inline-block w-[6px] h-[6px]'
+        }
+        style={{ background: tone.text, borderRadius: kind === 'checking' ? 999 : 1 }}
+      />
+      {label}
+    </div>
   );
 }

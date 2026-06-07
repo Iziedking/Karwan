@@ -1412,6 +1412,11 @@ export const fr: Messages = {
       destinationEyebrow: '[:DESTINATION:]',
       destinationPlaceholder: '0x...',
       yourWalletHint: 'Votre portefeuille.',
+      verify: {
+        checking: 'Vérification de l’adresse sur Arc',
+        verifiedEoa: 'Adresse de portefeuille vérifiée',
+        contractDanger: 'Adresse de contrat. Les fonds envoyés ici peuvent être bloqués. Vérifiez avant de retirer.',
+      },
     },
     submit: {
       signIn: 'Connectez-vous pour retirer',
@@ -1463,6 +1468,23 @@ export const fr: Messages = {
       clearHistoryTitle: 'Retire les passerelles terminées et échouées de votre historique local. Les passerelles actives sont conservées.',
       bridgeSingular: 'PASSERELLE',
       bridgePlural: 'PASSERELLES',
+    },
+    recipient: {
+      eyebrowChoose: '[:CHOISIR LE DESTINATAIRE:]',
+      identityLabel: 'Votre portefeuille',
+      identityHint: 'Identité',
+      buyerLabel: 'Agent acheteur',
+      sellerLabel: 'Agent vendeur',
+      customLabel: 'Personnalisé',
+      customPlaceholder: '0x...',
+      customWarning: 'Envoyez uniquement à un portefeuille que vous contrôlez. Les fonds vers la mauvaise adresse sont perdus.',
+      notConfigured: 'non configuré',
+      verify: {
+        checking: 'Vérification de l’adresse sur Arc',
+        verifiedEoa: 'Adresse de portefeuille vérifiée',
+        contractDanger: 'Adresse de contrat. Le pont vers ici peut bloquer vos fonds.',
+        invalid: 'Adresse non valide (20 octets)',
+      },
     },
     row: {
       stale: 'OBSOLÈTE',
@@ -3360,6 +3382,7 @@ export const fr: Messages = {
       maxPerDay: 'MAX {max} / JOUR',
       loading: 'Lecture de la chaîne',
       error: 'Échec de lecture de la chaîne',
+      retry: 'Réessayer',
       empty: 'Pas encore d’activité sur les 30 derniers jours',
       legend: {
         funded: 'Financés',

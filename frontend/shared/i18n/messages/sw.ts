@@ -1412,6 +1412,11 @@ export const sw: Messages = {
       destinationEyebrow: '[:MAKSUDI:]',
       destinationPlaceholder: '0x...',
       yourWalletHint: 'Pochi yako.',
+      verify: {
+        checking: 'Inakagua anwani kwenye Arc',
+        verifiedEoa: 'Anwani ya pochi imethibitishwa',
+        contractDanger: 'Anwani ya mkataba. Pesa zinazotumwa hapa zinaweza kuzuiliwa. Hakikisha kabla ya kutoa.',
+      },
     },
     submit: {
       signIn: 'Ingia ili kutoa',
@@ -1463,6 +1468,23 @@ export const sw: Messages = {
       clearHistoryTitle: 'Ondoa madaraja yaliyomalizika na yaliyofeli kutoka historia yako ya ndani. Madaraja yanayoendelea yanabaki.',
       bridgeSingular: 'DARAJA',
       bridgePlural: 'MADARAJA',
+    },
+    recipient: {
+      eyebrowChoose: '[:CHAGUA MPOKEAJI:]',
+      identityLabel: 'Pochi yako',
+      identityHint: 'Utambulisho',
+      buyerLabel: 'Wakala wa mnunuzi',
+      sellerLabel: 'Wakala wa muuzaji',
+      customLabel: 'Maalum',
+      customPlaceholder: '0x...',
+      customWarning: 'Tuma tu kwa pochi unayoidhibiti. Pesa zinazotumwa anwani isiyo sahihi hazirudi.',
+      notConfigured: 'haijasanidiwa',
+      verify: {
+        checking: 'Inakagua anwani kwenye Arc',
+        verifiedEoa: 'Anwani ya pochi imethibitishwa',
+        contractDanger: 'Anwani ya mkataba. Kuvuka hapa kunaweza kufunga pesa zako.',
+        invalid: 'Si anwani ya baiti 20',
+      },
     },
     row: {
       stale: 'CHAKAVU',
@@ -3360,6 +3382,7 @@ export const sw: Messages = {
       maxPerDay: 'JUU {max} / SIKU',
       loading: 'Inasoma mnyororo',
       error: 'Imeshindikana kusoma mnyororo',
+      retry: 'Jaribu tena',
       empty: 'Hakuna shughuli katika siku 30 zilizopita bado',
       legend: {
         funded: 'Zilizofadhiliwa',

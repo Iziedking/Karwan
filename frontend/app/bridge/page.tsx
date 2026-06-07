@@ -67,7 +67,7 @@ export default function BridgePage() {
           </div>
 
           {direction === 'in' ? (
-            <BridgeCard mintRecipient={agents?.buyer as `0x${string}` | undefined} tour />
+            <BridgeCard agents={agents ?? undefined} tour />
           ) : (
             <BridgeOutCard />
           )}

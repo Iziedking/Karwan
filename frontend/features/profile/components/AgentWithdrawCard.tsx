@@ -1,11 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
@@ -92,8 +93,22 @@ export function AgentWithdrawCard({
 
   const destValid = ADDR_RE.test(dest.trim());
   const amountValid = typeof amount === 'number' && amount > 0;
+  /// EOA-vs-contract verification on the destination. Identity wallet is
+  /// passed in as trusted so the common case (sweeping back to your own
+  /// wallet) skips the RPC. A paste that resolves to deployed bytecode
+  /// blocks submit so funds don't disappear into a contract that may not
+  /// accept native sends.
+  const trustedAddresses = useMemo(() => [address], [address]);
+  const destKind = useAddressKind(dest, { enabled: destValid, trustedAddresses });
+  const destIsEoa = destValid && destKind.kind === 'eoa';
+  const destIsContract = destValid && destKind.kind === 'contract';
   const canSubmit =
-    isConnected && !!selectedAgent?.address && destValid && amountValid && phase !== 'sending';
+    isConnected &&
+    !!selectedAgent?.address &&
+    destValid &&
+    !destIsContract &&
+    amountValid &&
+    phase !== 'sending';
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -337,6 +352,9 @@ export function AgentWithdrawCard({
               {aw.form.yourWalletHint}
             </span>
           )}
+          {destValid && (!address || dest.trim().toLowerCase() !== address.toLowerCase()) && (
+            <DestVerifyBanner kind={destKind.kind} copy={aw.form.verify} />
+          )}
           <style jsx>{`
             .withdraw-dest:focus {
               border-color: var(--lp-dark);
@@ -466,5 +484,52 @@ export function AgentWithdrawCard({
         )}
       </form>
     </section>
+  );
+}
+
+function DestVerifyBanner({
+  kind,
+  copy,
+}: {
+  kind: 'idle' | 'invalid' | 'checking' | 'eoa' | 'contract';
+  copy: { checking: string; verifiedEoa: string; contractDanger: string };
+}) {
+  if (kind === 'idle' || kind === 'invalid') return null;
+  const tone =
+    kind === 'eoa'
+      ? { bg: 'rgba(10, 117, 83, 0.10)', text: TONE_COLOR.positive, border: 'rgba(10, 117, 83, 0.30)' }
+      : kind === 'contract'
+        ? { bg: 'rgba(176, 61, 58, 0.10)', text: TONE_COLOR.critical, border: 'rgba(176, 61, 58, 0.30)' }
+        : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };
+  const label =
+    kind === 'checking'
+      ? copy.checking
+      : kind === 'eoa'
+        ? copy.verifiedEoa
+        : copy.contractDanger;
+  return (
+    <div
+      className="inline-flex items-start gap-2 px-3 py-2 text-[11.5px]"
+      style={{
+        background: tone.bg,
+        color: tone.text,
+        border: `1px solid ${tone.border}`,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 2,
+      }}
+    >
+      <span
+        aria-hidden
+        className={
+          kind === 'checking'
+            ? 'mt-1 inline-block w-[6px] h-[6px] rounded-full animate-pulse motion-reduce:animate-none shrink-0'
+            : 'mt-1 inline-block w-[6px] h-[6px] shrink-0'
+        }
+        style={{ background: tone.text, borderRadius: kind === 'checking' ? 999 : 1 }}
+      />
+      <span className="leading-snug">{label}</span>
+    </div>
   );
 }
