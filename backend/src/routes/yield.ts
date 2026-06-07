@@ -211,8 +211,13 @@ yieldRoutes.get('/me', async (c) => {
     return c.json({ error: 'address required' }, 400);
   }
   const checksummed = getAddress(parsed.data) as `0x${string}`;
+  /// `?fresh=1` skips the in-memory cache for one read. Used by the
+  /// claim panel right after a successful claim so the button flips
+  /// from "Claim N" to "Nothing yet" without waiting up to 30s for the
+  /// next TTL window.
+  const fresh = c.req.query('fresh') === '1';
   const cached = meCache.get(checksummed);
-  if (cached && Date.now() - cached.at < ME_TTL_MS) {
+  if (!fresh && cached && Date.now() - cached.at < ME_TTL_MS) {
     return c.json({
       configured: true,
       address: distributor,
@@ -371,8 +376,9 @@ yieldRoutes.get('/history', async (c) => {
   }
 
   const cacheKey = filterAddress ?? 'protocol';
+  const fresh = c.req.query('fresh') === '1';
   const cached = historyCache.get(cacheKey);
-  if (cached && Date.now() - cached.at < HISTORY_TTL_MS) {
+  if (!fresh && cached && Date.now() - cached.at < HISTORY_TTL_MS) {
     return c.json({ configured: true, history: cached.data });
   }
 

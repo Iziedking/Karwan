@@ -52,9 +52,20 @@ export function useYieldMe(address: string | null | undefined) {
   return {
     data: query.data ?? null,
     isLoading: enabled && query.isPending,
-    refresh: () => {
+    /// Post-claim refresh. The backend `/me` route has a 30s in-memory cache
+    /// keyed by address; a plain `invalidateQueries` would refetch but still
+    /// hit that stale snapshot. Routing through `fetchQuery` with `fresh: 1`
+    /// bypasses the backend cache and writes the live result straight into
+    /// the react-query store, so the claim button flips to "Nothing yet"
+    /// immediately.
+    refresh: async () => {
       if (!address) return;
-      qc.invalidateQueries({ queryKey: qk.yield.me(address) });
+      try {
+        const data = await api.yieldMe(address, { fresh: true });
+        qc.setQueryData(qk.yield.me(address), data);
+      } catch {
+        qc.invalidateQueries({ queryKey: qk.yield.me(address) });
+      }
     },
   };
 }

@@ -1046,8 +1046,10 @@ export const api = {
     ),
   /// KarwanYieldDistributor: this address's claimable + lifetime totals.
   /// Lifetime credited and claimed come from event scans (YieldCredited /
-  /// YieldClaimed indexed by staker), cached 30s on the backend.
-  yieldMe: (address: string) =>
+  /// YieldClaimed indexed by staker), cached 30s on the backend. Pass
+  /// `fresh: true` immediately after a successful claim to bypass the
+  /// cache so the UI flips instantly instead of waiting up to 30s.
+  yieldMe: (address: string, opts: { fresh?: boolean } = {}) =>
     json<{
       configured: boolean;
       address: string | null;
@@ -1055,7 +1057,9 @@ export const api = {
       lifetimeCreditedUsdc: string;
       lifetimeClaimedUsdc: string;
       detail?: string;
-    }>(`/api/yield/me?address=${address}`),
+    }>(
+      `/api/yield/me?address=${address}${opts.fresh ? '&fresh=1' : ''}`,
+    ),
   /// Protocol-wide yield reserves for the /stake widget.
   yieldProtocol: () =>
     json<{
@@ -1069,15 +1073,20 @@ export const api = {
   /// Per-day distribution timeseries. Without `address`, returns the
   /// protocol's aggregate accrual curve. With `address`, returns the
   /// per-staker series. Both cached 30s on the backend.
-  yieldHistory: (address?: string) =>
-    json<{
+  yieldHistory: (address?: string, opts: { fresh?: boolean } = {}) => {
+    const params = new URLSearchParams();
+    if (address) params.set('address', address);
+    if (opts.fresh) params.set('fresh', '1');
+    const qs = params.toString();
+    return json<{
       configured: boolean;
       history: Array<{
         day: string;
         dailyCreditedUsdc: string;
         cumulativeCreditedUsdc: string;
       }>;
-    }>(`/api/yield/history${address ? `?address=${address}` : ''}`),
+    }>(`/api/yield/history${qs ? `?${qs}` : ''}`);
+  },
   /// Circle-user claim path. Web3 users sign claim() directly from their
   /// own wallet; they do not call this endpoint.
   yieldClaim: (body: { address: string }) =>

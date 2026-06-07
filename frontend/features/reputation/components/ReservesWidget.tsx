@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
 
 /// Network-side yield readout. Three tiles + a cumulative accrual chart.
@@ -94,6 +94,12 @@ export function ReservesWidget() {
 
 /// Lime-accented area chart. Cumulative USDC distributed on y, days on x.
 /// Hand-rolled SVG; no chart-library dependency for this single surface.
+///
+/// The SVG viewBox tracks the container's measured width so SVG units stay
+/// 1:1 with CSS pixels. Without this the older `preserveAspectRatio="none"`
+/// path stretched the X axis on narrow viewports (a 1000-unit viewBox into
+/// 360px = 0.36x scale on text), so the 10px axis labels rendered at ~3.6
+/// CSS pixels on mobile and were illegible.
 function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: boolean }) {
   const padded = useMemo(() => {
     if (history.length === 0) return [];
@@ -108,9 +114,23 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     return history;
   }, [history]);
 
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      if (w > 0) setMeasuredWidth(Math.round(w));
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   if (!loaded) {
     return (
       <div
+        ref={wrapperRef}
         className="rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
       >
         <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
@@ -132,6 +152,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
   if (padded.length === 0) {
     return (
       <div
+        ref={wrapperRef}
         className="flex items-center justify-center text-[12px] text-[var(--lp-text-muted)] rounded-2xl border border-dashed border-[var(--lp-border-light)] bg-[var(--lp-card)]"
         style={{ height: 220 }}
       >
@@ -140,9 +161,13 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     );
   }
 
-  const width = 1000;
+  /// Fall back to 360 (a small phone) until the ResizeObserver fires, so the
+  /// first paint is reasonable instead of crammed into a 1px viewBox.
+  const width = measuredWidth > 0 ? measuredWidth : 360;
   const height = 220;
-  const padX = 28;
+  /// Tighten the inner pad on narrow screens so the plot area doesn't squeeze
+  /// the line off the right edge.
+  const padX = width < 480 ? 32 : 40;
   const padY = 22;
   const xs = padded.map((_, i) => padX + ((width - padX * 2) * i) / Math.max(1, padded.length - 1));
   const values = padded.map((p) => Number(p.cumulativeCreditedUsdc) || 0);
@@ -155,13 +180,16 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
   const areaPath = `${linePath} L ${xs[xs.length - 1].toFixed(1)} ${height - padY} L ${xs[0].toFixed(1)} ${height - padY} Z`;
 
   /// Sparse x-labels: first, last, and every nth in between so the strip
-  /// stays readable even for long series.
-  const labelEvery = Math.max(1, Math.floor(padded.length / 6));
+  /// stays readable even for long series. On narrow screens we step the
+  /// cadence further so labels don't collide.
+  const labelTarget = width < 480 ? 4 : 6;
+  const labelEvery = Math.max(1, Math.floor(padded.length / labelTarget));
   const yGrid = 4;
   const yTicks = Array.from({ length: yGrid + 1 }, (_, i) => (maxV * i) / yGrid);
 
   return (
     <div
+      ref={wrapperRef}
       className="relative overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-3 sm:px-4 sm:py-4"
     >
       <div className="flex items-baseline justify-between gap-3 px-2 pb-1">
@@ -174,8 +202,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
       </div>
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        className="w-full"
+        className="block w-full"
         style={{ height: 220 }}
         role="img"
         aria-label="Cumulative USDC distributed to stakers over time"

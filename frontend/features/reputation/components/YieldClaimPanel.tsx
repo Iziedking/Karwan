@@ -58,7 +58,7 @@ export function YieldClaimPanel() {
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
-    refresh();
+    await refresh();
   }, [refresh]);
 
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
