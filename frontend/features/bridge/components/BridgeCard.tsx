@@ -167,7 +167,11 @@ export function BridgeCard({
   } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridges = bridges.filter((b) => b.direction !== 'out');
-  const [sourceKey, setSourceKey] = useState<AnySourceChainKey>('baseSepolia');
+  /// Default to the first chain in SOURCE_CHAINS (Ethereum Sepolia) rather
+  /// than Base. The picker is alphabetical-ish but Ethereum-first reads as
+  /// the canonical entry point; Base felt arbitrary and was confusing a
+  /// new user who expected the first tile to be selected.
+  const [sourceKey, setSourceKey] = useState<AnySourceChainKey>('sepolia');
   const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 

@@ -1299,6 +1299,15 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
 /// since the id itself is the capability.
 bridgeRoutes.get('/:bridgeId', async (c) => {
   const bridgeId = c.req.param('bridgeId');
+  /// Defensive guard: this single-segment GET pattern matches anything,
+  /// including sibling routes registered later in the file like
+  /// `/circle-source-address`. Real bridge IDs always contain digits
+  /// (a 0x address, a unix-ms timestamp, or a cashout numeric suffix), so
+  /// a digit-free name is definitely not a bridge ID. Skipping here lets
+  /// Hono fall through to the more specific handler that owns the path.
+  if (!/[0-9]/.test(bridgeId)) {
+    return c.notFound();
+  }
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   return c.json({
