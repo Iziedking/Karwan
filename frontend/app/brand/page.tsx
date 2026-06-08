@@ -203,7 +203,15 @@ export default function BrandPage() {
           {t.contact.body}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <CTAPill href="mailto:hello@karwan.site">hello@karwan.site</CTAPill>
+          {/* Two routed inboxes per 2026-06-08: bd@ for partnerships and
+              press / co-mark / quote inquiries (the headline ask on this
+              page), support@ for product-side questions. Both addresses
+              are enrolled. The bd@ pill leads (primary lime) because it
+              matches the page's "Press and partners" framing. */}
+          <CTAPill href="mailto:bd@karwan.site">bd@karwan.site</CTAPill>
+          <CTAPill href="mailto:support@karwan.site" variant="secondary" tone="dark">
+            support@karwan.site
+          </CTAPill>
           <CTAPill href="/" variant="secondary" tone="dark">
             {t.contact.backHome}
           </CTAPill>
