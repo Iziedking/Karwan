@@ -43,6 +43,61 @@ function missingFields(e: ExtractedDeal): string[] {
   return missing;
 }
 
+/// Convert the LLM's deadlineDays (which can come back as a fraction like
+/// 0.083 for "2 hours") into the right `postJob` payload. The backend
+/// accepts deadlineSeconds OR deadlineDays; fractional days fail the
+/// integer schema, so any value below 1 day gets rounded up via the
+/// seconds path. Integer days >= 1 go through deadlineDays unchanged.
+function deadlinePayload(deadlineDays: number): { deadlineSeconds: number } | { deadlineDays: number } {
+  if (Number.isInteger(deadlineDays) && deadlineDays >= 1) {
+    return { deadlineDays };
+  }
+  // Sub-day or fractional. Convert to seconds, round UP so "2 hours"
+  // doesn't slip below the user's actual ask.
+  const seconds = Math.max(60, Math.ceil(deadlineDays * 86_400));
+  return { deadlineSeconds: seconds };
+}
+
+/// Turn a backend Zod error array (or any error detail shape) into a one-
+/// line message the user can act on. Without this, the UI dumped the raw
+/// JSON array — readable to engineers, hostile to users.
+function humanizeError(raw: unknown): string {
+  if (typeof raw === 'string') {
+    // Sometimes the backend stringifies the array before we see it.
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        return humanizeError(JSON.parse(trimmed));
+      } catch {
+        return trimmed;
+      }
+    }
+    return trimmed;
+  }
+  if (Array.isArray(raw)) {
+    const friendly = raw
+      .map((issue: { path?: unknown[]; message?: string }) => {
+        const field = Array.isArray(issue.path) ? issue.path.join('.') : '';
+        const fieldLabel = field === 'deadlineDays'
+          ? 'Deadline'
+          : field === 'budgetUsdc'
+            ? 'Budget'
+            : field === 'brief'
+              ? 'Description'
+              : field || 'Input';
+        const msg = issue.message ?? 'is not valid';
+        return `${fieldLabel}: ${msg.replace(/^Expected /, 'expected ')}`;
+      })
+      .filter(Boolean);
+    if (friendly.length === 0) return 'That post needs a small fix. Switch to the form and tweak it.';
+    return friendly.join(' · ');
+  }
+  if (raw && typeof raw === 'object' && 'message' in raw) {
+    return String((raw as { message: unknown }).message);
+  }
+  return 'Could not post the request.';
+}
+
 export function BriefComposer() {
   const router = useRouter();
   const { address } = useAuth();
@@ -69,7 +124,7 @@ export function BriefComposer() {
         posterAddress: address,
         brief: e.terms,
         budgetUsdc: e.amountUsdc!,
-        deadlineDays: e.deadlineDays!,
+        ...deadlinePayload(e.deadlineDays!),
         negotiationMaxIncreasePct:
           e.tolerancePct != null ? Math.round(e.tolerancePct) : undefined,
         trustedMatch: e.suggestedTrustedMatch === true,
@@ -91,11 +146,23 @@ export function BriefComposer() {
           ],
         };
       }
-      const detail =
-        err instanceof ApiError && err.detail
-          ? String(err.detail)
-          : (err as Error).message ?? 'Could not post the request.';
-      return { kind: 'error', error: detail };
+      // Humanize the error rather than dumping a raw Zod array. Most
+      // schema mismatches (e.g. fractional deadlineDays from LLM) are
+      // recoverable in the form, so route there with the original notes.
+      const friendly =
+        err instanceof ApiError
+          ? humanizeError(err.detail ?? err.message)
+          : humanizeError((err as Error).message ?? 'Could not post the request.');
+      if (err instanceof ApiError && Array.isArray(err.detail)) {
+        // Schema validation failure — drop into the form so the user can
+        // tweak the offending field with the friendly message as a note.
+        return {
+          kind: 'review',
+          params: paramsFor(e),
+          notes: [friendly, ...e.notes],
+        };
+      }
+      return { kind: 'error', error: friendly };
     }
   };
 
