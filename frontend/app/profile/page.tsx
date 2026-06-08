@@ -192,7 +192,14 @@ function ProfilePageInner() {
         </div>
       </Band>
 
-      <div data-guide="profile-nav">
+      {/* `display: contents` on the data-guide wrapper so the wrapper doesn't
+          create a short sticky scope for the StickyTabStrip. Without this,
+          position: sticky scoped to a parent that's only as tall as the
+          strip itself — the strip released the instant the user scrolled,
+          which read as "hides on scroll". Landing-page strip works because
+          it sits directly under a full-height wrapper. The DOM node is
+          preserved so the coachmark tour can still anchor to it. */}
+      <div data-guide="profile-nav" className="contents">
         <StickyTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </div>
 

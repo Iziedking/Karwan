@@ -57,16 +57,12 @@ export function StickyTabStrip({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /// Frosted surface tuned for both contexts: starts as the dark hero
-  /// reads at rest, switches to a near-opaque pane on scroll so labels
-  /// stay legible no matter what light/dark band is sliding behind it.
-  const surface = stuck
-    ? onDark
-      ? 'color-mix(in srgb, var(--lp-band-dark) 88%, transparent)'
-      : 'color-mix(in srgb, var(--lp-card) 92%, transparent)'
-    : onDark
-      ? 'color-mix(in srgb, var(--lp-band-dark) 70%, transparent)'
-      : 'color-mix(in srgb, var(--lp-card) 70%, transparent)';
+  /// Surface stays fully opaque in both states so the bar reads as one
+  /// solid pane instead of letting whatever's behind it bleed through. The
+  /// earlier transparent + blur combo read as "off-white" on the workflow
+  /// summary page where a stark white band sat directly above the strip,
+  /// and made the strip hard to perceive as a separate surface.
+  const surface = onDark ? 'var(--lp-band-dark)' : 'var(--lp-card)';
 
   return (
     <nav
@@ -79,8 +75,6 @@ export function StickyTabStrip({
         // visually on top if any margin ever overlaps.
         top: TOPNAV_OFFSET_PX,
         background: surface,
-        backdropFilter: 'blur(14px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(14px) saturate(160%)',
         borderBottom: `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
         boxShadow: stuck
           ? onDark

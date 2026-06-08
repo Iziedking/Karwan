@@ -1505,27 +1505,36 @@ function AppKitFundBanner({
   const auth = useAuth();
   const [address, setAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  /// Solana provisioning was sitting at "provisioning…" forever when the
+  /// backend call rejected (Circle rate-limits, transient API blips, or
+  /// the wallet creation failing for a permissions reason). The old
+  /// silent-swallow catch gave the user no way to know what happened and
+  /// no way to retry. Surface the error and let the user re-fire.
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
-  // Fetch the user's source-chain DCW address. The backend provisions on
-  // read, so the first call may take a second; surface "provisioning…" in
-  // place of the address until it resolves. Re-fires when the source key
-  // changes (parent re-renders this banner per source).
   useEffect(() => {
     if (!auth.address) return;
     let cancelled = false;
     setAddress(null);
+    setError(null);
     api
       .bridgeCircleSourceAddress(auth.address as string, source.key)
       .then((r) => {
         if (!cancelled) setAddress(r.address);
       })
-      .catch(() => {
-        /* keep null; the row reads "provisioning…" so the user retries */
+      .catch((err) => {
+        if (cancelled) return;
+        const message =
+          err instanceof Error ? err.message : 'Could not provision wallet';
+        setError(message);
       });
     return () => {
       cancelled = true;
     };
-  }, [auth.address, source.key]);
+  }, [auth.address, source.key, attempt]);
+
+  const retry = () => setAttempt((n) => n + 1);
 
   async function copyAddress() {
     if (!address) return;
@@ -1571,8 +1580,28 @@ function AppKitFundBanner({
             {copy.addressLabelTemplate.replace('{chain}', source.shortName)}
           </p>
           <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
-            {address ?? copy.provisioning}
+            {address ?? (error ? 'failed' : copy.provisioning)}
           </p>
+          {error && !address && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <p className="text-[11px] leading-snug text-[#b03d3a] flex-1 min-w-0">
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={retry}
+                className="mono text-[10px] uppercase tracking-[0.14em] px-2.5 py-1 transition-colors"
+                style={{
+                  background: 'var(--lp-card)',
+                  color: 'var(--lp-dark)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderRadius: 6,
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
         </div>
         <button
           type="button"
