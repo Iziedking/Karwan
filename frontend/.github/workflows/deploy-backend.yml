@@ -1,0 +1,110 @@
+name: Deploy backend
+
+# Triggers:
+#   - Auto after publish-backend-image.yml succeeds (workflow chain).
+#   - Manual via Actions → "Deploy backend" → Run workflow.
+#
+# Strategy: the VPS already has docker compose + a Caddyfile + .env in
+# ~/karwan/. This workflow pulls the latest karwan-api image, syncs the
+# docker-compose.yml so infrastructure changes (new volumes, env vars,
+# health checks) ride CI/CD, then rolls the service. The image baked by
+# publish-backend-image.yml is the artifact; source code is never npm-built
+# on the VPS.
+on:
+  workflow_run:
+    workflows: ['Publish backend image']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only run when the publish workflow actually succeeded. Skipped failures
+    # avoid deploying broken builds.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    name: SSH to VPS and roll
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://api.karwan.site
+    steps:
+      # Need the repo on the runner so the next step can scp docker-compose.yml.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Sync the compose file before rolling the service. Without this, an
+      # infrastructure change in git (new bind mount, env passthrough, port,
+      # healthcheck) silently never reaches the VPS — only the image does —
+      # and the new container starts against the old compose contract. The
+      # crontab-into-backup mount change was the first time this gap bit us.
+      # `target` matches the SSH user's home so the path resolves the same
+      # way the docker compose CLI expects (`cd ~/karwan && docker compose ...`).
+      - name: Sync docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: 'docker-compose.yml'
+          target: '~/karwan/'
+          overwrite: true
+
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          # The script:
+          #   1. Logs the docker daemon into GHCR using a personal access token
+          #      stored in the VPS_GHCR_TOKEN secret. This token needs
+          #      read:packages scope only.
+          #   2. Pre-touches host-side bind-mount targets that some volumes
+          #      expect to exist as files (not directories). Without this,
+          #      a fresh VPS rebuild + first deploy creates them as dirs
+          #      and the container can't read them as files. Idempotent.
+          #   3. Pulls the latest karwan-api image.
+          #   4. Rolls the service via docker compose up -d. Caddy stays up.
+          #   5. Prunes dangling images to keep the VPS disk tidy.
+          #   6. Health-checks the local /health endpoint and FAILS the
+          #      deploy if the new container doesn't respond. The previous
+          #      container keeps serving until you push a fixed image.
+          script: |
+            set -euo pipefail
+            cd ~/karwan
+            echo ":: ensure bind-mount file targets exist"
+            touch host-crontab.txt
+            echo ":: ghcr login"
+            echo "${{ secrets.VPS_GHCR_TOKEN }}" | docker login ghcr.io \
+              -u ${{ secrets.VPS_GHCR_USER }} --password-stdin
+            echo ":: docker compose pull"
+            docker compose pull karwan-api
+            echo ":: docker compose up"
+            docker compose up -d --remove-orphans
+            echo ":: prune dangling images"
+            docker image prune -f
+            # Wait for the karwan-api container's built-in HEALTHCHECK to
+            # report 'healthy'. The check itself hits /health from inside
+            # the container, so we don't need the port published on the
+            # host. Times out after ~60s; failure leaves the new container
+            # running but flags the workflow red so we know to investigate.
+            echo ":: waiting for healthy"
+            for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' karwan-api 2>/dev/null || echo "missing")
+              if [ "$STATUS" = "healthy" ]; then
+                echo "  ok"
+                exit 0
+              fi
+              echo "  attempt $i: $STATUS, sleeping 5s..."
+              sleep 5
+            done
+            echo "  HEALTH CHECK FAILED — container did not become healthy in 60s"
+            docker compose logs --tail=80 karwan-api
+            exit 1
