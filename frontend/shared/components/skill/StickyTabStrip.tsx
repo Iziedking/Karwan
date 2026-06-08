@@ -57,17 +57,28 @@ export function StickyTabStrip({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /// Surface stays fully opaque in both states so the bar reads as one
-  /// solid pane instead of letting whatever's behind it bleed through. The
-  /// earlier transparent + blur combo read as "off-white" on the workflow
-  /// summary page where a stark white band sat directly above the strip,
-  /// and made the strip hard to perceive as a separate surface.
-  const surface = onDark ? 'var(--lp-band-dark)' : 'var(--lp-card)';
+  /// Frosted surface: dark hero tone at rest, near-opaque on scroll so
+  /// labels stay legible no matter what light/dark band slides behind it.
+  /// The strip itself is full-bleed (see `.w-bleed` on the nav) so the
+  /// surface paints edge-to-edge of the viewport rather than stopping at
+  /// the centered content gutter — the earlier gap on left + right was the
+  /// nav inheriting its parent's content width, not a color issue.
+  const surface = stuck
+    ? onDark
+      ? 'color-mix(in srgb, var(--lp-band-dark) 88%, transparent)'
+      : 'color-mix(in srgb, var(--lp-card) 92%, transparent)'
+    : onDark
+      ? 'color-mix(in srgb, var(--lp-band-dark) 70%, transparent)'
+      : 'color-mix(in srgb, var(--lp-card) 70%, transparent)';
 
   return (
     <nav
       className={cn(
-        'sticky z-20 transition-[background,border-color,box-shadow,backdrop-filter] duration-[var(--dur-fast)]',
+        // `relative left-1/2 w-bleed -translate-x-1/2` is the scrollbar-aware
+        // full-bleed pattern (see .w-bleed in globals.css). Without this the
+        // nav inherited its parent's content width, leaving white slivers on
+        // the viewport edges where the surface didn't paint.
+        'sticky z-20 relative left-1/2 w-bleed -translate-x-1/2 transition-[background,border-color,box-shadow,backdrop-filter] duration-[var(--dur-fast)]',
         className,
       )}
       style={{
@@ -75,6 +86,8 @@ export function StickyTabStrip({
         // visually on top if any margin ever overlaps.
         top: TOPNAV_OFFSET_PX,
         background: surface,
+        backdropFilter: 'blur(14px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(14px) saturate(160%)',
         borderBottom: `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
         boxShadow: stuck
           ? onDark
