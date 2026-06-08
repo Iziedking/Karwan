@@ -150,18 +150,84 @@ adminRoutes.post('/reputation/backfill', async (c) => {
 });
 
 /// Force-replay the chain event backfill into the in-memory bus + persisted
-/// data/events.json. The boot-time backfill only runs when the bus is small
-/// (under 50 events) to avoid wasted RPC traffic, so a stale or partial
-/// history won't auto-recover. Call this after a contract redeploy, after a
-/// VPS rebuild that wiped data/events.json without a fresh boot, or any
-/// time the /activity feed looks empty.
-///
-/// Returns the scan + injection counts so the operator can confirm the
-/// replay actually pulled events.
-adminRoutes.post('/events/backfill', async (c) => {
-  const result = await backfillBusFromChain({ force: true });
-  logger.info({ ...result }, 'admin: event backfill forced');
-  return c.json({ ok: true, ...result });
+/// data/events.json. Fire-and-forget — the route returns 202 immediately
+/// and the scan runs in the background. A synchronous run was prone to
+/// reverse-proxy timeouts on a wide lookback window (Caddy default is 5
+/// min, the scan can legitimately take 10+ min with slowed concurrency
+/// against free-tier RPC). Poll GET /api/admin/events/backfill/status to
+/// see progress + the final result. Last result is kept in-memory until
+/// the next run replaces it.
+let backfillRunning = false;
+let lastBackfillResult: {
+  startedAt: number;
+  completedAt?: number;
+  ok: boolean;
+  scanned?: number;
+  injected?: number;
+  chunkErrors?: number;
+  error?: string;
+} | null = null;
+
+adminRoutes.post('/events/backfill', (c) => {
+  if (backfillRunning) {
+    return c.json(
+      {
+        ok: false,
+        running: true,
+        startedAt: lastBackfillResult?.startedAt ?? null,
+        detail: 'a backfill is already running; poll /status for progress',
+      },
+      409,
+    );
+  }
+  backfillRunning = true;
+  lastBackfillResult = { startedAt: Date.now(), ok: false };
+  /// Kick the scan in the background. The route returns 202 immediately
+  /// so the operator's curl never hits a proxy timeout.
+  void (async () => {
+    try {
+      const result = await backfillBusFromChain({ force: true });
+      lastBackfillResult = {
+        ...(lastBackfillResult ?? { startedAt: Date.now() }),
+        completedAt: Date.now(),
+        ok: true,
+        scanned: result.scanned,
+        injected: result.injected,
+        chunkErrors: result.chunkErrors,
+      };
+      logger.info({ ...result }, 'admin: event backfill forced (async complete)');
+    } catch (err) {
+      const msg = (err as Error).message ?? 'unknown';
+      lastBackfillResult = {
+        ...(lastBackfillResult ?? { startedAt: Date.now() }),
+        completedAt: Date.now(),
+        ok: false,
+        error: msg,
+      };
+      logger.error({ err: msg }, 'admin: event backfill threw (async)');
+    } finally {
+      backfillRunning = false;
+    }
+  })();
+  return c.json(
+    {
+      ok: true,
+      running: true,
+      startedAt: lastBackfillResult.startedAt,
+      detail: 'backfill started in background; poll /api/admin/events/backfill/status',
+    },
+    202,
+  );
+});
+
+/// Status of the most-recent (or currently-running) admin backfill. Returns
+/// { running, ok, scanned, injected, chunkErrors, startedAt, completedAt }
+/// or { running: false, ok: null } when no backfill has run since boot.
+adminRoutes.get('/events/backfill/status', (c) => {
+  if (!lastBackfillResult) {
+    return c.json({ running: false, ok: null });
+  }
+  return c.json({ running: backfillRunning, ...lastBackfillResult });
 });
 
 /// Backend runtime errors captured by the process-wide tracker. Returns up
