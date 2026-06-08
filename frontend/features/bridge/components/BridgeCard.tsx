@@ -1400,19 +1400,34 @@ function AppKitFundBanner({
     let cancelled = false;
     setAddress(null);
     setError(null);
+    /// Race the call against a 15s timeout. Without this the banner sat on
+    /// "provisioning…" forever whenever Circle's wallet-creation API took
+    /// longer than the user's patience — no .then, no .catch, the fetch
+    /// promise just hung. 15s is well above the normal success window
+    /// (typically 1-3s) but short enough that a stuck Circle call surfaces
+    /// the Retry button before the user gives up and refreshes.
+    const TIMEOUT_MS = 15_000;
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      setError('Provisioning timed out. Retry to try again.');
+    }, TIMEOUT_MS);
     api
       .bridgeCircleSourceAddress(auth.address as string, source.key)
       .then((r) => {
-        if (!cancelled) setAddress(r.address);
+        if (cancelled) return;
+        clearTimeout(timer);
+        setAddress(r.address);
       })
       .catch((err) => {
         if (cancelled) return;
+        clearTimeout(timer);
         const message =
           err instanceof Error ? err.message : 'Could not provision wallet';
         setError(message);
       });
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [auth.address, source.key, attempt]);
 
