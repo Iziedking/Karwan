@@ -131,6 +131,15 @@ const extractionSchema = z.object({
     .describe(
       'DIRECT ONLY. If the user mentions a wallet address (0x... 42 chars) or email for the counterparty, return verbatim. Null otherwise.',
     ),
+  acceptanceWindowHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(720)
+    .nullable()
+    .describe(
+      'DIRECT ONLY. How long the SELLER has to accept the deal after the buyer creates it. Examples: "accept within 1 hour" → 1, "they have a day to accept" → 24, "respond by tomorrow" → 24, "must accept in 2 days" → 48. NOT the delivery deadline (that is deadlineDays). Convert minutes to integer hours (round up to 1). Null if not mentioned.',
+    ),
   confidence: z.object({
     amount: z.number().min(0).max(1),
     deadline: z.number().min(0).max(1),
@@ -148,7 +157,7 @@ function buildExtractPrompt(
 ): string {
   const surfaceHint =
     surface === 'direct'
-      ? 'SURFACE: direct deal. The user is a BUYER posting a deal with a specific counterparty they already have in mind. Focus on: amountUsdc, deadlineDays, terms, suggestedFirstMilestonePct, suggestedTrustedMatch, counterpartyHint. Leave title, tolerancePct null.'
+      ? 'SURFACE: direct deal. The user is a BUYER posting a deal with a specific counterparty they already have in mind. Focus on: amountUsdc, deadlineDays, terms, suggestedFirstMilestonePct, suggestedTrustedMatch, counterpartyHint, acceptanceWindowHours. Leave title, tolerancePct null. Distinguish "deadline / deliver by" (deadlineDays) from "accept by / respond by" (acceptanceWindowHours) — these are two DIFFERENT clocks. The user often gives both ("1 hour to accept, 7 days to deliver"); extract each into its own field.'
       : surface === 'brief'
         ? 'SURFACE: brief. The user is a BUYER posting an open request that other sellers will bid on. Focus on: amountUsdc (budget cap), deadlineDays, terms, tolerancePct (negotiation room), suggestedTrustedMatch. Leave title, counterpartyHint, suggestedFirstMilestonePct null.'
         : 'SURFACE: listing. The user is a SELLER posting an offer for buyers to find. Focus on: title (headline), amountUsdc (ask price), deadlineDays (TTL of the listing), terms (description), tolerancePct. Leave counterpartyHint, suggestedFirstMilestonePct, suggestedTrustedMatch null.';

@@ -27,6 +27,10 @@ export type ExtractedDeal = {
   suggestedFirstMilestonePct: number | null;
   suggestedTrustedMatch: boolean | null;
   counterpartyHint: string | null;
+  /// How long the seller has to ACCEPT the deal (hours). DIRECT only. Null
+  /// when the user didn't mention it — caller falls through to the
+  /// backend default (24h). Separate clock from `deadlineDays` (delivery).
+  acceptanceWindowHours: number | null;
   confidence: { amount: number; deadline: number; terms: number };
   notes: string[];
 };

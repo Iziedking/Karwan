@@ -86,6 +86,18 @@ export function DirectDealComposer() {
         firstReleasePct,
         requireStake: trusted,
         requireStakePct: trusted ? 50 : undefined,
+        /// Honour the LLM's acceptanceWindowHours extraction so "they have
+        /// 1 hour to accept" actually configures a 1-hour window instead
+        /// of silently defaulting to the backend's 24h. Clamped to the
+        /// backend's accepted range; null falls through to the default.
+        ...(e.acceptanceWindowHours != null
+          ? {
+              acceptanceWindowHours: Math.max(
+                1,
+                Math.min(720, Math.round(e.acceptanceWindowHours)),
+              ),
+            }
+          : {}),
       });
       recordAction('create-direct-deal');
       router.push(`/deals/${res.deal.jobId}`);
