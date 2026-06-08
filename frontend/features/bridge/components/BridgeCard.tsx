@@ -691,7 +691,6 @@ export function BridgeCard({
         onRetry={retry}
         onRecheck={recheck}
         onDismiss={dismiss}
-        onClearCompleted={clearCompleted}
         isActive={isActive}
         copy={bc}
       />
@@ -1688,7 +1687,6 @@ function BridgeHistoryModal({
   onRetry,
   onRecheck,
   onDismiss,
-  onClearCompleted,
   isActive,
   copy,
 }: {
@@ -1700,7 +1698,6 @@ function BridgeHistoryModal({
   onRetry: (id: string) => void;
   onRecheck: (id: string) => void;
   onDismiss: (id: string) => void;
-  onClearCompleted: () => void;
   isActive: (phase: BridgePhase) => boolean;
   copy: Messages['bridgeCard'];
 }) {
@@ -1723,7 +1720,6 @@ function BridgeHistoryModal({
   }, [open, onClose]);
 
   if (!open || !mounted) return null;
-  const hasCompleted = bridges.some((b) => !isActive(b.phase));
 
   return createPortal(
     <div
@@ -1753,16 +1749,10 @@ function BridgeHistoryModal({
             {copy.eyebrow.activity}
           </span>
           <div className="flex items-center gap-3">
-            {hasCompleted && (
-              <button
-                type="button"
-                onClick={onClearCompleted}
-                className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-                title={copy.activity.clearHistoryTitle}
-              >
-                {copy.activity.clearHistory}
-              </button>
-            )}
+            {/* Clear history is intentionally removed. Bridge history is the
+                user's audit trail of every bridge they made — deleting it loses
+                the ability to find any past bridge. Active/pending rows still
+                age out naturally as they settle; nothing else gets removed. */}
             <button
               type="button"
               onClick={onClose}
