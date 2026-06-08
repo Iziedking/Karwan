@@ -339,24 +339,34 @@ activationRoutes.post('/activate', async (c) => {
   try {
     const provisioned = await provisionUserAgentWallets(userAddress);
 
-    // Provision the common testnet bridge wallet (Base Sepolia) alongside the
-    // agents. Lets Circle-auth users bridge USDC into Arc without bringing a
-    // web3 wallet. Ethereum Sepolia is lazy-provisioned the first time the
-    // user picks it as a bridge source (most users never will).
+    // Provision the common testnet bridge wallets (Base Sepolia + Solana
+    // Devnet) alongside the agents. Solana especially benefits from eager
+    // provisioning because its create-wallet path was hanging on /bridge
+    // first-pick for users, leaving them on "provisioning…" indefinitely
+    // (Circle's SOL-DEVNET create call sometimes never returns). Doing it
+    // here once during activation moves the failure into a place where
+    // the user expects creation work and where we can retry under user
+    // attention, instead of on a routine bridge visit.
+    // Ethereum Sepolia + other EVM chains are still lazy-provisioned the
+    // first time the user picks them; most users never will.
     let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
-    try {
-      const baseBridge = await provisionUserBridgeWallet(userAddress, BASE_SEPOLIA_BLOCKCHAIN);
-      bridgeWallets = {
-        [BASE_SEPOLIA_BLOCKCHAIN]: { walletId: baseBridge.walletId, address: baseBridge.address },
-      };
-    } catch (err) {
-      // Bridge-wallet provisioning is not load-bearing for activation; if
-      // Circle rejects (rate limit, transient), agents still ship. Bridge
-      // wallets lazy-provision on first /circle-bridge call.
-      logger.warn(
-        { userAddress, err: (err as Error).message },
-        'base-sepolia bridge wallet provisioning failed during activation; will lazy-provision later',
-      );
+    const eagerBridgeChains: Array<typeof BASE_SEPOLIA_BLOCKCHAIN | 'SOL-DEVNET'> = [
+      BASE_SEPOLIA_BLOCKCHAIN,
+      'SOL-DEVNET',
+    ];
+    for (const chain of eagerBridgeChains) {
+      try {
+        const wallet = await provisionUserBridgeWallet(userAddress, chain);
+        bridgeWallets[chain] = { walletId: wallet.walletId, address: wallet.address };
+      } catch (err) {
+        // Bridge-wallet provisioning is not load-bearing for activation; if
+        // Circle rejects (rate limit, transient, timeout), agents still
+        // ship and the chain falls back to lazy provisioning on first use.
+        logger.warn(
+          { userAddress, chain, err: (err as Error).message },
+          'eager bridge wallet provisioning failed during activation; will lazy-provision later',
+        );
+      }
     }
 
     const record = await saveAgentWallets({

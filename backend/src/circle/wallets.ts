@@ -145,6 +145,32 @@ export async function provisionUserAgentWallets(
 /// haven't already provisioned. The metadata `refId` carries the user
 /// address so the same wallet can be rebuilt from Circle's wallet set
 /// listing if our DB is ever lost.
+/// Hard ceiling on how long we wait for Circle's createWallets to answer.
+/// On SOL-DEVNET we've observed calls that simply never return; the route
+/// then hung the HTTP request forever and the UI sat on "provisioning…"
+/// for hours. 30s is well above the normal success window (typically 1-4s
+/// for EVM, 3-10s for Solana) but short enough that a stuck call surfaces
+/// as a 502 the user can retry, not as a forever-pending fetch.
+const CREATE_WALLET_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`));
+    }, ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 export async function provisionUserBridgeWallet(
   userAddress: string,
   blockchain: BridgeBlockchain,
@@ -158,13 +184,17 @@ export async function provisionUserBridgeWallet(
   const accountType: 'SCA' | 'EOA' =
     blockchain === SOL_DEVNET_BLOCKCHAIN ? 'EOA' : 'SCA';
   const client = circleWalletsClient();
-  const res = await client.createWallets({
-    blockchains: [blockchain],
-    count: 1,
-    walletSetId: config.CIRCLE_WALLET_SET_ID,
-    accountType,
-    metadata: [{ name: `karwan-bridge-${blockchain.toLowerCase()}`, refId }],
-  });
+  const res = await withTimeout(
+    client.createWallets({
+      blockchains: [blockchain],
+      count: 1,
+      walletSetId: config.CIRCLE_WALLET_SET_ID,
+      accountType,
+      metadata: [{ name: `karwan-bridge-${blockchain.toLowerCase()}`, refId }],
+    }),
+    CREATE_WALLET_TIMEOUT_MS,
+    `Circle createWallets(${blockchain})`,
+  );
   const wallet = res.data?.wallets?.[0];
   if (!wallet?.id || !wallet.address) {
     throw new Error(`bridge wallet provisioning on ${blockchain} returned incomplete data`);
