@@ -101,15 +101,19 @@ export function StickyTabStrip({
         role="tablist"
         // Mobile: horizontal scroll, each tab sized to content so labels never
         // wrap. Desktop (md+): equal-width grid columns as designed in §4.5.
-        // The mask-image fade on both edges signals "there's more to scroll"
-        // without showing a scrollbar — the previous version cut off the last
-        // tab mid-word with no scroll affordance, which read as a layout bug
-        // rather than horizontal-scroll content. Fade is invisible on md+
-        // where every tab fits in the grid.
-        className="mx-auto max-w-[1320px] flex md:grid overflow-x-auto md:overflow-visible no-scrollbar md:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%_-_28px),transparent_100%)]"
+        // The fade mask we tried earlier produced a cream sliver on the right
+        // edge that read as a layout bug — removed. Mobile users discover
+        // scroll naturally; the meaningful fix is generous right-padding on
+        // the scroll container so the LAST tab can fully reach into view
+        // instead of getting clipped by the viewport edge.
+        className="mx-auto max-w-[1320px] flex md:grid overflow-x-auto md:overflow-visible no-scrollbar"
         style={{
           gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
-          padding: '0 clamp(16px, 4vw, 56px)',
+          // Extra right padding on mobile so the last tab has scroll room
+          // past the viewport edge instead of getting cut off mid-word.
+          // Desktop keeps the symmetric clamp.
+          paddingLeft: 'clamp(16px, 4vw, 56px)',
+          paddingRight: 'max(clamp(16px, 4vw, 56px), 32px)',
           scrollSnapType: 'x mandatory',
         }}
       >
