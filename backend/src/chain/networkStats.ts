@@ -1,7 +1,17 @@
+import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { parseAbiItem, formatUnits, type AbiEvent } from 'viem';
 import { publicClient } from './client.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+
+/// Disk snapshot path. Mirrors the vaultScanCache pattern so a process boot
+/// has a last-known-good snapshot to serve while the first chain scan is in
+/// flight. Without this, every restart left /api/network/onchain returning
+/// 502 for the duration of the cold-cache build (RPC-bound, can take 30-60s
+/// on Arc public RPC).
+const STATE_PATH = resolve(process.cwd(), 'data', 'networkStats.json');
 
 // Public, provable on-chain stats: counts and per-day series scanned from
 // events on the current production contracts. Reset to zero when contracts
@@ -120,6 +130,43 @@ export interface NetworkStats {
 }
 
 let cached: { value: NetworkStats; builtAt: number } | null = null;
+
+/// Hydrate the cache from disk at module load so the very first
+/// /api/network/onchain after a process boot serves a usable snapshot
+/// instead of triggering a cold chain scan (which takes 30-60s on Arc
+/// public RPC and often fails outright). Failures here are silent — a
+/// missing or corrupt file just means we'll fall through to live build.
+(() => {
+  try {
+    if (!existsSync(STATE_PATH)) return;
+    const raw = readFileSync(STATE_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as { value: NetworkStats; builtAt: number };
+    if (parsed && parsed.value && typeof parsed.builtAt === 'number') {
+      cached = parsed;
+      logger.info(
+        { ageMs: Date.now() - parsed.builtAt, scannedAt: parsed.value.scannedAt },
+        'network stats: hydrated from disk snapshot',
+      );
+    }
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message },
+      'network stats: disk hydrate failed, will rebuild on first request',
+    );
+  }
+})();
+
+function persistCache(snapshot: { value: NetworkStats; builtAt: number }): void {
+  try {
+    mkdirSync(dirname(STATE_PATH), { recursive: true });
+    writeFileSync(STATE_PATH, JSON.stringify(snapshot), 'utf8');
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message },
+      'network stats: disk persist failed (cache stays in-memory)',
+    );
+  }
+}
 
 function midnightUtc(ts: number): number {
   return Math.floor(ts / DAY_MS) * DAY_MS;
@@ -485,6 +532,7 @@ export async function getNetworkStats(force = false): Promise<NetworkStats> {
     }
 
     cached = { value, builtAt: now };
+    persistCache(cached);
     return value;
   } catch (err) {
     // A chunk threw after retries. Don't replace the cache with partial or

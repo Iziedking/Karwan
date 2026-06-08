@@ -31,7 +31,7 @@ function bucketOf(b: BridgeRecord, isActiveFn: (p: BridgePhase) => boolean): His
 /// returns the sorted+filtered bridges plus per-bucket counts so the row
 /// can show "Successful 4 / Pending 1" without rebuilding the count itself.
 export function useBridgeHistory(filter: HistoryFilter) {
-  const { bridges, retry, recheck, dismiss, isActive } = useBridges();
+  const { bridges, retry, recheck, dismiss, dismissMany, isActive } = useBridges();
 
   const counts = useMemo(() => {
     let pending = 0;
@@ -52,7 +52,7 @@ export function useBridgeHistory(filter: HistoryFilter) {
     return sorted.filter((b) => bucketOf(b, isActive) === filter);
   }, [bridges, filter, isActive]);
 
-  return { bridges, filtered, counts, retry, recheck, dismiss };
+  return { bridges, filtered, counts, retry, recheck, dismiss, dismissMany };
 }
 
 /// Filter chip row. Renders inside the history panel as its heading row so
@@ -98,10 +98,19 @@ export function BridgeHistoryPanel(props: {
   const [internalFilter, setInternalFilter] = useState<HistoryFilter>('all');
   const filter = props.filter ?? internalFilter;
   const setFilter = props.onFilterChange ?? setInternalFilter;
-  /// Internal counts when the caller didn't pass them; cheap because the
-  /// hook memoises against the underlying bridges array.
-  const { counts: internalCounts } = useBridgeHistory(filter);
+  /// Pull filtered + dismissMany from the same hook the list uses; the
+  /// "Dismiss all" button drops only what's currently visible (respects
+  /// the active chip — ALL drops everything, FAILED drops failed, etc.).
+  const { filtered, counts: internalCounts, dismissMany } = useBridgeHistory(filter);
   const counts = props.counts ?? internalCounts;
+
+  const handleDismissAll = () => {
+    if (filtered.length === 0) return;
+    const scopeLabel = filter === 'all' ? 'every bridge' : `${filtered.length} ${filter}`;
+    const confirmed = window.confirm(`Dismiss ${scopeLabel}? This only clears them from your view.`);
+    if (!confirmed) return;
+    dismissMany(filtered.map((b) => b.id));
+  };
 
   return (
     <section
@@ -116,9 +125,26 @@ export function BridgeHistoryPanel(props: {
       }}
     >
       <header className="px-4 sm:px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[var(--rule-dark)]">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]">
-          [:HISTORY:]
-        </span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]">
+            [:HISTORY:]
+          </span>
+          {filtered.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDismissAll}
+              className="mono text-[10px] uppercase tracking-[0.14em] px-2.5 py-1 transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+              style={{
+                color: 'var(--ink-3)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 6,
+              }}
+              title={filter === 'all' ? 'Clear every bridge from your view' : `Clear the ${filtered.length} ${filter} bridge${filtered.length === 1 ? '' : 's'} from your view`}
+            >
+              Dismiss all
+            </button>
+          )}
+        </div>
         <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} />
       </header>
       <div className="px-3 sm:px-4 py-4">

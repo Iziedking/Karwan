@@ -823,6 +823,15 @@ export function useBridges() {
     setBridges((list) => list.filter((b) => b.id !== id));
   }, []);
 
+  /// Bulk dismiss for the "Dismiss all" button in BridgeHistoryPanel. Pass
+  /// the filtered list's ids so the call respects whatever chip the user
+  /// has active (ALL clears everything, FAILED clears only failed, etc.).
+  const dismissMany = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    setBridges((list) => list.filter((b) => !idSet.has(b.id)));
+  }, []);
+
   const clearCompleted = useCallback(() => {
     setBridges((list) => list.filter((b) => isActive(b.phase)));
   }, []);
@@ -992,6 +1001,7 @@ export function useBridges() {
     retry,
     recheck,
     dismiss,
+    dismissMany,
     clearCompleted,
     isActive,
   };

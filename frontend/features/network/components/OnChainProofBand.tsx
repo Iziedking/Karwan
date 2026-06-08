@@ -22,25 +22,36 @@ export function OnChainProofBand() {
   const [errored, setErrored] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  /// Fetch the snapshot with a 25s wall clock. Cold-cache builds on the
-  /// backend chunk through 30 days of log history; if the wait passes that
-  /// budget we'd rather flip into a visible error with a retry than leave
-  /// the user staring at READING CHAIN forever. Each call cancels any
+  /// Fetch the snapshot with a 60s wall clock. Cold-cache builds on the
+  /// backend chunk through 30 days of log history on Arc public RPC and
+  /// can legitimately run 30-50s on a fresh process boot before the disk
+  /// snapshot fix landed. 60s gives the build genuine room to finish
+  /// before flipping into the error state. Each call cancels any
   /// in-flight predecessor so manual retry + interval poll don't stack.
+  /// If we already have a good snapshot, a refresh failure leaves the
+  /// existing stats on screen instead of replacing them with the error
+  /// surface — silent revalidation is better UX for a stats panel than
+  /// a flicker.
   const fetchOnce = useCallback(async () => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    const timer = setTimeout(() => ctrl.abort(), 25_000);
+    const timer = setTimeout(() => ctrl.abort(), 60_000);
     try {
       const s = await api.networkOnchain({ signal: ctrl.signal });
       if (ctrl.signal.aborted) return;
       setStats(s);
       setErrored(false);
     } catch {
-      if (!ctrl.signal.aborted || abortRef.current === ctrl) {
-        setErrored(true);
-      }
+      if (ctrl.signal.aborted && abortRef.current !== ctrl) return;
+      /// Only show the error surface when we have nothing to render.
+      /// A failed refresh against an existing snapshot is silent — the
+      /// 20s/60s heartbeat will pick up the next successful build and
+      /// the user never sees a flash of "CHAIN READ FAILED".
+      setStats((cur) => {
+        if (!cur) setErrored(true);
+        return cur;
+      });
     } finally {
       clearTimeout(timer);
     }
