@@ -198,9 +198,19 @@ function ProfilePageInner() {
           strip itself — the strip released the instant the user scrolled,
           which read as "hides on scroll". Landing-page strip works because
           it sits directly under a full-height wrapper. The DOM node is
-          preserved so the coachmark tour can still anchor to it. */}
+          preserved so the coachmark tour can still anchor to it.
+          `onDark={false}` because the strip lives at the boundary between
+          the profile hero (dark) and the cream content below — the default
+          dark variant rendered as pure black where it overlapped the hero,
+          which the user flagged as wrong. Cream-frosted surface reads as
+          frosted on both backgrounds. */}
       <div data-guide="profile-nav" className="contents">
-        <StickyTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
+        <StickyTabStrip
+          tabs={TABS}
+          active={activeTab}
+          onChange={setActiveTab}
+          onDark={false}
+        />
       </div>
 
       {/* PENDING MATCHES + DEALS AWAITING ACTION. At-a-glance surfaces only.

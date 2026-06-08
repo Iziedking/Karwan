@@ -36,8 +36,15 @@ function OnboardingShell() {
   const t = useTranslations().onboarding;
   return (
     <FullBleed>
+      {/* Reserve roughly the height of the resolved onboarding step content
+          so the footer doesn't shift down when OnboardingInner mounts and
+          the page grows. Speed Insights showed footer.bg-[var(--lp-light)]
+          shifting 0.27 on /onboarding, dominated by this exact fallback →
+          real-content swap. 80vh covers the typical "PICK YOUR LANGUAGE"
+          step (the LCP step the user lands on); subsequent steps are
+          shorter and don't push the footer further. */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="max-w-[60ch] mx-auto text-center">
+        <div className="max-w-[60ch] mx-auto text-center min-h-[80vh]">
           <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
             <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
             {t.signUpTag}
