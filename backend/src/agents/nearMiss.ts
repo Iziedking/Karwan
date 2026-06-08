@@ -58,6 +58,13 @@ interface NearMissInput {
   /// not a fuzzy profile guess. Widens the gap band so a confirmed-but-pricey
   /// market offer still reaches the buyer.
   confirmedTopical?: boolean;
+  /// Optional override for the gap-band cap percentage. When set, replaces
+  /// the default MAX_GAP_PCT / LISTING_MAX_GAP_PCT for this call. The buyer
+  /// agent uses this to widen the band when the brief was posted with no
+  /// tolerance set (ask-mode): "no ceiling" briefs surface stretches up to
+  /// the override (default 200% above budget = 3x budget) and only decline
+  /// silently when the seller's price is genuinely outrageous.
+  bandPctOverride?: number;
 }
 
 /// Detection + creation. Called from a give-up point where the agents found a
@@ -75,7 +82,8 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     return false;
   }
   const relGap = gap / buyerCeilingUsdc;
-  const cap = input.confirmedTopical ? LISTING_MAX_GAP_PCT : MAX_GAP_PCT;
+  const defaultCap = input.confirmedTopical ? LISTING_MAX_GAP_PCT : MAX_GAP_PCT;
+  const cap = input.bandPctOverride ?? defaultCap;
   if (relGap > cap / 100) {
     emitSkipped(jobId, 'gap-too-wide', {
       buyerCeilingUsdc: round2(buyerCeilingUsdc),
@@ -84,6 +92,7 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
       relGapPct: Math.round(relGap * 100),
       capPct: cap,
       confirmedTopical: input.confirmedTopical === true,
+      bandPctOverride: input.bandPctOverride,
     });
     return false;
   }

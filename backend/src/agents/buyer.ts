@@ -260,6 +260,33 @@ function computeBuyerEffectiveCap(
   return base * (1 + tolerance / 100);
 }
 
+/// A brief with `negotiationMaxIncreasePct` unset or 0 means "no hard
+/// ceiling — ask me about anything reasonable". The cap returned by
+/// computeBuyerEffectiveCap stays at the budget for the walk math (the
+/// agent still anchors counter-offers there), but ask-mode briefs use a
+/// wider near-miss band so the buyer hears about stretches up to a
+/// configurable "outrageous" cap and only declines silently above it.
+/// Default outrageous cap is 200% above budget = 3x budget; configurable
+/// via NEAR_MISS_ASK_MODE_BAND_PCT for tuning.
+function isAskMode(ctx: { negotiationMaxIncreasePct?: number | null }): boolean {
+  const t = ctx.negotiationMaxIncreasePct;
+  return t === undefined || t === null || t === 0;
+}
+
+const ASK_MODE_NEAR_MISS_BAND_PCT = (() => {
+  const raw = process.env.NEAR_MISS_ASK_MODE_BAND_PCT;
+  if (!raw) return 200;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 200;
+})();
+
+/// Returns the near-miss band override to use for this brief — wider when
+/// ask-mode is on, undefined (use the default 100% LISTING_MAX_GAP_PCT)
+/// when the buyer explicitly set a tolerance.
+function nearMissBandFor(ctx: { negotiationMaxIncreasePct?: number }): number | undefined {
+  return isAskMode(ctx) ? ASK_MODE_NEAR_MISS_BAND_PCT : undefined;
+}
+
 function logDedupeKey(label: string, log: Log): string {
   const tx = (log as unknown as { transactionHash?: string }).transactionHash ?? '';
   const idx = (log as unknown as { logIndex?: number }).logIndex ?? '';
@@ -981,6 +1008,7 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
           buyerCeilingUsdc: buyerCeiling,
           sellerFloorUsdc: Number(best.lastPrice),
           confirmedTopical: true,
+          bandPctOverride: nearMissBandFor(state.context),
         });
         if (raised) {
           state.finalized = true;
@@ -1090,6 +1118,7 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
       buyerCeilingUsdc: effectiveCap,
       sellerFloorUsdc: nextPrice,
       confirmedTopical: true,
+      bandPctOverride: nearMissBandFor(state.context),
     });
     if (raised) {
       state.finalized = true;
@@ -1359,6 +1388,40 @@ async function handleCounterResponse(log: Log) {
       await proposeMatch(state, args.seller, sellerCounterPrice, originatingBid?.pattern);
       return;
     }
+    /// Ask-mode safety net: if the brief was posted with no tolerance ("no
+    /// ceiling — ask me"), a low-confidence LLM call on an above-budget
+    /// counter used to silently skip the seller. The buyer never heard
+    /// about a price they likely would have approved. Raise the near-miss
+    /// instead, with the wider ask-mode band. If the gap is genuinely
+    /// outrageous (past the band), the near-miss falls through and we
+    /// continue the original skip behaviour.
+    if (isAskMode(state.context) && Number.isFinite(sellerOfferLowConf) && sellerOfferLowConf > 0) {
+      try {
+        const raised = await maybeRaiseNearMiss({
+          jobId: state.jobId,
+          buyerAgent: state.buyer.address,
+          sellerAgent: args.seller,
+          deadlineUnix: state.context.deadlineUnix,
+          buyerCeilingUsdc: effectiveMaxAcceptable,
+          sellerFloorUsdc: sellerOfferLowConf,
+          confirmedTopical: true,
+          bandPctOverride: nearMissBandFor(state.context),
+        });
+        if (raised) {
+          state.finalized = true;
+          logger.info(
+            { jobId: state.jobId, seller: args.seller, sellerOffer: sellerOfferLowConf, ceiling: effectiveMaxAcceptable },
+            'ask-mode: low LLM confidence + above-ceiling seller, near-miss raised',
+          );
+          return;
+        }
+      } catch (err) {
+        logger.warn(
+          { jobId: state.jobId, err: (err as Error).message },
+          'ask-mode low-confidence near-miss raise failed; falling through to next candidate',
+        );
+      }
+    }
     logger.info({ jobId: state.jobId }, 'low confidence, trying next candidate');
     await tryNextCandidate(state, args.seller, 'low-confidence');
     return;
@@ -1403,6 +1466,7 @@ async function handleCounterResponse(log: Log) {
         buyerCeilingUsdc: effectiveMaxAcceptable,
         sellerFloorUsdc: sellerOfferN,
         confirmedTopical: true,
+        bandPctOverride: nearMissBandFor(state.context),
       });
       if (raised) {
         state.finalized = true;
