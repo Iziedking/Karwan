@@ -42,10 +42,22 @@ const USDC_DECIMALS = 6;
 /// of calls. Combined with per-chunk retry + parallel batching, this gives
 /// the backfill a real chance to recover after a docker restart that wiped
 /// data/events.json.
-const SCAN_CHUNK_BLOCKS = 5_000n;
+const SCAN_CHUNK_BLOCKS = 10_000n;
 const SCAN_CHUNK_RETRIES = 3;
-const SCAN_CHUNK_BACKOFF_MS = 400;
-const SCAN_CONCURRENCY = 8;
+const SCAN_CHUNK_BACKOFF_MS = 1_500;
+/// Lowered from 8 → 2 after observing 7500 chunks all 429'd in production
+/// (free-tier RPC providers cap requests at low single-digit per-second).
+/// 2-wide parallelism + the BACKOFF below gives provider buckets time to
+/// refill between waves. Override via env when on a paid tier.
+const SCAN_CONCURRENCY = Number(process.env.BACKFILL_SCAN_CONCURRENCY ?? 2);
+/// Hard cap on how far back the chain replay scans. Arc Testnet at
+/// ~0.78s/block produces ~110_000 blocks/day, so 3_000_000 ≈ 27 days of
+/// history. That's a comfortable window for activity-feed backfill on a
+/// young deployment without hammering RPC for years of pre-deploy blocks.
+/// Operator can widen this via env when they actually need ancient history.
+const BACKFILL_MAX_LOOKBACK_BLOCKS = BigInt(
+  process.env.BACKFILL_MAX_LOOKBACK_BLOCKS ?? '3000000',
+);
 const HISTORY_CAPACITY = 500;
 
 /// Track silent chunk failures across a single backfill invocation so the
@@ -385,7 +397,15 @@ export async function backfillBusFromChain(
   const deployBlock = config.KARWAN_VAULT_DEPLOY_BLOCK
     ? BigInt(config.KARWAN_VAULT_DEPLOY_BLOCK)
     : 0n;
-  const lowerBound = deployBlock < 0n ? 0n : deployBlock;
+  const envLowerBound = deployBlock < 0n ? 0n : deployBlock;
+  /// Hard cap the scan window. Without this, an unset
+  /// KARWAN_VAULT_DEPLOY_BLOCK means lowerBound=0 and the scan walks the
+  /// chain's entire history block-by-chunk — observed 7500 chunks hammering
+  /// the RPC and 429'ing every provider in rotation. Cap to the last
+  /// BACKFILL_MAX_LOOKBACK_BLOCKS blocks unless deployBlock is higher.
+  const cappedLowerBound =
+    head > BACKFILL_MAX_LOOKBACK_BLOCKS ? head - BACKFILL_MAX_LOOKBACK_BLOCKS : 0n;
+  const lowerBound = envLowerBound > cappedLowerBound ? envLowerBound : cappedLowerBound;
 
   const escrowAddr = (config.KARWAN_ESCROW_ADDR ?? null) as `0x${string}` | null;
   const jobBoardAddr = (config.KARWAN_JOBBOARD_ADDR ?? null) as `0x${string}` | null;
