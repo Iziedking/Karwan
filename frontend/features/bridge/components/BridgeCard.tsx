@@ -800,7 +800,7 @@ export function BridgeCard({
   );
 }
 
-function BridgeRow({
+export function BridgeRow({
   bridge,
   expanded,
   onToggle,
@@ -1973,7 +1973,7 @@ function RecipientPicker({
       ) : (
         resolved && (
           <div
-            className="px-4 py-3 flex items-center gap-3"
+            className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
             style={{
               background: 'var(--lp-light)',
               border: '1px dashed rgba(0,0,0,0.18)',
@@ -1983,17 +1983,24 @@ function RecipientPicker({
               borderBottomRightRadius: 3,
             }}
           >
-            <WalletAvatar address={resolved} size={24} />
-            <div className="flex-1 min-w-0">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {mintsToEyebrow}
-              </span>
-              <p className="mt-0.5 text-[13px] mono tabular-nums truncate text-[var(--lp-dark)]">
-                {shortAddress(resolved)}
-              </p>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <WalletAvatar address={resolved} size={24} />
+              <div className="flex-1 min-w-0">
+                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                  {mintsToEyebrow}
+                </span>
+                <p className="mt-0.5 text-[13px] mono tabular-nums truncate text-[var(--lp-dark)]">
+                  {shortAddress(resolved)}
+                </p>
+              </div>
             </div>
+            {/* Verified pill stacks below the address on mobile so a long
+                translation ("Wallet address verified" / "تم التحقق من عنوان
+                المحفظة") doesn't squeeze the address to "0..." (was the
+                dominant mobile mint-to layout bug). On sm+ it sits inline
+                on the right edge as before. */}
             <span
-              className="inline-flex items-center gap-1.5 px-2 py-1 mono text-[10px] uppercase tracking-[0.14em]"
+              className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap"
               style={{
                 background: 'rgba(10, 117, 83, 0.10)',
                 color: '#0a7553',

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
+import { BridgeHistorySection } from '@/features/bridge/components/BridgeHistorySection';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 
 /// BridgeOutCard ships its own form, balance polling, and Solana branch — a
@@ -96,6 +97,17 @@ function BridgePageInner() {
           ) : (
             <BridgeOutCard />
           )}
+        </div>
+      </Band>
+
+      {/* Persistent history below the active card. Survives the direction
+          toggle (the card's own in-form modal was scoped to inbound bridges
+          only and made past outbound rows unreachable). Empty store renders
+          a tiny empty band, never a fixed-height skeleton, so the page
+          doesn't grow until there's history to show. */}
+      <Band tone="light" compact>
+        <div className="max-w-xl">
+          <BridgeHistorySection />
         </div>
       </Band>
     </FullBleed>

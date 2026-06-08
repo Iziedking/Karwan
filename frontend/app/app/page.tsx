@@ -15,16 +15,46 @@ import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 /// the in-house SVG chart (OnChainProofBand) do not ship in the initial
 /// /app bundle. Both render purely client-side, so SSR is off; the bands
 /// fade in once the route is interactive.
+///
+/// Each `loading` placeholder reserves the band's eventual height so the
+/// footer (and everything else below) doesn't get yanked downward when the
+/// real component mounts. Without these, /app's CLS was 1.77 locally
+/// (Speed Insights screenshot), dominated by `footer.bg-[var(--lp-light)]`
+/// shifting 0.6452 + 0.1531 and `section.relative.left-1/2.w-bleed`
+/// (NetworkTicker's wrapper) shifting 0.3968 as each band mounted. Heights
+/// are tuned to the rendered desktop size; a slight over-reserve is fine,
+/// any under-reserve brings CLS back.
 const NetworkTicker = dynamic(
   () => import('@/features/activity/components/NetworkTicker').then((m) => m.NetworkTicker),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden
+        className="relative left-1/2 w-bleed -translate-x-1/2"
+        style={{ minHeight: 160, background: 'var(--lp-band-dark)' }}
+      />
+    ),
+  },
 );
 const OnChainProofBand = dynamic(
   () => import('@/features/network/components/OnChainProofBand').then((m) => m.OnChainProofBand),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden
+        style={{ minHeight: 1200, background: 'var(--lp-band-dark)' }}
+      />
+    ),
+  },
 );
 /// Auth-only bands. Unauthenticated visitors never see them; keep their
 /// code out of the initial bundle to save the round trip for the first paint.
+/// No `loading` placeholder here because both bands return null when there's
+/// nothing pending (the common case). Reserving height would create a
+/// permanent empty gap for every user with a clean queue, which is worse
+/// than the one-time shift when content arrives.
 const PendingMatchesBand = dynamic(
   () => import('@/features/notifications/components/PendingMatchesBand').then((m) => m.PendingMatchesBand),
   { ssr: false },

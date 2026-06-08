@@ -5,17 +5,16 @@ import { api } from '@/core/api';
 
 /// Shared shell for the three intake composers (Direct Deal, Brief, Listing).
 /// Two modes, with a tooltip on each so the chooser is self-explanatory:
-///   - "Type it out" (default, more user-friendly): textarea + Extract. The
-///     shell calls the parent's `directPost(extracted)` and on success the
-///     parent navigates. If the post can't run yet because the LLM left
-///     required fields blank, the shell falls back to "Fill the form" mode
-///     with the extracted values pre-filled (via URL params + a key bump on
-///     the form). The user can edit and submit normally.
-///   - "Fill the form": the existing structured form, no LLM in the path.
-///
-/// Default mode is 'text' (the user explicitly asked for this) and the
-/// choice persists per surface in localStorage so a repeat user lands on
-/// whichever mode they last used.
+///   - "Fill the form" (default): the structured form, no LLM in the path.
+///     First-time users see the explicit fields and learn the shape of the
+///     intake. Returning users who prefer the natural-language path opt into
+///     "Type it out" and that choice persists per surface in localStorage.
+///   - "Type it out": textarea + Extract. The shell calls the parent's
+///     `directPost(extracted)` and on success the parent navigates. If the
+///     post can't run yet because the LLM left required fields blank, the
+///     shell falls back to "Fill the form" mode with the extracted values
+///     pre-filled (via URL params + a key bump on the form). The user can
+///     edit and submit normally.
 
 type Mode = 'text' | 'form';
 
@@ -72,7 +71,7 @@ export function IntakeShell({
   const router = useRouter();
   const search = useSearchParams();
 
-  const [mode, setMode] = useState<Mode>('text');
+  const [mode, setMode] = useState<Mode>('form');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,18 +135,18 @@ export function IntakeShell({
     <div className="space-y-7">
       <div className="inline-flex p-1 gap-1" style={CHOOSER_BG}>
         <ChooserButton
-          active={mode === 'text'}
-          onClick={() => pickMode('text')}
-          tooltip={textTooltip}
-        >
-          Type it out
-        </ChooserButton>
-        <ChooserButton
           active={mode === 'form'}
           onClick={() => pickMode('form')}
           tooltip={formTooltip}
         >
           Fill the form
+        </ChooserButton>
+        <ChooserButton
+          active={mode === 'text'}
+          onClick={() => pickMode('text')}
+          tooltip={textTooltip}
+        >
+          Type it out
         </ChooserButton>
       </div>
 
