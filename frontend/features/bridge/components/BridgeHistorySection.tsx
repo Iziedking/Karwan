@@ -1,11 +1,12 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { BridgeRow } from './BridgeCard';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
 
 const STUCK_AFTER_MS = 30 * 60 * 1000;
+const PAGE_SIZE = 10;
 
 export type HistoryFilter = 'all' | 'pending' | 'successful' | 'failed';
 
@@ -27,12 +28,10 @@ function bucketOf(b: BridgeRecord, isActiveFn: (p: BridgePhase) => boolean): His
   return 'all';
 }
 
-/// Shared hook for the chip row and the list. Filter state is owned by the
-/// page so both pieces stay in sync; pass the active filter in. The hook
-/// returns the sorted+filtered bridges plus per-bucket counts so the row
-/// can show "Successful 4 / Pending 1" without rebuilding the count itself.
+/// Shared hook. Returns sorted+filtered bridges + per-bucket counts so the
+/// modal can render chips with live counts without rebuilding the math.
 export function useBridgeHistory(filter: HistoryFilter) {
-  const { bridges, retry, recheck, dismiss, dismissMany, isActive } = useBridges();
+  const { bridges, retry, recheck, dismiss, isActive } = useBridges();
 
   const counts = useMemo(() => {
     let pending = 0;
@@ -53,12 +52,186 @@ export function useBridgeHistory(filter: HistoryFilter) {
     return sorted.filter((b) => bucketOf(b, isActive) === filter);
   }, [bridges, filter, isActive]);
 
-  return { bridges, filtered, counts, retry, recheck, dismiss, dismissMany };
+  return { bridges, filtered, counts, retry, recheck, dismiss };
 }
 
-/// Filter chip row. Renders inside the history panel as its heading row so
-/// the section reads as a single self-contained surface (chips ARE the
-/// header, not a floating control elsewhere on the page).
+/// History modal. Self-contained card overlay opened from /bridge via a
+/// "Bridge history" button — keeps the bridge page focused on the active
+/// flow and stops the history list from creating endless scroll as more
+/// bridges accumulate. Filter chips live inside the modal as its heading
+/// row; the list is paginated (10 per page) so even 200 bridges read
+/// comfortably. Closes on backdrop click, Esc, or the X button.
+export function BridgeHistoryModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const t = useTranslations().bridgeCard;
+  const [filter, setFilter] = useState<HistoryFilter>('all');
+  const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { bridges, filtered, counts, retry, recheck, dismiss } = useBridgeHistory(filter);
+
+  /// Reset to page 1 whenever the filter changes; otherwise paging through
+  /// SUCCESSFUL then flipping to FAILED could leave the user on page 4 of
+  /// 0, showing an empty list with no obvious recovery.
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
+  /// Esc closes. Only listen while open so we don't leak global handlers.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  /// Hold the SSR fallback to null until we have a window. Without this,
+  /// createPortal calls during the initial render on the server would
+  /// throw (document is undefined).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!open || !mounted) return null;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 motion-safe:animate-[fadeUp_0.18s_ease-out]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bridge-history-title"
+    >
+      {/* Backdrop. Clicking off the panel closes. */}
+      <button
+        type="button"
+        aria-label="Close history"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+        style={{
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(6px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(6px) saturate(140%)',
+        }}
+      />
+      <div
+        className="relative w-full max-w-[640px] max-h-[85vh] flex flex-col overflow-hidden"
+        style={{
+          background: 'var(--lp-band-dark)',
+          border: '1px solid var(--rule-dark)',
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          borderBottomLeftRadius: 18,
+          borderBottomRightRadius: 4,
+          boxShadow: '0 24px 64px -20px rgba(0,0,0,0.6)',
+        }}
+      >
+        <div aria-hidden style={{ height: 3, background: 'var(--lp-accent)' }} />
+        <header className="px-4 sm:px-5 py-4 border-b border-[var(--rule-dark)] flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap min-w-0">
+            <span
+              id="bridge-history-title"
+              className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]"
+            >
+              [:HISTORY:]
+            </span>
+            <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} />
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close history"
+            className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--ink-2)] hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path
+                d="M3 3l10 10M13 3L3 13"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </header>
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4">
+          {bridges.length === 0 ? (
+            <div
+              className="px-5 py-6 text-center"
+              style={{
+                background: 'var(--lp-card)',
+                border: '1px solid var(--lp-border-light)',
+                borderTopLeftRadius: 18,
+                borderTopRightRadius: 18,
+                borderBottomLeftRadius: 18,
+                borderBottomRightRadius: 4,
+              }}
+            >
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:NO BRIDGES YET:]
+              </p>
+              <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">
+                Your bridge history shows up here once you move USDC in or out of Arc.
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] py-6 text-center">
+              [:NONE IN THIS FILTER:]
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {pageItems.map((b) => (
+                <BridgeRow
+                  key={b.id}
+                  bridge={b}
+                  expanded={expandedId === b.id}
+                  onToggle={() => setExpandedId((cur) => (cur === b.id ? null : b.id))}
+                  onRetry={() => retry(b.id)}
+                  onRecheck={() => recheck(b.id)}
+                  onDismiss={() => dismiss(b.id)}
+                  copy={t.row}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+        {totalPages > 1 && (
+          <footer className="px-4 sm:px-5 py-3 border-t border-[var(--rule-dark)] flex items-center justify-between gap-3">
+            <PagerButton
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <span aria-hidden>←</span> Prev
+            </PagerButton>
+            <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-3)] tabular-nums">
+              Page {safePage} / {totalPages}
+            </span>
+            <PagerButton
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next <span aria-hidden>→</span>
+            </PagerButton>
+          </footer>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/// Filter chip row. Rendered inside the modal header as the section's own
+/// heading row — chips ARE the header, not a separate column on the page.
 export function BridgeHistoryFilters({
   filter,
   onFilterChange,
@@ -85,130 +258,29 @@ export function BridgeHistoryFilters({
   );
 }
 
-/// Full history panel. Self-contained dark surface with the four filter
-/// chips as the heading row + the list below. Page just mounts this once,
-/// no need to thread filter state through the page when the panel can own
-/// it itself. Pass-through props let an outer caller (the bridge page)
-/// keep ownership of filter state if it needs to coordinate; if omitted,
-/// the panel manages its own state defaulting to ALL.
-export function BridgeHistoryPanel(props: {
-  filter?: HistoryFilter;
-  onFilterChange?: (next: HistoryFilter) => void;
-  counts?: { all: number; pending: number; successful: number; failed: number };
+function PagerButton({
+  disabled,
+  onClick,
+  children,
+}: {
+  disabled: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
-  const [internalFilter, setInternalFilter] = useState<HistoryFilter>('all');
-  const filter = props.filter ?? internalFilter;
-  const setFilter = props.onFilterChange ?? setInternalFilter;
-  /// Pull filtered + dismissMany from the same hook the list uses; the
-  /// "Dismiss all" button drops only what's currently visible (respects
-  /// the active chip — ALL drops everything, FAILED drops failed, etc.).
-  const { filtered, counts: internalCounts, dismissMany } = useBridgeHistory(filter);
-  const counts = props.counts ?? internalCounts;
-
-  const handleDismissAll = () => {
-    if (filtered.length === 0) return;
-    const scopeLabel = filter === 'all' ? 'every bridge' : `${filtered.length} ${filter}`;
-    const confirmed = window.confirm(`Dismiss ${scopeLabel}? This only clears them from your view.`);
-    if (!confirmed) return;
-    dismissMany(filtered.map((b) => b.id));
-  };
-
   return (
-    <section
-      className="overflow-hidden"
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="mono text-[10px] uppercase tracking-[0.14em] px-3 py-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[rgba(255,255,255,0.06)] inline-flex items-center gap-1.5"
       style={{
-        background: 'var(--lp-band-dark)',
+        color: 'var(--ink-2)',
         border: '1px solid var(--rule-dark)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 4,
+        borderRadius: 6,
       }}
     >
-      <header className="px-4 sm:px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[var(--rule-dark)]">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]">
-            [:HISTORY:]
-          </span>
-          {filtered.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDismissAll}
-              className="mono text-[10px] uppercase tracking-[0.14em] px-2.5 py-1 transition-colors hover:bg-[rgba(255,255,255,0.06)]"
-              style={{
-                color: 'var(--ink-3)',
-                border: '1px solid rgba(255,255,255,0.10)',
-                borderRadius: 6,
-              }}
-              title={filter === 'all' ? 'Clear every bridge from your view' : `Clear the ${filtered.length} ${filter} bridge${filtered.length === 1 ? '' : 's'} from your view`}
-            >
-              Dismiss all
-            </button>
-          )}
-        </div>
-        <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} />
-      </header>
-      <div className="px-3 sm:px-4 py-4">
-        <BridgeHistoryList filter={filter} />
-      </div>
-    </section>
-  );
-}
-
-/// History list. Renders the filtered bridges using BridgeRow with the
-/// existing retry/recheck/dismiss handlers. Empty + no-match states stay
-/// tiny so the page doesn't grow until there's real content.
-export function BridgeHistoryList({ filter }: { filter: HistoryFilter }) {
-  const { bridges, filtered, retry, recheck, dismiss } = useBridgeHistory(filter);
-  const t = useTranslations().bridgeCard;
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  if (bridges.length === 0) {
-    return (
-      <div
-        className="px-5 py-6 text-center"
-        style={{
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
-        }}
-      >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:NO BRIDGES YET:]
-        </p>
-        <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">
-          Your bridge history shows up here once you move USDC in or out of Arc.
-        </p>
-      </div>
-    );
-  }
-
-  if (filtered.length === 0) {
-    return (
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] py-6 text-center">
-        [:NONE IN THIS FILTER:]
-      </p>
-    );
-  }
-
-  return (
-    <ul className="space-y-2">
-      {filtered.map((b) => (
-        <BridgeRow
-          key={b.id}
-          bridge={b}
-          expanded={expandedId === b.id}
-          onToggle={() => setExpandedId((cur) => (cur === b.id ? null : b.id))}
-          onRetry={() => retry(b.id)}
-          onRecheck={() => recheck(b.id)}
-          onDismiss={() => dismiss(b.id)}
-          copy={t.row}
-        />
-      ))}
-    </ul>
+      {children}
+    </button>
   );
 }
 
