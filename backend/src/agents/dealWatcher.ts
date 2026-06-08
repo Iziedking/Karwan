@@ -5,7 +5,12 @@ import { releaseMilestone, finalizeIfSettled, ESCROW_ACCEPTED } from '../chain/s
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
-const TICK_MS = 30_000;
+/// Deal lifecycle tick. Each tick reads on-chain escrow state for every
+/// open deal; on a busy backend with many active deals that compounds the
+/// RPC call volume. 60s is plenty of resolution for auto-release timing
+/// (review windows are minutes-to-days, not seconds). Override via env
+/// for paid RPC tiers that can afford tighter polling.
+const TICK_MS = Number(process.env.DEAL_WATCHER_TICK_MS ?? 60_000);
 const processing = new Set<string>();
 
 /// One pass over direct deals. Only ONE timer auto-releases now:

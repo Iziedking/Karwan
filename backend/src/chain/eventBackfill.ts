@@ -48,6 +48,14 @@ const SCAN_CHUNK_BACKOFF_MS = 400;
 const SCAN_CONCURRENCY = 8;
 const HISTORY_CAPACITY = 500;
 
+/// Track silent chunk failures across a single backfill invocation so the
+/// admin route can tell apart "no events on chain" from "every chunk got
+/// 429'd and contributed an empty result". Reset to 0 at the start of
+/// backfillBusFromChain; bumped inside scanOneChunk's terminal catch.
+/// Module-level mutable state is safe here because the backfill is admin-
+/// gated and never runs concurrently with itself.
+let backfillChunkErrors = 0;
+
 /// Resolve every event the backfill needs up front. A missing name is logged
 /// and the corresponding scan is skipped (the rest still run) so an ABI
 /// trim or rename never crashes the boot, just degrades coverage.
@@ -116,6 +124,12 @@ async function scanOneChunk(
       }
     }
   }
+  /// Surface the failure so the admin route can distinguish a clean "no
+  /// events on chain" zero from a "every chunk got 429'd" zero. Without
+  /// this the operator hits the backfill endpoint, sees {injected: 0},
+  /// and reasonably concludes the backfill has nothing to do — when in
+  /// reality the RPC quota silently ate the entire scan.
+  backfillChunkErrors += 1;
   logger.warn(
     {
       err: lastErr?.message,
@@ -342,7 +356,12 @@ interface ScanGroup {
 
 export async function backfillBusFromChain(
   opts: { force?: boolean } = {},
-): Promise<{ scanned: number; injected: number }> {
+): Promise<{ scanned: number; injected: number; chunkErrors: number }> {
+  /// Reset the per-invocation chunk-failure counter. Bumped inside
+  /// scanOneChunk's terminal catch each time a chunk exhausts its retries
+  /// — returned alongside scanned/injected so the operator can tell apart
+  /// "no events on chain" from "every chunk got 429'd".
+  backfillChunkErrors = 0;
   /// If the bus is already well-populated (disk snapshot loaded a prior
   /// history), skip the chain replay — it's RPC traffic with no payoff. But
   /// don't gate on >0 alone: a partial backfill from a previous boot could
@@ -360,7 +379,7 @@ export async function backfillBusFromChain(
       { existing: bus.historyLength() },
       'event backfill: bus history looks healthy; skipping chain replay',
     );
-    return { scanned: 0, injected: 0 };
+    return { scanned: 0, injected: 0, chunkErrors: 0 };
   }
   const head = await publicClient.getBlockNumber();
   const deployBlock = config.KARWAN_VAULT_DEPLOY_BLOCK
@@ -466,8 +485,13 @@ export async function backfillBusFromChain(
 
   const totalRows = groups.reduce((n, g) => n + g.rows.length, 0);
   if (totalRows === 0) {
-    logger.info('event backfill: no chain events found');
-    return { scanned: 0, injected: 0 };
+    logger.info(
+      { chunkErrors: backfillChunkErrors },
+      backfillChunkErrors > 0
+        ? 'event backfill: scan returned zero rows but chunks errored; likely RPC rate-limited'
+        : 'event backfill: no chain events found',
+    );
+    return { scanned: 0, injected: 0, chunkErrors: backfillChunkErrors };
   }
 
   const blocks = new Set<bigint>();
@@ -496,8 +520,8 @@ export async function backfillBusFromChain(
 
   const injected = bus.injectHistorical(trimmed);
   logger.info(
-    { scanned: totalRows, mapped: events.length, injected },
+    { scanned: totalRows, mapped: events.length, injected, chunkErrors: backfillChunkErrors },
     'event backfill: chain replay complete',
   );
-  return { scanned: totalRows, injected };
+  return { scanned: totalRows, injected, chunkErrors: backfillChunkErrors };
 }

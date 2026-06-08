@@ -14,7 +14,12 @@ const TRANSFER_EVENT = parseAbiItem(
   'event Transfer(address indexed from, address indexed to, uint256 value)',
 );
 
-const POLL_INTERVAL_MS = 12_000;
+/// Poll cadence override. 12s burned through every free-tier RPC quota
+/// within minutes (each tick fires a getBlockNumber + a getLogs on the
+/// USDC transfer topic). 60s is a better default — still well inside the
+/// Telegram-credit notification expectation, way under any rate-limit
+/// budget. Configurable in case a future paid RPC tier wants tighter polling.
+const POLL_INTERVAL_MS = Number(process.env.BALANCE_WATCHER_POLL_MS ?? 60_000);
 // How many blocks to look back on first start. Arc is ~780ms/block so 600
 // blocks covers about eight minutes, enough to catch a credit landing
 // across a service restart without scanning history.
