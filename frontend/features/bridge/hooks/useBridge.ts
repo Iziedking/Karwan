@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { parseUnits } from 'viem';
 import {
   useAccount,
@@ -262,6 +262,47 @@ function saveToStorage(address: `0x${string}` | null | undefined, bridges: Bridg
   }
 }
 
+/// Module-level shared bridges store. Every useBridges() consumer subscribes
+/// to the same per-address slice via useSyncExternalStore so the TopNav
+/// badge, the History modal, and the active bridge card all see the same
+/// list — no more "TopNav says 4 in flight but the modal shows 0" because
+/// each component had its own useState going through hydrate at a
+/// different time. Keyed by lowercased identity address so a Circle user
+/// and a web3 user share the same shape but get isolated lists.
+const sharedBridgesByAddress = new Map<string, BridgeRecord[]>();
+const sharedBridgesSubscribers = new Set<() => void>();
+
+function readSharedBridges(addressLower: string | null): BridgeRecord[] {
+  if (!addressLower) return EMPTY_BRIDGES;
+  return sharedBridgesByAddress.get(addressLower) ?? EMPTY_BRIDGES;
+}
+
+/// Frozen empty array reused across reads so React's identity-based
+/// re-render check doesn't fire a render storm when there are no bridges
+/// (each call would otherwise return a new [] reference).
+const EMPTY_BRIDGES: BridgeRecord[] = Object.freeze([]) as unknown as BridgeRecord[];
+
+function writeSharedBridges(
+  addressLower: string | null,
+  updater: BridgeRecord[] | ((prev: BridgeRecord[]) => BridgeRecord[]),
+): void {
+  if (!addressLower) return;
+  const prev = sharedBridgesByAddress.get(addressLower) ?? EMPTY_BRIDGES;
+  const next = typeof updater === 'function'
+    ? (updater as (p: BridgeRecord[]) => BridgeRecord[])(prev)
+    : updater;
+  if (next === prev) return;
+  sharedBridgesByAddress.set(addressLower, next);
+  for (const cb of sharedBridgesSubscribers) cb();
+}
+
+function subscribeSharedBridges(cb: () => void): () => void {
+  sharedBridgesSubscribers.add(cb);
+  return () => {
+    sharedBridgesSubscribers.delete(cb);
+  };
+}
+
 /// Map backend `BridgeStatus` to the frontend `BridgePhase`. The backend
 /// has a coarser status enum (5 values) than the UI's phase enum (8) —
 /// the missing values are transient client-only states ('switching',
@@ -350,7 +391,26 @@ export function useBridges() {
     | null;
   const address = wagmiAddress;
 
-  const [bridges, setBridges] = useState<BridgeRecord[]>([]);
+  /// Subscribe to the shared per-address bridges slice. Every useBridges()
+  /// consumer reads the same store so two components rendering in parallel
+  /// can never disagree on what's pending vs done.
+  const addressLower = identityAddress?.toLowerCase() ?? null;
+  const getSnapshot = useCallback(
+    () => readSharedBridges(addressLower),
+    [addressLower],
+  );
+  const bridges = useSyncExternalStore(
+    subscribeSharedBridges,
+    getSnapshot,
+    /// SSR snapshot is always empty — bridges are client-only state.
+    () => EMPTY_BRIDGES,
+  );
+  const setBridges = useCallback(
+    (updater: BridgeRecord[] | ((prev: BridgeRecord[]) => BridgeRecord[])) => {
+      writeSharedBridges(addressLower, updater);
+    },
+    [addressLower],
+  );
   // Tracks whether we've already loaded localStorage for the current address.
   // Prevents the save effect from wiping storage with the empty initial state
   // before hydrate completes on the first render after wagmi resolves.
