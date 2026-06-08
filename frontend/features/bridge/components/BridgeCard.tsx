@@ -187,6 +187,11 @@ export function BridgeCard({
   /// a button + portal modal now: the form stays clean, and the same
   /// retry/recheck/dismiss controls live inside the modal.
   const [historyOpen, setHistoryOpen] = useState(false);
+  /// Source-chain dropdown — previously a 6-tile grid that took too much
+  /// vertical space and felt cluttered next to the slim BRIDGE FROM ARC
+  /// destination dropdown. Mirrors that pattern: a single button shows the
+  /// selected chain, click reveals an absolute list of all options.
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
 
   /// Recipient selector: identity wallet, either agent, or a custom paste.
   /// Bridges used to mint straight to the buyer agent, which forced anyone
@@ -497,143 +502,20 @@ export function BridgeCard({
           <Web3FundHint source={evmSource} copy={bc.web3Fund} />
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* SOURCE CHAIN PICKER */}
-          <div data-guide="bridge-source">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {bc.eyebrow.sourceChain}
-            </span>
-            <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {(Object.values(SOURCE_CHAINS) as SourceChainConfig[]).map((c) => {
-                const active = sourceKey === c.key;
-                return (
-                  <button
-                    type="button"
-                    key={c.key}
-                    onClick={() => setSourceKey(c.key)}
-                    aria-pressed={active}
-                    className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors"
-                    style={{
-                      background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
-                      color: 'var(--lp-dark)',
-                      border: active
-                        ? '1px solid var(--lp-accent)'
-                        : '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
-                      boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
-                    }}
-                  >
-                    {active && (
-                      <span
-                        aria-hidden
-                        className="absolute start-0 top-0 bottom-0 w-[3px]"
-                        style={{ background: 'var(--lp-accent)' }}
-                      />
-                    )}
-                    {active && (
-                      <span
-                        aria-hidden
-                        data-instrument-blink
-                        className="absolute top-2 end-2 inline-block w-[6px] h-[6px]"
-                        style={{
-                          background: 'var(--lp-accent)',
-                          animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                        }}
-                      />
-                    )}
-                    <div className="flex items-center gap-2.5">
-                      <ChainMark which={c.key} size={26} />
-                      <div className="min-w-0">
-                        <p className="font-sans text-[13px] font-semibold tracking-tight leading-tight">
-                          {c.name.replace(' Sepolia', '')}
-                        </p>
-                        <p
-                          className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
-                          style={{ color: 'var(--lp-text-muted)' }}
-                        >
-                          {bc.sourceChain.sepoliaDomainTemplate.replace('{domain}', String(c.domain))}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {/* App-Kit-only sources (Solana Devnet today). Circle users
-                  bridge from these through /circle-bridge-app-kit. Web3 users
-                  see the card disabled with a "Circle only" hint — the app
-                  has no wagmi connector for Solana, so they cannot sign. */}
-              {APP_KIT_SOURCE_KEYS.map((k) => {
-                const c = APP_KIT_SOURCES[k];
-                const active = sourceKey === k;
-                const disabled = !isCircleUser;
-                return (
-                  <button
-                    type="button"
-                    key={k}
-                    onClick={() => !disabled && setSourceKey(k)}
-                    aria-pressed={active}
-                    disabled={disabled}
-                    title={
-                      disabled
-                        ? bc.sourceChain.solanaCircleOnlyTitle
-                        : undefined
-                    }
-                    className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{
-                      background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
-                      color: 'var(--lp-dark)',
-                      border: active
-                        ? '1px solid var(--lp-accent)'
-                        : '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
-                      boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
-                    }}
-                  >
-                    {active && (
-                      <span
-                        aria-hidden
-                        className="absolute start-0 top-0 bottom-0 w-[3px]"
-                        style={{ background: 'var(--lp-accent)' }}
-                      />
-                    )}
-                    <div className="flex items-center gap-2.5">
-                      <ChainMark which="solana" size={26} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="font-sans text-[13px] font-semibold tracking-tight leading-tight">
-                            {c.shortName}
-                          </p>
-                          {disabled && (
-                            <span
-                              className="mono text-[8px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
-                              style={{
-                                color: 'var(--lp-text-muted)',
-                                background: 'rgba(0,0,0,0.05)',
-                              }}
-                            >
-                              {bc.sourceChain.circleOnlyTag}
-                            </span>
-                          )}
-                        </div>
-                        <p
-                          className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
-                          style={{ color: 'var(--lp-text-muted)' }}
-                        >
-                          {bc.sourceChain.devnetAppKit}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {/* SOURCE CHAIN DROPDOWN. Single button + absolute list, mirroring
+              BridgeOutCard's destination picker. Combines CCTP EVM chains
+              and AppKit chains in one merged list; Solana stays visible to
+              web3 users but disabled with a "needs Circle" tag because we
+              have no wagmi connector for it. */}
+          <SourceChainDropdown
+            value={sourceKey}
+            onChange={setSourceKey}
+            open={sourcePickerOpen}
+            setOpen={setSourcePickerOpen}
+            isCircleUser={isCircleUser}
+            eyebrow={bc.eyebrow.sourceChain}
+            copy={bc.sourceChain}
+          />
 
           {/* AMOUNT INPUT */}
           <div
@@ -2096,6 +1978,203 @@ function VerifyBanner({
         style={{ background: tone.text, borderRadius: kind === 'checking' ? 999 : 1 }}
       />
       {label}
+    </div>
+  );
+}
+
+/// Source-chain dropdown. One merged list of CCTP EVM chains + AppKit
+/// chains (Solana). Behaves identically for web3 and Circle users — the
+/// only difference is Solana's row is disabled with a "needs Circle" tag
+/// for web3 since the app has no Solana wagmi connector. Replaces the
+/// previous 6-tile grid which was visually heavy and didn't match the
+/// slim destination dropdown on the FROM ARC card.
+function SourceChainDropdown({
+  value,
+  onChange,
+  open,
+  setOpen,
+  isCircleUser,
+  eyebrow,
+  copy,
+}: {
+  value: AnySourceChainKey;
+  onChange: (next: AnySourceChainKey) => void;
+  open: boolean;
+  setOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
+  isCircleUser: boolean;
+  eyebrow: string;
+  copy: Messages['bridgeCard']['sourceChain'];
+}) {
+  type Option = {
+    key: AnySourceChainKey;
+    name: string;
+    meta: string;
+    iconKey: string;
+    disabled: boolean;
+    disabledTag?: string;
+    disabledTitle?: string;
+  };
+
+  const options: Option[] = useMemo(() => {
+    const cctp = (Object.values(SOURCE_CHAINS) as SourceChainConfig[]).map(
+      (c): Option => ({
+        key: c.key as AnySourceChainKey,
+        name: c.name.replace(' Sepolia', ''),
+        meta: copy.sepoliaDomainTemplate.replace('{domain}', String(c.domain)),
+        iconKey: c.key,
+        disabled: false,
+      }),
+    );
+    const appKit = APP_KIT_SOURCE_KEYS.map((k): Option => {
+      const c = APP_KIT_SOURCES[k];
+      return {
+        key: k as AnySourceChainKey,
+        name: c.shortName,
+        meta: copy.devnetAppKit,
+        iconKey: 'solana',
+        disabled: !isCircleUser,
+        disabledTag: copy.circleOnlyTag,
+        disabledTitle: copy.solanaCircleOnlyTitle,
+      };
+    });
+    return [...cctp, ...appKit];
+  }, [isCircleUser, copy]);
+
+  const active = options.find((o) => o.key === value) ?? options[0];
+
+  return (
+    <div data-guide="bridge-source" className="relative">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        {eyebrow}
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <span className="flex items-center gap-2.5 min-w-0">
+          <ChainMark which={active.iconKey} size={26} />
+          <span className="min-w-0">
+            <span className="block font-sans text-[14px] font-semibold tracking-tight text-[var(--lp-dark)] leading-tight">
+              {active.name}
+            </span>
+            <span
+              className="block mt-0.5 mono text-[10px] uppercase tracking-[0.12em]"
+              style={{ color: 'var(--lp-text-muted)' }}
+            >
+              {active.meta}
+            </span>
+          </span>
+        </span>
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className={`text-[var(--lp-text-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <path
+            d="M3 6l5 5 5-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <>
+          {/* Click-outside catcher. Sits behind the panel and dismisses on
+              any backdrop click without intercepting actual option clicks
+              (which sit on the panel itself, above this layer). */}
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-10 cursor-default"
+            style={{ background: 'transparent' }}
+          />
+          <ul
+            role="listbox"
+            className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up"
+            style={{
+              background: 'var(--lp-card)',
+              border: '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 4,
+              boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
+            }}
+          >
+            {options.map((opt) => {
+              const isActive = opt.key === value;
+              return (
+                <li key={opt.key}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isActive}
+                    disabled={opt.disabled}
+                    title={opt.disabled ? opt.disabledTitle : undefined}
+                    onClick={() => {
+                      if (opt.disabled) return;
+                      onChange(opt.key);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-transparent"
+                  >
+                    <ChainMark which={opt.iconKey} size={22} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
+                          {opt.name}
+                        </span>
+                        {opt.disabled && opt.disabledTag && (
+                          <span
+                            className="mono text-[8px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full"
+                            style={{
+                              color: 'var(--lp-text-muted)',
+                              background: 'rgba(0,0,0,0.05)',
+                            }}
+                          >
+                            {opt.disabledTag}
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className="mono text-[10px] mt-0.5 uppercase tracking-[0.12em]"
+                        style={{ color: 'var(--lp-text-muted)' }}
+                      >
+                        {opt.meta}
+                      </p>
+                    </div>
+                    {isActive && !opt.disabled && (
+                      <span
+                        aria-hidden
+                        className="ms-auto inline-block w-[6px] h-[6px]"
+                        style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
