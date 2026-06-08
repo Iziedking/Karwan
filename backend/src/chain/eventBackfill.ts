@@ -6,6 +6,11 @@ import { logger } from '../logger.js';
 import { jobBoardAbi } from './abis/jobBoard.js';
 import { escrowAbi } from './abis/escrow.js';
 import { reputationAbi } from './abis/reputation.js';
+import {
+  legacyEscrowAddress,
+  legacyEscrow2Address,
+  legacyEscrow3Address,
+} from './contracts.js';
 
 /// Resolve an event definition by name from a contract ABI. Using the actual
 /// ABI guarantees we get the contract's real parameter types (uint64 vs
@@ -343,7 +348,12 @@ export async function backfillBusFromChain(
   /// don't gate on >0 alone: a partial backfill from a previous boot could
   /// leave a handful of events that pass the >0 check yet are missing most
   /// of the history. 50 is the threshold below which we re-scan; pass
-  /// `force: true` to bypass (admin endpoint, post-redeploy).
+  /// `force: true` to bypass (admin endpoint, post-redeploy). Also bypass
+  /// when events.json was loaded but holds only a handful of recent live
+  /// events (e.g. the disk file was wiped during a VPS rebuild and only a
+  /// bridge mint or two have landed since the boot) — the activity feed
+  /// otherwise reads 0 across JOBS / NEGOTIATION / SETTLEMENT because the
+  /// chain-derived history never came back.
   const MIN_HEALTHY_HISTORY = 50;
   if (!opts.force && bus.historyLength() >= MIN_HEALTHY_HISTORY) {
     logger.info(
@@ -396,6 +406,30 @@ export async function backfillBusFromChain(
     return scanLogs(addr, event, lowerBound, head);
   }
 
+  /// Escrow events live across MORE THAN ONE address: the current Gen 4
+  /// escrow plus every legacy generation (Gen 1, 2, 3). When events.json
+  /// was wiped on a fresh boot the activity feed was reading only Gen 4
+  /// events, so all the historical deal lifecycle from earlier
+  /// generations vanished. Fan the scan out across every known address
+  /// and merge the rows. Topic-0 matches on event-name + arg-type, which
+  /// holds across the legacy ABIs (same EscrowFunded / EscrowSettled /
+  /// EscrowDisputed / EscrowRefunded / ProgressReleased shapes), so the
+  /// current event spec returns logs from older contracts too. A scan
+  /// against null (legacy slot not configured) is a no-op.
+  const escrowAddrs: (`0x${string}` | null)[] = [
+    escrowAddr,
+    legacyEscrowAddress,
+    legacyEscrow2Address,
+    legacyEscrow3Address,
+  ];
+  async function scanEscrowsFor(event: AbiEvent | null): Promise<LogRow[]> {
+    if (!event) return [];
+    const results = await Promise.all(
+      escrowAddrs.map((a) => scanIf(a, event)),
+    );
+    return results.flat();
+  }
+
   const [
     jobPosted,
     bidSubmitted,
@@ -410,11 +444,11 @@ export async function backfillBusFromChain(
     scanIf(jobBoardAddr, evJobPosted),
     scanIf(jobBoardAddr, evBidSubmitted),
     scanIf(jobBoardAddr, evBidAccepted),
-    scanIf(escrowAddr, evEscrowFunded),
-    scanIf(escrowAddr, evProgressReleased),
-    scanIf(escrowAddr, evEscrowSettled),
-    scanIf(escrowAddr, evEscrowDisputed),
-    scanIf(escrowAddr, evEscrowRefunded),
+    scanEscrowsFor(evEscrowFunded),
+    scanEscrowsFor(evProgressReleased),
+    scanEscrowsFor(evEscrowSettled),
+    scanEscrowsFor(evEscrowDisputed),
+    scanEscrowsFor(evEscrowRefunded),
     scanIf(repAddr, evRepCompletion),
   ]);
 

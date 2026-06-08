@@ -36,9 +36,7 @@ USDC flows in from Base, Ethereum, Arbitrum, Optimism, or Polygon Sepolia, plus 
 A staker locks USDC into KarwanVault. The same principal does two things at once.
 
 - **Deal insurance.** When a seller accepts a deal, the escrow reserves `dealAmount × reservationBps` from the seller's free stake. A failed dispute slashes that reservation to the buyer. Trusted Match mode makes the floor a precondition rather than a knob.
-- **Yield on idle reserves.** Platform fee reserves route through real Hashnote USYC on Arc Testnet via KarwanTreasury V3, an ERC-4626 wired contract that subscribes idle USDC into USYC and redeems on demand. The Treasury was whitelisted by Circle on 2026-06-06 and is actively earning the real Hashnote yield rate, not a mock.
-
-The Vault side of USYC (idle user stake principal) is queued for the same whitelist and flips live as soon as Circle confirms the second address. Until then the Vault stays on the same Mock USYC adapter it has been on for the test net build.
+- **Yield on idle reserves.** Platform fee reserves route through real Hashnote USYC on Arc Testnet via KarwanTreasury V3, an ERC-4626 wired contract that subscribes idle USDC into USYC and redeems on demand. The Treasury was whitelisted by Circle on 2026-06-06 and is actively earning the real Hashnote yield rate.
 
 ---
 
@@ -58,7 +56,6 @@ The discount depends on the seller's tier. A seller with a strong on-chain track
 
 ### A few smaller but real upgrades
 
-- Vault routing to real USYC the moment Circle whitelists the second address.
 - Symmetric reputation crediting on settlement, so both sides' on chain records reflect a clean delivery rather than only the seller's.
 - External smart contract audit before any mainnet exposure.
 - Safe multisig treasury replacing the deployer EOA before the current contracts touch real money.
@@ -122,10 +119,8 @@ karwan/
 │                 reputation engine, Telegram notifier, SSE bus.
 ├── frontend/     Next.js 15 + wagmi + RainbowKit. App shell, i18n, all
 │                 user surfaces. react-query everywhere.
-├── scripts/      Operational scripts. Daily yield distribution cron,
-│                 backups, smoke tests.
 └── docs/         Long form documentation. why-karwan, architecture,
-                  circle-integration, reputation-model, deploy, demo-script.
+                  circle-integration, reputation-model
 ```
 
 ---
@@ -136,7 +131,6 @@ karwan/
 - [docs/architecture.md](./docs/architecture.md). Components, both deal flows, wallet model.
 - [docs/circle-integration.md](./docs/circle-integration.md). Every Circle product and where it lands in the codebase.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite score, tier breakpoints, and agent integration.
-- [docs/deploy.md](./docs/deploy.md). Backend and contract deployment. VPS recovery section.
 - [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). Notes from building on Circle, kept honest.
 
 ---
@@ -169,8 +163,6 @@ cd contracts
 forge build
 forge test
 ```
-
-The full production deploy walks through in `docs/deploy.md`. The repo ships a Docker setup for the backend if you want to run it the way the live VPS does.
 
 ---
 
