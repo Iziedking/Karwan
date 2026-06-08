@@ -50,6 +50,7 @@ import { classifyAgentError } from '../chain/errors.js';
 import { sessionMismatchesClaim, viewerAddress, readSession } from '../auth/session.js';
 import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../emails/dealInvite.js';
 import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
+import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -603,6 +604,11 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
     payload: {
       buyer: deal.buyer,
       seller: invite.role === 'seller' ? session.address.toLowerCase() : deal.seller,
+      /// Surface the amount on the event so the bell + Telegram message
+      /// can read it inline — same shape deal.direct.created already uses.
+      /// Without this the post-claim notification reads "deal bound" with
+      /// no number, which is the user-facing point of the new ping.
+      dealAmountUsdc: deal.dealAmountUsdc,
       claimerEmail: invite.email,
       claimerAddress: session.address.toLowerCase(),
     },
@@ -1792,6 +1798,27 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
       actor: 'buyer',
       payload: { buyer: deal.buyer, seller: deal.seller, kind: 'pre-accept', reason },
     });
+    /// Close the loop with email-mode recipients. The original invite email
+    /// teased a deal; without this follow-up they would return days later
+    /// and find an expired-looking link with no explanation. Wallet-mode
+    /// counterparties hear about the cancel through the bus → Telegram
+    /// notifier path, which routes off deal.seller; this path covers the
+    /// email branch where deal.seller is still the placeholder.
+    const pendingEmail = deal.pendingCounterparty?.email;
+    if (pendingEmail) {
+      const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
+      void sendDealCancelledEmail({
+        to: pendingEmail,
+        dealAmountUsdc: deal.dealAmountUsdc,
+        inviterMasked: maskedInviter,
+        reason,
+      }).catch((err) => {
+        logger.warn(
+          { err: (err as Error).message, jobId, to: pendingEmail },
+          'deal cancel email send threw',
+        );
+      });
+    }
     return c.json({ accepted: true, jobId }, 200);
   }
 

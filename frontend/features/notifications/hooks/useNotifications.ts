@@ -53,6 +53,7 @@ const MANAGED_TYPES = new Set([
 
 const DIRECT_TYPES = new Set([
   'deal.direct.created',
+  'deal.invite.claimed',
   'deal.accepted',
   'deal.delivered',
   'deal.fund.insufficient',
@@ -138,6 +139,7 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'agent.declined': 'buyer',
   // Direct flow.
   'deal.direct.created': 'seller', // buyer just created it; the seller must act
+  'deal.invite.claimed': 'seller', // the claimer is the seller; surface "deal is yours" in their bell post-claim
   'deal.accepted': 'buyer', // the seller knows they accepted; the buyer's agent funded
   'deal.delivered': 'buyer', // the buyer verifies and releases
   'deal.fund.insufficient': 'buyer',
@@ -290,6 +292,14 @@ function summaryFor(
       return dealAmount
         ? `A buyer opened a deal with you at ${dealAmount} USDC. Accept to proceed.`
         : 'A buyer opened a deal with you. Accept to proceed.';
+    case 'deal.invite.claimed':
+      // Fires after the recipient verifies their email and binds the deal.
+      // Surfaces as the seller's first in-app cue — the deal create event
+      // already fired before they were on Karwan, so this is the equivalent
+      // welcome ping for them.
+      return dealAmount
+        ? `Deal bound to your wallet at ${dealAmount} USDC. Accept to proceed.`
+        : 'Deal bound to your wallet. Accept to proceed.';
     case 'deal.accepted':
       // Buyer-facing: their agent funded the escrow after the seller accepted.
       return 'Seller accepted. Your agent funded the escrow.';
@@ -678,8 +688,14 @@ export function useNotifications() {
       if (!e.jobId) return;
 
       // Learn this user's role on a freshly-started deal so later events that
-      // only carry a jobId still route to the right side.
-      if (e.type === 'deal.direct.created' || e.type === 'deal.matched') {
+      // only carry a jobId still route to the right side. deal.invite.claimed
+      // counts too — that's the moment a pending-invite deal first has a real
+      // seller wallet bound to it.
+      if (
+        e.type === 'deal.direct.created' ||
+        e.type === 'deal.matched' ||
+        e.type === 'deal.invite.claimed'
+      ) {
         const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
         const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
         const j = e.jobId.toLowerCase();
