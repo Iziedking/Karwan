@@ -55,9 +55,9 @@ export function useBridgeHistory(filter: HistoryFilter) {
   return { bridges, filtered, counts, retry, recheck, dismiss };
 }
 
-/// Filter chip row. Designed to dock alongside the direction toggle on the
-/// bridge page so the user controls "what bridges am I looking at" from a
-/// single row, not from a separate header further down the page.
+/// Filter chip row. Renders inside the history panel as its heading row so
+/// the section reads as a single self-contained surface (chips ARE the
+/// header, not a floating control elsewhere on the page).
 export function BridgeHistoryFilters({
   filter,
   onFilterChange,
@@ -71,8 +71,8 @@ export function BridgeHistoryFilters({
     <div
       className="inline-flex p-1 gap-1 flex-wrap"
       style={{
-        background: 'var(--lp-light)',
-        border: '1px solid var(--lp-border-light)',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 999,
       }}
     >
@@ -81,6 +81,50 @@ export function BridgeHistoryFilters({
       <FilterChip label="Successful" count={counts.successful} active={filter === 'successful'} onClick={() => onFilterChange('successful')} />
       <FilterChip label="Failed" count={counts.failed} active={filter === 'failed'} onClick={() => onFilterChange('failed')} />
     </div>
+  );
+}
+
+/// Full history panel. Self-contained dark surface with the four filter
+/// chips as the heading row + the list below. Page just mounts this once,
+/// no need to thread filter state through the page when the panel can own
+/// it itself. Pass-through props let an outer caller (the bridge page)
+/// keep ownership of filter state if it needs to coordinate; if omitted,
+/// the panel manages its own state defaulting to ALL.
+export function BridgeHistoryPanel(props: {
+  filter?: HistoryFilter;
+  onFilterChange?: (next: HistoryFilter) => void;
+  counts?: { all: number; pending: number; successful: number; failed: number };
+}) {
+  const [internalFilter, setInternalFilter] = useState<HistoryFilter>('all');
+  const filter = props.filter ?? internalFilter;
+  const setFilter = props.onFilterChange ?? setInternalFilter;
+  /// Internal counts when the caller didn't pass them; cheap because the
+  /// hook memoises against the underlying bridges array.
+  const { counts: internalCounts } = useBridgeHistory(filter);
+  const counts = props.counts ?? internalCounts;
+
+  return (
+    <section
+      className="overflow-hidden"
+      style={{
+        background: 'var(--lp-band-dark)',
+        border: '1px solid var(--rule-dark)',
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 18,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 4,
+      }}
+    >
+      <header className="px-4 sm:px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[var(--rule-dark)]">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]">
+          [:HISTORY:]
+        </span>
+        <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} />
+      </header>
+      <div className="px-3 sm:px-4 py-4">
+        <BridgeHistoryList filter={filter} />
+      </div>
+    </section>
   );
 }
 

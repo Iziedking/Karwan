@@ -1573,6 +1573,30 @@ export const api = {
     json<{ address: string; blockchain: string }>(
       `/api/bridge/circle-source-address?address=${address}&sourceChainKey=${sourceChainKey}`,
     ),
+  /// Backend-persisted bridge history for the user (every Circle bridge ever
+  /// started against their identity, newest first). Used by useBridges to
+  /// rehydrate history that local storage may have lost (cache clear, device
+  /// switch, MAX_HISTORY truncation). Web3-path bridges are not tracked
+  /// server-side and never appear here; localStorage stays primary for them.
+  bridgeList: (address: string) =>
+    json<{
+      bridges: Array<{
+        bridgeId: string;
+        status: 'approving' | 'burning' | 'relaying' | 'minted' | 'error';
+        amountUsdc: string;
+        sourceChainKey: string | null;
+        destChainKey: string | null;
+        direction: 'in' | 'out';
+        mintRecipient: string | null;
+        sourceTxHash: string | null;
+        mintTxHash: string | null;
+        approveTxId: string | null;
+        burnTxId: string | null;
+        error: string | null;
+        createdAt: number;
+        updatedAt: number;
+      }>;
+    }>(`/api/bridge/list?address=${address}`),
   /// Richer than bridgeCircleSourceAddress: returns the source-chain DCW
   /// address plus its live USDC and native-gas balances so the bridge card can
   /// show a funded/empty state. usdcBalance/gasBalance are null when the

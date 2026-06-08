@@ -262,6 +262,58 @@ function saveToStorage(address: `0x${string}` | null | undefined, bridges: Bridg
   }
 }
 
+/// Map backend `BridgeStatus` to the frontend `BridgePhase`. The backend
+/// has a coarser status enum (5 values) than the UI's phase enum (8) —
+/// the missing values are transient client-only states ('switching',
+/// 'attesting', 'minting') that the backend either skips or names
+/// differently. The choices below pick the right "this is what the user
+/// should see for a record we restored from cold storage" phase.
+function phaseFromBackendStatus(
+  status: 'approving' | 'burning' | 'relaying' | 'minted' | 'error',
+): BridgePhase {
+  if (status === 'minted') return 'done';
+  if (status === 'relaying') return 'attesting';
+  return status;
+}
+
+type RemoteBridge = Awaited<ReturnType<typeof api.bridgeList>>['bridges'][number];
+
+/// Merge backend-persisted bridges into the current in-memory list. Records
+/// the local cache already has stay as-is (they're typically newer and
+/// carry transient client-only state the backend wouldn't know about);
+/// records only on the backend are converted to BridgeRecord shape and
+/// appended. The result is sorted by startedAt desc so the history reads
+/// newest-first across both sources.
+function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): BridgeRecord[] {
+  const known = new Set(local.map((b) => b.id));
+  const restored: BridgeRecord[] = [];
+  for (const r of remote) {
+    if (known.has(r.bridgeId)) continue;
+    if (!r.sourceChainKey) continue; // missing chain context, unrenderable
+    /// The mintRecipient is the eventual mint destination — for 'in'
+    /// bridges that's the user's Arc wallet (the row needs it to render
+    /// the MINTS TO band). If the backend doesn't have it (older records
+    /// pre-mintRecipient persist), skip rather than render a half-row.
+    if (!r.mintRecipient) continue;
+    restored.push({
+      id: r.bridgeId,
+      phase: phaseFromBackendStatus(r.status),
+      direction: r.direction,
+      sourceChainKey: r.sourceChainKey as BridgeRecord['sourceChainKey'],
+      amountUsdc: r.amountUsdc,
+      mintRecipient: r.mintRecipient as `0x${string}`,
+      approveTxHash: (r.sourceTxHash ?? undefined) as `0x${string}` | undefined,
+      burnTxHash: (r.sourceTxHash ?? undefined) as `0x${string}` | undefined,
+      mintTxHash: (r.mintTxHash ?? undefined) as `0x${string}` | undefined,
+      error: r.error ?? undefined,
+      startedAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    });
+  }
+  if (restored.length === 0) return local;
+  return [...local, ...restored].sort((a, b) => b.startedAt - a.startedAt);
+}
+
 export function useBridges() {
   const { address: wagmiAddress, isConnected } = useAccount();
   const chainId = useChainId();
@@ -316,6 +368,30 @@ export function useBridges() {
     setBridges(loadFromStorage(identityAddress));
     setHydratedFor(identityAddress.toLowerCase());
   }, [identityAddress]);
+
+  /// After localStorage hydrate, pull the backend's bridge history (every
+  /// Circle bridge ever started against this identity) and merge any
+  /// records local storage doesn't already have. Closes the "history
+  /// disappeared" gap users hit on cache clear / device switch / when the
+  /// 50-row MAX_HISTORY truncation discarded an old bridge. Web3-path
+  /// bridges never appear server-side, so this is a no-op for them.
+  useEffect(() => {
+    if (!identityAddress) return;
+    if (hydratedFor !== identityAddress.toLowerCase()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { bridges: remote } = await api.bridgeList(identityAddress);
+        if (cancelled || remote.length === 0) return;
+        setBridges((current) => mergeRemoteBridges(current, remote));
+      } catch {
+        /* network or auth blip; localStorage stays primary */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [identityAddress, hydratedFor]);
 
   // Auto-recheck any in-flight bridge once per hydrate. SSE has no replay
   // buffer, so if the backend's `bridge.attested` / `bridge.minted` event
