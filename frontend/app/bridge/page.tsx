@@ -3,7 +3,12 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
-import { BridgeHistorySection } from '@/features/bridge/components/BridgeHistorySection';
+import {
+  BridgeHistoryFilters,
+  BridgeHistoryList,
+  useBridgeHistory,
+  type HistoryFilter,
+} from '@/features/bridge/components/BridgeHistorySection';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 
 /// BridgeOutCard ships its own form, balance polling, and Solana branch — a
@@ -59,6 +64,11 @@ function BridgePageInner() {
   const t = useTranslations().bridge;
   const { agents } = useActivation();
   const [direction, setDirection] = useState<Direction>('in');
+  /// History filter lives at the page so the chip row (docked alongside the
+  /// direction toggle) and the list (under the active card) share state.
+  /// Counts come from the same hook so the chips always show truth.
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+  const { counts } = useBridgeHistory(historyFilter);
 
   return (
     <FullBleed>
@@ -75,21 +85,31 @@ function BridgePageInner() {
 
       <Band tone="light" compact>
         <div className="max-w-xl">
-          {/* Direction toggle. Arc is always one side; this flips which. */}
-          <div
-            className="inline-flex p-1 mb-6"
-            style={{
-              background: 'var(--lp-card)',
-              border: '1px solid var(--lp-border-light)',
-              borderRadius: 999,
-            }}
-          >
-            <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
-              {t.directions.toArc}
-            </DirToggle>
-            <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-              {t.directions.fromArc}
-            </DirToggle>
+          {/* Direction toggle + history filter chips on one row. Toggle on
+              the left controls which card is active; chips on the right
+              filter the history list below by status. Both stack on small
+              screens so the chip group wraps to its own line. */}
+          <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
+            <div
+              className="inline-flex p-1"
+              style={{
+                background: 'var(--lp-card)',
+                border: '1px solid var(--lp-border-light)',
+                borderRadius: 999,
+              }}
+            >
+              <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
+                {t.directions.toArc}
+              </DirToggle>
+              <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
+                {t.directions.fromArc}
+              </DirToggle>
+            </div>
+            <BridgeHistoryFilters
+              filter={historyFilter}
+              onFilterChange={setHistoryFilter}
+              counts={counts}
+            />
           </div>
 
           {direction === 'in' ? (
@@ -97,17 +117,14 @@ function BridgePageInner() {
           ) : (
             <BridgeOutCard />
           )}
-        </div>
-      </Band>
 
-      {/* Persistent history below the active card. Survives the direction
-          toggle (the card's own in-form modal was scoped to inbound bridges
-          only and made past outbound rows unreachable). Empty store renders
-          a tiny empty band, never a fixed-height skeleton, so the page
-          doesn't grow until there's history to show. */}
-      <Band tone="light" compact>
-        <div className="max-w-xl">
-          <BridgeHistorySection />
+          {/* Persistent history under the active card, in the same band so
+              the page reads as a single surface. Filter chips up top drive
+              what shows here. Survives the direction toggle — list shows
+              both inbound + outbound regardless of which card is active. */}
+          <div className="mt-8">
+            <BridgeHistoryList filter={historyFilter} />
+          </div>
         </div>
       </Band>
     </FullBleed>
