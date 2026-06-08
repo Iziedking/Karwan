@@ -48,13 +48,23 @@ export const arcTestnet = defineChain({
 });
 
 /// Wrap each RPC URL in its own http() transport so viem's fallback()
-/// transport rotates through them when one returns an error. Rank order
-/// matches RPC_URLS: primary first, fallbacks after. `rank` rebalances
-/// based on latency so a degraded primary naturally drops back; a single
-/// URL skips the fallback wrapper entirely.
+/// transport rotates through them when one returns an error. Static
+/// order matches RPC_URLS (primary first, fallbacks after); rank-by-
+/// latency is intentionally disabled. The primary's failure mode is
+/// daily-quota exhaustion (TransactionRejectedRpcError, code -32003),
+/// which is a JSON-RPC application error wrapped in a 200 OK response.
+/// With `rank: true` viem's ranking poll kept choosing the lower-latency
+/// primary even while it was returning that error, and viem's default
+/// `shouldThrow` treated -32003 as a user error and didn't rotate.
+///
+/// `shouldThrow: () => false` forces every per-transport error to fall
+/// through to the next URL, regardless of code. Per-transport retryCount
+/// stays at 0 here because each http() already has its own retryCount
+/// internally; we want the fallback to rotate fast, not retry the dead
+/// transport.
 const httpTransports = RPC_URLS.map((url) =>
   http(url, {
-    retryCount: 3,
+    retryCount: 1,
     timeout: 10_000,
   }),
 );
@@ -64,7 +74,11 @@ export const publicClient = createPublicClient({
   transport:
     httpTransports.length === 1
       ? httpTransports[0]!
-      : fallback(httpTransports, { rank: true }),
+      : fallback(httpTransports, {
+          rank: false,
+          retryCount: 0,
+          shouldThrow: () => false,
+        }),
 });
 
 export const wsClient = createPublicClient({
