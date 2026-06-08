@@ -79,6 +79,10 @@ export async function sendDealInviteEmail(
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,
+      /// Match the OTP route — replies land in the human-monitored inbox
+      /// so an invitee with a question about the deal reaches a person
+      /// instead of bouncing off the no-reply sender.
+      replyTo: 'support@karwan.site',
       to: input.to,
       subject,
       html,

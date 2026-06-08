@@ -39,14 +39,28 @@ const DEFAULT_FOOTER_NOTE =
   "Didn't request this? Ignore the email. No account changes happen until a code is entered.";
 
 /// Wraps caller HTML in the Karwan email shell. Returns a full document.
+///
+/// Redesigned 2026-06-08: the logo now sits prominently in the body of the
+/// white card (centered, 56px, on the cream-tinted ink surface) instead of
+/// being buried in a thin dark header band where most clients shrank it.
+/// The wordmark + eyebrow tag follow underneath, then the lime accent rule,
+/// then the inner payload. Cleaner, more typical of modern transactional
+/// email (Stripe, Linear, Resend's own samples), and gives the brand mark
+/// the real estate it deserves.
 export function brandedEmailHtml({
   eyebrow,
   title,
   inner,
   footerNote = DEFAULT_FOOTER_NOTE,
 }: BrandShellOptions): string {
-  const logoCell = LOGO_BUFFER
-    ? `<img src="cid:${LOGO_CID}" width="36" height="36" alt="Karwan" style="display:block;border-radius:6px;" />`
+  const logoBlock = LOGO_BUFFER
+    ? `
+              <tr>
+                <td align="center" style="padding:36px 28px 18px 28px;">
+                  <img src="cid:${LOGO_CID}" width="56" height="56" alt="Karwan"
+                    style="display:block;border-radius:12px;border:1px solid #e6e2d8;" />
+                </td>
+              </tr>`
     : '';
   // Gmail and Apple Mail auto-invert "light" emails under dark mode and kill
   // the brand colors. The color-scheme meta + !important fills below opt out
@@ -65,7 +79,6 @@ export function brandedEmailHtml({
   /* Lock the cream canvas + ink card against Gmail's auto-invert. */
   .k-canvas { background: #f3efe6 !important; }
   .k-card { background: #ffffff !important; }
-  .k-header { background: #0e0e0e !important; }
   .k-ink { color: #0e0e0e !important; }
   .k-sub { color: #3a352c !important; }
   .k-muted { color: #8a8478 !important; }
@@ -86,38 +99,34 @@ export function brandedEmailHtml({
     <tr>
       <td align="center">
         <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" class="k-card" style="max-width:520px;width:100%;background:#ffffff;border:1px solid #e6e2d8;border-radius:18px 18px 18px 5px;overflow:hidden;">
-          <!-- Header band. The lime strip below survives clients that drop
-               the background color. -->
+          ${logoBlock}
+          <!-- Wordmark + eyebrow centered in the body, above the lime rule.
+               The brand reads from the body of the email, not from a header
+               strip clients tend to shrink or strip out. -->
           <tr>
-            <td class="k-header" style="background:#0e0e0e;padding:24px 28px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  ${
-                    LOGO_BUFFER
-                      ? `<td style="vertical-align:middle;padding-right:12px;">${logoCell}</td>`
-                      : ''
-                  }
-                  <td style="vertical-align:middle;">
-                    <div style="font-size:18px;font-weight:800;letter-spacing:0.04em;color:#ffffff;text-transform:uppercase;line-height:1;">Karwan<span class="k-lime" style="color:#afc95b;">.</span></div>
-                    <div style="margin-top:4px;font-size:10px;letter-spacing:0.18em;color:rgba(255,255,255,0.55);text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(eyebrow)}</div>
-                  </td>
-                </tr>
-              </table>
+            <td align="center" style="padding:${LOGO_BUFFER ? '0' : '36px'} 28px 18px 28px;">
+              <div class="k-ink" style="font-size:24px;font-weight:800;letter-spacing:0.02em;color:#0e0e0e;text-transform:uppercase;line-height:1;">Karwan<span class="k-lime" style="color:#afc95b;">.</span></div>
+              <div class="k-muted" style="margin-top:8px;font-size:10px;letter-spacing:0.20em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(eyebrow)}</div>
             </td>
           </tr>
+          <!-- Lime accent rule. Slim, centred, the signature brand cue. -->
           <tr>
-            <td style="padding:0;line-height:0;font-size:0;">
-              <div style="height:3px;background:#afc95b;line-height:0;font-size:0;">&nbsp;</div>
+            <td align="center" style="padding:4px 28px 8px 28px;line-height:0;font-size:0;">
+              <div style="display:inline-block;width:48px;height:3px;background:#afc95b;line-height:0;font-size:0;">&nbsp;</div>
             </td>
           </tr>
 
           ${inner}
 
           <tr>
-            <td style="padding:24px 28px 24px 28px;">
+            <td style="padding:28px 28px 26px 28px;">
               <hr class="k-divider" style="border:none;border-top:1px solid #e6e2d8;margin:0 0 16px 0;" />
               <p class="k-muted" style="margin:0;font-size:12px;line-height:1.5;color:#8a8478;">
                 ${escapeHtml(footerNote)}
+              </p>
+              <p class="k-muted" style="margin:10px 0 0 0;font-size:12px;line-height:1.5;color:#8a8478;">
+                Questions? Contact us at
+                <a href="mailto:support@karwan.site" style="color:#0e0e0e;text-decoration:underline;">support@karwan.site</a>.
               </p>
               <p class="k-muted" style="margin:14px 0 0 0;font-size:10px;letter-spacing:0.18em;color:#b8b0a0;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">
                 Karwan&nbsp;&middot;&nbsp;Agentic settlement on Arc

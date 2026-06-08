@@ -129,6 +129,11 @@ async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult>
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,
+      /// Replies on the OTP email route to the human-monitored inbox.
+      /// Sender stays the configured no-reply alias so we keep DKIM/SPF
+      /// aligned on the verified domain, but a recipient who hits Reply
+      /// lands at support@ where it'll be picked up.
+      replyTo: 'support@karwan.site',
       to: email,
       subject: `Karwan sign-in code: ${code}`,
       html: otpEmailHtml(code),
