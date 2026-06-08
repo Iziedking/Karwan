@@ -88,19 +88,45 @@ app.use(
 
 app.get('/', (c) => c.json({ name: 'karwan', status: 'ok' }));
 
+/// Health check serves the orchestrator: the only question it answers is
+/// "is the API process up and able to serve HTTP requests?" Returning 503
+/// when the chain is degraded turned a routine RPC quota exhaustion into a
+/// deploy outage — the orchestrator marked the container unhealthy, CI
+/// rolled back, and the previous image inherited the same downstream RPC
+/// issues. The API itself is fine even when chain reads fail; routes that
+/// need chain data already degrade gracefully with their own cached
+/// snapshots and warning logs.
+///
+/// New behaviour: always return 200 with the API status. Chain reachability
+/// is reported as a sibling field so dashboards can still surface degraded
+/// chain state, but the container stays healthy and deploys land.
 app.get('/health', async (c) => {
+  /// Short timeout on the chain probe so a wedged RPC doesn't tie the
+  /// orchestrator's health check up for its full window.
+  const HEALTH_RPC_TIMEOUT_MS = 2500;
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('chain-probe-timeout')), HEALTH_RPC_TIMEOUT_MS),
+  );
   try {
-    const [chainId, blockNumber] = await Promise.all([
-      publicClient.getChainId(),
-      publicClient.getBlockNumber(),
+    const [chainId, blockNumber] = await Promise.race([
+      Promise.all([publicClient.getChainId(), publicClient.getBlockNumber()]),
+      timeoutPromise,
     ]);
     return c.json({
       status: 'ok',
-      chain: { id: chainId, latestBlock: blockNumber.toString() },
+      chain: { id: chainId, latestBlock: blockNumber.toString(), reachable: true },
     });
   } catch (err) {
-    appLogger.error({ err }, 'health check failed');
-    return c.json({ status: 'degraded', error: String(err) }, 503);
+    /// Chain unreachable — usually RPC rate-limit, occasionally a transient
+    /// network blip. Log it for dashboards but keep the API healthy.
+    /// Surfaces / surfaces with their own cached snapshots keep working;
+    /// surfaces that need live chain data show the warning state they
+    /// already render for these errors.
+    appLogger.warn({ err: String(err) }, 'health check: chain probe failed, API still healthy');
+    return c.json({
+      status: 'ok',
+      chain: { reachable: false, error: String(err) },
+    });
   }
 });
 

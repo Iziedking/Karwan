@@ -11,6 +11,12 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
 
   ARC_TESTNET_RPC_URL: z.string().url().default('https://rpc.testnet.arc.network'),
+  /// Optional comma-separated list of fallback RPC URLs. viem's fallback
+  /// transport rotates to the next URL when one returns an error (e.g.
+  /// daily quota exhausted on the primary). Leave unset to use only the
+  /// primary URL above. Example:
+  ///   ARC_TESTNET_RPC_URLS=https://primary.example,https://backup.example
+  ARC_TESTNET_RPC_URLS: z.string().optional(),
   ARC_TESTNET_WSS_URL: z.string().default('wss://rpc.testnet.arc.network'),
   ARC_TESTNET_EXPLORER_URL: z.string().url().default('https://testnet.arcscan.app'),
 
