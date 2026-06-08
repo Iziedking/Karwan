@@ -48,7 +48,7 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { sessionMismatchesClaim, viewerAddress, readSession } from '../auth/session.js';
-import { sendDealInviteEmail, formatExpiresLabel } from '../emails/dealInvite.js';
+import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../emails/dealInvite.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -282,6 +282,13 @@ dealsRoutes.post('/direct', async (c) => {
         dealAmountUsdc: body.dealAmountUsdc.toString(),
         inviterMasked: maskedInviter,
         expiresLabel: formatExpiresLabel(inviteExpiresAt),
+        /// Two-deadline block on the email: how long they have to ACCEPT
+        /// the deal, and how long the SELLER then has to DELIVER.
+        acceptanceLabel: formatWindowLabel({ hours: body.acceptanceWindowHours }),
+        deliveryLabel: formatWindowLabel({
+          days: body.deadlineDays,
+          hours: body.deadlineHours,
+        }),
       }).catch((err) => {
         logger.warn(
           { err: (err as Error).message, to: pendingCounterparty?.email, jobId },

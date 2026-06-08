@@ -205,6 +205,24 @@ agentsRoutes.post('/extract-deal', async (c) => {
         prompt: buildExtractPrompt(surface, text),
       }),
     );
+    /// Belt-and-braces counterparty extraction. The LLM often misses the
+    /// wallet/email even when it's literally in the prompt — especially on
+    /// short descriptions or when the address is sandwiched between words
+    /// without obvious context. Regex over the raw text catches both shapes
+    /// (0x + 40 hex chars; standard email). LLM value wins when present
+    /// because the LLM has context about which mention belongs to the
+    /// counterparty vs e.g. the user's own contact info; regex only fills
+    /// in when LLM gave up.
+    if (surface === 'direct' && !object.counterpartyHint) {
+      const hint = scanCounterpartyHint(text);
+      if (hint) {
+        object.counterpartyHint = hint;
+        logger.info(
+          { hint, surface },
+          'extract-deal: filled counterpartyHint via regex fallback',
+        );
+      }
+    }
     return c.json({ ok: true, extracted: object });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'extract-deal LLM call failed');
@@ -217,3 +235,18 @@ agentsRoutes.post('/extract-deal', async (c) => {
     );
   }
 });
+
+/// Scan free-text for the first plausible counterparty hint — either an
+/// Ethereum address (0x + 40 hex chars) or an email. Wallet match is
+/// preferred when both are present because a deal address is the more
+/// specific signal (you can email anyone; a wallet implies they're already
+/// on chain). Returns null when neither pattern hits.
+function scanCounterpartyHint(text: string): string | null {
+  const ADDRESS_RE = /\b0x[a-fA-F0-9]{40}\b/;
+  const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+  const addrMatch = text.match(ADDRESS_RE);
+  if (addrMatch) return addrMatch[0];
+  const emailMatch = text.match(EMAIL_RE);
+  if (emailMatch) return emailMatch[0].toLowerCase();
+  return null;
+}

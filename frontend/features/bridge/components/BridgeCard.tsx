@@ -67,8 +67,25 @@ function elapsed(ts: number, copy: { secondsTemplate: string; minutesTemplate: s
   if (s < 60) return copy.secondsTemplate.replace('{n}', String(s));
   const m = Math.floor(s / 60);
   if (m < 60) return copy.minutesTemplate.replace('{n}', String(m));
+  /// For bridges over 24 hours old, fold to an absolute date/time stamp.
+  /// "90H 36M" was unreadable as identification — users needed to know
+  /// WHEN a bridge happened, not how many hours have ticked since.
+  /// Same-day timestamps show time only; older days show date + time
+  /// so history rows are uniquely identifiable at a glance.
   const h = Math.floor(m / 60);
-  return copy.hoursTemplate.replace('{h}', String(h)).replace('{m}', String(m % 60));
+  if (h < 24) {
+    return copy.hoursTemplate.replace('{h}', String(h)).replace('{m}', String(m % 60));
+  }
+  const date = new Date(ts);
+  const now = new Date();
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: sameYear ? undefined : 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function phaseLabel(
