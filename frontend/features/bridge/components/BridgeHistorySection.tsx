@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { BridgeRow } from './BridgeCard';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
 
 const STUCK_AFTER_MS = 30 * 60 * 1000;
 

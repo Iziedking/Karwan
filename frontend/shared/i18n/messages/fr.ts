@@ -245,6 +245,7 @@ export const fr: Messages = {
       brand: 'Presse et marque',
       terms: 'Conditions',
       feedback: 'Retours',
+      contact: 'Contact',
     },
     networkLinks: {
       arcDocs: 'Docs Arc',

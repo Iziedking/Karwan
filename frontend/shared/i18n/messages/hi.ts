@@ -245,6 +245,7 @@ export const hi: Messages = {
       brand: 'प्रेस और ब्रांड',
       terms: 'शर्तें',
       feedback: 'फीडबैक',
+      contact: 'संपर्क',
     },
     networkLinks: {
       arcDocs: 'Arc दस्तावेज़',

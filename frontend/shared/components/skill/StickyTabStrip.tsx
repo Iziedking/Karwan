@@ -71,14 +71,33 @@ export function StickyTabStrip({
       ? 'color-mix(in srgb, var(--lp-band-dark) 70%, transparent)'
       : 'color-mix(in srgb, var(--lp-card) 70%, transparent)';
 
+  /// Outset box-shadow + horizontal clip-path is the bullet-proof full-bleed
+  /// technique. The nav element keeps its natural content width (so layout
+  /// math stays sane) and the box-shadow stretches a SOLID base color
+  /// horizontally 100vmax in both directions. clipPath crops the vertical
+  /// overflow so the shadow only paints in the strip's own row.
+  ///
+  /// The bleed uses the OPAQUE base colour (not the translucent surface)
+  /// because box-shadow doesn't pick up the nav's backdrop-filter — if we
+  /// used the translucent surface, the bleed area would alpha-blend through
+  /// to whatever's behind and look noticeably different from the frosted
+  /// strip area, which read to users as a hard cutoff. The frosted look
+  /// stays where it should (the actual nav area); the bleed is a quieter
+  /// solid colour that just extends the strip's "footprint" to viewport
+  /// edges so no cream/black sliver leaks through past the last tab.
+  const bleedColor = onDark ? 'var(--lp-band-dark)' : 'var(--lp-card)';
+  const bleedShadow = `0 0 0 100vmax ${bleedColor}`;
+  const dropShadow = stuck
+    ? onDark
+      ? '0 8px 24px -16px rgba(0,0,0,0.6)'
+      : '0 8px 24px -16px rgba(12,14,16,0.18)'
+    : '';
+  const combinedBoxShadow = dropShadow ? `${bleedShadow}, ${dropShadow}` : bleedShadow;
+
   return (
     <nav
       className={cn(
-        // `relative left-1/2 w-bleed -translate-x-1/2` is the scrollbar-aware
-        // full-bleed pattern (see .w-bleed in globals.css). Without this the
-        // nav inherited its parent's content width, leaving white slivers on
-        // the viewport edges where the surface didn't paint.
-        'sticky z-20 relative left-1/2 w-bleed -translate-x-1/2 transition-[background,border-color,box-shadow,backdrop-filter] duration-[var(--dur-fast)]',
+        'sticky z-20 transition-[background,border-color,box-shadow,backdrop-filter] duration-[var(--dur-fast)]',
         className,
       )}
       style={{
@@ -89,11 +108,11 @@ export function StickyTabStrip({
         backdropFilter: 'blur(14px) saturate(160%)',
         WebkitBackdropFilter: 'blur(14px) saturate(160%)',
         borderBottom: `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
-        boxShadow: stuck
-          ? onDark
-            ? '0 8px 24px -16px rgba(0,0,0,0.6)'
-            : '0 8px 24px -16px rgba(12,14,16,0.18)'
-          : 'none',
+        boxShadow: combinedBoxShadow,
+        /// Clip vertically tight to the strip's own box so the outset
+        /// bleed shadow only paints horizontally — never bleeds onto the
+        /// row above or below.
+        clipPath: 'inset(0 -100vmax)',
       }}
       aria-label="Section navigation"
     >

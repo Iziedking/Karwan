@@ -245,6 +245,7 @@ export const ar: Messages = {
       brand: 'الصحافة والعلامة التجارية',
       terms: 'الشروط',
       feedback: 'الملاحظات',
+      contact: 'تواصل معنا',
     },
     networkLinks: {
       arcDocs: 'وثائق Arc',

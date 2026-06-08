@@ -1,8 +1,10 @@
 ﻿'use client';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+
+const SUPPORT_EMAIL = 'support@karwan.site';
 
 /// Phantom-grade footer: cream backdrop, big white inner card with asymmetric
 /// rounded corners, logo+tagline block left of a three-column link grid,
@@ -65,6 +67,7 @@ export function SiteFooter() {
                 <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
                 <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
                 <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
+                <FooterContact label={t.productLinks.contact} />
               </FooterCol>
               <FooterCol title={t.columns.network}>
                 <FooterLink href="https://docs.arc.network" external>
@@ -262,6 +265,40 @@ function FooterLink({
     <Link href={href} className={className}>
       {inner}
     </Link>
+  );
+}
+
+/// Contact entry. Renders a button that, on click, swaps inline to expose
+/// the support email as a mailto link. Per the user's spec: don't put the
+/// address in the footer up front; reveal it when someone actually wants
+/// it. Keeps the column compact and discourages basic scraping.
+function FooterContact({ label }: { label: string }) {
+  const [revealed, setRevealed] = useState(false);
+  const className = cn(
+    'group inline-flex items-center gap-1.5 w-fit text-[13.5px] font-medium tracking-[-0.005em]',
+    'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
+  );
+  if (revealed) {
+    return (
+      <a href={`mailto:${SUPPORT_EMAIL}`} className={className}>
+        <span
+          aria-hidden
+          className="inline-block w-3 h-px bg-[var(--lp-accent)]"
+        />
+        <span className="inline-block">{SUPPORT_EMAIL}</span>
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={() => setRevealed(true)} className={className}>
+      <span
+        aria-hidden
+        className="inline-block w-0 h-px bg-[var(--lp-accent)] opacity-0 group-hover:opacity-100 group-hover:w-3 transition-[width,opacity] duration-200"
+      />
+      <span className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+        {label}
+      </span>
+    </button>
   );
 }
 

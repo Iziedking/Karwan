@@ -245,6 +245,7 @@ export const sw: Messages = {
       brand: 'Vyombo vya habari na chapa',
       terms: 'Masharti',
       feedback: 'Maoni',
+      contact: 'Wasiliana',
     },
     networkLinks: {
       arcDocs: 'Nyaraka za Arc',

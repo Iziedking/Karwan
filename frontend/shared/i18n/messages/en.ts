@@ -231,6 +231,7 @@ interface MessagesShape {
       brand: string;
       terms: string;
       feedback: string;
+      contact: string;
     };
     networkLinks: {
       arcDocs: string;
@@ -3696,6 +3697,7 @@ export const en: MessagesShape = {
       brand: 'Press and brand',
       terms: 'Terms',
       feedback: 'Feedback',
+      contact: 'Contact',
     },
     networkLinks: {
       arcDocs: 'Arc Docs',
