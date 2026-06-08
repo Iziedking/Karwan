@@ -46,7 +46,7 @@ Crypto and stablecoin work has real risks. The ones that apply here:
 - **Network outages.** Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.
 - **No fiat conversion guarantee.** If you sell USDC for local currency, that's between you and your exchange.
 - **Geographic and regulatory compliance is yours.** Karwan does not check whether USDC payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.
-- **Karwan is testnet right now.** You are not paid in real money. None of the deals on testnet have legal weight. We use testnet as a sandbox until the v2.D bundle plus an external audit clears the way to mainnet.
+- **Karwan is testnet right now.** You are not paid in real money. None of the deals on testnet have legal weight. Testnet is a sandbox; mainnet rolls out after the standard hardening pass.
 
 ## 5. Privacy snapshot
 

@@ -81,29 +81,9 @@ export default function DocsRoadmapPage() {
       <DocsH3 id="referral-marketing-rail">{t.next.referral.title}</DocsH3>
       <DocsP>{t.next.referral.body}</DocsP>
 
-      <DocsH3>{t.next.mainnet.title}</DocsH3>
-      <DocsList>
-        <DocsListItem>
-          <strong>{t.next.mainnet.items.audit.title}</strong>{' '}
-          {t.next.mainnet.items.audit.body}
-        </DocsListItem>
-        <DocsListItem>
-          <strong>{t.next.mainnet.items.safe.title}</strong>{' '}
-          {t.next.mainnet.items.safe.body}
-        </DocsListItem>
-        <DocsListItem>
-          <strong>{t.next.mainnet.items.coverage.title}</strong>{' '}
-          {t.next.mainnet.items.coverage.body}
-        </DocsListItem>
-      </DocsList>
-
       <DocsH3>{t.next.reach.title}</DocsH3>
       <DocsP>{t.next.reach.body}</DocsP>
       <DocsList>
-        <DocsListItem>
-          <strong>{t.next.reach.items.coverage.title}</strong>{' '}
-          {t.next.reach.items.coverage.body}
-        </DocsListItem>
         <DocsListItem>
           <strong>{t.next.reach.items.handbook.title}</strong>{' '}
           {t.next.reach.items.handbook.body}

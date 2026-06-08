@@ -42,13 +42,14 @@ import {
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getBrief } from '../db/briefs.js';
-import { createInvite, getInvite, markInviteUsed } from '../db/dealInvites.js';
+import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { sessionMismatchesClaim, viewerAddress, readSession } from '../auth/session.js';
 import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../emails/dealInvite.js';
+import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -388,6 +389,43 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
 
   const updated = await patchDeal(jobId, patch);
+  /// Human-readable change labels for the email body + the Telegram message
+  /// the notifier will render off the bus event. Built from `patch` so the
+  /// list only names fields that actually moved.
+  const changedLabels: string[] = [];
+  if (patch.dealAmountUsdc !== undefined) {
+    changedLabels.push(`Amount is now ${patch.dealAmountUsdc} USDC`);
+  }
+  if (patch.firstReleasePct !== undefined) {
+    changedLabels.push(
+      `Milestone split: ${patch.firstReleasePct}% on delivery / ${100 - patch.firstReleasePct}% on verification`,
+    );
+  }
+  if (patch.deadlineUnix !== undefined) {
+    changedLabels.push(
+      patch.deadlineUnix
+        ? `Delivery window updated to ${formatWindowLabel({ days: body.deadlineDays, hours: body.deadlineHours })}`
+        : 'Delivery deadline removed (open-ended)',
+    );
+  }
+  if (patch.acceptanceDeadlineUnix !== undefined) {
+    changedLabels.push(
+      `Acceptance window updated to ${formatWindowLabel({ hours: body.acceptanceWindowHours })}`,
+    );
+  }
+  if (patch.terms !== undefined) {
+    changedLabels.push('Work description updated');
+  }
+  if (patch.requireStake !== undefined) {
+    changedLabels.push(
+      patch.requireStake
+        ? `Trusted-match enabled (${patch.requireStakePct ?? deal.requireStakePct ?? 50}% stake)`
+        : 'Trusted-match disabled',
+    );
+  } else if (patch.requireStakePct !== undefined && deal.requireStake) {
+    changedLabels.push(`Stake requirement updated to ${patch.requireStakePct}%`);
+  }
+
   bus.emitEvent({
     type: 'deal.direct.edited',
     jobId,
@@ -396,8 +434,49 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
       buyer: deal.buyer,
       seller: deal.seller,
       fields: Object.keys(patch),
+      changedLabels,
     },
   });
+  /// Pending-invite recipients haven't signed in yet, so the Telegram path
+  /// can't reach them. Send a branded update email to the address on the
+  /// invite record. Fire-and-forget so a transient send failure never blocks
+  /// the edit response — the buyer still gets a 200 either way.
+  const pendingEmail = updated?.pendingCounterparty?.email ?? null;
+  const pendingInvite = pendingEmail ? getInviteByJob(jobId) : null;
+  if (updated && pendingInvite && pendingEmail) {
+    const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
+    const claimUrl = `${base}/invite/${pendingInvite.token}`;
+    const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
+    /// Only include the deadline block when the edit actually touched a
+    /// timing field. A pure amount or terms edit shouldn't re-anchor the
+    /// recipient on numbers that didn't change.
+    const includeWindow =
+      patch.acceptanceDeadlineUnix !== undefined ||
+      patch.deadlineUnix !== undefined;
+    void sendDealUpdateEmail({
+      to: pendingEmail,
+      claimUrl,
+      dealAmountUsdc: updated.dealAmountUsdc,
+      inviterMasked: maskedInviter,
+      changedLabels,
+      ...(includeWindow && body.acceptanceWindowHours !== undefined
+        ? { acceptanceLabel: formatWindowLabel({ hours: body.acceptanceWindowHours }) }
+        : {}),
+      ...(includeWindow && (body.deadlineDays !== undefined || body.deadlineHours !== undefined)
+        ? {
+            deliveryLabel: formatWindowLabel({
+              days: body.deadlineDays,
+              hours: body.deadlineHours,
+            }),
+          }
+        : {}),
+    }).catch((err) => {
+      logger.warn(
+        { err: (err as Error).message, jobId, to: pendingEmail },
+        'deal update email send threw',
+      );
+    });
+  }
   return c.json({ accepted: true, jobId, deal: updated }, 200);
 });
 

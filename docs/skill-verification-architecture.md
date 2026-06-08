@@ -149,7 +149,7 @@ Per privacy research, three disclosure layers controlled per channel:
 
 **Anon-seller case**: stake-as-insurance + reputation tier remain valid trust legs without verification. Per agent-risk-escalation principle, unverified ≠ auto-decline. Match score stays competitive when stake and rep compensate; the HARD filter is the only path that excludes them entirely, and it costs the buyer.
 
-**GDPR posture** (per privacy research, for mainnet): 30-day erasure SLA on attestation revocation, breach scope limited to salted-handle-hash leak surface, retention windows by claim type (90d activity, 365d stable). Ship as a public verification policy page before mainnet.
+**GDPR posture**: 30-day erasure SLA on attestation revocation, breach scope limited to salted-handle-hash leak surface, retention windows by claim type (90d activity, 365d stable). Surfaced as a public verification policy page.
 
 ### 6. Cold-start + UX
 

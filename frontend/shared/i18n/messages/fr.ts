@@ -2892,7 +2892,7 @@ export const fr: Messages = {
       mutualCancel: { label: 'Annulation mutuelle.', body: 'Chaque partie peut proposer une annulation. Si l\'autre accepte, l\'escrow rembourse et personne ne prend de coup à la réputation.' },
       dispute: { label: 'Litige.', body: 'Un acheteur peut ouvrir un litige depuis l\'état financé ou livré. Chaque partie peut résoudre le litige via le contrat d\'escrow, ce n\'est donc pas une trappe à sens unique. Le résultat est inscrit dans la réputation on-chain.' },
     },
-    callout: { title: 'SUR ARC TESTNET AUJOURD\'HUI', body: 'Tous les deals sur Karwan aujourd\'hui se règlent en USDC testnet sur Arc Testnet, qui n\'a aucune valeur réelle. Le mainnet sortira après que les contrats passeront un audit externe professionnel.' },
+    callout: { title: 'SUR ARC TESTNET AUJOURD\'HUI', body: 'Tous les deals sur Karwan aujourd\'hui se règlent en USDC testnet sur Arc Testnet, qui n\'a aucune valeur réelle. Le rendement de trésorerie via le vrai Hashnote USYC est déjà actif sur testnet.' },
   },
   docsFaqPage: {
     eyebrow: 'FAQ',
@@ -3008,7 +3008,7 @@ export const fr: Messages = {
         },
       },
     },
-    callout: { title: 'TESTNET AUJOURD\'HUI', body: "Tout ce qui est en ligne sur Karwan tourne sur Arc Testnet, donc l'USDC de testnet n'a aucune valeur réelle. Les éléments mainnet, y compris le rendement de trésorerie via Hashnote USYC, sont livrés après que les contrats passent un audit externe professionnel." },
+    callout: { title: 'TESTNET AUJOURD\'HUI', body: "Tout ce qui est en ligne sur Karwan tourne sur Arc Testnet, donc l'USDC de testnet n'a aucune valeur réelle. Le rendement de trésorerie via le vrai Hashnote USYC est déjà actif sur testnet." },
   },
   howItWorksPage: {
     header: { eyebrow: 'Documentation', title: 'Comment fonctionne Karwan', body: 'Karwan sécurise des USDC en séquestre pendant qu\'un service est livré. Il existe deux façons d\'ouvrir une transaction, sous une seule épine de règlement. Voici le pas à pas: les flux, les appels on-chain et les produits Circle qui les portent. Chaque étape est une transaction réelle sur Arc Testnet.' },
@@ -3136,7 +3136,7 @@ export const fr: Messages = {
         outage: { label: 'Pannes réseau.', body: 'Arc Testnet est un banc d\'essai en direct. Si les validateurs s\'arrêtent, si les fournisseurs RPC tombent en panne, ou si une réorganisation de la chaîne se produit, votre transaction peut s\'interrompre ou revenir en arrière.' },
         fiat: { label: 'Aucune garantie de conversion fiat.', body: 'Si vous vendez des USDC contre la monnaie locale, c\'est entre vous et votre exchange.' },
         regulatory: { label: 'La conformité géographique et réglementaire vous incombe.', body: 'Karwan ne vérifie pas si les paiements USDC sont légaux là où vous vivez. Certaines juridictions restreignent les paiements en stablecoin, le travail médié par un agent, ou le séquestre peer-to-peer. Vous êtes responsable de connaître vos propres règles.' },
-        testnet: { label: 'Karwan est en testnet en ce moment.', body: 'Vous n\'êtes pas payé en argent réel. Aucune des transactions sur testnet n\'a de poids juridique. Nous utilisons le testnet comme bac à sable jusqu\'à ce que le bundle v2.D plus un audit externe ouvre la voie au mainnet.' },
+        testnet: { label: 'Karwan est en testnet en ce moment.', body: 'Vous n\'êtes pas payé en argent réel. Aucune des transactions sur testnet n\'a de poids juridique. Le testnet est un bac à sable; le mainnet sera déployé après le passage de durcissement standard.' },
       },
     },
     s5: {

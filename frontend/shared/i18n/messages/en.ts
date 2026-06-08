@@ -6430,7 +6430,7 @@ export const en: MessagesShape = {
     },
     callout: {
       title: 'ON ARC TESTNET TODAY',
-      body: 'All deals on Karwan today settle in testnet USDC on Arc Testnet, which has no real value. Mainnet ships after the contracts pass a professional external audit.',
+      body: 'All deals on Karwan today settle in testnet USDC on Arc Testnet, which has no real value. Treasury yield through real Hashnote USYC is already live on testnet.',
     },
   },
   docsFaqPage: {
@@ -6550,7 +6550,7 @@ export const en: MessagesShape = {
     },
     callout: {
       title: 'TESTNET TODAY',
-      body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Treasury yield through real Hashnote USYC is already live on testnet. Mainnet ships after the contracts pass a professional external audit.',
+      body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Treasury yield through real Hashnote USYC is already live on testnet.',
     },
   },
   howItWorksPage: {

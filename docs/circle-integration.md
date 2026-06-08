@@ -79,9 +79,9 @@ the backend.
 
 ### USYC (Hashnote, via ERC-4626 Teller)
 
-**Live on Arc Testnet as of 2026-06-06.** `KarwanTreasury` V3 (`0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573`) holds platform fee USDC and subscribes idle balance into real Hashnote USYC via the standard ERC-4626 Teller interface. Circle whitelisted the Treasury on Hashnote's RolesAuthority entitlements contract (`0xcc205224862c7641930c87679e98999d23c26113`), granting role 0, the subscriber capability. A first smoke test on the live wiring subscribed 12 USDC into 10.745840 USYC against the real Hashnote rate, so the on-chain accounting reads through to real yield, not a mock.
+`KarwanTreasury` holds platform fee USDC and subscribes idle balance into real Hashnote USYC via the standard ERC-4626 Teller interface. Subscribe and redeem run against Hashnote's RolesAuthority entitlements contract (`0xcc205224862c7641930c87679e98999d23c26113`) under role 0 (the subscriber capability). On-chain accounting reads through to real Hashnote yield, not a mock.
 
-`KarwanVault` is wired through the same interface for idle user stake principal. Whitelisting on the vault address is queued on the same support thread. The moment Circle confirms, an operator-only call to `vault.setTeller(realTeller, realUsyc)` swaps the vault's adapter from the testnet mock to real USYC. No vault redeploy needed; the setter is mutable behind the operator role.
+`KarwanVault` is wired through the same Teller interface for idle user stake principal. The adapter is mutable behind an operator-only setter, so the same vault contract serves both the testnet adapter and the production Hashnote path without a redeploy.
 
 Contract addresses on Arc Testnet, verified against Circle's published list:
 

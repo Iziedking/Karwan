@@ -2892,7 +2892,7 @@ export const sw: Messages = {
       mutualCancel: { label: 'Kufuta kwa pamoja.', body: 'Upande wowote unaweza kupendekeza kufuta. Kama mwingine atakubali, escrow inarudisha pesa na hakuna upande unaopata pigo la sifa.' },
       dispute: { label: 'Mzozo.', body: 'Mnunuzi anaweza kuanzisha mzozo kutoka hali ya kufadhiliwa au kuwasilishwa. Upande wowote unaweza kutatua mzozo kupitia mkataba wa escrow, kwa hivyo hali ya mzozo si mlango wa upande mmoja. Matokeo yanaingia kwenye rekodi ya sifa kwenye chain.' },
     },
-    callout: { title: 'KWENYE ARC TESTNET LEO', body: 'Deal zote kwenye Karwan leo zinakamilika katika USDC ya testnet kwenye Arc Testnet, ambayo haina thamani halisi. Mainnet itazinduliwa baada ya mikataba kupita ukaguzi wa kitaalamu wa nje.' },
+    callout: { title: 'KWENYE ARC TESTNET LEO', body: 'Deal zote kwenye Karwan leo zinakamilika katika USDC ya testnet kwenye Arc Testnet, ambayo haina thamani halisi. Mavuno ya hazina kupitia Hashnote USYC halisi yanaendesha tayari kwenye testnet.' },
   },
   docsFaqPage: {
     eyebrow: 'MASWALI',
@@ -3008,7 +3008,7 @@ export const sw: Messages = {
         },
       },
     },
-    callout: { title: 'TESTNET LEO', body: 'Kila kitu kinachoendesha kwenye Karwan kinaendesha kwenye Arc Testnet, kwa hiyo USDC ya testnet haina thamani halisi. Vipengele vya mainnet, ikiwa ni pamoja na mavuno ya hazina kupitia Hashnote USYC, vinasafirishwa baada ya mikataba kupita ukaguzi wa nje wa kitaalamu.' },
+    callout: { title: 'TESTNET LEO', body: 'Kila kitu kinachoendesha kwenye Karwan kinaendesha kwenye Arc Testnet, kwa hiyo USDC ya testnet haina thamani halisi. Mavuno ya hazina kupitia Hashnote USYC halisi yanaendesha tayari kwenye testnet.' },
   },
   howItWorksPage: {
     header: { eyebrow: 'Nyaraka', title: 'Jinsi Karwan inavyofanya kazi', body: 'Karwan inahifadhi USDC katika escrow huku huduma ikitolewa. Kuna njia mbili za kufungua deal, mhimili mmoja wa malipo chini yake. Hii ni mwendo wa hatua kwa hatua: mitiririko, simu za on-chain, na bidhaa za Circle zinazoziendesha. Kila hatua ni muamala halisi kwenye Arc Testnet.' },

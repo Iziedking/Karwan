@@ -87,8 +87,8 @@ Karwan ships two principal contracts, not one.
 - **`KarwanEscrow`** runs the deal. Milestone funding, 150-bps platform fee
   split evenly between buyer and seller, release in tranches, review-window
   auto-release, dispute path, mutual-cancel taxonomy.
-- **`KarwanVault`** runs the reputation stake. Users deposit USDC to lift their tier, deposits are withdrawable anytime with a 3-day cooling window for fraud checks. The vault is wired to route idle stake through Hashnote USYC, so locked principal earns a real tokenized T-bill yield. Vault USYC routing flips live the moment Circle whitelists the vault address on Hashnote's RolesAuthority (Treasury V3 was whitelisted on 2026-06-06; vault follow-up is queued on the same ticket).
-- **`KarwanTreasury` V3** holds platform fees and parks idle USDC in real Hashnote USYC on Arc Testnet. Live since 2026-06-06. Subscribe and redeem run against Hashnote's ERC-4626 Teller, so the on-chain accounting reads through to real yield, not a mock.
+- **`KarwanVault`** runs the reputation stake. Users deposit USDC to lift their tier, deposits are withdrawable anytime with a 3-day cooling window for fraud checks. The vault routes through an ERC-4626 yield adapter, so stake principal earns alongside the reputation work it does.
+- **`KarwanTreasury`** holds platform fees and parks idle USDC in real Hashnote USYC on Arc. Subscribe and redeem run against Hashnote's ERC-4626 Teller interface, so on-chain accounting reads through to a real tokenized T-bill yield, not a mock.
 
 
 ## Cross-chain ingress: CCTP V2
@@ -136,77 +136,35 @@ right CTA without forcing you to choose Sign In vs Create Account up front.
 
 ## Five languages at launch
 
-The product ships with English, Arabic (RTL), French, Hindi, and Swahili.
-Settings page, top navigation, onboarding language step, Telegram
-notifications, and email templates are localized today. The RTL layout
-audit and full string-extraction sweep ride v2.
+The product ships in English, Arabic (RTL), French, Hindi, and Swahili. Settings, top navigation, onboarding language step, Telegram notifications, and email templates are localized.
 
-The five languages cover several of the trade corridors where bank rails
-are slowest today, including the Gulf, North and West Africa, the Indian
-subcontinent, and East Africa. The product itself is global; the language
-roster grows with where the deals are coming from.
+The five languages cover several of the trade corridors where bank rails are slowest today, including the Gulf, North and West Africa, the Indian subcontinent, and East Africa. The product is global; the language roster grows with where the deals are coming from.
 
-## What we explicitly do not claim
+## A few notes for builders reading the source
 
-- **The current contracts are not externally audited.** They have a Foundry
-  test suite and an internal review that caught and fixed six findings before
-  the v2.D redeploy. A professional audit is the gate before any deployment
-  holding live USDC.
-- **Standard CCTP V2 attestation takes 10-19 minutes** on Sepolia testnets.
-  Fast Transfer would cut this to seconds, at a fee Circle takes. Karwan
-  uses Standard Transfer for now to keep the relay path simple.
-- **The buyer-dispute-refund vector is closed.** A seller's active stake
-  reserves against every accepted deal; a failed dispute outcome slashes
-  the reservation to the buyer. Insurance, not just a reputation hit.
-  Logged here as historical because it shaped v2.D.
+- **Standard CCTP V2 attestation takes 10-19 minutes** on Sepolia testnets. Fast Transfer would cut this to seconds for a small Circle fee. Karwan ships Standard today to keep the relay path simple.
+- **The buyer-dispute-refund attack is closed.** A seller's active stake reserves against every accepted deal; a failed dispute outcome slashes the reservation to the buyer. Insurance, not just a reputation hit.
 
-## What is shipped today (v2.A through v2.E)
+## What is shipped
 
-The bundle that was scoped for v2 is mostly live on Arc Testnet.
+- **Versioned Terms and Conditions** with first-signup consent and a re-prompt on version bumps.
+- **Hardened staking as deal insurance.** `acceptEscrow` reserves `dealAmount × reservationBps` from the seller's free stake; a `Failed` outcome slashes the reservation to the buyer. The reservation slider lives on the per-deal accept panel; the default is 30% but the buyer sets it per deal.
+- **Agent intelligence.** Asymmetric negotiation walk with per-side prompts, trending-skill price aggregator feeding the LLM reasoning, opening-bid anchoring, cascading candidate queue. Trusted Match mode is the strict variant that gates bidding on stake and on reputation tier.
+- **Real Hashnote USYC on Treasury.** Platform fee USDC subscribes into real USYC via Hashnote's ERC-4626 Teller, the same interface mainnet uses. Yield reads through to real Hashnote rates, not a mock.
+- **Credit Passport public page.** Every wallet has a public reputation surface at `/credit-passport/0x...` rendering tier, score, term breakdown, deal count, success ratio, stake position, and the on-chain anchor. No login.
+- **SIWE, Settings, i18n, guided coachmark tours, shareable deal links, cashout, extension requests** all ship in product.
 
-- **v2.C: Versioned Terms and Conditions** with first-signup consent and a
-  re-prompt when the version bumps.
-- **v2.D: Hardened staking as deal insurance.** `acceptEscrow` reserves
-  `dealAmount × reservationBps` from the seller's free stake; a `Failed`
-  outcome slashes the reservation to the buyer. Bundled with audit fixes
-  B.1, B.2, C.1, C.4 in a single redeploy. The reservation slider lives on
-  the per-deal accept panel; the default is 30% but the buyer sets it per
-  deal.
-- **v2.E: Agent intelligence upgrade.** Asymmetric negotiation walk with
-  per-side prompts, trending-skill price aggregator feeding the LLM
-  reasoning, opening-bid anchoring, cascading candidate queue. Trusted
-  Match mode is the strict variant that gates bidding on stake and on
-  reputation tier.
-- **Real Hashnote USYC live on Treasury V3 (2026-06-06).** KarwanTreasury V3 was whitelisted on Hashnote's RolesAuthority (role 0, the subscriber capability) and subscribed real USYC against Circle's published Arc Testnet addresses. The path runs through the same ERC-4626 Teller interface mainnet uses. Vault USYC routing is queued on the same support thread and flips live as soon as Circle confirms the second whitelist.
-- **Phase 2 d6-7: Credit Passport public page.** Every wallet has a
-  public reputation surface at `/credit-passport/0x...` rendering tier,
-  score, term breakdown, deal count, success ratio, stake position, and
-  the on-chain anchor. No login.
-- **SIWE + Settings + i18n framework + guided coachmark tours + shareable
-  deal links + cashout + extension requests** all shipped on the same
-  release train.
+## What is next
 
-## What is coming
+Two product expansions are in flight.
 
-The next phase expands along three tracks. Each one is partly built; the headline below is what closes it out.
+### SME trade rails with x402 nanopayments for agents
 
-### Full SME trade rails with x402 nanopayment for agents
-
-The b2b path needs richer context than p2p. A supplier negotiating a six-figure invoice cares about market medians, current shipping rates, and a buyer's payment history more than a freelancer pricing a logo does. We wire Circle's x402 micropayment surface into both the buyer and seller agents, so every negotiation round can pull a fresh outside signal for thousandths of a cent. Market rate medians from paid APIs, skill demand snapshots, news during a review window, deeper credit checks against the passport. The marketplace stops pricing against our cached view and starts pricing against the real world.
+The b2b path needs richer context than p2p. A supplier negotiating a six-figure invoice cares about market medians, shipping rates, and a buyer's payment history more than a freelancer pricing a logo does. Circle's x402 micropayment surface wires into both buyer and seller agents so every negotiation round can pull a fresh outside signal for thousandths of a cent. Market medians from paid APIs, skill demand snapshots, news during a review window, deeper credit checks against the passport. The marketplace prices against the real world, not a cached view.
 
 ### Invoice factoring with tier-based discounts
 
-A seller does not always want to wait for the deal to settle. A financier steps in, pays the seller right away at a small discount, and on release the escrow routes to the financier instead of the seller. The seller got their money early, the financier earned a small spread, the buyer paid the same total they were always going to pay. The discount the financier charges depends on the seller's tier. Strong on-chain track record gets factored at a tighter spread because the risk is lower. A new seller pays a wider spread because there is more uncertainty for the financier to underwrite. Reputation finally has a number that lenders care about.
-
-### Vault USYC and the rest of the hardening list
-
-- **Vault USYC routing** flips the moment Circle confirms the second whitelist on Hashnote's RolesAuthority. Idle stake principal earns the same real Hashnote yield rate that Treasury V3 already does.
-- **Symmetric reputation crediting** so both buyer and seller earn an on-chain Success record on a clean settlement.
-- **External smart contract audit** as the gate before any mainnet exposure.
-- **Safe multisig treasury** replacing the deployer EOA before the contracts go mainnet.
-- **Foundry coverage above 80%** on the escrow and vault branches.
-- **Full UI string extraction and RTL audit** so Arabic gets a real layout pass instead of falling back to English.
-- **GitBook handbook** for buyers, sellers, financiers, and agent operators.
+A seller does not always want to wait for settlement. A financier steps in, pays the seller right away at a small discount, and on release the escrow routes to the financier. The seller got their money early, the financier earned a small spread, the buyer paid the same total. The discount depends on the seller's tier. A strong on-chain record gets factored at a tighter spread because the risk is lower. A new seller pays a wider spread for the uncertainty. Reputation finally has a number that lenders care about.
 
 ## Technical approach in one paragraph
 

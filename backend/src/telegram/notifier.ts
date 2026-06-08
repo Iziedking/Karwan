@@ -67,6 +67,7 @@ const RELEVANT = new Set([
   'deal.match.declined',
   'negotiation.near-miss',
   'deal.direct.created',
+  'deal.direct.edited',
   'deal.accepted',
   'deal.delivered',
   'deal.review.started',
@@ -277,6 +278,23 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
           : `*Deal opened* with ${short(e.payload?.seller)}${amount ? ` at ${amount} USDC` : ''}. Waiting for them to accept.`,
         url,
       );
+    case 'deal.direct.edited': {
+      /// Buyer pre-accept edit. The recipient may have read the original
+      /// invite and walked away; this lands in their feed so they know to
+      /// re-check before they accept. Render the change list inline so the
+      /// recipient sees what moved without leaving Telegram.
+      const labels = (e.payload?.changedLabels as string[] | undefined) ?? [];
+      const lines =
+        labels.length > 0
+          ? labels.slice(0, 4).map((l) => `• ${l}`).join('\n')
+          : 'Open the deal to see the updated terms.';
+      return withLink(
+        role === 'seller'
+          ? `*Buyer updated the deal* before you accepted.\n${lines}`
+          : `*You updated the deal.* The other side will see the new terms when they open it.`,
+        url,
+      );
+    }
     case 'deal.accepted':
       return withLink('*Deal accepted*. The escrow is funded and the seller can start.', url);
     case 'deal.delivered':
