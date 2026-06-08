@@ -11,7 +11,7 @@ import type { Query } from '@tanstack/react-query';
 /// changes; a mismatch wipes the entire cache rather than handing a stale
 /// shape to a new code path. Tied to the deploy tag so a redeploy with a
 /// schema change automatically discards old blobs.
-const BUSTER = 'rq-v2-2026-06-06';
+const BUSTER = 'rq-v3-2026-06-08-yield-out';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const STORAGE_KEY = 'karwan:rq-cache';
 
@@ -21,13 +21,20 @@ const STORAGE_KEY = 'karwan:rq-cache';
 /// that has since moved on. The "old deals flash on home / profile" bug
 /// was the deal-list cache being rehydrated with snapshots from before the
 /// deals settled or cancelled.
+///
+/// `yield` was previously persisted but caused a documented flash on
+/// /stake: a 4.90 USDC persisted snapshot painted first, then a fresh
+/// fetch reconciled to 2.80 because a daily distribution / claim had
+/// landed between sessions. Yield numbers represent real money owed to the
+/// user — they must be accurate or absent, never wrong-and-then-correct.
+/// Now refetched fresh on every mount; first paint shows the existing
+/// loading state (driven by query.isPending) instead of a stale value.
 const PERSISTABLE_PREFIXES = new Set([
   'reputation',
   'profile',
   'wallet-overview',
   'balances',
   'vault',
-  'yield',
   'api', // status + dealsStats: network-wide counters, fine to seed
   'terms',
   'activation',
