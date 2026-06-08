@@ -71,6 +71,12 @@ export function IntakeShell({
   const router = useRouter();
   const search = useSearchParams();
 
+  /// Form mode is the default on every visit. Drop the localStorage
+  /// persistence the previous version had — even after we changed the
+  /// initial state to 'form', users who'd previously picked 'text' kept
+  /// landing on text because the effect read the saved value and overrode
+  /// the default. Fill the form is the primary path; Type it out is an
+  /// in-session opt-in only.
   const [mode, setMode] = useState<Mode>('form');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -78,22 +84,19 @@ export function IntakeShell({
   const [notes, setNotes] = useState<string[]>([]);
   const [formKey, setFormKey] = useState(0);
 
+  /// Wipe the legacy mode key once so existing 'text' entries don't sit
+  /// around as dead storage. No-op on private windows / unsupported
+  /// environments.
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(storageKey) as Mode | null;
-      if (saved === 'text' || saved === 'form') setMode(saved);
+      localStorage.removeItem(storageKey);
     } catch {
-      // ignore (private windows etc.)
+      // ignore
     }
   }, [storageKey]);
 
   const pickMode = (next: Mode) => {
     setMode(next);
-    try {
-      localStorage.setItem(storageKey, next);
-    } catch {
-      // ignore
-    }
   };
 
   const submit = async () => {

@@ -101,7 +101,12 @@ export function StickyTabStrip({
         role="tablist"
         // Mobile: horizontal scroll, each tab sized to content so labels never
         // wrap. Desktop (md+): equal-width grid columns as designed in §4.5.
-        className="mx-auto max-w-[1320px] flex md:grid overflow-x-auto md:overflow-visible no-scrollbar"
+        // The mask-image fade on both edges signals "there's more to scroll"
+        // without showing a scrollbar — the previous version cut off the last
+        // tab mid-word with no scroll affordance, which read as a layout bug
+        // rather than horizontal-scroll content. Fade is invisible on md+
+        // where every tab fits in the grid.
+        className="mx-auto max-w-[1320px] flex md:grid overflow-x-auto md:overflow-visible no-scrollbar md:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_20px,black_calc(100%_-_28px),transparent_100%)]"
         style={{
           gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
           padding: '0 clamp(16px, 4vw, 56px)',
