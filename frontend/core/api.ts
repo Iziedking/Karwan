@@ -207,6 +207,30 @@ export interface UserProfile {
 }
 
 // KarwanEscrow.EscrowState: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
+/// Invoice factoring offer (Phase 2 Track 2). Mirrors backend
+/// db/factoring.ts FactoringOffer interface. Status drives the
+/// state machine UI on both the financier and the seller side.
+export interface FactoringOffer {
+  id: string;
+  invoiceId: string;
+  financier: string;
+  seller: string;
+  faceValueUsdc: string;
+  offeredAdvanceUsdc: string;
+  expectedReturnUsdc: string;
+  discountBps: number;
+  status: 'offered' | 'accepted' | 'rejected' | 'expired' | 'settled' | 'defaulted';
+  offeredAt: number;
+  expiresAt: number;
+  acceptedAt?: number;
+  rejectedAt?: number;
+  settledAt?: number;
+  setPayeeTxHash?: string;
+  advanceTxHash?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface DirectDealOnChain {
   state: number;
   milestonesReleased: number;
@@ -1693,6 +1717,47 @@ export const api = {
     json<{ ok: true }>('/api/telegram/link/remove', {
       method: 'POST',
       body: JSON.stringify({ address }),
+    }),
+  // Invoice factoring (Phase 2 Track 2). Lists are public; mutations
+  // require auth + match the caller against the relevant party.
+  listFactoringAvailable: (params?: { sector?: string; region?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.sector) qs.set('sector', params.sector);
+    if (params?.region) qs.set('region', params.region);
+    const q = qs.toString();
+    return json<{ deals: DirectDeal[] }>(
+      `/api/factoring/available${q ? `?${q}` : ''}`,
+    );
+  },
+  postFactoringOffer: (body: {
+    invoiceId: string;
+    offeredAdvanceUsdc: string;
+    expectedReturnUsdc: string;
+    expiresInHours?: number;
+  }) =>
+    json<{ offer: FactoringOffer }>('/api/factoring/offer', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listOffersForInvoice: (invoiceId: string) =>
+    json<{ offers: FactoringOffer[] }>(`/api/factoring/offers/${invoiceId}`),
+  listMyFactoringOffers: () =>
+    json<{ asFinancier: FactoringOffer[]; asSeller: FactoringOffer[] }>(
+      '/api/factoring/mine',
+    ),
+  acceptFactoringOffer: (body: {
+    offerId: string;
+    setPayeeTxHash?: string;
+    advanceTxHash?: string;
+  }) =>
+    json<{ offer: FactoringOffer }>('/api/factoring/accept', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  rejectFactoringOffer: (body: { offerId: string }) =>
+    json<{ offer: FactoringOffer }>('/api/factoring/reject', {
+      method: 'POST',
+      body: JSON.stringify(body),
     }),
   // SME profile (Phase 2 Track 2). Public passport read (no auth) +
   // authenticated self-edit. taxId is never round-tripped through this
