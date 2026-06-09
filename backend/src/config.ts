@@ -43,6 +43,13 @@ const envSchema = z.object({
 
   KARWAN_JOBBOARD_ADDR: optionalAddr,
   KARWAN_ESCROW_ADDR: optionalAddr,
+  /// SME trade-finance bundle (deployed 2026-06-09). Document anchors +
+  /// factoring payee redirect + PoD acceptance live in the registry;
+  /// single-funder PO financing custody lives in the PO contract. Both
+  /// optional so the backend boots without them set; SME routes return
+  /// 503 with a clear message when unset.
+  KARWAN_INVOICE_REGISTRY_ADDR: optionalAddr,
+  KARWAN_PO_FINANCING_ADDR: optionalAddr,
   /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
   /// users with funds still locked on the legacy contract (Funded or
   /// pre-v2.D "accepted" but never delivered) can refund / cancel from

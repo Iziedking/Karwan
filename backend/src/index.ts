@@ -33,6 +33,10 @@ import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
 import { siweRoutes } from './routes/siwe.js';
+import { tradeRoutes } from './routes/trade.js';
+import { factoringRoutes } from './routes/factoring.js';
+import { poFinancingRoutes } from './routes/poFinancing.js';
+import { smeRoutes } from './routes/sme.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { circleWebhookRoutes } from './routes/circle-webhook.js';
 import {
@@ -157,6 +161,11 @@ app.route('/api/terms', termsRoutes);
 app.route('/api/x', xRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/siwe', siweRoutes);
+// SME trade-finance rail (Phase 2 Track 2).
+app.route('/api/trade', tradeRoutes);
+app.route('/api/factoring', factoringRoutes);
+app.route('/api/po-financing', poFinancingRoutes);
+app.route('/api/sme', smeRoutes);
 app.route('/api/feedback', feedbackRoutes);
 app.route('/api/circle', circleWebhookRoutes);
 

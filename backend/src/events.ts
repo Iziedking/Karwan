@@ -88,7 +88,20 @@ export type KarwanEventType =
   | 'wallet.credited'
   | 'wallet.debited'
   | 'circle.webhook'
-  | 'system.error';
+  | 'system.error'
+  // SME trade-finance rail.
+  | 'trade.document.anchored'
+  | 'trade.pod.accepted'
+  | 'factoring.offered'
+  | 'factoring.accepted'
+  | 'factoring.rejected'
+  | 'factoring.settled'
+  | 'factoring.defaulted'
+  | 'po.funded'
+  | 'po.released'
+  | 'po.repaid'
+  | 'po.reclaimed'
+  | 'po.defaulted';
 
 export interface KarwanEvent {
   type: KarwanEventType;
