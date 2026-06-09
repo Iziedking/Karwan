@@ -754,44 +754,56 @@ export function BridgeRow({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-start p-3 ps-4 flex items-center gap-3"
+        className="w-full text-start p-4 ps-5 flex items-center gap-3"
       >
-        <RouteGlyph from={bridge.sourceChainKey} size={22} />
+        {/* Hero amount + subtitle. The chain glyphs and time chip used to
+            compete with the amount for attention; this layout puts the
+            number first, route + time as a quiet subtitle below. */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="font-sans text-[18px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-sans text-[22px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(bridge.amountUsdc, { withSuffix: false })}
             </span>
-            <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
+            <span className="text-[11px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
               USDC
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <PhaseChip tone={tone} label={phaseLabel(bridge.phase, copy.phase, meta.shortName)} />
-            <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none tabular-nums">
+          <div className="mt-1.5 text-[11px] text-[var(--lp-text-sub)] tabular-nums truncate">
+            from {meta.shortName}
+            <span className="mx-1.5 text-[var(--lp-text-muted)]">·</span>
+            <span className="mono text-[var(--lp-text-muted)]">
               {elapsed(bridge.startedAt, copy.elapsed)}
             </span>
             {isStuck && (
-              <span
-                className="text-[10px] mono uppercase tracking-[0.14em] leading-none px-1.5 py-0.5 font-bold"
-                style={{
-                  background: 'rgba(178,84,37,0.10)',
-                  color: TONE_HEX.warning,
-                  border: '1px solid rgba(178,84,37,0.30)',
-                  borderTopLeftRadius: 4,
-                  borderTopRightRadius: 4,
-                  borderBottomLeftRadius: 4,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                {copy.stale}
-              </span>
+              <>
+                <span className="mx-1.5 text-[var(--lp-text-muted)]">·</span>
+                <span
+                  className="mono text-[10px] uppercase tracking-[0.14em] font-bold"
+                  style={{ color: TONE_HEX.warning }}
+                >
+                  {copy.stale}
+                </span>
+              </>
             )}
           </div>
         </div>
+        {/* Single status pill. Active phases append a step counter
+            (e.g. "ATTESTING · 2/4") so the 4-segment progress bar can be
+            retired entirely. Terminal phases show just the label. */}
+        <StatusPill
+          tone={tone}
+          label={phaseLabel(bridge.phase, copy.phase, meta.shortName)}
+          stepIdx={idx + 1}
+          totalSteps={STEP_ORDER.length}
+          isInflight={
+            tone === 'live' &&
+            bridge.phase !== 'done' &&
+            bridge.phase !== 'error'
+          }
+        />
         <svg
-          width="10"
-          height="10"
+          width="12"
+          height="12"
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden
@@ -808,10 +820,6 @@ export function BridgeRow({
           />
         </svg>
       </button>
-
-      <div className="px-3 pb-3">
-        <SegmentedProgress idx={idx} tone={tone} copy={copy.progress} />
-      </div>
 
       {expanded && (
         <div className="border-t border-[var(--lp-border-light)] px-3 py-3 space-y-3">
@@ -1117,6 +1125,66 @@ function ErrorBanner({
       </div>
       <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">{message}</p>
     </div>
+  );
+}
+
+/// Single status pill for the redesigned bridge row. Replaces PhaseChip +
+/// SegmentedProgress as the only visual color: terminal phases show just
+/// the label (BRIDGED, FAILED); in-flight phases append a step counter so
+/// the user still sees forward progress without the 4-segment bar fighting
+/// the row for attention. Tone drives a single solid background; no
+/// gradients, no LED dot — the pill IS the indicator.
+function StatusPill({
+  tone,
+  label,
+  stepIdx,
+  totalSteps,
+  isInflight,
+}: {
+  tone: 'live' | 'positive' | 'critical';
+  label: string;
+  stepIdx: number;
+  totalSteps: number;
+  isInflight: boolean;
+}) {
+  const fg =
+    tone === 'positive'
+      ? TONE_HEX.positive
+      : tone === 'critical'
+        ? TONE_HEX.critical
+        : 'var(--lp-dark)';
+  const bg =
+    tone === 'positive'
+      ? 'rgba(10,117,83,0.12)'
+      : tone === 'critical'
+        ? 'rgba(176,61,58,0.12)'
+        : 'rgba(175,201,91,0.20)';
+  const border =
+    tone === 'positive'
+      ? 'rgba(10,117,83,0.30)'
+      : tone === 'critical'
+        ? 'rgba(176,61,58,0.30)'
+        : 'rgba(175,201,91,0.50)';
+  return (
+    <span
+      className="shrink-0 inline-flex items-center mono text-[10px] font-bold uppercase tracking-[0.14em] leading-none px-2.5 py-1.5 whitespace-nowrap"
+      style={{
+        background: bg,
+        color: fg,
+        border: `1px solid ${border}`,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <span>{label}</span>
+      {isInflight && totalSteps > 0 && (
+        <span className="ms-1.5 opacity-70 tabular-nums">
+          · {Math.max(1, Math.min(stepIdx, totalSteps))}/{totalSteps}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -1749,10 +1817,22 @@ function BridgeHistoryModal({
             {copy.eyebrow.activity}
           </span>
           <div className="flex items-center gap-3">
-            {/* Clear history is intentionally removed. Bridge history is the
-                user's audit trail of every bridge they made — deleting it loses
-                the ability to find any past bridge. Active/pending rows still
-                age out naturally as they settle; nothing else gets removed. */}
+            {/* Activity modal Clear-all. Scoped: this hides the rows from
+                the user's local activity view but the per-user bridge
+                history modal (a separate surface) keeps the permanent
+                record. */}
+            {bridges.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  for (const b of bridges) onDismiss(b.id);
+                  onClose();
+                }}
+                className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+              >
+                Clear all
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}

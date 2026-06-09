@@ -142,6 +142,17 @@ export async function listBridgesForWallets(
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+/// All bridge records across every wallet. Used by the bus synthesis on
+/// boot to inject `bridge.minted` events for any completed bridge that
+/// isn't already in the bus history — keeps the /activity counter aligned
+/// with what the per-user bridge history modal already shows.
+export async function listAllBridges(): Promise<BridgeRelay[]> {
+  const all = pgEnabled
+    ? (await db().select().from(bridges)).map((r) => r.data)
+    : Object.values(loadFile());
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
 // --- flat-file fallback ---
 
 function ensureFile() {

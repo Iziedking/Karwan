@@ -46,6 +46,7 @@ import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
 import { startVaultScanWatcher } from './chain/vaultScanCache.js';
 import { backfillBusFromChain } from './chain/eventBackfill.js';
+import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
@@ -313,6 +314,14 @@ async function boot() {
     (process.env.FORCE_EVENT_BACKFILL ?? '').toLowerCase() === 'true';
   backfillBusFromChain({ force: forceBackfill }).catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'event backfill failed'),
+  );
+  /// Bring the bus in line with per-user bridge persistence. The bridge
+  /// store survives events.json wipes, so without this the activity-page
+  /// BRIDGE counter reads 0 while the per-user bridge history modal still
+  /// shows every bridge the user made. Idempotent — the bus dedupes by
+  /// (type|jobId|ts). Fire-and-forget; an empty bridge store is a no-op.
+  syncBridgeEventsToBus().catch((err) =>
+    appLogger.error({ err: (err as Error).message }, 'bridge event sync failed'),
   );
 }
 

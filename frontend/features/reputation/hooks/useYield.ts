@@ -4,6 +4,18 @@ import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 
 const POLL_MS = 30_000;
+/// Hide cached data once it gets older than this and a refetch is in flight.
+/// Without this gate, navigating back to /stake renders the in-memory RQ
+/// cache from the previous session (e.g. 4.90 / 5.75 when the truth is now
+/// 7.85 / 7.15) for the brief window before the refetch lands. 90s is tight
+/// enough that a stale-session value never sneaks in, loose enough that a
+/// fresh in-session cache from another tab still renders without a flash.
+const HIDE_STALE_AFTER_MS = 90_000;
+
+function isCachedDataFresh(updatedAt: number | undefined): boolean {
+  if (!updatedAt) return false;
+  return Date.now() - updatedAt < HIDE_STALE_AFTER_MS;
+}
 
 /// Protocol-wide yield reserves (Total distributed / claimed / outstanding).
 /// Tiles render from the cached snapshot; SSE has no `yield.*` events, so
@@ -15,9 +27,13 @@ export function useYieldProtocol() {
     staleTime: POLL_MS,
     refetchInterval: POLL_MS,
   });
+  const fresh = isCachedDataFresh(query.dataUpdatedAt);
   return {
-    data: query.data ?? null,
-    isLoading: query.isPending,
+    /// Hide the cached value once it's older than HIDE_STALE_AFTER_MS while
+    /// a refetch is in flight. Stops the stale-session flash on /stake when
+    /// the values changed between visits.
+    data: fresh ? (query.data ?? null) : null,
+    isLoading: query.isPending || (!fresh && query.isFetching),
     isError: query.isError,
   };
 }
@@ -30,9 +46,10 @@ export function useYieldHistory() {
     staleTime: POLL_MS,
     refetchInterval: POLL_MS,
   });
+  const fresh = isCachedDataFresh(query.dataUpdatedAt);
   return {
-    history: query.data?.history ?? [],
-    isLoading: query.isPending,
+    history: fresh ? (query.data?.history ?? []) : [],
+    isLoading: query.isPending || (!fresh && query.isFetching),
     isError: query.isError,
   };
 }
@@ -49,9 +66,10 @@ export function useYieldMe(address: string | null | undefined) {
     staleTime: POLL_MS,
     refetchInterval: POLL_MS,
   });
+  const fresh = isCachedDataFresh(query.dataUpdatedAt);
   return {
-    data: query.data ?? null,
-    isLoading: enabled && query.isPending,
+    data: fresh ? (query.data ?? null) : null,
+    isLoading: enabled && (query.isPending || (!fresh && query.isFetching)),
     /// Post-claim refresh. The backend `/me` route has a 30s in-memory cache
     /// keyed by address; a plain `invalidateQueries` would refetch but still
     /// hit that stale snapshot. Routing through `fetchQuery` with `fresh: 1`
