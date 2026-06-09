@@ -312,6 +312,18 @@ async function boot() {
   const forceBackfill =
     (process.env.FORCE_EVENT_BACKFILL ?? '').toLowerCase() === '1' ||
     (process.env.FORCE_EVENT_BACKFILL ?? '').toLowerCase() === 'true';
+  /// Hydrate the in-memory bus from Postgres before the chain replay
+  /// decides whether to run. PG is the durable store; once we load the
+  /// last HISTORY_CAPACITY events the boot-guard correctly skips the
+  /// expensive chain scan unless the operator forces it. Without this
+  /// step, a fresh container with an empty events.json would always
+  /// trigger a full replay even though the DB has the data.
+  await bus.hydrateFromPg().then(
+    (added) =>
+      appLogger.info({ added, total: bus.historyLength() }, 'bus hydrated from postgres'),
+    (err) =>
+      appLogger.warn({ err: (err as Error).message }, 'bus PG hydrate failed; using disk JSON'),
+  );
   backfillBusFromChain({ force: forceBackfill }).catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'event backfill failed'),
   );

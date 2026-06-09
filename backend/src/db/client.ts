@@ -73,6 +73,18 @@ export async function ensureSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS match_proposals_buyer_user_idx ON match_proposals (buyer_user);
     CREATE INDEX IF NOT EXISTS match_proposals_seller_user_idx ON match_proposals (seller_user);
     CREATE INDEX IF NOT EXISTS match_proposals_proposed_at_idx ON match_proposals (proposed_at);
+    -- Durable event log for the bus. PK matches the bus dedupe key so
+    -- repeated injections from the chain backfill / bridge sync resolve
+    -- via ON CONFLICT DO NOTHING.
+    CREATE TABLE IF NOT EXISTS event_history (
+      type TEXT NOT NULL,
+      job_id TEXT NOT NULL,
+      ts BIGINT NOT NULL,
+      data JSONB NOT NULL,
+      PRIMARY KEY (type, job_id, ts)
+    );
+    CREATE INDEX IF NOT EXISTS event_history_ts_idx ON event_history (ts);
+    CREATE INDEX IF NOT EXISTS event_history_job_ts_idx ON event_history (job_id, ts);
   `);
   logger.info('postgres schema ensured');
 }

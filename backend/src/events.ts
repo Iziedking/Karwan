@@ -1,6 +1,9 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { desc } from 'drizzle-orm';
+import { db, pgEnabled } from './db/client.js';
+import { eventHistory } from './db/schema.js';
 
 export type KarwanEventType =
   | 'job.posted'
@@ -102,6 +105,12 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'events.json');
 const PERSIST_DEBOUNCE_MS = 800;
 
 function loadHistory(): KarwanEvent[] {
+  /// Postgres is the primary store when DATABASE_URL is set — survives
+  /// container restarts, accidental rm, and corrupt JSON. Disk JSON stays
+  /// as the no-DB fallback path. Loading from Postgres uses a sync-bridge
+  /// pattern: the boot path is async-tolerant but the bus's history field
+  /// is initialized synchronously, so the first load returns empty and a
+  /// later async hydration fills it. See hydrateFromPostgres below.
   if (!existsSync(STORE_PATH)) return [];
   try {
     const raw = readFileSync(STORE_PATH, 'utf8');
@@ -123,6 +132,10 @@ class KarwanBus extends EventEmitter {
       this.history.shift();
     }
     this.schedulePersist();
+    /// Durable persist to Postgres alongside the debounced JSON. Fire-and-
+    /// forget — a transient DB hiccup shouldn't block the bus or kill the
+    /// in-memory event. The JSON debounce path is the safety net.
+    persistEventToPg(full);
     this.emit('event', full);
   }
 
@@ -162,8 +175,41 @@ class KarwanBus extends EventEmitter {
     if (this.history.length > HISTORY_CAPACITY) {
       this.history = this.history.slice(-HISTORY_CAPACITY);
     }
-    if (added > 0) this.schedulePersist();
+    if (added > 0) {
+      this.schedulePersist();
+      /// Bulk-insert into Postgres alongside the JSON debounce. ON CONFLICT
+      /// (type, jobId, ts) DO NOTHING handles repeated injections from the
+      /// chain backfill / bridge sync without write contention.
+      persistEventsBulkToPg(events);
+    }
     return added;
+  }
+
+  /// Async hydration from Postgres. Called once during boot if PG is
+  /// configured; loads the most recent HISTORY_CAPACITY events back into
+  /// the in-memory ring buffer so /api/activity and the SSE backfill see
+  /// the durable record even after events.json is wiped.
+  async hydrateFromPg(): Promise<number> {
+    if (!pgEnabled) return 0;
+    try {
+      const rows = await db()
+        .select()
+        .from(eventHistory)
+        .orderBy(desc(eventHistory.ts))
+        .limit(HISTORY_CAPACITY);
+      if (rows.length === 0) return 0;
+      const events = rows
+        .map((r) => r.data as KarwanEvent)
+        .sort((a, b) => a.ts - b.ts);
+      /// Merge into existing history (which may be seeded from disk JSON)
+      /// rather than replacing, so a stale JSON file plus an old-but-valid
+      /// PG row don't clobber each other. injectHistorical dedupes by
+      /// (type|jobId|ts) — exact match across the two stores collapses.
+      const added = this.injectHistorical(events);
+      return added;
+    } catch {
+      return 0;
+    }
   }
 
   /// Snapshot the current history length. Used by the boot backfill to skip
@@ -194,3 +240,42 @@ class KarwanBus extends EventEmitter {
 
 export const bus = new KarwanBus();
 bus.setMaxListeners(0);
+
+/// Postgres write paths. Fire-and-forget — bus stays usable even if the DB
+/// is unreachable; the disk JSON debounce path is the safety net. Returns
+/// void so caller `void`s and moves on. Failures are swallowed silently
+/// because every per-event log line on a hot path would be noisy; the
+/// schedulePersist JSON write covers durability in any case.
+
+function persistEventToPg(e: KarwanEvent): void {
+  if (!pgEnabled) return;
+  void db()
+    .insert(eventHistory)
+    .values({
+      type: e.type,
+      jobId: e.jobId ?? '',
+      ts: e.ts,
+      data: e,
+    })
+    .onConflictDoNothing()
+    .catch(() => {
+      /* swallow — JSON debounce path keeps durability */
+    });
+}
+
+function persistEventsBulkToPg(events: KarwanEvent[]): void {
+  if (!pgEnabled || events.length === 0) return;
+  const rows = events.map((e) => ({
+    type: e.type,
+    jobId: e.jobId ?? '',
+    ts: e.ts,
+    data: e,
+  }));
+  void db()
+    .insert(eventHistory)
+    .values(rows)
+    .onConflictDoNothing()
+    .catch(() => {
+      /* swallow — JSON debounce path keeps durability */
+    });
+}
