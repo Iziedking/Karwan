@@ -290,6 +290,22 @@ export interface DirectDeal {
   /// Stake percentage chosen by the buyer for this deal (50..100). Only
   /// meaningful when requireStake is true.
   requireStakePct?: number;
+  // --- SME trade-finance fields (Phase 2 Track 2) ---------------------
+  /// Trade type drives the milestone vocabulary on the deal page and the
+  /// trade-context band's visibility. Absent on legacy service deals.
+  tradeType?: 'service' | 'goods' | 'mixed';
+  incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
+  paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
+  counterpartyCompany?: { name?: string; sector?: string; region?: string };
+  documentRefs?: Array<{
+    hash: string;
+    kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+    label?: string;
+    anchoredAt?: number;
+    txHash?: string;
+  }>;
+  factoringOfferId?: string;
+  poFinancingId?: string;
   /// Pending delivery-deadline extension request from the seller. Buyer sees
   /// a banner with Approve / Decline; the request clears either way.
   extensionRequest?: {

@@ -36,6 +36,44 @@ import {
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
+// SME trade-finance vocab. Hoisted to module scope so the maps and arrays
+// allocate once per load, not per render. The goods milestone vocabulary
+// renders only when deal.tradeType === 'goods'; mixed + service flows keep
+// the existing service labels (the i18n bundle wins). Per Vercel
+// `rendering-hoist-jsx`.
+const INCOTERMS_GLOSS: Record<NonNullable<DirectDeal['incoterms']>, string> = {
+  EXW: 'Ex Works — buyer collects from factory.',
+  FCA: 'Free Carrier — seller delivers to a named carrier.',
+  FOB: 'Free on Board — seller loads on the named vessel.',
+  CIF: 'Cost Insurance Freight — seller pays freight + insurance to port.',
+  DAP: 'Delivered at Place — buyer clears customs.',
+  DDP: 'Delivered Duty Paid — seller delivers + clears customs.',
+};
+
+const PAYMENT_TERMS_LABEL: Record<NonNullable<DirectDeal['paymentTerms']>, string> = {
+  immediate: 'IMMEDIATE',
+  net30: 'NET 30',
+  net60: 'NET 60',
+  net90: 'NET 90',
+};
+
+const DOC_KIND_LABEL: Record<NonNullable<DirectDeal['documentRefs']>[number]['kind'], string> = {
+  invoice: 'INVOICE',
+  po: 'PO',
+  bol: 'BoL',
+  coo: 'CoO',
+  pod: 'PoD',
+  other: 'OTHER',
+};
+
+const GOODS_PROGRESS_LABELS = {
+  opened: 'Order opened',
+  accepted: 'Order accepted',
+  delivered: 'Goods delivered',
+  firstReleasedTemplate: 'Dispatched · {pct}% released',
+  finalReleasedTemplate: 'Accepted · {pct}% released',
+} as const;
+
 // Curated stage hues. mirror DirectDealList.STAGE_META so the rail accent
 // stays consistent between the list row and the detail view.
 const STAGE_RAIL: Record<DealStage, string> = {
@@ -616,6 +654,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </div>
       </Band>
 
+      {/* TRADE CONTEXT — only rendered when the buyer surfaced trade-finance
+          fields at deal-creation time. Service-flow deals skip it. */}
+      {deal.tradeType && deal.tradeType !== 'service' ? (
+        <TradeContextBand deal={deal} />
+      ) : null}
+
       {/* PROGRESS */}
       <Band tone="light" compact>
         <SectionTag dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
@@ -627,7 +671,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </HeroHeadline>
         <div className="mt-8" data-guide="deal-flow">
           <PageCard>
-            <ProgressTrack deal={deal} stage={stage} rail={rail} copy={dd.progressTrack} />
+            <ProgressTrack
+              deal={deal}
+              stage={stage}
+              rail={rail}
+              copy={
+                deal.tradeType === 'goods'
+                  ? { ...dd.progressTrack, ...GOODS_PROGRESS_LABELS }
+                  : dd.progressTrack
+              }
+            />
           </PageCard>
         </div>
       </Band>
@@ -822,6 +875,109 @@ function CardHead({ label }: { label: string }) {
         [:{label}:]
       </span>
     </div>
+  );
+}
+
+/// Trade context band — Incoterms badge, payment-term ribbon, document
+/// hashes, counterparty company snapshot. Renders only when the deal
+/// carries the SME fields (tradeType !== 'service'). Top-level component
+/// per the Vercel `rerender-no-inline-components` rule.
+function TradeContextBand({ deal }: { deal: DirectDeal }) {
+  const docs = deal.documentRefs ?? [];
+  const company = deal.counterpartyCompany;
+  const hasCompany = company && (company.name || company.sector || company.region);
+  return (
+    <Band tone="light" compact>
+      <SectionTag>[:TRADE CONTEXT:]</SectionTag>
+      <HeroHeadline size="md">
+        Trade rails<Punc>.</Punc>
+      </HeroHeadline>
+      <div className="mt-8 grid md:grid-cols-2 gap-5">
+        <PageCard>
+          <CardHead label="TERMS" />
+          <div className="p-5 md:p-6 space-y-4">
+            <div className="flex items-center flex-wrap gap-3">
+              {deal.incoterms ? (
+                <span
+                  className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
+                  title={INCOTERMS_GLOSS[deal.incoterms]}
+                >
+                  {deal.incoterms}
+                </span>
+              ) : null}
+              {deal.paymentTerms ? (
+                <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/20 text-[var(--lp-dark)]">
+                  {PAYMENT_TERMS_LABEL[deal.paymentTerms]}
+                </span>
+              ) : null}
+              {deal.tradeType === 'mixed' ? (
+                <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/20 text-[var(--lp-dark)]">
+                  GOODS + SERVICE
+                </span>
+              ) : null}
+            </div>
+            {deal.incoterms ? (
+              <p className="text-[12.5px] text-[var(--lp-text-sub)] leading-snug">
+                {INCOTERMS_GLOSS[deal.incoterms]}
+              </p>
+            ) : null}
+          </div>
+        </PageCard>
+        {hasCompany ? (
+          <PageCard>
+            <CardHead label="COUNTERPARTY" />
+            <div className="p-5 md:p-6 space-y-2">
+              {company?.name ? (
+                <p className="text-[14px] font-medium text-[var(--lp-dark)]">{company.name}</p>
+              ) : null}
+              <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                {[company?.sector, company?.region].filter(Boolean).join(' · ') || '—'}
+              </p>
+            </div>
+          </PageCard>
+        ) : null}
+        {docs.length > 0 ? (
+          <PageCard className="md:col-span-2">
+            <CardHead label="ANCHORED DOCUMENTS" />
+            <ul className="p-5 md:p-6 space-y-2">
+              {docs.map((d) => (
+                <li
+                  key={d.hash}
+                  className="flex items-center gap-3 px-3 py-2 border border-black/10 bg-[var(--lp-bg)]"
+                  style={{
+                    borderTopLeftRadius: 6,
+                    borderTopRightRadius: 6,
+                    borderBottomLeftRadius: 6,
+                    borderBottomRightRadius: 2,
+                  }}
+                >
+                  <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
+                    {DOC_KIND_LABEL[d.kind]}
+                  </span>
+                  <span className="flex-1 truncate text-[12.5px] text-[var(--lp-dark)]">
+                    {d.label ?? 'document'}
+                  </span>
+                  {d.txHash ? (
+                    <a
+                      href={ARC_EXPLORER_TX(d.txHash)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    >
+                      {d.hash.slice(0, 10)}…{d.hash.slice(-6)} ↗
+                    </a>
+                  ) : (
+                    <code className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
+                      {d.hash.slice(0, 10)}…{d.hash.slice(-6)}
+                    </code>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </PageCard>
+        ) : null}
+      </div>
+    </Band>
   );
 }
 
