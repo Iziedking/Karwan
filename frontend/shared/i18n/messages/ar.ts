@@ -886,6 +886,11 @@ export const ar: Messages = {
     timelineShow: 'عرض الخط الزمني',
   },
   matchBanner: {
+    paidData: {
+      label: 'تحقق مدفوع',
+      template: 'دفع وكيل المشتري {amount} عبر x402 مقابل جواز ائتمان هذا البائع.',
+      txCta: 'التسوية',
+    },
     approvedEyebrow: 'قبل البائع',
     approvedBody: 'قبل البائع صفقتك. الضمان مموَّل. جاري فتح الصفقة الحية.',
     approvedCta: 'افتح الصفقة →',

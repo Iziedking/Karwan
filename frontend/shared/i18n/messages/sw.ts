@@ -886,6 +886,11 @@ export const sw: Messages = {
     timelineShow: 'Tazama rekodi ya wakati',
   },
   matchBanner: {
+    paidData: {
+      label: 'UTHIBITISHO WA KULIPIA',
+      template: 'Wakala wa mnunuzi alilipa {amount} kupitia x402 kwa pasipoti ya mikopo ya muuzaji huyu.',
+      txCta: 'utatuzi',
+    },
     approvedEyebrow: 'Muuzaji amekubali',
     approvedBody: 'Muuzaji amekubali biashara yako. Esokrau imefadhiliwa. Inafungua biashara ya moja kwa moja.',
     approvedCta: 'Fungua biashara →',

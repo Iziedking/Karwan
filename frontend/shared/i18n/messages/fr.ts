@@ -886,6 +886,11 @@ export const fr: Messages = {
     timelineShow: 'Voir la chronologie',
   },
   matchBanner: {
+    paidData: {
+      label: 'VÉRIFICATION PAYANTE',
+      template: 'L\'agent acheteur a payé {amount} via x402 pour le passeport de crédit de ce vendeur.',
+      txCta: 'règlement',
+    },
     approvedEyebrow: 'Vendeur a accepté',
     approvedBody: 'Le vendeur a accepté votre deal. Le séquestre est financé. Ouverture du deal en direct.',
     approvedCta: 'Ouvrir le deal →',

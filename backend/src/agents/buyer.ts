@@ -71,6 +71,8 @@ import {
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
+import { config } from '../config.js';
+import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -125,6 +127,12 @@ interface Bid {
   /// card and in the compact peek so the buyer sees a human name instead
   /// of just an address. Absent when the seller hasn't set one.
   sellerDisplayName?: string;
+  /// Credit passport the agent PAID for over x402 at bid time (real USDC,
+  /// agent Gateway deposit -> platform treasury). Carries the settlement
+  /// reference so the match proposal and timeline can prove the pull.
+  /// Absent when paid signals are disabled or the call failed; the bid
+  /// scores on local signals alone in that case.
+  paidSignal?: PaidPassportSignal;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -543,6 +551,39 @@ async function handleBidSubmitted(log: Log) {
     /* leave both undefined */
   }
 
+  // Paid x402 pull: the agent buys the seller's credit passport from
+  // Karwan's own paid endpoint before scoring ($0.01, agent Gateway
+  // deposit -> treasury, settled through Circle Gateway batching).
+  // Best-effort with a hard deadline: a cold start (EOA provisioning +
+  // first Gateway deposit) can outrun the window, in which case the
+  // deposit still lands and the next bid gets the signal. The bid is
+  // never blocked or dropped over a failed pull.
+  let paidSignal: PaidPassportSignal | undefined;
+  if (config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR) {
+    try {
+      paidSignal = await Promise.race([
+        paidCreditPassport(buyer.address, args.seller),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('paid passport pull timed out')), 45_000),
+        ),
+      ]);
+      logger.info(
+        {
+          jobId: state.jobId,
+          seller: args.seller,
+          amountUsd: paidSignal.amountUsd,
+          transaction: paidSignal.transaction,
+        },
+        'x402: paid credit passport pulled at bid time',
+      );
+    } catch (err) {
+      logger.warn(
+        { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
+        'x402: paid passport pull failed (non-fatal, scoring on local signals)',
+      );
+    }
+  }
+
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
@@ -560,6 +601,7 @@ async function handleBidSubmitted(log: Log) {
     sellerFreeStakeUsdc,
     sellerUserAddress,
     sellerDisplayName,
+    paidSignal,
   };
 
   const bidContext: BidContext = {
@@ -612,7 +654,26 @@ async function handleBidSubmitted(log: Log) {
       actor: 'buyer',
       // tier + topicalMatch are surfaced so the timeline shows the agent scored
       // this bid with the seller's reputation AND skill fit in hand, not just price.
-      payload: { seller: args.seller, priceUsdc, pattern, tier: sellerRepTier, topicalMatch, ...score },
+      // paidSignal carries the x402 settlement reference when the agent paid for
+      // the seller's passport, so the audit trail proves the pull.
+      payload: {
+        seller: args.seller,
+        priceUsdc,
+        pattern,
+        tier: sellerRepTier,
+        topicalMatch,
+        ...(paidSignal
+          ? {
+              paidSignal: {
+                amountUsd: paidSignal.amountUsd,
+                transaction: paidSignal.transaction,
+                tier: paidSignal.tier,
+                score: paidSignal.score,
+              },
+            }
+          : {}),
+        ...score,
+      },
     });
   } catch (err) {
     const message = (err as Error).message;
@@ -1712,6 +1773,11 @@ async function proposeMatch(
       state.context.budgetUsdc,
       sellerFlags?.humanReview === true,
     );
+    // Carry the paid x402 passport pull (if the bid-time call succeeded)
+    // onto the proposal so the approval banner can prove it.
+    const paidBid = [...state.bids.entries()].find(
+      ([k]) => k.toLowerCase() === seller.toLowerCase(),
+    )?.[1]?.paidSignal;
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -1723,6 +1789,17 @@ async function proposeMatch(
       termsHash: state.context.termsHash,
       proposedAt: Date.now(),
       ...(risk ? { riskFlag: risk.flag, riskNote: risk.note } : {}),
+      ...(paidBid
+        ? {
+            paidSignal: {
+              tier: paidBid.tier,
+              score: paidBid.score,
+              amountUsd: paidBid.amountUsd,
+              transaction: paidBid.transaction,
+              paidAt: paidBid.paidAt,
+            },
+          }
+        : {}),
     };
 
     // Balance awareness at the commit point. Negotiation already roamed freely

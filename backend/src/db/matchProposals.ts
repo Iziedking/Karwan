@@ -53,6 +53,18 @@ export interface MatchProposal {
   fundedAmountUsdc?: string;
   /// max(0, fundedAmount - balance). 0 when fundable.
   topUpNeededUsdc?: string;
+  /// Credit passport the buyer agent PAID for over x402 at bid time
+  /// (USDC from the agent's Gateway deposit to the platform treasury,
+  /// settled through Circle Gateway batching). The MatchBanner renders a
+  /// chip with the settlement reference so the buyer sees the agent
+  /// verified the seller against paid data, not just free reads.
+  paidSignal?: {
+    tier: string;
+    score: number;
+    amountUsd: number;
+    transaction: string;
+    paidAt: number;
+  };
 }
 
 export async function getMatchProposal(jobId: string): Promise<MatchProposal | null> {

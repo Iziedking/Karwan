@@ -870,6 +870,11 @@ interface MessagesShape {
       spammy: string;
       newBuyer: string;
     };
+    paidData: {
+      label: string;
+      template: string;
+      txCta: string;
+    };
     topUp: {
       eyebrow: string;
       buyerTemplate: string;
@@ -4386,6 +4391,11 @@ export const en: MessagesShape = {
       lowball: 'Risk flag · lowball from unproven actor',
       spammy: 'Risk flag · counterparty unusually active',
       newBuyer: 'Heads up · buyer is new to the network',
+    },
+    paidData: {
+      label: 'PAID VERIFICATION',
+      template: 'Buyer agent paid {amount} over x402 for this seller\'s credit passport.',
+      txCta: 'settlement',
     },
     topUp: {
       eyebrow: 'Top up needed',

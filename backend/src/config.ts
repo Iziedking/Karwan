@@ -50,6 +50,18 @@ const envSchema = z.object({
   /// 503 with a clear message when unset.
   KARWAN_INVOICE_REGISTRY_ADDR: optionalAddr,
   KARWAN_PO_FINANCING_ADDR: optionalAddr,
+  /// Buyer agents pay Karwan's own x402 credit-passport endpoint during bid
+  /// scoring (real USDC, agent Gateway deposit -> platform treasury). On by
+  /// default; set to 'false' to skip the paid pull entirely. Failures never
+  /// block a bid either way.
+  X402_PAID_SIGNALS_ENABLED: z.preprocess(
+    (v) => v !== 'false' && v !== '0',
+    z.boolean(),
+  ),
+  /// USDC amount the buyer agent SCA moves into the x402 EOA's Gateway
+  /// deposit when the available balance can't cover the next paid call.
+  /// 0.50 covers 50 credit-passport pulls at $0.01.
+  X402_GATEWAY_DEPOSIT_USD: z.coerce.number().positive().default(0.5),
   /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
   /// users with funds still locked on the legacy contract (Funded or
   /// pre-v2.D "accepted" but never delivered) can refund / cancel from

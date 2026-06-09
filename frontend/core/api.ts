@@ -465,6 +465,17 @@ export interface MatchProposal {
   agentBalanceUsdc?: string;
   fundedAmountUsdc?: string;
   topUpNeededUsdc?: string;
+  /// Credit passport the buyer agent paid for over x402 at bid time. Real
+  /// USDC moved (agent Gateway deposit to platform treasury); transaction
+  /// is the Gateway settlement reference. Absent when paid signals were
+  /// off or the pull failed.
+  paidSignal?: {
+    tier: string;
+    score: number;
+    amountUsd: number;
+    transaction: string;
+    paidAt: number;
+  };
 }
 
 /// Agents found a topical match, but the best achievable price lands just

@@ -7,6 +7,7 @@ import { api, ApiError, type MatchProposal, type UserProfile, type Reputation } 
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { ProfilePeekModal } from './ProfilePeekModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -180,6 +181,35 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
           );
         })()}
       </div>
+
+      {/* Paid x402 verification: the buyer agent paid real USDC for the
+          seller's credit passport at bid time. Shown to both parties as a
+          quiet provenance line; the settlement reference links out when it
+          is a chain hash. */}
+      {proposal.paidSignal && (
+        <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+          [:{mb.paidData.label}:]{' '}
+          <span className="normal-case tracking-normal text-[11px]">
+            {mb.paidData.template.replace(
+              '{amount}',
+              `$${proposal.paidSignal.amountUsd}`,
+            )}
+          </span>
+          {/^0x[0-9a-fA-F]{64}$/.test(proposal.paidSignal.transaction) && (
+            <>
+              {' · '}
+              <a
+                href={ARC_EXPLORER_TX(proposal.paidSignal.transaction)}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2 normal-case tracking-normal text-[11px]"
+              >
+                {mb.paidData.txCta}
+              </a>
+            </>
+          )}
+        </p>
+      )}
 
       {/* Risk flags are all seller-facing warnings (honey-trap, lowball,
           spammy, new-buyer) — they describe the BUYER, for the SELLER to

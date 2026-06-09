@@ -26,6 +26,12 @@ export interface AgentWallets {
   /// Lets the backend sign the CCTP burn from the source-chain DCW so
   /// Circle-auth users can bridge end-to-end without a web3 wallet.
   bridgeWallets?: Record<string, { walletId: string; address: string }>;
+  /// Dedicated EOA DCW for x402 payment authorizations on Arc. Gateway
+  /// verifies authorizations statically offchain and rejects EIP-1271
+  /// signatures, so the agent SCAs can't sign payments themselves; this
+  /// EOA owns the Gateway deposit (funded via depositFor from the buyer
+  /// agent SCA) and signs EIP-3009. Lazy-provisioned on first paid call.
+  x402Wallet?: { walletId: string; address: string };
 }
 
 export async function getAgentWallets(userAddress: string): Promise<AgentWallets | null> {
@@ -106,6 +112,32 @@ export async function saveAgentWallets(
   saveFile(store);
   invalidateReverseCache();
   return record;
+}
+
+/// Attach the lazily-provisioned x402 EOA to an existing record, preserving
+/// every other field including createdAt (same reason updateAgentNames does
+/// not go through saveAgentWallets). Returns null if the user has no agents.
+export async function updateX402Wallet(
+  userAddress: string,
+  x402Wallet: { walletId: string; address: string },
+): Promise<AgentWallets | null> {
+  const key = userAddress.toLowerCase();
+  const existing = await getAgentWallets(key);
+  if (!existing) return null;
+  const next: AgentWallets = {
+    ...existing,
+    x402Wallet: { walletId: x402Wallet.walletId, address: x402Wallet.address.toLowerCase() },
+  };
+  if (pgEnabled) {
+    await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
+    invalidateReverseCache();
+    return next;
+  }
+  const store = loadFile();
+  store[key] = next;
+  saveFile(store);
+  invalidateReverseCache();
+  return next;
 }
 
 /// Update just the agent display names, preserving every other field including

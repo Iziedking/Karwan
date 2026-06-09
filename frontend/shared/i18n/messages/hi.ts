@@ -886,6 +886,11 @@ export const hi: Messages = {
     timelineShow: 'लाइव टाइमलाइन देखें',
   },
   matchBanner: {
+    paidData: {
+      label: 'सशुल्क सत्यापन',
+      template: 'खरीदार एजेंट ने इस विक्रेता के क्रेडिट पासपोर्ट के लिए x402 से {amount} का भुगतान किया.',
+      txCta: 'सेटलमेंट',
+    },
     approvedEyebrow: 'विक्रेता ने स्वीकार किया',
     approvedBody: 'विक्रेता ने आपकी डील स्वीकार की। एस्क्रो फंडेड है। लाइव डील खोल रहे हैं।',
     approvedCta: 'डील खोलें →',
