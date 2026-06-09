@@ -10,6 +10,7 @@ import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { SellerOfferBanner } from '@/features/factoring/components/SellerOfferBanner';
 import { ExtensionRequestModal } from './ExtensionRequestModal';
 import { EditDealModal } from './EditDealModal';
 import { useDirectDeal } from '../hooks/useDirectDeals';
@@ -659,6 +660,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {deal.tradeType && deal.tradeType !== 'service' ? (
         <TradeContextBand deal={deal} />
       ) : null}
+
+      {/* EARLY PAYOUT — seller-side factoring CTA when offers exist on this
+          deal. The component fetches its own state; renders nothing when
+          the seller has no open offers or the deal isn't eligible. Lives
+          in its own Band-less container so the banner reads as an inline
+          opportunity, not a structural section. */}
+      <SellerOfferBanner deal={deal} viewerIsSeller={viewerIsSeller} />
 
       {/* PROGRESS */}
       <Band tone="light" compact>
