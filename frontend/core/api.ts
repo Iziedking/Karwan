@@ -207,6 +207,20 @@ export interface UserProfile {
 }
 
 // KarwanEscrow.EscrowState: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
+/// USDC EIP-3009 transfer authorization, signed offchain by a web3 party
+/// and submitted on chain by the platform relay when the settlement
+/// condition is met. value is atomic USDC (6dp); validAfter/validBefore
+/// are unix seconds.
+export interface UsdcAuthorization {
+  from: string;
+  to: string;
+  value: string;
+  validAfter: string;
+  validBefore: string;
+  nonce: string;
+  signature: string;
+}
+
 /// Invoice factoring offer (Phase 2 Track 2). Mirrors backend
 /// db/factoring.ts FactoringOffer interface. Status drives the
 /// state machine UI on both the financier and the seller side.
@@ -226,7 +240,13 @@ export interface FactoringOffer {
   rejectedAt?: number;
   settledAt?: number;
   setPayeeTxHash?: string;
+  /// On-chain tx of the advance (financier -> seller), written at accept.
   advanceTxHash?: string;
+  /// On-chain tx of the repayment (seller -> financier), written by the
+  /// settlement watcher once the escrow settles.
+  settleTxHash?: string;
+  settleAttempts?: number;
+  lastSettleError?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -1787,6 +1807,11 @@ export const api = {
     offeredAdvanceUsdc: string;
     expectedReturnUsdc: string;
     expiresInHours?: number;
+    /// Required for web3 financiers: EIP-3009 authorizing the advance
+    /// (financier -> seller), submitted by the relay when the seller
+    /// accepts. Circle financiers omit it; the backend transfers from
+    /// their identity wallet.
+    advanceAuthorization?: UsdcAuthorization;
   }) =>
     json<{ offer: FactoringOffer }>('/api/factoring/offer', {
       method: 'POST',
@@ -1801,7 +1826,10 @@ export const api = {
   acceptFactoringOffer: (body: {
     offerId: string;
     setPayeeTxHash?: string;
-    advanceTxHash?: string;
+    /// Required for web3 sellers: EIP-3009 authorizing the repayment
+    /// (seller -> financier), submitted by the settlement watcher when
+    /// the escrow settles. Circle sellers omit it.
+    repayAuthorization?: UsdcAuthorization;
   }) =>
     json<{ offer: FactoringOffer }>('/api/factoring/accept', {
       method: 'POST',

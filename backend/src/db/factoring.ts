@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { eq, and, desc } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { factoringOffers } from './schema.js';
+import type { UsdcTransferAuthorization } from '../chain/usdc3009.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'factoring-offers.json');
 
@@ -38,6 +39,26 @@ export interface FactoringOffer {
   /// On accept, the on-chain transfer that paid the advance from financier
   /// to seller. Empty until the tx confirms.
   advanceTxHash?: string;
+  /// USDC EIP-3009 signed by a WEB3 financier at offer time, authorizing
+  /// the advance (financier -> seller). Submitted by the platform relay
+  /// the moment the seller accepts. Absent for Circle-auth financiers:
+  /// the backend transfers from their identity wallet directly.
+  advanceAuthorization?: UsdcTransferAuthorization;
+  /// USDC EIP-3009 signed by a WEB3 seller at accept time, authorizing
+  /// the repayment (seller -> financier) once the escrow settles. The
+  /// settlement watcher submits it via the relay. Absent for Circle-auth
+  /// sellers: the backend transfers from their identity wallet at settle
+  /// time, no pre-authorization needed.
+  repayAuthorization?: UsdcTransferAuthorization;
+  /// On-chain tx of the repayment leg, written by the settlement watcher
+  /// when the transfer confirms. The offer flips to 'settled' only after
+  /// this exists.
+  settleTxHash?: string;
+  /// Settlement retry bookkeeping. The watcher keeps the offer in
+  /// 'accepted' and retries on each tick; after MAX attempts it flips to
+  /// 'defaulted' and alerts the operator.
+  settleAttempts?: number;
+  lastSettleError?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -134,6 +155,24 @@ export async function listOpenOffers(): Promise<FactoringOffer[]> {
   }
   return Object.values(loadFile())
     .filter((o) => o.status === 'offered')
+    .sort((x, y) => y.offeredAt - x.offeredAt);
+}
+
+/// All accepted offers awaiting settlement. The settlement watcher walks
+/// these each tick. (The old watcher iterated listOpenOffers, which only
+/// returns 'offered' rows, then skipped everything not 'accepted' — a
+/// dead loop that never settled anything.)
+export async function listAcceptedOffers(): Promise<FactoringOffer[]> {
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(factoringOffers)
+      .where(eq(factoringOffers.status, 'accepted'))
+      .orderBy(desc(factoringOffers.offeredAt));
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile())
+    .filter((o) => o.status === 'accepted')
     .sort((x, y) => y.offeredAt - x.offeredAt);
 }
 

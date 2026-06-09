@@ -1,9 +1,15 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useWalletClient } from 'wagmi';
 import { api, type DirectDeal, type FactoringOffer } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import {
+  buildTransferAuthorization,
+  serializeAuthorization,
+} from '@/features/factoring/usdcAuthorization';
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
@@ -132,6 +138,10 @@ export function SellerOfferBanner({
 /*                          OFFERS MODAL                            */
 /* =============================================================== */
 
+/// How long the seller's repayment authorization stays valid. Must clear
+/// the backend's 60-day floor with room for slow deals.
+const REPAY_VALIDITY_DAYS = 180;
+
 function OffersModal({
   deal,
   offers,
@@ -143,19 +153,46 @@ function OffersModal({
   onClose: () => void;
   onAccepted: (offer: FactoringOffer) => void;
 }) {
+  const auth = useAuth();
+  const { data: walletClient } = useWalletClient();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const isCircleUser = auth.method === 'circle';
 
   async function accept(offer: FactoringOffer) {
     setAcceptingId(offer.id);
     setError(null);
     try {
-      // For v1 the on-chain registry.setPayee + Gateway routing happens
-      // in a follow-up after backend mirrors the acceptance. Skipping the
-      // optional tx-hash fields here is intentional — backend tolerates
-      // null and updates the row's setPayeeTxHash later when the
-      // settlement watcher confirms the chain leg.
-      const r = await api.acceptFactoringOffer({ offerId: offer.id });
+      // Accepting moves real money: the financier's advance pays out the
+      // moment the backend confirms. Web3 sellers also sign the
+      // repayment authorization here (USDC EIP-3009, no gas, nothing
+      // moves now); the settlement watcher submits it when the escrow
+      // settles. Circle sellers skip the signature; the backend signs
+      // from their identity wallet at settle time.
+      let repayAuthorization;
+      if (!isCircleUser) {
+        if (!walletClient || !auth.address) {
+          setError('Connect your wallet to sign the repayment authorization.');
+          setAcceptingId(null);
+          return;
+        }
+        const typed = buildTransferAuthorization({
+          from: auth.address as `0x${string}`,
+          to: offer.financier as `0x${string}`,
+          valueUsdc: offer.expectedReturnUsdc,
+          validForSeconds: REPAY_VALIDITY_DAYS * 24 * 3600,
+        });
+        const signature = await walletClient.signTypedData({
+          account: auth.address as `0x${string}`,
+          ...typed,
+        });
+        repayAuthorization = serializeAuthorization(typed.message, signature);
+      }
+      const r = await api.acceptFactoringOffer({
+        offerId: offer.id,
+        repayAuthorization,
+      });
       onAccepted(r.offer);
     } catch (e) {
       setError((e as Error).message);

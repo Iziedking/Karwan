@@ -15,6 +15,10 @@ import {
   ARC_USDC_DECIMALS,
   KARWAN_PO_FINANCING_ADDRESS,
 } from '@/features/profile/config';
+import {
+  buildTransferAuthorization,
+  serializeAuthorization,
+} from '@/features/factoring/usdcAuthorization';
 
 // USDC + KarwanPOFinancing ABIs. Hoisted to module scope per Vercel
 // `rendering-hoist-jsx`; both are tiny and `as const` enables viem's
@@ -505,6 +509,8 @@ function FilterText({
 /*                          OFFER MODAL                             */
 /* =============================================================== */
 
+const OFFER_EXPIRES_HOURS = 24;
+
 function OfferModal({
   deal,
   isAuthed,
@@ -516,6 +522,8 @@ function OfferModal({
   onClose: () => void;
   onPosted: (offer: FactoringOffer) => void;
 }) {
+  const auth = useAuth();
+  const { data: walletClient } = useWalletClient();
   const face = Number(deal.dealAmountUsdc);
   const [discountBps, setDiscountBps] = useState<number>(200); // 2% default
   const [submitting, setSubmitting] = useState(false);
@@ -524,6 +532,7 @@ function OfferModal({
   const advance = face * (1 - discountBps / 10_000);
   const repay = face;
   const profit = repay - advance;
+  const isCircleUser = auth.method === 'circle';
 
   async function submit() {
     if (!isAuthed) {
@@ -533,11 +542,37 @@ function OfferModal({
     setSubmitting(true);
     setError(null);
     try {
+      // Web3 financiers sign the advance authorization now (USDC
+      // EIP-3009, no gas, no transfer yet). The relay submits it the
+      // moment the seller accepts, so the advance lands without the
+      // financier being online. Circle financiers skip this; the backend
+      // signs from their identity wallet at accept time.
+      let advanceAuthorization;
+      if (!isCircleUser) {
+        if (!walletClient || !auth.address) {
+          setError('Connect your wallet to sign the advance authorization.');
+          setSubmitting(false);
+          return;
+        }
+        const typed = buildTransferAuthorization({
+          from: auth.address as `0x${string}`,
+          to: deal.seller as `0x${string}`,
+          valueUsdc: advance.toFixed(6),
+          // Covers the offer window plus margin for the backend check.
+          validForSeconds: (OFFER_EXPIRES_HOURS + 4) * 3600,
+        });
+        const signature = await walletClient.signTypedData({
+          account: auth.address as `0x${string}`,
+          ...typed,
+        });
+        advanceAuthorization = serializeAuthorization(typed.message, signature);
+      }
       const r = await api.postFactoringOffer({
         invoiceId: deal.jobId,
         offeredAdvanceUsdc: advance.toFixed(6),
         expectedReturnUsdc: repay.toFixed(6),
-        expiresInHours: 24,
+        expiresInHours: OFFER_EXPIRES_HOURS,
+        advanceAuthorization,
       });
       onPosted(r.offer);
     } catch (e) {
