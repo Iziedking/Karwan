@@ -49,6 +49,18 @@ export function CreditPassport({ address }: { address: string }) {
   const [stakeSynced, setStakeSynced] = useState<boolean>(true);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const [copied, setCopied] = useState(false);
+  /// SME public profile (companyName, sector, region, ...) + computed
+  /// repaymentBehavior. Renders a separate band so the passport stays
+  /// useful for service users too.
+  const [sme, setSme] = useState<{
+    smeProfile: NonNullable<UserProfile['smeProfile']> | null;
+    repaymentBehavior: {
+      windowDealCount: number;
+      onTimeRate: number;
+      averageDaysToSettle: number;
+      defaultCount: number;
+    } | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!valid) return;
@@ -56,12 +68,21 @@ export function CreditPassport({ address }: { address: string }) {
     let pollId: ReturnType<typeof setTimeout> | null = null;
 
     async function load() {
-      const [repRes, profRes, vaultRes] = await Promise.allSettled([
+      const [repRes, profRes, vaultRes, smeRes] = await Promise.allSettled([
         api.reputation(address),
         api.getProfile(address),
         api.vaultPositions(address),
+        api.getSmeProfile(address),
       ]);
       if (cancelled) return;
+      if (smeRes.status === 'fulfilled') {
+        setSme({
+          smeProfile: (smeRes.value.smeProfile ?? null) as
+            | NonNullable<UserProfile['smeProfile']>
+            | null,
+          repaymentBehavior: smeRes.value.repaymentBehavior,
+        });
+      }
       // Reputation is the load-bearing read; if it fails the passport can't render.
       if (repRes.status !== 'fulfilled') {
         setFetchState('error');
@@ -352,6 +373,11 @@ export function CreditPassport({ address }: { address: string }) {
         </section>
       )}
 
+      {/* SME COMPANY + REPAYMENT — renders only when the wallet has at least
+          one SME field populated OR an existing repayment behavior. Stays
+          out of the way for service-flow users. */}
+      <SmePassportBand sme={sme} />
+
       {/* FOOTER */}
       <footer className="mt-6 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-[12px] text-[var(--color-ink-faint)] leading-snug max-w-[48ch]">
@@ -489,4 +515,160 @@ function trimUsdc(raw: string): string {
   if (!Number.isFinite(n)) return raw;
   if (Number.isInteger(n)) return n.toString();
   return n.toFixed(2).replace(/\.?0+$/, '');
+}
+
+/// SME company + repayment behavior surface. Top-level component (per
+/// Vercel `rerender-no-inline-components`) so it doesn't reallocate on
+/// every CreditPassport render. Renders nothing when the wallet has no
+/// SME profile and no settled deals — service-flow passport readers see
+/// the page exactly as before.
+function SmePassportBand({
+  sme,
+}: {
+  sme: {
+    smeProfile: NonNullable<UserProfile['smeProfile']> | null;
+    repaymentBehavior: {
+      windowDealCount: number;
+      onTimeRate: number;
+      averageDaysToSettle: number;
+      defaultCount: number;
+    } | null;
+  } | null;
+}) {
+  if (!sme) return null;
+  const p = sme.smeProfile;
+  const r = sme.repaymentBehavior;
+  const hasProfile = !!p && (p.companyName || p.sector || p.region || p.websiteUrl);
+  const hasRepay = !!r && r.windowDealCount > 0;
+  if (!hasProfile && !hasRepay) return null;
+  return (
+    <section
+      className="mt-8 rounded-xl border overflow-hidden"
+      style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
+    >
+      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-line)' }}>
+        <p className="eyebrow">[:COMPANY:]</p>
+      </div>
+      <div className="p-6 md:p-7 grid md:grid-cols-2 gap-6">
+        {hasProfile ? (
+          <div className="space-y-3.5">
+            {p!.companyName ? (
+              <p className="text-[18px] font-extrabold leading-tight" style={{ color: 'var(--color-ink)' }}>
+                {p!.companyName}
+                {p!.verifiedAt ? (
+                  <span className="ms-2 mono text-[9px] uppercase tracking-[0.14em] font-bold px-1.5 py-0.5 align-middle" style={{ background: 'var(--color-accent)', color: 'var(--color-ink)' }}>
+                    VERIFIED
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+            <dl className="space-y-2">
+              {p!.sector ? <PassportRow label="Sector" value={p!.sector} capitalize /> : null}
+              {p!.region ? <PassportRow label="Region" value={p!.region} /> : null}
+              {p!.yearFounded ? <PassportRow label="Founded" value={String(p!.yearFounded)} /> : null}
+              {p!.employeeBand ? <PassportRow label="Size" value={p!.employeeBand} capitalize /> : null}
+              {p!.websiteUrl ? (
+                <PassportRow
+                  label="Website"
+                  value={
+                    <a
+                      href={p!.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--color-accent)' }}
+                      className="hover:underline"
+                    >
+                      {p!.websiteUrl.replace(/^https?:\/\//, '')}
+                    </a>
+                  }
+                />
+              ) : null}
+            </dl>
+          </div>
+        ) : (
+          <p className="text-[13px]" style={{ color: 'var(--color-ink-dim)' }}>
+            No company profile published.
+          </p>
+        )}
+        {hasRepay ? (
+          <div className="space-y-3.5">
+            <p className="mono text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--color-ink-faint)' }}>
+              [:REPAYMENT BEHAVIOR:]
+            </p>
+            <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+              last {r!.windowDealCount} deals
+            </p>
+            <dl className="mt-2 space-y-3.5">
+              <PassportStat
+                label="On-time rate"
+                value={`${Math.round(r!.onTimeRate * 100)}%`}
+                tone={r!.onTimeRate >= 0.8 ? 'positive' : r!.onTimeRate >= 0.5 ? 'neutral' : 'critical'}
+              />
+              <PassportStat
+                label="Avg days to settle"
+                value={r!.averageDaysToSettle.toFixed(1)}
+                tone="neutral"
+              />
+              <PassportStat
+                label="Defaults"
+                value={String(r!.defaultCount)}
+                tone={r!.defaultCount === 0 ? 'positive' : 'critical'}
+              />
+            </dl>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function PassportRow({
+  label,
+  value,
+  capitalize,
+}: {
+  label: string;
+  value: React.ReactNode;
+  capitalize?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+        {label}
+      </dt>
+      <dd
+        className={`text-[13px] text-right ${capitalize ? 'capitalize' : ''}`}
+        style={{ color: 'var(--color-ink)' }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function PassportStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'positive' | 'neutral' | 'critical';
+}) {
+  const color =
+    tone === 'positive'
+      ? 'var(--color-accent)'
+      : tone === 'critical'
+        ? 'var(--color-danger, #b03d3a)'
+        : 'var(--color-ink)';
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
+        {label}
+      </dt>
+      <dd className="text-[18px] tabular-nums font-extrabold" style={{ color }}>
+        {value}
+      </dd>
+    </div>
+  );
 }

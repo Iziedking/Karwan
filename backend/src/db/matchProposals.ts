@@ -28,7 +28,17 @@ export interface MatchProposal {
   /// buyer is NEW-tier (new-buyer). When set, the MatchBanner renders a
   /// plain-language warning so the seller can judge before accepting.
   /// Never causes auto-decline. the human is the gate.
-  riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
+  riskFlag?:
+    | 'honey-trap'
+    | 'lowball'
+    | 'spammy'
+    | 'new-buyer'
+    /// Counterparty concentration warning. 'soft' fires at 60%+ of the
+    /// last 20 deals against the same counterparty; 'high' at 80%+ which
+    /// forces humanReview regardless of tier. See reputation/signals.ts
+    /// `computeConcentration`.
+    | 'concentration-soft'
+    | 'concentration-high';
   /// Short human-readable explanation paired with the riskFlag.
   riskNote?: string;
   /// Balance awareness, computed at propose time. The agent negotiates freely up

@@ -128,6 +128,10 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
     lowball: mb.risk.lowball,
     spammy: mb.risk.spammy,
     'new-buyer': mb.risk.newBuyer,
+    // i18n debt: these two are hardcoded English until the next i18n
+    // extraction pass picks them up across all locales.
+    'concentration-soft': 'CONCENTRATION HIGH',
+    'concentration-high': 'CONCENTRATION HARD',
   };
 
   // Pending. full proposal surface.

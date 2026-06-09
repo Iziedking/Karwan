@@ -396,7 +396,13 @@ export interface MatchProposal {
   /// Surfaced in MatchBanner so the human sees why the agent flagged it.
   /// 'new-buyer' is set by the seller agent's tier adjustment for NEW-tier
   /// buyers (docs/reputation-model.md §6) and trumps the buyer-side pattern.
-  riskFlag?: 'honey-trap' | 'lowball' | 'spammy' | 'new-buyer';
+  riskFlag?:
+    | 'honey-trap'
+    | 'lowball'
+    | 'spammy'
+    | 'new-buyer'
+    | 'concentration-soft'
+    | 'concentration-high';
   riskNote?: string;
   /// Balance awareness from the buyer agent at propose time. fundable=false
   /// means the agent agreed within the buyer's authorized cap but its wallet is
