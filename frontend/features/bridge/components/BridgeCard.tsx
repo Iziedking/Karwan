@@ -62,6 +62,58 @@ function stepIndexFor(phase: BridgePhase): number {
   return STEP_ORDER.indexOf(phase);
 }
 
+/// Per-user "hidden from activity" bridge IDs. Persisted in localStorage so
+/// dismissals survive reloads. The dismissals are local-display-only —
+/// they DO NOT touch the shared useBridges store, so the bridge history
+/// modal (a separate surface) still shows every bridge the user made.
+/// The previous implementation called useBridges().dismiss which removed
+/// records from the shared store, so clearing activity also cleared the
+/// bridge history (the bug the user reported).
+function useHiddenActivityBridgeIds(address: string | null): {
+  set: Set<string>;
+  hide: (id: string) => void;
+  hideMany: (ids: string[]) => void;
+} {
+  const storageKey = address ? `karwan:bridges:hiddenActivity:${address.toLowerCase()}` : null;
+  const [version, setVersion] = useState(0);
+  const set = useMemo<Set<string>>(() => {
+    if (!storageKey || typeof window === 'undefined') return new Set();
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw) as unknown;
+      return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
+    } catch {
+      return new Set();
+    }
+    /// version is read so React re-derives the set after hide() bumps it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, version]);
+
+  const write = (next: Set<string>) => {
+    if (!storageKey || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(Array.from(next)));
+    } catch {
+      /* quota — ignore */
+    }
+    setVersion((v) => v + 1);
+  };
+
+  const hide = (id: string) => {
+    const next = new Set(set);
+    next.add(id);
+    write(next);
+  };
+  const hideMany = (ids: string[]) => {
+    const next = new Set(set);
+    for (const id of ids) next.add(id);
+    write(next);
+  };
+
+  return { set, hide, hideMany };
+}
+
 function elapsed(ts: number, copy: { secondsTemplate: string; minutesTemplate: string; hoursTemplate: string }): string {
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
   if (s < 60) return copy.secondsTemplate.replace('{n}', String(s));
@@ -191,7 +243,19 @@ export function BridgeCard({
     isActive,
   } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
-  const inBridges = bridges.filter((b) => b.direction !== 'out');
+  const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
+  /// IDs the user has dismissed from the ACTIVITY modal. Stored in
+  /// localStorage so a dismiss survives reload, but never written to the
+  /// shared useBridges store — the bridge history modal (a separate
+  /// surface) keeps showing every bridge the user ever made. This is the
+  /// fix for "Clear all in activity also cleared bridge history": the
+  /// previous code called useBridges().dismiss which removed the record
+  /// from the shared store, so both modals lost it.
+  const hiddenIds = useHiddenActivityBridgeIds(identityAddress ?? null);
+  const inBridges = useMemo(
+    () => inBridgesAll.filter((b) => !hiddenIds.set.has(b.id)),
+    [inBridgesAll, hiddenIds.set],
+  );
   /// Default to the first chain in SOURCE_CHAINS (Ethereum Sepolia) rather
   /// than Base. The picker is alphabetical-ish but Ethereum-first reads as
   /// the canonical entry point; Base felt arbitrary and was confusing a
@@ -690,7 +754,11 @@ export function BridgeCard({
         onToggle={(id) => setExpandedId(expandedId === id ? null : id)}
         onRetry={retry}
         onRecheck={recheck}
-        onDismiss={dismiss}
+        /// Activity-modal dismiss writes to the localStorage-backed
+        /// hidden-ID set, NOT the shared useBridges store. The bridge
+        /// history modal (a separate surface in BridgeHistorySection.tsx)
+        /// keeps showing every bridge the user ever made.
+        onDismiss={hiddenIds.hide}
         isActive={isActive}
         copy={bc}
       />
@@ -1817,10 +1885,10 @@ function BridgeHistoryModal({
             {copy.eyebrow.activity}
           </span>
           <div className="flex items-center gap-3">
-            {/* Activity modal Clear-all. Scoped: this hides the rows from
-                the user's local activity view but the per-user bridge
-                history modal (a separate surface) keeps the permanent
-                record. */}
+            {/* Activity modal Clear-all. Iterates onDismiss which the
+                parent has wired to the localStorage hidden-IDs set, NOT
+                the shared useBridges store. Bridge history modal keeps
+                showing everything. */}
             {bridges.length > 0 && (
               <button
                 type="button"
