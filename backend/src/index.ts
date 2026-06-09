@@ -45,6 +45,7 @@ import {
 } from './agents/buyer.js';
 import { startSellerAgents } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
+import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
@@ -227,6 +228,11 @@ function bootAgents() {
     stopFns.push(startDealWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'deal watcher not started');
+  }
+  try {
+    stopFns.push(startFactoringWatcher());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
   }
   try {
     stopFns.push(startJobExpiryWatcher());
