@@ -25,6 +25,22 @@ export interface Brief {
   /// one-shot deals where the buyer can't redo the trade if the seller is a
   /// no-show. Defaults to false (Normal mode).
   trustedMatch?: boolean;
+  /// SME trade-finance metadata. Snapshotted at post time so the buyer
+  /// agent + downstream surfaces read the trade context without re-querying.
+  /// Absent on legacy service-flow briefs.
+  tradeType?: 'service' | 'goods' | 'mixed';
+  incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
+  paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
+  counterpartyCompany?: {
+    name?: string;
+    sector?: string;
+    region?: string;
+  };
+  documentRefs?: Array<{
+    hash: string;
+    kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+    label?: string;
+  }>;
 }
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'briefs.json');

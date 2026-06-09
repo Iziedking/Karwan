@@ -811,6 +811,17 @@ export const api = {
       budgetUsdc: number;
       negotiationMaxIncreasePct?: number;
       trustedMatch?: boolean;
+      // SME trade-finance fields (Phase 2 Track 2). All optional; legacy
+      // service flows continue to post without them.
+      tradeType?: 'service' | 'goods' | 'mixed';
+      incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
+      paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
+      counterpartyCompany?: { name?: string; sector?: string; region?: string };
+      documentRefs?: Array<{
+        hash: string;
+        kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+        label?: string;
+      }>;
     } & ({ deadlineSeconds: number } | { deadlineDays: number }),
   ) =>
     json<{ jobId: string; deadlineUnix: number; txHash: string; explorerUrl: string }>(

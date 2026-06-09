@@ -85,6 +85,30 @@ const postJobSchema = z
      *  and stake above price, and gates bids on the seller's free stake covering
      *  the deal's insurance reservation. For higher-value or one-shot deals. */
     trustedMatch: z.boolean().optional(),
+    /** SME trade-finance fields (Phase 2 Track 2). All optional; service deals
+     *  omit them entirely so the auction surface stays clean. The brief store
+     *  (db/briefs.ts) snapshots these alongside the brief text so the buyer
+     *  agent + downstream surfaces can read them without re-querying chain. */
+    tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
+    incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional(),
+    paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional(),
+    counterpartyCompany: z
+      .object({
+        name: z.string().max(120).optional(),
+        sector: z.string().max(40).optional(),
+        region: z.string().max(80).optional(),
+      })
+      .optional(),
+    documentRefs: z
+      .array(
+        z.object({
+          hash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+          kind: z.enum(['invoice', 'po', 'bol', 'coo', 'pod', 'other']),
+          label: z.string().max(120).optional(),
+        }),
+      )
+      .max(20)
+      .optional(),
   })
   .refine((b) => b.deadlineDays != null || b.deadlineSeconds != null, {
     message: 'deadlineDays or deadlineSeconds required',
@@ -246,6 +270,11 @@ jobsRoutes.post('/', async (c) => {
     postedBy: body.posterAddress,
     negotiationMaxIncreasePct: body.negotiationMaxIncreasePct,
     trustedMatch: body.trustedMatch === true,
+    tradeType: body.tradeType,
+    incoterms: body.incoterms,
+    paymentTerms: body.paymentTerms,
+    counterpartyCompany: body.counterpartyCompany,
+    documentRefs: body.documentRefs,
   });
 
   // Extract canonical match keywords from the brief. Fire-and-forget; if the

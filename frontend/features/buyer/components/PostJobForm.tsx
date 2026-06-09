@@ -15,6 +15,73 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 
+// SME trade-finance constants. Hoisted to module scope per the Vercel
+// `rendering-hoist-jsx` rule: these never change, so re-creating the
+// arrays on every render would just waste cycles + GC pressure.
+type TradeType = 'service' | 'goods' | 'mixed';
+type IncotermsCode = 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
+type PaymentTermsCode = 'immediate' | 'net30' | 'net60' | 'net90';
+type DocumentKind = 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+
+const INCOTERMS: ReadonlyArray<{ code: IncotermsCode; gloss: string }> = [
+  { code: 'EXW', gloss: 'Buyer collects from factory.' },
+  { code: 'FCA', gloss: 'Seller delivers to a named carrier.' },
+  { code: 'FOB', gloss: 'Seller loads on the named vessel.' },
+  { code: 'CIF', gloss: 'Seller pays freight + insurance to port.' },
+  { code: 'DAP', gloss: 'Seller delivers; buyer clears customs.' },
+  { code: 'DDP', gloss: 'Seller delivers + clears customs.' },
+];
+
+const PAYMENT_TERMS: ReadonlyArray<{ code: PaymentTermsCode; label: string }> = [
+  { code: 'immediate', label: 'IMMEDIATE' },
+  { code: 'net30', label: 'NET 30' },
+  { code: 'net60', label: 'NET 60' },
+  { code: 'net90', label: 'NET 90' },
+];
+
+const SECTORS: ReadonlyArray<string> = [
+  'agriculture',
+  'textiles',
+  'electronics',
+  'logistics',
+  'manufacturing',
+  'services',
+  'other',
+];
+
+const DOC_KIND_LABELS: Record<DocumentKind, string> = {
+  invoice: 'INVOICE',
+  po: 'PO',
+  bol: 'BoL',
+  coo: 'CoO',
+  pod: 'PoD',
+  other: 'OTHER',
+};
+
+/// Browser sha256 via Web Crypto. Returns 0x-prefixed 32-byte hex.
+/// Native API, zero bundle cost, runs off main thread internally on
+/// most engines. No dynamic-import needed for the hasher itself.
+async function sha256OfFile(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buf);
+  const bytes = new Uint8Array(hashBuffer);
+  let hex = '0x';
+  for (const b of bytes) {
+    hex += b.toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+function inferDocKindFromFilename(name: string): DocumentKind {
+  const lower = name.toLowerCase();
+  if (lower.includes('invoice')) return 'invoice';
+  if (lower.includes('po') || lower.includes('purchase')) return 'po';
+  if (lower.includes('bol') || lower.includes('bill')) return 'bol';
+  if (lower.includes('coo') || lower.includes('origin')) return 'coo';
+  if (lower.includes('pod') || lower.includes('delivery')) return 'pod';
+  return 'other';
+}
+
 export function PostJobForm() {
   const t = useTranslations().postJob;
   const router = useRouter();
@@ -51,6 +118,19 @@ export function PostJobForm() {
   // above price and gates bids on the seller's free stake covering the deal's
   // insurance reservation. For higher-value or one-shot deals.
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
+  // SME trade-finance state. Split into separate hooks per the Vercel
+  // `rerender-split-combined-hooks` rule — each picker mutates only its own
+  // slice so a sector change never re-renders unrelated inputs.
+  const [tradeType, setTradeType] = useState<TradeType>('service');
+  const [incoterms, setIncoterms] = useState<IncotermsCode | null>(null);
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTermsCode>('immediate');
+  const [companyName, setCompanyName] = useState('');
+  const [companySector, setCompanySector] = useState('');
+  const [companyRegion, setCompanyRegion] = useState('');
+  const [documentRefs, setDocumentRefs] = useState<
+    Array<{ hash: string; kind: DocumentKind; label: string }>
+  >([]);
+  const [hashingFile, setHashingFile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +172,17 @@ export function PostJobForm() {
     setError(null);
     setInsufficientBalance(false);
     try {
+      // SME trade-finance payload. Only included when the user actually
+      // engaged the goods / mixed flow; service deals stay on the legacy
+      // shape so the auction surface doesn't see noise.
+      const counterpartyCompany =
+        companyName || companySector || companyRegion
+          ? {
+              name: companyName.trim() || undefined,
+              sector: companySector || undefined,
+              region: companyRegion.trim() || undefined,
+            }
+          : undefined;
       const r = await api.postJob({
         posterAddress: address,
         brief,
@@ -99,6 +190,11 @@ export function PostJobForm() {
         deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
         trustedMatch,
+        tradeType: tradeType !== 'service' ? tradeType : undefined,
+        incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
+        paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
+        counterpartyCompany: tradeType !== 'service' ? counterpartyCompany : undefined,
+        documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
       });
       sfx.send();
       recordAction('post-job');
@@ -273,10 +369,210 @@ export function PostJobForm() {
             }}
             rows={4}
             disabled={submitting}
-            placeholder={t.sectionWork.requestPlaceholder}
+            placeholder={
+              tradeType === 'goods'
+                ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums, payment net 30.'
+                : tradeType === 'mixed'
+                  ? 'e.g. Equipment install on site, 2 weeks, includes shipping + commissioning.'
+                  : t.sectionWork.requestPlaceholder
+            }
             className="form-input form-textarea"
           />
         </FormLabel>
+      </FieldSection>
+
+      {/* TRADE CONTEXT */}
+      <FieldSection eyebrow="[:TRADE CONTEXT:]" title="Goods or service">
+        <FormLabel label="Trade type">
+          <div className="flex gap-2 flex-wrap">
+            {(['service', 'goods', 'mixed'] as const).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                disabled={submitting}
+                onClick={() => setTradeType(opt)}
+                className={cn(
+                  'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                  tradeType === opt
+                    ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
+                    : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                )}
+                style={{
+                  borderTopLeftRadius: 6,
+                  borderTopRightRadius: 6,
+                  borderBottomLeftRadius: 6,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </FormLabel>
+        {tradeType !== 'service' ? (
+          <>
+            <FormLabel label="Incoterms 2020" hint="The trade-rule each side commits to.">
+              <div className="flex gap-2 flex-wrap">
+                {INCOTERMS.map((it) => (
+                  <button
+                    key={it.code}
+                    type="button"
+                    disabled={submitting}
+                    title={it.gloss}
+                    onClick={() => setIncoterms(it.code)}
+                    className={cn(
+                      'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                      incoterms === it.code
+                        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
+                        : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                    )}
+                    style={{
+                      borderTopLeftRadius: 6,
+                      borderTopRightRadius: 6,
+                      borderBottomLeftRadius: 6,
+                      borderBottomRightRadius: 2,
+                    }}
+                  >
+                    {it.code}
+                  </button>
+                ))}
+              </div>
+            </FormLabel>
+            <FormLabel label="Payment terms" hint="When the buyer pays after delivery.">
+              <div className="flex gap-2 flex-wrap">
+                {PAYMENT_TERMS.map((pt) => (
+                  <button
+                    key={pt.code}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setPaymentTerms(pt.code)}
+                    className={cn(
+                      'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
+                      paymentTerms === pt.code
+                        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
+                        : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                    )}
+                    style={{
+                      borderTopLeftRadius: 6,
+                      borderTopRightRadius: 6,
+                      borderBottomLeftRadius: 6,
+                      borderBottomRightRadius: 2,
+                    }}
+                  >
+                    {pt.label}
+                  </button>
+                ))}
+              </div>
+            </FormLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <FormLabel label="Company" hint="Counterparty's legal name.">
+                <input
+                  type="text"
+                  value={companyName}
+                  disabled={submitting}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="e.g. Acme Imports Ltd"
+                  className="form-input"
+                  maxLength={120}
+                />
+              </FormLabel>
+              <FormLabel label="Sector">
+                <select
+                  value={companySector}
+                  disabled={submitting}
+                  onChange={(e) => setCompanySector(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="">—</option>
+                  {SECTORS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </FormLabel>
+              <FormLabel label="Region">
+                <input
+                  type="text"
+                  value={companyRegion}
+                  disabled={submitting}
+                  onChange={(e) => setCompanyRegion(e.target.value)}
+                  placeholder="e.g. Dubai, AE"
+                  className="form-input"
+                  maxLength={80}
+                />
+              </FormLabel>
+            </div>
+            <FormLabel
+              label="Documents"
+              hint="Hashes anchor on chain when the deal is accepted. Files stay on your device."
+            >
+              <input
+                type="file"
+                disabled={submitting || hashingFile}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setHashingFile(true);
+                  try {
+                    const hash = await sha256OfFile(file);
+                    const kind = inferDocKindFromFilename(file.name);
+                    setDocumentRefs((prev) =>
+                      prev.find((d) => d.hash === hash)
+                        ? prev
+                        : [...prev, { hash, kind, label: file.name }],
+                    );
+                  } finally {
+                    setHashingFile(false);
+                    e.target.value = '';
+                  }
+                }}
+                className="form-input"
+              />
+              {hashingFile ? (
+                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-2">
+                  Hashing…
+                </p>
+              ) : null}
+              {documentRefs.length > 0 ? (
+                <ul className="mt-3 space-y-2">
+                  {documentRefs.map((d) => (
+                    <li
+                      key={d.hash}
+                      className="flex items-center gap-3 px-3 py-2 border border-black/10 bg-[var(--lp-bg)]"
+                      style={{
+                        borderTopLeftRadius: 6,
+                        borderTopRightRadius: 6,
+                        borderBottomLeftRadius: 6,
+                        borderBottomRightRadius: 2,
+                      }}
+                    >
+                      <span className="mono text-[9px] uppercase tracking-[0.16em] font-bold px-1.5 py-0.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]">
+                        {DOC_KIND_LABELS[d.kind]}
+                      </span>
+                      <span className="flex-1 truncate text-[12px] text-[var(--lp-dark)]">
+                        {d.label}
+                      </span>
+                      <code className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hidden sm:inline">
+                        {d.hash.slice(0, 10)}…{d.hash.slice(-6)}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDocumentRefs((prev) => prev.filter((x) => x.hash !== d.hash))
+                        }
+                        className="text-[14px] leading-none px-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
+                        aria-label="Remove document"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </FormLabel>
+          </>
+        ) : null}
       </FieldSection>
 
       {/* TERMS */}
