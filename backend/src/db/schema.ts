@@ -6,6 +6,9 @@ import type { BridgeRelay } from './bridges.js';
 import type { ChatMessage } from './messages.js';
 import type { TelegramLink } from './telegramLinks.js';
 import type { MatchProposal } from './matchProposals.js';
+import type { FactoringOffer } from './factoring.js';
+import type { POFinancingLine } from './poFinancing.js';
+import type { DocumentAnchor } from './documentAnchors.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -106,5 +109,73 @@ export const matchProposals = pgTable(
     buyerUserIdx: index('match_proposals_buyer_user_idx').on(t.buyerUser),
     sellerUserIdx: index('match_proposals_seller_user_idx').on(t.sellerUser),
     proposedAtIdx: index('match_proposals_proposed_at_idx').on(t.proposedAt),
+  }),
+);
+
+// --- SME trade-finance tables (Phase 2 Track 2) -----------------------------
+// Three companion tables to the on-chain KarwanInvoiceRegistry + KarwanPOFinancing
+// contracts. Each row's full TypeScript shape lives in the JSONB `data` column;
+// the surfaced columns power the indexed lookups (per-invoice, per-financier,
+// per-seller, open-by-status).
+
+/// Financier offers on a seller's accepted invoice for early payout. Lifecycle:
+/// offered -> accepted | rejected | expired; accepted -> settled | defaulted.
+export const factoringOffers = pgTable(
+  'factoring_offers',
+  {
+    id: text('id').primaryKey(),
+    invoiceId: text('invoice_id').notNull(),
+    financier: text('financier').notNull(),
+    seller: text('seller').notNull(),
+    status: text('status').notNull(),
+    offeredAt: bigint('offered_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<FactoringOffer>().notNull(),
+  },
+  (t) => ({
+    invoiceIdx: index('factoring_offers_invoice_idx').on(t.invoiceId),
+    financierIdx: index('factoring_offers_financier_idx').on(t.financier),
+    sellerIdx: index('factoring_offers_seller_idx').on(t.seller),
+    statusIdx: index('factoring_offers_status_idx').on(t.status),
+    offeredAtIdx: index('factoring_offers_offered_at_idx').on(t.offeredAt),
+  }),
+);
+
+/// Single-funder PO financing line state. Mirrors the on-chain POLine struct.
+/// At most one row per invoiceId; the on-chain contract enforces single-line.
+export const poFinancingLines = pgTable(
+  'po_financing_lines',
+  {
+    id: text('id').primaryKey(),
+    invoiceId: text('invoice_id').notNull(),
+    financier: text('financier').notNull(),
+    seller: text('seller').notNull(),
+    state: text('state').notNull(),
+    fundedAt: bigint('funded_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<POFinancingLine>().notNull(),
+  },
+  (t) => ({
+    invoiceIdx: index('po_financing_lines_invoice_idx').on(t.invoiceId),
+    financierIdx: index('po_financing_lines_financier_idx').on(t.financier),
+    sellerIdx: index('po_financing_lines_seller_idx').on(t.seller),
+    stateIdx: index('po_financing_lines_state_idx').on(t.state),
+    fundedAtIdx: index('po_financing_lines_funded_at_idx').on(t.fundedAt),
+  }),
+);
+
+/// On-chain document anchor mirror. id = `${invoiceId}:${hash}` so the same
+/// hash never appears twice for the same invoice. The chain is authoritative
+/// on tie; this table is the fast-query path for /jobs/[id] + admin surfaces.
+export const documentAnchors = pgTable(
+  'document_anchors',
+  {
+    id: text('id').primaryKey(),
+    invoiceId: text('invoice_id').notNull(),
+    anchorer: text('anchorer').notNull(),
+    anchoredAt: bigint('anchored_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<DocumentAnchor>().notNull(),
+  },
+  (t) => ({
+    invoiceIdx: index('document_anchors_invoice_idx').on(t.invoiceId),
+    anchoredAtIdx: index('document_anchors_anchored_at_idx').on(t.anchoredAt),
   }),
 );

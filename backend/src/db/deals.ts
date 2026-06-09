@@ -176,6 +176,52 @@ export interface DirectDeal {
   /// Unset when requireStake is false; default 50 when requireStake is true
   /// and the slider was not surfaced (older clients).
   requireStakePct?: number;
+  // --- SME trade-finance fields (Phase 2 Track 2) -----------------------
+  /// Whether the deal moves goods, services, or both. Drives the milestone
+  /// vocabulary (dispatched / in transit / customs cleared / delivered /
+  /// accepted vs the simpler service mode), the Incoterms picker visibility,
+  /// and the SME passport surfacing. Absent on rows created before this
+  /// landed; backend treats absent as 'service' to preserve old UI.
+  tradeType?: 'service' | 'goods' | 'mixed';
+  /// Incoterms 2020 set. Only the subset relevant to SME cross-border deals
+  /// per sme-research.md §2: FOB, CIF, DAP, EXW, FCA, DDP.
+  incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
+  /// When the buyer pays. Default for legacy deals is 'immediate' (the
+  /// existing escrow-release model). Net terms route settlement on a delay
+  /// after delivery; factoring lets the seller cash out before net expiry.
+  paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
+  /// Snapshot of the counterparty's SME profile at deal-creation time.
+  /// Frozen here so the deal detail always shows what the parties agreed
+  /// to, even if the live profile changes later.
+  counterpartyCompany?: {
+    name?: string;
+    sector?: string;
+    region?: string;
+  };
+  /// Document hashes anchored on KarwanInvoiceRegistry. Mirror of on-chain
+  /// state for fast UI render; chain is the source of truth on tie.
+  documentRefs?: Array<{
+    hash: string;
+    kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+    label?: string;
+    anchoredAt?: number;
+    txHash?: string;
+  }>;
+  /// Active factoring offer accepted by the seller. References
+  /// FactoringOffer.id; null/absent means no factoring on this deal.
+  factoringOfferId?: string;
+  /// Active PO financing line opened by a financier. References
+  /// POFinancingLine.id; null/absent means no PO financing on this deal.
+  poFinancingId?: string;
+  /// x402-paid signal receipts captured during agent negotiation. Stored as
+  /// digests (not raw results) so the deal row never leaks paid content.
+  paidSignalsLog?: Array<{
+    signal: 'market-median' | 'news-mention' | 'credit-check' | 'wallet-risk' | 'business-registry' | 'other';
+    costUsdc: string;
+    resultDigest: string;
+    calledAt: number;
+    callerRole: 'buyer-agent' | 'seller-agent' | 'security-agent';
+  }>;
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

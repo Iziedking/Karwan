@@ -85,6 +85,46 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS event_history_ts_idx ON event_history (ts);
     CREATE INDEX IF NOT EXISTS event_history_job_ts_idx ON event_history (job_id, ts);
+    -- SME trade-finance tables. Companion to KarwanInvoiceRegistry +
+    -- KarwanPOFinancing on chain. JSONB data column holds the full row
+    -- shape; surfaced columns power the indexed lookups.
+    CREATE TABLE IF NOT EXISTS factoring_offers (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL,
+      financier TEXT NOT NULL,
+      seller TEXT NOT NULL,
+      status TEXT NOT NULL,
+      offered_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS factoring_offers_invoice_idx ON factoring_offers (invoice_id);
+    CREATE INDEX IF NOT EXISTS factoring_offers_financier_idx ON factoring_offers (financier);
+    CREATE INDEX IF NOT EXISTS factoring_offers_seller_idx ON factoring_offers (seller);
+    CREATE INDEX IF NOT EXISTS factoring_offers_status_idx ON factoring_offers (status);
+    CREATE INDEX IF NOT EXISTS factoring_offers_offered_at_idx ON factoring_offers (offered_at);
+    CREATE TABLE IF NOT EXISTS po_financing_lines (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL,
+      financier TEXT NOT NULL,
+      seller TEXT NOT NULL,
+      state TEXT NOT NULL,
+      funded_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS po_financing_lines_invoice_idx ON po_financing_lines (invoice_id);
+    CREATE INDEX IF NOT EXISTS po_financing_lines_financier_idx ON po_financing_lines (financier);
+    CREATE INDEX IF NOT EXISTS po_financing_lines_seller_idx ON po_financing_lines (seller);
+    CREATE INDEX IF NOT EXISTS po_financing_lines_state_idx ON po_financing_lines (state);
+    CREATE INDEX IF NOT EXISTS po_financing_lines_funded_at_idx ON po_financing_lines (funded_at);
+    CREATE TABLE IF NOT EXISTS document_anchors (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL,
+      anchorer TEXT NOT NULL,
+      anchored_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS document_anchors_invoice_idx ON document_anchors (invoice_id);
+    CREATE INDEX IF NOT EXISTS document_anchors_anchored_at_idx ON document_anchors (anchored_at);
   `);
   logger.info('postgres schema ensured');
 }

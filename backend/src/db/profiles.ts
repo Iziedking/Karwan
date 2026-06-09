@@ -57,6 +57,37 @@ export interface UserProfile {
     bidCollectionSeconds: number;
     milestonePcts: number[];
   };
+  /// SME-grade profile for B2B trade-finance flows. Optional; rendering on
+  /// the credit passport gates on presence. Filled in by the user via the
+  /// /profile · COMPANY card; some fields (verifiedAt) are written by the
+  /// SecurityAgent later. taxId is encrypted at rest; never returned in
+  /// plaintext from the public passport route.
+  smeProfile?: {
+    companyName?: string;
+    sector?: 'agriculture' | 'textiles' | 'electronics' | 'logistics' | 'manufacturing' | 'services' | 'other';
+    region?: string;
+    yearFounded?: number;
+    employeeBand?: 'micro' | 'small' | 'medium';
+    websiteUrl?: string;
+    /// AES-encrypted blob; the encryption key lives off-DB. Never returned
+    /// from public routes.
+    taxIdEncrypted?: string;
+    /// Populated when the SecurityAgent confirms the SME claims. Until then
+    /// the UI shows the profile unverified.
+    verifiedAt?: number;
+    /// Rolling-window repayment behaviour signal used by financiers when
+    /// reviewing a factoring or PO financing offer. Computed on-demand by
+    /// the reputation engine; cached here with computedAt so repeat reads
+    /// can skip recomputation within a short TTL.
+    repaymentBehavior?: {
+      windowDealCount: number;
+      onTimeRate: number;
+      averageDaysToSettle: number;
+      defaultCount: number;
+      lastSettledAt: number;
+      computedAt: number;
+    };
+  };
 }
 
 // --- public API: same names as before, now async, Postgres-backed when
