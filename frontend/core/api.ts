@@ -231,6 +231,35 @@ export interface FactoringOffer {
   updatedAt: number;
 }
 
+/// Purchase-order financing line (Phase 2 Track 2). Mirrors backend
+/// db/poFinancing.ts. State machine matches the on-chain
+/// KarwanPOFinancing.POState enum 1:1.
+export interface POFinancingLine {
+  id: string;
+  invoiceId: string;
+  financier: string;
+  seller: string;
+  buyer: string;
+  principalUsdc: string;
+  repayUsdc: string;
+  state: 'funded' | 'released' | 'repaid' | 'reclaimed' | 'defaulted';
+  fundedAt: number;
+  releaseTimeoutAt: number;
+  releasedAt?: number;
+  repaymentTimeoutAt?: number;
+  repaidAt?: number;
+  podHash?: string;
+  txHashes: {
+    fund?: string;
+    release?: string;
+    repay?: string;
+    reclaim?: string;
+    default?: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface DirectDealOnChain {
   state: number;
   milestonesReleased: number;
@@ -1759,6 +1788,56 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  // Purchase-order financing (Phase 2 Track 2). Lists are public; the
+  // mutating calls require the financier's session + an on-chain tx
+  // hash from KarwanPOFinancing.fund() / releaseToSeller() / claim()
+  // signed by the user's wallet ahead of the POST.
+  listPOFinancingAvailable: (params?: { sector?: string; region?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.sector) qs.set('sector', params.sector);
+    if (params?.region) qs.set('region', params.region);
+    const q = qs.toString();
+    return json<{ deals: DirectDeal[] }>(
+      `/api/po-financing/available${q ? `?${q}` : ''}`,
+    );
+  },
+  fundPOLine: (body: {
+    invoiceId: string;
+    principalUsdc: string;
+    repayUsdc: string;
+    releaseTimeoutSeconds: number;
+    fundTxHash: string;
+  }) =>
+    json<{ line: POFinancingLine }>('/api/po-financing/fund', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  releasePOLine: (body: { lineId: string; releaseTxHash: string; podHash?: string }) =>
+    json<{ line: POFinancingLine }>('/api/po-financing/release', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  claimPOLine: (body: { lineId: string; repayTxHash: string }) =>
+    json<{ line: POFinancingLine }>('/api/po-financing/claim', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  reclaimPOLine: (body: { lineId: string; reclaimTxHash: string }) =>
+    json<{ line: POFinancingLine }>('/api/po-financing/reclaim', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  defaultPOLine: (body: { lineId: string; defaultTxHash: string }) =>
+    json<{ line: POFinancingLine }>('/api/po-financing/default', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listMyPOLines: () =>
+    json<{ asFinancier: POFinancingLine[]; asSeller: POFinancingLine[] }>(
+      '/api/po-financing/mine',
+    ),
+  getPOLine: (id: string) =>
+    json<{ line: POFinancingLine }>(`/api/po-financing/line/${id}`),
   // SME profile (Phase 2 Track 2). Public passport read (no auth) +
   // authenticated self-edit. taxId is never round-tripped through this
   // API; the public route strips it from responses.
