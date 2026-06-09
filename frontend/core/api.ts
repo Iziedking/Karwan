@@ -1269,6 +1269,17 @@ export const api = {
     /// Stake percentage when requireStake is true. 50-100 in 5% steps.
     /// Translates to on-chain reservationBps = pct * 100.
     requireStakePct?: number;
+    /// SME trade-finance fields (Phase 2 Track 2). All optional; legacy
+    /// service-flow deals continue to post without them.
+    tradeType?: 'service' | 'goods' | 'mixed';
+    incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
+    paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
+    counterpartyCompany?: { name?: string; sector?: string; region?: string };
+    documentRefs?: Array<{
+      hash: string;
+      kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+      label?: string;
+    }>;
   }) =>
     json<{
       deal: DirectDeal;

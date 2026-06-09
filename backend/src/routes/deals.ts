@@ -103,6 +103,28 @@ const createSchema = z
       .optional()
       .default(50)
       .refine((v) => v % 5 === 0, { message: 'requireStakePct must be a multiple of 5' }),
+    /// SME trade-finance fields (Phase 2 Track 2). All optional; service-flow
+    /// direct deals continue to post without them.
+    tradeType: z.enum(['service', 'goods', 'mixed']).optional(),
+    incoterms: z.enum(['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']).optional(),
+    paymentTerms: z.enum(['immediate', 'net30', 'net60', 'net90']).optional(),
+    counterpartyCompany: z
+      .object({
+        name: z.string().max(120).optional(),
+        sector: z.string().max(40).optional(),
+        region: z.string().max(80).optional(),
+      })
+      .optional(),
+    documentRefs: z
+      .array(
+        z.object({
+          hash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+          kind: z.enum(['invoice', 'po', 'bol', 'coo', 'pod', 'other']),
+          label: z.string().max(120).optional(),
+        }),
+      )
+      .max(20)
+      .optional(),
   })
   .refine(
     (b) =>
@@ -248,6 +270,11 @@ dealsRoutes.post('/direct', async (c) => {
     pendingCounterparty,
     requireStake: body.requireStake,
     requireStakePct: body.requireStake ? body.requireStakePct : undefined,
+    tradeType: body.tradeType,
+    incoterms: body.incoterms,
+    paymentTerms: body.paymentTerms,
+    counterpartyCompany: body.counterpartyCompany,
+    documentRefs: body.documentRefs,
   });
 
   bus.emitEvent({
