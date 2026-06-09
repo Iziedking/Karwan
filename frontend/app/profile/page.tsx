@@ -18,6 +18,7 @@ import { ReputationBadge } from '@/features/reputation/components/ReputationBadg
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
+import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -358,6 +359,11 @@ function ProfilePageInner() {
           </div>
         </Band>
       )}
+
+      {/* COMPANY PROFILE (SME band) — only renders for authed users with an
+          address. Independent component so editing the profile re-renders
+          nothing else on this page. */}
+      {address ? <SmeCompanyBand address={address} /> : null}
 
       {/* WALLETS anchor */}
       <div id="wallets" aria-hidden style={{ scrollMarginTop: 80 }} />

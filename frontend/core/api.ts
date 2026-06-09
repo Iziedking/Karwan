@@ -183,6 +183,27 @@ export interface UserProfile {
     bidCollectionSeconds: number;
     milestonePcts: number[];
   };
+  /// SME-grade profile for B2B trade-finance flows (Phase 2 Track 2).
+  /// Surfaces on the credit passport, MatchBanner, and financier
+  /// dashboards. taxId is encrypted at rest and never returned over the
+  /// wire — the public passport route strips it before responding.
+  smeProfile?: {
+    companyName?: string;
+    sector?: 'agriculture' | 'textiles' | 'electronics' | 'logistics' | 'manufacturing' | 'services' | 'other';
+    region?: string;
+    yearFounded?: number;
+    employeeBand?: 'micro' | 'small' | 'medium';
+    websiteUrl?: string;
+    verifiedAt?: number;
+    repaymentBehavior?: {
+      windowDealCount: number;
+      onTimeRate: number;
+      averageDaysToSettle: number;
+      defaultCount: number;
+      lastSettledAt: number;
+      computedAt: number;
+    };
+  };
 }
 
 // KarwanEscrow.EscrowState: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
@@ -1667,6 +1688,44 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address }),
     }),
+  // SME profile (Phase 2 Track 2). Public passport read (no auth) +
+  // authenticated self-edit. taxId is never round-tripped through this
+  // API; the public route strips it from responses.
+  getSmeProfile: (address: string) =>
+    json<{
+      smeProfile: {
+        companyName?: string;
+        sector?: string;
+        region?: string;
+        yearFounded?: number;
+        employeeBand?: string;
+        websiteUrl?: string;
+        verifiedAt?: number;
+      } | null;
+      repaymentBehavior: {
+        windowDealCount: number;
+        onTimeRate: number;
+        averageDaysToSettle: number;
+        defaultCount: number;
+        lastSettledAt: number;
+        computedAt: number;
+      } | null;
+    }>(`/api/sme/profile/${address}`),
+  updateSmeProfile: (body: {
+    address: string;
+    smeProfile: {
+      companyName?: string;
+      sector?: 'agriculture' | 'textiles' | 'electronics' | 'logistics' | 'manufacturing' | 'services' | 'other';
+      region?: string;
+      yearFounded?: number;
+      employeeBand?: 'micro' | 'small' | 'medium';
+      websiteUrl?: string;
+    };
+  }) =>
+    json<{ smeProfile: NonNullable<UserProfile['smeProfile']> | undefined }>(
+      '/api/sme/profile',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 };
 
 export interface ChatMessage {

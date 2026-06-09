@@ -55,6 +55,18 @@ export interface ReputationInputs {
   spamBreakdown: SpamBreakdown;
   /// Counter-abandon rate in [0, 1] over 90 days.
   counterAbandonRate: number;
+  /// Counterparty concentration over the last 20 deals: ratio of the
+  /// top counterparty's deal count to total. 0 when the wallet has no
+  /// settled deals; 1 when every deal is with the same counterparty.
+  /// Used by the buyer agent's trust signal (soft flag >= 60%, hard
+  /// flag >= 80%) and the credit passport surface.
+  concentrationRatio: number;
+  /// True when concentrationRatio >= 60%. UI surfaces a soft warning;
+  /// the buyer agent drops its trust signal by 0.2.
+  concentrationSoft: boolean;
+  /// True when concentrationRatio >= 80%. Buyer agent forces
+  /// humanReview regardless of tier.
+  concentrationHard: boolean;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -168,6 +180,9 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   const [stake, spam, profile, wallets] = await Promise.all([
     activeStakeSummary(address).catch(() => ({ stakeUsdc: 0, stakeDays: 0 })),
     computeSpamSignals(address).catch(() => ({
+      concentrationRatio: 0,
+      concentrationSoft: false,
+      concentrationHard: false,
       spamScore: 0,
       breakdown: { burst: 0, diversity: 0, matchAndCancel: 0 },
       counterAbandonRate: 0,
@@ -209,6 +224,42 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     spamScore: spam.spamScore,
     spamBreakdown: spam.breakdown,
     counterAbandonRate: spam.counterAbandonRate,
+    ...computeConcentration(address, deals),
+  };
+}
+
+/// Concentration over the last 20 settled deals (sme-research.md §9):
+///   - top counterparty's deal count / total
+///   - soft flag at 60%, hard flag at 80%
+/// Returns zero ratios + false flags on too-few-deals (< 3) so a
+/// brand-new wallet doesn't trip on its first repeat counterparty.
+function computeConcentration(
+  address: string,
+  deals: ReadonlyArray<{ buyer: string; seller: string; settledAt?: number }>,
+): { concentrationRatio: number; concentrationSoft: boolean; concentrationHard: boolean } {
+  const mine = deals.filter((d) => {
+    const b = d.buyer?.toLowerCase();
+    const s = d.seller?.toLowerCase();
+    return (b === address || s === address) && !!d.settledAt;
+  });
+  if (mine.length < 3) {
+    return { concentrationRatio: 0, concentrationSoft: false, concentrationHard: false };
+  }
+  const window = mine.slice(-20);
+  const counts = new Map<string, number>();
+  for (const d of window) {
+    const cp = d.buyer.toLowerCase() === address ? d.seller.toLowerCase() : d.buyer.toLowerCase();
+    counts.set(cp, (counts.get(cp) ?? 0) + 1);
+  }
+  let top = 0;
+  for (const c of counts.values()) {
+    if (c > top) top = c;
+  }
+  const ratio = top / window.length;
+  return {
+    concentrationRatio: ratio,
+    concentrationSoft: ratio >= 0.6,
+    concentrationHard: ratio >= 0.8,
   };
 }
 
