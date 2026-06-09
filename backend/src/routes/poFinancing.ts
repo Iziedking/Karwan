@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
+import { parseUnits } from 'viem';
 import { readSession } from '../auth/session.js';
 import {
   createPOLine,
@@ -12,10 +13,14 @@ import {
   patchPOLine,
 } from '../db/poFinancing.js';
 import { getDeal, listAllDeals } from '../db/deals.js';
+import { getUserByAddress } from '../db/users.js';
+import { executeContractCall } from '../chain/txs.js';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { shouldHoldPOFunding } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
+
+const USDC_DECIMALS = 6;
 
 /// Purchase-order financing routes. Single-funder per invoice: financier
 /// deposits principal into KarwanPOFinancing, contract releases to seller
@@ -165,6 +170,159 @@ poFinancingRoutes.post('/fund', async (c) => {
     'po-financing: funded',
   );
   return c.json({ line });
+});
+
+const fundCircleBodySchema = z.object({
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x address'),
+  invoiceId: hashSchema,
+  principalUsdc: usdcAmountSchema,
+  repayUsdc: usdcAmountSchema,
+  releaseTimeoutSeconds: z.number().int().min(60).max(5 * 365 * 24 * 60 * 60),
+});
+
+/// POST /api/po-financing/fund-circle — Circle DCW-only sister route.
+/// Backend signs USDC.approve(financing, principal) then
+/// KarwanPOFinancing.fund(invoiceId, principal, repay, releaseTimeoutSeconds)
+/// via the caller's identity wallet, mirrors the line + emits po.funded
+/// with the real chain hash. Web3 callers stay on POST /fund.
+poFinancingRoutes.post('/fund-circle', async (c) => {
+  if (!config.KARWAN_PO_FINANCING_ADDR) {
+    return c.json({ error: 'po financing contract not configured' }, 503);
+  }
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
+  let body;
+  try {
+    body = fundCircleBodySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+
+  const caller = body.address.toLowerCase();
+  if (caller !== session.address.toLowerCase()) {
+    return c.json({ error: 'address must match session' }, 403);
+  }
+
+  const deal = await getDeal(body.invoiceId);
+  if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
+    return c.json({ error: 'deal not eligible for PO financing' }, 409);
+  }
+  if (caller === deal.seller) {
+    return c.json({ error: 'seller cannot fund their own PO' }, 403);
+  }
+
+  const existing = await getPOLineForInvoice(body.invoiceId);
+  if (existing) {
+    return c.json({ error: 'po line already opened on this invoice', line: existing }, 409);
+  }
+  if (Number(body.repayUsdc) <= Number(body.principalUsdc)) {
+    return c.json({ error: 'repay must exceed principal' }, 400);
+  }
+
+  const hold = await shouldHoldPOFunding(body.invoiceId);
+  if (hold) {
+    return c.json({ error: 'held for review', verdict: hold }, 409);
+  }
+
+  const user = getUserByAddress(caller);
+  if (!user?.circleIdentityWalletId) {
+    return c.json(
+      {
+        error: 'no Circle identity wallet for this address',
+        detail: 'fund-circle is for Circle users; web3 users sign locally and POST /fund.',
+      },
+      409,
+    );
+  }
+
+  const financingAddr = config.KARWAN_PO_FINANCING_ADDR;
+  const usdcAddr = config.USDC_ADDR;
+  if (!usdcAddr) {
+    return c.json({ error: 'USDC_ADDR not configured' }, 503);
+  }
+
+  const principalWei = parseUnits(body.principalUsdc, USDC_DECIMALS);
+  const repayWei = parseUnits(body.repayUsdc, USDC_DECIMALS);
+
+  try {
+    const approveResult = await executeContractCall(
+      {
+        walletId: user.circleIdentityWalletId,
+        contractAddress: usdcAddr,
+        abiFunctionSignature: 'approve(address,uint256)',
+        abiParameters: [financingAddr, principalWei.toString()],
+      },
+      `usdc.approve(${caller}, poFinancing)`,
+    );
+
+    const fundResult = await executeContractCall(
+      {
+        walletId: user.circleIdentityWalletId,
+        contractAddress: financingAddr,
+        abiFunctionSignature: 'fund(bytes32,uint128,uint128,uint64)',
+        abiParameters: [
+          body.invoiceId,
+          principalWei.toString(),
+          repayWei.toString(),
+          body.releaseTimeoutSeconds.toString(),
+        ],
+      },
+      `poFinancing.fund(${body.invoiceId})`,
+    );
+
+    const now = Date.now();
+    const line = await createPOLine({
+      id: randomUUID(),
+      invoiceId: body.invoiceId,
+      financier: caller,
+      seller: deal.seller,
+      buyer: deal.buyer,
+      principalUsdc: body.principalUsdc,
+      repayUsdc: body.repayUsdc,
+      state: 'funded',
+      fundedAt: now,
+      releaseTimeoutAt: now + body.releaseTimeoutSeconds * 1000,
+      txHashes: { fund: fundResult.txHash },
+    });
+
+    bus.emitEvent({
+      type: 'po.funded',
+      jobId: body.invoiceId,
+      actor: 'platform',
+      payload: {
+        lineId: line.id,
+        financier: caller,
+        seller: deal.seller,
+        principalUsdc: body.principalUsdc,
+        repayUsdc: body.repayUsdc,
+      },
+    });
+
+    logger.info(
+      {
+        lineId: line.id,
+        invoiceId: body.invoiceId,
+        financier: caller,
+        approveTxHash: approveResult.txHash,
+        fundTxHash: fundResult.txHash,
+      },
+      'po-financing: funded via Circle DCW',
+    );
+
+    return c.json({
+      line,
+      approveTxHash: approveResult.txHash,
+      fundTxHash: fundResult.txHash,
+    });
+  } catch (err) {
+    logger.error(
+      { invoiceId: body.invoiceId, err: (err as Error).message },
+      'po-financing: fund-circle failed',
+    );
+    return c.json({ error: 'fund failed', detail: (err as Error).message }, 502);
+  }
 });
 
 /// POST /api/po-financing/release — anyone records that releaseToSeller

@@ -1825,6 +1825,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  /// Circle DCW path. Backend signs USDC approve + KarwanPOFinancing.fund
+  /// against the financier's identity wallet and returns both tx hashes.
+  /// Web3 financiers stay on fundPOLine.
+  fundPOLineCircle: (body: {
+    address: string;
+    invoiceId: string;
+    principalUsdc: string;
+    repayUsdc: string;
+    releaseTimeoutSeconds: number;
+  }) =>
+    json<{
+      line: POFinancingLine;
+      approveTxHash: string;
+      fundTxHash: string;
+    }>('/api/po-financing/fund-circle', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   releasePOLine: (body: { lineId: string; releaseTxHash: string; podHash?: string }) =>
     json<{ line: POFinancingLine }>('/api/po-financing/release', {
       method: 'POST',

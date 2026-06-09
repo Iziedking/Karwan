@@ -1,11 +1,61 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
+import { parseUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import {
+  ARC_CHAIN_ID,
+  ARC_EXPLORER_TX,
+  ARC_USDC_ADDRESS,
+  ARC_USDC_DECIMALS,
+  KARWAN_PO_FINANCING_ADDRESS,
+} from '@/features/profile/config';
+
+// USDC + KarwanPOFinancing ABIs. Hoisted to module scope per Vercel
+// `rendering-hoist-jsx`; both are tiny and `as const` enables viem's
+// strict type inference.
+const usdcAbi = [
+  {
+    type: 'function',
+    name: 'approve',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'allowance',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
+const poFinancingAbi = [
+  {
+    type: 'function',
+    name: 'fund',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'invoiceId', type: 'bytes32' },
+      { name: 'principalUsdc', type: 'uint128' },
+      { name: 'repayUsdc', type: 'uint128' },
+      { name: 'releaseTimeoutSeconds', type: 'uint64' },
+    ],
+    outputs: [],
+  },
+] as const;
 
 // Hoisted constants per Vercel `rendering-hoist-jsx`.
 type Tab = 'factor' | 'po';
@@ -773,6 +823,10 @@ function FundModal({
   onClose: () => void;
   onFunded: (line: POFinancingLine) => void;
 }) {
+  const auth = useAuth();
+  const chainId = useChainId();
+  const { data: walletClient } = useWalletClient();
+  const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const face = Number(deal.dealAmountUsdc);
   // Default principal at 80% of face, repay at 84% (5% fee on principal).
   // Matches the demo scenario in sme-design.md §17 (5% PO financing fee).
@@ -780,13 +834,17 @@ function FundModal({
   const [repay, setRepay] = useState<number>(Math.round(face * 0.84 * 100) / 100);
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(30 * 86_400);
   const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState<'idle' | 'approving' | 'funding' | 'mirroring'>('idle');
   const [error, setError] = useState<string | null>(null);
 
+  const isCircleUser = auth.method === 'circle';
+  const address = auth.address as `0x${string}` | undefined;
+  const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
   const spread = repay - principal;
   const validRepay = repay > principal && repay <= face;
 
   async function submit() {
-    if (!isAuthed) {
+    if (!isAuthed || !address) {
       setError('Sign in to fund a PO line.');
       return;
     }
@@ -796,26 +854,81 @@ function FundModal({
     }
     setSubmitting(true);
     setError(null);
+    setStep('idle');
     try {
-      // For v1 the on-chain KarwanPOFinancing.fund() is signed by the
-      // user's wallet in a follow-up (Day 15 viem write hook). For now
-      // we POST a placeholder fundTxHash so the backend mirror records
-      // the line and the dashboard sees it. The watcher patches the
-      // real hash when the chain leg confirms.
-      const placeholderTxHash =
-        ('0x' + 'pending-fund'.padStart(64, '0').replace(/[^0-9a-f]/gi, '0')) as `0x${string}`;
-      const r = await api.fundPOLine({
-        invoiceId: deal.jobId,
-        principalUsdc: principal.toFixed(6),
-        repayUsdc: repay.toFixed(6),
-        releaseTimeoutSeconds: timeoutSeconds,
-        fundTxHash: placeholderTxHash,
-      });
-      onFunded(r.line);
+      if (isCircleUser) {
+        // Circle DCW path. Backend signs approve + fund via the user's
+        // identity wallet, returns both tx hashes, mirrors the line.
+        setStep('funding');
+        const r = await api.fundPOLineCircle({
+          address,
+          invoiceId: deal.jobId,
+          principalUsdc: principal.toFixed(6),
+          repayUsdc: repay.toFixed(6),
+          releaseTimeoutSeconds: timeoutSeconds,
+        });
+        onFunded(r.line);
+      } else {
+        if (!walletClient || !arcClient) {
+          throw new Error('Wallet not ready');
+        }
+        const principalWei = parseUnits(principal.toFixed(6), ARC_USDC_DECIMALS);
+        const repayWei = parseUnits(repay.toFixed(6), ARC_USDC_DECIMALS);
+
+        // Allowance precheck. Only approve if the existing allowance is
+        // short, so a repeat-funder doesn't pay gas for a redundant
+        // approve. Same pattern as StakeCard.tsx.
+        const current = (await arcClient.readContract({
+          address: ARC_USDC_ADDRESS,
+          abi: usdcAbi,
+          functionName: 'allowance',
+          args: [address, KARWAN_PO_FINANCING_ADDRESS],
+        })) as bigint;
+
+        if (current < principalWei) {
+          setStep('approving');
+          const approveHash = await walletClient.writeContract({
+            address: ARC_USDC_ADDRESS,
+            abi: usdcAbi,
+            functionName: 'approve',
+            args: [KARWAN_PO_FINANCING_ADDRESS, principalWei],
+            chain: walletClient.chain,
+            account: address,
+          });
+          await arcClient.waitForTransactionReceipt({ hash: approveHash });
+        }
+
+        setStep('funding');
+        const fundHash = await walletClient.writeContract({
+          address: KARWAN_PO_FINANCING_ADDRESS,
+          abi: poFinancingAbi,
+          functionName: 'fund',
+          args: [
+            deal.jobId as `0x${string}`,
+            principalWei,
+            repayWei,
+            BigInt(timeoutSeconds),
+          ],
+          chain: walletClient.chain,
+          account: address,
+        });
+        await arcClient.waitForTransactionReceipt({ hash: fundHash });
+
+        setStep('mirroring');
+        const r = await api.fundPOLine({
+          invoiceId: deal.jobId,
+          principalUsdc: principal.toFixed(6),
+          repayUsdc: repay.toFixed(6),
+          releaseTimeoutSeconds: timeoutSeconds,
+          fundTxHash: fundHash,
+        });
+        onFunded(r.line);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setSubmitting(false);
+      setStep('idle');
     }
   }
 
@@ -938,7 +1051,7 @@ function FundModal({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting || !validRepay}
+            disabled={submitting || !validRepay || onWrongChain}
             className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
               borderTopLeftRadius: 10,
@@ -947,7 +1060,19 @@ function FundModal({
               borderBottomRightRadius: 2,
             }}
           >
-            {submitting ? 'Funding…' : isAuthed ? 'Fund line' : 'Sign in to fund'}
+            {step === 'approving'
+              ? 'Approving USDC…'
+              : step === 'funding'
+                ? 'Funding line…'
+                : step === 'mirroring'
+                  ? 'Confirming…'
+                  : submitting
+                    ? 'Working…'
+                    : onWrongChain
+                      ? 'Switch to Arc'
+                      : isAuthed
+                        ? 'Fund line'
+                        : 'Sign in to fund'}
           </button>
         </div>
       </div>
