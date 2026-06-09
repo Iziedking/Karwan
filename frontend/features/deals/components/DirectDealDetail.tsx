@@ -11,6 +11,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { SellerOfferBanner } from '@/features/factoring/components/SellerOfferBanner';
+import { BuyerPodPanel } from '@/features/trade/components/BuyerPodPanel';
 import { ExtensionRequestModal } from './ExtensionRequestModal';
 import { EditDealModal } from './EditDealModal';
 import { useDirectDeal } from '../hooks/useDirectDeals';
@@ -667,6 +668,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           in its own Band-less container so the banner reads as an inline
           opportunity, not a structural section. */}
       <SellerOfferBanner deal={deal} viewerIsSeller={viewerIsSeller} />
+
+      {/* PROOF OF DELIVERY — buyer-side anchor CTA. Renders only on goods
+          deals where the seller has marked delivered and the PoD has not
+          yet anchored. Web3 path signs registry.acceptPoD locally; Circle
+          path routes through the user's identity DCW. */}
+      <BuyerPodPanel deal={deal} viewerIsBuyer={viewerIsBuyer} onPodAccepted={refresh} />
 
       {/* PROGRESS */}
       <Band tone="light" compact>

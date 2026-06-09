@@ -62,3 +62,12 @@ export const KARWAN_VAULT_LEGACY_ADDRESS_3 =
   (process.env.NEXT_PUBLIC_KARWAN_VAULT_LEGACY_ADDRESS_3 as `0x${string}` | undefined) ?? null;
 export const KARWAN_ESCROW_LEGACY_ADDRESS_3 =
   (process.env.NEXT_PUBLIC_KARWAN_ESCROW_LEGACY_ADDRESS_3 as `0x${string}` | undefined) ?? null;
+
+// SME bundle (Phase 2 Track 2, deployed 2026-06-01). Env-driven so a future
+// redeploy is a Vercel env swap, not a code change.
+export const KARWAN_INVOICE_REGISTRY_ADDRESS =
+  (process.env.NEXT_PUBLIC_KARWAN_INVOICE_REGISTRY_ADDRESS ??
+    '0x20a7CDf59b5f304De2b22a75e49f52353273E4E4') as `0x${string}`;
+export const KARWAN_PO_FINANCING_ADDRESS =
+  (process.env.NEXT_PUBLIC_KARWAN_PO_FINANCING_ADDRESS ??
+    '0xc91122Eb88613C98d58616cD8973883142F74Bb5') as `0x${string}`;

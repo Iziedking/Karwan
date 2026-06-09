@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { readSession } from '../auth/session.js';
 import { createDocumentAnchor, listAnchorsForInvoice } from '../db/documentAnchors.js';
 import { getDeal, patchDeal } from '../db/deals.js';
+import { getUserByAddress } from '../db/users.js';
+import { executeContractCall } from '../chain/txs.js';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { shouldRejectAnchor } from '../security/sa-stub.js';
@@ -159,4 +161,87 @@ tradeRoutes.post('/pod/accept', async (c) => {
     'trade: pod accepted',
   );
   return c.json({ ok: true });
+});
+
+/// POST /api/trade/pod/accept-circle — Circle DCW-only sister route.
+/// Backend signs registry.acceptPoD against the caller's identity wallet
+/// via Circle SDK and mirrors the deal patch + bus event. Web3 callers
+/// continue to use POST /pod/accept with their own txHash.
+const podCircleBodySchema = z.object({
+  address: addrSchema,
+  invoiceId: invoiceIdSchema,
+  podHash: hashSchema,
+});
+
+tradeRoutes.post('/pod/accept-circle', async (c) => {
+  if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
+    return c.json({ error: 'invoice registry not configured' }, 503);
+  }
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
+  let body;
+  try {
+    body = podCircleBodySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+
+  const caller = body.address.toLowerCase();
+  if (caller !== session.address.toLowerCase()) {
+    return c.json({ error: 'address must match session' }, 403);
+  }
+
+  const deal = await getDeal(body.invoiceId);
+  if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  if (caller !== deal.buyer) {
+    return c.json({ error: 'caller is not the deal buyer' }, 403);
+  }
+
+  const user = getUserByAddress(caller);
+  if (!user?.circleIdentityWalletId) {
+    return c.json(
+      {
+        error: 'no Circle identity wallet for this address',
+        detail: 'pod/accept-circle is for Circle users; web3 users sign locally and POST /pod/accept.',
+      },
+      409,
+    );
+  }
+
+  try {
+    const result = await executeContractCall(
+      {
+        walletId: user.circleIdentityWalletId,
+        contractAddress: config.KARWAN_INVOICE_REGISTRY_ADDR,
+        abiFunctionSignature: 'acceptPoD(bytes32,bytes32)',
+        abiParameters: [body.invoiceId, body.podHash],
+      },
+      `registry.acceptPoD(${body.invoiceId})`,
+    );
+
+    await patchDeal(body.invoiceId, {
+      delivered: true,
+      deliveredAt: Date.now(),
+    });
+
+    bus.emitEvent({
+      type: 'trade.pod.accepted',
+      jobId: body.invoiceId,
+      actor: 'platform',
+      payload: { podHash: body.podHash, attester: caller, txHash: result.txHash },
+    });
+
+    logger.info(
+      { invoiceId: body.invoiceId, attester: caller, txHash: result.txHash },
+      'trade: pod accepted via Circle DCW',
+    );
+    return c.json({ ok: true, txHash: result.txHash });
+  } catch (err) {
+    logger.error(
+      { invoiceId: body.invoiceId, err: (err as Error).message },
+      'trade: pod-accept-circle failed',
+    );
+    return c.json({ error: 'pod accept failed', detail: (err as Error).message }, 502);
+  }
 });

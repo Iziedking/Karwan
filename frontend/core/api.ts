@@ -1747,6 +1747,19 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address }),
     }),
+  // Trade-finance PoD anchor (Phase 2 Track 2). Web3 path: caller signs
+  // registry.acceptPoD via wallet, then posts the tx hash here. Circle DCW
+  // path: backend signs via the user's identity wallet + mirrors.
+  acceptTradePod: (body: { invoiceId: string; podHash: string; txHash?: string; caller: string }) =>
+    json<{ ok: true }>('/api/trade/pod/accept', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  acceptTradePodCircle: (body: { address: string; invoiceId: string; podHash: string }) =>
+    json<{ ok: true; txHash: string }>('/api/trade/pod/accept-circle', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   // Invoice factoring (Phase 2 Track 2). Lists are public; mutations
   // require auth + match the caller against the relevant party.
   listFactoringAvailable: (params?: { sector?: string; region?: string }) => {
