@@ -2858,6 +2858,65 @@ export const sw: Messages = {
     emailPasskey: { heading: 'Ikiwa unaingia na email au passkey', body: 'Unapata pochi ya daraja maalum kwenye kila mnyororo mara ya kwanza unapotumia daraja kutoka kwake. Tuma USDC kwenye anwani ya pochi hiyo na Karwan inashughulikia kuchomwa kwa niaba yako. Ukurasa wa daraja unaonyesha anwani na salio.' },
     whyThisRail: { heading: 'Kwa nini reli hii na siyo daraja la kawaida', body: 'USDC inayotoka Base ni USDC ile ile inayofika Arc. Circle inaichoma upande mmoja na kuichapisha upande mwingine. Hakuna tokeni iliyofungwa, hakuna bwawa la ukwasi, hakuna ulinzi wa mtu wa tatu kati ya ncha hizo mbili. Hili ni muhimu kwa bidhaa ya kuaminiwa: mali unayopokea ni mali ile ile iliyoondoka.' },
   },
+  x402Page: {
+    eyebrow: 'API YA DATA YA KULIPIA',
+    title: 'Data ya tathmini ya mikopo, lipa kwa kila wito',
+    intro: 'Karwan inauza ishara zile zile inazotumia kutathmini makubaliano ya biashara: pasipoti ya mikopo, tabia ya ulipaji, mkusanyiko wa wenzake wa biashara, na hati za biashara zilizonakiliwa kwenye mnyororo. Wafadhili na mawakala hulipa kila wito kwa USDC kupitia x402, ikitatuliwa kwa makundi kupitia Circle Gateway kwenye Arc Testnet. Pochi yenye amana ya Gateway ndiyo muunganisho mzima; hakuna funguo za API wala usajili.',
+    endpoints: {
+      heading: 'Vituo vya huduma',
+      body: 'Bei ziko kwa USDC kwa kila wito. Kituo cha orodha ni bure na kinasomeka kwa mashine, hivyo wakala anaweza kuona katalogi kabla ya kulipa.',
+      privacy: 'Vituo vya pasipoti vinaheshimu mpangilio wa faragha wa mmiliki. Pasipoti iliyofichwa inarudisha 404 na mpigaji hatozwi kamwe kwa hilo.',
+      freeLabel: 'bure',
+      items: {
+        intro: {
+          name: 'Orodha',
+          returns: 'Inaorodhesha kila kituo cha kulipia pamoja na bei yake na kinachorudishwa.',
+        },
+        creditPassport: {
+          name: 'Pasipoti ya mikopo',
+          returns: 'Picha ya sifa ya jumla: alama kati ya 1000, daraja, mchanganuo wa vipengele, idadi ya makubaliano yaliyotatuliwa, alama za mkusanyiko.',
+        },
+        repaymentBehavior: {
+          name: 'Tabia ya ulipaji',
+          returns: 'Dirisha la makubaliano kumi ya hivi karibuni: kiwango cha kulipa kwa wakati, wastani wa siku hadi utatuzi, idadi ya kushindwa kulipa, utatuzi wa mwisho.',
+        },
+        concentration: {
+          name: 'Mkusanyiko wa wenzake',
+          returns: 'Sehemu ya makubaliano ya hivi karibuni inayokwenda kwa mwenzake mkuu, pamoja na alama za hatari laini na kali na histogramu kwa kila mwenzake.',
+        },
+        documentAnchors: {
+          name: 'Nanga za hati',
+          returns: 'Alama za hati zilizonakiliwa kwenye mnyororo kwa ankara: aina, lebo, aliyenakili, na hash ya muamala.',
+        },
+      },
+    },
+    howToPay: {
+      heading: 'Jinsi malipo yanavyofanya kazi',
+      body: 'x402 ni mtiririko wa malipo wa HTTP 402. Utatuzi unapitia Circle Gateway, inayokusanya malipo mengi ya chini ya senti kuwa muamala mmoja wa mnyororo, hivyo wito wa nusu senti haulipi kamwe ada kamili ya muamala.',
+      steps: {
+        deposit: {
+          label: 'Weka amana mara moja.',
+          body: 'Weka salio dogo la USDC kwenye amana yako ya Circle Gateway kwenye Arc Testnet. Dola chache zinatosheleza mamia ya wito.',
+        },
+        call: {
+          label: 'Piga kituo cha huduma.',
+          body: 'Ombi bila malipo linarudisha 402 pamoja na kichwa cha PAYMENT-REQUIRED kinachoeleza bei, mali, na mahali pa kulipa.',
+        },
+        retry: {
+          label: 'Saini kisha jaribu tena.',
+          body: 'Mteja wako anasaini idhini ya USDC dhidi ya pochi ya Gateway na kujaribu tena na kichwa cha Payment-Signature. Jibu linabeba muamala wa utatuzi kwenye kichwa cha PAYMENT-RESPONSE.',
+        },
+      },
+    },
+    example: {
+      heading: 'Jaribu',
+      body: 'Mteja wa makundi wa x402 wa Circle anashughulikia safari nzima kwa wito mmoja:',
+    },
+    sameChain: {
+      title: 'KANUNI YA MNYORORO MMOJA',
+      body: 'Gateway inatatua malipo kwenye mnyororo ambapo amana ipo. Kulipa vituo hivi, weka amana kwenye Arc Testnet; vinakubali eip155:5042002 pekee.',
+    },
+  },
   docsDealsPage: {
     eyebrow: 'MAKUBALIANO NA ESCROW',
     title: 'Kutoka mkono kwa mkono hadi malipo',

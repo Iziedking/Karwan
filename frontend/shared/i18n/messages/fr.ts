@@ -2858,6 +2858,65 @@ export const fr: Messages = {
     emailPasskey: { heading: 'Si vous vous connectez avec email ou passkey', body: 'Vous obtenez un portefeuille de pont dédié sur chaque chaîne la première fois que vous y faites un pont. Envoyez USDC à l adresse de ce portefeuille et Karwan s occupe de la combustion pour vous. La page du pont affiche l adresse et le solde.' },
     whyThisRail: { heading: 'Pourquoi cette voie et non un pont générique', body: 'L USDC qui quitte Base est le même USDC qui arrive sur Arc. Circle le brûle d un côté et le frappe de l autre. Il n y a ni jeton enveloppé, ni pool de liquidité, ni garde tierce entre les deux extrémités. Cela compte pour un produit de confiance: l actif que vous recevez est le même actif qui est parti.' },
   },
+  x402Page: {
+    eyebrow: 'API DE DONNÉES PAYANTES',
+    title: 'Données de souscription, payées à l\'appel',
+    intro: 'Karwan vend les mêmes signaux qu\'il utilise pour souscrire les deals commerciaux : le passeport de crédit, le comportement de remboursement, la concentration de contreparties et les documents commerciaux ancrés. Les financiers et les agents paient chaque appel en USDC via x402, réglé par lots via Circle Gateway sur Arc Testnet. Un portefeuille avec un dépôt Gateway suffit pour toute l\'intégration ; il n\'y a ni clés API ni abonnements.',
+    endpoints: {
+      heading: 'Points d\'accès',
+      body: 'Les prix sont en USDC par appel. Le point d\'accès annuaire est gratuit et lisible par machine, un agent peut donc découvrir le catalogue avant de payer.',
+      privacy: 'Les points d\'accès du passeport respectent le réglage de confidentialité du propriétaire. Un passeport masqué renvoie 404 et l\'appelant n\'est jamais facturé.',
+      freeLabel: 'gratuit',
+      items: {
+        intro: {
+          name: 'Annuaire',
+          returns: 'Liste chaque point d\'accès payant avec son prix et ce qu\'il renvoie.',
+        },
+        creditPassport: {
+          name: 'Passeport de crédit',
+          returns: 'Instantané composite de réputation : score sur 1000, palier, détail des termes, nombre de deals réglés, indicateurs de concentration.',
+        },
+        repaymentBehavior: {
+          name: 'Comportement de remboursement',
+          returns: 'Fenêtre glissante de dix deals : taux de ponctualité, jours moyens jusqu\'au règlement, nombre de défauts, dernier règlement.',
+        },
+        concentration: {
+          name: 'Concentration de contreparties',
+          returns: 'Part des deals récents allant à la première contrepartie, avec indicateurs de risque souples et durs et un histogramme par contrepartie.',
+        },
+        documentAnchors: {
+          name: 'Ancres documentaires',
+          returns: 'Empreintes de documents ancrées on-chain pour une facture : type, libellé, auteur de l\'ancrage, hash de transaction.',
+        },
+      },
+    },
+    howToPay: {
+      heading: 'Comment fonctionne le paiement',
+      body: 'x402 est le flux de paiement HTTP 402. Le règlement passe par Circle Gateway, qui regroupe de nombreux paiements inférieurs au centime en une seule transaction on-chain, si bien qu\'un appel à un demi-centime ne paie jamais des frais de transaction complets.',
+      steps: {
+        deposit: {
+          label: 'Déposez une fois.',
+          body: 'Placez un petit solde USDC dans votre dépôt Circle Gateway sur Arc Testnet. Quelques dollars couvrent des centaines d\'appels.',
+        },
+        call: {
+          label: 'Appelez le point d\'accès.',
+          body: 'Une requête sans paiement renvoie 402 avec un en-tête PAYMENT-REQUIRED décrivant le prix, l\'actif et le destinataire.',
+        },
+        retry: {
+          label: 'Signez et réessayez.',
+          body: 'Votre client signe une autorisation USDC sur le portefeuille Gateway et réessaie avec un en-tête Payment-Signature. La réponse porte la transaction de règlement dans un en-tête PAYMENT-RESPONSE.',
+        },
+      },
+    },
+    example: {
+      heading: 'Essayez',
+      body: 'Le client de regroupement x402 de Circle gère tout l\'aller-retour en un seul appel :',
+    },
+    sameChain: {
+      title: 'RÈGLE DE LA MÊME CHAÎNE',
+      body: 'Gateway règle un paiement sur la chaîne où se trouve le dépôt. Pour payer ces points d\'accès, déposez sur Arc Testnet ; ils n\'acceptent que eip155:5042002.',
+    },
+  },
   docsDealsPage: {
     eyebrow: 'DEALS ET ESCROW',
     title: 'De la poignée de main au règlement',

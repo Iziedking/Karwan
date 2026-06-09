@@ -84,9 +84,10 @@ smeRoutes.post('/profile', async (c) => {
 });
 
 /// Compute the rolling-window repayment behaviour for an address. Used
-/// by the public passport route and the financier dashboards. Reads
-/// settled deals where the address is the seller or financier.
-async function computeRepaymentBehavior(address: string): Promise<{
+/// by the public passport route, the financier dashboards and the paid
+/// x402 endpoint. Reads settled deals where the address is the seller
+/// or financier.
+export async function computeRepaymentBehavior(address: string): Promise<{
   windowDealCount: number;
   onTimeRate: number;
   averageDaysToSettle: number;

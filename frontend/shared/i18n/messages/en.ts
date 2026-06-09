@@ -2733,6 +2733,35 @@ interface MessagesShape {
     emailPasskey: { heading: string; body: string };
     whyThisRail: { heading: string; body: string };
   };
+  x402Page: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    endpoints: {
+      heading: string;
+      body: string;
+      privacy: string;
+      freeLabel: string;
+      items: {
+        intro: { name: string; returns: string };
+        creditPassport: { name: string; returns: string };
+        repaymentBehavior: { name: string; returns: string };
+        concentration: { name: string; returns: string };
+        documentAnchors: { name: string; returns: string };
+      };
+    };
+    howToPay: {
+      heading: string;
+      body: string;
+      steps: {
+        deposit: { label: string; body: string };
+        call: { label: string; body: string };
+        retry: { label: string; body: string };
+      };
+    };
+    example: { heading: string; body: string };
+    sameChain: { title: string; body: string };
+  };
   docsDealsPage: {
     eyebrow: string;
     title: string;
@@ -6380,6 +6409,65 @@ export const en: MessagesShape = {
     whyThisRail: {
       heading: 'Why this rail and not a generic bridge',
       body: 'The USDC that leaves Base is the same USDC that arrives on Arc. Circle burns it on one side and mints it on the other. There is no wrapped token, no liquidity pool, no third-party custody between the two ends. That matters for a trust product: the asset you receive is the same asset that left.',
+    },
+  },
+  x402Page: {
+    eyebrow: 'PAID DATA API',
+    title: 'Underwriting data, paid per call',
+    intro: 'Karwan sells the same signals it uses to underwrite trade deals: the credit passport, repayment behaviour, counterparty concentration, and anchored trade documents. Financiers and agents pay per call in USDC over x402, settled in batches through Circle Gateway on Arc Testnet. A wallet with a Gateway deposit is the whole integration; there are no API keys and no subscriptions.',
+    endpoints: {
+      heading: 'Endpoints',
+      body: 'Prices are in USDC per call. The directory endpoint is free and machine-readable, so an agent can discover the catalogue before paying.',
+      privacy: 'Passport endpoints honor the owner\'s privacy setting. A hidden passport returns 404 and the caller is never charged for it.',
+      freeLabel: 'free',
+      items: {
+        intro: {
+          name: 'Directory',
+          returns: 'Lists every paid endpoint with its price and what it returns.',
+        },
+        creditPassport: {
+          name: 'Credit passport',
+          returns: 'Composite reputation snapshot: score out of 1000, tier, term breakdown, settled-deal counts, concentration flags.',
+        },
+        repaymentBehavior: {
+          name: 'Repayment behaviour',
+          returns: 'Rolling ten-deal window: on-time rate, average days to settle, default count, last settlement.',
+        },
+        concentration: {
+          name: 'Counterparty concentration',
+          returns: 'Share of recent deals going to the top counterparty, with soft and hard risk flags and a per-counterparty histogram.',
+        },
+        documentAnchors: {
+          name: 'Document anchors',
+          returns: 'On-chain anchored document hashes for an invoice: kind, label, who anchored it, transaction hash.',
+        },
+      },
+    },
+    howToPay: {
+      heading: 'How payment works',
+      body: 'x402 is the HTTP 402 payment flow. Settlement runs through Circle Gateway, which batches many sub-cent payments into one on-chain transaction, so a half-cent call never pays a full transaction fee.',
+      steps: {
+        deposit: {
+          label: 'Deposit once.',
+          body: 'Put a small USDC balance into your Circle Gateway deposit on Arc Testnet. A few dollars covers hundreds of calls.',
+        },
+        call: {
+          label: 'Call the endpoint.',
+          body: 'A request without payment returns 402 with a PAYMENT-REQUIRED header describing the price, the asset, and where to pay.',
+        },
+        retry: {
+          label: 'Sign and retry.',
+          body: 'Your client signs a USDC authorization against the Gateway wallet and retries with a Payment-Signature header. The response carries the settlement transaction in a PAYMENT-RESPONSE header.',
+        },
+      },
+    },
+    example: {
+      heading: 'Try it',
+      body: 'The Circle x402 batching client handles the whole round-trip in one call:',
+    },
+    sameChain: {
+      title: 'SAME CHAIN RULE',
+      body: 'Gateway settles a payment on the chain where the deposit sits. To pay these endpoints, deposit on Arc Testnet; they accept eip155:5042002 only.',
     },
   },
   docsDealsPage: {

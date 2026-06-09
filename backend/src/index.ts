@@ -37,6 +37,7 @@ import { tradeRoutes } from './routes/trade.js';
 import { factoringRoutes } from './routes/factoring.js';
 import { poFinancingRoutes } from './routes/poFinancing.js';
 import { smeRoutes } from './routes/sme.js';
+import { x402Routes } from './routes/x402.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { circleWebhookRoutes } from './routes/circle-webhook.js';
 import {
@@ -167,6 +168,7 @@ app.route('/api/trade', tradeRoutes);
 app.route('/api/factoring', factoringRoutes);
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/sme', smeRoutes);
+app.route('/api/x402', x402Routes);
 app.route('/api/feedback', feedbackRoutes);
 app.route('/api/circle', circleWebhookRoutes);
 
