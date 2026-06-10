@@ -895,6 +895,10 @@ export const ar: Messages = {
       label: 'فحص الطرف المقابل',
       template: 'دفع الوكيل {amount} على Base لفحص العقوبات والمخاطر. الحكم: {verdict}.',
     },
+    business: {
+      label: 'نشاط تجاري موثّق',
+      template: 'الطرف المقابل يتداول كنشاط تجاري موثّق.',
+    },
     approvedEyebrow: 'قبل البائع',
     approvedBody: 'قبل البائع صفقتك. الضمان مموَّل. جاري فتح الصفقة الحية.',
     approvedCta: 'افتح الصفقة →',

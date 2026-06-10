@@ -30,6 +30,11 @@ export interface JobContext {
   /// free stake covering the deal's insurance reservation, and the buyer
   /// agent ranks bids by reputation + stake before price.
   trustedMatch?: boolean;
+  /// Match lane. 'service' is the single-service P2P flow (all account types);
+  /// 'finance' is SME/B2B trade-finance, restricted to verified businesses on
+  /// both sides. Absent reads as 'service'. Matching filters on this so the two
+  /// lanes never cross.
+  tradeLane?: 'service' | 'finance';
 }
 
 export interface BidContext {

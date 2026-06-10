@@ -879,6 +879,10 @@ interface MessagesShape {
       label: string;
       template: string;
     };
+    business: {
+      label: string;
+      template: string;
+    };
     topUp: {
       eyebrow: string;
       buyerTemplate: string;
@@ -4404,6 +4408,10 @@ export const en: MessagesShape = {
     screen: {
       label: 'COUNTERPARTY SCREEN',
       template: 'Agent paid {amount} on Base for a sanctions and risk screen. Verdict: {verdict}.',
+    },
+    business: {
+      label: 'VERIFIED BUSINESS',
+      template: 'Counterparty trades as a verified business.',
     },
     topUp: {
       eyebrow: 'Top up needed',

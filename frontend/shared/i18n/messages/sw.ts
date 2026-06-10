@@ -895,6 +895,10 @@ export const sw: Messages = {
       label: 'UKAGUZI WA MWENZAKE',
       template: 'Wakala alilipa {amount} kwenye Base kwa ukaguzi wa vikwazo na hatari. Uamuzi: {verdict}.',
     },
+    business: {
+      label: 'BIASHARA ILIYOTHIBITISHWA',
+      template: 'Mwenzako anafanya biashara kama biashara iliyothibitishwa.',
+    },
     approvedEyebrow: 'Muuzaji amekubali',
     approvedBody: 'Muuzaji amekubali biashara yako. Esokrau imefadhiliwa. Inafungua biashara ya moja kwa moja.',
     approvedCta: 'Fungua biashara →',

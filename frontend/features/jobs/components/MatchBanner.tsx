@@ -239,6 +239,26 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </p>
       )}
 
+      {/* Verified-business badge: the counterparty trades as a Karwan-verified
+          business. Compact by design, full company detail lives on the profile
+          and credit passport so the deal page stays lean. */}
+      {proposal.counterpartyBusiness && (
+        <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+          [:{mb.business.label}:]{' '}
+          <span className="normal-case tracking-normal text-[11px]">
+            {proposal.counterpartyBusiness.companyName
+              ? [
+                  proposal.counterpartyBusiness.companyName,
+                  proposal.counterpartyBusiness.sector,
+                  proposal.counterpartyBusiness.region,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : mb.business.template}
+          </span>
+        </p>
+      )}
+
       {/* Risk flags are all seller-facing warnings (honey-trap, lowball,
           spammy, new-buyer), they describe the BUYER, for the SELLER to
           judge before accepting. Render only when the viewer is the seller

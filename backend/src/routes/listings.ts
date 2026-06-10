@@ -362,7 +362,7 @@ async function scanBriefsForListing(
 /// seller agent's `activeBids` map dedupes per (jobId, seller), so a profile-
 /// driven bid that already exists for this job is left alone.
 export async function scanListingsForBrief(
-  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number },
+  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; tradeLane?: 'service' | 'finance' },
 ) {
   const listings = listOpenListings();
   if (listings.length === 0) return;
@@ -411,9 +411,16 @@ export async function scanListingsForBrief(
 
 async function tryMatchListingToJob(
   listing: Listing,
-  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; keywords?: string[] },
+  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; keywords?: string[]; tradeLane?: 'service' | 'finance' },
   seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
 ): Promise<boolean> {
+  // Lane partition: a listing and a brief only match within the same lane.
+  // Listings are service-lane, so this keeps SME/B2B finance briefs from ever
+  // matching a P2P service offer (and vice versa). This is the non-leak guard.
+  const listingLane = listing.tradeLane ?? 'service';
+  const jobLane = job.tradeLane ?? 'service';
+  if (listingLane !== jobLane) return false;
+
   // Skip the user's own briefs, sellers shouldn't bid on themselves.
   const briefBuyerOwner = await findAgentWalletByAgentAddress(job.buyer);
   if (briefBuyerOwner?.userAddress === listing.sellerUser) {

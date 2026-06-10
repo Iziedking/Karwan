@@ -77,6 +77,17 @@ export interface MatchProposal {
     amountUsd: number;
     screenedAt: number;
   };
+  /// Verified-business badge for the match. Set when the seller's owner is a
+  /// verified business, so the MatchBanner renders a compact company chip
+  /// (name, sector, region) without a second lookup. Deliberately compact: the
+  /// full company profile lives on /profile and the credit passport, so the
+  /// deal page stays lean for business deals.
+  counterpartyBusiness?: {
+    accountType: 'business';
+    companyName?: string;
+    sector?: string;
+    region?: string;
+  };
 }
 
 export async function getMatchProposal(jobId: string): Promise<MatchProposal | null> {

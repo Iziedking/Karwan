@@ -506,6 +506,15 @@ export interface MatchProposal {
     amountUsd: number;
     screenedAt: number;
   };
+  /// Compact verified-business badge for the match. Present when the seller's
+  /// owner is a verified business. The deal page renders a chip from this, not
+  /// a full company profile.
+  counterpartyBusiness?: {
+    accountType: 'business';
+    companyName?: string;
+    sector?: string;
+    region?: string;
+  };
 }
 
 /// Agents found a topical match, but the best achievable price lands just
@@ -1956,7 +1965,60 @@ export const api = {
       '/api/sme/profile',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  // --- verified-business accounts ---------------------------------------
+  /// Public verification status + compact company snapshot for an address.
+  getBusinessStatus: (address: string) =>
+    json<{
+      accountType: 'person' | 'business';
+      status: 'none' | 'submitted' | 'verified' | 'rejected';
+      verifiedAt?: number;
+      company: { companyName?: string; sector?: string; region?: string } | null;
+    }>(`/api/business/status/${address}`),
+  /// Web3 path: the caller has signed submitRegistration locally and reports
+  /// the tx hash. Backend records the company snapshot + the submitted state.
+  registerBusiness: (body: BusinessRegisterBody) =>
+    json<{ ok: boolean; status: string; txHash?: string }>('/api/business/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  /// Circle path: backend signs submitRegistration via the user's identity DCW.
+  registerBusinessCircle: (body: BusinessRegisterBody) =>
+    json<{ ok: boolean; status: string; txHash?: string }>(
+      '/api/business/register-circle',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  /// Soft profile update for a business (no re-review). Sensitive fields route
+  /// through registration instead.
+  updateBusinessProfile: (body: {
+    address: string;
+    sector?: 'agriculture' | 'textiles' | 'electronics' | 'logistics' | 'manufacturing' | 'services' | 'other';
+    region?: string;
+    yearFounded?: number;
+    employeeBand?: 'micro' | 'small' | 'medium';
+    websiteUrl?: string;
+  }) =>
+    json<{ smeProfile: NonNullable<UserProfile['smeProfile']> | undefined }>(
+      '/api/business/profile',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 };
+
+export interface BusinessRegisterBody {
+  address: string;
+  company: {
+    companyName: string;
+    sector?: 'agriculture' | 'textiles' | 'electronics' | 'logistics' | 'manufacturing' | 'services' | 'other';
+    region?: string;
+    yearFounded?: number;
+    employeeBand?: 'micro' | 'small' | 'medium';
+    websiteUrl?: string;
+  };
+  docHash: string;
+  docKind?: 'registration' | 'tax' | 'other';
+  label?: string;
+  txHash?: string;
+}
 
 export interface ChatMessage {
   id: string;

@@ -50,6 +50,15 @@ const envSchema = z.object({
   /// 503 with a clear message when unset.
   KARWAN_INVOICE_REGISTRY_ADDR: optionalAddr,
   KARWAN_PO_FINANCING_ADDR: optionalAddr,
+  /// KarwanBusinessRegistry: verified-business account gate. Applicants
+  /// anchor a registration/tax-doc hash via submitRegistration; the reviewer
+  /// signer approves or rejects. Optional so the backend boots without it;
+  /// business routes return 503 when unset. Deploy lands in the final bundle.
+  KARWAN_BUSINESS_REGISTRY_ADDR: optionalAddr,
+  /// Circle DCW that signs registry.approve / registry.reject. A dedicated
+  /// Karwan reviewer wallet, never the deployer. Unset = admin review can't
+  /// reach chain (the route returns 503).
+  BUSINESS_REVIEWER_WALLET_ID: optionalString,
   /// Buyer agents pay Karwan's own x402 credit-passport endpoint during bid
   /// scoring (real USDC, agent Gateway deposit -> platform treasury). On by
   /// default; set to 'false' to skip the paid pull entirely. Failures never

@@ -895,6 +895,10 @@ export const fr: Messages = {
       label: 'CONTRÔLE CONTREPARTIE',
       template: 'L\'agent a payé {amount} sur Base pour un contrôle sanctions et risque. Verdict : {verdict}.',
     },
+    business: {
+      label: 'ENTREPRISE VÉRIFIÉE',
+      template: 'La contrepartie opère en tant qu\'entreprise vérifiée.',
+    },
     approvedEyebrow: 'Vendeur a accepté',
     approvedBody: 'Le vendeur a accepté votre deal. Le séquestre est financé. Ouverture du deal en direct.',
     approvedCta: 'Ouvrir le deal →',

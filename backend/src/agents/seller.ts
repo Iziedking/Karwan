@@ -37,6 +37,7 @@ import { marketHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
+import { accountTypeOf } from '../profile/accountType.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -251,6 +252,7 @@ async function handleJobPosted(log: Log) {
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
     keywords: briefKeywords,
     trustedMatch: brief?.trustedMatch === true,
+    tradeLane: brief?.tradeLane ?? 'service',
   };
 
   // Read the buyer's deterministic signals once and share across every seller
@@ -315,6 +317,26 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     return;
   }
 
+  // Finance-lane (SME/B2B trade-finance) requests only accept bids from verified
+  // business sellers. A person seller's agent stands down so the finance lane
+  // never leaks into the P2P seller pool. Service-lane requests are open to all.
+  if ((job.tradeLane ?? 'service') === 'finance') {
+    const ownerWallet = await findAgentWalletByAgentAddress(seller.address);
+    const ownerType = ownerWallet ? await accountTypeOf(ownerWallet.userAddress) : 'person';
+    if (ownerType !== 'business') {
+      bus.emitEvent({
+        type: 'agent.skipped',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          reason: 'finance-lane-requires-business',
+          detail: 'This is an SME trade-finance request. Only verified business sellers bid here.',
+        },
+      });
+      return;
+    }
+  }
 
   if (job.buyerReputationBps < 3000) {
     logger.info(

@@ -101,7 +101,11 @@ export type KarwanEventType =
   | 'po.released'
   | 'po.repaid'
   | 'po.reclaimed'
-  | 'po.defaulted';
+  | 'po.defaulted'
+  // Verified-business accounts.
+  | 'business.registration.submitted'
+  | 'business.verified'
+  | 'business.rejected';
 
 export interface KarwanEvent {
   type: KarwanEventType;

@@ -440,6 +440,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
       keywords: brief?.keywords,
       trustedMatch: brief?.trustedMatch === true,
+      tradeLane: brief?.tradeLane ?? 'service',
     },
     bids: new Map(),
     collectionTimer: null,
@@ -1827,6 +1828,19 @@ async function proposeMatch(
     )?.[1];
     const paidBid = winningBid?.paidSignal;
     const screenBid = winningBid?.counterpartyScreen;
+    // Compact verified-business snapshot for the match badge. Only the seller's
+    // owner profile is read; the full company detail stays on the profile so
+    // the deal page renders a chip, not a dossier.
+    const sellerOwnerProfile = await getProfile(sellerWallets.userAddress).catch(() => null);
+    const counterpartyBusiness =
+      sellerOwnerProfile?.accountType === 'business'
+        ? {
+            accountType: 'business' as const,
+            companyName: sellerOwnerProfile.smeProfile?.companyName,
+            sector: sellerOwnerProfile.smeProfile?.sector,
+            region: sellerOwnerProfile.smeProfile?.region,
+          }
+        : undefined;
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -1860,6 +1874,7 @@ async function proposeMatch(
             },
           }
         : {}),
+      ...(counterpartyBusiness ? { counterpartyBusiness } : {}),
     };
 
     // Balance awareness at the commit point. Negotiation already roamed freely

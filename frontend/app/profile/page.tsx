@@ -19,6 +19,7 @@ import { TierCelebration } from '@/features/reputation/components/TierCelebratio
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
+import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
@@ -361,9 +362,11 @@ function ProfilePageInner() {
         </Band>
       )}
 
-      {/* COMPANY PROFILE. Part of the SME Trades rail; hidden until launch.
-          Independent component so editing the profile re-renders nothing
-          else on this page. */}
+      {/* BUSINESS + COMPANY PROFILE. Part of the SME Trades rail; hidden until
+          launch. Register-as-business gates the verified tag; the company band
+          holds the trade card. Independent components so editing one
+          re-renders nothing else on this page. */}
+      {SME_TRADES_ENABLED && address ? <RegisterBusinessBand address={address} /> : null}
       {SME_TRADES_ENABLED && address ? <SmeCompanyBand address={address} /> : null}
 
       {/* WALLETS anchor */}
