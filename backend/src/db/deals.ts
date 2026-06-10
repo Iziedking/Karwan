@@ -25,7 +25,7 @@ export interface DirectDeal {
   /// Delivery deadline (unix seconds). Optional on direct deals so the buyer
   /// can leave it open-ended ("deliver when you can"). When unset, the seller
   /// has no time pressure and the buyer can't unilateral-cancel for late
-  /// delivery — only mutual cancel or appeal. When set, the existing
+  /// delivery, only mutual cancel or appeal. When set, the existing
   /// post-deadline buyer cancel + reputation slash path stays.
   deadlineUnix?: number;
   terms: string;
@@ -53,18 +53,18 @@ export interface DirectDeal {
   // The escrow is moved Disputed then Refunded on chain.
   cancelledAt?: number;
   /// How the cancellation happened. Drives reputation:
-  /// - 'mutual'              — counterparty agreed to a proposed cancel pre-dispute; rep-neutral.
-  /// - 'platform-attributed' — agent misroute, both parties agreed; rep-neutral.
-  /// - 'refund-from-dispute' — counterparty accepted a refund proposal raised on a
+  /// - 'mutual'              : counterparty agreed to a proposed cancel pre-dispute; rep-neutral.
+  /// - 'platform-attributed' : agent misroute, both parties agreed; rep-neutral.
+  /// - 'refund-from-dispute' : counterparty accepted a refund proposal raised on a
   ///                           Disputed deal; seller's reputation takes the hit.
   ///                           Contract path is dispute()+refund(); when a
   ///                           reservation existed the chain auto-records Failed.
-  /// - 'release-from-dispute'— counterparty accepted a release proposal raised on a
+  /// - 'release-from-dispute': counterparty accepted a release proposal raised on a
   ///                           Disputed deal; buyer's reputation takes the hit.
   ///                           Contract path is releaseFromDispute().
-  /// - 'unilateral'          — buyer cancel after deadline passed without delivery;
+  /// - 'unilateral'          : buyer cancel after deadline passed without delivery;
   ///                           rep against the seller (the existing /cancel path).
-  /// - 'pre-accept'          — buyer withdrew before the seller accepted; no escrow, no rep.
+  /// - 'pre-accept'          : buyer withdrew before the seller accepted; no escrow, no rep.
   cancelKind?:
     | 'mutual'
     | 'platform-attributed'
@@ -147,8 +147,8 @@ export interface DirectDeal {
   settledAt?: number;
   fundTxHash?: string;
   /// How this deal originated:
-  /// - 'direct' — opened straight from /buyer "I have a seller", no auction.
-  /// - 'agent'  — settled out of the managed auction and negotiation flow.
+  /// - 'direct' : opened straight from /buyer "I have a seller", no auction.
+  /// - 'agent'  : settled out of the managed auction and negotiation flow.
   /// Absent on rows created before this field existed; /stats infers those
   /// from the brief store (agent deals always have a brief, direct never do).
   origin?: 'direct' | 'agent';
@@ -177,6 +177,14 @@ export interface DirectDeal {
   /// and the slider was not surfaced (older clients).
   requireStakePct?: number;
   // --- SME trade-finance fields (Phase 2 Track 2) -----------------------
+  /// Match lane this deal belongs to. 'service' is the single-service P2P
+  /// flow, open to every account type; 'finance' is SME/B2B trade-finance,
+  /// restricted to verified businesses on both sides. Stamped at create from
+  /// the parties' accountType + tradeType. Absent reads as 'service'.
+  tradeLane?: 'service' | 'finance';
+  /// The opening party's account type at create time, for business badging.
+  /// Absent reads as 'person'.
+  partyKind?: 'person' | 'business';
   /// Whether the deal moves goods, services, or both. Drives the milestone
   /// vocabulary (dispatched / in transit / customs cleared / delivered /
   /// accepted vs the simpler service mode), the Incoterms picker visibility,

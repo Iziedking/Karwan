@@ -5,7 +5,7 @@ import { getProfile } from '../db/profiles.js';
 import { logger } from '../logger.js';
 
 // Public-facing milestones that Karwan's X account would broadcast on a user's
-// behalf when their handle is bound. Kept tight on purpose — only "deal
+// behalf when their handle is bound. Kept tight on purpose, only "deal
 // landed" and "deal settled" carry enough value to share publicly. Cancels
 // and disputes stay internal.
 const X_BROADCAST_EVENTS = new Set([
@@ -59,7 +59,7 @@ async function postsFor(e: KarwanEvent): Promise<QueuedPost[]> {
 }
 
 /// Subscribes to the bus and queues an X broadcast for every party whose
-/// handle is bound. The actual API call happens in a follow-up — for now this
+/// handle is bound. The actual API call happens in a follow-up. For now this
 /// emits a `notify.x.queued` event and logs the intent, so the broadcast
 /// surface is fully wired even without the X API credentials in env.
 export function startXBroadcaster(): () => void {

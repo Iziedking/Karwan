@@ -92,7 +92,7 @@ export interface NetworkStats {
     treasury: string;
     reputation: string;
     jobBoard: string;
-    /// KarwanYieldDistributor — the per-address USDC claim contract for
+    /// KarwanYieldDistributor, the per-address USDC claim contract for
     /// daily-credited staker yield. Empty string when not configured.
     yieldDistributor: string;
   };
@@ -107,7 +107,7 @@ export interface NetworkStats {
     vaultClaims: number;
     vaultSlashes: number;
     reputationRecords: number;
-    /// Lifetime YieldClaimed events on KarwanYieldDistributor — every time
+    /// Lifetime YieldClaimed events on KarwanYieldDistributor. Every time
     /// a staker pulled their accrued share to their wallet.
     yieldClaims: number;
   };
@@ -134,7 +134,7 @@ let cached: { value: NetworkStats; builtAt: number } | null = null;
 /// Hydrate the cache from disk at module load so the very first
 /// /api/network/onchain after a process boot serves a usable snapshot
 /// instead of triggering a cold chain scan (which takes 30-60s on Arc
-/// public RPC and often fails outright). Failures here are silent — a
+/// public RPC and often fails outright). Failures here are silent. A
 /// missing or corrupt file just means we'll fall through to live build.
 (() => {
   try {
@@ -253,7 +253,7 @@ async function safeScan(
 
   /// Build the chunk window list up front so we can run them in bounded
   /// parallel batches instead of one-at-a-time. Sequential chunks were taking
-  /// ~50ms each — fine for a 100-block range, painful for 100k+.
+  /// ~50ms each, fine for a 100-block range, painful for 100k+.
   const windows: Array<{ from: bigint; to: bigint }> = [];
   let cursor = fromBlock;
   while (cursor <= toBlock) {
@@ -536,7 +536,7 @@ export async function getNetworkStats(force = false): Promise<NetworkStats> {
     return value;
   } catch (err) {
     // A chunk threw after retries. Don't replace the cache with partial or
-    // empty data — serve the last good snapshot so the dashboard stays
+    // empty data. Serve the last good snapshot so the dashboard stays
     // honest. If there's no cache yet (first call ever failed), bubble up.
     logger.warn(
       { err: (err as Error).message, hasCache: !!cached },

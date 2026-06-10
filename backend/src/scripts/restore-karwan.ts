@@ -11,7 +11,7 @@
 ///   - Writes the env snapshot to /app/backend/.env-restored (the host's
 ///     /app/backend mount, which surfaces as ~/karwan/.env-restored on the
 ///     VPS). The operator manually moves it to ~/karwan/.env after eyeballing.
-///     Refusing to overwrite the live .env automatically is intentional — env
+///     Refusing to overwrite the live .env automatically is intentional. env
 ///     restore is a "human in the loop" step since secrets may have rotated
 ///     between the snapshot and now.
 ///

@@ -6,7 +6,7 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 
-/// BridgeOutCard ships its own form, balance polling, and Solana branch — a
+/// BridgeOutCard ships its own form, balance polling, and Solana branch, a
 /// chunky module that's never visible until the user toggles direction. Lazy
 /// load it so the initial `/bridge` paint isn't paying for the out-flow JS.
 const BridgeOutCard = dynamic(

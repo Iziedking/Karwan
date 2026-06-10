@@ -22,9 +22,7 @@ export interface PaidSignalRequest {
   callerRole: 'buyer-agent' | 'seller-agent' | 'security-agent';
 }
 
-/* =============================================================== */
-/*                           STUB SURFACE                           */
-/* =============================================================== */
+// Stub surface
 
 /// Document anchor gate. v1 lets every anchor through; real SA filters
 /// spam/malicious hashes via behavioral fingerprint + known-bad list.

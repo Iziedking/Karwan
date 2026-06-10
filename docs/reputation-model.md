@@ -2,7 +2,7 @@
 
 > The reputation score is the golden ticket on Karwan. It gates whose bids the agent prefers, whose briefs the agent trusts, who gets premium pricing, and who clears human review. Every other signal on the platform feeds into or out of it.
 
-This document specifies the model. The current `KarwanReputation.sol` keeps three counters per address (`success`, `disputed`, `failed`) and divides them. That gets us a starting point, not a moat. The model below is what we replace it with. A formula that resists farming, rewards stake, penalises spam, and decays cleanly.
+This document specifies the model. The current `KarwanReputation.sol` keeps three counters per address (`success`, `disputed`, `failed`) and divides them. That gets us a starting point, not a moat. The model below is what we replace it with: a formula that resists farming, rewards stake, penalises spam, and decays cleanly.
 
 ## 1. What reputation means
 
@@ -23,12 +23,13 @@ Tiers map to:
 Tier breakpoints are **fixed** at 200 / 400 / 600 / 800 (not env-tuned). The
 *score* is the lever; a tier label means the same on testnet and mainnet.
 
-## 2. The formula — model v2 (shipped)
+## 2. The composite score
 
-> v2 (2026-05-21) replaced the multiplicative v1 below. v1 multiplied its terms,
-> so any zero factor (e.g. zero completed deals) zeroed the whole score. staking
-> and time could not move a fresh account. v2 is **additive**: every factor earns
-> points on its own. Implementation: `backend/src/reputation/{engine,config,signals,stake}.ts`.
+> The score is **additive**: every factor earns points on its own. An earlier
+> multiplicative design multiplied its terms, so any zero factor (for example,
+> zero completed deals) zeroed the whole score, and staking and time could not
+> move a fresh account. The additive structure fixes that. Implementation:
+> `backend/src/reputation/{engine,config,signals,stake}.ts`.
 
 ```
 score = round( 1000 · base · (1 − penalty) · decay )
@@ -37,7 +38,7 @@ base  = wStake·stake + wCompletion·completion + wVolume·volume
       + wTenure·tenure + wActivity·activity + wReferral·referral      // each ∈ [0,1]
 ```
 
-Default weights (env `REP_W_*`, sum to 1) — **stake-forward**, because staking grows
+Default weights (env `REP_W_*`, sum to 1) are **stake-forward**, because staking grows
 TVL and buys trust regardless of tier:
 
 | Factor | Weight | Sub-score (concave → diminishing returns) |
@@ -47,10 +48,10 @@ TVL and buys trust regardless of tier:
 | `volume` | 0.13 | `√(min(1, lifetimeVolumeUsdc / VOLUME_CAP))` |
 | `tenure` | 0.12 | `min(1, daysRegistered / TENURE_FULL_DAYS)` |
 | `activity` | 0.12 | `satLog(activeDays, ACTIVE_CAP)` |
-| `referral` | 0.08 | `satLog(referredUsers, REFERRAL_CAP)` — **input is 0 today; attribution rail ships with mainnet** |
+| `referral` | 0.08 | `satLog(referredUsers, REFERRAL_CAP)` (**input is 0 today; attribution rail ships with mainnet**) |
 
 where `satLog(n, cap) = log10(1+n) / log10(1+cap)`, `successRate = (completed+1)/(started+2)`,
-and `FLOOR = REP_STAKE_FLOOR_CREDIT` (default 0.4 — staking is worth 40% the day you
+and `FLOOR = REP_STAKE_FLOOR_CREDIT` (default 0.4, so staking is worth 40% the day you
 deposit, ramping to full over `STAKE_FULL_DAYS`).
 
 **Penalty is a capped multiplier**, never a subtraction that can drive the score
@@ -59,8 +60,8 @@ negative: `penalty = min(REP_PENALTY_CAP, wDispute·disputeRate + wCancel·cance
 keeps a path back. `decay = exp(−idleDays / REP_DECAY_HALFLIFE_DAYS)`.
 
 **Diminishing returns as tier rises** are intrinsic: every sub-score is concave (your
-first stake / deal / day is worth far more than your hundredth), and the additive
-structure means climbing STRONG→ELITE needs *several* factors high at once, not one
+first stake, deal, or day is worth far more than your hundredth), and the additive
+structure means climbing STRONG to ELITE needs *several* factors high at once, not one
 maxed. So early points come fast in NEW and the last 200 are the hardest.
 
 **Earning factors (how points grow today):** lock more USDC and keep it staked longer
@@ -70,122 +71,62 @@ Each is concave and weighted as above. A sixth signal, `referral`, is wired in t
 config but its input is hardcoded to 0 today and ships as a mainnet marketing rail
 once attribution is in place.
 
-**Testnet vs mainnet = the caps, not the breakpoints.** Testnet defaults reach tiers
+**Testnet vs mainnet is the caps, not the breakpoints.** Testnet defaults reach tiers
 in days (`DEALS_CAP=10, STAKE_CAP=100, *_FULL_DAYS=14`). Mainnet raises them so tiers
-are earned over months (see `todo.md` → "Reputation: mainnet-strict calibration").
+are earned over months.
 
 **Tier-up** crossing emits `reputation.tier-up`, opens a 48h congrats card on the
 profile (`TierCelebration`), and Telegrams the user if linked. Tracked once per
 crossing via `db/tierState.ts`.
 
-### v1 (superseded) — kept for historical reference
+### Worked example: one address to a tier
 
-## 2b. The v1 formula
+Take a seller forty days into the platform, on the testnet caps
+(`DEALS_CAP=10`, `STAKE_CAP=100`, `STAKE_FULL_DAYS = TENURE_FULL_DAYS =
+ACTIVE_DAYS_CAP = 14`, `VOLUME_CAP=500`, `FLOOR=0.4`). Their on-chain and
+off-chain inputs:
 
-```
-R(addr) = clamp(0, 1000, round(
-    1000 ·
-    tanh( 0.85 ·
-        activityTerm(addr) ·
-        completionTerm(addr) ·
-        stakeTerm(addr) ·
-        timeTerm(addr)
-    )
-    − 1000 · penaltyTerm(addr)
-))
-```
+| Input | Value |
+|---|---|
+| Staked | 60 USDC, held 18 days |
+| Deals | 6 settled clean, 8 started |
+| Volume | 300 USDC through escrow |
+| Registered | 30 days ago |
+| Active days | 8 distinct days |
+| Referrals | 0 |
+| Disputes / cancels / spam | none |
 
-Each term is dimensionless in `[0, 1.0]` (penalty term in `[0, 1.0]` as well). The `tanh` envelope caps the upside and makes early gains feel fast; penalties subtract linearly so bad behaviour can drop you from ELITE in a few weeks.
-
-### 2.1 activityTerm
+Each sub-score, with `satLog(n, cap) = log10(1+n) / log10(1+cap)`:
 
 ```
-activityTerm = log10(1 + completedDeals) / log10(51)
+stake      = √(min(1, 60/100)) · (0.4 + 0.6·min(1, 18/14))
+           = √0.6 · 1.0                               = 0.775
+completion = satLog(6, 10) · (0.5 + 0.5·successRate)
+             successRate = (6+1)/(8+2) = 0.70
+           = 0.811 · (0.5 + 0.35)                     = 0.690
+volume     = √(min(1, 300/500)) = √0.6                = 0.775
+tenure     = min(1, 30/14)                            = 1.000
+activity   = satLog(8, 14)                            = 0.811
+referral   = satLog(0, 5)                             = 0.000
 ```
 
-| completed | activityTerm |
-|----------:|-------------:|
-| 0  | 0.00 |
-| 1  | 0.18 |
-| 5  | 0.46 |
-| 10 | 0.61 |
-| 25 | 0.82 |
-| 50 | 1.00 |
-| 100 | 1.18 (capped by `tanh`) |
-
-Logarithmic so the 51st deal doesn't matter much more than the 50th. Stops volume farming.
-
-### 2.2 completionTerm
+Weight and sum into the additive base:
 
 ```
-completionTerm = (completedDeals + 1) / (totalStarted + 2)
+base = 0.30·0.775 + 0.25·0.690 + 0.13·0.775
+     + 0.12·1.000 + 0.12·0.811 + 0.08·0.000
+     = 0.723
+
+score = round(1000 · 0.723 · (1 − 0) · 1)            = 723   → STRONG
 ```
 
-Laplace-smoothed success rate. The `+1/+2` keeps fresh accounts from being penalised on a single bad deal and prevents a 0/0 div.
-
-| started | completed | term |
-|--------:|----------:|-----:|
-| 0  | 0  | 0.50 |
-| 5  | 5  | 0.86 |
-| 10 | 9  | 0.83 |
-| 20 | 18 | 0.86 |
-| 20 | 12 | 0.59 |
-| 20 | 5  | 0.27 |
-
-A 90% completion rate over 20 deals comfortably out-scores a 100% rate over 1 deal. Exactly what we want.
-
-### 2.3 stakeTerm
-
-```
-stakeTerm = 1.0 + min(1.0, sqrt(tenureWeightedStakeUsdc / 1000))
-```
-
-Range: `[1.0, 2.0]`. A 1000 USDC stake held for a year doubles the stake term. The square root kills linear gaming, so a 10,000 USDC stake is the same as a 1,000 USDC stake (both capped).
-
-| tenure-weighted stake | stakeTerm |
-|----------------------:|----------:|
-| 0      | 1.00 |
-| 100    | 1.32 |
-| 500    | 1.71 |
-| 1000   | 2.00 (cap) |
-| 10000  | 2.00 |
-
-The term is `> 1.0` always, so staking never hurts. It is **weighted by deposit tenure** so age beats freshness:
-
-```
-tenureWeightedStakeUsdc = sum over Active vault positions of:
-    principal × min(1.0, tenureDays / 365)
-```
-
-A position that's been open for a year counts at full weight. A two-week-old position counts at `14/365 ≈ 0.038`. This is what gives the score real skin-in-the-game without forcing arbitrary lock periods.
-
-### 2.4 timeTerm
-
-```
-timeTerm = min(1.0, daysSinceFirstOnChainAction / 90)
-```
-
-A new wallet ramps from 0 to 1 over its first 90 days. Stops one-day-old wallets from instantly reaching ELITE with stake alone.
-
-### 2.5 penaltyTerm
-
-```
-penaltyTerm = clamp(0, 1,
-    0.30 · disputesLostRate
-  + 0.15 · cancelRate
-  + 0.40 · spamScore
-  + 0.10 · counterAbandonRate
-)
-```
-
-Each component is the rolling 90-day rate, normalised in `[0, 1]`. Penalties subtract directly from the score outside the `tanh`, so a clean record makes them inert and a dirty record cuts hard.
-
-- **disputesLostRate.** `disputesLostLast90d / dealsLast90d`. Filing a dispute and losing is a strong negative.
-- **cancelRate.** `cancelsLast90d / startedLast90d`. Match-then-cancel is the canonical churn pattern.
-- **spamScore.** See §4.
-- **counterAbandonRate.** `countersReceivedButNotAcceptedLast90d / countersReceivedLast90d`. A user who haggles forever and never closes burns the system's attention.
-
-
+No penalty and recent activity leave the multipliers at 1, so the seller lands
+at **723, STRONG**. Now suppose they lose one dispute, a 20% dispute rate over
+their settled deals. The penalty term is `min(0.6, 0.5·0.20) = 0.10`, and the
+score becomes `round(723 · 0.90) = 651`, still STRONG but 72 points lighter.
+Climbing the rest of the way to ELITE takes several factors near full at once,
+which is the concavity doing its job: the first stake and the first deals are
+cheap, the last 200 points are not.
 
 ## 3. KarwanVault: staking for reputation
 
@@ -214,7 +155,7 @@ A withdrawal request transitions the position from `Active` to `Cooling` and fre
 
 After 3 days the user calls `claim` and the principal is returned. The position becomes `Withdrawn`.
 
-This is the platform's commitment device. A user cannot deposit, spike their reputation, take a deal, then withdraw the same day. They lose three days of stake signal during cool-down, and the backend sees the request before any funds move. Cool-down was 7 days in v1 of the vault; the production contract runs at 3 days to keep honest users mobile while still gating the rug-and-run attack.
+This is the platform's commitment device. A user cannot deposit, spike their reputation, take a deal, then withdraw the same day. They lose three days of stake signal during cool-down, and the backend sees the request before any funds move. The production contract runs the cool-down at 3 days to keep honest users mobile while still gating the rug-and-run attack.
 
 ### 3.1 Mainnet path: USYC integration
 
@@ -335,7 +276,7 @@ Tuning happens via env, no redeploy. The formula itself stays version-pinned (`R
 
 ## 10. Out of scope (for now)
 
-- Vouching / web-of-trust (high-rep users staking reputation on low-rep users they trust). Reasonable v2.
+- Vouching / web-of-trust (high-rep users staking reputation on low-rep users they trust). A reasonable later addition.
 - Sybil resistance via Worldcoin / passport. Tracked but not integrated.
 - Cross-chain reputation portability. Arc-only this pass.
 - Slashing locked stake on dispute loss. The vault is honest collateral, not a bond. We add slashing only if disputes become common enough to need it.

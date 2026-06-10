@@ -66,7 +66,7 @@ interface IKarwanReputation {
 ///
 ///         Dispute paths handle both modes via the e.reservedAmount > 0
 ///         sentinel; refund with reservedAmount=0 simply skips slash and
-///         records nothing (no rep credit either way — buyer just got their
+///         records nothing (no rep credit either way, buyer just got their
 ///         money back, no on-chain story to tell).
 contract KarwanEscrow is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -116,7 +116,7 @@ contract KarwanEscrow is ReentrancyGuard {
     /// @notice Platform fee in basis points applied to the deal amount.
     uint16 public immutable feeBps;
     /// @notice Address that collects the platform fee. In v2.E this is the
-    ///         KarwanTreasury contract address, not an EOA — fees route to a
+    ///         KarwanTreasury contract address, not an EOA, fees route to a
     ///         contract that can sweep idle balance into USYC for yield.
     address public immutable treasury;
     /// @notice Vault used for insurance reservations.
@@ -406,7 +406,7 @@ contract KarwanEscrow is ReentrancyGuard {
             );
         }
         // Casual deals: no reservation, no reputation credit on a disputed
-        // resolution — the deal didn't carry the trust signal either way.
+        // resolution, the deal didn't carry the trust signal either way.
     }
 
     /// @notice Return all unreleased funds to the buyer. If the seller had
@@ -433,8 +433,8 @@ contract KarwanEscrow is ReentrancyGuard {
 
         // Slash + reputation only when the seller had accepted WITH a
         // reservation. Casual deals (reservationBps==0) and pre-accept
-        // cancels (state Funded -> Disputed -> Refunded) skip the slash —
-        // there's nothing to slash and no on-chain credit story to tell.
+        // cancels (state Funded -> Disputed -> Refunded) skip the slash.
+        // There's nothing to slash and no on-chain credit story to tell.
         if (e.reservedAmount > 0) {
             address seller = e.seller;
             e.reservedAmount = 0; // clear BEFORE the external call (CEI)
@@ -450,9 +450,7 @@ contract KarwanEscrow is ReentrancyGuard {
         }
     }
 
-    /* =============================================================== */
-    /*                            INTERNALS                             */
-    /* =============================================================== */
+    // Internals
 
     function _finalizeSuccess(bytes32 jobId, EscrowAccount storage e) internal {
         emit EscrowSettled(jobId, e.released, e.feeReleased);
@@ -465,7 +463,7 @@ contract KarwanEscrow is ReentrancyGuard {
 
     /// @dev Resolves agent addresses to their identity wallets via the vault
     ///      before crediting reputation. Stake lives on identity wallets, so
-    ///      reputation should too — otherwise the off-chain composite engine
+    ///      reputation should too, otherwise the off-chain composite engine
     ///      has to do an agent-summing dance per deal. Falls back to the
     ///      passed address when the vault returns address(0), but that's a
     ///      degenerate case (vault.resolveOwner is a pure mapping read with

@@ -4,9 +4,9 @@
 /// All math lives in this file so the engine stays a pure compose function.
 ///
 /// Signals (docs/reputation-model.md §4):
-///   1. burst rate         — > N posts (deals + listings + briefs) in 24h
-///   2. counterparty diversity — uniqueCounterparties / dealsLast7d
-///   3. match-and-cancel   — cancels within 1h of creation / matchesLast7d
+///   1. burst rate         : > N posts (deals + listings + briefs) in 24h
+///   2. counterparty diversity : uniqueCounterparties / dealsLast7d
+///   3. match-and-cancel   : cancels within 1h of creation / matchesLast7d
 ///
 /// counterAbandonRate (§2.5) is computed separately because it uses a
 /// 90-day window rather than 7-day.
@@ -71,9 +71,7 @@ export async function computeSpamSignals(addressRaw: string): Promise<SpamSignal
   return out;
 }
 
-/* ============================================================================
-   1. BURST RATE
-   ============================================================================ */
+// 1. Burst rate
 
 function burstScore({
   address,
@@ -110,12 +108,10 @@ function burstScore({
   return Math.min(0.4, extras * 0.05);
 }
 
-/* ============================================================================
-   2. COUNTERPARTY DIVERSITY
-   Adds 0.30 × (1 - uniqueCounterparties / dealsLast7d) when fewer than ~3
-   unique counterparties dominate a busy 7-day window. Returns 0 for users
-   with little or balanced activity.
-   ========================================================================== */
+// 2. Counterparty diversity
+// Adds 0.30 × (1 - uniqueCounterparties / dealsLast7d) when fewer than ~3
+// unique counterparties dominate a busy 7-day window. Returns 0 for users
+// with little or balanced activity.
 
 function diversityScore({
   address,
@@ -147,11 +143,9 @@ function diversityScore({
   return Math.max(0, 0.3 * (1 - ratio));
 }
 
-/* ============================================================================
-   3. MATCH-AND-CANCEL
-   Deals created and cancelled within 1 hour of creation are the canonical
-   griefing pattern. Rate > 20% adds 0.30 × cancelRate.
-   ========================================================================== */
+// 3. Match-and-cancel
+// Deals created and cancelled within 1 hour of creation are the canonical
+// griefing pattern. Rate > 20% adds 0.30 × cancelRate.
 
 function matchAndCancelScore({
   address,
@@ -185,17 +179,15 @@ function matchAndCancelScore({
   return Math.min(0.3, 0.3 * rate);
 }
 
-/* ============================================================================
-   COUNTER-ABANDON RATE (90 days)
-   Buyers/sellers who receive counter offers and never accept them are
-   wasting platform attention. Rate computed as: cancelled-or-expired deals
-   that received at least one counter / total deals that received counters.
-   The DirectDeal store doesn't track counter receipts explicitly today, so
-   we approximate using the existing fields: any cancellation kind other
-   than 'mutual' or 'pre-accept' that happened after acceptedAt counts as
-   an abandon when the deal previously had movement (accepted + cancelled).
-   When the counter audit lands this becomes exact.
-   ========================================================================== */
+// Counter-abandon rate (90 days)
+// Buyers/sellers who receive counter offers and never accept them are
+// wasting platform attention. Rate computed as: cancelled-or-expired deals
+// that received at least one counter / total deals that received counters.
+// The DirectDeal store doesn't track counter receipts explicitly today, so
+// we approximate using the existing fields: any cancellation kind other
+// than 'mutual' or 'pre-accept' that happened after acceptedAt counts as
+// an abandon when the deal previously had movement (accepted + cancelled).
+// When the counter audit lands this becomes exact.
 
 function counterAbandonScore({
   address,
@@ -235,9 +227,7 @@ function counterAbandonScore({
   return clamp01(abandoned / touched);
 }
 
-/* ============================================================================
-   helpers
-   ========================================================================== */
+// helpers
 
 async function safeAll<T>(fn: () => Promise<T[]>): Promise<T[]> {
   try {

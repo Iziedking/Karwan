@@ -77,7 +77,7 @@ function refuseIfClosed(c: Context): Response | null {
 
 export const legacyRoutes = new Hono();
 
-/// Window status — drives the home banner and the /legacy page header. The
+/// Window status. Drives the home banner and the /legacy page header. The
 /// composite (open / closesAtMs) reflects the soonest still-open deadline
 /// across all generations. `generations` carries per-gen detail + addresses
 /// so the page can render a section per legacy contract bundle.
@@ -104,9 +104,7 @@ legacyRoutes.get('/window', (c) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// LEGACY DEALS
-// ---------------------------------------------------------------------------
+// Legacy deals
 
 interface LegacyDealView {
   jobId: string;
@@ -443,7 +441,7 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
 
 /// Buyer-side final release on the legacy contract. For deals where the
 /// seller delivered before the contract migration but the buyer never
-/// released — funds still on legacy, seller waiting.
+/// released, funds still on legacy, seller waiting.
 legacyRoutes.post('/deals/:jobId/release-final', async (c) => {
   let body: z.infer<typeof dealActionSchema>;
   try {
@@ -547,9 +545,7 @@ legacyRoutes.post('/deals/:jobId/cancel-accept', async (c) => {
   );
 });
 
-// ---------------------------------------------------------------------------
-// LEGACY VAULT
-// ---------------------------------------------------------------------------
+// Legacy vault
 
 interface LegacyPosition {
   positionId: string;

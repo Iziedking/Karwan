@@ -547,7 +547,7 @@ function SettleSection({
 /// (the on-chain termsHash stays at its post-time value) and re-extracts
 /// keywords fire-and-forget so the agent's next match round uses the new
 /// copy. Disabled when a match proposal is in flight or the request is
-/// already finalized, expired, or cancelled — backend enforces the same.
+/// already finalized, expired, or cancelled. Backend enforces the same.
 function EditBriefSection({
   job,
   declined,

@@ -5,7 +5,7 @@ import { publicClient } from '../chain/client.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { logger } from '../logger.js';
 
-/// Admin treasury route. Read-only — every write action (payout, sweep,
+/// Admin treasury route. Read-only, every write action (payout, sweep,
 /// drain-old → new) is signed by the connected wallet on the frontend and
 /// verified on-chain by the contract's `onlyOwner` modifier. Backend only
 /// proxies balance reads + serves the page-state JSON.

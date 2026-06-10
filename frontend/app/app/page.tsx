@@ -97,7 +97,7 @@ export default function AppHome() {
   const { profile, isConnected, loading, fetchState } = useUserProfile();
   /// Pull `isLoading` from useAuth directly so we can hold the skeleton
   /// until auth resolves. Otherwise the page paints `SignInGate variant="hero"`
-  /// briefly for already-authed users, then snaps to the real content —
+  /// briefly for already-authed users, then snaps to the real content,
   /// that flip was a major CLS contributor on /app (Speed Insights showed
   /// 0.82 sustained).
   const { isLoading: authLoading } = useAuth();
@@ -416,9 +416,7 @@ export default function AppHome() {
   );
 }
 
-/* ============================================================================
-   HERO AGENT CARD. small "control panel" vignette on the right of hero
-   ============================================================================ */
+// Hero agent card. small "control panel" vignette on the right of hero
 
 function HeroAgentCard({
   dealsRunning,
@@ -502,9 +500,7 @@ function MiniStat({
   );
 }
 
-/* ============================================================================
-   FEATURE CARD with internal vignette. the Phantom move
-   ============================================================================ */
+// Feature card with internal vignette. the Phantom move
 
 function FeatureCard({
   href,
@@ -611,9 +607,7 @@ function FeatureCard({
   );
 }
 
-/* ============================================================================
-   VIGNETTES. tiny mockups of what each door opens onto
-   ============================================================================ */
+// Vignettes. tiny mockups of what each door opens onto
 
 function BriefVignette() {
   // Progress ticks fill one by one, hold, then reset. 7 ticks + 2-step pause.

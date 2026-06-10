@@ -264,7 +264,7 @@ export async function getPositionsByOwner(addressRaw: string): Promise<OwnerPosi
 }
 
 /// Start the boot prefetch + periodic refresh. The first scan fires
-/// immediately (non-blocking — the boot sequence is not held up by it). A
+/// immediately (non-blocking, the boot sequence is not held up by it). A
 /// snapshot on disk fills the window between boot and first scan completing.
 export function startVaultScanWatcher(): () => void {
   const vault = vaultAddress();

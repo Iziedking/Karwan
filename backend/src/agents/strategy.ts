@@ -281,7 +281,7 @@ export function openingAnchor(args: {
 }): number {
   // Sellers open at +12% over target (capped at ceiling), buyers open at
   // -8% under cap (floored at target). Elasticity dials the gap for
-  // trusted counterparties — an ELITE buyer sees the seller anchor closer
+  // trusted counterparties. An ELITE buyer sees the seller anchor closer
   // to target, signalling "I trust you, less haggling needed."
   const elasticity = TIER_ELASTICITY[args.tier];
   if (args.role === 'seller') {

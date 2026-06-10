@@ -187,7 +187,7 @@ xRoutes.get('/oauth/callback', async (c) => {
 
     const existing = await getProfile(entry.address);
     if (!existing) {
-      // No profile yet — store a minimal record so the X binding survives a
+      // No profile yet, store a minimal record so the X binding survives a
       // later /profile save. The user can still complete onboarding normally.
       await upsertProfile({
         address: entry.address,

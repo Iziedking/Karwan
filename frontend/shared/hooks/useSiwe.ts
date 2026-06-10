@@ -9,7 +9,7 @@ import { emitAuthChanged } from './useAuth';
 /// Wallet users (RainbowKit / wagmi) come back from `useAccount` as
 /// "connected" the moment a wallet hands over an address, but a wallet
 /// connection alone proves nothing to the backend. Without a real handshake,
-/// every server-side surface that gates on `readSession(c)` 401's them — the
+/// every server-side surface that gates on `readSession(c)` 401's them. The
 /// Terms gate, the deal accept routes, anything the backend wants to attribute
 /// to a verified party. The cookie-less `?caller=` shim only covers reads.
 ///

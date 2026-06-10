@@ -29,7 +29,7 @@ export const ARC_USDC_DECIMALS = 6;
 export const KARWAN_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_KARWAN_VAULT_ADDRESS ??
   '0x2d4506284B2D778365b4B295100EF099F35973c5') as `0x${string}`;
 
-// KarwanYieldDistributor — per-address USDC claim contract that holds the
+// KarwanYieldDistributor, per-address USDC claim contract that holds the
 // daily-credited yield for stakers. Read-only on chain for balances; the
 // `claim()` write is the only thing a staker ever calls. Env-driven so a
 // redeploy is a Vercel env swap, not a code change. Fallback to the address
@@ -63,11 +63,18 @@ export const KARWAN_VAULT_LEGACY_ADDRESS_3 =
 export const KARWAN_ESCROW_LEGACY_ADDRESS_3 =
   (process.env.NEXT_PUBLIC_KARWAN_ESCROW_LEGACY_ADDRESS_3 as `0x${string}` | undefined) ?? null;
 
-// SME bundle (Phase 2 Track 2, deployed 2026-06-01). Env-driven so a future
-// redeploy is a Vercel env swap, not a code change.
+// SME trade-finance contracts. Env-driven so a future redeploy is a Vercel
+// env swap, not a code change.
 export const KARWAN_INVOICE_REGISTRY_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_INVOICE_REGISTRY_ADDRESS ??
     '0x20a7CDf59b5f304De2b22a75e49f52353273E4E4') as `0x${string}`;
 export const KARWAN_PO_FINANCING_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_PO_FINANCING_ADDRESS ??
     '0xc91122Eb88613C98d58616cD8973883142F74Bb5') as `0x${string}`;
+
+// SME Trades launch gate. The B2B rail (trade context on deals, invoice
+// factoring, PO financing, the financier desk) ships behind the SME Trades
+// nav slot until launch. Off by default in every environment; set
+// NEXT_PUBLIC_SME_TRADES_ENABLED=1 to surface the rail for pilots and
+// internal testing. P2P deal flow is unaffected either way.
+export const SME_TRADES_ENABLED = process.env.NEXT_PUBLIC_SME_TRADES_ENABLED === '1';

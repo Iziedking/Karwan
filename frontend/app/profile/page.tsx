@@ -19,6 +19,7 @@ import { TierCelebration } from '@/features/reputation/components/TierCelebratio
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -196,12 +197,12 @@ function ProfilePageInner() {
       {/* `display: contents` on the data-guide wrapper so the wrapper doesn't
           create a short sticky scope for the StickyTabStrip. Without this,
           position: sticky scoped to a parent that's only as tall as the
-          strip itself — the strip released the instant the user scrolled,
+          strip itself. The strip released the instant the user scrolled,
           which read as "hides on scroll". Landing-page strip works because
           it sits directly under a full-height wrapper. The DOM node is
           preserved so the coachmark tour can still anchor to it.
           `onDark={false}` because the strip lives at the boundary between
-          the profile hero (dark) and the cream content below — the default
+          the profile hero (dark) and the cream content below. The default
           dark variant rendered as pure black where it overlapped the hero,
           which the user flagged as wrong. Cream-frosted surface reads as
           frosted on both backgrounds. */}
@@ -360,10 +361,10 @@ function ProfilePageInner() {
         </Band>
       )}
 
-      {/* COMPANY PROFILE (SME band) — only renders for authed users with an
-          address. Independent component so editing the profile re-renders
-          nothing else on this page. */}
-      {address ? <SmeCompanyBand address={address} /> : null}
+      {/* COMPANY PROFILE. Part of the SME Trades rail; hidden until launch.
+          Independent component so editing the profile re-renders nothing
+          else on this page. */}
+      {SME_TRADES_ENABLED && address ? <SmeCompanyBand address={address} /> : null}
 
       {/* WALLETS anchor */}
       <div id="wallets" aria-hidden style={{ scrollMarginTop: 80 }} />
@@ -417,7 +418,7 @@ function ProfilePageInner() {
       {/* STAKING anchor */}
       <div id="stake" aria-hidden style={{ scrollMarginTop: 80 }} />
 
-      {/* STAKE — vault deposits + cool-down + tier badge. */}
+      {/* STAKE: vault deposits + cool-down + tier badge. */}
       <Band tone="light" compact>
         <SectionTag>{t.stake.tag}</SectionTag>
         <HeroHeadline size="md">

@@ -95,7 +95,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
 
   if (fetchState === 'loading') {
     /// Reserve roughly the height of the resolved hero band so the swap into
-    /// the real listing doesn't shift the content bands below — the dominant
+    /// the real listing doesn't shift the content bands below, the dominant
     /// CLS source on /listings/[id] before this pass. The skeleton bars sit
     /// flush at the top; min-h carries the rest.
     return (

@@ -158,7 +158,7 @@ const RECIPIENT: Record<string, Role | 'both'> = {
 
 function hrefForType(type: string, jobId: string): string {
   // listing.matched fires when a seller's offer matches a buyer's brief and the
-  // agent bids — before any match proposal exists. The buyer's job page is
+  // agent bids, before any match proposal exists. The buyer's job page is
   // private to the two parties (and to the seller only once a proposal names
   // them), so deep-linking there dead-ends the seller on "this deal is private."
   // Send them to their own dashboard, where the bid and any resulting match
@@ -232,7 +232,7 @@ function shouldNotify(
   }
   const rule = RECIPIENT[type];
   if (!rule) return false;
-  // 'both' means "either party to THIS deal" — never "everyone." Require a
+  // 'both' means "either party to THIS deal", never "everyone." Require a
   // resolved role so a 'both' event from a deal the viewer isn't part of (which
   // the global SSE bus and the activity feed both carry) doesn't leak into their
   // bell as a generic notification. role is non-null only when the viewer is a
@@ -294,7 +294,7 @@ function summaryFor(
         : 'A buyer opened a deal with you. Accept to proceed.';
     case 'deal.invite.claimed':
       // Fires after the recipient verifies their email and binds the deal.
-      // Surfaces as the seller's first in-app cue — the deal create event
+      // Surfaces as the seller's first in-app cue. The deal create event
       // already fired before they were on Karwan, so this is the equivalent
       // welcome ping for them.
       return dealAmount
@@ -689,7 +689,7 @@ export function useNotifications() {
 
       // Learn this user's role on a freshly-started deal so later events that
       // only carry a jobId still route to the right side. deal.invite.claimed
-      // counts too — that's the moment a pending-invite deal first has a real
+      // counts too, that's the moment a pending-invite deal first has a real
       // seller wallet bound to it.
       if (
         e.type === 'deal.direct.created' ||

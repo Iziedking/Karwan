@@ -5,7 +5,7 @@
 /// Every UI animation in Karwan uses one of these tokens. No bespoke values.
 
 export const ease = {
-  out: [0.16, 1, 0.3, 1] as const,        // ui affordance — default for reveals
+  out: [0.16, 1, 0.3, 1] as const,        // ui affordance, default for reveals
   in: [0.7, 0, 0.84, 0] as const,         // dismissals
   inOut: [0.83, 0, 0.17, 1] as const,     // layout shifts
 } as const;

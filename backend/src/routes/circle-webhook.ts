@@ -42,7 +42,7 @@ circleWebhookRoutes.post('/webhook', async (c) => {
   // registration completes; once the operator pastes the id into env and
   // restarts, this branch never fires and full signature verification kicks
   // in below. Real notifications received during the unconfigured window
-  // get logged but not processed — no key to verify against anyway.
+  // get logged but not processed, no key to verify against anyway.
   if (!config.CIRCLE_WEBHOOK_SUBSCRIPTION_ID) {
     logger.warn(
       'circle webhook: POST received but CIRCLE_WEBHOOK_SUBSCRIPTION_ID unset; acknowledging without verification',

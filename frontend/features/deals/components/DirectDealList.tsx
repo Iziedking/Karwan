@@ -24,7 +24,7 @@ export function stageOf(deal: DirectDeal): DealStage {
   // confirms the terminal hops (Settled, Refunded). This ordering matters:
   // when `onChain` is briefly absent on a fresh fetch, the cached snapshot
   // used to default state to 1 (Funded), which then mapped a long-settled
-  // deal to `awaiting-acceptance` — the "completed deal flashes as pending"
+  // deal to `awaiting-acceptance`, the "completed deal flashes as pending"
   // bug on the home book.
   const state = deal.onChain?.state;
   if (deal.cancelledAt || state === 5) return 'cancelled';

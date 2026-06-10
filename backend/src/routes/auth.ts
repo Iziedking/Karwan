@@ -85,7 +85,7 @@ interface OtpSendResult {
 }
 
 /// HTML body for the OTP email. Uses the shared brand shell. Digits sit in a
-/// monospace block with a calm letter-spacing — no manual &nbsp; padding,
+/// monospace block with a calm letter-spacing, no manual &nbsp; padding,
 /// which was making the code read like "1   2   3" instead of "123456".
 function otpEmailHtml(code: string): string {
   const inner = `
@@ -119,7 +119,7 @@ function otpEmailHtml(code: string): string {
 /// Sends the 6-digit code to the user. When RESEND_API_KEY is set we POST to
 /// Resend; otherwise we log the code to the backend terminal so dev still
 /// works without any provider configured. Returns whether the code went out
-/// over real email — the dev autofill pill only renders when this is false.
+/// over real email. The dev autofill pill only renders when this is false.
 async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult> {
   const client = resendClient();
   if (!client) {
@@ -702,7 +702,7 @@ const otpRequestSchema = z.object({ email: emailSchema });
 
 /// Issues a one-time 6-digit code for the email. Routes through Resend when
 /// RESEND_API_KEY is set; otherwise logs to the backend terminal as a dev
-/// convenience. Works for both new and returning users — the verify step
+/// convenience. Works for both new and returning users. The verify step
 /// decides whether to create the account or log in.
 authRoutes.post('/otp/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, name: 'otp-request' }), async (c) => {
   let body;
@@ -732,7 +732,7 @@ authRoutes.post('/otp/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, na
     sent: true,
     delivered,
     // Surface the code in the response only when (a) we're in dev and (b)
-    // the send path didn't actually deliver email — typically because no
+    // the send path didn't actually deliver email, typically because no
     // RESEND_API_KEY is configured. Production stays mute regardless.
     ...(isDev() && !delivered ? { devCode: code } : {}),
   });

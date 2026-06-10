@@ -6,7 +6,7 @@ import { listDealsForAddress } from '../db/deals.js';
 import { logger } from '../logger.js';
 
 /// SME profile routes. Public passport read (no auth) + authenticated
-/// upsert. taxId never round-trips — the profile route stores an
+/// upsert. taxId never round-trips, the profile route stores an
 /// encrypted blob set by a separate admin path (post-SME); the public
 /// passport route never returns it.
 
@@ -39,7 +39,7 @@ const smeProfileBodySchema = z.object({
 
 export const smeRoutes = new Hono();
 
-/// GET /api/sme/profile/:address — public SME panel for the credit
+/// GET /api/sme/profile/:address: public SME panel for the credit
 /// passport. Strips taxIdEncrypted; computes repaymentBehavior live so
 /// the rendered view is always current.
 smeRoutes.get('/profile/:address', async (c) => {
@@ -53,7 +53,7 @@ smeRoutes.get('/profile/:address', async (c) => {
   return c.json({ smeProfile: publicProfile, repaymentBehavior });
 });
 
-/// POST /api/sme/profile — authenticated user updates their own SME
+/// POST /api/sme/profile: authenticated user updates their own SME
 /// profile. Caller must match the address in the body.
 smeRoutes.post('/profile', async (c) => {
   const session = readSession(c);

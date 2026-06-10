@@ -28,14 +28,14 @@ export const fr: Messages = {
     market: 'Marché',
     bridge: 'Bridge',
     smeTrades: 'Trades PME',
-    trades: 'Trades',
-    tradesGroupEyebrow: 'Trades',
+    trades: 'Trades P2P',
+    tradesGroupEyebrow: 'Trades P2P',
     soonBadge: 'bientôt',
     hints: {
       home: 'Votre base. Deals, activité et la suite à faire.',
       market: 'Parcourez les demandes et offres ouvertes des autres.',
       bridge: 'Amenez de l’USDC depuis une autre chaîne sur Arc.',
-      smeTrades: 'Karwan pour les trades PME institutionnels. Règlement par vos propres agents sur Arc. Lancement après le premier pilote.',
+      smeTrades: 'Affacturage de factures et financement de bons de commande sur Arc. Ouvert aux financiers après le premier pilote.',
       activity: 'Flux en direct de chaque deal et règlement.',
       stake: 'Verrouillez de l’USDC pour monter de palier de réputation.',
       profile: 'Vos wallets, agents et réputation.',
@@ -1259,7 +1259,7 @@ export const fr: Messages = {
     },
     factors: {
       eyebrow: 'Facteurs de score',
-      scaleCaption: '0 — 100 chacun',
+      scaleCaption: '0 à 100 chacun',
       labels: {
         completion: 'Achèvement',
         stake: 'Mise',

@@ -1,5 +1,5 @@
 // Users authenticated via email + passkey (Circle login). Web3 users are
-// identified solely by their wallet address and don't need a row here — the
+// identified solely by their wallet address and don't need a row here. The
 // app reads them straight from wagmi on the client and accepts the address
 // as authoritative on the server (same trust model as today).
 //
@@ -36,7 +36,7 @@ export interface PasskeyCredential {
 export interface KarwanUser {
   /// Lowercased, trimmed email used as the canonical key.
   email: string;
-  /// The user's on-chain identity address — a Circle DCW provisioned at
+  /// The user's on-chain identity address, a Circle DCW provisioned at
   /// signup. The rest of the app reads this exactly like a wagmi address.
   address: string;
   /// Circle wallet id for the identity wallet. Used by the agent registry

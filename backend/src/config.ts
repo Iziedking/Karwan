@@ -112,7 +112,7 @@ const envSchema = z.object({
   KARWAN_VAULT_ADDR: optionalAddr,
   /// Legacy KarwanVault from the pre-v2.D deployment. Read-only during the
   /// migration window so existing stakers keep their tenure on positions
-  /// staked before the redeploy. Optional — leave blank in fresh
+  /// staked before the redeploy. Optional, leave blank in fresh
   /// environments or after the legacy vault drains.
   KARWAN_VAULT_LEGACY_ADDR: optionalAddr,
   /// Second-generation legacy vault. Holds stake from the previous production
@@ -169,7 +169,7 @@ const envSchema = z.object({
   // resolving while you swap the key name. Remove after the rename ships
   // to production env files.
   KARWAN_TREASURY_V3_ADDR: optionalAddr,
-  // KarwanYieldDistributor — per-address USDC claim contract that the daily
+  // KarwanYieldDistributor, per-address USDC claim contract that the daily
   // yield-distribute cron credits via bulkCredit. Stakers pull from here via
   // claim(). Read-only here; the cron operator key is set on the contract via
   // setOperator, NOT loaded into the backend.
@@ -305,7 +305,7 @@ const envSchema = z.object({
 
   // Resend transactional email. When RESEND_API_KEY is unset the OTP route
   // falls back to logging the code to the server console (dev convenience).
-  // RESEND_FROM is the sender address — use `onboarding@resend.dev` for the
+  // RESEND_FROM is the sender address. Use `onboarding@resend.dev` for the
   // hackathon-grade sandbox path, or a verified-domain address in prod.
   RESEND_API_KEY: optionalString,
   RESEND_FROM: z.preprocess(blankToUndefined, z.string().default('Karwan <onboarding@resend.dev>')),
@@ -359,11 +359,11 @@ if (
 
 export const config = {
   ...parsed.data,
-  /// Resolved CCTP relay wallet — read this everywhere bridge mints fire.
+  /// Resolved CCTP relay wallet. Read this everywhere bridge mints fire.
   /// Equivalent to `CCTP_RELAY_WALLET_ID ?? BUYER_AGENT_WALLET_ID` after the
   /// transitional alias is removed.
   cctpRelayWalletId,
-  /// Resolved CCTP relay address — used for status surfaces and balance reads.
+  /// Resolved CCTP relay address, used for status surfaces and balance reads.
   cctpRelayAddress,
 };
 export type Config = typeof config;

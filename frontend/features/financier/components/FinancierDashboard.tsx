@@ -109,7 +109,7 @@ export function FinancierDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [offerTarget, setOfferTarget] = useState<DirectDeal | null>(null);
   // PO-tab state. Split from the factor tab so a tab switch never
-  // re-renders the inactive surface — per Vercel
+  // re-renders the inactive surface, per Vercel
   // `rerender-split-combined-hooks`.
   const [poAvailable, setPoAvailable] = useState<DirectDeal[] | null>(null);
   const [poLoading, setPoLoading] = useState(false);
@@ -211,7 +211,7 @@ export function FinancierDashboard() {
             </button>
           ))}
         </div>
-        {/* FILTERS — only when on factor tab */}
+        {/* FILTERS: only when on factor tab */}
         {tab === 'factor' ? (
           <div className="mt-6 flex gap-3 flex-wrap items-center">
             <FilterSelect
@@ -299,9 +299,7 @@ export function FinancierDashboard() {
   );
 }
 
-/* =============================================================== */
-/*                           FACTOR TAB                             */
-/* =============================================================== */
+// Factor tab
 
 function FactorInvoicesTab({
   available,
@@ -441,9 +439,7 @@ function SkeletonGrid() {
   );
 }
 
-/* =============================================================== */
-/*                          FILTER ROW                              */
-/* =============================================================== */
+// Filter row
 
 function FilterSelect({
   label,
@@ -505,9 +501,7 @@ function FilterText({
   );
 }
 
-/* =============================================================== */
-/*                          OFFER MODAL                             */
-/* =============================================================== */
+// Offer modal
 
 const OFFER_EXPIRES_HOURS = 24;
 
@@ -742,9 +736,7 @@ function ModalRow({
   );
 }
 
-/* =============================================================== */
-/*                          FUND POs TAB                            */
-/* =============================================================== */
+// Fund POs tab
 
 function FundPOsTab({
   available,
@@ -843,9 +835,7 @@ function POCard({
   );
 }
 
-/* =============================================================== */
-/*                           FUND MODAL                             */
-/* =============================================================== */
+// Fund modal
 
 function FundModal({
   deal,

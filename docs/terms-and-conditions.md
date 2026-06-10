@@ -14,7 +14,7 @@ Karwan is a settlement layer for cross-border SME work. The core pieces:
 - **Agent assistance.** Optional buyer and seller agents help you find counterparties, score offers, and negotiate within the limits you set. The agent never spends without your explicit approval.
 - **Bridging.** USDC from supported source chains can be moved to Arc via Circle's Cross-Chain Transfer Protocol.
 
-Some of this is still rolling out. Anything labelled "v2", "coming soon", or shown behind a beta flag is not guaranteed to ship on a fixed date.
+Some of this is still rolling out. Anything labelled "coming soon" or shown behind a beta flag is not guaranteed to ship on a fixed date.
 
 ## 2. What you are responsible for
 
@@ -33,7 +33,7 @@ Reputation is computed from actual on-chain settlement history. The summary:
 - Successful deals raise your score and can move you to a higher tier.
 - Disputes you lose lower your score. Disputes you win don't.
 - A confirmed malicious delivery (security-tagged) drops your tier sharply.
-- Staking shows commitment and contributes to a higher tier. It also acts as deal insurance starting in the v2.D contract.
+- Staking shows commitment and contributes to a higher tier. It also acts as deal insurance enforced by the current escrow contract.
 
 The full formula lives in `docs/reputation-model.md`. The agent reads the tier and applies tier-aware behaviour: ELITE gets priority and skips the auction in some flows; NEW pays a premium for first deals. The agent never overrides the limits you've set.
 

@@ -44,7 +44,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
   // unproven (NEW/COLD) at match time. They're a point-in-time snapshot; if the
   // buyer's live tier is now ESTABLISHED+, the warning is stale and contradicts
   // the badge shown right beside it. Read the live tier and suppress those flags
-  // when it no longer holds. (spammy is velocity-based, not tier-based — kept.)
+  // when it no longer holds. (spammy is velocity-based, not tier-based, kept.)
   const { data: buyerRep } = useReputation(proposal.buyerUser);
   const buyerProvenNow =
     buyerRep?.tier === 'ESTABLISHED' ||
@@ -240,7 +240,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
       )}
 
       {/* Risk flags are all seller-facing warnings (honey-trap, lowball,
-          spammy, new-buyer) — they describe the BUYER, for the SELLER to
+          spammy, new-buyer), they describe the BUYER, for the SELLER to
           judge before accepting. Render only when the viewer is the seller
           so the buyer doesn't see warnings written about themselves. */}
       {showRisk && (
@@ -433,7 +433,7 @@ function CounterpartySignal({
   const xHref = xHandle ? `https://x.com/${xHandle}` : null;
   const recordLine = rep ? formatRecord(rep, copy.record) : null;
 
-  // Compact row for Normal mode — preserves the existing footprint. Address
+  // Compact row for Normal mode, preserves the existing footprint. Address
   // always renders as a masked line directly under the avatar so the viewer
   // can verify the wallet at a glance even when the X handle is bound.
   if (!trusted) {

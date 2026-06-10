@@ -24,7 +24,7 @@ export const WELCOME_STEPS: TourStep[] = [
 ];
 
 /// Home (/app) tour. The desk a signed-in user lands on. Walks the money view,
-/// where to start, the three doors, and the deal book — every tool on the page.
+/// where to start, the three doors, and the deal book, every tool on the page.
 export const HOME_TOUR_ID = 'home-v1';
 export const HOME_STEPS: TourStep[] = [
   {
@@ -150,7 +150,7 @@ export const BRIDGE_STEPS: TourStep[] = [
   },
 ];
 
-/// Live request page tour (/jobs/[id]) — the auction + negotiation surface a
+/// Live request page tour (/jobs/[id]), the auction + negotiation surface a
 /// buyer watches after posting a request, before escrow funds.
 export const JOBS_TOUR_ID = 'jobs-v1';
 export const JOBS_STEPS: TourStep[] = [

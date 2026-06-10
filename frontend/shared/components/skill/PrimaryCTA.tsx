@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
 
-/// SKILL.md §4.3 — primary lime pill CTA. The ONE accent per view (skill §1.3).
+/// SKILL.md §4.3. Primary lime pill CTA. The ONE accent per view (skill §1.3).
 /// Background --accent, text --accent-ink, 10px radius, 14y/22x padding, mono
 /// uppercase, trailing icon at 14px with 8px gap. Hover squashes 1.02→1 and
 /// the icon nudges 2px in its direction. Press scales 0.98.

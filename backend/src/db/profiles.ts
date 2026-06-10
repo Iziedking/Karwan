@@ -88,6 +88,33 @@ export interface UserProfile {
       computedAt: number;
     };
   };
+  /// Account type. Every wallet is a person by default; a wallet becomes a
+  /// business only when Karwan approves its on-chain registration (the
+  /// `business` envelope below). Absent reads as 'person'. Flipped to
+  /// 'business' by the registry approval listener, never by a user write.
+  accountType?: 'person' | 'business';
+  /// Verified-business registration envelope. Mirrors the on-chain
+  /// KarwanBusinessRegistry state. The business anchors a registration or
+  /// tax-doc hash via a signed tx (status 'submitted'); Karwan reviews and
+  /// approves (status 'verified', sets accountType='business') or rejects.
+  /// Company details live in smeProfile; this holds only the gate state.
+  business?: {
+    status: 'none' | 'submitted' | 'verified' | 'rejected';
+    /// sha256 of the registration/tax document anchored on chain.
+    docHash?: string;
+    docKind?: 'registration' | 'tax' | 'other';
+    /// Free-text label captured at submit time, e.g. "CAC_cert.pdf".
+    label?: string;
+    /// Tx that landed the on-chain submitRegistration call.
+    submitTxHash?: string;
+    submittedAt?: number;
+    reviewedAt?: number;
+    /// The reviewer signer address that approved or rejected on chain.
+    reviewer?: string;
+    /// Set when status flips to 'verified'. Mirrors BusinessVerified ts.
+    verifiedAt?: number;
+    rejectReason?: string;
+  };
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

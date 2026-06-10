@@ -9,6 +9,7 @@ import {
   type CompositeTier,
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
@@ -20,7 +21,7 @@ const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 // ESTABLISHED 400-599, STRONG 600-799, ELITE >=800). Earlier this used a 250 /
 // 450 / 650 / 850 scheme that drifted from the backend after the v2 engine
 // landed, which made the "Next tier · +N" hint compute against a different
-// ladder than the pill rendered against — e.g. score 407 read as ESTABLISHED
+// ladder than the pill rendered against, e.g. score 407 read as ESTABLISHED
 // (backend rule >=400) yet the hint said "Established · +43" (frontend rule
 // >=450). The two sides MUST stay in lockstep; if you change the backend
 // breakpoints, change these too.
@@ -72,10 +73,12 @@ export function CreditPassport({ address }: { address: string }) {
         api.reputation(address),
         api.getProfile(address),
         api.vaultPositions(address),
-        api.getSmeProfile(address),
+        // The SME profile only matters when the trade rail is live; skip
+        // the call otherwise.
+        SME_TRADES_ENABLED ? api.getSmeProfile(address) : Promise.resolve(null),
       ]);
       if (cancelled) return;
-      if (smeRes.status === 'fulfilled') {
+      if (smeRes.status === 'fulfilled' && smeRes.value) {
         setSme({
           smeProfile: (smeRes.value.smeProfile ?? null) as
             | NonNullable<UserProfile['smeProfile']>
@@ -93,7 +96,7 @@ export function CreditPassport({ address }: { address: string }) {
       if (vaultRes.status === 'fulfilled') {
         setStakeUsdc(vaultRes.value.totalActiveUsdc);
         // synced is optional on the response for back-compat with older
-        // backends — undefined means "we don't know, assume final".
+        // backends. undefined means "we don't know, assume final".
         const synced = vaultRes.value.synced !== false;
         setStakeSynced(synced);
         // Mid-scan: poll the vault endpoint until it reports synced, so the
@@ -191,7 +194,7 @@ export function CreditPassport({ address }: { address: string }) {
 
   // Tenure in days. Pulled from the registration timestamp the engine uses for
   // the tenure factor. Surfaced as a stat so viewers see how long this wallet
-  // has been on Karwan — useful context for a passport someone is sharing.
+  // has been on Karwan, useful context for a passport someone is sharing.
   const registeredAt = rep.inputs?.registeredAt;
   const tenureDays =
     registeredAt && registeredAt > 0
@@ -247,7 +250,7 @@ export function CreditPassport({ address }: { address: string }) {
         <TierPill tier={tier} />
       </div>
 
-      {/* SCORE PANEL — score + tier ladder + next-tier hint, all in one card so
+      {/* SCORE PANEL: score + tier ladder + next-tier hint, all in one card so
           the number, the tier, and what it would take to climb sit together
           instead of as three separate isolated panels. */}
       <section
@@ -290,7 +293,7 @@ export function CreditPassport({ address }: { address: string }) {
         </div>
       </section>
 
-      {/* TRADE RECORD — four stats in one row: the three on-chain outcome
+      {/* TRADE RECORD: four stats in one row: the three on-chain outcome
           counters plus active stake. This replaces the two-row layout that
           duplicated outcome data (Settled / Success rate / Dispute rate on
           top, Success / Disputed / Failed below) with one tighter strip. */}
@@ -328,7 +331,7 @@ export function CreditPassport({ address }: { address: string }) {
         />
       </section>
 
-      {/* META — settled total + tenure days, lower-weight than the trade
+      {/* META: settled total + tenure days, lower-weight than the trade
           record. Separates the headline outcome counters from the supporting
           metadata so the eye lands on outcomes first. */}
       <section className="mt-4 flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--color-ink-dim)] px-1">
@@ -351,7 +354,7 @@ export function CreditPassport({ address }: { address: string }) {
         )}
       </section>
 
-      {/* SCORE FACTORS — each row reads as data, not decoration: explicit
+      {/* SCORE FACTORS: each row reads as data, not decoration: explicit
           numerator/denominator, percent fill matches numerator, label sits
           left of value so the eye scans down the column of values cleanly. */}
       {termRows.length > 0 && (
@@ -373,10 +376,10 @@ export function CreditPassport({ address }: { address: string }) {
         </section>
       )}
 
-      {/* SME COMPANY + REPAYMENT — renders only when the wallet has at least
-          one SME field populated OR an existing repayment behavior. Stays
-          out of the way for service-flow users. */}
-      <SmePassportBand sme={sme} />
+      {/* SME COMPANY + REPAYMENT. Part of the SME Trades rail; hidden until
+          launch. Renders only when the wallet has an SME profile or
+          repayment history. */}
+      {SME_TRADES_ENABLED && <SmePassportBand sme={sme} />}
 
       {/* FOOTER */}
       <footer className="mt-6 flex items-center justify-between gap-3 flex-wrap">
@@ -455,7 +458,7 @@ function Stat({
   label: string;
   value: string;
   tone?: 'positive' | 'warning' | 'critical';
-  /// True while the underlying read is mid-flight — the value is provisional
+  /// True while the underlying read is mid-flight, the value is provisional
   /// and may still rise. Renders a small "syncing" chip next to the label so
   /// readers don't take a partial total as final.
   syncing?: boolean;
@@ -520,7 +523,7 @@ function trimUsdc(raw: string): string {
 /// SME company + repayment behavior surface. Top-level component (per
 /// Vercel `rerender-no-inline-components`) so it doesn't reallocate on
 /// every CreditPassport render. Renders nothing when the wallet has no
-/// SME profile and no settled deals — service-flow passport readers see
+/// SME profile and no settled deals, service-flow passport readers see
 /// the page exactly as before.
 function SmePassportBand({
   sme,

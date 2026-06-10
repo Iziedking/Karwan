@@ -98,7 +98,7 @@ function vaultAddress(): `0x${string}` | null {
 
 function stateLabelFor(state: number): PositionStateLabel {
   // KarwanVault.sol PositionState enum: { None=0, Active=1, Cooling=2, Withdrawn=3 }.
-  // 'claimed' is the UI label for Withdrawn — user intent reads "you got your money back".
+  // 'claimed' is the UI label for Withdrawn. User intent reads "you got your money back".
   if (state === 1) return 'active';
   if (state === 2) return 'cooling';
   if (state === 3) return 'claimed';
@@ -241,7 +241,7 @@ vaultRoutes.get('/positions', async (c) => {
       freeStakeUsdc,
       cooldownDays,
       /// When false, the underlying vault-log scan hasn't reached chain
-      /// head — totals are provisional and may rise on the next read. The UI
+      /// head, totals are provisional and may rise on the next read. The UI
       /// should render a "syncing" indicator and refresh shortly. Always true
       /// once a cold scan completes; an idle wallet stays synced indefinitely.
       synced,

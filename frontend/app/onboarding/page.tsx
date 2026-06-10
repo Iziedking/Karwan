@@ -258,7 +258,7 @@ function OnboardingInner() {
   // Hold the body until the profile check resolves. Returning users with a
   // cached wallet would otherwise see the language step flash before the
   // redirect to /app fires. New users hit this for a single fetch round-trip
-  // — usually <100ms — then the form renders.
+  // (usually <100ms) then the form renders.
   if (profileGate) {
     return <OnboardingShell />;
   }

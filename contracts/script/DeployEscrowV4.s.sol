@@ -23,8 +23,8 @@ import {KarwanVault} from "../src/KarwanVault.sol";
 ///   one-shot setters in the same transaction.
 ///
 /// KarwanJobBoard stays put. Bridge / identity registry / treasury / yield
-/// distributor are all unaffected. MockUSYC is unused — the new escrow's
-/// treasury slot resolves to the real Hashnote USYC path through V4.
+/// distributor are all unaffected. The new escrow's treasury slot resolves to
+/// the real Hashnote USYC path through V4.
 ///
 /// After this script, rotate env vars on the VPS:
 ///   KARWAN_ESCROW_LEGACY_ADDR_4        = previous KARWAN_ESCROW_ADDR      (Gen 4)

@@ -5,7 +5,7 @@ import { Band, FullBleed, GridOverlay, HeroHeadline, Punc, SectionTag } from '@/
 
 /// Route-level error boundary for /app. A client-side throw here used to
 /// blank the route to the generic "Application error: a client-side
-/// exception has occurred while loading karwan.site" page — the user had
+/// exception has occurred while loading karwan.site" page. The user had
 /// no path back except a manual refresh. Most observed crashes were
 /// auth-state transitions (logout while a child component still held a
 /// stale dependency), so a Reload button that bounces them through
@@ -34,7 +34,7 @@ export default function AppError({
         </HeroHeadline>
         <p className="mt-5 max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
           The page hit a snag while loading. This usually clears after a
-          reload — and if it doesn't, sign in again. We logged the trace.
+          reload, and if it doesn't, sign in again. We logged the trace.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <button

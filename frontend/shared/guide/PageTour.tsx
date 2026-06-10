@@ -5,8 +5,8 @@ import { useGuide, type TourStep } from './GuideProvider';
 /// Registers a page's guided tour with the global guide. The floating "Tour"
 /// pill (bottom-left, rendered once by GuideProvider) launches it on demand.
 ///
-/// Page tours no longer auto-open on every visit — only the first-run welcome
-/// auto-starts — so a returning user is never interrupted. They tap Tour when
+/// Page tours no longer auto-open on every visit, only the first-run welcome
+/// auto-starts, so a returning user is never interrupted. They tap Tour when
 /// they want a walkthrough of the page they're on.
 export function PageTour({
   id,

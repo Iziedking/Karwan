@@ -206,7 +206,7 @@ cashoutRoutes.get('/:jobId', async (c) => {
 
   // Read both Arc balances so the form can show each wallet's spendable
   // amount alongside the picker. Either read can fail (transient RPC) and
-  // the page still renders — null tells the form to defer to the live read
+  // the page still renders. null tells the form to defer to the live read
   // on submit.
   async function readArc(address: string | undefined): Promise<string | null> {
     if (!address) return null;

@@ -55,7 +55,7 @@ forge script script/Deploy.s.sol \
 
 Foundry prompts for the keystore password on each broadcast. The same pattern
 applies to every script under `script/`: `DeployVault.s.sol`,
-`DeployEscrow.s.sol`, `DeployMockUSYC.s.sol`, `DeployTreasury.s.sol`. Each one
+`DeployEscrow.s.sol`, `DeployTreasury.s.sol`. Each one
 calls bare `vm.startBroadcast()` with no arguments, so the `--account` flag is
 the only thing controlling who signs.
 

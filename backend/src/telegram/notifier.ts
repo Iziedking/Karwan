@@ -187,7 +187,7 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const deal = await getDeal(jobId);
     if (!deal) return [];
     const sender = (e.payload?.sender as string | undefined)?.toLowerCase();
-    // Echo to both parties so the sender sees their own message in TG too —
+    // Echo to both parties so the sender sees their own message in TG too,
     // useful as a sent-confirmation when away from the app. The role helps
     // the summary phrase it from each side's perspective.
     const out: Recipient[] = [];
@@ -281,7 +281,7 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       );
     case 'deal.invite.claimed':
       /// Fires after the recipient verifies their email and binds the deal.
-      /// This is the seller's first Telegram cue — the original direct.created
+      /// This is the seller's first Telegram cue. The original direct.created
       /// event already fired before they were on Karwan, so this ping carries
       /// the same "you have a deal" call to action.
       return withLink(

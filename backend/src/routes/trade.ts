@@ -41,7 +41,7 @@ const podBodySchema = z.object({
 
 export const tradeRoutes = new Hono();
 
-/// POST /api/trade/anchor — caller is the deal's buyer or seller, having
+/// POST /api/trade/anchor: caller is the deal's buyer or seller, having
 /// just signed registry.anchor() with their wallet. Body carries the tx
 /// hash for audit. Backend mirrors the row + emits a bus event.
 tradeRoutes.post('/anchor', async (c) => {
@@ -110,7 +110,7 @@ tradeRoutes.post('/anchor', async (c) => {
   return c.json({ anchor });
 });
 
-/// GET /api/trade/anchors/:invoiceId — list all anchors for an invoice.
+/// GET /api/trade/anchors/:invoiceId: list all anchors for an invoice.
 tradeRoutes.get('/anchors/:invoiceId', async (c) => {
   const parsed = invoiceIdSchema.safeParse(c.req.param('invoiceId'));
   if (!parsed.success) return c.json({ error: 'invalid invoiceId' }, 400);
@@ -118,7 +118,7 @@ tradeRoutes.get('/anchors/:invoiceId', async (c) => {
   return c.json({ anchors });
 });
 
-/// POST /api/trade/pod/accept — buyer or approved attester confirms
+/// POST /api/trade/pod/accept: buyer or approved attester confirms
 /// delivery. Backend records the timestamp on the deal + emits a bus
 /// event. The actual registry.acceptPoD on-chain call is made by the
 /// caller's wallet; this route accepts the resulting txHash for audit.
@@ -163,7 +163,7 @@ tradeRoutes.post('/pod/accept', async (c) => {
   return c.json({ ok: true });
 });
 
-/// POST /api/trade/pod/accept-circle — Circle DCW-only sister route.
+/// POST /api/trade/pod/accept-circle: Circle DCW-only sister route.
 /// Backend signs registry.acceptPoD against the caller's identity wallet
 /// via Circle SDK and mirrors the deal patch + bus event. Web3 callers
 /// continue to use POST /pod/accept with their own txHash.

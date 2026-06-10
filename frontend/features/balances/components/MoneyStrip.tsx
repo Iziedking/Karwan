@@ -11,9 +11,9 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The newcomer's first question is "where is my money, and is it safe." This
 /// answers it in one glance, in plain dollars, no wallet/USDC/gas jargon:
-///   Available  — spendable now (summed across the account's wallets)
-///   In escrow  — locked in active deals, can't be touched until release
-///   Earned     — settled deals where you were paid
+///   Available  : spendable now (summed across the account's wallets)
+///   In escrow  : locked in active deals, can't be touched until release
+///   Earned     : settled deals where you were paid
 const ACTIVE_STAGES: DealStage[] = [
   'awaiting-acceptance',
   'awaiting-delivery',

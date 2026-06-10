@@ -24,7 +24,7 @@ interface Props {
   address: string;
   role: 'buyer' | 'seller';
   /// Lightweight identity card for surfaces where the full peek (X link,
-  /// Credit Passport, copy-address, reputation detail) would be overkill —
+  /// Credit Passport, copy-address, reputation detail) would be overkill,
   /// like a bid card during an auction. Renders just the display name and
   /// the masked address with a tiny close button.
   compact?: boolean;

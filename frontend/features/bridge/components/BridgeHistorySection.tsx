@@ -10,7 +10,7 @@ const PAGE_SIZE = 10;
 
 export type HistoryFilter = 'all' | 'pending' | 'successful' | 'failed';
 
-/// Shared classification helpers. Two consumers read this — the chip row
+/// Shared classification helpers. Two consumers read this, the chip row
 /// (renders counts per bucket) and the list (filters by the active bucket).
 /// `stuck` bridges count as failed so the user always has a clear retry /
 /// dismiss path; everything still in motion that's NOT stuck is pending.
@@ -56,7 +56,7 @@ export function useBridgeHistory(filter: HistoryFilter) {
 }
 
 /// History modal. Self-contained card overlay opened from /bridge via a
-/// "Bridge history" button — keeps the bridge page focused on the active
+/// "Bridge history" button, keeps the bridge page focused on the active
 /// flow and stops the history list from creating endless scroll as more
 /// bridges accumulate. Filter chips live inside the modal as its heading
 /// row; the list is paginated (10 per page) so even 200 bridges read
@@ -231,7 +231,7 @@ export function BridgeHistoryModal({
 }
 
 /// Filter chip row. Rendered inside the modal header as the section's own
-/// heading row — chips ARE the header, not a separate column on the page.
+/// heading row, chips ARE the header, not a separate column on the page.
 export function BridgeHistoryFilters({
   filter,
   onFilterChange,

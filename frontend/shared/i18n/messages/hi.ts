@@ -28,14 +28,14 @@ export const hi: Messages = {
     market: 'मार्केट',
     bridge: 'ब्रिज',
     smeTrades: 'SME ट्रेड',
-    trades: 'ट्रेड',
-    tradesGroupEyebrow: 'ट्रेड',
+    trades: 'P2P ट्रेड',
+    tradesGroupEyebrow: 'P2P ट्रेड',
     soonBadge: 'जल्द',
     hints: {
       home: 'आपका मुख्य पन्ना। डील, गतिविधि, और आगे क्या करना है।',
       market: 'दूसरों के खुले अनुरोध और ऑफ़र देखें।',
       bridge: 'किसी और चेन से USDC को Arc पर लाएँ।',
-      smeTrades: 'संस्थागत SME ट्रेड के लिए कारवान। Arc पर अपने एजेंट से निपटान। पहले पायलट के बाद लॉन्च।',
+      smeTrades: 'Arc पर इनवॉइस फैक्टरिंग और PO फाइनेंसिंग। पहले पायलट के बाद फाइनेंसरों के लिए खुलेगा।',
       activity: 'हर डील और निपटान का लाइव फ़ीड।',
       stake: 'अपनी प्रतिष्ठा बढ़ाने के लिए USDC लॉक करें।',
       profile: 'आपके वॉलेट, एजेंट, और प्रतिष्ठा।',
@@ -497,7 +497,7 @@ export const hi: Messages = {
     backendOffline: {
       eyebrow: 'बैकएंड',
       title: 'बैकएंड ऑफ़लाइन',
-      bodyPrefix: 'API तक नहीं पहुँच सके — ',
+      bodyPrefix: 'API तक नहीं पहुँच सके. ',
       bodySuffix: '। यह पेज वापस आने के साथ ही फिर से चालू हो जाएगा।',
     },
     hero: {
@@ -1259,7 +1259,7 @@ export const hi: Messages = {
     },
     factors: {
       eyebrow: 'स्कोर कारक',
-      scaleCaption: 'प्रत्येक 0 — 100',
+      scaleCaption: 'प्रत्येक 0 से 100',
       labels: {
         completion: 'पूर्णता',
         stake: 'स्टेक',

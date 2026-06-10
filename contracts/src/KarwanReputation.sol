@@ -74,7 +74,7 @@ contract KarwanReputation {
     event SecurityAgentSignerSet(address indexed signer);
     /// @notice Emitted on confirmed malicious behaviour.
     /// @param subject the address being slashed
-    /// @param severity 1..255 — higher is worse; off-chain engine multiplies
+    /// @param severity 1..255, higher is worse; off-chain engine multiplies
     /// @param reasonHash sha256 of a JSON {jobId, engines, verdicts, ts}.
     ///                   On-chain trail without leaking the original URL.
     event PenaltyRecorded(
@@ -116,7 +116,7 @@ contract KarwanReputation {
 
     /// @notice Bind the SecurityAgent signer wallet. One-shot. Reverts on a
     ///         second call so the signer slot becomes effectively immutable
-    ///         after binding. Use a Circle DCW or multi-sig here — anything
+    ///         after binding. Use a Circle DCW or multi-sig here, anything
     ///         that can sign the recordPenalty calls when the off-chain
     ///         engine flags a malicious delivery.
     function setSecurityAgentSigner(address _signer) external {

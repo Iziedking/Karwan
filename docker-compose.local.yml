@@ -1,0 +1,59 @@
+# LOCAL full-stack test rig. Production runs docker-compose.yml on the VPS
+# via CI/CD; this file never deploys anywhere.
+#
+#   Backend API:  http://localhost:9091
+#   Frontend:     http://localhost:9000
+#
+# Run:
+#   docker compose -f docker-compose.local.yml up --build
+# Stop:
+#   docker compose -f docker-compose.local.yml down
+#
+# The backend reads the real .env from the repo root and mounts the same
+# backend/data the local dev server uses, so deals, agent wallets and
+# bridge state carry over. Frontend is built with the API URL baked in
+# (Next.js inlines NEXT_PUBLIC_* at build time): change ports and you must
+# rebuild with --build.
+#
+# Known limitation: passkey sign-in is origin-bound (WEBAUTHN_ORIGIN), so
+# passkeys registered against localhost:3000 or production won't assert on
+# localhost:9000. Use email OTP or a web3 wallet for local testing.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: karwan-api-local
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      # The browser reaches the API on the host-published port; advertise it
+      # so absolute links (x402 directory, invite emails) resolve locally.
+      PUBLIC_API_BASE_URL: http://localhost:9091
+      # Extend the CORS allowlist to the local frontend origin.
+      FRONTEND_BASE_URL: http://localhost:9000
+    ports:
+      - "9091:8787"
+    volumes:
+      - ./backend/data:/app/backend/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:9091
+    container_name: karwan-web-local
+    ports:
+      - "9000:3000"
+    depends_on:
+      - api

@@ -28,8 +28,8 @@ export const ar: Messages = {
     market: 'السوق',
     bridge: 'الجسر',
     smeTrades: 'تجارة المؤسسات',
-    trades: 'الصفقات',
-    tradesGroupEyebrow: 'الصفقات',
+    trades: 'صفقات الأفراد',
+    tradesGroupEyebrow: 'صفقات الأفراد',
     soonBadge: 'قريبًا',
     hints: {
       home: 'صفحتك الرئيسية. الصفقات والنشاط وما ينبغي فعله بعدها.',
@@ -1259,7 +1259,7 @@ export const ar: Messages = {
     },
     factors: {
       eyebrow: 'عوامل النتيجة',
-      scaleCaption: '0 — 100 لكل عامل',
+      scaleCaption: '0 إلى 100 لكل عامل',
       labels: {
         completion: 'الإكمال',
         stake: 'الحصة',

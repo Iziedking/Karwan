@@ -62,7 +62,7 @@ export function useDirectDeal(jobId: string) {
     enabled: !auth.isLoading,
     staleTime: 30_000,
     retry: (failureCount, err) => {
-      // A 403 'private' is a stable answer for non-parties — never retry it.
+      // A 403 'private' is a stable answer for non-parties, never retry it.
       if (err instanceof ApiError && err.code === 'private') return false;
       return failureCount < 1;
     },

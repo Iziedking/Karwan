@@ -118,7 +118,7 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'events.json');
 const PERSIST_DEBOUNCE_MS = 800;
 
 function loadHistory(): KarwanEvent[] {
-  /// Postgres is the primary store when DATABASE_URL is set — survives
+  /// Postgres is the primary store when DATABASE_URL is set. It survives
   /// container restarts, accidental rm, and corrupt JSON. Disk JSON stays
   /// as the no-DB fallback path. Loading from Postgres uses a sync-bridge
   /// pattern: the boot path is async-tolerant but the bus's history field
@@ -146,7 +146,7 @@ class KarwanBus extends EventEmitter {
     }
     this.schedulePersist();
     /// Durable persist to Postgres alongside the debounced JSON. Fire-and-
-    /// forget — a transient DB hiccup shouldn't block the bus or kill the
+    /// forget, since a transient DB hiccup shouldn't block the bus or kill the
     /// in-memory event. The JSON debounce path is the safety net.
     persistEventToPg(full);
     this.emit('event', full);
@@ -217,7 +217,7 @@ class KarwanBus extends EventEmitter {
       /// Merge into existing history (which may be seeded from disk JSON)
       /// rather than replacing, so a stale JSON file plus an old-but-valid
       /// PG row don't clobber each other. injectHistorical dedupes by
-      /// (type|jobId|ts) — exact match across the two stores collapses.
+      /// (type|jobId|ts), so an exact match across the two stores collapses.
       const added = this.injectHistorical(events);
       return added;
     } catch {
@@ -233,7 +233,7 @@ class KarwanBus extends EventEmitter {
   }
 
   /// Debounced flush to data/events.json. We accept losing the trailing window
-  /// (~1s) of events on a hard crash — full per-event fsync would be wasteful
+  /// (~1s) of events on a hard crash. Full per-event fsync would be wasteful
   /// since one auction emits ~10 events back to back. Postgres-backed in a
   /// future iteration.
   private schedulePersist() {
@@ -245,7 +245,7 @@ class KarwanBus extends EventEmitter {
         if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
         writeFileSync(STORE_PATH, JSON.stringify(this.history), 'utf8');
       } catch {
-        /* persist failures are non-fatal — history stays in memory */
+        /* persist failures are non-fatal, history stays in memory */
       }
     }, PERSIST_DEBOUNCE_MS);
   }
@@ -254,7 +254,7 @@ class KarwanBus extends EventEmitter {
 export const bus = new KarwanBus();
 bus.setMaxListeners(0);
 
-/// Postgres write paths. Fire-and-forget — bus stays usable even if the DB
+/// Postgres write paths. Fire-and-forget, so the bus stays usable even if the DB
 /// is unreachable; the disk JSON debounce path is the safety net. Returns
 /// void so caller `void`s and moves on. Failures are swallowed silently
 /// because every per-event log line on a hot path would be noisy; the
@@ -272,7 +272,7 @@ function persistEventToPg(e: KarwanEvent): void {
     })
     .onConflictDoNothing()
     .catch(() => {
-      /* swallow — JSON debounce path keeps durability */
+      /* swallow, JSON debounce path keeps durability */
     });
 }
 
@@ -289,6 +289,6 @@ function persistEventsBulkToPg(events: KarwanEvent[]): void {
     .values(rows)
     .onConflictDoNothing()
     .catch(() => {
-      /* swallow — JSON debounce path keeps durability */
+      /* swallow, JSON debounce path keeps durability */
     });
 }

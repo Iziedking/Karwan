@@ -10,7 +10,7 @@ export type DocumentKind = 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
 
 export interface DocumentAnchor {
   /// Composite uniqueness key: `${invoiceId}:${hash}`. One row per
-  /// (invoice, hash) pair — anchors are append-only on chain but we never
+  /// (invoice, hash) pair. Anchors are append-only on chain but we never
   /// store the same hash twice for the same invoice.
   id: string;
   /// The deal's jobId; matches DirectDeal.jobId.
@@ -31,9 +31,7 @@ export interface DocumentAnchor {
   updatedAt: number;
 }
 
-/* =============================================================== */
-/*                         REPOSITORY API                           */
-/* =============================================================== */
+// Repository API
 
 export async function getDocumentAnchor(id: string): Promise<DocumentAnchor | null> {
   if (pgEnabled) {
@@ -126,9 +124,7 @@ export async function listRecentAnchors(limit = 100): Promise<DocumentAnchor[]> 
     .slice(0, limit);
 }
 
-/* =============================================================== */
-/*                          FLAT-FILE                               */
-/* =============================================================== */
+// Flat-file
 
 function ensureFile() {
   const dir = dirname(STORE_PATH);

@@ -28,7 +28,7 @@ export type ExtractedDeal = {
   suggestedTrustedMatch: boolean | null;
   counterpartyHint: string | null;
   /// How long the seller has to ACCEPT the deal (hours). DIRECT only. Null
-  /// when the user didn't mention it — caller falls through to the
+  /// when the user didn't mention it, caller falls through to the
   /// backend default (24h). Separate clock from `deadlineDays` (delivery).
   acceptanceWindowHours: number | null;
   confidence: { amount: number; deadline: number; terms: number };
@@ -55,7 +55,7 @@ export interface IntakeShellProps {
   /// Hover/long-press tooltip for the "Fill the form" chooser pill.
   formTooltip: string;
   /// Called when the user clicks Extract. The parent decides what to do
-  /// with the extracted data — usually post the entity and navigate. If
+  /// with the extracted data, usually post the entity and navigate. If
   /// posting can't happen yet, return { needsReview: true, params, notes }
   /// to fall back to form mode with prefilled values for editing.
   directPost: (e: ExtractedDeal) => Promise<DirectPostResult>;
@@ -76,7 +76,7 @@ export function IntakeShell({
   const search = useSearchParams();
 
   /// Form mode is the default on every visit. Drop the localStorage
-  /// persistence the previous version had — even after we changed the
+  /// persistence the previous version had, even after we changed the
   /// initial state to 'form', users who'd previously picked 'text' kept
   /// landing on text because the effect read the saved value and overrode
   /// the default. Fill the form is the primary path; Type it out is an

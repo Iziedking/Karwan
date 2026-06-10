@@ -61,7 +61,7 @@ export default function HomePage() {
 
       <StickyTabStrip tabs={tabs} active={active} onChange={setActive} onDark />
 
-      {/* HERO. dark — anchored as OVERVIEW */}
+      {/* HERO. dark, anchored as OVERVIEW */}
       <Band
         id="overview"
         tone="dark"
@@ -192,9 +192,7 @@ export default function HomePage() {
   );
 }
 
-/* ============================================================================
-   HOW IT WORKS — three-rails typographic row, replaces the old "spine" grid
-   ============================================================================ */
+// How it works. three-rails typographic row, replaces the old "spine" grid
 function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
   const rails = [
     { n: '001', title: copy.rail1Title, body: copy.rail1Body },
@@ -243,9 +241,7 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
   );
 }
 
-/* ============================================================================
-   FLOW — deal end to end. Six stage chips on a hairline track + three KPIs
-   ============================================================================ */
+// Flow. deal end to end. Six stage chips on a hairline track + three KPIs
 function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
   const steps: Array<{
     tag: string;
@@ -423,9 +419,7 @@ function KpiBlock({
   );
 }
 
-/* ============================================================================
-   TRADE LANES — typographic list of corridors by volume
-   ============================================================================ */
+// Trade lanes. typographic list of corridors by volume
 function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
   const lanes = [
     { id: `${copy.laneIdPrefix} 001`, from: copy.cities.lagos, to: copy.cities.dubai, vol: '128K', avg: `4 ${copy.minutesUnit}` },
@@ -502,9 +496,7 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
   );
 }
 
-/* ============================================================================
-   EARLY TRADES — modular cards grid (testimonial-style, big number visual)
-   ============================================================================ */
+// Early trades. modular cards grid (testimonial-style, big number visual)
 function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
   const cards = [
     {
@@ -608,9 +600,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
   );
 }
 
-/* ============================================================================
-   GET STARTED — three-step accordion
-   ============================================================================ */
+// Get started. three-step accordion
 function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
   const steps = [
     { n: '001', title: copy.step1Title, body: copy.step1Body },
@@ -693,9 +683,7 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
   );
 }
 
-/* ============================================================================
-   LAYOUT PRIMITIVES (kept from prior landing)
-   ============================================================================ */
+// Layout primitives (kept from prior landing)
 
 function Band({
   id,

@@ -240,7 +240,7 @@ export default function InvitePage() {
                 <Stat
                   label={ip.deal.claimBy}
                   /// Prefer the deal's acceptanceDeadlineUnix (the time the
-                  /// recipient has to actually accept the deal — set by the
+                  /// recipient has to actually accept the deal, set by the
                   /// buyer at create time, default 24h). The invite link's
                   /// own expiresAt is a generous 7-day TTL; using it here
                   /// misrepresented the real "you have N to claim" window

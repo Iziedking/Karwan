@@ -25,6 +25,16 @@ export interface Brief {
   /// one-shot deals where the buyer can't redo the trade if the seller is a
   /// no-show. Defaults to false (Normal mode).
   trustedMatch?: boolean;
+  /// Match lane this brief belongs to. 'service' is the single-service P2P
+  /// flow, open to every account type; 'finance' is the SME/B2B trade-finance
+  /// flow, restricted to verified businesses on both sides. Stamped once at
+  /// post time from the poster's accountType + tradeType; matching filters on
+  /// this value so service and finance pools never cross. Absent reads as
+  /// 'service' to preserve legacy briefs.
+  tradeLane?: 'service' | 'finance';
+  /// The poster's account type at post time, so a match can badge business
+  /// involvement without a second profile read. Absent reads as 'person'.
+  partyKind?: 'person' | 'business';
   /// SME trade-finance metadata. Snapshotted at post time so the buyer
   /// agent + downstream surfaces read the trade context without re-querying.
   /// Absent on legacy service-flow briefs.

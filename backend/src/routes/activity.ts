@@ -21,7 +21,7 @@ function isParty(event: KarwanEvent, caller: string): boolean {
 
 // The general/public feed shows trade activity (requests, bids, negotiation,
 // matches, deal lifecycle, on-chain settlement, listings) PLUS the completion
-// step of CCTP bridges — bridge.minted is the moment USDC lands on Arc and
+// step of CCTP bridges; bridge.minted is the moment USDC lands on Arc and
 // counts as visible network activity. The intermediate bridge states
 // (approving, burning, attested, error) stay private since they're noisy and
 // each successful bridge already produces exactly one bridge.minted.
@@ -30,8 +30,8 @@ function isParty(event: KarwanEvent, caller: string): boolean {
 // errors) stay NOT public. An allowlist, not a blocklist, so a new event
 // type is private by default until deliberately surfaced.
 /// Activity stream is a clean platform record, not a play-by-play of every
-/// negotiation. We keep the events that have a real-world receipt — a
-/// posting, a match, an on-chain settlement, a bridge mint — and drop the
+/// negotiation. We keep the events that have a real-world receipt (a
+/// posting, a match, an on-chain settlement, a bridge mint) and drop the
 /// ephemeral agent chatter (per-round counters, score calculations, market
 /// scans, near-miss internals, mid-cancellation proposals). Parties still
 /// see those internals on their own deal page; this feed stays terse so
@@ -39,7 +39,7 @@ function isParty(event: KarwanEvent, caller: string): boolean {
 const PUBLIC_EVENT_TYPES = new Set<string>([
   // request lifecycle
   'job.posted', 'job.tracked', 'job.expired',
-  // bid surfaced and the bid that closed the deal — drop scoring noise
+  // bid surfaced and the bid that closed the deal. Drop scoring noise
   'bid.submitted', 'bid.accepted',
   // matches that landed (decline + approve internals stay private)
   'deal.matched',
@@ -97,7 +97,7 @@ function redactEvent(e: KarwanEvent): KarwanEvent {
 /// Returns events filtered to the caller when ?caller= is set, otherwise the
 /// global stream. The caller-filtered shape powers /activity for the connected
 /// wallet. The unfiltered shape powers the landing-page tickers (HeroFlow,
-/// LivePulseStrip, StatsTicker) — sanitizing that public feed is a separate
+/// LivePulseStrip, StatsTicker). Sanitizing that public feed is a separate
 /// task; for now it still leaks addresses.
 activityRoutes.get('/', (c) => {
   const limitParam = c.req.query('limit');

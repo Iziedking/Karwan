@@ -223,7 +223,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   // Same gate on the withdraw side: you can only cool the FREE portion of
   // active stake. Reserved stake (locked against open deal insurance) is
   // refused by the contract via ReservationLocked. Pre-v2.D backends omit
-  // freeStakeUsdc so it falls back to totalActive — same behaviour as
+  // freeStakeUsdc so it falls back to totalActive, same behaviour as
   // before. Naming kept as -Active for diff stability across uses below.
   const withdrawExceedsActive =
     typeof withdrawAmount === 'number' && withdrawAmount > Number(freeStakeUsdc);
@@ -559,7 +559,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   return (
     <div style={CARD_STYLE} className="px-6 py-7 space-y-7">
       {tour && <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />}
-      {/* HEADER — v2.D three-way split: Active total prominent, then a
+      {/* HEADER: v2.D three-way split: Active total prominent, then a
           smaller meta line breaking it into Free / Reserved (open deal
           insurance) / Cooling. Reserved only renders when > 0 so users
           who haven't accepted any deals see the familiar pre-v2.D shape. */}
@@ -1053,7 +1053,7 @@ function CoolingList({
   busyKind: { kind: ActionKind; positionId?: string } | null;
   onClaim: (positionId: string) => void;
   /// Quiet escape hatch for accidental withdrawal clicks. Rendered as a
-  /// small mono text-link on cooling rows, not a primary button — keeps the
+  /// small mono text-link on cooling rows, not a primary button, keeps the
   /// "one-way withdrawal flow" intent while letting users undo a mistake.
   onCancel: (positionId: string) => void;
   copy: Messages['stakeCard']['cooling'];

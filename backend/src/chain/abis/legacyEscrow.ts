@@ -5,7 +5,7 @@
 ///   - `proposeCancellation(jobId, reason)` + `acceptCancellation(jobId)`
 ///     for mutual cancel paths
 ///   - Legacy `EscrowState` enum: None=0, Funded=1, Settled=2, Disputed=3,
-///     Refunded=4. No Accepted state — pre-v2.D didn't have the seller-side
+///     Refunded=4. No Accepted state, pre-v2.D didn't have the seller-side
 ///     acceptEscrow handshake; the off-chain deal record carried that.
 export const legacyEscrowAbi = [
   {

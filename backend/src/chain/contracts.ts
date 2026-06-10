@@ -69,7 +69,7 @@ export const legacyVault2 = legacyVault2Address
   ? getContract({ address: legacyVault2Address, abi: vaultAbi, client: publicClient })
   : null;
 
-/// Third-generation legacy KarwanVault — the v2.D vault that v2.E displaces.
+/// Third-generation legacy KarwanVault, the v2.D vault that v2.E displaces.
 /// Same ABI as the active vault (vaultAbi) since the v2.D vault already had
 /// the agentOwner mapping + position struct that v2.E inherits.
 export const legacyVault3Address: Address | null = optional(
@@ -101,7 +101,7 @@ export const legacyEscrow2 = legacyEscrow2Address
   ? getContract({ address: legacyEscrow2Address, abi: legacyEscrowAbi, client: publicClient })
   : null;
 
-/// Third-generation legacy KarwanEscrow — the v2.D escrow. Uses the v2.D
+/// Third-generation legacy KarwanEscrow, the v2.D escrow. Uses the v2.D
 /// ABI which has an extra `reservedAmount` field in the auto-getter tuple.
 /// The reader in readEscrowFrom branches on `kind` to pick the right ABI
 /// + state-enum mapping.
@@ -121,7 +121,7 @@ export type LegacyEscrowKind = 'pre-v2d' | 'v2d';
 
 export interface LegacyGeneration {
   index: 1 | 2 | 3;
-  /// Vault uses the current vaultAbi for every generation — the v2.D
+  /// Vault uses the current vaultAbi for every generation. The v2.D
   /// vault already shared this surface so a single ABI covers all three.
   vaultAddress: Address | null;
   vault: typeof legacyVault;
@@ -216,7 +216,7 @@ async function readEscrowFrom(
         bigint,
         bigint,
         bigint,
-        bigint, // reservedAmount — v2.D only, dropped from the normalised view
+        bigint, // reservedAmount, v2.D only, dropped from the normalised view
         number, // milestonesReleased
         number, // state (v2.D enum)
       ];
@@ -338,7 +338,7 @@ export async function getEscrowFeeBps(): Promise<number> {
 }
 
 /// Hard ceiling on per-deal reservationBps (v2.E+). Replaces the v2.D
-/// protocol-wide `reservationBps()` view — actual deal gating now uses
+/// protocol-wide `reservationBps()` view. Actual deal gating now uses
 /// the per-deal value on EscrowAccount. The ceiling is read once and
 /// cached; it's set in the constructor and never changes.
 export async function getMaxReservationBps(): Promise<number> {
@@ -352,8 +352,8 @@ export async function getMaxReservationBps(): Promise<number> {
 
 /// Back-compat shim. Pre-v2.E code called this to get the protocol-wide
 /// reservation rate; on v2.E it returns the maxReservationBps ceiling
-/// instead. Prefer reading account.reservationBps directly from readEscrow
-/// — the per-deal value is what acceptEscrow actually enforces.
+/// instead. Prefer reading account.reservationBps directly from readEscrow.
+/// The per-deal value is what acceptEscrow actually enforces.
 ///
 /// @deprecated read account.reservationBps from readEscrow instead.
 export async function getReservationBps(): Promise<number> {

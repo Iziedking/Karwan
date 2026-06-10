@@ -251,7 +251,7 @@ export function BridgeOutCard() {
               </div>
             </div>
 
-            {/* TOP UP ARC USDC — bridge-out spends the identity wallet balance. */}
+            {/* TOP UP ARC USDC: bridge-out spends the identity wallet balance. */}
             <div className="flex items-center justify-end">
               <button
                 type="button"

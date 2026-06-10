@@ -6,6 +6,7 @@ import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { feeBreakdown } from '../config';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -101,7 +102,7 @@ export function DirectDealForm() {
   const [counterpartyMode, setCounterpartyMode] = useState<'wallet' | 'email'>('wallet');
   const [counterpartyEmail, setCounterpartyEmail] = useState('');
   /// Trusted-match opt-in. When true, the seller's accept panel will surface a
-  /// stake requirement. Default off — most casual deals don't need it.
+  /// stake requirement. Default off, most casual deals don't need it.
   const [requireStake, setRequireStake] = useState(false);
   /// Stake percentage when requireStake is on. Slider 50..100 in 5% steps,
   /// default 50%. Translates to on-chain reservationBps = pct * 100.
@@ -235,7 +236,7 @@ export function DirectDealForm() {
       sfx.send();
       // Land on the deal page in both modes. The detail page surfaces
       // PendingInviteCopy when the deal has a pending email counterparty, so
-      // the buyer sees the same copy-link affordance — but at a real URL they
+      // the buyer sees the same copy-link affordance, but at a real URL they
       // can revisit and bookmark instead of a one-off form state. The
       // form-bound invite banner was easy to scroll past on a long-form page
       // so the buyer would tap Open Deal and never realise the link existed.
@@ -526,7 +527,8 @@ export function DirectDealForm() {
         </FormLabel>
       </FieldSection>
 
-      {/* TRADE CONTEXT */}
+      {/* TRADE CONTEXT. Part of the SME Trades rail; hidden until launch. */}
+      {SME_TRADES_ENABLED && (
       <FieldSection eyebrow="[:TRADE CONTEXT:]" title="Goods or service">
         <FormLabel label="Trade type">
           <div className="flex gap-2 flex-wrap">
@@ -719,6 +721,7 @@ export function DirectDealForm() {
           </>
         ) : null}
       </FieldSection>
+      )}
 
       {/* FUNDING BREAKDOWN */}
       {fee && (
@@ -752,7 +755,7 @@ export function DirectDealForm() {
       )}
 
       {/* TRUSTED MATCH toggle. When on, the seller will see a stake
-          requirement on their accept panel. Off-default — most direct deals
+          requirement on their accept panel. Off-default, most direct deals
           are casual and don't need slashable insurance. Chain-side gating
           arrives in the next escrow redeploy; the flag is captured today
           so old deals already carry it then. */}

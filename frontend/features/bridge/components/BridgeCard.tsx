@@ -63,7 +63,7 @@ function stepIndexFor(phase: BridgePhase): number {
 }
 
 /// Per-user "hidden from activity" bridge IDs. Persisted in localStorage so
-/// dismissals survive reloads. The dismissals are local-display-only —
+/// dismissals survive reloads. The dismissals are local-display-only,
 /// they DO NOT touch the shared useBridges store, so the bridge history
 /// modal (a separate surface) still shows every bridge the user made.
 /// The previous implementation called useBridges().dismiss which removed
@@ -95,7 +95,7 @@ function useHiddenActivityBridgeIds(address: string | null): {
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(Array.from(next)));
     } catch {
-      /* quota — ignore */
+      /* quota, ignore */
     }
     setVersion((v) => v + 1);
   };
@@ -120,7 +120,7 @@ function elapsed(ts: number, copy: { secondsTemplate: string; minutesTemplate: s
   const m = Math.floor(s / 60);
   if (m < 60) return copy.minutesTemplate.replace('{n}', String(m));
   /// For bridges over 24 hours old, fold to an absolute date/time stamp.
-  /// "90H 36M" was unreadable as identification — users needed to know
+  /// "90H 36M" was unreadable as identification. Users needed to know
   /// WHEN a bridge happened, not how many hours have ticked since.
   /// Same-day timestamps show time only; older days show date + time
   /// so history rows are uniquely identifiable at a glance.
@@ -246,7 +246,7 @@ export function BridgeCard({
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
   /// localStorage so a dismiss survives reload, but never written to the
-  /// shared useBridges store — the bridge history modal (a separate
+  /// shared useBridges store. The bridge history modal (a separate
   /// surface) keeps showing every bridge the user ever made. This is the
   /// fix for "Clear all in activity also cleared bridge history": the
   /// previous code called useBridges().dismiss which removed the record
@@ -268,7 +268,7 @@ export function BridgeCard({
   /// a button + portal modal now: the form stays clean, and the same
   /// retry/recheck/dismiss controls live inside the modal.
   const [historyOpen, setHistoryOpen] = useState(false);
-  /// Source-chain dropdown — previously a 6-tile grid that took too much
+  /// Source-chain dropdown, previously a 6-tile grid that took too much
   /// vertical space and felt cluttered next to the slim BRIDGE FROM ARC
   /// destination dropdown. Mirrors that pattern: a single button shows the
   /// selected chain, click reveals an absolute list of all options.
@@ -285,7 +285,7 @@ export function BridgeCard({
   const [recipientKind, setRecipientKind] = useState<RecipientKind>(defaultKind);
   const [customAddress, setCustomAddress] = useState('');
   /// If the user lands on the page before the agents resolve, snap into the
-  /// buyer agent selection once it does — matches the prior default while
+  /// buyer agent selection once it does, matches the prior default while
   /// keeping the picker honest if the user has already chosen otherwise.
   useEffect(() => {
     if (recipientKind === 'identity' && buyerAgent && !customAddress) {
@@ -350,7 +350,7 @@ export function BridgeCard({
     }
     // bridgeWalletStatus only supports the EVM CCTP chains right now (the
     // backend reads an ERC-20 balanceOf). Solana Devnet uses a separate
-    // SPL token + Solana RPC, so its balance read isn't wired yet — show
+    // SPL token + Solana RPC, so its balance read isn't wired yet. Show
     // the address-only banner without live balances for that source.
     if (isAppKitOnlyChainKey(sourceKey)) {
       setCircleWallet(null);
@@ -476,7 +476,7 @@ export function BridgeCard({
       return;
     }
     if (web3CannotSign) {
-      // Defensive — the submit button is disabled, but a stray Enter shouldn't
+      // Defensive. The submit button is disabled, but a stray Enter shouldn't
       // fire a no-op flow.
       return;
     }
@@ -653,7 +653,7 @@ export function BridgeCard({
             `}</style>
           </div>
 
-          {/* MINTS TO — picker + optional Custom paste */}
+          {/* MINTS TO: picker + optional Custom paste */}
           <RecipientPicker
             kind={recipientKind}
             setKind={setRecipientKind}
@@ -1201,7 +1201,7 @@ function ErrorBanner({
 /// the label (BRIDGED, FAILED); in-flight phases append a step counter so
 /// the user still sees forward progress without the 4-segment bar fighting
 /// the row for attention. Tone drives a single solid background; no
-/// gradients, no LED dot — the pill IS the indicator.
+/// gradients, no LED dot, the pill IS the indicator.
 function StatusPill({
   tone,
   label,
@@ -1322,7 +1322,7 @@ function PhaseChip({
 /// Source-chain DCW funding panel for Circle users. The user has a Circle DCW
 /// on the selected source chain (provisioned at activation for Base Sepolia,
 /// lazy-provisioned on first read for any other chain). They send USDC to it
-/// once — from a faucet or any external wallet — and the backend signs burns
+/// once, from a faucet or any external wallet, and the backend signs burns
 /// from it. We poll the live balance so the user can confirm their deposit
 /// landed; an empty wallet is the #1 cause of "circle bridge doesn't work".
 function CircleSourceFundBanner({
@@ -1370,7 +1370,7 @@ function CircleSourceFundBanner({
   }
 
   // Funded state drives the banner accent + status line. usdcBalance null means
-  // the balance read hasn't returned yet (or failed) — stay neutral.
+  // the balance read hasn't returned yet (or failed), stay neutral.
   const usdc = wallet?.usdcBalance != null ? Number(wallet.usdcBalance) : null;
   const funded = usdc != null && usdc > 0;
   const empty = usdc != null && usdc <= 0;
@@ -1527,7 +1527,7 @@ function CircleSourceFundBanner({
 /// address here and display it with a Copy button so users know exactly
 /// where to send USDC. Live balance polling isn't wired yet for Solana
 /// (the backend ERC-20 balance read doesn't apply to SPL tokens), so the
-/// banner stays address-only — the faucet links are the user's primary
+/// banner stays address-only, the faucet links are the user's primary
 /// path because auto-drip is unreliable on devnet.
 function AppKitFundBanner({
   source,
@@ -1554,7 +1554,7 @@ function AppKitFundBanner({
     setError(null);
     /// Race the call against a 15s timeout. Without this the banner sat on
     /// "provisioning…" forever whenever Circle's wallet-creation API took
-    /// longer than the user's patience — no .then, no .catch, the fetch
+    /// longer than the user's patience. No .then, no .catch, the fetch
     /// promise just hung. 15s is well above the normal success window
     /// (typically 1-3s) but short enough that a stuck Circle call surfaces
     /// the Retry button before the user gives up and refreshes.
@@ -1810,7 +1810,7 @@ function ExternalIcon() {
 
 /// Portal-based history overlay. The bridge card form stays calm; this modal
 /// is where every in-flight, settled, and failed bridge lives. Same
-/// retry/recheck/dismiss controls as the old inline list — pending rows
+/// retry/recheck/dismiss controls as the old inline list, pending rows
 /// keep their actions but cannot be dismissed (Dismiss is gated on
 /// !isActive inside BridgeRow already, so the modal just renders the rows
 /// and the existing UI law plays out).
@@ -1936,7 +1936,7 @@ function BridgeHistoryModal({
 /// Recipient picker for the bridge form. Surfaces the three known-good
 /// wallets (identity, buyer agent, seller agent) as one-click choices and a
 /// Custom paste box guarded by an on-chain bytecode check. The picker keeps
-/// the form clean — only the Custom branch renders the input + warning band.
+/// the form clean, only the Custom branch renders the input + warning band.
 function RecipientPicker({
   kind,
   setKind,
@@ -2153,7 +2153,7 @@ function VerifyBanner({
 }
 
 /// Source-chain dropdown. One merged list of CCTP EVM chains + AppKit
-/// chains (Solana). Behaves identically for web3 and Circle users — the
+/// chains (Solana). Behaves identically for web3 and Circle users, the
 /// only difference is Solana's row is disabled with a "needs Circle" tag
 /// for web3 since the app has no Solana wagmi connector. Replaces the
 /// previous 6-tile grid which was visually heavy and didn't match the

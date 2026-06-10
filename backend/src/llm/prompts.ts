@@ -40,7 +40,7 @@ export interface BidContext {
   /// Deterministic risk + reliability features computed by `agents/signals.ts`
   /// and passed in so the LLM can reason about the *pattern* rather than the
   /// raw numbers. Optional for backward-compat with code paths that haven't
-  /// been threaded yet — the prompt soft-degrades when missing.
+  /// been threaded yet, the prompt soft-degrades when missing.
   repTier?: 'new' | 'cold' | 'established' | 'strong' | 'elite';
   completionRate?: number;
   velocity24h?: number;

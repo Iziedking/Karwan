@@ -109,7 +109,7 @@ export function useAuth(): AuthState & {
 
   // Sync this instance's circle slice whenever ANY other useAuth() in the app
   // changes the session. Without this, signing out from CircleAccountModal
-  // only clears state in that one hook instance — TopNav, BalancesCard, gated
+  // only clears state in that one hook instance. TopNav, BalancesCard, gated
   // pages, etc. keep showing stale "signed in" UI until the user reloads.
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -124,7 +124,7 @@ export function useAuth(): AuthState & {
     // The bell's localStorage cache is intentionally kept across sign-out: it is
     // keyed per account address, so a different account that signs in next won't
     // see it, and the same account that returns keeps its read/unread state.
-    // (Account deletion purges it explicitly — see SettingsBand.)
+    // (Account deletion purges it explicitly, see SettingsBand.)
     //
     // Clear the backend session cookie regardless of method. Both Circle users
     // and post-SIWE web3 users carry a karwan_session cookie; if we only call

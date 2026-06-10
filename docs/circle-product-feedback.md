@@ -18,8 +18,8 @@ Friction:
 
 - The transaction API is async. We poll `getTransaction` up to 90 seconds per
   call. Circle does offer webhook notifications for transaction state changes,
-  so this is on us for the hackathon timeline, not a gap in the product. The
-  poll loop was the faster thing to ship without a public endpoint.
+  so this is on us, not a gap in the product. The poll loop was the faster thing
+  to ship without a public endpoint.
 - `createContractExecutionTransaction` returns only `{ id, state: 'INITIATED' }`.
   The `txHash` shows up later through `getTransaction`. The docs do not say which
   state first populates it. Since the lifecycle is
@@ -73,7 +73,7 @@ Friction:
   in our runs, which lines up with the documented finality windows. Our relay
   polls IRIS for up to 25 minutes before giving up. Fast Transfer would cut this
   to seconds; we stayed on Standard Transfer to keep the burn-and-relay path
-  simple for the hackathon.
+  simple.
 - A rough expected-latency figure per source chain, surfaced near the IRIS
   polling docs, would help set timeouts without trial and error.
 
@@ -123,15 +123,16 @@ What worked:
 
 - The standard ERC-4626 subscribe and redeem interface matched what we
   needed for our vault and treasury contracts. We could write the
-  integration once and have it talk to a mock adapter on testnet or to
+  integration once and point it at a stand-in adapter on testnet or at
   the live Hashnote teller on mainnet without changing the call sites.
 
 Friction:
 
 - USYC entitlement on Arc Testnet was not available to our wallets
-  during the build, so we shipped a deterministic mock adapter to keep
-  the demo path working. The integration is real production wiring; the
-  demo just cannot show live T-bill yield without an entitled wallet.
+  during the build, so we ran a deterministic stand-in adapter behind the
+  same interface to keep the demo path working. The integration is real
+  production wiring; the demo just cannot show live T-bill yield without
+  an entitled wallet.
 
 Asks:
 

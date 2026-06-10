@@ -3518,14 +3518,14 @@ export const en: MessagesShape = {
     market: 'Market',
     bridge: 'Bridge',
     smeTrades: 'SME Trades',
-    trades: 'Trades',
-    tradesGroupEyebrow: 'Trades',
+    trades: 'P2P Trades',
+    tradesGroupEyebrow: 'P2P Trades',
     soonBadge: 'soon',
     hints: {
       home: 'Your home base. Deals, activity, and what to do next.',
       market: 'Browse open requests and offers from others.',
       bridge: 'Move USDC from another chain onto Arc.',
-      smeTrades: 'Karwan for institutional SME trades. Bring-your-own-agent settlement on Arc. Shipping after the first pilot.',
+      smeTrades: 'Invoice factoring and PO financing on Arc. Opens to financiers after the first pilot.',
       activity: 'Live feed of every deal and settlement.',
       stake: 'Lock USDC to raise your reputation tier.',
       profile: 'Your wallets, agents, and reputation.',
@@ -4755,7 +4755,7 @@ export const en: MessagesShape = {
     },
     factors: {
       eyebrow: 'Score factors',
-      scaleCaption: '0 — 100 each',
+      scaleCaption: '0 to 100 each',
       labels: {
         completion: 'Completion',
         stake: 'Stake',

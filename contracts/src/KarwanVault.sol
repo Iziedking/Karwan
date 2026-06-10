@@ -5,8 +5,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @notice Hashnote USYC Teller (subset). MockUSYC.sol implements the same
-///         deposit / redeem shape so testnet runs without an entitlement.
+/// @notice Hashnote USYC Teller (subset). The vault wires the real Teller in
+///         via setTeller once Circle approves the vault address.
 ///         Real Teller addresses on Arc Testnet:
 ///           Teller:       0x9fdF14c5B14173D74C08Af27AebFf39240dC105A
 ///           USYC token:   0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C
@@ -19,9 +19,9 @@ interface IUSYCTeller {
 
 /// @title KarwanVault
 /// @notice USDC staking + deal-insurance vault. Combines two roles:
-///         1. Reputation stake signal — Active position principal feeds the
+///         1. Reputation stake signal: Active position principal feeds the
 ///            stake factor in docs/reputation-model.md §3.
-///         2. Deal insurance backstop — when a seller accepts a deal, a
+///         2. Deal insurance backstop: when a seller accepts a deal, a
 ///            configured fraction of deal value gets reserved against the
 ///            seller's Active positions. On a clean settlement the
 ///            reservation releases back to free; on a buyer-side dispute
@@ -37,18 +37,18 @@ interface IUSYCTeller {
 ///      feedback that a week is too long for honest mistakes.
 ///
 /// @dev Yield routing: the vault can optionally route idle USDC through a
-///      Teller adapter (MockUSYC on testnet, real Hashnote USYC on mainnet
-///      once entitlement lands) to earn ~5% APY on the held principal.
+///      Teller adapter (real Hashnote USYC, wired once entitlement lands) to
+///      earn yield on the held principal.
 ///      Teller management is on a separate `operator` role distinct from
 ///      `escrow`, so the operator can rotate or unwire the Teller post-
 ///      deployment without ever touching the deal-flow surface.
 ///
 /// @dev Access roles:
-///        deployer — set at construction, owns the one-shot setEscrow,
+///        deployer : set at construction, owns the one-shot setEscrow,
 ///                    self-zeros after binding. Cannot rotate.
-///        escrow   — bound via setEscrow. Sole caller of reserve / release /
+///        escrow   : bound via setEscrow. Sole caller of reserve / release /
 ///                    slash. Immutable after binding.
-///        operator — set at construction (defaults to deployer), owns
+///        operator : set at construction (defaults to deployer), owns
 ///                    setTeller / wrap / unwrap. Rotatable via
 ///                    transferOperator so a multi-sig can take over before
 ///                    mainnet.
@@ -117,7 +117,7 @@ contract KarwanVault is ReentrancyGuard {
     address public teller;
     IERC20 public usyc;
 
-    /// USDC pulled out by the operator for OFF-CHAIN yield routing — the
+    /// USDC pulled out by the operator for OFF-CHAIN yield routing. The
     /// entitlement-agnostic path. When the USYC Entitlements contract refuses
     /// to permit the vault address itself but does permit a separate EOA (the
     /// operator's wallet), the operator drives subscription off-chain: pulls
@@ -189,9 +189,7 @@ contract KarwanVault is ReentrancyGuard {
         emit OperatorTransferred(address(0), msg.sender);
     }
 
-    /* =============================================================== */
-    /*                          OPERATOR ADMIN                          */
-    /* =============================================================== */
+    // Operator admin
 
     /// @notice Bind the escrow that's allowed to call reserve / release /
     ///         slash. One-shot. Reverts on a second call so the linkage is
@@ -222,7 +220,7 @@ contract KarwanVault is ReentrancyGuard {
     /// @notice Wire (or unwire) the Teller adapter that earns yield on
     ///         idle reserves. Both args set to address(0) unwires; both
     ///         non-zero wires (or replaces). The operator must unwind all
-    ///         current USYC holdings before switching — the contract
+    ///         current USYC holdings before switching. The contract
     ///         enforces this by refusing the swap while usyc.balanceOf > 0.
     ///         Stale USDC approve on the old Teller is reset to 0 here
     ///         before the new pair binds (L-2 defence-in-depth).
@@ -282,7 +280,7 @@ contract KarwanVault is ReentrancyGuard {
         emit Unwrapped(shares, usdcOut);
     }
 
-    /// @notice Pull `amount` USDC out for OFF-CHAIN yield routing — used when
+    /// @notice Pull `amount` USDC out for OFF-CHAIN yield routing. Used when
     ///         the USYC Entitlements contract permits only the operator EOA
     ///         (not the vault address) to hold USYC. The operator subscribes
     ///         off-chain and returns USDC via depositFromYield. Tracks
@@ -301,7 +299,7 @@ contract KarwanVault is ReentrancyGuard {
         if (amount == 0) revert InvalidPrincipal();
         uint256 bal = usdc.balanceOf(address(this));
         // Defence in depth: never drain the vault below what reservations
-        // could legitimately demand. _totalReservedSum is O(positions) — we
+        // could legitimately demand. _totalReservedSum is O(positions), we
         // hold the loop tight by reading reservedTotal off the sender state.
         // Use the simpler check: balance must cover outflow.
         if (bal < amount) revert InsufficientLiquidUsdc();
@@ -312,9 +310,9 @@ contract KarwanVault is ReentrancyGuard {
 
     /// @notice Return USDC from off-chain yield routing. Caller approves the
     ///         vault for `amount` USDC; we pull it in. `amount` can exceed
-    ///         outForYield — the surplus is yield (treated as protocol
+    ///         outForYield, the surplus is yield (treated as protocol
     ///         income and stays in the vault). It cannot be less than the
-    ///         intended decrement — the operator submits the full repaid
+    ///         intended decrement, the operator submits the full repaid
     ///         amount, the vault clears outForYield down to zero and treats
     ///         the rest as surplus appreciation.
     function depositFromYield(uint256 amount) external nonReentrant {
@@ -331,13 +329,11 @@ contract KarwanVault is ReentrancyGuard {
         emit YieldDeposited(operator, amount, outForYield, surplus);
     }
 
-    /* =============================================================== */
-    /*                            STAKING                               */
-    /* =============================================================== */
+    // Staking
 
     /// @notice Open a new staking position. Caller must have approved this
     ///         contract for `amount` USDC. A user may hold many positions
-    ///         in parallel — each tracks its own depositedAt so older
+    ///         in parallel, each tracks its own depositedAt so older
     ///         positions earn more tenure weight in the reputation formula.
     function deposit(uint256 amount) external nonReentrant returns (uint256 positionId) {
         if (amount < MIN_PRINCIPAL) revert InvalidPrincipal();
@@ -362,7 +358,7 @@ contract KarwanVault is ReentrancyGuard {
 
     /// @notice Start the 3-day cool-down. Reverts if cooling this position
     ///         would leave the caller's remaining Active stake unable to
-    ///         cover their open reservations — closes the
+    ///         cover their open reservations. Closes the
     ///         "stake-then-cool-mid-deal" rug.
     function requestWithdraw(uint256 positionId) external {
         Position storage p = positions[positionId];
@@ -406,9 +402,7 @@ contract KarwanVault is ReentrancyGuard {
         emit Claimed(positionId, p.owner, amount);
     }
 
-    /* =============================================================== */
-    /*                          INSURANCE                               */
-    /* =============================================================== */
+    // Insurance
 
     /// @notice Agent self-registers its owning identity wallet. Stake lives
     ///         on the identity wallet (that's where users deposit from), so
@@ -450,7 +444,7 @@ contract KarwanVault is ReentrancyGuard {
         emit Reserved(jobId, owner, amount);
     }
 
-    /// @notice Release a reservation. Idempotent — a second call on the
+    /// @notice Release a reservation. Idempotent, a second call on the
     ///         same jobId is a no-op so settle paths can't strand a deal.
     function release(bytes32 jobId) external {
         if (msg.sender != escrow) revert NotEscrow();
@@ -519,7 +513,7 @@ contract KarwanVault is ReentrancyGuard {
                 emit PositionSlashedClosed(ids[i], seller);
             }
         }
-        // Defence in depth — should never trigger because reserve gated on
+        // Defence in depth, should never trigger because reserve gated on
         // freeStakeOf which is bound by activeStakeOf, and requestWithdraw
         // refuses to cool below reservedTotal.
         if (remaining > 0) revert InsufficientCoverage();
@@ -528,9 +522,7 @@ contract KarwanVault is ReentrancyGuard {
         emit Slashed(jobId, seller, beneficiary, amount);
     }
 
-    /* =============================================================== */
-    /*                             VIEWS                                */
-    /* =============================================================== */
+    // Views
 
     function isActive(uint256 positionId) external view returns (bool) {
         return positions[positionId].state == PositionState.Active;
@@ -605,12 +597,12 @@ contract KarwanVault is ReentrancyGuard {
         if (teller != address(0) && address(usyc) != address(0)) {
             uint256 usycHeld = usyc.balanceOf(address(this));
             if (usycHeld > 0) {
-                // Oracle is the MockUSYC / real USYC oracle, both expose
-                // latestAnswer() returning an 8-decimal price (1e8 = $1.00).
-                // The vault doesn't store an oracle address separately —
-                // the Teller and the price source are the same address in
-                // practice (MockUSYC) or the operator sets the off-chain
-                // widget to query the real oracle directly. To keep this
+                // The USYC oracle exposes latestAnswer() returning an
+                // 8-decimal price (1e8 = $1.00). The vault doesn't store an
+                // oracle address separately; the Teller and the price source
+                // are the same address in practice, or the operator points
+                // the off-chain widget at the real oracle directly. To keep
+                // this
                 // view side-effect-free we approximate USYC value at par
                 // (1:1 USDC) on chain; the widget reads the real oracle off
                 // chain and surfaces the marked value. This is a conscious

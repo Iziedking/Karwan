@@ -18,7 +18,7 @@ const ACTIVE_STAGES: DealStage[] = [
 
 /// Personal deal feed on the home page. Shows only deals where the signed-in
 /// user is the buyer or seller. Public "what's happening on Karwan" content
-/// lives in the NetworkTicker — that one shows masked network-wide activity
+/// lives in the NetworkTicker, that one shows masked network-wide activity
 /// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
   const tr = useTranslations().dealsFeed;

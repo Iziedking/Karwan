@@ -70,7 +70,7 @@ export const telegramLinks = pgTable('telegram_links', {
 });
 
 /// Durable event log for the bus. Replaces the flat data/events.json
-/// fallback when DATABASE_URL is set — survives container restarts and
+/// fallback when DATABASE_URL is set. It survives container restarts and
 /// accidental file ops. PK matches the bus dedupe shape (type|jobId|ts)
 /// so re-injects from the chain backfill / bridge sync are no-ops at the
 /// DB layer too. JSON `data` column keeps the full KarwanEvent payload so
@@ -79,7 +79,7 @@ export const eventHistory = pgTable(
   'event_history',
   {
     type: text('type').notNull(),
-    /// Coalesced empty string when KarwanEvent.jobId is undefined — keeps
+    /// Coalesced empty string when KarwanEvent.jobId is undefined. Keeps
     /// the composite PK well-formed without a nullable jobId.
     jobId: text('job_id').notNull(),
     ts: bigint('ts', { mode: 'number' }).notNull(),
@@ -87,7 +87,7 @@ export const eventHistory = pgTable(
   },
   (t) => ({
     pk: primaryKey({ columns: [t.type, t.jobId, t.ts] }),
-    /// recent(limit) reads ORDER BY ts DESC — index it.
+    /// recent(limit) reads ORDER BY ts DESC, so index it.
     tsIdx: index('event_history_ts_idx').on(t.ts),
     /// recent(limit, jobId) needs per-job lookups; cheap with this index.
     jobTsIdx: index('event_history_job_ts_idx').on(t.jobId, t.ts),

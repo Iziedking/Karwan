@@ -126,7 +126,7 @@ function StakePageInner() {
           </p>
         </div>
 
-        {/* POSITION READOUT — count-up score + tier. The tier column has a
+        {/* POSITION READOUT: count-up score + tier. The tier column has a
             hard 200px minimum and fits to content, so long tier strings
             like ESTABLISHED render in full without ever truncating. The
             other two columns share the remaining width. */}
@@ -160,7 +160,7 @@ function StakePageInner() {
         </div>
       </Band>
 
-      {/* NETWORK YIELD — protocol-wide accrual, three tiles + live chart. */}
+      {/* NETWORK YIELD: protocol-wide accrual, three tiles + live chart. */}
       <Band tone="light" compact>
         <SectionTag>NETWORK YIELD</SectionTag>
         <HeroHeadline size="md">
@@ -177,7 +177,7 @@ function StakePageInner() {
         </div>
       </Band>
 
-      {/* PER-ACCOUNT YIELD — the connected wallet's slice + Claim CTA. */}
+      {/* PER-ACCOUNT YIELD: the connected wallet's slice + Claim CTA. */}
       <Band tone="light" compact>
         <SectionTag>YOUR YIELD</SectionTag>
         <HeroHeadline size="md">
@@ -193,7 +193,7 @@ function StakePageInner() {
         </div>
       </Band>
 
-      {/* STAKE INTERFACE — the same KarwanVault card used on /profile. */}
+      {/* STAKE INTERFACE: the same KarwanVault card used on /profile. */}
       <Band tone="light" compact>
         <SectionTag>{sp.vault.tag}</SectionTag>
         <HeroHeadline size="md">
@@ -205,7 +205,7 @@ function StakePageInner() {
         </div>
       </Band>
 
-      {/* TIER LADDER — what stake unlocks in the agent loop. */}
+      {/* TIER LADDER: what stake unlocks in the agent loop. */}
       <Band tone="light" compact>
         <SectionTag>{sp.ladder.tag}</SectionTag>
         <HeroHeadline size="md">

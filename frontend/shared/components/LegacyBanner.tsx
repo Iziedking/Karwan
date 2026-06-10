@@ -44,7 +44,7 @@ export function LegacyBanner() {
   }, []);
 
   // Reset the dismiss on every auth change (sign in or sign out). Without this,
-  // a user who cancels the banner once never sees it again — even after a full
+  // a user who cancels the banner once never sees it again, even after a full
   // logout + re-login cycle.
   useEffect(() => {
     if (typeof window === 'undefined') return;

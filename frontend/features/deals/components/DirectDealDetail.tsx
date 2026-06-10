@@ -25,6 +25,7 @@ import {
   MAX_REVIEW_EXTENSIONS,
 } from '../config';
 import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import {
   FullBleed,
   Band,
@@ -175,7 +176,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
   if (fetchState === 'loading') {
     /// Reserve roughly the height of the resolved deal hero band so the
-    /// swap into the real deal page doesn't shift the bands below — the
+    /// swap into the real deal page doesn't shift the bands below, the
     /// dominant CLS source on /deals/[id] before this pass.
     return (
       <FullBleed>
@@ -656,24 +657,19 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </div>
       </Band>
 
-      {/* TRADE CONTEXT — only rendered when the buyer surfaced trade-finance
-          fields at deal-creation time. Service-flow deals skip it. */}
-      {deal.tradeType && deal.tradeType !== 'service' ? (
-        <TradeContextBand deal={deal} />
-      ) : null}
-
-      {/* EARLY PAYOUT — seller-side factoring CTA when offers exist on this
-          deal. The component fetches its own state; renders nothing when
-          the seller has no open offers or the deal isn't eligible. Lives
-          in its own Band-less container so the banner reads as an inline
-          opportunity, not a structural section. */}
-      <SellerOfferBanner deal={deal} viewerIsSeller={viewerIsSeller} />
-
-      {/* PROOF OF DELIVERY — buyer-side anchor CTA. Renders only on goods
-          deals where the seller has marked delivered and the PoD has not
-          yet anchored. Web3 path signs registry.acceptPoD locally; Circle
-          path routes through the user's identity DCW. */}
-      <BuyerPodPanel deal={deal} viewerIsBuyer={viewerIsBuyer} onPodAccepted={refresh} />
+      {/* SME trade-finance surfaces. Part of the SME Trades rail, hidden
+          until launch. Trade context, the seller factoring banner, and the
+          buyer proof-of-delivery panel each render their own state and stay
+          off the P2P deal view. */}
+      {SME_TRADES_ENABLED && (
+        <>
+          {deal.tradeType && deal.tradeType !== 'service' ? (
+            <TradeContextBand deal={deal} />
+          ) : null}
+          <SellerOfferBanner deal={deal} viewerIsSeller={viewerIsSeller} />
+          <BuyerPodPanel deal={deal} viewerIsBuyer={viewerIsBuyer} onPodAccepted={refresh} />
+        </>
+      )}
 
       {/* PROGRESS */}
       <Band tone="light" compact>
@@ -691,7 +687,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               stage={stage}
               rail={rail}
               copy={
-                deal.tradeType === 'goods'
+                SME_TRADES_ENABLED && deal.tradeType === 'goods'
                   ? { ...dd.progressTrack, ...GOODS_PROGRESS_LABELS }
                   : dd.progressTrack
               }
@@ -893,7 +889,7 @@ function CardHead({ label }: { label: string }) {
   );
 }
 
-/// Trade context band — Incoterms badge, payment-term ribbon, document
+/// Trade context band. Incoterms badge, payment-term ribbon, document
 /// hashes, counterparty company snapshot. Renders only when the deal
 /// carries the SME fields (tradeType !== 'service'). Top-level component
 /// per the Vercel `rerender-no-inline-components` rule.
@@ -1216,7 +1212,7 @@ function ActionPanel({
     // releases (manual or auto), so its presence means the seller has
     // already received `firstReleasePct`% of the deal. The on-chain refund()
     // only returns the UNRELEASED remainder, so the copy needs to be
-    // state-aware — "refunded in full" is a lie post-first-release.
+    // state-aware, "refunded in full" is a lie post-first-release.
     const firstReleased = !!deal.reviewWindowStartedAt;
     const firstPct = deal.firstReleasePct;
     const remainPct = 100 - firstPct;

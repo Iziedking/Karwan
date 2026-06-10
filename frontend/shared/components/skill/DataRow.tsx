@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { cn } from '@/shared/utils/cn';
 import { BracketTag, type BracketTagVariant } from './BracketTag';
 
-/// SKILL.md §4.8 — the data row. 64px min height, 24px horizontal padding.
+/// SKILL.md §4.8. The data row. 64px min height, 24px horizontal padding.
 /// Bracket-tag id column, title with optional secondary line, right-aligned
 /// tabular numeric column, status pill, trailing chevron. Hover shifts row bg
 /// to `rgba(255,255,255,0.03)` on dark (3% on light) at dur.fast. Numeric

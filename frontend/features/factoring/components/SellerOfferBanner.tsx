@@ -14,7 +14,7 @@ import {
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
 /// and the deal is eligible (accepted, not delivered, not factored).
-/// Renders nothing when no open offers exist — service-flow deals never
+/// Renders nothing when no open offers exist, service-flow deals never
 /// see this band. Top-level component per Vercel
 /// `rerender-no-inline-components`.
 export function SellerOfferBanner({
@@ -61,7 +61,7 @@ export function SellerOfferBanner({
     };
   }, [eligible, deal.jobId]);
 
-  // Sort once per offers update — derive during render per
+  // Sort once per offers update, derive during render per
   // `rerender-derived-state-no-effect`.
   const sortedOffers = useMemo(() => {
     if (!offers) return [];
@@ -134,9 +134,7 @@ export function SellerOfferBanner({
   );
 }
 
-/* =============================================================== */
-/*                          OFFERS MODAL                            */
-/* =============================================================== */
+// Offers modal
 
 /// How long the seller's repayment authorization stays valid. Must clear
 /// the backend's 60-day floor with room for slow deals.

@@ -24,7 +24,7 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   const job = jobQuery.data ?? initial;
   // Profile peek state. We open by USER address (not agent), since profiles
   // are keyed by user. Falls back to agent address when the bid lacks a
-  // resolved user — the peek still shows the masked address gracefully.
+  // resolved user, the peek still shows the masked address gracefully.
   const [peekSeller, setPeekSeller] = useState<string | null>(null);
 
   if (job.bids.length === 0) {

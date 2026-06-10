@@ -7,7 +7,7 @@
 /// the cream + ink + lime palette in light mode, then toggle the OS to dark
 /// mode and refresh to see the cream-on-ink fallback survive.
 ///
-/// The CID logo reference (`cid:karwan-logo`) does NOT resolve in browsers —
+/// The CID logo reference (`cid:karwan-logo`) does NOT resolve in browsers.
 /// Resend swaps it in via the attachments array. The preview just shows the
 /// wordmark; that's fine for verifying brand handling.
 import { mkdirSync, writeFileSync } from 'node:fs';

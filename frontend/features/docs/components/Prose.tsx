@@ -11,7 +11,7 @@ export function Prose({ children, className }: { children: ReactNode; className?
   return <div className={cn('docs-prose', className)}>{children}</div>;
 }
 
-/// One step below HeroHeadline — used inside light bands as the per-section
+/// One step below HeroHeadline, used inside light bands as the per-section
 /// heading. Big, extrabold, lime period.
 export function DocsH2({ children }: { children: ReactNode }) {
   return (

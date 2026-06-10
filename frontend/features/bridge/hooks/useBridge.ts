@@ -265,7 +265,7 @@ function saveToStorage(address: `0x${string}` | null | undefined, bridges: Bridg
 /// Module-level shared bridges store. Every useBridges() consumer subscribes
 /// to the same per-address slice via useSyncExternalStore so the TopNav
 /// badge, the History modal, and the active bridge card all see the same
-/// list — no more "TopNav says 4 in flight but the modal shows 0" because
+/// list, no more "TopNav says 4 in flight but the modal shows 0" because
 /// each component had its own useState going through hydrate at a
 /// different time. Keyed by lowercased identity address so a Circle user
 /// and a web3 user share the same shape but get isolated lists.
@@ -304,7 +304,7 @@ function subscribeSharedBridges(cb: () => void): () => void {
 }
 
 /// Map backend `BridgeStatus` to the frontend `BridgePhase`. The backend
-/// has a coarser status enum (5 values) than the UI's phase enum (8) —
+/// has a coarser status enum (5 values) than the UI's phase enum (8),
 /// the missing values are transient client-only states ('switching',
 /// 'attesting', 'minting') that the backend either skips or names
 /// differently. The choices below pick the right "this is what the user
@@ -331,7 +331,7 @@ function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): Brid
   for (const r of remote) {
     if (known.has(r.bridgeId)) continue;
     if (!r.sourceChainKey) continue; // missing chain context, unrenderable
-    /// The mintRecipient is the eventual mint destination — for 'in'
+    /// The mintRecipient is the eventual mint destination. For 'in'
     /// bridges that's the user's Arc wallet (the row needs it to render
     /// the MINTS TO band). If the backend doesn't have it (older records
     /// pre-mintRecipient persist), skip rather than render a half-row.
@@ -402,7 +402,7 @@ export function useBridges() {
   const bridges = useSyncExternalStore(
     subscribeSharedBridges,
     getSnapshot,
-    /// SSR snapshot is always empty — bridges are client-only state.
+    /// SSR snapshot is always empty, bridges are client-only state.
     () => EMPTY_BRIDGES,
   );
   const setBridges = useCallback(
@@ -471,7 +471,7 @@ export function useBridges() {
 
   // Single SSE subscription routes bridge events to the right record by
   // bridgeId. Gated on identity (auth.address OR wagmi address), not wagmi
-  // isConnected — Circle users have a Circle session but no wagmi connection,
+  // isConnected. Circle users have a Circle session but no wagmi connection,
   // and they need to see attestation+mint events the same as web3 users.
   useEffect(() => {
     if (!identityAddress) return;
@@ -574,7 +574,7 @@ export function useBridges() {
   const runFlow = useCallback(
     async (record: BridgeRecord) => {
       // runFlow is the web3 wagmi-signed path. App-Kit-only sources (Solana
-      // Devnet today) never enter this — startCircleAppKit handles them
+      // Devnet today) never enter this, startCircleAppKit handles them
       // entirely on the backend. The guard prevents a future caller from
       // dropping an App Kit record into the EVM signer path silently.
       if (isAppKitOnlyChainKey(record.sourceChainKey)) {
@@ -605,7 +605,7 @@ export function useBridges() {
         if (chainId !== source.chainId) {
           // Make sure the record is visibly in 'switching' before the wallet
           // pops. start() already initialises 'switching', but retry() patches
-          // through 'switching' from any prior state — keep the visible state
+          // through 'switching' from any prior state, keep the visible state
           // honest before awaiting the wallet.
           patch(record.id, (b) => ({ ...b, phase: 'switching' }));
           await switchChainAsync({ chainId: source.chainId });
@@ -829,7 +829,7 @@ export function useBridges() {
       const cur = bridgesRef.current.find((b) => b.id === id);
       if (!cur) return;
       // If the burn already committed on the source chain, NEVER re-fire the
-      // entire flow — that would double-burn the user's USDC. Divert to the
+      // entire flow, that would double-burn the user's USDC. Divert to the
       // backend recheck which re-queries IRIS for the existing burn's
       // attestation and (re-)attempts the mint on Arc.
       if (cur.burnTxHash) {

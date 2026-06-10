@@ -30,7 +30,7 @@ async function tick(): Promise<void> {
 }
 
 /// Starts the periodic job-expiry watcher. Returns a stop function. Pairs
-/// with the deadline picker on PostJobForm — short-deadline briefs that
+/// with the deadline picker on PostJobForm. Short-deadline briefs that
 /// don't find a match within their window now reach a deterministic
 /// terminal state instead of lingering in `open` forever.
 export function startJobExpiryWatcher(): () => void {

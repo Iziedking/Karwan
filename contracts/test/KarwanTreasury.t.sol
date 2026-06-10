@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {KarwanTreasury} from "../src/KarwanTreasury.sol";
-import {MockUSYC} from "../src/MockUSYC.sol";
 
 /// @notice Minimal ERC-20 mock standing in for USDC (6 decimals).
 contract MockUSDC {
@@ -36,9 +35,120 @@ contract MockUSDC {
     }
 }
 
+/// @notice Test-only USYC double: a single contract playing the Teller,
+///         the USYC token, and the price oracle, with a price that ramps
+///         linearly by `apyBps` since deploy. Mirrors the real Hashnote /
+///         Circle USYC surface (deposit / redeem / latestRoundData) so the
+///         treasury exercises the same code path it runs against real USYC.
+contract TestUSYC {
+    string public constant name = "Test US Yield Coin";
+    string public constant symbol = "USYC";
+    uint8 public constant decimals = 6;
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    MockUSDC public immutable usdc;
+    uint256 public constant PRICE_SCALE = 1e8;
+    uint256 public immutable apyBps;
+    uint64 public immutable startedAt;
+
+    error TransferFailed();
+    error InsufficientBalance();
+    error InsufficientAllowance();
+    error ZeroAmount();
+    error ZeroAddress();
+
+    constructor(address _usdc, uint256 _apyBps) {
+        if (_usdc == address(0)) revert ZeroAddress();
+        usdc = MockUSDC(_usdc);
+        apyBps = _apyBps;
+        startedAt = uint64(block.timestamp);
+    }
+
+    function price() public view returns (uint256) {
+        uint256 elapsed = block.timestamp - startedAt;
+        uint256 growth = (PRICE_SCALE * apyBps * elapsed) / (10_000 * 365 days);
+        return PRICE_SCALE + growth;
+    }
+
+    function latestAnswer() external view returns (int256) {
+        return int256(price());
+    }
+
+    function latestRoundData()
+        external
+        view
+        returns (uint80, int256, uint256, uint256, uint80)
+    {
+        return (uint80(1), int256(price() * 1e10), block.timestamp, block.timestamp, uint80(1));
+    }
+
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+        if (assets == 0) revert ZeroAmount();
+        if (receiver == address(0)) revert ZeroAddress();
+        if (!usdc.transferFrom(msg.sender, address(this), assets)) revert TransferFailed();
+        shares = (assets * PRICE_SCALE) / price();
+        _mint(receiver, shares);
+    }
+
+    function redeem(uint256 shares, address receiver, address account)
+        external
+        returns (uint256 assets)
+    {
+        if (shares == 0) revert ZeroAmount();
+        if (receiver == address(0) || account == address(0)) revert ZeroAddress();
+        if (account != msg.sender) {
+            uint256 a = allowance[account][msg.sender];
+            if (a < shares) revert InsufficientAllowance();
+            if (a != type(uint256).max) allowance[account][msg.sender] = a - shares;
+        }
+        if (balanceOf[account] < shares) revert InsufficientBalance();
+        assets = (shares * price()) / PRICE_SCALE;
+        _burn(account, shares);
+        uint256 held = usdc.balanceOf(address(this));
+        if (assets > held) assets = held;
+        if (!usdc.transfer(receiver, assets)) revert TransferFailed();
+    }
+
+    function approve(address spender, uint256 amount) external returns (bool) {
+        allowance[msg.sender][spender] = amount;
+        return true;
+    }
+
+    function transfer(address to, uint256 amount) external returns (bool) {
+        _transfer(msg.sender, to, amount);
+        return true;
+    }
+
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        uint256 a = allowance[from][msg.sender];
+        if (a < amount) revert InsufficientAllowance();
+        if (a != type(uint256).max) allowance[from][msg.sender] = a - amount;
+        _transfer(from, to, amount);
+        return true;
+    }
+
+    function _transfer(address from, address to, uint256 amount) internal {
+        if (balanceOf[from] < amount) revert InsufficientBalance();
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
+    }
+
+    function _mint(address to, uint256 amount) internal {
+        totalSupply += amount;
+        balanceOf[to] += amount;
+    }
+
+    function _burn(address from, uint256 amount) internal {
+        balanceOf[from] -= amount;
+        totalSupply -= amount;
+    }
+}
+
 contract KarwanTreasuryTest is Test {
     MockUSDC usdc;
-    MockUSYC usyc;
+    TestUSYC usyc;
     KarwanTreasury treasury;
 
     address owner = address(this);
@@ -49,8 +159,8 @@ contract KarwanTreasuryTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        usyc = new MockUSYC(address(usdc), APY_BPS);
-        // testnet wiring: teller, token, and oracle are all the MockUSYC address.
+        usyc = new TestUSYC(address(usdc), APY_BPS);
+        // Test wiring: teller, token, and oracle are all the TestUSYC address.
         treasury = new KarwanTreasury(
             address(usdc),
             address(usyc),

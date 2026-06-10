@@ -96,7 +96,7 @@ export function AgentWithdrawCard({
   /// EOA-vs-contract verification on the destination. The user's own wallets
   /// (identity + both agent SCAs) are passed in as trusted so the common
   /// "withdraw to my own agent / identity" path skips the RPC and never
-  /// trips the "contract address — funds may be locked" warning. Circle SCAs
+  /// trips the "contract address, funds may be locked" warning. Circle SCAs
   /// have bytecode (4337), so without the trust list they classified as
   /// contracts and blocked submit, which was confusing on a withdraw flow
   /// where pasting your own buyer agent address is a perfectly normal move.

@@ -153,7 +153,7 @@ async function tarData(outPath: string): Promise<void> {
   log.info({ size }, 'tar ok');
 }
 
-/// Gzip a single host-mounted file to its own blob. We don't tar these —
+/// Gzip a single host-mounted file to its own blob. We don't tar these,
 /// they're single files, gzip alone is faster and still decompresses
 /// cleanly via `gunzip`. Missing source = a soft warning, not a failure:
 /// the operator may not have the mount wired yet on first deploy.
@@ -191,8 +191,8 @@ async function gzipFile(
 }
 
 /// Retry transient B2/S3 stream errors. The AWS SDK calls some failures
-/// "non-retryable streaming requests" — TLS resets, HTTP/2 GOAWAYs, brief
-/// 5xx with an unrewindable body — and bails on the first one. We've seen
+/// "non-retryable streaming requests" (TLS resets, HTTP/2 GOAWAYs, brief
+/// 5xx with an unrewindable body) and bails on the first one. We've seen
 /// the backup crash on the env upload (the third PUT) after db+data went
 /// through fine, taking the heartbeat down with it. Each attempt opens a
 /// fresh ReadStream because Node streams aren't replayable.
@@ -324,7 +324,7 @@ main().catch(async (err) => {
   log.error({ err: (err as Error).message }, 'backup crashed');
   // Tell healthchecks.io explicitly the run failed. Without this, the next
   // success-only ping never lands and the operator gets a delayed "DOWN
-  // (no ping in time)" email — the active /fail variant arrives within
+  // (no ping in time)" email. The active /fail variant arrives within
   // seconds.
   await pingHeartbeat('fail');
   process.exit(1);

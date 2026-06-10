@@ -88,7 +88,7 @@ export function HeroFlow() {
           <text x="270" y="128">{t.stages.accept}</text>
         </g>
 
-        {/* Escrow pill — lights up when the coin lands inside it. */}
+        {/* Escrow pill, lights up when the coin lands inside it. */}
         <g transform="translate(180 168)">
           <motion.rect
             x="-58"

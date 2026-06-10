@@ -30,7 +30,7 @@ interface IKarwanEscrow {
 ///         acceptance. Companion to KarwanEscrow.
 ///
 ///         The registry never touches USDC. Auth is enforced by reading the
-///         escrow's existing getEscrow(jobId) view — no escrow redeploy is
+///         escrow's existing getEscrow(jobId) view, no escrow redeploy is
 ///         needed. The on-chain payee is the redirect target for factoring:
 ///         after the seller accepts a financier's offer, setPayee swaps the
 ///         payee to the financier; the off-chain settlement router reads
@@ -55,9 +55,7 @@ interface IKarwanEscrow {
 ///         hooks, and CPN-OFI registration all plug in without touching this
 ///         contract.
 contract KarwanInvoiceRegistry {
-    /* =============================================================== */
-    /*                            STORAGE                               */
-    /* =============================================================== */
+    // Storage
 
     /// @notice The KarwanEscrow contract whose view we trust for buyer/seller
     ///         lookups. Set once via setEscrow; immutable thereafter so
@@ -105,9 +103,7 @@ contract KarwanInvoiceRegistry {
     ///         (customs brokers, freight forwarders, third-party verifiers).
     mapping(address => bool) public approvedAttester;
 
-    /* =============================================================== */
-    /*                             EVENTS                               */
-    /* =============================================================== */
+    // Events
 
     event EscrowSet(address indexed escrow);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
@@ -126,9 +122,7 @@ contract KarwanInvoiceRegistry {
     event AttesterAdded(address indexed attester);
     event AttesterRemoved(address indexed attester);
 
-    /* =============================================================== */
-    /*                             ERRORS                               */
-    /* =============================================================== */
+    // Errors
 
     error EscrowAlreadySet();
     error EscrowNotSet();
@@ -146,9 +140,7 @@ contract KarwanInvoiceRegistry {
     error NotPodAuthorised();
     error EmptyHash();
 
-    /* =============================================================== */
-    /*                          CONSTRUCTOR                             */
-    /* =============================================================== */
+    // Constructor
 
     constructor(address _owner) {
         if (_owner == address(0)) revert ZeroAddress();
@@ -157,12 +149,10 @@ contract KarwanInvoiceRegistry {
         emit OwnershipTransferred(address(0), _owner);
     }
 
-    /* =============================================================== */
-    /*                        ESCROW BINDING                            */
-    /* =============================================================== */
+    // Escrow binding
 
     /// @notice Bind the KarwanEscrow address the registry will consult for
-    ///         caller authorisation. One-shot — once set, the slot is locked
+    ///         caller authorisation. One-shot, once set, the slot is locked
     ///         and `deployer` is zeroed. This matches the KarwanReputation
     ///         setEscrow pattern so the deploy script can wire the escrow
     ///         after both contracts exist.
@@ -175,12 +165,10 @@ contract KarwanInvoiceRegistry {
         emit EscrowSet(_escrow);
     }
 
-    /* =============================================================== */
-    /*                       OWNERSHIP HANDOVER                         */
-    /* =============================================================== */
+    // Ownership handover
 
     /// @notice Start an ownership transfer. The new owner must accept via
-    ///         acceptOwnership() — this two-step prevents accidental
+    ///         acceptOwnership(). This two-step prevents accidental
     ///         transfers to an unrecoverable address.
     function transferOwnership(address newOwner) external {
         if (msg.sender != owner) revert NotOwner();
@@ -198,9 +186,7 @@ contract KarwanInvoiceRegistry {
         emit OwnershipTransferred(previousOwner, owner);
     }
 
-    /* =============================================================== */
-    /*                      ATTESTER ALLOWLIST                          */
-    /* =============================================================== */
+    // Attester allowlist
 
     /// @notice Add an address to the PoD attester allowlist. Owner-only.
     function addAttester(address attester) external {
@@ -219,9 +205,7 @@ contract KarwanInvoiceRegistry {
         emit AttesterRemoved(attester);
     }
 
-    /* =============================================================== */
-    /*                       DOCUMENT ANCHORING                         */
-    /* =============================================================== */
+    // Document anchoring
 
     /// @notice Anchor a trade document hash against an invoice. Callable by
     ///         the deal's buyer or seller (looked up via the escrow). The
@@ -250,9 +234,7 @@ contract KarwanInvoiceRegistry {
         emit DocumentAnchored(invoiceId, docHash, kind, msg.sender);
     }
 
-    /* =============================================================== */
-    /*                            PAYEE                                 */
-    /* =============================================================== */
+    // Payee
 
     /// @notice Override the on-settlement payee for an invoice. Used by
     ///         factoring: seller initially is the payee; on acceptance of a
@@ -263,7 +245,7 @@ contract KarwanInvoiceRegistry {
     ///         Auth: if no override exists, only the deal's seller (per
     ///         escrow) can set the first payee. Once an override exists, only
     ///         the current `payeeOf[invoiceId]` can mutate it. Locked once
-    ///         PoD is accepted — after delivery is confirmed, settlement is
+    ///         PoD is accepted. After delivery is confirmed, settlement is
     ///         imminent and payee mutations would invite race conditions.
     ///
     /// @param invoiceId  the deal's jobId
@@ -288,9 +270,7 @@ contract KarwanInvoiceRegistry {
         emit PayeeChanged(invoiceId, current, newPayee);
     }
 
-    /* =============================================================== */
-    /*                         PoD ACCEPTANCE                           */
-    /* =============================================================== */
+    // PoD acceptance
 
     /// @notice Mark the proof-of-delivery accepted. Callable by the deal's
     ///         buyer OR by any address in `approvedAttester`. Latches once:
@@ -314,9 +294,7 @@ contract KarwanInvoiceRegistry {
         emit PoDAccepted(invoiceId, podHash, msg.sender, uint64(block.timestamp));
     }
 
-    /* =============================================================== */
-    /*                             VIEWS                                */
-    /* =============================================================== */
+    // Views
 
     /// @notice Returns the document anchor array for an invoice. Empty array
     ///         when nothing is anchored.
@@ -349,9 +327,7 @@ contract KarwanInvoiceRegistry {
         return approvedAttester[who];
     }
 
-    /* =============================================================== */
-    /*                            INTERNALS                             */
-    /* =============================================================== */
+    // Internals
 
     /// @dev Reverts unless `who` is the buyer or seller of `invoiceId` per
     ///      the escrow's record. Reverts if escrow has no record (state ==

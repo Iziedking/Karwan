@@ -230,7 +230,7 @@ export function priceAnomalyScore(price: number): number | null {
 /// Surface the rolling-window median + sample count for the LLM prompt's
 /// social-proof line ("median recent settlement: X USDC"). Returns null when
 /// the window has too few observations to be informative. We use a low
-/// threshold (4) so the signal appears early in the platform's life — a
+/// threshold (4) so the signal appears early in the platform's life. A
 /// few data points is better than zero context.
 export function priceHistorySnapshot(): { median: number; sampleCount: number } | null {
   if (priceHistory.length < 4) return null;

@@ -51,7 +51,7 @@ async function maybeInitSentry(): Promise<void> {
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) return;
   try {
-    // Cast to unknown then SentryLite — keeps tsc happy when @sentry/node
+    // Cast to unknown then SentryLite. This keeps tsc happy when @sentry/node
     // is not yet installed (the import resolves at runtime only).
     const mod = (await import('@sentry/node' as string)) as unknown as SentryLite;
     mod.init({

@@ -197,7 +197,7 @@ export function useArcFund() {
         if (chainId !== ARC_CHAIN_ID) {
           // Make sure the record is in 'switching' before the wallet pops.
           // If a retry came in from an 'error' state, the record was patched
-          // to 'switching' there too — but if the user is already on Arc the
+          // to 'switching' there too, but if the user is already on Arc the
           // visible phase needs to advance fast so the row doesn't look stuck.
           patch(record.id, (r) => ({ ...r, phase: 'switching' }));
           await switchChainAsync({ chainId: ARC_CHAIN_ID });

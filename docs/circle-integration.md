@@ -79,7 +79,7 @@ the backend.
 
 ### USYC (Hashnote, via ERC-4626 Teller)
 
-`KarwanTreasury` holds platform fee USDC and subscribes idle balance into real Hashnote USYC via the standard ERC-4626 Teller interface. Subscribe and redeem run against Hashnote's RolesAuthority entitlements contract (`0xcc205224862c7641930c87679e98999d23c26113`) under role 0 (the subscriber capability). On-chain accounting reads through to real Hashnote yield, not a mock.
+`KarwanTreasury` holds platform fee USDC and subscribes idle balance into Hashnote USYC via the standard ERC-4626 Teller interface. Subscribe and redeem run against Hashnote's RolesAuthority entitlements contract (`0xcc205224862c7641930c87679e98999d23c26113`) under role 0 (the subscriber capability). On-chain accounting reads through to Hashnote yield.
 
 `KarwanVault` is wired through the same Teller interface for idle user stake principal. The adapter is mutable behind an operator-only setter, so the same vault contract serves both the testnet adapter and the production Hashnote path without a redeploy.
 

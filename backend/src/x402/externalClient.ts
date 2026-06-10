@@ -7,7 +7,7 @@ import { logger } from '../logger.js';
 /// Buyer Path B: the agent pays EXTERNAL x402 endpoints on Base mainnet
 /// for data nobody on the platform has. These sellers use the standard
 /// x402 exact-EVM scheme (EIP-3009 signed against Base USDC's own domain,
-/// "USD Coin"/"2"), NOT Gateway batching — verified from the live 402
+/// "USD Coin"/"2"), NOT Gateway batching. Verified from the live 402
 /// response. So the payer is a plain EOA whose key lives in env: it only
 /// ever signs; the seller's facilitator submits on chain and pays gas.
 /// Funding is just USDC sitting in the payer's wallet. No deposit, no ETH.
@@ -73,12 +73,10 @@ export async function payExternal<T = unknown>(url: string): Promise<ExternalPay
   return { data: (await paid.json()) as T, paidUsd, payer: payerAddress };
 }
 
-/* =============================================================== */
-/*                  COUNTERPARTY SCREENING (GlobalAPI)              */
-/* =============================================================== */
+// Counterparty screening (GlobalAPI)
 
 /// GlobalAPI unified counterparty check: OFAC SDN + UK FCDO + UN SC
-/// sanctions, wallet age, mixer/exploit labels, activity — one call,
+/// sanctions, wallet age, mixer/exploit labels, activity, one call,
 /// PASS / WARN / BLOCK verdict. $0.01 per call on Base mainnet.
 const COUNTERPARTY_CHECK_URL = 'https://globalapi.dev/compliance/counterparty';
 

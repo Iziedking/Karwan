@@ -93,7 +93,7 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
   let lifetimeVolumeUsdc = 0;
   /// Dispute resolutions where this wallet was the loser. Drives an off-chain
   /// rep penalty that matches the on-chain Failed signal for trusted deals.
-  /// For casual deals (no reservation), the chain records nothing — this is
+  /// For casual deals (no reservation), the chain records nothing, so this is
   /// the only signal that exists. For trusted deals the on-chain failedCount
   /// already covers refund losses; we still count releases here so the buyer's
   /// concession on a release-from-dispute lands somewhere.
@@ -119,7 +119,7 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     /// - Seller loss on a TRUSTED deal already lands on chain via refund() →
     ///   recordCompletion(Failed). Skip it off-chain.
     /// - Seller loss on a CASUAL deal has no on-chain hit. Count it here.
-    /// - Buyer loss (release-from-dispute) is never on-chain — the contract
+    /// - Buyer loss (release-from-dispute) is never on-chain. The contract
     ///   records DisputeResolved for both, never Failed against the buyer.
     ///   Always count it off-chain.
     const loserRole = d.disputeLoser;
@@ -281,7 +281,7 @@ async function readChainScores(
   address: string,
 ): Promise<{ successCount: number; disputedCount: number; failedCount: number }> {
   const wallets = await getAgentWallets(address).catch(() => null);
-  // Identity ALWAYS in the target set — that's where v2.E+ credits land.
+  // Identity ALWAYS in the target set. That's where v2.E+ credits land.
   const targets: string[] = [address];
   if (wallets?.buyerAddress && wallets.buyerAddress.toLowerCase() !== address.toLowerCase()) {
     targets.push(wallets.buyerAddress);

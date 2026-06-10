@@ -28,6 +28,7 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { sessionMismatchesClaim } from '../auth/session.js';
+import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 
 const addrSchema = z
   .string()
@@ -76,7 +77,7 @@ function stripPrivateFields(l: Listing): Omit<Listing, 'negotiationMaxDecreasePc
   return rest;
 }
 
-/// All listings, newest first. Public surface — strips private agent steering
+/// All listings, newest first. Public surface, strips private agent steering
 /// (negotiationMaxDecreasePct) so a buyer-side LLM can't enumerate floors.
 listingsRoutes.get('/', (c) => {
   return c.json({ listings: listAllListings().map(stripPrivateFields) });
@@ -259,6 +260,10 @@ listingsRoutes.post('/', async (c) => {
     );
   }
 
+  // A listing is a standing offer with no goods/service split, so it always
+  // sits in the service lane (open to every account type). partyKind still
+  // records whether the seller is a verified business so a match can badge it.
+  const sellerAccountType = await accountTypeOf(body.sellerUser);
   const listing = createListing({
     sellerUser: body.sellerUser,
     sellerAgent: agents.sellerAddress,
@@ -267,6 +272,8 @@ listingsRoutes.post('/', async (c) => {
     askingPriceUsdc: body.askingPriceUsdc,
     negotiationMaxDecreasePct: body.negotiationMaxDecreasePct,
     ttlDays: body.ttlDays,
+    tradeLane: deriveLane(sellerAccountType, undefined),
+    partyKind: sellerAccountType,
   });
 
   bus.emitEvent({
@@ -407,7 +414,7 @@ async function tryMatchListingToJob(
   job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; keywords?: string[] },
   seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
 ): Promise<boolean> {
-  // Skip the user's own briefs — sellers shouldn't bid on themselves.
+  // Skip the user's own briefs, sellers shouldn't bid on themselves.
   const briefBuyerOwner = await findAgentWalletByAgentAddress(job.buyer);
   if (briefBuyerOwner?.userAddress === listing.sellerUser) {
     logger.info(
@@ -462,7 +469,7 @@ async function tryMatchListingToJob(
     // Trust the LLM's positive match more aggressively. Below 0.4 confidence
     // is fence-sitting; above is intent. The old 0.6 floor dropped
     // textbook-clear matches like "API services" vs "I need API services"
-    // when Gemini Flash Lite returned 0.5-0.6 — the topical fallback then
+    // when Gemini Flash Lite returned 0.5-0.6. The topical fallback then
     // missed because keywords hadn't been extracted yet.
     if (!decision.match || decision.confidence < 0.4) {
       emitAgentDecision({

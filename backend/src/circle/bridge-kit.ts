@@ -8,7 +8,7 @@ import type { CctpChainKey } from '../chain/cctpChains.js';
 
 /// Source-chain keys supported by the App Kit bridge path. Mirrors the
 /// hand-rolled CCTP_CHAIN_KEYS for the 5 EVM testnets and adds Solana Devnet
-/// (which the hand-rolled path cannot bridge — it is wired only to EVM CCTP V2
+/// (which the hand-rolled path cannot bridge, it is wired only to EVM CCTP V2
 /// contracts). The hand-rolled path uses [[CctpChainKey]]; the App Kit path
 /// accepts the wider union [[AppKitSourceChainKey]].
 export type AppKitSourceChainKey = CctpChainKey | 'solanaDevnet';
@@ -84,7 +84,7 @@ export const APP_KIT_SOURCE_CHAIN_KEYS = [
 ] as const satisfies readonly AppKitSourceChainKey[];
 
 /// The Circle Wallets adapter is a single object that signs across both EVM
-/// and Solana — it dispatches internally based on the `chain` in each call's
+/// and Solana. It dispatches internally based on the `chain` in each call's
 /// `from` / `to`. We memoize one adapter for the process lifetime; it reads
 /// API credentials lazily so an unset CIRCLE_API_KEY only errors when something
 /// actually tries to bridge, never at module load.

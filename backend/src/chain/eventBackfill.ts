@@ -14,7 +14,7 @@ import {
 
 /// Resolve an event definition by name from a contract ABI. Using the actual
 /// ABI guarantees we get the contract's real parameter types (uint64 vs
-/// uint256, etc) — viem matches events by topic hash, which depends on those
+/// uint256, etc). viem matches events by topic hash, which depends on those
 /// types, so a hand-rolled `parseAbiItem` with one wrong type silently
 /// returns zero logs. Bedeviled networkStats once already.
 function eventByName(abi: readonly unknown[], name: string): AbiEvent {
@@ -29,7 +29,7 @@ function eventByName(abi: readonly unknown[], name: string): AbiEvent {
 /// data/events.json is missing or empty (a fresh deploy or VPS restore) so the
 /// /activity feed comes up populated instead of waiting for live traffic.
 /// Events go through `bus.injectHistorical` which writes straight into the
-/// ring buffer and skips the EventEmitter — Telegram + SSE never see these as
+/// ring buffer and skips the EventEmitter, so Telegram + SSE never see these as
 /// live, no spam.
 ///
 /// Scope: the chain-derivable subset of `PUBLIC_EVENT_TYPES`. Off-chain events
@@ -139,7 +139,7 @@ async function scanOneChunk(
   /// Surface the failure so the admin route can distinguish a clean "no
   /// events on chain" zero from a "every chunk got 429'd" zero. Without
   /// this the operator hits the backfill endpoint, sees {injected: 0},
-  /// and reasonably concludes the backfill has nothing to do — when in
+  /// and reasonably concludes the backfill has nothing to do, when in
   /// reality the RPC quota silently ate the entire scan.
   backfillChunkErrors += 1;
   logger.warn(
@@ -370,19 +370,19 @@ export async function backfillBusFromChain(
   opts: { force?: boolean } = {},
 ): Promise<{ scanned: number; injected: number; chunkErrors: number }> {
   /// Reset the per-invocation chunk-failure counter. Bumped inside
-  /// scanOneChunk's terminal catch each time a chunk exhausts its retries
-  /// — returned alongside scanned/injected so the operator can tell apart
+  /// scanOneChunk's terminal catch each time a chunk exhausts its retries.
+  /// Returned alongside scanned/injected so the operator can tell apart
   /// "no events on chain" from "every chunk got 429'd".
   backfillChunkErrors = 0;
   /// If the bus is already well-populated (disk snapshot loaded a prior
-  /// history), skip the chain replay — it's RPC traffic with no payoff. But
+  /// history), skip the chain replay, it's RPC traffic with no payoff. But
   /// don't gate on >0 alone: a partial backfill from a previous boot could
   /// leave a handful of events that pass the >0 check yet are missing most
   /// of the history. 50 is the threshold below which we re-scan; pass
   /// `force: true` to bypass (admin endpoint, post-redeploy). Also bypass
   /// when events.json was loaded but holds only a handful of recent live
   /// events (e.g. the disk file was wiped during a VPS rebuild and only a
-  /// bridge mint or two have landed since the boot) — the activity feed
+  /// bridge mint or two have landed since the boot). The activity feed
   /// otherwise reads 0 across JOBS / NEGOTIATION / SETTLEMENT because the
   /// chain-derived history never came back.
   const MIN_HEALTHY_HISTORY = 50;
@@ -400,7 +400,7 @@ export async function backfillBusFromChain(
   const envLowerBound = deployBlock < 0n ? 0n : deployBlock;
   /// Hard cap the scan window. Without this, an unset
   /// KARWAN_VAULT_DEPLOY_BLOCK means lowerBound=0 and the scan walks the
-  /// chain's entire history block-by-chunk — observed 7500 chunks hammering
+  /// chain's entire history block-by-chunk. Observed 7500 chunks hammering
   /// the RPC and 429'ing every provider in rotation. Cap to the last
   /// BACKFILL_MAX_LOOKBACK_BLOCKS blocks unless deployBlock is higher.
   const cappedLowerBound =

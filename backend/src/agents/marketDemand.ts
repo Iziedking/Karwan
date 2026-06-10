@@ -14,8 +14,8 @@ import { logger } from '../logger.js';
 /// v1 uses an on-platform supply-scarcity signal (how many other sellers list
 /// the same skills) which is real, synchronous, and needs no external key.
 /// `externalMarketHeat` is the documented plug point for an off-platform "what's
-/// hot" provider (Google Trends, a freelance-rate API, or an LLM web check) —
-/// wire it behind its own API key and it gets blended in automatically.
+/// hot" provider (Google Trends, a freelance-rate API, or an LLM web check).
+/// Wire it behind its own API key and it gets blended in automatically.
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));

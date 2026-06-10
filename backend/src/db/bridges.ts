@@ -35,7 +35,7 @@ export interface BridgeRelay {
   /// Which source chain the DCW lives on. Present only for Circle bridges.
   /// Hand-rolled (CCTP V2 contract direct) bridges use a CctpChainKey (the
   /// 5 EVM testnets). App Kit bridges can additionally be 'solanaDevnet',
-  /// which the hand-rolled path cannot handle — `appKit: true` below marks
+  /// which the hand-rolled path cannot handle. `appKit: true` below marks
   /// those records so resume logic skips them.
   sourceChainKey?: AppKitSourceChainKey;
   /// True when this bridge is managed by the App Kit + Forwarding Service
@@ -57,7 +57,7 @@ export interface BridgeRelay {
   /// accepting a submit and our process persisting the txId: if our process
   /// dies in that window, retry sends the same key and Circle dedupes instead
   /// of accepting a second submission. Absent on bridges created before this
-  /// field landed — those fall back to the SDK's per-call auto-generated key.
+  /// field landed. Those fall back to the SDK's per-call auto-generated key.
   approveIdempotencyKey?: string;
   burnIdempotencyKey?: string;
   createdAt: number;
@@ -144,7 +144,7 @@ export async function listBridgesForWallets(
 
 /// All bridge records across every wallet. Used by the bus synthesis on
 /// boot to inject `bridge.minted` events for any completed bridge that
-/// isn't already in the bus history — keeps the /activity counter aligned
+/// isn't already in the bus history, keeps the /activity counter aligned
 /// with what the per-user bridge history modal already shows.
 export async function listAllBridges(): Promise<BridgeRelay[]> {
   const all = pgEnabled

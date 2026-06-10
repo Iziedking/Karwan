@@ -2,11 +2,11 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 
-/// SKILL.md §4.9 — status pill. Leading 6px dot in the semantic color. Mono
+/// SKILL.md §4.9. Status pill. Leading 6px dot in the semantic color. Mono
 /// uppercase 11px text. Background = surface tint at 8% opacity of the
 /// semantic color. Border = 1px at 16% opacity. Radius 999px.
 ///
-/// Reserved for settlement state — never decorative. Variants map to the
+/// Reserved for settlement state, never decorative. Variants map to the
 /// rail color set.
 
 export type StatusPillVariant = 'pos' | 'warn' | 'neg' | 'info' | 'neutral';

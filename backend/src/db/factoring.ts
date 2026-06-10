@@ -63,9 +63,7 @@ export interface FactoringOffer {
   updatedAt: number;
 }
 
-/* =============================================================== */
-/*                         REPOSITORY API                           */
-/* =============================================================== */
+// Repository API
 
 export async function getFactoringOffer(id: string): Promise<FactoringOffer | null> {
   if (pgEnabled) {
@@ -160,7 +158,7 @@ export async function listOpenOffers(): Promise<FactoringOffer[]> {
 
 /// All accepted offers awaiting settlement. The settlement watcher walks
 /// these each tick. (The old watcher iterated listOpenOffers, which only
-/// returns 'offered' rows, then skipped everything not 'accepted' — a
+/// returns 'offered' rows, then skipped everything not 'accepted'. This was a
 /// dead loop that never settled anything.)
 export async function listAcceptedOffers(): Promise<FactoringOffer[]> {
   if (pgEnabled) {
@@ -227,9 +225,7 @@ export async function getAcceptedOfferForInvoice(invoiceId: string): Promise<Fac
   ) ?? null;
 }
 
-/* =============================================================== */
-/*                          FLAT-FILE                               */
-/* =============================================================== */
+// Flat-file
 
 function ensureFile() {
   const dir = dirname(STORE_PATH);

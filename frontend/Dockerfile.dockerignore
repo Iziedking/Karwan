@@ -1,0 +1,16 @@
+# Per-Dockerfile ignore for frontend/Dockerfile (BuildKit prefers this over
+# the root .dockerignore, which excludes frontend/** because it serves the
+# API image). Allow-list style: exclude everything, re-include what the
+# frontend build needs, then carve out heavy or secret subpaths.
+**
+
+!package.json
+!package-lock.json
+!frontend/**
+
+frontend/node_modules/**
+frontend/.next/**
+frontend/.env
+frontend/.env.*
+frontend/todo.md
+**/.DS_Store

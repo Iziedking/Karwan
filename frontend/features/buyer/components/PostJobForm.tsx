@@ -14,6 +14,7 @@ import { looksLikeWrongSide } from '@/shared/utils/intentDetect';
 import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -119,7 +120,7 @@ export function PostJobForm() {
   // insurance reservation. For higher-value or one-shot deals.
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
   // SME trade-finance state. Split into separate hooks per the Vercel
-  // `rerender-split-combined-hooks` rule — each picker mutates only its own
+  // `rerender-split-combined-hooks` rule. Each picker mutates only its own
   // slice so a sector change never re-renders unrelated inputs.
   const [tradeType, setTradeType] = useState<TradeType>('service');
   const [incoterms, setIncoterms] = useState<IncotermsCode | null>(null);
@@ -381,7 +382,8 @@ export function PostJobForm() {
         </FormLabel>
       </FieldSection>
 
-      {/* TRADE CONTEXT */}
+      {/* TRADE CONTEXT. Part of the SME Trades rail; hidden until launch. */}
+      {SME_TRADES_ENABLED && (
       <FieldSection eyebrow="[:TRADE CONTEXT:]" title="Goods or service">
         <FormLabel label="Trade type">
           <div className="flex gap-2 flex-wrap">
@@ -574,6 +576,7 @@ export function PostJobForm() {
           </>
         ) : null}
       </FieldSection>
+      )}
 
       {/* TERMS */}
       <FieldSection eyebrow={t.sectionTerms.eyebrow} title={t.sectionTerms.title}>

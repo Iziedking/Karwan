@@ -69,7 +69,7 @@ const defaultBodySchema = z.object({
 
 export const poFinancingRoutes = new Hono();
 
-/// GET /api/po-financing/available — deals open to PO financing.
+/// GET /api/po-financing/available: deals open to PO financing.
 /// Accepted invoices without an existing PO line and not yet delivered.
 poFinancingRoutes.get('/available', async (c) => {
   const sector = c.req.query('sector');
@@ -92,7 +92,7 @@ poFinancingRoutes.get('/available', async (c) => {
   return c.json({ deals: filtered });
 });
 
-/// POST /api/po-financing/fund — financier records that they funded a
+/// POST /api/po-financing/fund: financier records that they funded a
 /// PO line on chain. The contract tx already confirmed; we mirror state.
 poFinancingRoutes.post('/fund', async (c) => {
   if (!config.KARWAN_PO_FINANCING_ADDR) {
@@ -180,7 +180,7 @@ const fundCircleBodySchema = z.object({
   releaseTimeoutSeconds: z.number().int().min(60).max(5 * 365 * 24 * 60 * 60),
 });
 
-/// POST /api/po-financing/fund-circle — Circle DCW-only sister route.
+/// POST /api/po-financing/fund-circle: Circle DCW-only sister route.
 /// Backend signs USDC.approve(financing, principal) then
 /// KarwanPOFinancing.fund(invoiceId, principal, repay, releaseTimeoutSeconds)
 /// via the caller's identity wallet, mirrors the line + emits po.funded
@@ -325,7 +325,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
   }
 });
 
-/// POST /api/po-financing/release — anyone records that releaseToSeller
+/// POST /api/po-financing/release: anyone records that releaseToSeller
 /// fired on chain after PoD anchored. Updates state to Released.
 poFinancingRoutes.post('/release', async (c) => {
   let body;
@@ -359,7 +359,7 @@ poFinancingRoutes.post('/release', async (c) => {
   return c.json({ line: updated });
 });
 
-/// POST /api/po-financing/claim — financier or seller records that
+/// POST /api/po-financing/claim: financier or seller records that
 /// claimRepayment fired on chain. Updates state to Settled.
 poFinancingRoutes.post('/claim', async (c) => {
   const session = readSession(c);
@@ -398,7 +398,7 @@ poFinancingRoutes.post('/claim', async (c) => {
   return c.json({ line: updated });
 });
 
-/// POST /api/po-financing/reclaim — financier reclaimed principal after
+/// POST /api/po-financing/reclaim: financier reclaimed principal after
 /// the release timeout passed with no PoD. State -> Reclaimed.
 poFinancingRoutes.post('/reclaim', async (c) => {
   const session = readSession(c);
@@ -434,7 +434,7 @@ poFinancingRoutes.post('/reclaim', async (c) => {
   return c.json({ line: updated });
 });
 
-/// POST /api/po-financing/default — financier writes off the line after
+/// POST /api/po-financing/default: financier writes off the line after
 /// the repayment window expired. State -> Defaulted.
 poFinancingRoutes.post('/default', async (c) => {
   const session = readSession(c);
@@ -470,7 +470,7 @@ poFinancingRoutes.post('/default', async (c) => {
   return c.json({ line: updated });
 });
 
-/// GET /api/po-financing/mine — lines belonging to the signed-in user as
+/// GET /api/po-financing/mine: lines belonging to the signed-in user as
 /// financier OR seller.
 poFinancingRoutes.get('/mine', async (c) => {
   const session = readSession(c);
@@ -483,14 +483,14 @@ poFinancingRoutes.get('/mine', async (c) => {
   return c.json({ asFinancier, asSeller });
 });
 
-/// GET /api/po-financing/open — lines in non-terminal state. Used by the
+/// GET /api/po-financing/open: lines in non-terminal state. Used by the
 /// timeout watcher.
 poFinancingRoutes.get('/open', async (c) => {
   const lines = await listOpenLines();
   return c.json({ lines });
 });
 
-/// GET /api/po-financing/line/:id — fetch a single line.
+/// GET /api/po-financing/line/:id: fetch a single line.
 poFinancingRoutes.get('/line/:id', async (c) => {
   const line = await getPOLine(c.req.param('id'));
   if (!line) return c.json({ error: 'unknown line' }, 404);

@@ -26,7 +26,7 @@ export interface DealInviteEmailInput {
   acceptanceLabel?: string;
   /// Delivery deadline if the seller accepts ("Deliver within 7 days").
   /// Mirrors the buyer's deadlineDays + deadlineHours. Omit for open-ended
-  /// deals (no deadline) — the block renders an "Open-ended" pill instead.
+  /// deals (no deadline). The block renders an "Open-ended" pill instead.
   deliveryLabel?: string;
 }
 
@@ -38,7 +38,7 @@ export interface SendResult {
 function inviteInnerHtml(input: DealInviteEmailInput): string {
   /// Two-deadline block: accept-by + deliver-by. Recipients used to see
   /// only the invite-link expiry ("Expires in 6 days") which conflated two
-  /// distinct windows — the time they have to ACCEPT the deal once they
+  /// distinct windows: the time they have to ACCEPT the deal once they
   /// click, and the time the SELLER has to DELIVER once accepted. Render
   /// both side-by-side as a metric pair so the recipient understands what
   /// they're signing up for before they click claim. Falls back to the
@@ -142,7 +142,7 @@ export async function sendDealInviteEmail(
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,
-      /// Match the OTP route — replies land in the human-monitored inbox
+      /// Match the OTP route, replies land in the human-monitored inbox
       /// so an invitee with a question about the deal reaches a person
       /// instead of bouncing off the no-reply sender.
       replyTo: 'support@karwan.site',

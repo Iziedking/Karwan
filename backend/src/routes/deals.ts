@@ -75,7 +75,7 @@ const createSchema = z
     sellerEmail: z.string().email().toLowerCase().optional(),
     dealAmountUsdc: z.number().positive(),
     // Optional delivery deadline. When omitted (or both fields = 0) the deal
-    // is open-ended — the seller has no time pressure and the buyer can't
+    // is open-ended, the seller has no time pressure and the buyer can't
     // unilateral-cancel for late delivery. When set, total must land between
     // 1 hour and 180 days.
     deadlineDays: z.number().int().min(0).max(180).optional().default(0),
@@ -89,7 +89,7 @@ const createSchema = z
     /// Trusted-match flag. When true, this deal is high-trust: the seller
     /// must hold enough free stake to cover the per-deal reservation, which
     /// gets slashed if they lose a dispute. When false, the deal is casual
-    /// — v2.E+ escrows pass reservationBps=0 to fundEscrow, the vault is
+    /// On v2.E+ escrows pass reservationBps=0 to fundEscrow, the vault is
     /// never touched, and the seller can accept without any stake.
     requireStake: z.boolean().optional().default(false),
     /// Stake percentage chosen by the buyer when requireStake is true. The
@@ -468,7 +468,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   /// Pending-invite recipients haven't signed in yet, so the Telegram path
   /// can't reach them. Send a branded update email to the address on the
   /// invite record. Fire-and-forget so a transient send failure never blocks
-  /// the edit response — the buyer still gets a 200 either way.
+  /// the edit response, the buyer still gets a 200 either way.
   const pendingEmail = updated?.pendingCounterparty?.email ?? null;
   const pendingInvite = pendingEmail ? getInviteByJob(jobId) : null;
   if (updated && pendingInvite && pendingEmail) {
@@ -593,7 +593,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 
   // Re-anchor both deadlines so they start counting from CLAIM time, not
   // creation time. Without this, a buyer who sets a 24h delivery deadline
-  // and a 24h acceptance window has both windows pinned to deal creation —
+  // and a 24h acceptance window has both windows pinned to deal creation.
   // by the time the recipient claims 5 days later, both have long expired.
   //
   // We don't store the configured deltas, but they're recoverable: the
@@ -632,7 +632,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
       buyer: deal.buyer,
       seller: invite.role === 'seller' ? session.address.toLowerCase() : deal.seller,
       /// Surface the amount on the event so the bell + Telegram message
-      /// can read it inline — same shape deal.direct.created already uses.
+      /// can read it inline, same shape deal.direct.created already uses.
       /// Without this the post-claim notification reads "deal bound" with
       /// no number, which is the user-facing point of the new ping.
       dealAmountUsdc: deal.dealAmountUsdc,
@@ -934,7 +934,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
           return c.json({ error: message, code: 'INSUFFICIENT_STAKE' }, 409);
         }
       } catch (err) {
-        // Read failure on the vault is not blocking — fall through to the
+        // Read failure on the vault is not blocking. Fall through to the
         // chain call which will revert with the same constraint if needed.
         logger.warn(
           { jobId, err: (err as Error).message },
@@ -947,7 +947,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     // escrow from Funded to Accepted and locks an insurance reservation
     // on the vault (dealAmount * reservationBps / 10000). Without this
     // the buyer can never release milestones. Failure modes are surfaced
-    // back to the seller as actionable errors — most commonly
+    // back to the seller as actionable errors, most commonly
     // "insufficient stake" if the seller agent hasn't deposited enough.
     try {
       const acceptTx = await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
@@ -955,9 +955,9 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       // ERC-4337 inner-revert guard: handleOps can land as a successful tx
       // even when the inner acceptEscrow userOp reverted (eg vault.reserve
       // fails because the seller's stake check on chain disagrees with our
-      // off-chain pre-flight — race condition or stale vault read). Without
+      // off-chain pre-flight, race condition or stale vault read). Without
       // this verify step, off-chain acceptedAt would be set even though
-      // on-chain state is still Funded — exactly the bug that made the
+      // on-chain state is still Funded, exactly the bug that made the
       // seller see "tx FAILED" later on Mark Delivered.
       invalidateEscrowCache(jobId);
       const acceptedAccount = await readEscrow(jobId);
@@ -1008,7 +1008,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         actor: 'seller',
         payload: { scope: 'acceptEscrow', message, code },
       });
-      // The escrow stays in Funded state on chain — the buyer's USDC is
+      // The escrow stays in Funded state on chain, the buyer's USDC is
       // locked there. The buyer can dispute + refund to recover (which
       // skips slash since reservedAmount is still 0). We return the error
       // so the seller knows; off-chain state stays clean (no acceptedAt
@@ -1056,7 +1056,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'direct deal accept failed');
-    // Emit a notification event so the buyer sees this in the bell — they need
+    // Emit a notification event so the buyer sees this in the bell. They need
     // to top the buyer agent up before the seller can accept.
     if (info.code === 'INSUFFICIENT_AGENT_BALANCE' || info.code === 'INSUFFICIENT_AGENT_GAS') {
       bus.emitEvent({
@@ -1285,7 +1285,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
           }
         }
       } catch (err) {
-        // Vault read failed. Don't block here — fall through to the chain
+        // Vault read failed. Don't block here. Fall through to the chain
         // call and let the contract revert do the gating. The catch below
         // surfaces the chain error to the user.
         logger.warn(
@@ -1310,7 +1310,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
         ? 'INSUFFICIENT_STAKE'
         : 'ACCEPT_ESCROW_FAILED';
       // When the on-chain revert reason isn't recognisable, the buyer needs a
-      // recovery path that doesn't depend on the seller — disputing and
+      // recovery path that doesn't depend on the seller, disputing and
       // refunding still works from Funded, and doesn't touch stake reservations.
       const detail = isInsufficientStake
         ? `The seller's free stake won't cover this deal. Ask them to top up at /stake, or call the deal off via Propose Cancellation or Appeal This Deal to refund.`
@@ -1560,7 +1560,7 @@ dealsRoutes.post('/direct/:jobId/extension/respond', async (c) => {
 });
 
 /// Seller raises a delay appeal when the buyer is sitting on the final
-/// release without acting. Off-chain only — the on-chain escrow stays
+/// release without acting. Off-chain only, the on-chain escrow stays
 /// Accepted. The buyer has DEAL_DELAY_APPEAL_RESPONSE_MS to click respond,
 /// otherwise the watcher auto-releases the final milestone.
 dealsRoutes.post('/direct/:jobId/delay-appeal', async (c) => {
@@ -1851,7 +1851,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
 
   // Once accepted and funded, unilateral cancel is gated on a delivery
   // deadline passing without delivery. Open-ended deals (no deadline set)
-  // have no unilateral cancel path — only mutual cancel or appeal.
+  // have no unilateral cancel path, only mutual cancel or appeal.
   if (!deal.deadlineUnix) {
     return c.json(
       {
@@ -2078,7 +2078,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     // 'release-from-dispute' would not be a sensible request otherwise.
     // Pre-dispute proposals (mutual / platform-attributed) drive the escrow
     // through dispute() first so refund() can run, unless the seller already
-    // appealed (Disputed state) — in which case skip dispute() to avoid
+    // appealed (Disputed state), in which case skip dispute() to avoid
     // InvalidState.
     if (account.state !== ESCROW_DISPUTED) {
       if (isReleaseFromDispute) {
@@ -2112,7 +2112,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
         ? 'seller'
         : undefined;
 
-    /// release-from-dispute lands the seller in Settled on chain — mirror
+    /// release-from-dispute lands the seller in Settled on chain. Mirror
     /// that off-chain by setting settledAt (NOT cancelledAt) so the deal card
     /// reads "settled via dispute resolution". cancelKind still carries the
     /// resolution kind so the UI body can be honest about how it ended.

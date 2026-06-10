@@ -19,9 +19,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 contract KarwanYieldDistributor is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /* =============================================================== */
-    /*                            STORAGE                               */
-    /* =============================================================== */
+    // Storage
 
     /// @notice USDC token. Set at construction, never changes. Distributor is
     ///         USDC-only by design; tokens of any other kind sent here are
@@ -51,9 +49,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     ///         totalCredited - totalClaimed.
     uint256 public totalClaimed;
 
-    /* =============================================================== */
-    /*                            EVENTS                                */
-    /* =============================================================== */
+    // Events
 
     /// @notice Emitted once per (staker, amount) pair inside bulkCredit. The
     ///         indexed `day` (unix day number) lets the backend group a
@@ -72,9 +68,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     ///         claimables.
     event ExcessRecovered(address indexed to, uint256 amount);
 
-    /* =============================================================== */
-    /*                            ERRORS                                */
-    /* =============================================================== */
+    // Errors
 
     error NotOwner();
     error NotOperator();
@@ -85,9 +79,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     error NothingToClaim();
     error InsufficientExcess();
 
-    /* =============================================================== */
-    /*                          CONSTRUCTOR                             */
-    /* =============================================================== */
+    // Constructor
 
     /// @param _usdc      USDC token address. On Arc this is
     ///                   0x3600000000000000000000000000000000000000.
@@ -99,9 +91,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         operator = _operator;
     }
 
-    /* =============================================================== */
-    /*                           MODIFIERS                              */
-    /* =============================================================== */
+    // Modifiers
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -113,16 +103,14 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         _;
     }
 
-    /* =============================================================== */
-    /*                          DISTRIBUTION                            */
-    /* =============================================================== */
+    // Distribution
 
     /// @notice Credit each staker their pro-rata daily yield and pull the
     ///         total USDC from the caller (operator) in one atomic tx.
     ///         Operator MUST approve at least sum(amounts) USDC to this
     ///         contract before calling.
     ///
-    ///         Zero amounts in the batch are skipped silently — the cron may
+    ///         Zero amounts in the batch are skipped silently, the cron may
     ///         pass them to keep arrays aligned with the vault's full active
     ///         staker list, even if a particular staker accrued nothing this
     ///         tick (e.g. they entered cooldown).
@@ -162,9 +150,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         usdc.safeTransferFrom(msg.sender, address(this), total);
     }
 
-    /* =============================================================== */
-    /*                              CLAIM                               */
-    /* =============================================================== */
+    // Claim
 
     /// @notice Withdraw the caller's full claimable balance to themselves.
     /// @return amount The USDC amount transferred.
@@ -174,7 +160,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
 
     /// @notice Withdraw the caller's full claimable balance to a different
     ///         recipient address. Useful for delegated claim or hot/cold
-    ///         wallet split — the staker remains the credit owner; the
+    ///         wallet split, the staker remains the credit owner; the
     ///         recipient is just where the USDC lands.
     /// @param  recipient Address that receives the USDC.
     /// @return amount    The USDC amount transferred.
@@ -192,9 +178,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         emit YieldClaimed(staker, recipient, amount);
     }
 
-    /* =============================================================== */
-    /*                              VIEWS                               */
-    /* =============================================================== */
+    // Views
 
     /// @notice USDC sitting in the contract NOT backing an outstanding claim.
     ///         Sources: operator over-funding by mistake, residual rounding
@@ -213,9 +197,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         return totalCredited - totalClaimed;
     }
 
-    /* =============================================================== */
-    /*                              ADMIN                               */
-    /* =============================================================== */
+    // Admin
 
     /// @notice Recover USDC that was accidentally over-deposited and is NOT
     ///         backing any outstanding claim. Bounded by excessReserves();

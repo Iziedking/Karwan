@@ -63,7 +63,7 @@ export function ListingComposer() {
       });
       recordAction('post-listing');
       // Listings don't have a per-listing detail page that auto-opens after
-      // create on this surface — staying on /seller surfaces it under the
+      // create on this surface, staying on /seller surfaces it under the
       // seller's recent listings band.
       if (typeof window !== 'undefined') {
         window.location.reload();

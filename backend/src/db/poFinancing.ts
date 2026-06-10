@@ -45,9 +45,7 @@ export interface POFinancingLine {
   updatedAt: number;
 }
 
-/* =============================================================== */
-/*                         REPOSITORY API                           */
-/* =============================================================== */
+// Repository API
 
 export async function getPOLine(id: string): Promise<POFinancingLine | null> {
   if (pgEnabled) {
@@ -186,7 +184,7 @@ export async function listOpenLines(): Promise<POFinancingLine[]> {
 
 /// All lines for a specific sector / region pairing. Used by the
 /// /financier dashboard for filtered views (no PG-side index for this;
-/// scans all). The filter applies to the seller's stored region — we
+/// scans all). The filter applies to the seller's stored region, we
 /// pull the seller profile separately in the route layer.
 export async function listAllLines(): Promise<POFinancingLine[]> {
   if (pgEnabled) {
@@ -199,9 +197,7 @@ export async function listAllLines(): Promise<POFinancingLine[]> {
   return Object.values(loadFile()).sort((x, y) => y.fundedAt - x.fundedAt);
 }
 
-/* =============================================================== */
-/*                          FLAT-FILE                               */
-/* =============================================================== */
+// Flat-file
 
 function ensureFile() {
   const dir = dirname(STORE_PATH);

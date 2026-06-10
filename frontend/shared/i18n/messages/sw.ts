@@ -28,14 +28,14 @@ export const sw: Messages = {
     market: 'Soko',
     bridge: 'Daraja',
     smeTrades: 'Biashara za SME',
-    trades: 'Biashara',
-    tradesGroupEyebrow: 'Biashara',
+    trades: 'Biashara za P2P',
+    tradesGroupEyebrow: 'Biashara za P2P',
     soonBadge: 'hivi karibuni',
     hints: {
       home: 'Kituo chako kikuu. Biashara, shughuli, na hatua inayofuata.',
       market: 'Vinjari maombi na ofa zilizo wazi za wengine.',
       bridge: 'Hamisha USDC kutoka mnyororo mwingine hadi Arc.',
-      smeTrades: 'Karwan kwa biashara za SME za kitaasisi. Malipo kwa wakala wako mwenyewe kwenye Arc. Inazinduliwa baada ya jaribio la kwanza.',
+      smeTrades: 'Ufadhili wa ankara na ufadhili wa PO kwenye Arc. Inafunguliwa kwa wafadhili baada ya jaribio la kwanza.',
       activity: 'Mtiririko wa moja kwa moja wa kila biashara na malipo.',
       stake: 'Funga USDC ili kuinua kiwango cha sifa yako.',
       profile: 'Pochi zako, mawakala, na sifa.',
@@ -1259,7 +1259,7 @@ export const sw: Messages = {
     },
     factors: {
       eyebrow: 'Vipengele vya alama',
-      scaleCaption: 'kila moja 0 — 100',
+      scaleCaption: 'kila moja 0 hadi 100',
       labels: {
         completion: 'Ukamilifu',
         stake: 'Dhamana',

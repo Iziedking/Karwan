@@ -6,10 +6,10 @@
 /// success history can read as zero on the credit passport.
 ///
 /// This module closes the gap two ways:
-///   1) reconcileReputationOnce — one pass over DB-settled deals, replays any
+///   1) reconcileReputationOnce: one pass over DB-settled deals, replays any
 ///      that the chain doesn't already know about. Called by the admin
 ///      backfill endpoint and by the periodic loop below.
-///   2) startReputationReconciler — periodic timer wrapping (1) so future
+///   2) startReputationReconciler: periodic timer wrapping (1) so future
 ///      silent failures self-heal without operator intervention.
 ///
 /// Per-jobId attempt tracking lives in memory; a jobId that fails repeatedly
@@ -81,7 +81,7 @@ function clearAttempts(jobId: string): void {
 /// agent wallet to sign with, asks the chain whether it's already recorded,
 /// and (when not in dry-run) calls recordReputation for any that aren't.
 /// Verifies each write by re-reading recorded[jobId] before counting it as
-/// success — recordReputation swallows its own errors, so a returned promise
+/// success, since recordReputation swallows its own errors, so a returned promise
 /// resolving is not proof the tx landed.
 export async function reconcileReputationOnce(
   opts: ReconcileOptions = {},
@@ -145,14 +145,14 @@ export async function reconcileReputationOnce(
     // settledAt as the success marker, and Disputed/Failed paths advance
     // disputedAt/cancelledAt instead). recordReputation's own catch swallows
     // errors and only logs, so the verify re-read below is the proof of
-    // landing — not the absence of an exception.
+    // landing, not the absence of an exception.
     const outcome: ReputationOutcome = OUTCOME_SUCCESS;
     noteAttempt(deal.jobId);
 
     try {
       await recordReputation(deal.jobId, deal.buyerAgentWalletId!, outcome);
     } catch (err) {
-      // recordReputation itself doesn't throw — this is purely defensive in
+      // recordReputation itself doesn't throw. This is purely defensive in
       // case a future change reintroduces a throw path. Record + continue.
       result.failed.push({
         jobId: deal.jobId,
@@ -186,7 +186,7 @@ export async function reconcileReputationOnce(
 }
 
 /// Periodic loop. Runs the reconciler at a fixed interval so silent
-/// recordReputation failures self-heal — no operator curl required. Cheap to
+/// recordReputation failures self-heal, no operator curl required. Cheap to
 /// run because the common case is "all candidates already recorded" and the
 /// loop just reads `recorded` 0-15 times then exits.
 ///

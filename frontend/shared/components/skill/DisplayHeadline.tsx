@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { ease, dur, wordReveal } from '@/shared/motion/tokens';
 
-/// SKILL.md §4.2 — the display title. Three sizes per the skill's scale:
+/// SKILL.md §4.2. The display title. Three sizes per the skill's scale:
 ///   - xl: hero only (display-xl, clamp 56→128)
 ///   - lg: page H1 (display-lg, clamp 40→80)
 ///   - md: section heads / card titles in feature grids (display-md, clamp 28→44)

@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1.7
+
+# ============================================================================
+# Karwan frontend image — LOCAL TESTING ONLY.
+#
+# Production frontend ships via Vercel; this image exists so the full stack
+# can run on one machine (docker-compose.local.yml) before a push fires the
+# CI/CD pipeline. Build context is the REPO ROOT (the workspace lockfile
+# lives there); the sibling Dockerfile.dockerignore scopes the context.
+#
+# NEXT_PUBLIC_BACKEND_URL is baked at build time (Next.js inlines public env
+# into the client bundle), so the compose file passes it as a build arg.
+# ============================================================================
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Workspace manifests first so the dep layer caches across source changes.
+COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/
+
+RUN npm ci --workspace=frontend --include-workspace-root
+
+COPY frontend frontend
+
+ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:9091
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN npm --prefix frontend run build
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+WORKDIR /app/frontend
+CMD ["npm", "start"]

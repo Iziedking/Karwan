@@ -97,7 +97,7 @@ export function LoginModal({ open, onClose }: Props) {
   // fire the ceremony with no await in between (the iOS activation fix). A fresh
   // challenge each time, so a retry after a cancel uses a valid one. MUST sit
   // above the early returns below so the hook order is identical whether the
-  // modal is open or closed — otherwise opening it runs extra hooks and React
+  // modal is open or closed, otherwise opening it runs extra hooks and React
   // throws #310 ("rendered more hooks than during the previous render").
   const prefetchPasskey = useCallback(async () => {
     if (!plan || plan.pref !== 'passkey') return;
@@ -336,7 +336,7 @@ export function LoginModal({ open, onClose }: Props) {
           </button>
         </div>
 
-        {/* Title block — fixed height keeps the modal from jumping between stages */}
+        {/* Title block, fixed height keeps the modal from jumping between stages */}
         <div className="px-6 pt-2 pb-5">
           <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)] leading-tight">
             {stage === 'pick-method' && t.title.signIn}

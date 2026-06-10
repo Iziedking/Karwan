@@ -10,8 +10,8 @@
   asymmetric negotiation walk, the deal watcher that runs review-window
   timers and the auto-release ladder, the CCTP relay (both directions),
   the SSE event bus, the OTP and SIWE auth flow, and the cashout router.
-- **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury` V3, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002). USDC is the native gas asset. Treasury V3 subscribes idle USDC into real Hashnote USYC via the ERC-4626 Teller (live since 2026-06-06). Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
-- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2, App Kit, Gas Station, Hashnote USYC. See [circle-integration.md](./circle-integration.md).
+- **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury`, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002), plus `KarwanInvoiceRegistry` and `KarwanPOFinancing` for the SME layer. USDC is the native gas asset. The treasury subscribes idle USDC into Hashnote USYC through an ERC-4626 Teller. Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
+- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2, Gas Station, Hashnote USYC, and x402 nanopayments. See [circle-integration.md](./circle-integration.md).
 - **Storage.** Postgres (via Drizzle) for profile and direct-deal metadata,
   with a flat-file fallback that mirrors the same shape for fast cold
   starts. The chain is the source of truth for everything financial;
@@ -143,8 +143,36 @@ reservation slashes to the buyer on a refund-out path.
 
 ## Reputation
 
-When a deal settles, the buyer agent calls `recordCompletion` on
-`KarwanReputation` with a Success outcome against the seller. A cancel records
-Failed. An appeal records DisputeResolved. `getReputationScore` returns a score
-in basis points that the frontend renders as a tier. The score follows the
-wallet, not a Karwan account.
+When a deal settles, the agent calls `recordCompletion` on `KarwanReputation`.
+A clean settlement records Success, a cancel records Failed, and an appeal
+records DisputeResolved, against both parties so each side's record reflects
+the outcome. The on-chain counts feed a composite score from 0 to 1000 that
+the app renders as a tier, blending settled-deal history, stake, activity, and
+account age. The score follows the wallet, not a Karwan account. The full
+formula, tier breakpoints, and agent integration are in
+[reputation-model.md](./reputation-model.md).
+
+## SME Trades
+
+The SME layer extends the same escrow primitive to business-to-business and
+cross-border trade finance. It is built and gated behind a launch flag while
+it runs through pilot, so the surfaces below stay off the P2P deal view until
+the flag is set.
+
+- **Trade context.** A deal can carry Incoterms, payment terms, counterparty
+  company details, and document hashes anchored on `KarwanInvoiceRegistry`.
+- **Invoice factoring.** A financier advances a seller a discounted payout
+  against an accepted invoice, signed as a USDC EIP-3009 authorization at offer
+  time. On settlement, a settlement watcher routes the repayment from seller to
+  financier. The discount is gated by the seller's reputation tier.
+- **Purchase-order financing.** `KarwanPOFinancing` holds a financier's
+  advance against an accepted purchase order and releases it to the supplier
+  when proof of delivery is anchored on the registry.
+- **Credit passport.** The reputation surface gains an SME band with company
+  details and a rolling repayment record, so a financier can underwrite a
+  counterparty from one shareable page.
+- **Paid agent signals.** Agents pay per call over Circle's x402 nanopayment
+  surface for outside data during bid scoring: counterparty sanctions
+  screening, the platform's own credit-passport reads, and market context.
+  Settlement runs through Circle Gateway batching so a sub-cent call never pays
+  a full transaction fee.

@@ -48,7 +48,7 @@ interface ActiveBid {
   jobContext: JobContext;
   lastBidPrice: string;
   /** The seller's opening price on this auction. Anchors the counter-evaluation
-   *  floor for profile-driven bids — the agent won't drop the price more than
+   *  floor for profile-driven bids, so the agent won't drop the price more than
    *  PROFILE_MAX_DECREASE_PCT below this. Without it, the LLM would happily
    *  walk all the way down to the seller's profile-wide minBudgetUsdc on every
    *  job, even ones where they opened far above that floor. */
@@ -69,7 +69,7 @@ interface ActiveBid {
 }
 
 /// How far below the original bid the seller agent will steer on a profile-
-/// matched (non-listing) bid. 15% is a reasonable concession band — enough to
+/// matched (non-listing) bid. 15% is a reasonable concession band, enough to
 /// move on a real negotiation, not enough to capitulate to a lowball.
 const PROFILE_MAX_DECREASE_PCT = 15;
 
@@ -78,8 +78,8 @@ const activeBids = new Map<string, ActiveBid>();
 const handledEvents = new Set<string>();
 
 /// Submit a bid on an open buyer brief on behalf of a seller listing. Bypasses
-/// the seller agent's LLM bid decision because the listing IS the decision —
-/// the seller has pre-committed to this price and tolerance. From here the bid
+/// the seller agent's LLM bid decision because the listing IS the decision.
+/// The seller has pre-committed to this price and tolerance. From here the bid
 /// flows through the normal counter/accept loop, with the listing's tolerance
 /// applied in counter-evaluation.
 export async function submitListingBid(
@@ -601,7 +601,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   });
 }
 
-/// Per-seller opening bid — demand-driven, with bounded jitter so it doesn't
+/// Per-seller opening bid, demand-driven, with bounded jitter so it doesn't
 /// fall into a fixed pattern.
 ///
 /// Economic model: a buyer who posts a brief has committed to that budget as
@@ -616,7 +616,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
 /// keeps a multi-seller auction spread out instead of every seller converging on
 /// one number. Returns null when no point in [budget, ceiling] is reachable for
 /// this seller (their max is below the buyer's budget, or their min above the
-/// ceiling) — i.e. no possible deal, so skip.
+/// ceiling), i.e. no possible deal, so skip.
 function sellerOpeningBid(
   seller: SellerProfile,
   job: JobContext,
@@ -627,7 +627,7 @@ function sellerOpeningBid(
   const tol = job.negotiationMaxIncreasePct ?? 0;
   const buyerCeiling = budget * (1 + tol / 100);
   // Floor = the buyer's posted budget, never below it. (The seller's own
-  // minimum still applies if it's higher — that seller wants more than the
+  // minimum still applies if it's higher. That seller wants more than the
   // buyer offered, so they open above the buyer's price.)
   const floor = Math.max(seller.minBudgetUsdc, budget);
   const ceiling = Math.min(seller.maxBudgetUsdc, buyerCeiling);
@@ -646,7 +646,7 @@ function sellerOpeningBid(
   };
   const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
   // Market heat is the heaviest input, so a hot skill genuinely holds nearer the
-  // ceiling and a common one prices down — the open tracks live demand, not a
+  // ceiling and a common one prices down. The open tracks live demand, not a
   // fixed formula. A per-bid jitter keeps the same seller from opening at the
   // identical point each time (less robotic, harder to game); the address seed
   // still spreads a multi-seller auction. All clamped within [floor, ceiling].
@@ -713,7 +713,7 @@ async function runCounterEvaluation(
   const buyerCounterPrice = formatUnits(args.newPrice, USDC_DECIMALS);
   const buyerCounterDeadlineUnix = Number(args.newDeadline);
 
-  // Counter steering — pick a floor and ceiling for the LLM's negotiation range:
+  // Counter steering. Pick a floor and ceiling for the LLM's negotiation range:
   //  * Listing-driven bids: floor = listing's floor, ceiling = listing's asking
   //    price (set at listing time, overrides profile-wide range).
   //  * Profile-driven bids: floor = max(profile minimum, original bid * (1 -
@@ -724,7 +724,7 @@ async function runCounterEvaluation(
   const originalBid = Number(active.originalBidPriceUsdc);
   // Brief-flow floor includes the buyer's posted budget: the seller negotiates
   // upward from what the buyer offered and never concedes below it. (Listing
-  // flow keeps the listing's own floor — that's the seller-initiated flow where
+  // flow keeps the listing's own floor. That's the seller-initiated flow where
   // the buyer is the one pricing down toward their budget.)
   const briefBudget = Number(active.jobContext.budgetUsdc);
   const profileFloor = active.listingFloorUsdc

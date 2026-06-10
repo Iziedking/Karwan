@@ -29,7 +29,7 @@ export function useUserProfile() {
     staleTime: 60_000,
   });
 
-  /// Refetch on route change (returning from /onboarding) — the profile
+  /// Refetch on route change (returning from /onboarding). The profile
   /// row may have flipped role / displayName since last fetch.
   useEffect(() => {
     if (!enabled) return;

@@ -14,7 +14,7 @@ export interface ContractCallInput {
   /// and otherwise throws "did not settle" even though the tx confirms).
   pollAttempts?: number;
   /// Explicit idempotency key, UUID v4. When provided, Circle dedupes
-  /// server-side across retries with the same key — so a network blip that
+  /// server-side across retries with the same key, so a network blip that
   /// loses our response after Circle accepted the submission no longer
   /// risks a double submission on retry. Persist this key BEFORE the submit
   /// call (e.g. on the bridge record at createBridge time) and reuse it on

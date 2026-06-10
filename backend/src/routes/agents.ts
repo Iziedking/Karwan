@@ -215,7 +215,7 @@ agentsRoutes.post('/extract-deal', async (c) => {
       }),
     );
     /// Belt-and-braces counterparty extraction. The LLM often misses the
-    /// wallet/email even when it's literally in the prompt — especially on
+    /// wallet/email even when it's literally in the prompt, especially on
     /// short descriptions or when the address is sandwiched between words
     /// without obvious context. Regex over the raw text catches both shapes
     /// (0x + 40 hex chars; standard email). LLM value wins when present
@@ -245,7 +245,7 @@ agentsRoutes.post('/extract-deal', async (c) => {
   }
 });
 
-/// Scan free-text for the first plausible counterparty hint — either an
+/// Scan free-text for the first plausible counterparty hint, either an
 /// Ethereum address (0x + 40 hex chars) or an email. Wallet match is
 /// preferred when both are present because a deal address is the more
 /// specific signal (you can email anyone; a wallet implies they're already

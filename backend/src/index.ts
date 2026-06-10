@@ -62,7 +62,7 @@ import { ensureSchema, pgEnabled } from './db/client.js';
 const app = new Hono();
 
 // Session cookies need credentials:true, which forbids origin:*. We echo the
-// request's Origin back when it's in the trusted set — defaults cover local
+// request's Origin back when it's in the trusted set. Defaults cover local
 // dev; production deploys can extend by setting FRONTEND_BASE_URL.
 const ALLOWED_ORIGINS = new Set<string>(
   [
@@ -98,7 +98,7 @@ app.get('/', (c) => c.json({ name: 'karwan', status: 'ok' }));
 /// Health check serves the orchestrator: the only question it answers is
 /// "is the API process up and able to serve HTTP requests?" Returning 503
 /// when the chain is degraded turned a routine RPC quota exhaustion into a
-/// deploy outage — the orchestrator marked the container unhealthy, CI
+/// deploy outage. The orchestrator marked the container unhealthy, CI
 /// rolled back, and the previous image inherited the same downstream RPC
 /// issues. The API itself is fine even when chain reads fail; routes that
 /// need chain data already degrade gracefully with their own cached
@@ -124,7 +124,7 @@ app.get('/health', async (c) => {
       chain: { id: chainId, latestBlock: blockNumber.toString(), reachable: true },
     });
   } catch (err) {
-    /// Chain unreachable — usually RPC rate-limit, occasionally a transient
+    /// Chain unreachable, usually RPC rate-limit, occasionally a transient
     /// network blip. Log it for dashboards but keep the API healthy.
     /// Surfaces / surfaces with their own cached snapshots keep working;
     /// surfaces that need live chain data show the warning state they
@@ -347,7 +347,7 @@ async function boot() {
   /// Bring the bus in line with per-user bridge persistence. The bridge
   /// store survives events.json wipes, so without this the activity-page
   /// BRIDGE counter reads 0 while the per-user bridge history modal still
-  /// shows every bridge the user made. Idempotent — the bus dedupes by
+  /// shows every bridge the user made. Idempotent, the bus dedupes by
   /// (type|jobId|ts). Fire-and-forget; an empty bridge store is a no-op.
   syncBridgeEventsToBus().catch((err) =>
     appLogger.error({ err: (err as Error).message }, 'bridge event sync failed'),

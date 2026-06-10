@@ -104,7 +104,7 @@ const REGISTRY: Array<{ name: string; contract: string; path: string; address: s
     path: 'src/KarwanYieldDistributor.sol:KarwanYieldDistributor',
     address: '0x9950b9a41A3e80930e451F2FEdaeb81e80195D03',
   },
-  // MockUSYC intentionally omitted. Real Hashnote USYC is now wired on Treasury v3
+  // The testnet USYC stand-in is gone. Real Hashnote USYC is wired on Treasury v3
   // and the live KarwanVault after Circle whitelisted both 2026-06-04.
 ];
 

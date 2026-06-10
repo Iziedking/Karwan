@@ -1,6 +1,6 @@
 /// Shared classifier for agent-side chain failures. Both the direct-deal route
 /// and the managed-deal buyer agent run the same `executeContractCall` path
-/// against the same Circle wallet, so they surface the same error shapes —
+/// against the same Circle wallet, so they surface the same error shapes.
 /// keep the mapping in one place so the UI and Telegram fan-out can render a
 /// uniform error language.
 

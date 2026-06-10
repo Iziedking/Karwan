@@ -7,7 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /// @notice KarwanEscrow subset used for seller lookup at fund time. The
 ///         contract reads `getEscrow(invoiceId).seller` so the financier
-///         cannot route funds to a wrong address — the underlying deal's
+///         cannot route funds to a wrong address, the underlying deal's
 ///         seller is the canonical recipient on PoD release.
 interface IKarwanEscrow {
     struct EscrowAccount {
@@ -39,7 +39,7 @@ interface IKarwanInvoiceRegistry {
 ///         already funded. The contract holds the principal until proof of
 ///         delivery anchors on KarwanInvoiceRegistry, then releases to the
 ///         seller. The seller repays from their escrow settlement via a
-///         pull-based approval — the contract has no claim on the seller's
+///         pull-based approval, the contract has no claim on the seller's
 ///         wallet beyond the pre-agreed `repayUsdc` amount.
 ///
 ///         Design (per docs/sme-design.md §3.2, refined Day 2):
@@ -55,7 +55,7 @@ interface IKarwanInvoiceRegistry {
 ///
 ///           4. Buyer releases the escrow as usual. Funds land in the
 ///              seller's wallet (the registry's setPayee mechanism is NOT
-///              used here — that path is for factoring).
+///              used here, that path is for factoring).
 ///
 ///           5. Anyone (typically the financier or seller's agent) calls
 ///              claimRepayment(): contract pulls `repayUsdc` from the
@@ -63,7 +63,7 @@ interface IKarwanInvoiceRegistry {
 ///              gave at offer-accept time. Pays financier.
 ///
 ///         The platform fee already lands in KarwanTreasury via the escrow
-///         on release; PO financing adds no extra fee — the financier's
+///         on release; PO financing adds no extra fee, the financier's
 ///         repay-vs-principal spread is the financier's return.
 ///
 ///         Failure handling:
@@ -76,9 +76,7 @@ interface IKarwanInvoiceRegistry {
 contract KarwanPOFinancing is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /* =============================================================== */
-    /*                              TYPES                               */
-    /* =============================================================== */
+    // Types
 
     enum POState {
         None,        // 0 - no line
@@ -102,9 +100,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
         POState state;
     }
 
-    /* =============================================================== */
-    /*                            STORAGE                               */
-    /* =============================================================== */
+    // Storage
 
     IERC20 public immutable usdc;
     IKarwanInvoiceRegistry public immutable registry;
@@ -123,9 +119,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
 
     mapping(bytes32 => POLine) public lines;
 
-    /* =============================================================== */
-    /*                             EVENTS                               */
-    /* =============================================================== */
+    // Events
 
     event POFunded(
         bytes32 indexed invoiceId,
@@ -146,9 +140,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
         bytes32 indexed invoiceId, address indexed financier, address indexed seller
     );
 
-    /* =============================================================== */
-    /*                             ERRORS                               */
-    /* =============================================================== */
+    // Errors
 
     error AlreadyFunded();
     error InvalidInvoiceId();
@@ -164,9 +156,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
     error ZeroAddress();
     error MissingEscrowRecord();
 
-    /* =============================================================== */
-    /*                          CONSTRUCTOR                             */
-    /* =============================================================== */
+    // Constructor
 
     constructor(address _usdc, address _registry, address _escrow) {
         if (_usdc == address(0)) revert ZeroAddress();
@@ -177,14 +167,12 @@ contract KarwanPOFinancing is ReentrancyGuard {
         escrow = IKarwanEscrow(_escrow);
     }
 
-    /* =============================================================== */
-    /*                              FUND                                */
-    /* =============================================================== */
+    // Fund
 
     /// @notice Financier funds a PO line. Pulls principal from the caller.
     ///         The seller is resolved via the escrow's getEscrow() view so
     ///         the financier cannot accidentally route funds to a wrong
-    ///         party — the canonical seller is the only valid recipient.
+    ///         party. The canonical seller is the only valid recipient.
     ///
     /// @param invoiceId            the deal's jobId in the escrow
     /// @param principalUsdc        amount the financier pays in now
@@ -232,12 +220,10 @@ contract KarwanPOFinancing is ReentrancyGuard {
         );
     }
 
-    /* =============================================================== */
-    /*                         RELEASE TO SELLER                        */
-    /* =============================================================== */
+    // Release to seller
 
     /// @notice Release the principal to the seller. Verifies that PoD has
-    ///         been anchored on the registry. Anyone can call — the principal
+    ///         been anchored on the registry. Anyone can call, the principal
     ///         goes to the seller recorded at fund time regardless of caller.
     ///         Starts the repayment window: settlement must come (and
     ///         claimRepayment fire) within MIN_REPAYMENT_WINDOW or the
@@ -258,14 +244,12 @@ contract KarwanPOFinancing is ReentrancyGuard {
         emit POReleased(invoiceId, l.seller, principal);
     }
 
-    /* =============================================================== */
-    /*                         CLAIM REPAYMENT                          */
-    /* =============================================================== */
+    // Claim repayment
 
     /// @notice Pull `repayUsdc` from the seller's wallet and pay the
     ///         financier. The seller pre-approved this contract for the
     ///         repay amount at offer-accept time (standard ERC20 approval).
-    ///         Callable by the financier or the seller — either party can
+    ///         Callable by the financier or the seller, either party can
     ///         trigger the settlement to close out the line cleanly.
     function claimRepayment(bytes32 invoiceId) external nonReentrant {
         POLine storage l = lines[invoiceId];
@@ -284,9 +268,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
         emit PORepaid(invoiceId, financier, repay, msg.sender);
     }
 
-    /* =============================================================== */
-    /*                       RECLAIM PRINCIPAL                          */
-    /* =============================================================== */
+    // Reclaim principal
 
     /// @notice Financier reclaims the principal when PoD never landed and
     ///         the release window expired. The line was Funded, never made
@@ -306,12 +288,10 @@ contract KarwanPOFinancing is ReentrancyGuard {
         emit POReclaimed(invoiceId, l.financier, principal);
     }
 
-    /* =============================================================== */
-    /*                        MARK DEFAULTED                            */
-    /* =============================================================== */
+    // Mark defaulted
 
     /// @notice Financier writes the line off after the repayment window
-    ///         expires with no claim. No funds move on chain — the seller
+    ///         expires with no claim. No funds move on chain, the seller
     ///         already has the principal, the buyer's settlement landed in
     ///         the seller's wallet, but the seller refused or failed to
     ///         allow the contract to pull repayUsdc. Off-chain recourse
@@ -327,9 +307,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
         emit PODefaulted(invoiceId, l.financier, l.seller);
     }
 
-    /* =============================================================== */
-    /*                             VIEWS                                */
-    /* =============================================================== */
+    // Views
 
     /// @notice Explicit struct getter. The auto-generated public mapping
     ///         getter unpacks fields by position, which is fragile across

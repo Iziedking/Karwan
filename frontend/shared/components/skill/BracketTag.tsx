@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 
-/// SKILL.md §4.1 — the signature element. Mono uppercase 11–12px wrapped in
+/// SKILL.md §4.1. The signature element. Mono uppercase 11–12px wrapped in
 /// `[:WORD]` brackets with a 1px square dot leading. Sits 8–12px above the
 /// title it labels, never inline.
 ///

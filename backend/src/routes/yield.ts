@@ -333,7 +333,7 @@ yieldRoutes.get('/protocol', async (c) => {
 /// (or a single staker) distribution chart. Returns ascending by day.
 ///
 /// Optional `address` query filters to a single staker. Without it, we
-/// aggregate across every staker — the protocol's total accrual curve.
+/// aggregate across every staker, the protocol's total accrual curve.
 ///
 /// Cached for 30s in memory to absorb the chart's 30s poll without hammering
 /// the RPC. Block range is bounded by KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK
@@ -429,7 +429,7 @@ yieldRoutes.get('/history', async (c) => {
 });
 
 /// Circle-user claim path. Web3 users sign `claim()` from their connected
-/// wallet — they do not hit this route. Circle accounts route every
+/// wallet. They do not hit this route. Circle accounts route every
 /// transaction through their backend DCW, so we look up the user's
 /// identity DCW walletId and call `claim()` on their behalf.
 const claimSchema = z.object({ address: addrSchema });

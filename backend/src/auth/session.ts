@@ -5,7 +5,7 @@ import { config } from '../config.js';
 
 // Stateless session cookies, HMAC-signed with SESSION_SECRET so the backend
 // doesn't have to remember anything between requests. Payload is small on
-// purpose — just enough to identify the user and the auth method.
+// purpose, just enough to identify the user and the auth method.
 
 const COOKIE_NAME = 'karwan_session';
 const DEFAULT_TTL_DAYS = 30;

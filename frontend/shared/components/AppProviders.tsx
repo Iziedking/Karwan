@@ -27,8 +27,8 @@ export function AppProviders({
   const [mode, setMode] = useState<Mode>('light');
 
   /// The persister is built lazily so it only constructs on the client
-  /// (localStorage isn't available during SSR). When null — SSR or storage
-  /// disabled — fall through to the plain QueryClientProvider so the app
+  /// (localStorage isn't available during SSR). When null (SSR or storage
+  /// disabled) fall through to the plain QueryClientProvider so the app
   /// still works without persistence.
   const persister = useMemo(() => makeQueryPersister(), []);
 

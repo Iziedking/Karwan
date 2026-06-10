@@ -125,7 +125,7 @@ const POLL_TIMEOUT_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 // CCTP V2 Fast Transfer only happens when maxFee >= the route's fast fee; with
 // maxFee 0 Circle settles it as a slow Standard Transfer. We query the route's
-// fast fee (bps) and set maxFee to it plus headroom. maxFee is only a ceiling —
+// fast fee (bps) and set maxFee to it plus headroom. maxFee is only a ceiling,
 // the user is charged the real feeExecuted (<= maxFee) at mint, so the headroom
 // never costs them; it just guarantees the transfer qualifies as Fast.
 const FAST_FEE_FALLBACK_BPS = 10; // generous default when the fee API is unreachable
@@ -211,7 +211,7 @@ bridgeRoutes.post('/relay', async (c) => {
 
   // Refuse to clobber an existing bridge's burn hash. The frontend retry path
   // diverts to /recheck when a burn already exists, but a stale tab or a bad
-  // client could still POST a fresh burn for the same bridgeId — that would
+  // client could still POST a fresh burn for the same bridgeId, that would
   // overwrite the original sourceTxHash and orphan the user's first burn.
   const existing = await getBridge(body.bridgeId);
   if (existing && existing.sourceTxHash.toLowerCase() !== body.sourceTxHash.toLowerCase()) {
@@ -486,17 +486,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/* ============================================================================
-   CIRCLE SOURCE PIPELINE.
-   Signs approve + burn from the user's source-chain Circle DCW, asynchronously.
-   Each step is submitted (id captured + persisted) then polled to settlement in
-   the background, so a Circle tx that settles minutes later (Base Sepolia
-   testnet has done this) is never thrown away. On a slow stage the loop exits
-   leaving the bridge in its source state; resumePendingBridges (next boot) or
-   POST /circle-bridge/:id/resume continues it. Only a hard Circle FAILED state
-   marks the bridge errored. Once the burn lands we set sourceTxHash and hand
-   off to the existing mint relay.
-   ========================================================================== */
+// Circle source pipeline.
+// Signs approve + burn from the user's source-chain Circle DCW, asynchronously.
+// Each step is submitted (id captured + persisted) then polled to settlement in
+// the background, so a Circle tx that settles minutes later (Base Sepolia
+// testnet has done this) is never thrown away. On a slow stage the loop exits
+// leaving the bridge in its source state; resumePendingBridges (next boot) or
+// POST /circle-bridge/:id/resume continues it. Only a hard Circle FAILED state
+// marks the bridge errored. Once the burn lands we set sourceTxHash and hand
+// off to the existing mint relay.
 
 const SOURCE_POLL_INTERVAL_MS = 5_000;
 // Per source stage. Generous because testnet bundler latency runs in minutes.
@@ -588,7 +586,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
   }
 
   try {
-    // STAGE 1 — APPROVE. Skip when the live allowance already covers the amount
+    // STAGE 1, APPROVE. Skip when the live allowance already covers the amount
     // (a prior attempt's approve may have landed after its window lapsed; that
     // is exactly the bug this pipeline fixes, and reading allowance recovers it).
     let allowanceOk = false;
@@ -645,7 +643,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
       }
     }
 
-    // STAGE 2 — BURN.
+    // STAGE 2, BURN.
     record = (await getBridge(input.bridgeId)) ?? record;
     let burnTxId = record.burnTxId;
     if (!burnTxId) {
@@ -697,7 +695,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
       return;
     }
 
-    // STAGE 3 — hand off to the mint relay.
+    // STAGE 3, hand off to the mint relay.
     await patchBridge(input.bridgeId, { sourceTxHash: br.txHash, status: 'relaying' });
     bus.emitEvent({
       type: 'bridge.burned',
@@ -850,22 +848,20 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   }
 });
 
-/* ============================================================================
-   CIRCLE-USER BRIDGE.
-   For users authed via Circle email + passkey, the source-chain burn can't be
-   signed by their Arc Circle wallet. This route signs the burn from a
-   per-user Circle DCW provisioned on the source chain (Base Sepolia or
-   Ethereum Sepolia), then funnels into the same relay loop that mints on Arc.
-
-   Flow:
-     1) User funds their source-chain Circle DCW (faucet / external transfer).
-     2) Frontend POSTs here with the source chain key + amount + bridge id.
-     3) Backend lazy-provisions the source-chain DCW if missing, then signs
-        usdc.approve(tokenMessenger, amount) and tokenMessenger.depositForBurn(...)
-        from that DCW. Mint recipient is the user's Arc identity address.
-     4) Backend records the burn and starts the existing relay loop (poll
-        IRIS, sign receiveMessage on Arc via the platform buyer agent).
-   ========================================================================== */
+// Circle-user bridge.
+// For users authed via Circle email + passkey, the source-chain burn can't be
+// signed by their Arc Circle wallet. This route signs the burn from a
+// per-user Circle DCW provisioned on the source chain (Base Sepolia or
+// Ethereum Sepolia), then funnels into the same relay loop that mints on Arc.
+//
+// Flow:
+//   1) User funds their source-chain Circle DCW (faucet / external transfer).
+//   2) Frontend POSTs here with the source chain key + amount + bridge id.
+//   3) Backend lazy-provisions the source-chain DCW if missing, then signs
+//      usdc.approve(tokenMessenger, amount) and tokenMessenger.depositForBurn(...)
+//      from that DCW. Mint recipient is the user's Arc identity address.
+//   4) Backend records the burn and starts the existing relay loop (poll
+//      IRIS, sign receiveMessage on Arc via the platform buyer agent).
 
 const circleBridgeSchema = z.object({
   bridgeId: z.string().min(1),
@@ -958,7 +954,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   }
 
   // Pre-flight balance check. The most common failure mode for fresh Circle
-  // users is that the bridge DCW is provisioned but never funded — there's
+  // users is that the bridge DCW is provisioned but never funded. There's
   // no USDC for the burn, so depositForBurn reverts on chain. Reading the
   // balance up front and returning an actionable error is cheaper than
   // burning a tx slot to discover it.
@@ -1094,7 +1090,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
 /// kit.bridge() call drives approve → burn → fetchAttestation → mint;
 /// Circle's forwarder broadcasts the destination mint on Arc, so no relay
 /// DCW is needed. Supports the 5 EVM CCTP testnet sources AND Solana Devnet
-/// (which the hand-rolled /circle-bridge cannot — it is wired only to EVM
+/// (which the hand-rolled /circle-bridge cannot, it is wired only to EVM
 /// CCTP V2 contracts).
 ///
 /// Coexists with /circle-bridge: same BridgeRelay record schema, same UI
@@ -1539,13 +1535,11 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
   }
 });
 
-/* ============================================================================
-   BRIDGE OUT (Arc -> chain). Burn USDC on Arc from the user's Circle identity
-   DCW, then relay the mint on the destination chain via that chain's bridge DCW
-   (which pays the destination gas). Circle accounts only here: the backend signs
-   the Arc burn. Web3 users sign the Arc burn themselves and would post the burn
-   txHash to a relay endpoint (a thin follow-up that reuses startOutRelay).
-   ========================================================================== */
+// Bridge out (Arc -> chain). Burn USDC on Arc from the user's Circle identity
+// DCW, then relay the mint on the destination chain via that chain's bridge DCW
+// (which pays the destination gas). Circle accounts only here: the backend signs
+// the Arc burn. Web3 users sign the Arc burn themselves and would post the burn
+// txHash to a relay endpoint (a thin follow-up that reuses startOutRelay).
 
 const bridgeOutSchema = z.object({
   bridgeId: z.string().min(1),
@@ -1557,7 +1551,7 @@ const bridgeOutSchema = z.object({
   /// Optional: which Karwan wallet on Arc burns. Defaults to the identity
   /// wallet (the standard /bridge surface). The cashout page passes
   /// 'sellerAgent' with a `sourceJobId` so the deal's seller-agent wallet
-  /// burns instead — that's where released escrow USDC actually lives.
+  /// burns instead, that's where released escrow USDC actually lives.
   sourceKind: z.enum(['identity', 'sellerAgent']).optional(),
   sourceJobId: z.string().min(1).optional(),
 });
@@ -1741,7 +1735,7 @@ async function outPipelineLoop(input: OutPipelineInput) {
       return;
     }
 
-    // STAGE 1 — approve Arc USDC to the TokenMessenger.
+    // STAGE 1, approve Arc USDC to the TokenMessenger.
     await executeContractCall(
       {
         walletId: input.identityWalletId,
@@ -1752,7 +1746,7 @@ async function outPipelineLoop(input: OutPipelineInput) {
       `bridge-out.approve(${input.bridgeId})`,
     );
 
-    // STAGE 2 — burn on Arc, routed to the destination domain.
+    // STAGE 2, burn on Arc, routed to the destination domain.
     const maxFee = await computeFastMaxFee(ARC_DOMAIN, dest.domain, BigInt(amountStr));
     const burn = await executeContractCall(
       {

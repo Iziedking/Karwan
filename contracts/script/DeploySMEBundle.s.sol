@@ -21,8 +21,8 @@ import {KarwanPOFinancing} from "../src/KarwanPOFinancing.sol";
 ///
 /// Existing contracts are untouched:
 ///   - KarwanEscrow stays at KARWAN_ESCROW_ADDR
-///   - KarwanVault, KarwanReputation, KarwanTreasury, KarwanYieldDistributor,
-///     MockUSYC: unchanged
+///   - KarwanVault, KarwanReputation, KarwanTreasury, KarwanYieldDistributor:
+///     unchanged
 ///
 /// After this script, set the following env vars on the backend:
 ///   KARWAN_INVOICE_REGISTRY_ADDR = <from console.log>

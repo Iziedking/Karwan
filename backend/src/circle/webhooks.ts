@@ -76,7 +76,7 @@ async function loadPublicKey(expectedKeyId: string | undefined): Promise<CachedK
 }
 
 /// Verify the X-Circle-Signature header against the raw request body bytes.
-/// `rawBody` must be the EXACT bytes received over the wire — never parse and
+/// `rawBody` must be the EXACT bytes received over the wire. Never parse and
 /// re-stringify; field-ordering or whitespace differences will invalidate the
 /// signature. Returns `false` on any verification failure (missing config,
 /// unknown key id after refetch, algorithm we don't support, or bad signature).

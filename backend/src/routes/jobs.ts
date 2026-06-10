@@ -23,6 +23,7 @@ import { flipOrEndOnDecline } from '../agents/nearMiss.js';
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
+import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { sessionMismatchesClaim, viewerAddress } from '../auth/session.js';
@@ -37,7 +38,7 @@ const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).m
 /// can change. Each field is optional but at least one must be provided. The
 /// in-flight match guard at the route layer prevents a desync against a running
 /// auction; once a proposal is on the table, the buyer declines it first.
-/// On-chain budget and deadline remain locked at their post-time values — those
+/// On-chain budget and deadline remain locked at their post-time values. Those
 /// live on JobBoard and changing them needs a new post.
 const editBriefSchema = z
   .object({
@@ -264,12 +265,19 @@ jobsRoutes.post('/', async (c) => {
 
   // Persist brief metadata BEFORE the on-chain call so agents have it when the
   // JobPosted event fires. On-chain only carries termsHash for integrity.
+  // Stamp the match lane once, from the poster's account type plus the trade
+  // nature. A person, or a business posting a single service, lands 'service'
+  // (the existing P2P flow); only a verified business posting goods/mixed lands
+  // 'finance'. Matching filters on this so the two pools never cross.
+  const posterAccountType = await accountTypeOf(body.posterAddress);
   createBrief({
     jobId,
     briefText: body.brief,
     postedBy: body.posterAddress,
     negotiationMaxIncreasePct: body.negotiationMaxIncreasePct,
     trustedMatch: body.trustedMatch === true,
+    tradeLane: deriveLane(posterAccountType, body.tradeType),
+    partyKind: posterAccountType,
     tradeType: body.tradeType,
     incoterms: body.incoterms,
     paymentTerms: body.paymentTerms,
@@ -346,7 +354,7 @@ jobsRoutes.get('/matches/for', async (c) => {
 /// the agent negotiated on their behalf at a price that may differ from what
 /// they'd want; the buyer already pre-committed via the brief's budget +
 /// tolerance. Acceptance triggers acceptBid + fundEscrow via the BUYER's agent
-/// wallet automatically (no separate buyer approval — the buyer's spending is
+/// wallet automatically (no separate buyer approval, the buyer's spending is
 /// pre-authorized within budget+tolerance). From this point the deal follows
 /// the standard direct-deal flow (delivered → release → settled).
 jobsRoutes.post('/:jobId/approve-match', async (c) => {

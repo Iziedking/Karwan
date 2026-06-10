@@ -1,6 +1,6 @@
 /// Hard timeout around an LLM call so a slow provider can't wedge the
 /// per-(jobId, seller) mutex and stall the whole auction. The agent loops
-/// treat a thrown timeout the same as any other LLM failure — log, emit
+/// treat a thrown timeout the same as any other LLM failure: log, emit
 /// agent.error, move on.
 ///
 /// Default 45s. Gemini Flash Lite usually responds in ~3-5s; Kimi K2.5 and

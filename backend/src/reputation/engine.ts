@@ -97,9 +97,7 @@ export function compute(inputs: ReputationInputs): ReputationResult {
   };
 }
 
-/* ============================================================================
-   Factor sub-scores. Each returns [0,1]. Exported for unit tests + UI preview.
-   ========================================================================== */
+// Factor sub-scores. Each returns [0,1]. Exported for unit tests + UI preview.
 
 /// Staking. amount (sqrt-saturating toward stakeCapUsdc) times a duration
 /// envelope that starts at stakeFloorCredit on day one and ramps to full over
@@ -148,9 +146,7 @@ export function decayMultiplier(lastActionAt: number): number {
   return Math.exp(-(days / Math.max(1, repConfig.decayHalflifeDays)));
 }
 
-/* ============================================================================
-   helpers
-   ========================================================================== */
+// helpers
 
 /// log10(1+n) / log10(1+cap), clamped. Concave: fast early, saturates at cap.
 function satLog(n: number, cap: number): number {

@@ -7,9 +7,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /// @notice USYC Teller (ERC-4626-shaped). Verified against the canonical
 ///         Circle docs (developers.circle.com/tokenized/usyc/subscribe-and-redeem).
-///         MockUSYC implements this exactly so the testnet path is the same
-///         shape as mainnet — the swap is a redeploy with addresses, not a
-///         code change.
+///         The treasury takes the Teller, token, and oracle as addresses, so
+///         the same code runs against the real Hashnote / Circle USYC on Arc.
 interface IUSYCTeller {
     function deposit(uint256 assets, address receiver) external returns (uint256 shares);
     function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
@@ -36,8 +35,8 @@ interface IPriceOracle {
 /// @title KarwanTreasury
 /// @notice Collects Karwan's platform fees in USDC and parks idle balance in
 ///         USYC so the protocol's reserves earn yield instead of sitting
-///         flat. Wired into KarwanEscrow as the immutable `treasury` slot —
-///         fees flow here on every milestone release.
+///         flat. Wired into KarwanEscrow as the immutable `treasury` slot.
+///         Fees flow here on every milestone release.
 ///
 ///         v2.E rewrite vs the original 2026-05-25 deploy:
 ///           - Teller interface fixed to ERC-4626 deposit/redeem (the old
@@ -47,9 +46,9 @@ interface IPriceOracle {
 ///             operator EOA instead of the Treasury contract address.
 ///
 ///         Roles:
-///           owner   — redeems USYC, pays out, rotates keeper, sets the
+///           owner   : redeems USYC, pays out, rotates keeper, sets the
 ///                     idle threshold.
-///           keeper  — sweeps idle USDC into USYC and runs the
+///           keeper  : sweeps idle USDC into USYC and runs the
 ///                     entitlement-agnostic withdrawForYield / depositFromYield
 ///                     pair. An automation wallet (cron) or operator EOA.
 contract KarwanTreasury is ReentrancyGuard {
@@ -126,13 +125,11 @@ contract KarwanTreasury is ReentrancyGuard {
         idleThreshold = _idleThreshold;
     }
 
-    /* =============================================================== */
-    /*                          DEPOSITS                                */
-    /* =============================================================== */
+    // Deposits
 
     /// @notice Pull `amount` USDC from the caller into the treasury. The
     ///         escrow (or anyone topping up reserves) calls this after
-    ///         approving the treasury. Open by design — anyone can fund the
+    ///         approving the treasury. Open by design, anyone can fund the
     ///         protocol's reserves, that's the polar-opposite of risky.
     function deposit(uint256 amount) external nonReentrant {
         if (amount == 0) revert ZeroAmount();
@@ -140,19 +137,17 @@ contract KarwanTreasury is ReentrancyGuard {
         emit Deposited(msg.sender, amount);
     }
 
-    /* =============================================================== */
-    /*                ON-CHAIN YIELD (Treasury entitled)                */
-    /* =============================================================== */
+    // On-chain yield (Treasury entitled)
 
     /// @notice Sweep USDC above the idle threshold into USYC via the
     ///         on-chain Teller path. Requires the Treasury contract address
-    ///         to be entitled — if Circle entitled only an EOA, use
+    ///         to be entitled. If Circle entitled only an EOA, use
     ///         withdrawForYield instead.
     function sweepToUSYC() external onlyKeeper nonReentrant returns (uint256 usycOut) {
         uint256 bal = usdc.balanceOf(address(this));
         if (bal <= idleThreshold) revert NothingToSweep();
         uint256 toSweep = bal - idleThreshold;
-        // forceApprove via SafeERC20 — handles non-zero→non-zero allowance
+        // forceApprove via SafeERC20, handles non-zero→non-zero allowance
         // resets on weird tokens (USDT-style behaviour) and never leaves a
         // stale approval on a deprecated Teller.
         usdc.forceApprove(address(teller), toSweep);
@@ -174,11 +169,9 @@ contract KarwanTreasury is ReentrancyGuard {
         emit RedeemedFromUSYC(usycAmount, usdcOut);
     }
 
-    /* =============================================================== */
-    /*       OFF-CHAIN YIELD (operator EOA entitled, contract not)      */
-    /* =============================================================== */
+    // Off-chain yield (operator EOA entitled, contract not)
 
-    /// @notice Pull `amount` USDC out for off-chain yield routing — used
+    /// @notice Pull `amount` USDC out for off-chain yield routing. Used
     ///         when the USYC Entitlements contract permits only the keeper
     ///         EOA (not the Treasury contract address) to hold USYC. The
     ///         keeper subscribes off-chain and returns USDC via
@@ -194,7 +187,7 @@ contract KarwanTreasury is ReentrancyGuard {
 
     /// @notice Return USDC from off-chain yield routing. Caller approves the
     ///         treasury for `amount` USDC; the contract pulls it in. `amount`
-    ///         can exceed outForYield — the surplus is the realised yield
+    ///         can exceed outForYield, the surplus is the realised yield
     ///         from the Teller round-trip and stays in the treasury.
     function depositFromYield(uint256 amount) external onlyKeeper nonReentrant {
         if (amount == 0) revert ZeroAmount();
@@ -209,9 +202,7 @@ contract KarwanTreasury is ReentrancyGuard {
         emit YieldDeposited(keeper, amount, outForYield, surplus);
     }
 
-    /* =============================================================== */
-    /*                          OUTBOUND                                */
-    /* =============================================================== */
+    // Outbound
 
     /// @notice Send USDC out of the treasury for ops, payouts, settlements.
     function payout(address to, uint256 amount) external onlyOwner nonReentrant {
@@ -221,9 +212,7 @@ contract KarwanTreasury is ReentrancyGuard {
         emit PaidOut(to, amount);
     }
 
-    /* =============================================================== */
-    /*                              VIEWS                               */
-    /* =============================================================== */
+    // Views
 
     /// @notice Total reserves valued in USDC: liquid USDC + USYC marked to
     ///         oracle + USDC currently out for off-chain yield. 6 decimals.
@@ -236,9 +225,7 @@ contract KarwanTreasury is ReentrancyGuard {
         return usdcBal + usycAsUsdc + outForYield;
     }
 
-    /* =============================================================== */
-    /*                              ADMIN                               */
-    /* =============================================================== */
+    // Admin
 
     function setKeeper(address _keeper) external onlyOwner {
         if (_keeper == address(0)) revert ZeroAddress();

@@ -294,7 +294,7 @@ activationRoutes.post('/fund-source', async (c) => {
   if (!drip.ok) {
     // The faucet caps ~20 USDC per address, per chain, per 2h, plus per-key/IP
     // limits. Over-quota comes back as 429 or a 403 {"code":3,"message":
-    // "Forbidden"} — map both to one clear line instead of leaking raw JSON.
+    // "Forbidden"}. Map both to one clear line instead of leaking raw JSON.
     const declined =
       drip.status === 429 ||
       drip.status === 403 ||
@@ -542,7 +542,7 @@ activationRoutes.post('/withdraw', async (c) => {
 });
 
 /// Tops up an agent wallet from the user's Circle identity DCW. Only available
-/// to Circle-auth users — web3 users have no server-side wallet for us to sign
+/// to Circle-auth users; web3 users have no server-side wallet for us to sign
 /// from, so they take the existing wagmi path on the frontend.
 ///
 /// Both legs are Circle DCWs the backend already controls, so no user signature

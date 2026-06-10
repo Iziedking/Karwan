@@ -260,7 +260,7 @@ function extendWorkingDeadline(state: JobState, proposedDeadlineUnix: number) {
 
 /// The cap the buyer agent will accept counters up to. The brief's per-deal
 /// tolerance is the buyer's explicit authorization for that brief and is
-/// authoritative — we used to clip it against buyer.maxBudgetUsdc but that
+/// authoritative. We used to clip it against buyer.maxBudgetUsdc but that
 /// silently overruled tolerance the buyer set with eyes open (a brief with
 /// 15% tolerance on a 50 USDC budget got clipped to 50 because the activation
 /// default left maxBudgetUsdc low). The profile cap stays as a creation-time
@@ -275,7 +275,7 @@ function computeBuyerEffectiveCap(
 }
 
 /// A brief with `negotiationMaxIncreasePct` unset or 0 means "no hard
-/// ceiling — ask me about anything reasonable". The cap returned by
+/// ceiling, ask me about anything reasonable". The cap returned by
 /// computeBuyerEffectiveCap stays at the budget for the walk math (the
 /// agent still anchors counter-offers there), but ask-mode briefs use a
 /// wider near-miss band so the buyer hears about stretches up to a
@@ -294,7 +294,7 @@ const ASK_MODE_NEAR_MISS_BAND_PCT = (() => {
   return Number.isFinite(n) && n > 0 ? n : 200;
 })();
 
-/// Returns the near-miss band override to use for this brief — wider when
+/// Returns the near-miss band override to use for this brief, wider when
 /// ask-mode is on, undefined (use the default 100% LISTING_MAX_GAP_PCT)
 /// when the buyer explicitly set a tolerance.
 function nearMissBandFor(ctx: { negotiationMaxIncreasePct?: number }): number | undefined {
@@ -468,9 +468,9 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       state.cancelledAt = existing.cancelledAt;
     }
   } catch {
-    /* non-fatal — worst case the row lingers until the bus fires again */
+    /* non-fatal, worst case the row lingers until the bus fires again */
   }
-  // Don't broadcast tracked-events during boot backfill — the JobPosted log is
+  // Don't broadcast tracked-events during boot backfill. The JobPosted log is
   // historical, and emitting it now would surface every old job in the activity
   // feed as if it had just been posted (timestamp comes from Date.now()).
   if (opts?.silent) return;
@@ -1040,7 +1040,7 @@ async function finalizeBidCollection(state: JobState) {
 /// Used by the walk-end near-miss path: when the candidate queue exhausts
 /// without a match, this picks the best (cheapest) "they wouldn't go below"
 /// price across all tried sellers. Returns null when no seller ever
-/// counter-responded (handleCounterResponse never fired) — the buyer never
+/// counter-responded (handleCounterResponse never fired), so the buyer never
 /// got a chance to see a real counter from anyone, so there is no number
 /// worth surfacing as a near-miss.
 function pickLowestSellerLast(
@@ -1062,7 +1062,7 @@ function pickLowestSellerLast(
 /// them. Called from any terminal-failure path on the current candidate
 /// (LLM decline, counter-out-of-range, max-counter-rounds). Marks the
 /// previous seller as tried so we don't loop. When the queue is empty,
-/// emits `negotiation.exhausted` and finalizes the job — or raises a
+/// emits `negotiation.exhausted` and finalizes the job, or raises a
 /// walk-end near-miss with the best last seller price across all tried
 /// candidates so the buyer can approve the stretch instead of getting a
 /// silent decline (karwan_near_miss doctrine extended).
@@ -1497,7 +1497,7 @@ async function handleCounterResponse(log: Log) {
       return;
     }
     /// Ask-mode safety net: if the brief was posted with no tolerance ("no
-    /// ceiling — ask me"), a low-confidence LLM call on an above-budget
+    /// ceiling, ask me"), a low-confidence LLM call on an above-budget
     /// counter used to silently skip the seller. The buyer never heard
     /// about a price they likely would have approved. Raise the near-miss
     /// instead, with the wider ask-mode band. If the gap is genuinely
@@ -1684,7 +1684,7 @@ async function handleCounterResponse(log: Log) {
 /// through as `agent.error` for the activity feed.
 /// Maps the deterministic pattern from agents/signals.ts to a MatchProposal
 /// risk flag + a one-sentence note the MatchBanner renders for the seller.
-/// Returns null when the pattern is normal/safe — no warning gets attached.
+/// Returns null when the pattern is normal/safe, no warning gets attached.
 function riskAnnotationFor(
   pattern: ReturnType<typeof classifyBid> | undefined,
   agreedPriceUsdc: string,
@@ -1772,14 +1772,14 @@ export function listAllMatchProposals(): Promise<MatchProposal[]> {
 }
 
 /// The agent has reached agreement with a seller. It does NOT touch the chain
-/// here — it records a match proposal and notifies both parties. The buyer
+/// here. It records a match proposal and notifies both parties. The buyer
 /// human approves separately, which triggers acceptBid + fundEscrow.
 ///
 /// `pattern` is the risk classification from agents/signals.ts (or undefined
 /// when the path didn't compute one, e.g. listing-driven matches). When it's
 /// "risky" (honey-trap, lowball, spammy) we attach a riskFlag + riskNote so
 /// the MatchBanner shows the seller a warning rather than the agent silently
-/// auto-accepting — the human stays the decision-maker per the karwan-agent-
+/// auto-accepting. The human stays the decision-maker per the karwan-agent-
 /// risk-principle memory note.
 async function proposeMatch(
   state: JobState,
@@ -2286,7 +2286,7 @@ export interface BuyerJobSnapshot {
     /// Profile display name for the seller, if set. Bid card shows this
     /// inline; falls back to the masked address when null.
     sellerDisplayName: string | null;
-    /// Topical-match percentage (0-100) — how well the seller's profile
+    /// Topical-match percentage (0-100), how well the seller's profile
     /// keywords cover the brief's. This is the FIRST sort key in
     /// finalizeBidCollection (match band → deterministic score →
     /// reputation), so a higher topicalMatch beats a higher LLM score
@@ -2428,7 +2428,7 @@ export interface ExpirableJob {
 
 /// Snapshot of jobs that could be expired by the watcher. Excludes anything
 /// already finalized, escrow-funded, or expired. Carries the deadline and a
-/// flag for whether a MatchProposal is awaiting human approval — the watcher
+/// flag for whether a MatchProposal is awaiting human approval. The watcher
 /// uses that to leave human-gated proposals alone (the human is the decision,
 /// not the deadline).
 export async function listExpirableJobs(): Promise<ExpirableJob[]> {
@@ -2451,7 +2451,7 @@ export async function listExpirableJobs(): Promise<ExpirableJob[]> {
 }
 
 /// Marks a job expired. Clears its bid-collection timer, flags the JobState,
-/// patches the brief on disk, and emits `job.expired`. Idempotent — a second
+/// patches the brief on disk, and emits `job.expired`. Idempotent, so a second
 /// call on an already-expired job is a no-op.
 export function expireJob(jobId: `0x${string}`): boolean {
   const state = jobs.get(jobId);

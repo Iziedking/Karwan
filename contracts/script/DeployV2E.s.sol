@@ -6,10 +6,8 @@ import {KarwanEscrow} from "../src/KarwanEscrow.sol";
 import {KarwanReputation} from "../src/KarwanReputation.sol";
 import {KarwanVault} from "../src/KarwanVault.sol";
 import {KarwanTreasury} from "../src/KarwanTreasury.sol";
-import {MockUSYC} from "../src/MockUSYC.sol";
 
-/// v2.E bundle redeploy. Five contracts in one window:
-///   - MockUSYC          (optional: deploy only when DEPLOY_MOCK_USYC=true)
+/// v2.E bundle redeploy. Four contracts in one window:
 ///   - KarwanReputation  (adds recordPenalty + one-shot securityAgentSigner)
 ///   - KarwanVault       (adds resolveOwner + entitlement-agnostic yield)
 ///   - KarwanTreasury    (rewritten with ERC-4626 Teller + yield-agnostic)
@@ -33,10 +31,8 @@ import {MockUSYC} from "../src/MockUSYC.sol";
 ///   KARWAN_REPUTATION_ADDR             = <new reputation from console.log>
 ///   KARWAN_TREASURY_ADDR               = <new treasury from console.log>
 ///   USYC_TELLER_ADDR / USYC_TOKEN_ADDR / USYC_ORACLE_ADDR
-///                                      = MockUSYC (if deployed) OR real
-///                                        Hashnote addresses when Circle
-///                                        entitlement lands. No second
-///                                        contract redeploy required.
+///                                      = real Hashnote / Circle USYC
+///                                        addresses on Arc.
 contract DeployV2E is Script {
     function run() external {
         // --- env reads ---------------------------------------------------
@@ -48,12 +44,9 @@ contract DeployV2E is Script {
         uint16 maxReservationBps =
             uint16(vm.envOr("KARWAN_MAX_RESERVATION_BPS", uint256(10000)));
 
-        bool deployMockUSYC = vm.envOr("DEPLOY_MOCK_USYC", false);
-        uint256 usycApyBps = vm.envOr("USYC_APY_BPS", uint256(73000));
-
-        // USYC endpoints — if DEPLOY_MOCK_USYC=true, these are overwritten
-        // with the fresh MockUSYC address (one contract serves all three
-        // roles). Otherwise expected to be the real Hashnote addresses.
+        // USYC endpoints: the real Hashnote / Circle USYC Teller, token, and
+        // oracle on Arc. Required; the bundle wires them into the treasury and
+        // the vault yield path.
         address usycTeller = vm.envOr("USYC_TELLER_ADDR", address(0));
         address usycToken = vm.envOr("USYC_TOKEN_ADDR", address(0));
         address usycOracle = vm.envOr("USYC_ORACLE_ADDR", address(0));
@@ -66,15 +59,7 @@ contract DeployV2E is Script {
         // --- deploy ------------------------------------------------------
         vm.startBroadcast();
 
-        if (deployMockUSYC) {
-            MockUSYC mock = new MockUSYC(usdc, usycApyBps);
-            usycTeller = address(mock);
-            usycToken = address(mock);
-            usycOracle = address(mock);
-            console.log("MockUSYC:          ", address(mock));
-            console.log("MockUSYC apyBps:   ", usycApyBps);
-        }
-        require(usycTeller != address(0), "USYC_TELLER_ADDR unset and DEPLOY_MOCK_USYC=false");
+        require(usycTeller != address(0), "USYC_TELLER_ADDR unset");
         require(usycToken != address(0), "USYC_TOKEN_ADDR unset");
         require(usycOracle != address(0), "USYC_ORACLE_ADDR unset");
 

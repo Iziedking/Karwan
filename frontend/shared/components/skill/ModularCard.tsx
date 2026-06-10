@@ -6,7 +6,7 @@ import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
 import { BracketTag, type BracketTagVariant } from './BracketTag';
 
-/// SKILL.md §4.6 — the modular feature/entity card. Dark surface, 1px hairline
+/// SKILL.md §4.6. The modular feature/entity card. Dark surface, 1px hairline
 /// (no shadow on dark per skill §2.5), bracket label bottom-left, title under
 /// it, arrow bottom-right. Visual area takes ~60% of card height. Hover: arrow
 /// slides 4px right + hairline brightens to rgba(255,255,255,0.18). Click whole

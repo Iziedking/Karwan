@@ -53,7 +53,7 @@ async function passportHidden(address: string): Promise<boolean> {
 
 export const x402Routes = new Hono();
 
-/// GET /api/x402 — free directory of the paid endpoints.
+/// GET /api/x402: free directory of the paid endpoints.
 x402Routes.get('/', (c) => {
   return c.json({
     name: 'Karwan paid data endpoints',
@@ -91,7 +91,7 @@ x402Routes.get('/', (c) => {
   });
 });
 
-/// GET /api/x402/credit-passport/:address — $0.01.
+/// GET /api/x402/credit-passport/:address: $0.01.
 x402Routes.get('/credit-passport/:address', async (c) => {
   const parsed = addrSchema.safeParse(c.req.param('address'));
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
@@ -135,7 +135,7 @@ x402Routes.get('/credit-passport/:address', async (c) => {
   }
 });
 
-/// GET /api/x402/repayment-behavior/:address — $0.005.
+/// GET /api/x402/repayment-behavior/:address: $0.005.
 x402Routes.get('/repayment-behavior/:address', async (c) => {
   const parsed = addrSchema.safeParse(c.req.param('address'));
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
@@ -153,7 +153,7 @@ x402Routes.get('/repayment-behavior/:address', async (c) => {
   return c.json({ address: subject, repaymentBehavior });
 });
 
-/// GET /api/x402/concentration/:address — $0.005. Same windowing as the
+/// GET /api/x402/concentration/:address: $0.005. Same windowing as the
 /// reputation engine's concentration signal (last 20 settled deals, flags
 /// at 60% / 80%), plus the per-counterparty histogram the engine keeps
 /// internal.
@@ -209,7 +209,7 @@ x402Routes.get('/concentration/:address', async (c) => {
   });
 });
 
-/// GET /api/x402/document-anchors/:invoiceId — $0.005.
+/// GET /api/x402/document-anchors/:invoiceId: $0.005.
 x402Routes.get('/document-anchors/:invoiceId', async (c) => {
   const parsed = invoiceIdSchema.safeParse(c.req.param('invoiceId'));
   if (!parsed.success) return c.json({ error: 'invalid invoiceId' }, 400);

@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
 
-/// SKILL.md §4.5 — the sticky section tab strip. Equal columns, mono labels,
+/// SKILL.md §4.5. The sticky section tab strip. Equal columns, mono labels,
 /// right-aligned chevron in each cell. Active cell has a top 2px lime indicator
 /// animated with shared `layoutId` so it SLIDES between tabs (never fades in
 /// place). Sticks below the main nav with a subtle backdrop blur on scroll.
@@ -27,7 +27,7 @@ const LAYOUT_ID = 'skill-tab-strip-indicator';
 
 /// TopNav owns the first 68px of the viewport (`sticky top-0 z-30`, see
 /// shared/components/TopNav.tsx). The tab strip docks immediately below it
-/// so the two stack instead of fighting for the same `top: 0` slot —
+/// so the two stack instead of fighting for the same `top: 0` slot,
 /// without this anchor the strip slid behind the TopNav and read as
 /// "vanishing on scroll" to the user. Mobile keeps the same offset; the
 /// TopNav is the same height on small screens.
@@ -61,7 +61,7 @@ export function StickyTabStrip({
   /// labels stay legible no matter what light/dark band slides behind it.
   /// The strip itself is full-bleed (see `.w-bleed` on the nav) so the
   /// surface paints edge-to-edge of the viewport rather than stopping at
-  /// the centered content gutter — the earlier gap on left + right was the
+  /// the centered content gutter. The earlier gap on left + right was the
   /// nav inheriting its parent's content width, not a color issue.
   const surface = stuck
     ? onDark
@@ -78,7 +78,7 @@ export function StickyTabStrip({
   /// overflow so the shadow only paints in the strip's own row.
   ///
   /// The bleed uses the OPAQUE base colour (not the translucent surface)
-  /// because box-shadow doesn't pick up the nav's backdrop-filter — if we
+  /// because box-shadow doesn't pick up the nav's backdrop-filter. If we
   /// used the translucent surface, the bleed area would alpha-blend through
   /// to whatever's behind and look noticeably different from the frosted
   /// strip area, which read to users as a hard cutoff. The frosted look
@@ -110,7 +110,7 @@ export function StickyTabStrip({
         borderBottom: `1px solid ${onDark ? 'var(--rule-dark)' : 'var(--rule-light)'}`,
         boxShadow: combinedBoxShadow,
         /// Clip vertically tight to the strip's own box so the outset
-        /// bleed shadow only paints horizontally — never bleeds onto the
+        /// bleed shadow only paints horizontally, never bleeds onto the
         /// row above or below.
         clipPath: 'inset(0 -100vmax)',
       }}
@@ -121,7 +121,7 @@ export function StickyTabStrip({
         // Mobile: horizontal scroll, each tab sized to content so labels never
         // wrap. Desktop (md+): equal-width grid columns as designed in §4.5.
         // The fade mask we tried earlier produced a cream sliver on the right
-        // edge that read as a layout bug — removed. Mobile users discover
+        // edge that read as a layout bug, removed. Mobile users discover
         // scroll naturally; the meaningful fix is generous right-padding on
         // the scroll container so the LAST tab can fully reach into view
         // instead of getting clipped by the viewport edge.

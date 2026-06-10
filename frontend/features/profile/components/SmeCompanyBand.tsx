@@ -4,7 +4,7 @@ import { api } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
 
-// Hoisted constants per Vercel `rendering-hoist-jsx` — never re-allocated
+// Hoisted constants per Vercel `rendering-hoist-jsx`, never re-allocated
 // per render. Static option lists for the native <select> inputs.
 const SECTOR_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '', label: '—' },
@@ -34,7 +34,7 @@ type Sector =
   | 'other';
 type EmployeeBand = 'micro' | 'small' | 'medium';
 
-/// COMPANY band on /profile. Lets the user fill in their SME profile —
+/// COMPANY band on /profile. Lets the user fill in their SME profile,
 /// the data that financiers + counterparties see on the credit passport.
 /// Top-level component per `rerender-no-inline-components`. Independent
 /// of the rest of /profile so the page re-renders nothing when the form

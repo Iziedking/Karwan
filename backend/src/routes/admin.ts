@@ -111,7 +111,7 @@ adminRoutes.post('/reset-history', async (c) => {
 /// orphaned by a contract redeploy, where the recorded acceptedAt no longer
 /// maps to a Funded escrow on the current contract). Sets cancelledAt on the
 /// off-chain record so the UI moves the deal into a terminal state. Does
-/// NOT touch the chain — the deal was never actually funded on the live
+/// NOT touch the chain. The deal was never actually funded on the live
 /// contract anyway. Use sparingly; the on-chain path is always preferred.
 adminRoutes.post('/deals/:jobId/force-cancel', async (c) => {
   const jobId = c.req.param('jobId');
@@ -173,7 +173,7 @@ adminRoutes.post('/reputation/backfill', async (c) => {
 });
 
 /// Force-replay the chain event backfill into the in-memory bus + persisted
-/// data/events.json. Fire-and-forget — the route returns 202 immediately
+/// data/events.json. Fire-and-forget, the route returns 202 immediately
 /// and the scan runs in the background. A synchronous run was prone to
 /// reverse-proxy timeouts on a wide lookback window (Caddy default is 5
 /// min, the scan can legitimately take 10+ min with slowed concurrency
@@ -353,7 +353,7 @@ adminRoutes.get('/agents', async (c) => {
 });
 
 /// All match proposals across every job, newest first. Backed by Postgres
-/// when DATABASE_URL is set, flat-file otherwise — survives restarts so the
+/// when DATABASE_URL is set, flat-file otherwise. Survives restarts so the
 /// admin view is consistent with what users see on the approve banner.
 adminRoutes.get('/proposals', async (c) => {
   return c.json({ proposals: await listAllMatchProposals() });
@@ -394,8 +394,8 @@ const oracleAbi = [
 
 /// KarwanTreasury reserves: liquid USDC, the USYC holding marked to the oracle
 /// price, and total reserves. This is the Track 2 "protocol reserves earn yield"
-/// surface: on testnet the USYC value drifts above the USYC token count as the
-/// MockUSYC price ramps, which is the simulated yield. Reports configured:false
+/// surface: the USYC value drifts above the USYC token count as the USYC oracle
+/// price ramps, which is the yield. Reports configured:false
 /// (not an error) until KARWAN_TREASURY_CONTRACT_ADDR is set after deploy.
 adminRoutes.get('/treasury', async (c) => {
   const treasury = config.KARWAN_TREASURY_CONTRACT_ADDR as `0x${string}` | undefined;

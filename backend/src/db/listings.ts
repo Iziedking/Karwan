@@ -1,4 +1,4 @@
-// Seller listings — standing offers a seller has published off-chain. Matched
+// Seller listings, standing offers a seller has published off-chain. Matched
 // against open buyer briefs (in-memory JobStates) when a listing is created or
 // when a brief is posted. Off-chain; the on-chain action when a match fires is
 // the seller's existing submitBid call.
@@ -25,9 +25,18 @@ export interface Listing {
   /** Set when this listing has triggered a matched bid; prevents re-firing. */
   matchedAt?: number;
   matchedJobId?: string;
-  /// Set when the seller cancels their own listing. Terminal — once set, the
+  /// Set when the seller cancels their own listing. Terminal, once set, the
   /// listing drops out of every scanner and marketplace filter.
   cancelledAt?: number;
+  /// Match lane this offer belongs to. 'service' is the single-service P2P
+  /// flow, open to every account type; 'finance' is SME/B2B trade-finance,
+  /// restricted to verified businesses. Stamped at create from the seller's
+  /// accountType. Matching filters on this so the two pools never cross.
+  /// Absent reads as 'service'.
+  tradeLane?: 'service' | 'finance';
+  /// The seller's account type at create time, for business badging on a
+  /// match without a second profile read. Absent reads as 'person'.
+  partyKind?: 'person' | 'business';
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without

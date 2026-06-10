@@ -6,7 +6,7 @@ import { arcTestnet } from '@/core/wagmi';
 export type AddressKind = 'idle' | 'invalid' | 'checking' | 'eoa' | 'contract';
 
 interface UseAddressKindOptions {
-  /// Addresses to treat as pre-verified — skip the RPC round-trip and resolve
+  /// Addresses to treat as pre-verified, skip the RPC round-trip and resolve
   /// to `eoa` immediately when the input matches one. The bridge + withdraw
   /// surfaces feed the identity wallet and the user's known agent wallets in
   /// so a recognized wallet never has to wait on a chain read.

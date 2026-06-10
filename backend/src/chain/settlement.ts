@@ -36,11 +36,11 @@ export const ESCROW_REFUNDED = ESCROW_STATE.Refunded;
 /// Every wrapper in this file talks to KarwanEscrow through a Circle SCA
 /// (DCW) wallet, which routes the call through ERC-4337 handleOps. Circle
 /// reports COMPLETE the moment handleOps lands on chain, even when the inner
-/// userOp reverted — see karwan_erc4337_innerrevert.md for the original
+/// userOp reverted. See karwan_erc4337_innerrevert.md for the original
 /// "escrow got 0" repro. Without an on-chain state read after every COMPLETE,
 /// the wrappers would emit `escrow.accepted` / `escrow.milestone.released` /
 /// `escrow.released_from_dispute` (and the dispute/refund equivalents) on a
-/// userOp that never touched escrow state — falsely advancing off-chain
+/// userOp that never touched escrow state, falsely advancing off-chain
 /// `deal.disputed` / `cancelledAt` / `settledAt` while funds stay locked.
 /// Each wrapper now re-reads the escrow after the COMPLETE, asserts the
 /// expected post-state, and only THEN emits the bus event. A mismatch throws
@@ -103,7 +103,7 @@ export async function releaseMilestone(
     },
     `releaseProgress(${jobId}, ${index})`,
   );
-  /// Releases don't end in a single target state — a non-final milestone
+  /// Releases don't end in a single target state. A non-final milestone
   /// leaves the escrow in Accepted (with the counter advanced), and the
   /// final milestone lands in Settled. So instead of asserting state, read
   /// milestonesReleased and ensure it moved past `index`. A stuck counter
@@ -201,7 +201,7 @@ export async function refundEscrow(jobId: string, buyerAgentWalletId: string): P
 /// inside KarwanEscrow.releaseProgress / releaseFinal / releaseFromDispute /
 /// refund (v2.D moves recordCompletion onto the escrow contract, gated to
 /// onlyEscrow on the reputation side). So we no longer call
-/// recordReputation from here — the chain handles it.
+/// recordReputation from here. The chain handles it.
 export async function finalizeIfSettled(jobId: string): Promise<boolean> {
   const account = await readEscrow(jobId);
   if (account.state !== ESCROW_SETTLED) return false;

@@ -109,7 +109,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     // doesn't look broken. The shared loading.tsx covers the inter-route
     // hop; this state covers data-fetch latency once we've landed. The
     // min-h reserves roughly the height of the resolved LiveJobPage hero
-    // so the swap into the real page doesn't shift the bands below — the
+    // so the swap into the real page doesn't shift the bands below, the
     // dominant CLS source on /jobs/[id] before this pass.
     return (
       <FullBleed>

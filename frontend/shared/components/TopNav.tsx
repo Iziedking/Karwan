@@ -129,7 +129,12 @@ export function TopNav() {
             >
               {t.nav.bridge}
             </NavLink>
-            <NavLinkSoon title={t.nav.hints.smeTrades} soonLabel={t.nav.soonBadge}>
+            <NavLinkSoon
+              href="/financier"
+              active={pathname.startsWith('/financier')}
+              title={t.nav.hints.smeTrades}
+              soonLabel={t.nav.soonBadge}
+            >
               {t.nav.smeTrades}
             </NavLinkSoon>
             <NavLink
@@ -186,7 +191,7 @@ export function TopNav() {
             // app surface (nav rail, balance, bell, settings) before the user
             // has signed in. While auth is still resolving, reserve the same
             // approximate width so the bar doesn't shift content once the
-            // button paints — this was one of the dominant CLS contributors
+            // button paints. This was one of the dominant CLS contributors
             // across every app route (RES dashboard, last 7 days).
             authLoading ? (
               <span
@@ -248,7 +253,13 @@ export function TopNav() {
             <MobileNavLink href="/bridge" active={pathname.startsWith('/bridge')}>
               {t.nav.bridge}
             </MobileNavLink>
-            <MobileNavLinkSoon soonLabel={t.nav.soonBadge}>{t.nav.smeTrades}</MobileNavLinkSoon>
+            <MobileNavLinkSoon
+              href="/financier"
+              active={pathname.startsWith('/financier')}
+              soonLabel={t.nav.soonBadge}
+            >
+              {t.nav.smeTrades}
+            </MobileNavLinkSoon>
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
               {t.nav.activity}
             </MobileNavLink>
@@ -330,20 +341,31 @@ function NavLink({
 /// Disabled-looking nav slot with a "soon" pill. No href, no click target, just
 /// a hover-tooltip via `title`. Used for upcoming product surfaces (SME Trades)
 /// so the position is reserved on the rail before the route exists.
+// The SME Trades slot carries a SOON chip but links through to the holding
+// page so the rail item resolves to a real surface that explains the rail.
 function NavLinkSoon({
+  href,
+  active,
   children,
   title,
   soonLabel,
 }: {
+  href: string;
+  active: boolean;
   children: React.ReactNode;
   title?: string;
   soonLabel: string;
 }) {
   return (
-    <span
+    <Link
+      href={href}
       title={title}
-      aria-disabled="true"
-      className="px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] text-[var(--color-ink-faint)] cursor-not-allowed inline-flex items-center gap-1.5 whitespace-nowrap select-none"
+      className={cn(
+        'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+        active
+          ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
+          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+      )}
     >
       <span className="whitespace-nowrap">{children}</span>
       <span
@@ -356,21 +378,30 @@ function NavLinkSoon({
       >
         {soonLabel}
       </span>
-    </span>
+    </Link>
   );
 }
 
 function MobileNavLinkSoon({
+  href,
+  active,
   children,
   soonLabel,
 }: {
+  href: string;
+  active: boolean;
   children: React.ReactNode;
   soonLabel: string;
 }) {
   return (
-    <span
-      aria-disabled="true"
-      className="px-3 py-2.5 rounded-md font-medium text-[var(--color-ink-faint)] cursor-not-allowed inline-flex items-center justify-between select-none"
+    <Link
+      href={href}
+      className={cn(
+        'px-3 py-2.5 rounded-md font-medium transition-colors inline-flex items-center justify-between',
+        active
+          ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
+          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+      )}
     >
       <span>{children}</span>
       <span
@@ -383,7 +414,7 @@ function MobileNavLinkSoon({
       >
         {soonLabel}
       </span>
-    </span>
+    </Link>
   );
 }
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /// Brand-styled confirmation modal. Replaces window.confirm() everywhere we
-/// were using it for "are you sure?" gates — those rendered the OS / browser
+/// were using it for "are you sure?" gates, those rendered the OS / browser
 /// dialog, which broke the Karwan visual contract and felt cheap.
 ///
 /// Portals to <body> so a fixed-position modal can't be clipped by an
@@ -32,7 +32,7 @@ export function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  /// Only mount the portal after we have a window — SSR fallback returns
+  /// Only mount the portal after we have a window. SSR fallback returns
   /// null so we never call createPortal on the server.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -40,7 +40,7 @@ export function ConfirmModal({
   }, []);
 
   /// Esc dismisses. Listen at the window level so focus position doesn't
-  /// matter — a click on the backdrop blurs the cancel button before the
+  /// matter, a click on the backdrop blurs the cancel button before the
   /// keydown fires.
   useEffect(() => {
     if (!open) return;

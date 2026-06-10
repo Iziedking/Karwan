@@ -90,7 +90,7 @@ const rejectBodySchema = z.object({
 
 export const factoringRoutes = new Hono();
 
-/// GET /api/factoring/available — invoices open to factoring offers:
+/// GET /api/factoring/available: invoices open to factoring offers:
 /// accepted deals where the seller has not yet accepted a factoring offer
 /// and where delivery is still pending. The /financier dashboard pulls
 /// from here.
@@ -114,7 +114,7 @@ factoringRoutes.get('/available', async (c) => {
   return c.json({ deals: filtered });
 });
 
-/// POST /api/factoring/offer — financier proposes an offer on a seller's
+/// POST /api/factoring/offer: financier proposes an offer on a seller's
 /// accepted invoice. Stored in 'offered' status until seller decides.
 factoringRoutes.post('/offer', async (c) => {
   if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
@@ -219,7 +219,7 @@ factoringRoutes.post('/offer', async (c) => {
   return c.json({ offer });
 });
 
-/// GET /api/factoring/offers/:invoiceId — all offers (any status) on a
+/// GET /api/factoring/offers/:invoiceId: all offers (any status) on a
 /// specific invoice. Seller's deal page pulls from here.
 factoringRoutes.get('/offers/:invoiceId', async (c) => {
   const parsed = hashSchema.safeParse(c.req.param('invoiceId'));
@@ -228,7 +228,7 @@ factoringRoutes.get('/offers/:invoiceId', async (c) => {
   return c.json({ offers });
 });
 
-/// GET /api/factoring/mine — offers belonging to the signed-in user as
+/// GET /api/factoring/mine: offers belonging to the signed-in user as
 /// financier OR seller. Used by both dashboards.
 factoringRoutes.get('/mine', async (c) => {
   const session = readSession(c);
@@ -241,14 +241,14 @@ factoringRoutes.get('/mine', async (c) => {
   return c.json({ asFinancier, asSeller });
 });
 
-/// GET /api/factoring/open — every open offer on the platform. Internal
+/// GET /api/factoring/open: every open offer on the platform. Internal
 /// helper for the expiry watcher and operator dashboards.
 factoringRoutes.get('/open', async (c) => {
   const offers = await listOpenOffers();
   return c.json({ offers });
 });
 
-/// POST /api/factoring/accept — seller accepts a financier's offer.
+/// POST /api/factoring/accept: seller accepts a financier's offer.
 /// Caller's wallet already did registry.setPayee + Circle Gateway
 /// authorisations off-chain; this records the tx hashes and updates
 /// state.
@@ -404,7 +404,7 @@ factoringRoutes.post('/accept', async (c) => {
   }
 });
 
-/// POST /api/factoring/reject — seller declines a financier's offer.
+/// POST /api/factoring/reject: seller declines a financier's offer.
 factoringRoutes.post('/reject', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);

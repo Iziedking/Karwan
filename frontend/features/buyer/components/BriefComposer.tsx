@@ -60,7 +60,7 @@ function deadlinePayload(deadlineDays: number): { deadlineSeconds: number } | { 
 
 /// Turn a backend Zod error array (or any error detail shape) into a one-
 /// line message the user can act on. Without this, the UI dumped the raw
-/// JSON array — readable to engineers, hostile to users.
+/// JSON array, readable to engineers, hostile to users.
 function humanizeError(raw: unknown): string {
   if (typeof raw === 'string') {
     // Sometimes the backend stringifies the array before we see it.
@@ -154,7 +154,7 @@ export function BriefComposer() {
           ? humanizeError(err.detail ?? err.message)
           : humanizeError((err as Error).message ?? 'Could not post the request.');
       if (err instanceof ApiError && Array.isArray(err.detail)) {
-        // Schema validation failure — drop into the form so the user can
+        // Schema validation failure. Drop into the form so the user can
         // tweak the offending field with the friendly message as a note.
         return {
           kind: 'review',

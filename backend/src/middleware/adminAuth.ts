@@ -17,7 +17,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 ///   X-Admin-Token: <token>
 ///   Authorization: Bearer <token>
 /// Both compare against ADMIN_API_TOKEN. When the token isn't configured, the
-/// admin surface is DISABLED (503) rather than left open — so a missing env
+/// admin surface is DISABLED (503) rather than left open, so a missing env
 /// var can never silently expose admin.
 ///
 /// The Authorization: Bearer form is the standard most CLI users + curl

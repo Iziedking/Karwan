@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease, sectionReveal } from '@/shared/motion/tokens';
 
-/// SKILL.md §2.3 — section primitive enforcing the 96–160px desktop vertical
+/// SKILL.md §2.3. Section primitive enforcing the 96–160px desktop vertical
 /// rhythm and the 12-column grid with 1320px content cap. Reveals on scroll
 /// per §3 motion rule 2: opacity 0→1, y 24→0, dur.slow, ease.out, 15%
 /// viewport threshold, fires once.

@@ -30,7 +30,7 @@ export function OnChainProofBand() {
   /// in-flight predecessor so manual retry + interval poll don't stack.
   /// If we already have a good snapshot, a refresh failure leaves the
   /// existing stats on screen instead of replacing them with the error
-  /// surface — silent revalidation is better UX for a stats panel than
+  /// surface. Silent revalidation is better UX for a stats panel than
   /// a flicker.
   const fetchOnce = useCallback(async () => {
     abortRef.current?.abort();
@@ -45,7 +45,7 @@ export function OnChainProofBand() {
     } catch {
       if (ctrl.signal.aborted && abortRef.current !== ctrl) return;
       /// Only show the error surface when we have nothing to render.
-      /// A failed refresh against an existing snapshot is silent — the
+      /// A failed refresh against an existing snapshot is silent, the
       /// 20s/60s heartbeat will pick up the next successful build and
       /// the user never sees a flash of "CHAIN READ FAILED".
       setStats((cur) => {
@@ -343,7 +343,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
     return values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(v)}`).join(' ');
   };
 
-  // Day markers — first, middle, last (compact, fast to read).
+  // Day markers: first, middle, last (compact, fast to read).
   const xMarkers = [0, Math.floor(n / 2), n - 1];
 
   return (

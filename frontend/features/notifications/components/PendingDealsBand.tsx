@@ -64,7 +64,7 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
   /// Single source of truth for deal lists. Inheriting the shared cache
   /// kills the duplicate fetch this component used to fire on every
   /// mount, and the persister excludes the deals namespace, so the band
-  /// never renders a stale snapshot — it shows nothing until the fresh
+  /// never renders a stale snapshot, it shows nothing until the fresh
   /// fetch lands. That removes the "old deals flash on home / profile"
   /// regression cleanly.
   const { deals, fetchState } = useDirectDeals();
@@ -85,7 +85,7 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
     );
 
   /// While the first fetch is in flight, render nothing instead of an
-  /// empty list — keeps the layout from briefly hopping into the page
+  /// empty list, keeps the layout from briefly hopping into the page
   /// before the truth arrives. Once we have a response (even one with
   /// zero rows), the band hides as before.
   if (fetchState !== 'success') return null;

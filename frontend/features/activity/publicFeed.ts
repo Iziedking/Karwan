@@ -13,7 +13,7 @@ import type { ChainEvent } from '@/core/api';
 export const PUBLIC_EVENT_TYPES = new Set<string>([
   // request lifecycle
   'job.posted', 'job.tracked', 'job.expired',
-  // bid surfaced and the bid that closed the deal — drop scoring noise
+  // bid surfaced and the bid that closed the deal. Drop scoring noise
   'bid.submitted', 'bid.accepted',
   // matches that landed (decline + approve internals stay private)
   'deal.matched',
