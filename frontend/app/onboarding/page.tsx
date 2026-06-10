@@ -327,7 +327,11 @@ function OnboardingInner() {
               {step === 'profile' && (
                 <>
                   {t.onboarding.profileStep.headlinePrefix}
-                  <Accent>{t.onboarding.profileStep.headlineAccent}</Accent>
+                  <Accent>
+                    {accountType === 'business'
+                      ? t.onboarding.businessProfileStep.headlineAccent
+                      : t.onboarding.profileStep.headlineAccent}
+                  </Accent>
                   <Punc>.</Punc>
                 </>
               )}
@@ -384,7 +388,30 @@ function OnboardingInner() {
             />
           )}
 
-          {step === 'profile' && role && (
+          {step === 'profile' && role && accountType === 'business' && (
+            <BusinessProfileStep
+              displayName={displayName}
+              setDisplayName={setDisplayName}
+              skills={skills}
+              setSkills={setSkills}
+              bio={bio}
+              setBio={setBio}
+              dealMin={sellerMin}
+              setDealMin={setSellerMin}
+              dealMax={sellerMax}
+              setDealMax={(v) => {
+                setSellerMax(v);
+                setBuyerMax(v);
+              }}
+              canSubmit={canSubmit}
+              submitting={submitting}
+              error={error}
+              onBack={() => setStep('accountType')}
+              onSubmit={submit}
+            />
+          )}
+
+          {step === 'profile' && role && accountType !== 'business' && (
             <ProfileStep
               role={role}
               displayName={displayName}
@@ -414,7 +441,7 @@ function OnboardingInner() {
               canSubmit={canSubmit}
               submitting={submitting}
               error={error}
-              onBack={() => setStep(accountType === 'business' ? 'accountType' : 'role')}
+              onBack={() => setStep('role')}
               onSubmit={submit}
             />
           )}
@@ -894,6 +921,86 @@ function RoleCard({
         </div>
       </div>
     </button>
+  );
+}
+
+function BusinessProfileStep(props: {
+  displayName: string;
+  setDisplayName: (v: string) => void;
+  skills: string;
+  setSkills: (v: string) => void;
+  bio: string;
+  setBio: (v: string) => void;
+  dealMin: number;
+  setDealMin: (v: number) => void;
+  dealMax: number;
+  setDealMax: (v: number) => void;
+  canSubmit: boolean;
+  submitting: boolean;
+  error: string | null;
+  onBack: () => void;
+  onSubmit: () => void;
+}) {
+  const t = useTranslations().onboarding;
+  const bs = t.businessProfileStep;
+  return (
+    <div className="space-y-6 fade-up">
+      <ProfileSection number="01" eyebrow={bs.companyEyebrow} title={bs.companyLabel}>
+        <Field label={bs.companyLabel} hint={bs.companyHint}>
+          <input
+            value={props.displayName}
+            onChange={(e) => props.setDisplayName(e.target.value)}
+            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+          />
+        </Field>
+      </ProfileSection>
+
+      <ProfileSection number="02" eyebrow={bs.tradeEyebrow} title={bs.goodsLabel}>
+        <Field label={bs.goodsLabel} hint={bs.goodsHint}>
+          <input
+            value={props.skills}
+            onChange={(e) => props.setSkills(e.target.value)}
+            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+          />
+        </Field>
+        <Field label={bs.aboutLabel} hint={bs.aboutHint}>
+          <textarea
+            value={props.bio}
+            onChange={(e) => props.setBio(e.target.value)}
+            rows={2}
+            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] resize-none transition-colors"
+          />
+        </Field>
+      </ProfileSection>
+
+      <ProfileSection number="03" title={bs.dealEyebrow}>
+        <div className="grid grid-cols-2 gap-3">
+          <NumField label={bs.minLabel} value={props.dealMin} setValue={props.setDealMin} />
+          <NumField label={bs.maxLabel} value={props.dealMax} setValue={props.setDealMax} />
+        </div>
+      </ProfileSection>
+
+      <div className="flex justify-between items-center pt-4">
+        <button
+          type="button"
+          onClick={props.onBack}
+          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+        >
+          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
+            ←
+          </span>
+          {t.roleStep.backArrow}
+        </button>
+        <CTAPill onClick={props.onSubmit} disabled={!props.canSubmit} tone="light">
+          {props.submitting ? t.profileStep.saving : t.profileStep.submit}
+        </CTAPill>
+      </div>
+      {props.error && (
+        <p className="mono text-[12px] text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
+          {props.error}
+        </p>
+      )}
+    </div>
   );
 }
 
