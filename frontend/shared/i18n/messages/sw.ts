@@ -96,6 +96,24 @@ export const sw: Messages = {
   onboarding: {
     signUpTag: 'JIANDIKISHE',
     stepIndicator: 'JIANDIKISHE · HATUA {step} KATI YA {total}',
+    accountTypeStep: {
+      headlinePrefix: 'Sanidi ',
+      headlineAccent: 'akaunti yako',
+      description: 'Unauza kama wewe binafsi au kama kampuni? Unaweza kuthibitisha biashara baadaye.',
+      individual: {
+        eyebrow: 'BINAFSI',
+        title: 'Mtu binafsi',
+        body: 'Fanya biashara kama wewe mwenyewe katika soko la P2P. Nunua na uuze huduma moja bila hatua za ziada.',
+        tagline: 'Bora kwa wafanyakazi huru na wauzaji binafsi.',
+      },
+      business: {
+        eyebrow: 'IMETHIBITISHWA',
+        title: 'Biashara',
+        body: 'Fanya biashara kama kampuni. Fungua ufadhili wa biashara wa B2B mara Karwan inapothibitisha usajili wako.',
+        tagline: 'Bora kwa kampuni na biashara za SME.',
+      },
+      note: 'Unasanidi akaunti binafsi sasa na kuthibitisha kampuni yako kutoka wasifu wako baada ya kujisajili.',
+    },
     connectStep: {
       headlinePrefix: 'Unganisha pochi ',
       headlineAccent: 'yako',

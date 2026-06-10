@@ -96,6 +96,24 @@ export const fr: Messages = {
   onboarding: {
     signUpTag: 'INSCRIPTION',
     stepIndicator: 'INSCRIPTION · ÉTAPE {step} SUR {total}',
+    accountTypeStep: {
+      headlinePrefix: 'Configurez votre ',
+      headlineAccent: 'compte',
+      description: 'Négociez-vous en votre nom ou en tant qu’entreprise ? Vous pourrez vérifier une entreprise plus tard.',
+      individual: {
+        eyebrow: 'PERSONNEL',
+        title: 'Particulier',
+        body: 'Négociez en votre nom sur le marché P2P. Achetez et vendez des services uniques sans étape supplémentaire.',
+        tagline: 'Idéal pour les indépendants et traders solo.',
+      },
+      business: {
+        eyebrow: 'VÉRIFIÉ',
+        title: 'Entreprise',
+        body: 'Négociez en tant qu’entreprise. Débloquez le financement commercial B2B une fois votre enregistrement vérifié par Karwan.',
+        tagline: 'Idéal pour les entreprises et le commerce des PME.',
+      },
+      note: 'Vous créez un compte personnel maintenant et vérifiez votre entreprise depuis votre profil après l’inscription.',
+    },
     connectStep: {
       headlinePrefix: 'Connectez votre ',
       headlineAccent: 'wallet',

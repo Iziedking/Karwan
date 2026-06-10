@@ -101,6 +101,24 @@ export const ar: Messages = {
     },
     signUpTag: 'إنشاء حساب',
     stepIndicator: 'إنشاء حساب · الخطوة {step} من {total}',
+    accountTypeStep: {
+      headlinePrefix: 'أنشئ ',
+      headlineAccent: 'حسابك',
+      description: 'هل تتداول باسمك أم كشركة؟ يمكنك توثيق نشاط تجاري لاحقًا.',
+      individual: {
+        eyebrow: 'شخصي',
+        title: 'فرد',
+        body: 'تداول باسمك في سوق الأفراد. اشترِ وبِع خدمات مفردة دون خطوات إضافية.',
+        tagline: 'الأفضل للمستقلين والمتداولين الأفراد.',
+      },
+      business: {
+        eyebrow: 'موثّق',
+        title: 'شركة',
+        body: 'تداول كشركة. افتح تمويل التجارة بين الشركات بعد أن توثّق كروان تسجيلك.',
+        tagline: 'الأفضل للشركات وتجارة المنشآت الصغيرة والمتوسطة.',
+      },
+      note: 'تنشئ حسابًا شخصيًا الآن وتوثّق شركتك من ملفك الشخصي بعد التسجيل.',
+    },
     connectStep: {
       headlinePrefix: 'اربط ',
       headlineAccent: 'محفظتك',

@@ -102,6 +102,14 @@ interface MessagesShape {
     };
     signUpTag: string;
     stepIndicator: string;
+    accountTypeStep: {
+      headlinePrefix: string;
+      headlineAccent: string;
+      description: string;
+      individual: { eyebrow: string; title: string; body: string; tagline: string };
+      business: { eyebrow: string; title: string; body: string; tagline: string };
+      note: string;
+    };
     connectStep: {
       headlinePrefix: string;
       headlineAccent: string;
@@ -3595,6 +3603,24 @@ export const en: MessagesShape = {
     },
     signUpTag: 'SIGN UP',
     stepIndicator: 'SIGN UP · STEP {step} OF {total}',
+    accountTypeStep: {
+      headlinePrefix: 'Set up your ',
+      headlineAccent: 'account',
+      description: 'Are you trading as yourself or as a company? You can verify a business later.',
+      individual: {
+        eyebrow: 'PERSONAL',
+        title: 'Individual',
+        body: 'Trade as yourself across the P2P market. Buy and sell single services with no extra steps.',
+        tagline: 'Best for freelancers and solo traders.',
+      },
+      business: {
+        eyebrow: 'VERIFIED',
+        title: 'Business',
+        body: 'Trade as a company. Unlock B2B trade finance once Karwan verifies your registration.',
+        tagline: 'Best for companies and SME trade.',
+      },
+      note: 'You set up a personal account now and verify your company from your profile after sign-up.',
+    },
     connectStep: {
       headlinePrefix: 'Connect your ',
       headlineAccent: 'wallet',

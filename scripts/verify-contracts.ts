@@ -105,6 +105,21 @@ const REGISTRY: Array<{ name: string; contract: string; path: string; address: s
     address: '0x9950b9a41A3e80930e451F2FEdaeb81e80195D03',
   },
   {
+    // SME trade-finance rail (deployed in the SME bundle). Document anchors,
+    // factoring payee redirect, PoD acceptance.
+    name: 'KarwanInvoiceRegistry',
+    contract: 'KarwanInvoiceRegistry',
+    path: 'src/KarwanInvoiceRegistry.sol:KarwanInvoiceRegistry',
+    address: '0x20a7CDf59b5f304De2b22a75e49f52353273E4E4',
+  },
+  {
+    // Single-funder PO financing custody.
+    name: 'KarwanPOFinancing',
+    contract: 'KarwanPOFinancing',
+    path: 'src/KarwanPOFinancing.sol:KarwanPOFinancing',
+    address: '0xc91122Eb88613C98d58616cD8973883142F74Bb5',
+  },
+  {
     // Verified-business account gate. Deployed 2026-06-10. Constructor args
     // (owner, reviewer) are both static addresses, so the verifier recovers
     // them from the DeployBusinessRegistry broadcast automatically.

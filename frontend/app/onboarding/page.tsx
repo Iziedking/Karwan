@@ -67,11 +67,16 @@ function OnboardingInner() {
   const address = auth.address ?? undefined;
   const isConnected = auth.isAuthenticated;
   const [loginOpen, setLoginOpen] = useState(false);
-  const [step, setStep] = useState<'language' | 'connect' | 'role' | 'profile' | 'review'>(
-    'language',
-  );
+  const [step, setStep] = useState<
+    'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'review'
+  >('language');
   const t = useTranslations();
   const [role, setRole] = useState<UserRole | null>(null);
+  // Personal vs business is an intent picked right after language. Business is
+  // a verified status granted later (doc anchor + review), so choosing it here
+  // just routes the user to the register-business surface after onboarding;
+  // accountType in the DB stays 'person' until Karwan approves.
+  const [accountType, setAccountType] = useState<'person' | 'business' | null>(null);
   const [displayName, setDisplayName] = useState('');
 
   // seller fields
@@ -135,8 +140,11 @@ function OnboardingInner() {
     // but NEVER skip the language step. A returning visitor with a cached
     // wallet still needs to confirm or change their language before the
     // rest of onboarding renders in it.
-    if (isConnected && step === 'connect') setStep('role');
-  }, [isConnected, step]);
+    if (isConnected && step === 'connect') {
+      // Business accounts default to both roles, so skip the role step.
+      setStep(accountType === 'business' ? 'profile' : 'role');
+    }
+  }, [isConnected, step, accountType]);
 
   // True from when we know there's an address until we either finish the
   // profile check (no profile → reveal the form) or fire a redirect (profile
@@ -245,15 +253,27 @@ function OnboardingInner() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('karwan:profile-saved'));
       }
-      router.push('/app');
+      // Business-choosers finish the personal account, then land on the
+      // register-business surface to anchor their doc and start verification.
+      router.push(accountType === 'business' ? '/profile?verify=business' : '/app');
     } catch (err) {
       setError(prettifyError(err));
       setSubmitting(false);
     }
   }
 
+  // Business skips the role step, so it has one fewer step than individual.
+  const totalSteps = accountType === 'business' ? 4 : 5;
   const stepN =
-    step === 'language' ? 1 : step === 'connect' ? 2 : step === 'role' ? 3 : 4;
+    step === 'language'
+      ? 1
+      : step === 'accountType'
+        ? 2
+        : step === 'connect'
+          ? 3
+          : step === 'role'
+            ? 4
+            : totalSteps;
 
   // Hold the body until the profile check resolves. Returning users with a
   // cached wallet would otherwise see the language step flash before the
@@ -272,7 +292,7 @@ function OnboardingInner() {
               <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
               {t.onboarding.stepIndicator
                 .replace('{step}', String(stepN))
-                .replace('{total}', '4')}
+                .replace('{total}', String(totalSteps))}
             </span>
           </div>
           <div className="fade-up fade-up-1">
@@ -280,6 +300,13 @@ function OnboardingInner() {
               {step === 'language' && (
                 <>
                   {t.onboarding.languageStep.title}
+                  <Punc>.</Punc>
+                </>
+              )}
+              {step === 'accountType' && (
+                <>
+                  {t.onboarding.accountTypeStep.headlinePrefix}
+                  <Accent>{t.onboarding.accountTypeStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
@@ -307,7 +334,7 @@ function OnboardingInner() {
             </HeroHeadline>
           </div>
           <div className="fade-up fade-up-2 mt-7 flex justify-center">
-            <ProgressDots current={stepN} total={4} />
+            <ProgressDots current={stepN} total={totalSteps} />
           </div>
         </div>
       </Band>
@@ -326,9 +353,22 @@ function OnboardingInner() {
                 }}
               />
               <div className="pt-2">
-                <CTAPill onClick={() => setStep('connect')}>{t.common.continue}</CTAPill>
+                <CTAPill onClick={() => setStep('accountType')}>{t.common.continue}</CTAPill>
               </div>
             </div>
+          )}
+
+          {step === 'accountType' && (
+            <AccountTypeStep
+              selected={accountType}
+              onSelect={(v) => {
+                setAccountType(v);
+                // Business defaults to both roles and skips the role step.
+                setRole(v === 'business' ? 'both' : null);
+              }}
+              onBack={() => setStep('language')}
+              onContinue={() => setStep('connect')}
+            />
           )}
 
           {step === 'connect' && (
@@ -374,7 +414,7 @@ function OnboardingInner() {
               canSubmit={canSubmit}
               submitting={submitting}
               error={error}
-              onBack={() => setStep('role')}
+              onBack={() => setStep(accountType === 'business' ? 'accountType' : 'role')}
               onSubmit={submit}
             />
           )}
@@ -460,6 +500,177 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
         </p>
       </div>
     </div>
+  );
+}
+
+function AccountTypeStep({
+  selected,
+  onSelect,
+  onBack,
+  onContinue,
+}: {
+  selected: 'person' | 'business' | null;
+  onSelect: (v: 'person' | 'business') => void;
+  onBack: () => void;
+  onContinue: () => void;
+}) {
+  const t = useTranslations().onboarding;
+  const ats = t.accountTypeStep;
+  return (
+    <div className="space-y-8">
+      <div className="fade-up text-center">
+        <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
+          {ats.description}
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+        <div className="fade-up fade-up-1">
+          <AccountCard
+            kind="person"
+            selected={selected}
+            onSelect={onSelect}
+            tone="cream"
+            eyebrow={ats.individual.eyebrow}
+            title={ats.individual.title}
+            body={ats.individual.body}
+            tagline={ats.individual.tagline}
+          />
+        </div>
+        <div className="fade-up fade-up-2">
+          <AccountCard
+            kind="business"
+            selected={selected}
+            onSelect={onSelect}
+            tone="accent"
+            eyebrow={ats.business.eyebrow}
+            title={ats.business.title}
+            body={ats.business.body}
+            tagline={ats.business.tagline}
+          />
+        </div>
+      </div>
+
+      <p className="text-center mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] max-w-[52ch] mx-auto">
+        {ats.note}
+      </p>
+
+      <div className="flex justify-between items-center pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+        >
+          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
+            ←
+          </span>
+          {t.roleStep.backArrow}
+        </button>
+        <CTAPill onClick={onContinue} disabled={!selected} tone="light">
+          {t.roleStep.continueArrow}
+        </CTAPill>
+      </div>
+    </div>
+  );
+}
+
+function AccountCard({
+  kind,
+  selected,
+  onSelect,
+  tone,
+  eyebrow,
+  title,
+  body,
+  tagline,
+}: {
+  kind: 'person' | 'business';
+  selected: 'person' | 'business' | null;
+  onSelect: (v: 'person' | 'business') => void;
+  tone: 'cream' | 'accent';
+  eyebrow: string;
+  title: string;
+  body: string;
+  tagline: string;
+}) {
+  const t = useTranslations().onboarding.roleStep;
+  const isSel = selected === kind;
+  const surface =
+    tone === 'accent'
+      ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
+      : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
+  const eyebrowColor =
+    tone === 'accent' ? 'text-[var(--lp-band-dark)]/70' : 'text-[var(--lp-text-muted)]';
+  const muted =
+    tone === 'accent' ? 'text-[var(--lp-band-dark)]/90' : 'text-[var(--lp-text-sub)]';
+  const tagColor =
+    tone === 'accent' ? 'text-[var(--lp-band-dark)]/75' : 'text-[var(--lp-text-muted)]';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(kind)}
+      className={cn(
+        'group block w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
+        'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
+        isSel && 'ring-2 ring-[var(--lp-accent)] ring-offset-2 ring-offset-[var(--lp-light)]',
+        surface,
+      )}
+      style={{
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 5,
+      }}
+    >
+      <div className="p-6">
+        <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
+          {eyebrow}
+        </span>
+        <h3 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
+          {title}
+        </h3>
+        <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
+        <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>{tagline}</p>
+        <div className="mt-5 flex items-center justify-between">
+          <span
+            className={cn(
+              'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
+              isSel
+                ? tone === 'accent'
+                  ? 'bg-[var(--lp-band-dark)] border-[var(--lp-dark)]'
+                  : 'bg-[var(--lp-accent)] border-[var(--lp-accent)]'
+                : tone === 'accent'
+                  ? 'border-[var(--lp-dark)]/30'
+                  : 'border-[var(--lp-border-light)]',
+            )}
+          >
+            {isSel && (
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M3 8.5 L6.5 12 L13 5"
+                  stroke={tone === 'accent' ? 'var(--lp-accent)' : '#0e0e0e'}
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </span>
+          <span
+            aria-hidden
+            className={cn(
+              'mono text-[10px] uppercase tracking-[0.12em] transition-opacity',
+              isSel ? 'opacity-100' : 'opacity-0',
+            )}
+          >
+            {t.selected}
+          </span>
+        </div>
+      </div>
+    </button>
   );
 }
 
