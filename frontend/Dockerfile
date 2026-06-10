@@ -26,6 +26,13 @@ COPY frontend frontend
 
 ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:9091
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+# SME Trades surfaces + the business-registration web3 path are gated on these
+# NEXT_PUBLIC vars, inlined at build. Default SME on for local testing so the
+# new surfaces are visible; the registry address is passed from the .env.
+ARG NEXT_PUBLIC_SME_TRADES_ENABLED=1
+ENV NEXT_PUBLIC_SME_TRADES_ENABLED=$NEXT_PUBLIC_SME_TRADES_ENABLED
+ARG NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR=
+ENV NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR=$NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm --prefix frontend run build

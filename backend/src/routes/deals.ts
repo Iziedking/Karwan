@@ -41,6 +41,7 @@ import {
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
@@ -255,6 +256,26 @@ dealsRoutes.post('/direct', async (c) => {
   }
 
   const sellerAddress = body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS;
+
+  // Stamp the match lane from the creator's account type plus the trade nature.
+  // A finance-lane direct deal (SME/B2B) is between verified businesses on both
+  // sides: a known counterparty is checked now, a pending invited one at accept.
+  const creatorAccountType = await accountTypeOf(body.buyerAddress);
+  const tradeLane = deriveLane(creatorAccountType, body.tradeType);
+  if (tradeLane === 'finance' && body.sellerAddress) {
+    const sellerType = await accountTypeOf(body.sellerAddress);
+    if (sellerType !== 'business') {
+      return c.json(
+        {
+          error: 'finance-lane deals require a verified business counterparty',
+          detail:
+            'SME trade-finance deals are between verified businesses. The named counterparty is not verified.',
+        },
+        409,
+      );
+    }
+  }
+
   const deal = await createDeal({
     jobId,
     buyer: body.buyerAddress,
@@ -270,6 +291,8 @@ dealsRoutes.post('/direct', async (c) => {
     pendingCounterparty,
     requireStake: body.requireStake,
     requireStakePct: body.requireStake ? body.requireStakePct : undefined,
+    tradeLane,
+    partyKind: creatorAccountType,
     tradeType: body.tradeType,
     incoterms: body.incoterms,
     paymentTerms: body.paymentTerms,
@@ -726,6 +749,21 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   }
   if (body.caller.toLowerCase() !== deal.seller) {
     return c.json({ error: 'only the named seller can accept this deal' }, 403);
+  }
+  // Finance-lane (SME/B2B) deals require the accepting seller to be a verified
+  // business. Catches the pending-invite case where the counterparty wasn't
+  // known at create time.
+  if (deal.tradeLane === 'finance') {
+    const sellerType = await accountTypeOf(deal.seller);
+    if (sellerType !== 'business') {
+      return c.json(
+        {
+          error: 'finance-lane deals require a verified business',
+          detail: 'This is an SME trade-finance deal. Only a verified business can accept it.',
+        },
+        403,
+      );
+    }
   }
   if (deal.acceptedAt) {
     return c.json({ error: 'deal already accepted' }, 409);

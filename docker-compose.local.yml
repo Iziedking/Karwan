@@ -52,6 +52,10 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_BACKEND_URL: http://localhost:9091
+        # SME Trades on for local testing; registry address from the env so the
+        # web3 register-as-business path can sign submitRegistration locally.
+        NEXT_PUBLIC_SME_TRADES_ENABLED: "1"
+        NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR: "${NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR:-}"
     container_name: karwan-web-local
     ports:
       - "9000:3000"

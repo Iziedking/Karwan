@@ -59,6 +59,23 @@ const envSchema = z.object({
   /// Karwan reviewer wallet, never the deployer. Unset = admin review can't
   /// reach chain (the route returns 503).
   BUSINESS_REVIEWER_WALLET_ID: optionalString,
+  /// USYC yield cron: the operator EOA private key that signs vault
+  /// withdrawForYield + Teller subscribe (the vault is NotPermissioned, only
+  /// this entitled EOA can subscribe) and the treasury keeper sweep. Same raw-
+  /// key pattern as X402_BASE_PRIVATE_KEY. Testnet only; unset = cron is a
+  /// no-op. On mainnet, move to a dedicated entitled+operator wallet.
+  USYC_OPERATOR_PRIVATE_KEY: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+  ),
+  /// Liquid USDC (6dp units, e.g. 100) the vault keeps unwrapped to cover
+  /// slashable reservations + soon-to-claim cooling positions. The cron wraps
+  /// everything above this; tune it down to minimise yield drag.
+  USYC_VAULT_BUFFER_USDC: z.coerce.number().nonnegative().default(0),
+  /// Minimum fee-EOA USDC balance before the treasury sweep cron bothers.
+  USYC_TREASURY_SWEEP_MIN_USDC: z.coerce.number().nonnegative().default(1),
+  /// Don't churn the vault for deltas smaller than this (USDC).
+  USYC_REBALANCE_MARGIN_USDC: z.coerce.number().nonnegative().default(5),
   /// Buyer agents pay Karwan's own x402 credit-passport endpoint during bid
   /// scoring (real USDC, agent Gateway deposit -> platform treasury). On by
   /// default; set to 'false' to skip the paid pull entirely. Failures never

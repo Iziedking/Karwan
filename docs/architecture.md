@@ -176,3 +176,25 @@ the flag is set.
   screening, the platform's own credit-passport reads, and market context.
   Settlement runs through Circle Gateway batching so a sub-cent call never pays
   a full transaction fee.
+
+## Account types and matching lanes
+
+Every wallet is a person by default. A wallet becomes a verified business by
+registering on `KarwanBusinessRegistry`: it anchors the hash of a registration
+or tax document with a signed transaction, and Karwan reviews and grants the
+verified-business tag. The document never leaves the user's device; only its
+hash is anchored on chain.
+
+Karwan connects all four directions, person to person, person to business,
+business to person, and business to business, across two lanes that never cross:
+
+- **Service.** The single-service flow, open to every account type. A business
+  can buy or sell a single service here; the match shows a verified-business
+  badge but still reaches person counterparties.
+- **Finance.** The trade-finance flow (goods, invoices, purchase orders,
+  factoring), restricted to verified businesses on both sides.
+
+Matching is partitioned by lane at every point a candidate is considered, and
+finance deals check that both parties are verified businesses at create and at
+accept. A person never sees a finance deal, and a finance deal never routes to
+a person.
