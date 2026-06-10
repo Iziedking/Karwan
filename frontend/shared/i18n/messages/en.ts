@@ -110,6 +110,20 @@ interface MessagesShape {
       business: { eyebrow: string; title: string; body: string; tagline: string };
       note: string;
     };
+    businessProfileStep: {
+      headlineAccent: string;
+      companyEyebrow: string;
+      companyLabel: string;
+      companyHint: string;
+      tradeEyebrow: string;
+      goodsLabel: string;
+      goodsHint: string;
+      aboutLabel: string;
+      aboutHint: string;
+      dealEyebrow: string;
+      minLabel: string;
+      maxLabel: string;
+    };
     connectStep: {
       headlinePrefix: string;
       headlineAccent: string;
@@ -3620,6 +3634,20 @@ export const en: MessagesShape = {
         tagline: 'Best for companies and SME trade.',
       },
       note: 'You set up a personal account now and verify your company from your profile after sign-up.',
+    },
+    businessProfileStep: {
+      headlineAccent: 'about your business',
+      companyEyebrow: 'COMPANY',
+      companyLabel: 'Company name',
+      companyHint: 'Shown to counterparties on deals. Example: Lagos Textiles Ltd.',
+      tradeEyebrow: 'WHAT YOU TRADE',
+      goodsLabel: 'Goods or services',
+      goodsHint: 'Comma-separated. Example: textiles, garments, cotton.',
+      aboutLabel: 'About your business',
+      aboutHint: 'One or two sentences shown to counterparties.',
+      dealEyebrow: 'DEAL SIZE',
+      minLabel: 'Typical min (USDC)',
+      maxLabel: 'Typical max (USDC)',
     },
     connectStep: {
       headlinePrefix: 'Connect your ',
