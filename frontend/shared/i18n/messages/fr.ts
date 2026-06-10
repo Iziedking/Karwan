@@ -891,6 +891,10 @@ export const fr: Messages = {
       template: 'L\'agent acheteur a payé {amount} via x402 pour le passeport de crédit de ce vendeur.',
       txCta: 'règlement',
     },
+    screen: {
+      label: 'CONTRÔLE CONTREPARTIE',
+      template: 'L\'agent a payé {amount} sur Base pour un contrôle sanctions et risque. Verdict : {verdict}.',
+    },
     approvedEyebrow: 'Vendeur a accepté',
     approvedBody: 'Le vendeur a accepté votre deal. Le séquestre est financé. Ouverture du deal en direct.',
     approvedCta: 'Ouvrir le deal →',

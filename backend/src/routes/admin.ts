@@ -26,6 +26,7 @@ import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { screenCounterparty, externalPayerAddress } from '../x402/externalClient.js';
 
 export const adminRoutes = new Hono();
 
@@ -36,6 +37,28 @@ adminRoutes.use('*', requireAdmin);
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+/// Smoke test for the Base mainnet external x402 rail: screens any EVM
+/// address through GlobalAPI's counterparty check ($0.01, real USDC from
+/// the payer wallet). Also reports the payer address so the operator
+/// knows where to send funding.
+adminRoutes.get('/x402/screen/:address', async (c) => {
+  const parsed = addrSchema.safeParse(c.req.param('address'));
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  try {
+    const result = await screenCounterparty(parsed.data);
+    return c.json(result);
+  } catch (err) {
+    return c.json(
+      {
+        error: 'screen failed',
+        detail: (err as Error).message,
+        payer: externalPayerAddress(),
+      },
+      502,
+    );
+  }
+});
 
 /// Wipes a single test wallet's off-chain pollution. Removes:
 ///   - Briefs they posted

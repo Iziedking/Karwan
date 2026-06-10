@@ -875,6 +875,10 @@ interface MessagesShape {
       template: string;
       txCta: string;
     };
+    screen: {
+      label: string;
+      template: string;
+    };
     topUp: {
       eyebrow: string;
       buyerTemplate: string;
@@ -4396,6 +4400,10 @@ export const en: MessagesShape = {
       label: 'PAID VERIFICATION',
       template: 'Buyer agent paid {amount} over x402 for this seller\'s credit passport.',
       txCta: 'settlement',
+    },
+    screen: {
+      label: 'COUNTERPARTY SCREEN',
+      template: 'Agent paid {amount} on Base for a sanctions and risk screen. Verdict: {verdict}.',
     },
     topUp: {
       eyebrow: 'Top up needed',

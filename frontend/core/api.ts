@@ -496,6 +496,16 @@ export interface MatchProposal {
     transaction: string;
     paidAt: number;
   };
+  /// Sanctions and counterparty-risk screen the buyer agent paid for on
+  /// Base mainnet (OFAC SDN + UK FCDO + UN SC + wallet labels) at bid
+  /// time. subject is the seller's owner address.
+  counterpartyScreen?: {
+    subject: string;
+    verdict: 'PASS' | 'WARN' | 'BLOCK';
+    reasons: string[];
+    amountUsd: number;
+    screenedAt: number;
+  };
 }
 
 /// Agents found a topical match, but the best achievable price lands just

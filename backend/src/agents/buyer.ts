@@ -73,6 +73,7 @@ import { classifyAgentError } from '../chain/errors.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { screenCounterparty, type CounterpartyScreen } from '../x402/externalClient.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -133,6 +134,11 @@ interface Bid {
   /// Absent when paid signals are disabled or the call failed; the bid
   /// scores on local signals alone in that case.
   paidSignal?: PaidPassportSignal;
+  /// Sanctions and counterparty-risk screen the agent PAID for over x402
+  /// on Base mainnet (GlobalAPI, $0.01: OFAC SDN + UK FCDO + UN SC +
+  /// wallet labels). Screens the seller's OWNER address, not the agent
+  /// DCW. Absent when the Base payer key is unset or the call failed.
+  counterpartyScreen?: CounterpartyScreen;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -584,6 +590,37 @@ async function handleBidSubmitted(log: Log) {
     }
   }
 
+  // External paid signal: sanctions and counterparty-risk screen on Base
+  // mainnet (GlobalAPI over x402, $0.01). Screens the seller's OWNER
+  // address; the agent DCW is a fresh platform wallet and carries no
+  // history. Cached 24h per address so rebids don't re-spend. Best-effort
+  // like the passport pull.
+  let counterpartyScreen: CounterpartyScreen | undefined;
+  if (config.X402_PAID_SIGNALS_ENABLED && config.X402_BASE_PRIVATE_KEY) {
+    try {
+      counterpartyScreen = await Promise.race([
+        screenCounterparty(sellerUserAddress ?? args.seller),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('counterparty screen timed out')), 20_000),
+        ),
+      ]);
+      logger.info(
+        {
+          jobId: state.jobId,
+          seller: args.seller,
+          subject: counterpartyScreen.address,
+          verdict: counterpartyScreen.verdict,
+        },
+        'x402: counterparty screened at bid time',
+      );
+    } catch (err) {
+      logger.warn(
+        { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
+        'x402: counterparty screen failed (non-fatal)',
+      );
+    }
+  }
+
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
@@ -602,6 +639,7 @@ async function handleBidSubmitted(log: Log) {
     sellerUserAddress,
     sellerDisplayName,
     paidSignal,
+    counterpartyScreen,
   };
 
   const bidContext: BidContext = {
@@ -669,6 +707,15 @@ async function handleBidSubmitted(log: Log) {
                 transaction: paidSignal.transaction,
                 tier: paidSignal.tier,
                 score: paidSignal.score,
+              },
+            }
+          : {}),
+        ...(counterpartyScreen
+          ? {
+              counterpartyScreen: {
+                verdict: counterpartyScreen.verdict,
+                subject: counterpartyScreen.address,
+                amountUsd: counterpartyScreen.paidUsd,
               },
             }
           : {}),
@@ -1773,11 +1820,13 @@ async function proposeMatch(
       state.context.budgetUsdc,
       sellerFlags?.humanReview === true,
     );
-    // Carry the paid x402 passport pull (if the bid-time call succeeded)
-    // onto the proposal so the approval banner can prove it.
-    const paidBid = [...state.bids.entries()].find(
+    // Carry the paid x402 signals (if the bid-time calls succeeded) onto
+    // the proposal so the approval banner can prove them.
+    const winningBid = [...state.bids.entries()].find(
       ([k]) => k.toLowerCase() === seller.toLowerCase(),
-    )?.[1]?.paidSignal;
+    )?.[1];
+    const paidBid = winningBid?.paidSignal;
+    const screenBid = winningBid?.counterpartyScreen;
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -1797,6 +1846,17 @@ async function proposeMatch(
               amountUsd: paidBid.amountUsd,
               transaction: paidBid.transaction,
               paidAt: paidBid.paidAt,
+            },
+          }
+        : {}),
+      ...(screenBid
+        ? {
+            counterpartyScreen: {
+              subject: screenBid.address,
+              verdict: screenBid.verdict,
+              reasons: screenBid.reasons,
+              amountUsd: screenBid.paidUsd,
+              screenedAt: screenBid.screenedAt,
             },
           }
         : {}),

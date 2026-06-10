@@ -65,6 +65,18 @@ export interface MatchProposal {
     transaction: string;
     paidAt: number;
   };
+  /// Sanctions and counterparty-risk screen the buyer agent paid for on
+  /// Base mainnet (GlobalAPI over x402, $0.01: OFAC SDN + UK FCDO + UN SC
+  /// + wallet labels). subject is the seller's OWNER address. The
+  /// MatchBanner renders the verdict so both parties see the agent ran
+  /// real compliance before matching.
+  counterpartyScreen?: {
+    subject: string;
+    verdict: 'PASS' | 'WARN' | 'BLOCK';
+    reasons: string[];
+    amountUsd: number;
+    screenedAt: number;
+  };
 }
 
 export async function getMatchProposal(jobId: string): Promise<MatchProposal | null> {

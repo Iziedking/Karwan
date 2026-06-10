@@ -211,6 +211,34 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </p>
       )}
 
+      {/* External paid compliance: the buyer agent paid a Base mainnet
+          x402 endpoint for a sanctions and counterparty-risk screen on
+          the seller. PASS stays quiet; WARN and BLOCK color up. */}
+      {proposal.counterpartyScreen && (
+        <p
+          className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em]"
+          style={{
+            color:
+              proposal.counterpartyScreen.verdict === 'BLOCK'
+                ? '#b25425'
+                : proposal.counterpartyScreen.verdict === 'WARN'
+                  ? '#b07d1f'
+                  : 'var(--color-ink-faint)',
+          }}
+        >
+          [:{mb.screen.label}:]{' '}
+          <span className="normal-case tracking-normal text-[11px]">
+            {mb.screen.template
+              .replace('{amount}', `$${proposal.counterpartyScreen.amountUsd}`)
+              .replace('{verdict}', proposal.counterpartyScreen.verdict)}
+            {proposal.counterpartyScreen.verdict !== 'PASS' &&
+              proposal.counterpartyScreen.reasons.length > 0 && (
+                <> ({proposal.counterpartyScreen.reasons.join('; ')})</>
+              )}
+          </span>
+        </p>
+      )}
+
       {/* Risk flags are all seller-facing warnings (honey-trap, lowball,
           spammy, new-buyer) — they describe the BUYER, for the SELLER to
           judge before accepting. Render only when the viewer is the seller

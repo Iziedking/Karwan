@@ -29,6 +29,7 @@
     "@hono/node-server": "^1.13.0",
     "@openrouter/ai-sdk-provider": "^2.9.0",
     "@simplewebauthn/server": "^13.3.0",
+    "@x402/evm": "^2.14.0",
     "ai": "^6.0.180",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.36.0",

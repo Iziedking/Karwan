@@ -891,6 +891,10 @@ export const sw: Messages = {
       template: 'Wakala wa mnunuzi alilipa {amount} kupitia x402 kwa pasipoti ya mikopo ya muuzaji huyu.',
       txCta: 'utatuzi',
     },
+    screen: {
+      label: 'UKAGUZI WA MWENZAKE',
+      template: 'Wakala alilipa {amount} kwenye Base kwa ukaguzi wa vikwazo na hatari. Uamuzi: {verdict}.',
+    },
     approvedEyebrow: 'Muuzaji amekubali',
     approvedBody: 'Muuzaji amekubali biashara yako. Esokrau imefadhiliwa. Inafungua biashara ya moja kwa moja.',
     approvedCta: 'Fungua biashara →',

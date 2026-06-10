@@ -891,6 +891,10 @@ export const ar: Messages = {
       template: 'دفع وكيل المشتري {amount} عبر x402 مقابل جواز ائتمان هذا البائع.',
       txCta: 'التسوية',
     },
+    screen: {
+      label: 'فحص الطرف المقابل',
+      template: 'دفع الوكيل {amount} على Base لفحص العقوبات والمخاطر. الحكم: {verdict}.',
+    },
     approvedEyebrow: 'قبل البائع',
     approvedBody: 'قبل البائع صفقتك. الضمان مموَّل. جاري فتح الصفقة الحية.',
     approvedCta: 'افتح الصفقة →',

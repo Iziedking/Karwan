@@ -62,6 +62,15 @@ const envSchema = z.object({
   /// deposit when the available balance can't cover the next paid call.
   /// 0.50 covers 50 credit-passport pulls at $0.01.
   X402_GATEWAY_DEPOSIT_USD: z.coerce.number().positive().default(0.5),
+  /// Private key of the Base MAINNET payer EOA for external x402 calls
+  /// (counterparty sanctions screening via GlobalAPI, $0.01/check). The
+  /// key only signs EIP-3009 authorizations; the seller's facilitator
+  /// submits on chain and pays gas, so the wallet holds USDC and zero
+  /// ETH. Unset = external paid signals are skipped.
+  X402_BASE_PRIVATE_KEY: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+  ),
   /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
   /// users with funds still locked on the legacy contract (Funded or
   /// pre-v2.D "accepted" but never delivered) can refund / cancel from
