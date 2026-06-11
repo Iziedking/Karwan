@@ -32,6 +32,15 @@ export const qk = {
       ['profile', 'by-address', address.toLowerCase()] as const,
   },
 
+  business: {
+    status: (address: string | null | undefined) =>
+      ['business', 'status', (address ?? 'anon').toLowerCase()] as const,
+  },
+
+  activity: {
+    financeJobIds: () => ['activity', 'finance-jobids'] as const,
+  },
+
   notifications: (address: string | null | undefined) =>
     ['notifications', (address ?? 'anon').toLowerCase()] as const,
 
@@ -78,6 +87,8 @@ export type QueryKey = ReturnType<
   | typeof qk.reputation
   | typeof qk.profile.me
   | typeof qk.profile.byAddress
+  | typeof qk.business.status
+  | typeof qk.activity.financeJobIds
   | typeof qk.notifications
   | typeof qk.vault.positions
   | typeof qk.vault.networkStats

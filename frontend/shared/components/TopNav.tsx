@@ -12,6 +12,7 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 import { ProfileAvatar } from './ProfileAvatar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { SME_TRADES_ENABLED } from '@/features/profile/config';
 
 // Landing routes are forced dark via these var overrides, so every embedded
 // child (BalanceRail, bell, toggles, ConnectWalletButton) picks up dark mode
@@ -129,14 +130,24 @@ export function TopNav() {
             >
               {t.nav.bridge}
             </NavLink>
-            <NavLinkSoon
-              href="/financier"
-              active={pathname.startsWith('/financier')}
-              title={t.nav.hints.smeTrades}
-              soonLabel={t.nav.soonBadge}
-            >
-              {t.nav.smeTrades}
-            </NavLinkSoon>
+            {SME_TRADES_ENABLED ? (
+              <NavLink
+                href="/financier"
+                active={pathname.startsWith('/financier')}
+                title={t.nav.hints.smeTrades}
+              >
+                {t.nav.smeTrades}
+              </NavLink>
+            ) : (
+              <NavLinkSoon
+                href="/financier"
+                active={pathname.startsWith('/financier')}
+                title={t.nav.hints.smeTrades}
+                soonLabel={t.nav.soonBadge}
+              >
+                {t.nav.smeTrades}
+              </NavLinkSoon>
+            )}
             <NavLink
               href="/activity"
               active={pathname.startsWith('/activity')}
@@ -253,13 +264,19 @@ export function TopNav() {
             <MobileNavLink href="/bridge" active={pathname.startsWith('/bridge')}>
               {t.nav.bridge}
             </MobileNavLink>
-            <MobileNavLinkSoon
-              href="/financier"
-              active={pathname.startsWith('/financier')}
-              soonLabel={t.nav.soonBadge}
-            >
-              {t.nav.smeTrades}
-            </MobileNavLinkSoon>
+            {SME_TRADES_ENABLED ? (
+              <MobileNavLink href="/financier" active={pathname.startsWith('/financier')}>
+                {t.nav.smeTrades}
+              </MobileNavLink>
+            ) : (
+              <MobileNavLinkSoon
+                href="/financier"
+                active={pathname.startsWith('/financier')}
+                soonLabel={t.nav.soonBadge}
+              >
+                {t.nav.smeTrades}
+              </MobileNavLinkSoon>
+            )}
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
               {t.nav.activity}
             </MobileNavLink>

@@ -205,7 +205,7 @@ export function RegisterBusinessBand({ address }: { address: string }) {
                         type="button"
                         onClick={submit}
                         disabled={submitting}
-                        className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
+                        className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-light)] disabled:opacity-60"
                         style={cornerStyle}
                       >
                         {submitting ? 'Submitting…' : 'Submit for review'}

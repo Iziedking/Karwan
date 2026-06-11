@@ -1,7 +1,33 @@
 import { Hono } from 'hono';
 import { bus, type KarwanEvent } from '../events.js';
+import { listAllBriefs } from '../db/briefs.js';
+import { listAllDeals } from '../db/deals.js';
 
 export const activityRoutes = new Hono();
+
+// Finance-lane jobIds, cached so the public feed can strip business deals to
+// bare events on every poll without re-scanning briefs + deals each time.
+// Business trade is sensitive: the public feed shows that a finance-lane deal
+// moved, never its amount or parties. The two parties still see everything on
+// their own feed and deal page.
+let financeCache: { at: number; ids: Set<string> } | null = null;
+const FINANCE_CACHE_TTL_MS = 15_000;
+
+async function financeJobIds(): Promise<Set<string>> {
+  const now = Date.now();
+  if (financeCache && now - financeCache.at < FINANCE_CACHE_TTL_MS) {
+    return financeCache.ids;
+  }
+  const ids = new Set<string>();
+  for (const b of listAllBriefs()) {
+    if (b.tradeLane === 'finance' && b.jobId) ids.add(b.jobId.toLowerCase());
+  }
+  for (const d of await listAllDeals()) {
+    if (d.tradeLane === 'finance' && d.jobId) ids.add(d.jobId.toLowerCase());
+  }
+  financeCache = { at: now, ids };
+  return ids;
+}
 
 // Payload keys that identify a party. When the caller query is set, an event
 // is only included if one of these keys on its payload matches the caller.
@@ -68,15 +94,25 @@ const ADDRESS_KEYS = new Set<string>([
 // public feed so cancel/decline reasons don't end up indexed.
 const FREEFORM_KEYS = new Set<string>(['reason', 'cancelReason', 'detail', 'deliveryProof']);
 
+// Payload keys that hold a deal value. Dropped for finance-lane events so a
+// business deal's size never surfaces on the public feed.
+const AMOUNT_KEYS = new Set<string>([
+  'amountUsdc', 'dealAmountUsdc', 'agreedPriceUsdc', 'budgetUsdc', 'priceUsdc',
+  'askingPriceUsdc', 'milestoneAmountUsdc', 'faceValueUsdc', 'advanceUsdc', 'value',
+]);
+
 function maskAddress(addr: string): string {
   if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return addr;
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-function redactPayload(p: Record<string, unknown>): Record<string, unknown> {
+function redactPayload(p: Record<string, unknown>, bare: boolean): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(p)) {
     if (FREEFORM_KEYS.has(k)) continue;
+    // Bare = a finance-lane (business) event: drop parties and amount entirely
+    // so only the fact that something happened remains.
+    if (bare && (ADDRESS_KEYS.has(k) || AMOUNT_KEYS.has(k))) continue;
     if (ADDRESS_KEYS.has(k) && typeof v === 'string') {
       out[k] = maskAddress(v);
       continue;
@@ -86,11 +122,11 @@ function redactPayload(p: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-function redactEvent(e: KarwanEvent): KarwanEvent {
+function redactEvent(e: KarwanEvent, bare = false): KarwanEvent {
   return {
     ...e,
     jobId: e.jobId,
-    payload: redactPayload(e.payload ?? {}),
+    payload: redactPayload(e.payload ?? {}, bare),
   };
 }
 
@@ -99,7 +135,7 @@ function redactEvent(e: KarwanEvent): KarwanEvent {
 /// wallet. The unfiltered shape powers the landing-page tickers (HeroFlow,
 /// LivePulseStrip, StatsTicker). Sanitizing that public feed is a separate
 /// task; for now it still leaks addresses.
-activityRoutes.get('/', (c) => {
+activityRoutes.get('/', async (c) => {
   const limitParam = c.req.query('limit');
   const jobId = c.req.query('jobId') ?? undefined;
   const callerRaw = c.req.query('caller');
@@ -113,8 +149,14 @@ activityRoutes.get('/', (c) => {
     // Public form: keep only trade activity, then redact wallet addresses and
     // strip free-form text so the general feed and landing-page tickers never
     // leak account/platform events, parties, or party-authored reasons.
+    // Finance-lane (business) events stay in the feed but lose amount + parties.
+    const financeIds = await financeJobIds();
     const publicEvents = base.filter((e) => PUBLIC_EVENT_TYPES.has(e.type));
-    return c.json({ events: publicEvents.slice(0, limit).map(redactEvent) });
+    return c.json({
+      events: publicEvents
+        .slice(0, limit)
+        .map((e) => redactEvent(e, !!e.jobId && financeIds.has(e.jobId.toLowerCase()))),
+    });
   }
 
   // Two-pass filter so we don't drop follow-up events that lack party fields
@@ -132,4 +174,13 @@ activityRoutes.get('/', (c) => {
   });
 
   return c.json({ events: events.slice(0, limit) });
+});
+
+/// The set of finance-lane (business) jobIds. The /activity page masks the
+/// live SSE stream client-side, so it fetches this to strip business deals to
+/// bare events the same way the backfill feed above does. Masked jobIds are
+/// not sensitive on their own; the point is to hide amount + parties.
+activityRoutes.get('/finance-jobids', async (c) => {
+  const ids = await financeJobIds();
+  return c.json({ jobIds: [...ids] });
 });

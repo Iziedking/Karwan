@@ -580,6 +580,41 @@ interface MessagesShape {
       now: string;
     };
   };
+  businessHome: {
+    deskEyebrow: string;
+    hero: {
+      welcomeBack: string;
+      description: string;
+      openDeskCta: string;
+      newTradeCta: string;
+      viewActivityCta: string;
+    };
+    status: {
+      verified: string;
+      underReview: string;
+      finishVerification: string;
+    };
+    bookCard: {
+      eyebrow: string;
+      active: string;
+      settled: string;
+      volume: string;
+    };
+    analytics: {
+      sectionTag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+      description: string;
+      tiles: { total: string; active: string; settled: string; volume: string };
+      chartTitle: string;
+      chartEmpty: string;
+    };
+    history: {
+      sectionTag: string;
+      headlinePrefix: string;
+      headlineAccent: string;
+    };
+  };
   bridge: {
     signInGate: { tag: string; body: string };
     sectionTag: string;
@@ -1314,6 +1349,7 @@ interface MessagesShape {
       briefs: string;
     };
     liveCaption: string;
+    businessFilterNote: string;
     error: string;
     emptyAllTag: string;
     emptyAllBody: string;
@@ -4139,6 +4175,48 @@ export const en: MessagesShape = {
       now: 'now',
     },
   },
+  businessHome: {
+    deskEyebrow: 'TRADE DESK',
+    hero: {
+      welcomeBack: 'Welcome back,',
+      description:
+        'Your trade desk. Track every deal, draw working capital against your book, and settle cross-border in USDC.',
+      openDeskCta: 'Open SME desk',
+      newTradeCta: 'New trade',
+      viewActivityCta: 'View activity',
+    },
+    status: {
+      verified: 'Verified business',
+      underReview: 'Verification under review',
+      finishVerification: 'Finish verification',
+    },
+    bookCard: {
+      eyebrow: 'YOUR BOOK',
+      active: 'Active',
+      settled: 'Settled',
+      volume: 'Volume',
+    },
+    analytics: {
+      sectionTag: 'YOUR TRADES',
+      headlinePrefix: 'Every deal in ',
+      headlineAccent: 'one ledger',
+      description:
+        'Your full trade book at a glance. Volume, active deals, and what has settled, drawn straight from the chain.',
+      tiles: {
+        total: 'Total trades',
+        active: 'Active',
+        settled: 'Settled',
+        volume: 'Volume',
+      },
+      chartTitle: 'Cumulative volume',
+      chartEmpty: 'No trades yet. Your first deal charts here.',
+    },
+    history: {
+      sectionTag: 'DEAL HISTORY',
+      headlinePrefix: 'Your ',
+      headlineAccent: 'deal history',
+    },
+  },
   bridge: {
     signInGate: {
       tag: 'BRIDGE',
@@ -4940,6 +5018,7 @@ export const en: MessagesShape = {
       briefs: 'Requests',
     },
     liveCaption: 'LIVE FROM KARWAN',
+    businessFilterNote: 'BUSINESS TRADES ONLY',
     error: "Couldn't load the marketplace.",
     emptyAllTag: 'EMPTY MARKET',
     emptyAllBody: 'No offers or requests yet. Post one to start the network.',

@@ -617,6 +617,48 @@ export const sw: Messages = {
       now: 'sasa',
     },
   },
+  businessHome: {
+    deskEyebrow: 'DAWATI LA BIASHARA',
+    hero: {
+      welcomeBack: 'Karibu tena,',
+      description:
+        'Dawati lako la biashara. Fuatilia kila mkataba, pata mtaji wa kufanyia kazi dhidi ya rekodi yako, na malizia malipo ng\'ambo kwa USDC.',
+      openDeskCta: 'Fungua dawati la SME',
+      newTradeCta: 'Mkataba mpya',
+      viewActivityCta: 'Tazama shughuli',
+    },
+    status: {
+      verified: 'Biashara iliyothibitishwa',
+      underReview: 'Uthibitishaji unakaguliwa',
+      finishVerification: 'Maliza uthibitishaji',
+    },
+    bookCard: {
+      eyebrow: 'REKODI YAKO',
+      active: 'Inayoendelea',
+      settled: 'Iliyokamilika',
+      volume: 'Kiasi',
+    },
+    analytics: {
+      sectionTag: 'MIKATABA YAKO',
+      headlinePrefix: 'Kila mkataba katika ',
+      headlineAccent: 'rekodi moja',
+      description:
+        'Rekodi yako yote ya biashara kwa mtazamo mmoja. Kiasi, mikataba inayoendelea, na iliyokamilika, vinasomwa moja kwa moja kutoka kwenye chain.',
+      tiles: {
+        total: 'Jumla ya mikataba',
+        active: 'Inayoendelea',
+        settled: 'Iliyokamilika',
+        volume: 'Kiasi',
+      },
+      chartTitle: 'Kiasi cha jumla',
+      chartEmpty: 'Bado hakuna mikataba. Mkataba wako wa kwanza utaonekana hapa.',
+    },
+    history: {
+      sectionTag: 'HISTORIA YA MIKATABA',
+      headlinePrefix: 'Historia yako ya ',
+      headlineAccent: 'mikataba',
+    },
+  },
   bridge: {
     signInGate: {
       tag: 'DARAJA',
@@ -1418,6 +1460,7 @@ export const sw: Messages = {
       briefs: 'Maombi',
     },
     liveCaption: 'MOJA KWA MOJA KUTOKA KARWAN',
+    businessFilterNote: 'MIKATABA YA BIASHARA TU',
     error: 'Haikuweza kupakia soko.',
     emptyAllTag: 'SOKO TUPU',
     emptyAllBody: 'Hakuna ofa wala maombi bado. Chapisha moja kuanzisha mtandao.',

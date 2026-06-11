@@ -617,6 +617,48 @@ export const ar: Messages = {
       now: 'الآن',
     },
   },
+  businessHome: {
+    deskEyebrow: 'مكتب التجارة',
+    hero: {
+      welcomeBack: 'مرحبًا بعودتك،',
+      description:
+        'مكتب التجارة الخاص بك. تابع كل صفقة، واحصل على رأس المال العامل مقابل سجلك، وسوِّ عبر الحدود بعملة USDC.',
+      openDeskCta: 'فتح مكتب الشركات الصغيرة',
+      newTradeCta: 'صفقة جديدة',
+      viewActivityCta: 'عرض النشاط',
+    },
+    status: {
+      verified: 'شركة موثَّقة',
+      underReview: 'التوثيق قيد المراجعة',
+      finishVerification: 'إكمال التوثيق',
+    },
+    bookCard: {
+      eyebrow: 'سجلك',
+      active: 'نشطة',
+      settled: 'مُسوَّاة',
+      volume: 'الحجم',
+    },
+    analytics: {
+      sectionTag: 'صفقاتك',
+      headlinePrefix: 'كل صفقة في ',
+      headlineAccent: 'سجل واحد',
+      description:
+        'سجل تجارتك بالكامل في لمحة. الحجم والصفقات النشطة وما تمت تسويته، مقروءة مباشرة من السلسلة.',
+      tiles: {
+        total: 'إجمالي الصفقات',
+        active: 'نشطة',
+        settled: 'مُسوَّاة',
+        volume: 'الحجم',
+      },
+      chartTitle: 'الحجم التراكمي',
+      chartEmpty: 'لا توجد صفقات بعد. ستظهر صفقتك الأولى هنا.',
+    },
+    history: {
+      sectionTag: 'سجل الصفقات',
+      headlinePrefix: '',
+      headlineAccent: 'سجل صفقاتك',
+    },
+  },
   bridge: {
     signInGate: {
       tag: 'الجسر',
@@ -1418,6 +1460,7 @@ export const ar: Messages = {
       briefs: 'الطلبات',
     },
     liveCaption: 'حيّ من كرَوان',
+    businessFilterNote: 'صفقات الأعمال فقط',
     error: 'تعذّر تحميل السوق.',
     emptyAllTag: 'سوق فارغ',
     emptyAllBody: 'لا عروض ولا طلبات بعد. انشر واحداً لتشغيل الشبكة.',
