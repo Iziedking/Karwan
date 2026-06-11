@@ -247,7 +247,13 @@ function bootAgents() {
     appLogger.warn({ err: (err as Error).message }, 'job expiry watcher not started');
   }
   try {
-    stopFns.push(startReputationReconciler());
+    if (config.REPUTATION_RECONCILER_ENABLED) {
+      stopFns.push(startReputationReconciler());
+    } else {
+      appLogger.info(
+        'reputation reconciler disabled via REPUTATION_RECONCILER_ENABLED',
+      );
+    }
   } catch (err) {
     appLogger.warn(
       { err: (err as Error).message },
