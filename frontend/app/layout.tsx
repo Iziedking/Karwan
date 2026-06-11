@@ -1,5 +1,4 @@
 ﻿import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import localFont from 'next/font/local';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
@@ -14,20 +13,26 @@ import { TermsModal } from '@/shared/components/TermsModal';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
-const geist = Geist({
-  subsets: ['latin'],
+// Geist, Geist Mono, and Instrument Serif are self-hosted (woff2 in ./fonts)
+// instead of pulled from next/font/google. The Google fetch runs at build time
+// and fails in network-restricted build environments (the local Docker image
+// could not reach fonts.googleapis.com). Serving them same-origin matches the
+// General Sans treatment below and makes the build offline-safe.
+const geist = localFont({
+  src: [{ path: './fonts/Geist-Variable.woff2', weight: '100 900', style: 'normal' }],
   variable: '--font-geist',
   display: 'swap',
 });
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
+const geistMono = localFont({
+  src: [{ path: './fonts/GeistMono-Variable.woff2', weight: '100 900', style: 'normal' }],
   variable: '--font-geist-mono',
   display: 'swap',
 });
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: '400',
-  style: ['normal', 'italic'],
+const instrumentSerif = localFont({
+  src: [
+    { path: './fonts/InstrumentSerif-Regular.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/InstrumentSerif-Italic.woff2', weight: '400', style: 'italic' },
+  ],
   variable: '--font-instrument-serif',
   display: 'swap',
 });

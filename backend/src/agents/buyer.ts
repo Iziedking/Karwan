@@ -2324,6 +2324,11 @@ export interface MarketplaceBrief {
   briefText: string;
   bidsCount: number;
   postedAt: number;
+  /// Match lane + poster account type, so a business-account market view can
+  /// filter to business-linked cards without a second lookup. Absent reads as
+  /// service / person to keep legacy briefs in the open P2P pool.
+  tradeLane?: 'service' | 'finance';
+  partyKind?: 'person' | 'business';
 }
 
 /// Open buyer briefs, packaged for the public marketplace surface. Strips
@@ -2343,6 +2348,8 @@ export function getMarketplaceBriefs(): MarketplaceBrief[] {
         briefText: brief?.briefText ?? '',
         bidsCount: s.bids.size,
         postedAt: brief?.createdAt ?? Date.now(),
+        tradeLane: brief?.tradeLane ?? 'service',
+        partyKind: brief?.partyKind ?? 'person',
       };
     })
     .sort((a, b) => b.postedAt - a.postedAt);

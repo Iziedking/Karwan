@@ -617,6 +617,48 @@ export const hi: Messages = {
       now: 'अभी',
     },
   },
+  businessHome: {
+    deskEyebrow: 'ट्रेड डेस्क',
+    hero: {
+      welcomeBack: 'वापसी पर स्वागत है,',
+      description:
+        'आपका ट्रेड डेस्क. हर सौदे को ट्रैक करें, अपने बही-खाते पर वर्किंग कैपिटल लें, और USDC में सीमा-पार निपटान करें।',
+      openDeskCta: 'SME डेस्क खोलें',
+      newTradeCta: 'नया सौदा',
+      viewActivityCta: 'गतिविधि देखें',
+    },
+    status: {
+      verified: 'सत्यापित व्यवसाय',
+      underReview: 'सत्यापन समीक्षा में',
+      finishVerification: 'सत्यापन पूरा करें',
+    },
+    bookCard: {
+      eyebrow: 'आपका बही-खाता',
+      active: 'सक्रिय',
+      settled: 'निपटाए गए',
+      volume: 'वॉल्यूम',
+    },
+    analytics: {
+      sectionTag: 'आपके सौदे',
+      headlinePrefix: 'हर सौदा ',
+      headlineAccent: 'एक बही-खाते में',
+      description:
+        'आपका पूरा ट्रेड बुक एक नज़र में. वॉल्यूम, सक्रिय सौदे और जो निपट चुके हैं, सीधे चेन से पढ़े गए।',
+      tiles: {
+        total: 'कुल सौदे',
+        active: 'सक्रिय',
+        settled: 'निपटाए गए',
+        volume: 'वॉल्यूम',
+      },
+      chartTitle: 'संचयी वॉल्यूम',
+      chartEmpty: 'अभी कोई सौदा नहीं. आपका पहला सौदा यहाँ चार्ट होगा।',
+    },
+    history: {
+      sectionTag: 'सौदा इतिहास',
+      headlinePrefix: 'आपका ',
+      headlineAccent: 'सौदा इतिहास',
+    },
+  },
   bridge: {
     signInGate: {
       tag: 'ब्रिज',
@@ -1418,6 +1460,7 @@ export const hi: Messages = {
       briefs: 'अनुरोध',
     },
     liveCaption: 'कारवान से लाइव',
+    businessFilterNote: 'केवल व्यवसाय सौदे',
     error: 'मार्केटप्लेस लोड नहीं हो सका।',
     emptyAllTag: 'खाली मार्केट',
     emptyAllBody: 'अभी कोई ऑफ़र या अनुरोध नहीं। नेटवर्क शुरू करने के लिए एक पोस्ट करें।',

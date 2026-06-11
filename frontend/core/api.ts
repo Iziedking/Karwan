@@ -431,6 +431,10 @@ export interface MarketplaceBrief {
   briefText: string;
   bidsCount: number;
   postedAt: number;
+  /// Match lane + poster account type. A business-account market view filters
+  /// to finance-lane or business-posted cards. Absent reads as service/person.
+  tradeLane?: 'service' | 'finance';
+  partyKind?: 'person' | 'business';
 }
 
 export type ListingStatus = 'open' | 'matched' | 'cancelled' | 'expired';
@@ -451,6 +455,10 @@ export interface Listing {
   matchedJobId?: string;
   /// Set when the seller cancels their own listing pre-match.
   cancelledAt?: number;
+  /// Match lane + seller account type. A business-account market view filters
+  /// to finance-lane or business-posted cards. Absent reads as service/person.
+  tradeLane?: 'service' | 'finance';
+  partyKind?: 'person' | 'business';
 }
 
 export interface MatchProposal {
@@ -930,6 +938,11 @@ export const api = {
   /// reasonable wait.
   networkOnchain: (init?: RequestInit) =>
     json<NetworkOnchainStats>('/api/network/onchain', init),
+  /// Finance-lane (business) jobIds. The /activity page strips these events to
+  /// bare on the public feed: the event still shows, the amount and parties do
+  /// not. Business trade is sensitive, so only the fact of activity is public.
+  activityFinanceJobIds: () =>
+    json<{ jobIds: string[] }>('/api/activity/finance-jobids'),
   submitFeedback: (body: {
     category: 'bug' | 'improvement' | 'other' | 'praise';
     title: string;

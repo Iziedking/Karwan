@@ -35,13 +35,25 @@ export const PUBLIC_EVENT_TYPES = new Set<string>([
 // and never match, so they stay intact for the explorer deep-links.
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 
+// Payload keys that name a party or carry a deal value. For a finance-lane
+// (business) event they are dropped so only the fact of the event remains.
+const ADDRESS_KEYS = new Set<string>([
+  'buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy',
+  'buyerAgent', 'sellerAgent', 'user', 'recipient', 'from', 'to', 'mintRecipient',
+]);
+const AMOUNT_KEYS = new Set<string>([
+  'amountUsdc', 'dealAmountUsdc', 'agreedPriceUsdc', 'budgetUsdc', 'priceUsdc',
+  'askingPriceUsdc', 'milestoneAmountUsdc', 'faceValueUsdc', 'advanceUsdc', 'value',
+]);
+
 function maskValue(v: string): string {
   return ADDR_RE.test(v) ? `${v.slice(0, 6)}…${v.slice(-4)}` : v;
 }
 
-function maskPayload(p: Record<string, unknown>): Record<string, unknown> {
+function maskPayload(p: Record<string, unknown>, bare: boolean): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(p)) {
+    if (bare && (ADDRESS_KEYS.has(k) || AMOUNT_KEYS.has(k))) continue;
     out[k] = typeof v === 'string' ? maskValue(v) : v;
   }
   return out;
@@ -50,12 +62,19 @@ function maskPayload(p: Record<string, unknown>): Record<string, unknown> {
 /// Reduce the raw live stream to the general/public trade feed: drop non-trade
 /// event types and mask any wallet address for display. Backfill events arrive
 /// already masked from the backend; masking again is idempotent (a masked
-/// "0x1234…abcd" no longer matches the full-address regex).
-export function publicizeEvents(events: ChainEvent[]): ChainEvent[] {
+/// "0x1234…abcd" no longer matches the full-address regex). When a finance-lane
+/// jobId set is supplied, business-deal events are stripped to bare (amount and
+/// parties removed) so the public feed never exposes a business deal's size or
+/// counterparties.
+export function publicizeEvents(
+  events: ChainEvent[],
+  financeJobIds?: Set<string>,
+): ChainEvent[] {
   const out: ChainEvent[] = [];
   for (const e of events) {
     if (!PUBLIC_EVENT_TYPES.has(e.type)) continue;
-    out.push({ ...e, payload: maskPayload(e.payload ?? {}) });
+    const bare = !!financeJobIds && !!e.jobId && financeJobIds.has(e.jobId.toLowerCase());
+    out.push({ ...e, payload: maskPayload(e.payload ?? {}, bare) });
   }
   return out;
 }

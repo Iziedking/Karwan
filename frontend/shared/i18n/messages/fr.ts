@@ -617,6 +617,48 @@ export const fr: Messages = {
       now: 'maintenant',
     },
   },
+  businessHome: {
+    deskEyebrow: 'BUREAU COMMERCIAL',
+    hero: {
+      welcomeBack: 'Bon retour,',
+      description:
+        'Votre bureau commercial. Suivez chaque transaction, mobilisez du fonds de roulement sur votre portefeuille et réglez à l\'international en USDC.',
+      openDeskCta: 'Ouvrir le bureau PME',
+      newTradeCta: 'Nouvelle transaction',
+      viewActivityCta: 'Voir l\'activité',
+    },
+    status: {
+      verified: 'Entreprise vérifiée',
+      underReview: 'Vérification en cours',
+      finishVerification: 'Terminer la vérification',
+    },
+    bookCard: {
+      eyebrow: 'VOTRE PORTEFEUILLE',
+      active: 'Actives',
+      settled: 'Réglées',
+      volume: 'Volume',
+    },
+    analytics: {
+      sectionTag: 'VOS TRANSACTIONS',
+      headlinePrefix: 'Chaque transaction dans ',
+      headlineAccent: 'un seul registre',
+      description:
+        'Tout votre portefeuille en un coup d\'œil. Volume, transactions actives et règlements, lus directement sur la chaîne.',
+      tiles: {
+        total: 'Total transactions',
+        active: 'Actives',
+        settled: 'Réglées',
+        volume: 'Volume',
+      },
+      chartTitle: 'Volume cumulé',
+      chartEmpty: 'Aucune transaction pour l\'instant. Votre première transaction apparaîtra ici.',
+    },
+    history: {
+      sectionTag: 'HISTORIQUE',
+      headlinePrefix: 'Votre ',
+      headlineAccent: 'historique de transactions',
+    },
+  },
   bridge: {
     signInGate: {
       tag: 'BRIDGE',
@@ -1418,6 +1460,7 @@ export const fr: Messages = {
       briefs: 'Requêtes',
     },
     liveCaption: 'EN DIRECT DE KARWAN',
+    businessFilterNote: 'TRANSACTIONS PROFESSIONNELLES UNIQUEMENT',
     error: "Impossible de charger le marketplace.",
     emptyAllTag: 'MARCHÉ VIDE',
     emptyAllBody: "Pas d'offres ni de requêtes. Publiez-en une pour démarrer le réseau.",

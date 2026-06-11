@@ -1,7 +1,9 @@
 ﻿'use client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { qk } from '@/core/queryKeys';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { SignInGate } from '@/shared/components/SignInGate';
@@ -39,11 +41,26 @@ interface Card {
   partyIsYou: boolean;
   matched: boolean;
   meta?: string;
+  tradeLane?: 'service' | 'finance';
+  partyKind?: 'person' | 'business';
 }
 
 export function ListingsBrowse() {
   const lb = useTranslations().listingsBrowse;
   const { address, isAuthenticated, isLoading } = useAuth();
+  /// A business-account market view shows only business-linked cards:
+  /// finance-lane deals or anything a business posted. Plain person-to-person
+  /// cards drop out. Person accounts keep the full marketplace.
+  const businessQuery = useQuery({
+    queryKey: qk.business.status(address),
+    queryFn: () => api.getBusinessStatus(address!),
+    enabled: !!address,
+    staleTime: 60_000,
+  });
+  const onBusinessTrack =
+    businessQuery.data?.accountType === 'business' ||
+    businessQuery.data?.status === 'verified' ||
+    businessQuery.data?.status === 'submitted';
   const [listings, setListings] = useState<Listing[] | null>(null);
   const [briefs, setBriefs] = useState<MarketplaceBrief[] | null>(null);
   const [error, setError] = useState(false);
@@ -90,6 +107,8 @@ export function ListingsBrowse() {
         partyRole: lb.card.partyRoleSeller,
         partyIsYou: !!a && l.sellerUser.toLowerCase() === a,
         matched: !!l.matchedAt,
+        tradeLane: l.tradeLane,
+        partyKind: l.partyKind,
       }));
     const briefCards: Card[] = briefs.map((b) => {
       const title =
@@ -116,14 +135,26 @@ export function ListingsBrowse() {
         partyIsYou: false,
         matched: false,
         meta: metaCopy,
+        tradeLane: b.tradeLane,
+        partyKind: b.partyKind,
       };
     });
     return [...offerCards, ...briefCards].sort((x, y) => y.postedAt - x.postedAt);
   }, [listings, briefs, address]);
 
-  const offersCount = cards.filter((c) => c.side === 'offer').length;
-  const briefsCount = cards.filter((c) => c.side === 'brief').length;
-  const shown = cards.filter((c) => {
+  /// Business accounts see a business-linked market: finance-lane cards plus
+  /// anything a business posted. Person accounts see the full marketplace.
+  const visibleCards = useMemo(
+    () =>
+      onBusinessTrack
+        ? cards.filter((c) => c.tradeLane === 'finance' || c.partyKind === 'business')
+        : cards,
+    [cards, onBusinessTrack],
+  );
+
+  const offersCount = visibleCards.filter((c) => c.side === 'offer').length;
+  const briefsCount = visibleCards.filter((c) => c.side === 'brief').length;
+  const shown = visibleCards.filter((c) => {
     if (side === 'offers') return c.side === 'offer';
     if (side === 'briefs') return c.side === 'brief';
     return true;
@@ -133,7 +164,7 @@ export function ListingsBrowse() {
   const empty = !loading && shown.length === 0;
 
   const FILTERS: Array<{ key: Side; label: string; count: number }> = [
-    { key: 'all', label: lb.filters.all, count: cards.length },
+    { key: 'all', label: lb.filters.all, count: visibleCards.length },
     { key: 'offers', label: lb.filters.offers, count: offersCount },
     { key: 'briefs', label: lb.filters.briefs, count: briefsCount },
   ];
@@ -212,7 +243,7 @@ export function ListingsBrowse() {
             })}
           </div>
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {lb.liveCaption}
+            {onBusinessTrack ? lb.businessFilterNote : lb.liveCaption}
           </p>
         </div>
 
@@ -235,10 +266,10 @@ export function ListingsBrowse() {
           <PageCard>
             <div className="px-6 py-12 text-center space-y-2">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {cards.length === 0 ? lb.emptyAllTag : lb.emptyFilteredTag}
+                {visibleCards.length === 0 ? lb.emptyAllTag : lb.emptyFilteredTag}
               </p>
               <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
-                {cards.length === 0
+                {visibleCards.length === 0
                   ? lb.emptyAllBody
                   : lb.emptyFilteredTemplate.replace('{side}', side)}
               </p>

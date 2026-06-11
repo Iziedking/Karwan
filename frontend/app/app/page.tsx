@@ -63,6 +63,12 @@ const PendingDealsBand = dynamic(
   () => import('@/features/notifications/components/PendingDealsBand').then((m) => m.PendingDealsBand),
   { ssr: false },
 );
+/// Business-track home. Only loaded for accounts on the business track, so its
+/// chart + heavy bands never ship in the person-home bundle.
+const BusinessHome = dynamic(
+  () => import('@/features/home/components/BusinessHome').then((m) => m.BusinessHome),
+  { ssr: false },
+);
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -130,6 +136,22 @@ export default function AppHome() {
       }
     : null;
 
+  /// Verification status decides which home renders. A business-track account
+  /// (verified, or a live submission under review) gets the trade desk; a
+  /// person keeps the P2P home. Held behind the same gate so the P2P hero
+  /// never flashes to a business user before the status resolves.
+  const businessQuery = useQuery({
+    queryKey: qk.business.status(profile?.address),
+    queryFn: () => api.getBusinessStatus(profile!.address),
+    enabled: !!profile?.address,
+    staleTime: 60_000,
+  });
+  const business = businessQuery.data ?? null;
+  const onBusinessTrack =
+    business?.accountType === 'business' ||
+    business?.status === 'verified' ||
+    business?.status === 'submitted';
+
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {
       router.replace('/onboarding');
@@ -172,7 +194,7 @@ export default function AppHome() {
     return <SignInGate variant="hero" />;
   }
 
-  if (loading || !profile) {
+  if (loading || !profile || businessQuery.isPending) {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
@@ -183,6 +205,19 @@ export default function AppHome() {
           </div>
         </Band>
       </FullBleed>
+    );
+  }
+
+  if (onBusinessTrack && business) {
+    const companyName =
+      business.company?.companyName || profile.smeProfile?.companyName || profile.displayName;
+    return (
+      <BusinessHome
+        profile={profile}
+        status={business.status}
+        companyName={companyName}
+        stats={stats}
+      />
     );
   }
 
