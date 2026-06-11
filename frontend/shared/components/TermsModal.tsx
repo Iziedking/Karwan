@@ -2,9 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { isLandingRoute } from '@/shared/utils/routes';
 import { TermsContent } from './TermsContent';
 import { cn } from '@/shared/utils/cn';
 
@@ -16,6 +18,7 @@ import { cn } from '@/shared/utils/cn';
 export function TermsModal() {
   const { isAuthenticated } = useAuth();
   const terms = useTerms();
+  const pathname = usePathname();
   const t = useTranslations().terms.modal;
   const [submitting, setSubmitting] = useState(false);
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
@@ -28,6 +31,9 @@ export function TermsModal() {
     setScrolledToEnd(false);
   }, [terms.needsAcceptance]);
 
+  // The landing routes are decoupled from account state: the Terms gate never
+  // shows there, even after a wallet account switch flips the connected user.
+  if (isLandingRoute(pathname)) return null;
   if (!isAuthenticated) return null;
   if (terms.loading) return null;
   if (!terms.needsAcceptance) return null;

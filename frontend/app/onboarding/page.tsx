@@ -224,6 +224,9 @@ function OnboardingInner() {
       await api.saveProfile({
         address,
         role,
+        // Persist the onboarding choice so the profile + home know whether this
+        // is an individual or a business account. Verification is separate.
+        accountKind: accountType ?? 'person',
         displayName:
           displayName.trim() ||
           t.onboarding.profileStep.defaultDisplayName.replace(

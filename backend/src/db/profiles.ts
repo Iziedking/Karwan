@@ -43,6 +43,12 @@ export interface UserProfile {
   email?: string;
   emailVerified?: boolean;
   emailVerifiedAt?: number;
+  /// The account kind the user chose at onboarding: a plain individual or a
+  /// business. Drives which profile surfaces show (business register + company
+  /// trade card are business-only). Distinct from the verification-bound
+  /// `accountType`, which only flips to 'business' on registry approval and
+  /// gates finance-lane access. Absent reads as 'person'.
+  accountKind?: 'person' | 'business';
   /// User preferences. Includes locale (used to localise Telegram + email
   /// notifications backend-side) and other app-wide toggles.
   settings?: UserSettings;

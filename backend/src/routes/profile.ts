@@ -30,6 +30,9 @@ const profileSchema = z.object({
   address: addrSchema,
   role: z.enum(['buyer', 'seller', 'both']),
   displayName: z.string().min(1).max(80),
+  /// Onboarding account kind (individual vs business). User-chosen, drives UI
+  /// surfaces only. The verification-bound accountType stays separate.
+  accountKind: z.enum(['person', 'business']).optional(),
   seller: z
     .object({
       skills: z.array(z.string().min(1)).min(1).max(20),
