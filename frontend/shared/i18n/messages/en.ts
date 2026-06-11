@@ -615,6 +615,29 @@ interface MessagesShape {
       headlineAccent: string;
     };
   };
+  profileEmail: {
+    headlineIndividual: string;
+    headlineBusiness: string;
+    add: string;
+    change: string;
+    remove: string;
+    cancel: string;
+    verifiedTag: string;
+    currentLabel: string;
+    descriptionIndividual: string;
+    descriptionBusiness: string;
+    emailLabel: string;
+    businessEmailLabel: string;
+    sendCode: string;
+    sending: string;
+    sentNote: string;
+    devCodeNote: string;
+    codeLabel: string;
+    verify: string;
+    verifying: string;
+    resend: string;
+    errors: { emailRequired: string; codeShape: string };
+  };
   bridge: {
     signInGate: { tag: string; body: string };
     sectionTag: string;
@@ -4216,6 +4239,29 @@ export const en: MessagesShape = {
       headlinePrefix: 'Your ',
       headlineAccent: 'deal history',
     },
+  },
+  profileEmail: {
+    headlineIndividual: 'Email',
+    headlineBusiness: 'Business email',
+    add: 'Add email',
+    change: 'Change',
+    remove: 'Remove',
+    cancel: 'Cancel',
+    verifiedTag: 'Verified',
+    currentLabel: 'Your email',
+    descriptionIndividual: 'Add an email to get alerts on your deals and Karwan updates.',
+    descriptionBusiness: 'Add a business email to get alerts on your deals and Karwan updates.',
+    emailLabel: 'Email address',
+    businessEmailLabel: 'Business email',
+    sendCode: 'Send code',
+    sending: 'Sending…',
+    sentNote: 'Code sent to {email}. Check your inbox.',
+    devCodeNote: 'Dev code: {code}',
+    codeLabel: '6-digit code',
+    verify: 'Verify',
+    verifying: 'Verifying…',
+    resend: 'Resend',
+    errors: { emailRequired: 'Enter an email address.', codeShape: 'Enter the 6-digit code.' },
   },
   bridge: {
     signInGate: {

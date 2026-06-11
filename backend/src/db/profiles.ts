@@ -36,6 +36,13 @@ export interface UserProfile {
   /// The user's X display picture URL. Profile avatars prefer this over the
   /// generated mark when present. Refreshed each time the user re-OAuths.
   xProfileImageUrl?: string;
+  /// Verified contact email. Wallet users (web3) add and verify it from the
+  /// profile email band; email-login users get it auto-filled and verified at
+  /// sign-in. Used to alert the user on their deals and to send Karwan product
+  /// updates. Business accounts surface the same field as the business email.
+  email?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: number;
   /// User preferences. Includes locale (used to localise Telegram + email
   /// notifications backend-side) and other app-wide toggles.
   settings?: UserSettings;
@@ -152,6 +159,25 @@ export async function upsertProfile(
   store[key] = next;
   saveFile(store);
   return next;
+}
+
+/// Patch only the email fields on an existing profile, leaving everything else
+/// intact. No-op (returns null) when the wallet has no profile yet. Used by the
+/// verify route and the email-login auto-capture. Pass email=null to clear it.
+export async function setProfileEmail(
+  address: string,
+  email: string | null,
+  verified: boolean,
+): Promise<UserProfile | null> {
+  const existing = await getProfile(address);
+  if (!existing) return null;
+  const { createdAt: _c, updatedAt: _u, ...rest } = existing;
+  return upsertProfile({
+    ...rest,
+    email: email ?? undefined,
+    emailVerified: email ? verified : undefined,
+    emailVerifiedAt: email && verified ? Date.now() : undefined,
+  });
 }
 
 /// The profile that currently owns an X handle (case-insensitive), if any.

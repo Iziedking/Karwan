@@ -20,6 +20,7 @@ import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCar
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
+import { ProfileEmailBand } from '@/features/profile/components/ProfileEmailBand';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
@@ -361,6 +362,11 @@ function ProfilePageInner() {
           </div>
         </Band>
       )}
+
+      {/* CONTACT EMAIL. For every wallet user, individual or business. Drives
+          deal alerts + Karwan updates. Email-login users see it pre-verified;
+          web3 users add and confirm one. Not gated by the SME rail. */}
+      {address ? <ProfileEmailBand address={address} /> : null}
 
       {/* BUSINESS + COMPANY PROFILE. Part of the SME Trades rail; hidden until
           launch. Register-as-business gates the verified tag; the company band
