@@ -167,6 +167,13 @@ export interface UserProfile {
   xHandle?: string;
   xUserId?: string;
   xProfileImageUrl?: string;
+  /// Verified contact email. Email-login users get it auto-filled at sign-in;
+  /// wallet (web3) users add and verify it from the profile email band. Drives
+  /// deal alerts + Karwan product updates. Business accounts label it as the
+  /// business email.
+  email?: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: number;
   settings?: UserSettings;
   seller?: {
     skills: string[];
@@ -1004,6 +1011,24 @@ export const api = {
     json<{ profile: UserProfile }>('/api/profile/x-handle', {
       method: 'POST',
       body: JSON.stringify({ address, handle }),
+    }),
+  /// Contact email add + verify for wallet users. request sends a 6-digit code
+  /// to the email; verify confirms it and persists email + emailVerified.
+  /// devCode is only present in non-production when no email provider is set.
+  requestEmailVerify: (address: string, email: string) =>
+    json<{ sent: boolean; delivered: boolean; devCode?: string }>(
+      '/api/profile/email/request',
+      { method: 'POST', body: JSON.stringify({ address, email }) },
+    ),
+  verifyEmail: (address: string, code: string) =>
+    json<{ profile: UserProfile }>('/api/profile/email/verify', {
+      method: 'POST',
+      body: JSON.stringify({ address, code }),
+    }),
+  removeEmail: (address: string) =>
+    json<{ profile: UserProfile }>('/api/profile/email/remove', {
+      method: 'POST',
+      body: JSON.stringify({ address }),
     }),
   /// Delete the account: purges off-chain profile + Telegram link + Circle auth
   /// row. If agent wallets still hold USDC, throws ApiError with code
