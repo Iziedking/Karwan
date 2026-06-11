@@ -309,6 +309,17 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: optionalString,
   TELEGRAM_BOT_USERNAME: optionalString,
 
+  // Reputation chain-mirror reconciler. On by default. It replays
+  // recordCompletion for DB-settled deals not yet on chain. On the v2.D
+  // contract recordCompletion is onlyEscrow, so deals settled outside the
+  // escrow path can never be recorded this way and every tick retries them,
+  // burning gas against real Arc. Set false on local/dev to stop those doomed
+  // retries; production keeps it on.
+  REPUTATION_RECONCILER_ENABLED: z.preprocess(
+    (v) => v !== 'false' && v !== '0',
+    z.boolean(),
+  ),
+
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
