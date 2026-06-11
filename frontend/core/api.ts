@@ -174,6 +174,10 @@ export interface UserProfile {
   email?: string;
   emailVerified?: boolean;
   emailVerifiedAt?: number;
+  /// Account kind chosen at onboarding (individual vs business). Drives which
+  /// profile + home surfaces show. Distinct from the verification-bound
+  /// business status. Absent reads as 'person'.
+  accountKind?: 'person' | 'business';
   settings?: UserSettings;
   seller?: {
     skills: string[];

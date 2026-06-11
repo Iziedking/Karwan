@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAccount, useChainId, useSignMessage } from 'wagmi';
 import { api } from '@/core/api';
+import { isLandingRoute } from '@/shared/utils/routes';
 import { emitAuthChanged } from './useAuth';
 
 /// Sign-In With Ethereum bridge.
@@ -29,6 +31,7 @@ export function useSiwe(): {
   const { address, isConnected, status: accountStatus } = useAccount();
   const chainId = useChainId();
   const { signMessageAsync } = useSignMessage();
+  const pathname = usePathname();
 
   const stateRef = useRef<{
     inFlight: boolean;
@@ -69,11 +72,16 @@ export function useSiwe(): {
   };
 
   useEffect(() => {
+    // Landing routes are decoupled from account state: a wallet connecting or
+    // switching accounts there must never auto-prompt a SIWE signature. The
+    // effect re-runs on route change (pathname is a dep), so the handshake
+    // fires the moment the user lands inside the app via Launch app.
+    if (isLandingRoute(pathname)) return;
     if (accountStatus !== 'connected') return;
     if (!isConnected || !address) return;
     void runSiwe(address);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, accountStatus]);
+  }, [isConnected, address, accountStatus, pathname]);
 
   // Reset the signed-address pin when the wallet disconnects so a future
   // reconnect re-runs the handshake.

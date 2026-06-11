@@ -20,7 +20,7 @@ import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCar
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
-import { ProfileEmailBand } from '@/features/profile/components/ProfileEmailBand';
+import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
@@ -175,7 +175,8 @@ function ProfilePageInner() {
               ) : (
                 <CTAPill href="/onboarding">{t.hero.setUpProfileCta}</CTAPill>
               )}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {address && <ProfileEmailButton address={address} tone="dark" />}
                 <ConnectXButton />
                 <TelegramConnectButton address={address ?? undefined} />
               </div>
@@ -363,17 +364,17 @@ function ProfilePageInner() {
         </Band>
       )}
 
-      {/* CONTACT EMAIL. For every wallet user, individual or business. Drives
-          deal alerts + Karwan updates. Email-login users see it pre-verified;
-          web3 users add and confirm one. Not gated by the SME rail. */}
-      {address ? <ProfileEmailBand address={address} /> : null}
-
-      {/* BUSINESS + COMPANY PROFILE. Part of the SME Trades rail; hidden until
-          launch. Register-as-business gates the verified tag; the company band
-          holds the trade card. Independent components so editing one
-          re-renders nothing else on this page. */}
-      {SME_TRADES_ENABLED && address ? <RegisterBusinessBand address={address} /> : null}
-      {SME_TRADES_ENABLED && address ? <SmeCompanyBand address={address} /> : null}
+      {/* BUSINESS + COMPANY PROFILE. Only for accounts that chose the business
+          kind at onboarding; an individual account never sees these. Gated by
+          the SME rail too. Register-as-business gates the verified tag; the
+          company band holds the trade card. Independent components so editing
+          one re-renders nothing else on this page. */}
+      {SME_TRADES_ENABLED && address && profile?.accountKind === 'business' ? (
+        <RegisterBusinessBand address={address} />
+      ) : null}
+      {SME_TRADES_ENABLED && address && profile?.accountKind === 'business' ? (
+        <SmeCompanyBand address={address} />
+      ) : null}
 
       {/* WALLETS anchor */}
       <div id="wallets" aria-hidden style={{ scrollMarginTop: 80 }} />
@@ -455,6 +456,7 @@ function ProfilePageInner() {
           {t.preferences.body}
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
+          {address && <ProfileEmailButton address={address} tone="light" />}
           <TelegramConnectButton address={address ?? undefined} tone="light" />
           <ConnectXButton tone="light" />
         </div>

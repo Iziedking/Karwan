@@ -136,21 +136,19 @@ export default function AppHome() {
       }
     : null;
 
-  /// Verification status decides which home renders. A business-track account
-  /// (verified, or a live submission under review) gets the trade desk; a
-  /// person keeps the P2P home. Held behind the same gate so the P2P hero
-  /// never flashes to a business user before the status resolves.
+  /// The onboarding account kind decides which home renders: a business account
+  /// gets the trade desk, an individual keeps the P2P home. It reads off the
+  /// already-loaded profile, so there is no extra fetch and no hero flash. The
+  /// verification status (separate) feeds the verified chip + company name on
+  /// the business desk; it can resolve a beat later without changing the route.
   const businessQuery = useQuery({
     queryKey: qk.business.status(profile?.address),
     queryFn: () => api.getBusinessStatus(profile!.address),
-    enabled: !!profile?.address,
+    enabled: !!profile?.address && profile?.accountKind === 'business',
     staleTime: 60_000,
   });
   const business = businessQuery.data ?? null;
-  const onBusinessTrack =
-    business?.accountType === 'business' ||
-    business?.status === 'verified' ||
-    business?.status === 'submitted';
+  const onBusinessTrack = profile?.accountKind === 'business';
 
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {
@@ -194,7 +192,7 @@ export default function AppHome() {
     return <SignInGate variant="hero" />;
   }
 
-  if (loading || !profile || businessQuery.isPending) {
+  if (loading || !profile) {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
@@ -208,13 +206,13 @@ export default function AppHome() {
     );
   }
 
-  if (onBusinessTrack && business) {
+  if (onBusinessTrack) {
     const companyName =
-      business.company?.companyName || profile.smeProfile?.companyName || profile.displayName;
+      business?.company?.companyName || profile.smeProfile?.companyName || profile.displayName;
     return (
       <BusinessHome
         profile={profile}
-        status={business.status}
+        status={business?.status ?? 'none'}
         companyName={companyName}
         stats={stats}
       />
