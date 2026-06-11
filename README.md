@@ -58,6 +58,7 @@ The business-to-business path needs richer context than a P2P deal. A supplier n
 | KarwanYieldDistributor | `0x9950b9a41A3e80930e451F2FEdaeb81e80195D03` |
 | KarwanInvoiceRegistry | `0x20a7CDf59b5f304De2b22a75e49f52353273E4E4` |
 | KarwanPOFinancing | `0xc91122Eb88613C98d58616cD8973883142F74Bb5` |
+| KarwanBusinessRegistry | `0xc64d347c9Fe451A3f1c8f4cF2d7a2E43D9AA771e` |
 | USDC | `0x3600000000000000000000000000000000000000` |
 
 Hashnote USYC on Arc Testnet, verified against Circle's published addresses.
