@@ -116,6 +116,11 @@ export interface KarwanEvent {
 }
 
 const HISTORY_CAPACITY = 500;
+/// Throttle for the lazy re-hydrate (see ensureHydrated). When the bus comes up
+/// empty because the boot hydrate hit a down Postgres, the next /activity read
+/// reloads from event_history, but a legitimately empty store must not re-query
+/// PG on every request.
+const REHYDRATE_THROTTLE_MS = 30_000;
 const STORE_PATH = resolve(process.cwd(), 'data', 'events.json');
 // Debounce window. Bursts of events (one auction can fire 5-10 events back to
 // back) collapse to a single fsync.
@@ -141,6 +146,8 @@ function loadHistory(): KarwanEvent[] {
 class KarwanBus extends EventEmitter {
   private history: KarwanEvent[] = loadHistory();
   private persistTimer: NodeJS.Timeout | null = null;
+  private lastHydrateAttempt = 0;
+  private hydrating = false;
 
   emitEvent(e: Omit<KarwanEvent, 'ts'>) {
     const full: KarwanEvent = { ...e, ts: Date.now() };
@@ -164,6 +171,24 @@ class KarwanBus extends EventEmitter {
   recent(limit = 100, jobId?: string): KarwanEvent[] {
     const filtered = jobId ? this.history.filter((e) => e.jobId === jobId) : this.history;
     return filtered.slice(-limit).reverse();
+  }
+
+  /// Self-heal a cold ring buffer. The boot hydrate runs once; if Postgres was
+  /// unreachable then (e.g. the transfer-cap outage), it returns 0 and never
+  /// retries, leaving /activity empty even though event_history still holds the
+  /// durable record. Call this before a read: if the buffer is empty it reloads
+  /// from Postgres, throttled so a genuinely empty store doesn't re-query on
+  /// every request. No-op once the buffer has anything in it.
+  async ensureHydrated(): Promise<void> {
+    if (this.history.length > 0 || !pgEnabled || this.hydrating) return;
+    if (Date.now() - this.lastHydrateAttempt < REHYDRATE_THROTTLE_MS) return;
+    this.hydrating = true;
+    this.lastHydrateAttempt = Date.now();
+    try {
+      await this.hydrateFromPg();
+    } finally {
+      this.hydrating = false;
+    }
   }
 
   /// Seed the ring buffer with historical events without firing live
