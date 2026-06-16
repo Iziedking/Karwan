@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { bus, type KarwanEvent } from '../events.js';
+import { bus, recentEventsByType, type KarwanEvent } from '../events.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { listAllDeals } from '../db/deals.js';
 
@@ -155,7 +155,14 @@ activityRoutes.get('/', async (c) => {
     // leak account/platform events, parties, or party-authored reasons.
     // Finance-lane (business) events stay in the feed but lose amount + parties.
     const financeIds = await financeJobIds();
-    const publicEvents = base.filter((e) => PUBLIC_EVENT_TYPES.has(e.type));
+    // Read public-typed events straight from event_history. The in-memory ring
+    // is capped at 500 and is easily saturated by non-public negotiation/chat
+    // noise, which pushes the sparse public events out of the window and makes
+    // the feed read empty even though the durable store holds thousands. Fall
+    // back to the in-memory ring when Postgres is off or returns nothing.
+    const fromPg = await recentEventsByType([...PUBLIC_EVENT_TYPES], limit, jobId);
+    const publicEvents =
+      fromPg.length > 0 ? fromPg : base.filter((e) => PUBLIC_EVENT_TYPES.has(e.type));
     return c.json({
       events: publicEvents
         .slice(0, limit)
