@@ -30,6 +30,35 @@ function short(addr?: string): string {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 }
 
+/// Click-to-copy address line. Copies the FULL address (not the truncated
+/// form) and flips the trailing label to a confirmation for ~1.5s so the user
+/// sees the copy landed.
+function CopyAddress({ address }: { address: string }) {
+  const wp = useTranslations().walletsPanel;
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard?.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked; the address stays visible to copy by hand */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="mt-1.5 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-text-sub)]"
+    >
+      <span>{short(address)}</span>
+      <span aria-live="polite" style={{ color: copied ? 'var(--lp-accent)' : undefined }}>
+        {copied ? wp.copyAddress.copied : wp.copyAddress.idle}
+      </span>
+    </button>
+  );
+}
+
 function Row({
   tag,
   hub,
@@ -77,11 +106,7 @@ function Row({
           <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)] max-w-[44ch]">
             {purpose}
           </p>
-          {address && (
-            <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              {short(address)}
-            </p>
-          )}
+          {address && <CopyAddress address={address} />}
         </div>
         <div className="text-end shrink-0">
           <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
@@ -211,13 +236,11 @@ export function WalletsPanel({ address }: { address?: string }) {
           address={data?.identity.address}
           primary={`${fmt(data?.identity.usdcBalance)} USDC`}
           action={
-            isCircle ? (
-              <FaucetButton
-                onClick={() => runFaucet('identity')}
-                busy={faucetBusy === 'identity'}
-                copy={wp.faucetButton}
-              />
-            ) : undefined
+            <FaucetButton
+              onClick={() => runFaucet('identity')}
+              busy={faucetBusy === 'identity'}
+              copy={wp.faucetButton}
+            />
           }
         />
 
