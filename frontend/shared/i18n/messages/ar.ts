@@ -990,7 +990,7 @@ export const ar: Messages = {
     },
     screen: {
       label: 'فحص الامتثال',
-      template: 'دفع وكيلك {amount} على Base لإجراء فحص العقوبات والمخاطر على البائع.',
+      template: 'دفع وكيلك {amount} على Base لإجراء فحص العقوبات والمخاطر على الطرف المقابل.',
       txCta: 'عرض الدفعة',
     },
     business: {

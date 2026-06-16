@@ -527,6 +527,17 @@ export interface MatchProposal {
     txHash?: string;
     screenedAt: number;
   };
+  /// Mirror screen: the seller agent's compliance screen of the BUYER. subject
+  /// is the buyer's owner address. Shown only to the seller, so each party sees
+  /// only the screen its own agent paid for.
+  buyerScreen?: {
+    subject: string;
+    verdict: 'PASS' | 'WARN' | 'BLOCK';
+    reasons: string[];
+    amountUsd: number;
+    txHash?: string;
+    screenedAt: number;
+  };
   /// Compact verified-business badge for the match. Present when the seller's
   /// owner is a verified business. The deal page renders a chip from this, not
   /// a full company profile.

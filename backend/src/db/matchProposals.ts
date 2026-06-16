@@ -80,6 +80,17 @@ export interface MatchProposal {
     txHash?: string;
     screenedAt: number;
   };
+  /// The mirror screen: the seller agent's compliance screen of the BUYER,
+  /// run at proposal build. subject is the buyer's owner address. Shown only
+  /// to the seller, so each side sees only the screen its own agent paid for.
+  buyerScreen?: {
+    subject: string;
+    verdict: 'PASS' | 'WARN' | 'BLOCK';
+    reasons: string[];
+    amountUsd: number;
+    txHash?: string;
+    screenedAt: number;
+  };
   /// Verified-business badge for the match. Set when the seller's owner is a
   /// verified business, so the MatchBanner renders a compact company chip
   /// (name, sector, region) without a second lookup. Deliberately compact: the

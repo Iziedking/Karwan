@@ -1842,6 +1842,25 @@ async function proposeMatch(
             region: sellerOwnerProfile.smeProfile?.region,
           }
         : undefined;
+    // Symmetric compliance: screen the BUYER too, surfaced only to the seller
+    // (mirror of the buyer-side seller screen). Same platform x402 payer on
+    // Base; cached 24h per address so the second screen doesn't re-spend.
+    let buyerScreen: CounterpartyScreen | undefined;
+    if (config.X402_PAID_SIGNALS_ENABLED && config.X402_BASE_PRIVATE_KEY) {
+      try {
+        buyerScreen = await Promise.race([
+          screenCounterparty(buyerWallets.userAddress),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('buyer screen timed out')), 20_000),
+          ),
+        ]);
+      } catch (err) {
+        logger.warn(
+          { jobId: state.jobId, err: (err as Error).message },
+          'x402: buyer screen failed; proposal proceeds without it',
+        );
+      }
+    }
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -1873,6 +1892,18 @@ async function proposeMatch(
               amountUsd: screenBid.paidUsd,
               txHash: screenBid.txHash,
               screenedAt: screenBid.screenedAt,
+            },
+          }
+        : {}),
+      ...(buyerScreen
+        ? {
+            buyerScreen: {
+              subject: buyerScreen.address,
+              verdict: buyerScreen.verdict,
+              reasons: buyerScreen.reasons,
+              amountUsd: buyerScreen.paidUsd,
+              txHash: buyerScreen.txHash,
+              screenedAt: buyerScreen.screenedAt,
             },
           }
         : {}),

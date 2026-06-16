@@ -990,7 +990,7 @@ export const fr: Messages = {
     },
     screen: {
       label: 'CONTRÔLE DE CONFORMITÉ',
-      template: 'Votre agent a payé {amount} sur Base pour un contrôle sanctions et risque sur le vendeur.',
+      template: 'Votre agent a payé {amount} sur Base pour un contrôle sanctions et risque sur la contrepartie.',
       txCta: 'Voir le paiement',
     },
     business: {

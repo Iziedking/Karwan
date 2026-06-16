@@ -4590,7 +4590,7 @@ export const en: MessagesShape = {
     },
     screen: {
       label: 'COMPLIANCE SCREEN',
-      template: 'Your agent paid {amount} on Base to run a sanctions and risk screen on the seller.',
+      template: 'Your agent paid {amount} on Base to run a sanctions and risk screen on the counterparty.',
       txCta: 'View payment',
     },
     business: {
