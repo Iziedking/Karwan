@@ -156,4 +156,80 @@ contract KarwanReputationTest is Test {
         vm.expectRevert(KarwanReputation.ZeroAddress.selector);
         rep.recordPenalty(address(0), 1, keccak256("zero-subj"));
     }
+
+    /* ================== financier reputation (recordFinancing) ========= */
+
+    address financier = makeAddr("financier");
+
+    function test_Finance_SetSigner_OneShot() public {
+        address signer = makeAddr("finance-signer");
+        rep.setFinanceSigner(signer);
+        assertEq(rep.financeSigner(), signer);
+        // financeAdmin self-zeros on the first bind, so a second call trips the
+        // admin gate first. The one-shot is enforced either way.
+        vm.expectRevert(KarwanReputation.NotFinanceAdmin.selector);
+        rep.setFinanceSigner(signer);
+    }
+
+    function test_Finance_SetSigner_OnlyFinanceAdmin() public {
+        address rando = makeAddr("rando");
+        vm.prank(rando);
+        vm.expectRevert(KarwanReputation.NotFinanceAdmin.selector);
+        rep.setFinanceSigner(makeAddr("finance-signer"));
+    }
+
+    function test_Finance_Record_RevertsWhenSignerUnset() public {
+        vm.expectRevert(KarwanReputation.SignerNotSet.selector);
+        rep.recordFinancing(keccak256("f1"), financier, KarwanReputation.FinanceOutcome.Repaid);
+    }
+
+    function test_Finance_Record_OnlyFromSigner() public {
+        address signer = makeAddr("finance-signer");
+        rep.setFinanceSigner(signer);
+        vm.prank(makeAddr("rando"));
+        vm.expectRevert(KarwanReputation.NotFinanceSigner.selector);
+        rep.recordFinancing(keccak256("f1"), financier, KarwanReputation.FinanceOutcome.Repaid);
+    }
+
+    function test_Finance_Record_RepaidAndDefaultedIncrement() public {
+        address signer = makeAddr("finance-signer");
+        rep.setFinanceSigner(signer);
+
+        vm.startPrank(signer);
+        rep.recordFinancing(keccak256("f1"), financier, KarwanReputation.FinanceOutcome.Repaid);
+        rep.recordFinancing(keccak256("f2"), financier, KarwanReputation.FinanceOutcome.Repaid);
+        rep.recordFinancing(keccak256("f3"), financier, KarwanReputation.FinanceOutcome.Defaulted);
+        vm.stopPrank();
+
+        (uint256 funded, uint256 repaid, uint256 defaulted) = rep.financiers(financier);
+        assertEq(funded, 3);
+        assertEq(repaid, 2);
+        assertEq(defaulted, 1);
+    }
+
+    function test_Finance_Record_DuplicateFundingReverts() public {
+        address signer = makeAddr("finance-signer");
+        rep.setFinanceSigner(signer);
+        vm.startPrank(signer);
+        rep.recordFinancing(keccak256("f1"), financier, KarwanReputation.FinanceOutcome.Repaid);
+        vm.expectRevert(KarwanReputation.AlreadyRecorded.selector);
+        rep.recordFinancing(keccak256("f1"), financier, KarwanReputation.FinanceOutcome.Defaulted);
+        vm.stopPrank();
+    }
+
+    function test_Finance_Record_NoneOutcomeReverts() public {
+        address signer = makeAddr("finance-signer");
+        rep.setFinanceSigner(signer);
+        vm.prank(signer);
+        vm.expectRevert(KarwanReputation.InvalidOutcome.selector);
+        rep.recordFinancing(keccak256("f1"), financier, KarwanReputation.FinanceOutcome.None);
+    }
+
+    function test_Finance_Record_ZeroFinancierReverts() public {
+        address signer = makeAddr("finance-signer");
+        rep.setFinanceSigner(signer);
+        vm.prank(signer);
+        vm.expectRevert(KarwanReputation.ZeroAddress.selector);
+        rep.recordFinancing(keccak256("f1"), address(0), KarwanReputation.FinanceOutcome.Repaid);
+    }
 }

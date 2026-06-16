@@ -64,6 +64,31 @@ export interface BridgeRelay {
   updatedAt: number;
 }
 
+// Shared short-TTL cache for the full-table read. The boot resume sync, the
+// per-user bridge history modal, and the bridge status poll all scan every row;
+// during an active relay the poll fires often. Cache the full set once and
+// derive the three list views from it. Busted on createBridge / patchBridge so
+// a status transition (e.g. relaying -> minted) is never served stale. Per-id
+// reads (getBridge) stay live. Set BRIDGES_CACHE_TTL_MS=0 to disable.
+const BRIDGES_CACHE_TTL_MS = Number(process.env.BRIDGES_CACHE_TTL_MS ?? 30_000);
+let allBridgesCache: { at: number; rows: BridgeRelay[] } | null = null;
+
+function invalidateBridgesCache(): void {
+  allBridgesCache = null;
+}
+
+async function loadAllBridges(): Promise<BridgeRelay[]> {
+  const now = Date.now();
+  if (BRIDGES_CACHE_TTL_MS > 0 && allBridgesCache && now - allBridgesCache.at < BRIDGES_CACHE_TTL_MS) {
+    return allBridgesCache.rows;
+  }
+  const rows = pgEnabled
+    ? (await db().select().from(bridges)).map((r) => r.data)
+    : Object.values(loadFile());
+  if (BRIDGES_CACHE_TTL_MS > 0) allBridgesCache = { at: now, rows };
+  return rows;
+}
+
 export async function getBridge(bridgeId: string): Promise<BridgeRelay | null> {
   if (pgEnabled) {
     const rows = await db().select().from(bridges).where(eq(bridges.bridgeId, bridgeId));
@@ -90,11 +115,13 @@ export async function createBridge(
       .insert(bridges)
       .values({ bridgeId: record.bridgeId, data: record })
       .onConflictDoUpdate({ target: bridges.bridgeId, set: { data: record } });
+    invalidateBridgesCache();
     return record;
   }
   const store = loadFile();
   store[record.bridgeId] = record;
   saveFile(store);
+  invalidateBridgesCache();
   return record;
 }
 
@@ -107,11 +134,13 @@ export async function patchBridge(
   const next: BridgeRelay = { ...existing, ...patch, updatedAt: Date.now() };
   if (pgEnabled) {
     await db().update(bridges).set({ data: next }).where(eq(bridges.bridgeId, bridgeId));
+    invalidateBridgesCache();
     return next;
   }
   const store = loadFile();
   store[bridgeId] = next;
   saveFile(store);
+  invalidateBridgesCache();
   return next;
 }
 
@@ -120,11 +149,7 @@ export async function patchBridge(
 /// the IRIS-poll + Arc mint. Terminal states ('minted', 'error') are skipped.
 export async function listPendingBridges(): Promise<BridgeRelay[]> {
   const isPending = (b: BridgeRelay) => b.status !== 'minted' && b.status !== 'error';
-  if (pgEnabled) {
-    const rows = await db().select().from(bridges);
-    return rows.map((r) => r.data).filter(isPending);
-  }
-  return Object.values(loadFile()).filter(isPending);
+  return (await loadAllBridges()).filter(isPending);
 }
 
 /// Bridge records whose source-chain DCW is one of the given wallet addresses.
@@ -134,9 +159,7 @@ export async function listBridgesForWallets(
   walletAddresses: string[],
 ): Promise<BridgeRelay[]> {
   const set = new Set(walletAddresses.map((a) => a.toLowerCase()));
-  const all = pgEnabled
-    ? (await db().select().from(bridges)).map((r) => r.data)
-    : Object.values(loadFile());
+  const all = await loadAllBridges();
   return all
     .filter((b) => b.bridgeWalletAddress && set.has(b.bridgeWalletAddress.toLowerCase()))
     .sort((a, b) => b.createdAt - a.createdAt);
@@ -147,10 +170,8 @@ export async function listBridgesForWallets(
 /// isn't already in the bus history, keeps the /activity counter aligned
 /// with what the per-user bridge history modal already shows.
 export async function listAllBridges(): Promise<BridgeRelay[]> {
-  const all = pgEnabled
-    ? (await db().select().from(bridges)).map((r) => r.data)
-    : Object.values(loadFile());
-  return all.sort((a, b) => b.createdAt - a.createdAt);
+  // Copy before sorting: loadAllBridges returns the cached array by reference.
+  return (await loadAllBridges()).slice().sort((a, b) => b.createdAt - a.createdAt);
 }
 
 // --- flat-file fallback ---

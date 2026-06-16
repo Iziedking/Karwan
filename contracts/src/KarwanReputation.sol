@@ -24,10 +24,31 @@ contract KarwanReputation {
         Failed
     }
 
+    /// @notice Financier funding outcome. Repaid = the financier got their
+    ///         capital back (factoring repayment leg cleared, or a PO line
+    ///         repaid on settlement). Defaulted = the funded receivable / PO
+    ///         did not repay. Kept distinct from trade Outcome so the off-chain
+    ///         engine can weight a financier's track record on its own axis.
+    enum FinanceOutcome {
+        None,
+        Repaid,
+        Defaulted
+    }
+
     struct Score {
         uint256 successCount;
         uint256 disputedCount;
         uint256 failedCount;
+    }
+
+    /// @notice A wallet's financing track record, built over time from the
+    ///         invoices and POs it funds. Portable on the same address as its
+    ///         trade Score, so one wallet that both trades and finances carries
+    ///         a single reputation. The off-chain composite folds these in.
+    struct Financier {
+        uint256 fundedCount;
+        uint256 repaidCount;
+        uint256 defaultedCount;
     }
 
     /// @notice The KarwanEscrow contract authorised to record outcomes.
@@ -54,9 +75,25 @@ contract KarwanReputation {
     ///         for as long as it takes to ship the SecurityAgent service.
     address public penaltyAdmin;
 
+    /// @notice Address authorised to call recordFinancing. The factoring +
+    ///         PO-financing settlement watchers (off-chain) sign from this key
+    ///         when a funded receivable repays or defaults. Set once via
+    ///         setFinanceSigner so the financier-reputation layer can light up
+    ///         without another reputation redeploy.
+    address public financeSigner;
+    /// @notice Holds the right to call setFinanceSigner exactly once. Distinct
+    ///         from deployer + penaltyAdmin so each signer slot is armable on
+    ///         its own schedule.
+    address public financeAdmin;
+
     mapping(address => Score) public scores;
+    /// @notice Per-wallet financing track record. Read by the off-chain
+    ///         composite engine to score and tier a financier.
+    mapping(address => Financier) public financiers;
     /// @dev jobId -> already-recorded marker. One outcome record per deal.
     mapping(bytes32 => bool) public recorded;
+    /// @dev fundingId -> already-recorded marker. One outcome per funding.
+    mapping(bytes32 => bool) public financingRecorded;
 
     /// @notice Cumulative severity per subject. Increments on every
     ///         recordPenalty by the severity of the call (1=held-for-review
@@ -72,6 +109,17 @@ contract KarwanReputation {
     );
     event EscrowSet(address indexed escrow);
     event SecurityAgentSignerSet(address indexed signer);
+    event FinanceSignerSet(address indexed signer);
+    /// @notice Emitted when a financier's funding outcome is recorded.
+    /// @param fundingId stable id of the factoring offer or PO line
+    /// @param financier the wallet whose track record is updated
+    /// @param outcome   Repaid or Defaulted
+    event FinancingRecorded(
+        bytes32 indexed fundingId,
+        address indexed financier,
+        FinanceOutcome outcome,
+        uint64 timestamp
+    );
     /// @notice Emitted on confirmed malicious behaviour.
     /// @param subject the address being slashed
     /// @param severity 1..255, higher is worse; off-chain engine multiplies
@@ -95,12 +143,16 @@ contract KarwanReputation {
     error SignerNotSet();
     error NotSecurityAgentSigner();
     error InvalidSeverity();
+    error NotFinanceAdmin();
+    error NotFinanceSigner();
 
     constructor() {
         deployer = msg.sender;
-        // penaltyAdmin starts as the deployer too; deployer self-zeros after
-        // setEscrow but penaltyAdmin lives on until setSecurityAgentSigner.
+        // penaltyAdmin + financeAdmin start as the deployer too; deployer
+        // self-zeros after setEscrow, while each signer slot lives on until its
+        // own one-shot setter binds the operational wallet.
         penaltyAdmin = msg.sender;
+        financeAdmin = msg.sender;
     }
 
     /// @notice Bind the escrow that's allowed to call recordCompletion.
@@ -179,6 +231,47 @@ contract KarwanReputation {
 
         penaltySeverity[subject] += severity;
         emit PenaltyRecorded(subject, severity, reasonHash, uint64(block.timestamp));
+    }
+
+    /// @notice Bind the finance signer wallet. One-shot, mirrors
+    ///         setSecurityAgentSigner. Use a Circle DCW the factoring + PO
+    ///         settlement watchers control.
+    function setFinanceSigner(address _signer) external {
+        if (msg.sender != financeAdmin) revert NotFinanceAdmin();
+        if (financeSigner != address(0)) revert SignerAlreadySet();
+        if (_signer == address(0)) revert ZeroAddress();
+        financeSigner = _signer;
+        financeAdmin = address(0);
+        emit FinanceSignerSet(_signer);
+    }
+
+    /// @notice Record a financier's funding outcome. Only callable by the
+    ///         finance signer. One record per fundingId, so a re-submit can't
+    ///         double-count. Repaid builds the financier's standing; Defaulted
+    ///         counts against it. The off-chain composite engine reads the
+    ///         financiers() getter and folds the track record into the
+    ///         financier's portable score.
+    /// @param fundingId  stable id of the factoring offer or PO line
+    /// @param financier  wallet whose track record is updated
+    /// @param outcome    Repaid or Defaulted
+    function recordFinancing(bytes32 fundingId, address financier, FinanceOutcome outcome)
+        external
+    {
+        if (financeSigner == address(0)) revert SignerNotSet();
+        if (msg.sender != financeSigner) revert NotFinanceSigner();
+        if (financier == address(0)) revert ZeroAddress();
+        if (outcome == FinanceOutcome.None) revert InvalidOutcome();
+        if (financingRecorded[fundingId]) revert AlreadyRecorded();
+
+        financingRecorded[fundingId] = true;
+        financiers[financier].fundedCount += 1;
+        if (outcome == FinanceOutcome.Repaid) {
+            financiers[financier].repaidCount += 1;
+        } else {
+            financiers[financier].defaultedCount += 1;
+        }
+
+        emit FinancingRecorded(fundingId, financier, outcome, uint64(block.timestamp));
     }
 
     /// @notice Composite reputation: success-weighted, dispute neutral,
