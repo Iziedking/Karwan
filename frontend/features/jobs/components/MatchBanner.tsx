@@ -211,11 +211,17 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </p>
       )}
 
-      {/* External paid compliance, shown only to the buyer whose agent paid:
-          a Base mainnet x402 sanctions + counterparty-risk screen on the
-          seller, with the on-chain payment as evidence. */}
-      {viewerIsBuyer && proposal.counterpartyScreen && (() => {
-        const screen = proposal.counterpartyScreen;
+      {/* External paid compliance, shown to each party only for the screen
+          THEIR OWN agent paid: the buyer sees the seller screen, the seller
+          sees the buyer screen. Base mainnet x402, with the payment as
+          evidence. */}
+      {(() => {
+        const screen = viewerIsBuyer
+          ? proposal.counterpartyScreen
+          : viewerIsSeller
+            ? proposal.buyerScreen
+            : undefined;
+        if (!screen) return null;
         const tone =
           screen.verdict === 'BLOCK'
             ? { fg: '#b25425', bg: 'rgba(178,84,37,0.14)' }
