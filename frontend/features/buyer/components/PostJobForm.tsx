@@ -283,6 +283,11 @@ export function PostJobForm() {
     typeof budget === 'number' && typeof tolerance === 'number'
       ? (budget * (1 + tolerance / 100)).toFixed(2)
       : null;
+  // The SME trade-context band (goods/Incoterms/payment terms/company/docs) is
+  // a business surface. Individuals on P2P never see it, so their request stays
+  // the simple service flow. Businesses keep it, including when they post a
+  // service request to hire a person (tradeType defaults to 'service').
+  const isBusiness = profile?.accountKind === 'business';
 
   return (
     <>
@@ -382,8 +387,9 @@ export function PostJobForm() {
         </FormLabel>
       </FieldSection>
 
-      {/* TRADE CONTEXT. Part of the SME Trades rail; hidden until launch. */}
-      {SME_TRADES_ENABLED && (
+      {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
+          for individuals so the P2P request stays the simple service flow. */}
+      {SME_TRADES_ENABLED && isBusiness && (
       <FieldSection eyebrow="[:TRADE CONTEXT:]" title="Goods or service">
         <FormLabel label="Trade type">
           <div className="flex gap-2 flex-wrap">

@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
@@ -84,6 +85,11 @@ export function DirectDealForm() {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
+  // The trade-context band (goods/Incoterms/payment terms/company/docs) is a
+  // business surface. Individuals never see it, so a P2P direct deal stays the
+  // simple service flow.
+  const { profile } = useUserProfile();
+  const isBusiness = profile?.accountKind === 'business';
   // "Make offer" links from a listing detail land here with seller/amount/terms
   // pre-filled. Read once on mount; further changes come from user input.
   const search = useSearchParams();
@@ -527,8 +533,9 @@ export function DirectDealForm() {
         </FormLabel>
       </FieldSection>
 
-      {/* TRADE CONTEXT. Part of the SME Trades rail; hidden until launch. */}
-      {SME_TRADES_ENABLED && (
+      {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
+          for individuals so a P2P direct deal stays the simple service flow. */}
+      {SME_TRADES_ENABLED && isBusiness && (
       <FieldSection eyebrow="[:TRADE CONTEXT:]" title="Goods or service">
         <FormLabel label="Trade type">
           <div className="flex gap-2 flex-wrap">
