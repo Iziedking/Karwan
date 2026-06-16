@@ -19,6 +19,15 @@ export const profiles = pgTable('profiles', {
   data: jsonb('data').$type<UserProfile>().notNull(),
 });
 
+/// Generic key-value snapshot store. Holds the network-stats snapshot so a
+/// cold boot (disk wiped on a VM rebuild) serves the last good numbers
+/// instantly instead of a 30-60s chain scan.
+export const appSnapshots = pgTable('app_snapshots', {
+  key: text('key').primaryKey(),
+  data: jsonb('data').notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+});
+
 export const directDeals = pgTable(
   'direct_deals',
   {

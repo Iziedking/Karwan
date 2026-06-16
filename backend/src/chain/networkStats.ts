@@ -2,9 +2,15 @@ import { resolve } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseAbiItem, formatUnits, type AbiEvent } from 'viem';
+import { eq } from 'drizzle-orm';
 import { publicClient } from './client.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { db, pgEnabled } from '../db/client.js';
+import { appSnapshots } from '../db/schema.js';
+
+/// Key under which the network-stats snapshot lives in app_snapshots.
+const SNAPSHOT_KEY = 'network_stats';
 
 /// Disk snapshot path. Mirrors the vaultScanCache pattern so a process boot
 /// has a last-known-good snapshot to serve while the first chain scan is in
@@ -166,6 +172,79 @@ function persistCache(snapshot: { value: NetworkStats; builtAt: number }): void 
       'network stats: disk persist failed (cache stays in-memory)',
     );
   }
+  /// Durable Postgres copy. The disk snapshot is lost on a VM rebuild; this
+  /// survives so a cold boot serves the last good numbers instantly instead of
+  /// the 30-60s chain scan. Fire-and-forget; the disk path is the no-DB fallback.
+  if (pgEnabled) {
+    const now = Date.now();
+    void db()
+      .insert(appSnapshots)
+      .values({ key: SNAPSHOT_KEY, data: snapshot, updatedAt: now })
+      .onConflictDoUpdate({ target: appSnapshots.key, set: { data: snapshot, updatedAt: now } })
+      .catch(() => {
+        /* swallow; disk + in-memory keep serving */
+      });
+  }
+}
+
+/// Load the last snapshot from Postgres into the in-memory cache. Used on a
+/// cold boot when the disk snapshot is gone (VM rebuild) so the first request
+/// serves real numbers instead of triggering the slow chain scan. No-op once
+/// the cache holds anything.
+async function hydrateFromPg(): Promise<void> {
+  if (!pgEnabled || cached) return;
+  try {
+    const rows = await db().select().from(appSnapshots).where(eq(appSnapshots.key, SNAPSHOT_KEY));
+    const snap = rows[0]?.data as { value: NetworkStats; builtAt: number } | undefined;
+    if (snap?.value && typeof snap.builtAt === 'number') {
+      cached = snap;
+      logger.info(
+        { ageMs: Date.now() - snap.builtAt },
+        'network stats: hydrated from postgres snapshot',
+      );
+    }
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'network stats: pg hydrate failed');
+  }
+}
+
+/// Build, validate against the last snapshot, and store on success. Shared by
+/// the synchronous first-build path and the background refresh.
+async function buildAndStore(): Promise<NetworkStats> {
+  const value = await build();
+  if (cached && !isMonotonicallyHealthy(value, cached.value)) {
+    logger.warn(
+      { prevTotals: cached.value.totals, freshTotals: value.totals },
+      'network stats build went BACKWARDS vs cache (silent RPC drop); keeping last good snapshot',
+    );
+    return cached.value;
+  }
+  if (hasInvariantViolations(value) && cached) {
+    logger.warn(
+      { totals: value.totals, volumes: value.volumes },
+      'network stats build violated on-chain invariants; keeping last good snapshot',
+    );
+    return cached.value;
+  }
+  cached = { value, builtAt: Date.now() };
+  persistCache(cached);
+  return value;
+}
+
+let refreshing = false;
+/// Non-blocking revalidation. Lets getNetworkStats serve a stale snapshot
+/// immediately while the fresh chain scan runs in the background, so the
+/// dashboard never waits on RPC. Guarded so concurrent reads don't stack builds.
+function refreshInBackground(): void {
+  if (refreshing) return;
+  refreshing = true;
+  void buildAndStore()
+    .catch((err) =>
+      logger.warn({ err: (err as Error).message }, 'network stats background refresh failed'),
+    )
+    .finally(() => {
+      refreshing = false;
+    });
 }
 
 function midnightUtc(ts: number): number {
@@ -508,36 +587,22 @@ export async function getNetworkStats(force = false): Promise<NetworkStats> {
   if (!force && cached && now - cached.builtAt < CACHE_TTL_MS) {
     return cached.value;
   }
+  // Cold in-memory cache (fresh boot, disk snapshot gone): seed from the
+  // durable Postgres snapshot before considering the slow chain scan.
+  if (!cached) await hydrateFromPg();
+
+  // Stale-while-revalidate: with any snapshot in hand, serve it now and rebuild
+  // in the background so the request never blocks on the 30-60s RPC scan.
+  if (cached && !force) {
+    refreshInBackground();
+    return cached.value;
+  }
+
+  // No snapshot anywhere (truly first build) or a forced refresh: build once,
+  // synchronously, and fall back to the last good snapshot on failure.
   try {
-    const value = await build();
-
-    if (cached && !isMonotonicallyHealthy(value, cached.value)) {
-      logger.warn(
-        {
-          prevTotals: cached.value.totals,
-          freshTotals: value.totals,
-        },
-        'network stats build went BACKWARDS vs cache (silent RPC drop); keeping last good snapshot',
-      );
-      return cached.value;
-    }
-
-    const violation = hasInvariantViolations(value);
-    if (violation) {
-      logger.warn(
-        { violation, totals: value.totals, volumes: value.volumes },
-        'network stats build violated on-chain invariants; keeping last good snapshot if available',
-      );
-      if (cached) return cached.value;
-    }
-
-    cached = { value, builtAt: now };
-    persistCache(cached);
-    return value;
+    return await buildAndStore();
   } catch (err) {
-    // A chunk threw after retries. Don't replace the cache with partial or
-    // empty data. Serve the last good snapshot so the dashboard stays
-    // honest. If there's no cache yet (first call ever failed), bubble up.
     logger.warn(
       { err: (err as Error).message, hasCache: !!cached },
       'network stats build failed; falling back to last cached snapshot',
