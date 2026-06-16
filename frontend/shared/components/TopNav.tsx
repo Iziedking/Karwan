@@ -478,29 +478,32 @@ function TradesDropdown({ active }: { active: boolean }) {
       </button>
       {open && (
         <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-40">
+          {/* Two choice cards, mirroring the individual/business account picker:
+              a plain pair, click either to go to its desk. */}
           <div
-            className="w-[300px] p-2 border bg-[var(--color-surface)] fade-up"
+            className="w-[440px] p-3 border bg-[var(--color-surface)] fade-up grid grid-cols-2 gap-3"
             style={{
               borderColor: 'var(--color-line)',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 4,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              borderBottomLeftRadius: 18,
+              borderBottomRightRadius: 5,
               boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
             }}
           >
-            <TradesItem
+            <TradesChoiceCard
               href="/buyer"
-              title={t.tradesDropdown.buyerTitle}
+              tone="cream"
+              eyebrow={t.tradesDropdown.buyerTitle}
               sub={t.tradesDropdown.buyerSub}
-              accent="var(--lp-accent)"
+              onPick={() => setOpen(false)}
             />
-            <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
-            <TradesItem
+            <TradesChoiceCard
               href="/seller"
-              title={t.tradesDropdown.sellerTitle}
+              tone="accent"
+              eyebrow={t.tradesDropdown.sellerTitle}
               sub={t.tradesDropdown.sellerSub}
-              accent="#7CC2FF"
+              onPick={() => setOpen(false)}
             />
           </div>
         </div>
@@ -509,38 +512,52 @@ function TradesDropdown({ active }: { active: boolean }) {
   );
 }
 
-function TradesItem({
+/// One of the two P2P choice cards. Styled like the onboarding account-kind
+/// picker: asymmetric corners, hover lift, cream for the buyer desk and the
+/// lime accent for the seller desk so the pair reads as a deliberate choice,
+/// not a flat menu.
+function TradesChoiceCard({
   href,
-  title,
+  tone,
+  eyebrow,
   sub,
-  accent,
+  onPick,
 }: {
   href: string;
-  title: string;
+  tone: 'cream' | 'accent';
+  eyebrow: string;
   sub: string;
-  accent: string;
+  onPick: () => void;
 }) {
+  const surface =
+    tone === 'accent'
+      ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
+      : 'bg-[var(--color-surface-2)] text-[var(--color-ink)] border border-[var(--color-line)]';
+  const subColor = tone === 'accent' ? 'text-[var(--lp-band-dark)]/85' : 'text-[var(--color-ink-dim)]';
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 p-3 rounded-xl hover:bg-[var(--color-surface-2)] transition-colors"
+      onClick={onPick}
+      className={cn(
+        'group block text-start p-4 transition-[transform,box-shadow] duration-200 ease-out',
+        'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(0,0,0,0.28)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-1',
+        surface,
+      )}
+      style={{
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 4,
+      }}
     >
-      <span
-        aria-hidden
-        className="mt-1.5 w-1.5 h-1.5 shrink-0"
-        style={{ background: accent, borderRadius: 1 }}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block font-sans text-[14px] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
-          {title}
-        </span>
-        <span className="mt-0.5 block text-[12px] leading-snug text-[var(--color-ink-dim)]">
-          {sub}
-        </span>
+      <span className="block font-sans text-[16px] font-extrabold tracking-[-0.01em]">
+        {eyebrow}
       </span>
+      <span className={cn('mt-1 block text-[12px] leading-snug', subColor)}>{sub}</span>
       <span
         aria-hidden
-        className="self-center text-[var(--color-ink-faint)] transition-transform duration-200 group-hover:translate-x-0.5"
+        className="mt-3 inline-flex items-center mono text-[13px] opacity-70 transition-transform duration-200 group-hover:translate-x-0.5"
       >
         →
       </span>
