@@ -32,6 +32,11 @@ export async function ensureSchema(): Promise<void> {
       address TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS app_snapshots (
+      key TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS direct_deals (
       job_id TEXT PRIMARY KEY,
       buyer TEXT NOT NULL,
