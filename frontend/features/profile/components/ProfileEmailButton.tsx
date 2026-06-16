@@ -86,13 +86,18 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
   const t = useTranslations().profileEmail;
   const qc = useQueryClient();
   const { profile } = useUserProfile();
+  const auth = useAuth();
   const isBusiness = profile?.accountKind === 'business';
+  // An email-login user's verified email is their login email even before the
+  // backend backfills profile.email, so prefer it for display + prefill.
+  const sessionEmail = auth.method === 'circle' ? auth.email : undefined;
+  const displayEmail = profile?.email ?? sessionEmail;
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const [step, setStep] = useState<'email' | 'code'>('email');
-  const [emailInput, setEmailInput] = useState(profile?.email ?? '');
+  const [emailInput, setEmailInput] = useState(displayEmail ?? '');
   const [codeInput, setCodeInput] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -100,7 +105,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
   const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const verified = !!profile?.email && !!profile?.emailVerified;
+  const verified = !!displayEmail && (!!profile?.emailVerified || !!sessionEmail);
 
   function refresh() {
     qc.invalidateQueries({ queryKey: qk.profile.me(address) });
@@ -221,7 +226,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   {t.currentLabel}
                 </p>
                 <p className="mt-1 font-sans text-[16px] font-extrabold tracking-[-0.01em] truncate">
-                  {profile?.email}
+                  {displayEmail}
                 </p>
               </div>
               <span

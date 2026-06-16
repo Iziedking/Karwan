@@ -61,7 +61,21 @@ profileRoutes.get('/', async (c) => {
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
-  const profile = await getProfile(parsed.data);
+  let profile = await getProfile(parsed.data);
+  // Self-heal email for email-login users whose profile predates email
+  // auto-capture. When the owner loads their own profile and it has no email,
+  // backfill it from their verified signup email so financier offers and other
+  // alerts can reach them. One-time write: once `email` is set this is skipped,
+  // and web3 users have no user record so `getUserByAddress` returns nothing.
+  if (profile && !profile.email) {
+    const caller = callerFor(c, parsed.data);
+    if (caller) {
+      const user = getUserByAddress(caller);
+      if (user?.email) {
+        profile = (await setProfileEmail(caller, user.email, true)) ?? profile;
+      }
+    }
+  }
   return c.json({ profile });
 });
 
