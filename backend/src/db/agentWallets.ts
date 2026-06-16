@@ -46,25 +46,41 @@ export async function getAgentWallets(userAddress: string): Promise<AgentWallets
   return loadFile()[key] ?? null;
 }
 
-export async function listAllAgentWallets(): Promise<AgentWallets[]> {
-  if (pgEnabled) {
-    const rows = await db().select().from(agentWallets);
-    return rows.map((r) => r.data);
-  }
-  return Object.values(loadFile());
-}
-
 // Reverse-lookup cache: agentAddress -> owner record. Without it,
 // findAgentWalletByAgentAddress loads + scans the whole table on every call,
 // and it sits on the per-bid agent hot path (actorSignalsFor resolves an agent
 // wallet to its owner account for reputation on every BidSubmitted / counter /
 // listing match). Short TTL so a newly-activated user self-heals across
-// processes; saveAgentWallets clears it immediately for the local process.
+// processes; the writers below clear it immediately for the local process.
 let reverseCache: { map: Map<string, AgentWallets>; builtAt: number } | null = null;
 const REVERSE_CACHE_TTL_MS = 60_000;
 
-function invalidateReverseCache() {
+// Full-list cache. listAllAgentWallets is called by the balance watcher every
+// 60s and by the buyer-history scan + admin surfaces; without this each call
+// pulls the whole agent_wallets table over the wire. Same TTL + write-bust
+// discipline as the reverse cache. Set AGENT_WALLETS_CACHE_TTL_MS=0 to disable.
+let listCache: { rows: AgentWallets[]; builtAt: number } | null = null;
+const LIST_CACHE_TTL_MS = Number(process.env.AGENT_WALLETS_CACHE_TTL_MS ?? 60_000);
+
+function invalidateAgentWalletCaches() {
   reverseCache = null;
+  listCache = null;
+}
+
+export async function listAllAgentWallets(): Promise<AgentWallets[]> {
+  const now = Date.now();
+  if (LIST_CACHE_TTL_MS > 0 && listCache && now - listCache.builtAt < LIST_CACHE_TTL_MS) {
+    return listCache.rows.slice();
+  }
+  let rows: AgentWallets[];
+  if (pgEnabled) {
+    const result = await db().select().from(agentWallets);
+    rows = result.map((r) => r.data);
+  } else {
+    rows = Object.values(loadFile());
+  }
+  if (LIST_CACHE_TTL_MS > 0) listCache = { rows, builtAt: now };
+  return rows.slice();
 }
 
 /// Finds the agent wallet record that owns a given agent address, matching on
@@ -104,13 +120,13 @@ export async function saveAgentWallets(
       .insert(agentWallets)
       .values({ userAddress: key, data: record })
       .onConflictDoUpdate({ target: agentWallets.userAddress, set: { data: record } });
-    invalidateReverseCache();
+    invalidateAgentWalletCaches();
     return record;
   }
   const store = loadFile();
   store[key] = record;
   saveFile(store);
-  invalidateReverseCache();
+  invalidateAgentWalletCaches();
   return record;
 }
 
@@ -130,13 +146,13 @@ export async function updateX402Wallet(
   };
   if (pgEnabled) {
     await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
-    invalidateReverseCache();
+    invalidateAgentWalletCaches();
     return next;
   }
   const store = loadFile();
   store[key] = next;
   saveFile(store);
-  invalidateReverseCache();
+  invalidateAgentWalletCaches();
   return next;
 }
 
@@ -159,13 +175,13 @@ export async function updateAgentNames(
   };
   if (pgEnabled) {
     await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
-    invalidateReverseCache();
+    invalidateAgentWalletCaches();
     return next;
   }
   const store = loadFile();
   store[key] = next;
   saveFile(store);
-  invalidateReverseCache();
+  invalidateAgentWalletCaches();
   return next;
 }
 
