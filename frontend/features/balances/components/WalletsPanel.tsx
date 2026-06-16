@@ -33,14 +33,20 @@ function short(addr?: string): string {
 /// Click-to-copy address line. Copies the FULL address (not the truncated
 /// form) and flips the trailing label to a confirmation for ~1.5s so the user
 /// sees the copy landed.
-function CopyAddress({ address }: { address: string }) {
+function CopyAddress({
+  address,
+  onCopied,
+}: {
+  address: string;
+  onCopied?: (addr: string) => void;
+}) {
   const wp = useTranslations().walletsPanel;
-  const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
       await navigator.clipboard?.writeText(address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      // The confirmation renders per-row under the action (see Row), so this
+      // line is just the affordance; no local copied state to flip.
+      onCopied?.(address);
     } catch {
       /* clipboard blocked; the address stays visible to copy by hand */
     }
@@ -52,9 +58,7 @@ function CopyAddress({ address }: { address: string }) {
       className="mt-1.5 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-text-sub)]"
     >
       <span>{short(address)}</span>
-      <span aria-live="polite" style={{ color: copied ? 'var(--lp-accent)' : undefined }}>
-        {copied ? wp.copyAddress.copied : wp.copyAddress.idle}
-      </span>
+      <span>{wp.copyAddress.idle}</span>
     </button>
   );
 }
@@ -68,6 +72,9 @@ function Row({
   primary,
   secondary,
   action,
+  copiedAddr,
+  onCopied,
+  copiedLabel,
 }: {
   tag: string;
   hub?: boolean;
@@ -77,7 +84,13 @@ function Row({
   primary: string;
   secondary?: string;
   action?: ReactNode;
+  copiedAddr?: string | null;
+  onCopied?: (addr: string) => void;
+  copiedLabel?: string;
 }) {
+  // This row's address was the one just copied (via the address line or its
+  // Get USDC button). Drives the inline confirmation under the action.
+  const copied = !!address && copiedAddr === address;
   return (
     <li
       className="relative overflow-hidden px-5 py-4 ps-6"
@@ -106,7 +119,7 @@ function Row({
           <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)] max-w-[44ch]">
             {purpose}
           </p>
-          {address && <CopyAddress address={address} />}
+          {address && <CopyAddress address={address} onCopied={onCopied} />}
         </div>
         <div className="text-end shrink-0">
           <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
@@ -118,6 +131,15 @@ function Row({
             </p>
           )}
           {action && <div className="mt-2">{action}</div>}
+          {copied && (
+            <p
+              aria-live="polite"
+              className="mt-1.5 mono text-[9px] font-bold uppercase tracking-[0.16em]"
+              style={{ color: 'var(--lp-accent)' }}
+            >
+              {copiedLabel}
+            </p>
+          )}
         </div>
       </div>
     </li>
@@ -162,6 +184,13 @@ export function WalletsPanel({ address }: { address?: string }) {
   const [refueling, setRefueling] = useState(false);
   const [faucetBusy, setFaucetBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // The address most recently copied, so the matching row can flash a Copied
+  // confirmation right under its action instead of a single panel-wide banner.
+  const [copiedAddr, setCopiedAddr] = useState<string | null>(null);
+  const markCopied = useCallback((addr: string) => {
+    setCopiedAddr(addr);
+    window.setTimeout(() => setCopiedAddr((cur) => (cur === addr ? null : cur)), 1500);
+  }, []);
 
   const refresh = useCallback(() => {
     if (!address) return;
@@ -190,6 +219,7 @@ export function WalletsPanel({ address }: { address?: string }) {
     setNote(null);
     try {
       await navigator.clipboard?.writeText(addr);
+      markCopied(addr);
       setNote(wp.notes.faucetCopied);
     } catch {
       setNote(wp.notes.faucetFallbackTemplate.replace('{addr}', short(addr)));
@@ -235,6 +265,9 @@ export function WalletsPanel({ address }: { address?: string }) {
           purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
           address={data?.identity.address}
           primary={`${fmt(data?.identity.usdcBalance)} USDC`}
+          copiedAddr={copiedAddr}
+          onCopied={markCopied}
+          copiedLabel={wp.copyAddress.copied}
           action={
             <FaucetButton
               onClick={() => runFaucet('identity')}
@@ -252,6 +285,9 @@ export function WalletsPanel({ address }: { address?: string }) {
               purpose={wp.rows.buyer.purpose}
               address={agents.buyer.address}
               primary={`${fmt(agents.buyer.usdcBalance)} USDC`}
+              copiedAddr={copiedAddr}
+              onCopied={markCopied}
+              copiedLabel={wp.copyAddress.copied}
               action={
                 <FaucetButton
                   onClick={() => runFaucet('buyer')}
@@ -266,6 +302,9 @@ export function WalletsPanel({ address }: { address?: string }) {
               purpose={wp.rows.seller.purpose}
               address={agents.seller.address}
               primary={`${fmt(agents.seller.usdcBalance)} USDC`}
+              copiedAddr={copiedAddr}
+              onCopied={markCopied}
+              copiedLabel={wp.copyAddress.copied}
               action={
                 <FaucetButton
                   onClick={() => runFaucet('seller')}
@@ -298,6 +337,9 @@ export function WalletsPanel({ address }: { address?: string }) {
             purpose={wp.rows.bridge.purpose}
             address={bridgeAddr}
             primary={`${fmt(bridge?.usdcBalance)} USDC`}
+            copiedAddr={copiedAddr}
+            onCopied={markCopied}
+            copiedLabel={wp.copyAddress.copied}
             secondary={wp.rows.bridge.gasSecondaryTemplate.replace('{amount}', fmt(bridge?.gasBalance))}
             action={
               <div className="flex flex-col items-stretch gap-1.5">

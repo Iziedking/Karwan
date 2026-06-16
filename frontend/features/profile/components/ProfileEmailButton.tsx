@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -35,9 +36,15 @@ export function ProfileEmailButton({
 }) {
   const t = useTranslations().profileEmail;
   const { profile } = useUserProfile();
+  const auth = useAuth();
   const [open, setOpen] = useState(false);
 
-  const verified = !!profile?.email && !!profile?.emailVerified;
+  // Email-login users already gave us a verified email at sign-up; it IS their
+  // identity, so surface it instead of an "Add email" CTA. Only web3 users,
+  // who logged in with a wallet and no email, see the add flow.
+  const sessionEmail = auth.method === 'circle' ? auth.email : undefined;
+  const displayEmail = profile?.email ?? sessionEmail;
+  const verified = !!displayEmail && (!!profile?.emailVerified || !!sessionEmail);
   const onLight = tone === 'light';
   const chipClass = onLight
     ? 'border-[var(--lp-border)] text-[var(--lp-dark)] hover:bg-[var(--lp-light)]'
@@ -48,7 +55,7 @@ export function ProfileEmailButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title={verified ? (profile?.email ?? '') : t.add}
+        title={verified ? (displayEmail ?? '') : t.add}
         className={`inline-flex items-center gap-2 px-3.5 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] border ${chipClass} transition-colors w-fit max-w-[240px]`}
         style={{
           borderTopLeftRadius: 8,
@@ -59,7 +66,7 @@ export function ProfileEmailButton({
       >
         <MailGlyph />
         <span className="truncate normal-case tracking-normal">
-          {verified ? profile?.email : t.add}
+          {verified ? displayEmail : t.add}
         </span>
         {verified && (
           <span
