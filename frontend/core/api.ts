@@ -1047,6 +1047,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address }),
     }),
+  /// Newsletter opt-in from the footer subscribe box. Separate from a user's
+  /// verified contact email: this is a marketing list (a Resend Audience) and
+  /// unsubscribing never touches the verified-email list.
+  subscribeNewsletter: (email: string) =>
+    json<{ ok: boolean }>('/api/newsletter/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
   /// Delete the account: purges off-chain profile + Telegram link + Circle auth
   /// row. If agent wallets still hold USDC, throws ApiError with code
   /// 'agent-funds' (a confirmable warning); re-call with force=true to proceed.

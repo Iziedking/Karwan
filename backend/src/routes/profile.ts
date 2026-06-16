@@ -283,6 +283,9 @@ profileRoutes.post('/email/verify', async (c) => {
   emailCodes.delete(caller);
   const profile = await setProfileEmail(caller, entry.email, true);
   if (!profile) return c.json({ error: 'profile not found' }, 404);
+  // Note: verifying a contact email does NOT subscribe the user to the
+  // newsletter. The newsletter is a separate explicit opt-in (footer subscribe
+  // box), so an unsubscribe can never strip a verified contact email.
   return c.json({ profile });
 });
 

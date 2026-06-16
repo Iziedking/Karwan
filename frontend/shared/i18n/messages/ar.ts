@@ -296,6 +296,16 @@ export const ar: Messages = {
       tagline: 'تسوية عبر الحدود باستخدام USDC',
     },
     heroClose: 'تسوية فورية',
+    newsletter: {
+      title: 'النشرة البريدية',
+      blurb: 'تحديثات المنتج وممرات تجارية جديدة، من حين لآخر. بلا إزعاج.',
+      placeholder: 'you@example.com',
+      cta: 'اشترك',
+      sending: 'جارٍ الاشتراك…',
+      success: 'تم الاشتراك. تابع بريدك الوارد.',
+      error: 'تعذّر الاشتراك. حاول مرة أخرى.',
+      invalid: 'أدخل بريدًا إلكترونيًا صحيحًا.',
+    },
   },
   notifications: {
     bell: {
@@ -670,6 +680,7 @@ export const ar: Messages = {
     currentLabel: 'بريدك الإلكتروني',
     descriptionIndividual: 'أضِف بريدًا إلكترونيًا لتلقّي تنبيهات صفقاتك وأخبار كرَوان.',
     descriptionBusiness: 'أضِف بريدًا إلكترونيًا للأعمال لتلقّي تنبيهات صفقاتك وأخبار كرَوان.',
+    manageNote: 'يتلقّى هذا العنوان تنبيهات صفقاتك وأخبار كرَوان. أزِله للتبديل إلى بريد إلكتروني آخر.',
     emailLabel: 'عنوان البريد الإلكتروني',
     businessEmailLabel: 'البريد الإلكتروني للأعمال',
     sendCode: 'إرسال الرمز',

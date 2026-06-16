@@ -296,6 +296,16 @@ export const hi: Messages = {
       tagline: 'USDC पर सीमा-पार निपटान',
     },
     heroClose: 'वास्तविक समय में निपटान',
+    newsletter: {
+      title: 'न्यूज़लेटर',
+      blurb: 'प्रोडक्ट अपडेट और नए कॉरिडोर, कभी-कभार। कोई स्पैम नहीं।',
+      placeholder: 'you@example.com',
+      cta: 'सदस्यता लें',
+      sending: 'सदस्यता ली जा रही है…',
+      success: 'सदस्यता ले ली गई। अपना इनबॉक्स देखें।',
+      error: 'सदस्यता नहीं ले सके। फिर से प्रयास करें।',
+      invalid: 'मान्य ईमेल दर्ज करें।',
+    },
   },
   notifications: {
     bell: {
@@ -670,6 +680,7 @@ export const hi: Messages = {
     currentLabel: 'आपका ईमेल',
     descriptionIndividual: 'अपने सौदों पर अलर्ट और कारवान अपडेट पाने के लिए एक ईमेल जोड़ें।',
     descriptionBusiness: 'अपने सौदों पर अलर्ट और कारवान अपडेट पाने के लिए एक व्यवसाय ईमेल जोड़ें।',
+    manageNote: 'इस पते पर आपके सौदों के अलर्ट और कारवान अपडेट आते हैं। दूसरा ईमेल जोड़ने के लिए इसे हटाएं।',
     emailLabel: 'ईमेल पता',
     businessEmailLabel: 'व्यवसाय ईमेल',
     sendCode: 'कोड भेजें',

@@ -346,6 +346,15 @@ const envSchema = z.object({
   // hackathon-grade sandbox path, or a verified-domain address in prod.
   RESEND_API_KEY: optionalString,
   RESEND_FROM: z.preprocess(blankToUndefined, z.string().default('Karwan <onboarding@resend.dev>')),
+  // Resend Audience that mirrors our verified-email list for product-update
+  // broadcasts. When set, a verified email is upserted as a contact on verify
+  // and removed on email-remove, so the list stays current with no manual
+  // export. The actual sends (newsletter / product updates) are composed and
+  // fired from the Resend dashboard against this audience. Unset = the sync is
+  // a no-op and verified emails live only in our own DB. Keep newsletter sends
+  // on a separate sending subdomain from transactional OTP mail so a marketing
+  // spam complaint can't poison verification-code deliverability.
+  RESEND_AUDIENCE_ID: optionalString,
 
   // Tester feedback delivery. When set, POST /api/feedback forwards each
   // submission (text plus any screenshots) to this Telegram chat so the
