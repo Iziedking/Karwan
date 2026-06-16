@@ -296,6 +296,16 @@ export const fr: Messages = {
       tagline: 'règlement transfrontalier en USDC',
     },
     heroClose: 'régler en temps réel',
+    newsletter: {
+      title: 'NEWSLETTER',
+      blurb: 'Nouveautés produit et nouveaux corridors, de temps en temps. Pas de spam.',
+      placeholder: 'vous@exemple.com',
+      cta: 'S’abonner',
+      sending: 'Abonnement…',
+      success: 'Abonné. Surveillez votre boîte mail.',
+      error: 'Abonnement impossible. Réessayez.',
+      invalid: 'Saisissez un e-mail valide.',
+    },
   },
   notifications: {
     bell: {
@@ -670,6 +680,7 @@ export const fr: Messages = {
     currentLabel: 'Votre e-mail',
     descriptionIndividual: 'Ajoutez un e-mail pour recevoir des alertes sur vos transactions et les actualités de Karwan.',
     descriptionBusiness: 'Ajoutez un e-mail professionnel pour recevoir des alertes sur vos transactions et les actualités de Karwan.',
+    manageNote: 'Cette adresse reçoit des alertes sur vos transactions et les actualités de Karwan. Retirez-la pour passer à un autre e-mail.',
     emailLabel: 'Adresse e-mail',
     businessEmailLabel: 'E-mail professionnel',
     sendCode: 'Envoyer le code',

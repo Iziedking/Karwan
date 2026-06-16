@@ -272,6 +272,16 @@ interface MessagesShape {
       tagline: string;
     };
     heroClose: string;
+    newsletter: {
+      title: string;
+      blurb: string;
+      placeholder: string;
+      cta: string;
+      sending: string;
+      success: string;
+      error: string;
+      invalid: string;
+    };
   };
   notifications: {
     bell: {
@@ -626,6 +636,7 @@ interface MessagesShape {
     currentLabel: string;
     descriptionIndividual: string;
     descriptionBusiness: string;
+    manageNote: string;
     emailLabel: string;
     businessEmailLabel: string;
     sendCode: string;
@@ -3876,6 +3887,16 @@ export const en: MessagesShape = {
       tagline: 'cross-border settlement on USDC',
     },
     heroClose: 'settle in real time',
+    newsletter: {
+      title: 'NEWSLETTER',
+      blurb: 'Product updates and new corridors, now and then. No spam.',
+      placeholder: 'you@example.com',
+      cta: 'Subscribe',
+      sending: 'Subscribing…',
+      success: 'Subscribed. Watch your inbox.',
+      error: 'Could not subscribe. Try again.',
+      invalid: 'Enter a valid email.',
+    },
   },
   notifications: {
     bell: {
@@ -4256,6 +4277,7 @@ export const en: MessagesShape = {
     currentLabel: 'Your email',
     descriptionIndividual: 'Add an email to get alerts on your deals and Karwan updates.',
     descriptionBusiness: 'Add a business email to get alerts on your deals and Karwan updates.',
+    manageNote: 'This address gets alerts on your deals and Karwan updates. Remove it to switch to a different email.',
     emailLabel: 'Email address',
     businessEmailLabel: 'Business email',
     sendCode: 'Send code',

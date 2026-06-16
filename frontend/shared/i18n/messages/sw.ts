@@ -296,6 +296,16 @@ export const sw: Messages = {
       tagline: 'malipo ya kupita mipaka kwa USDC',
     },
     heroClose: 'lipa kwa muda halisi',
+    newsletter: {
+      title: 'JARIDA',
+      blurb: 'Masasisho ya bidhaa na njia mpya za biashara, mara kwa mara. Hakuna taka.',
+      placeholder: 'wewe@mfano.com',
+      cta: 'Jiandikishe',
+      sending: 'Inajiandikisha…',
+      success: 'Umejiandikisha. Angalia kikasha chako.',
+      error: 'Imeshindwa kujiandikisha. Jaribu tena.',
+      invalid: 'Weka barua pepe sahihi.',
+    },
   },
   notifications: {
     bell: {
@@ -670,6 +680,7 @@ export const sw: Messages = {
     currentLabel: 'Barua pepe yako',
     descriptionIndividual: 'Ongeza barua pepe ili kupata arifa za mikataba yako na taarifa za Karwan.',
     descriptionBusiness: 'Ongeza barua pepe ya biashara ili kupata arifa za mikataba yako na taarifa za Karwan.',
+    manageNote: 'Anwani hii hupata arifa za mikataba yako na taarifa za Karwan. Iondoe ili kubadili kwenda barua pepe nyingine.',
     emailLabel: 'Anwani ya barua pepe',
     businessEmailLabel: 'Barua pepe ya biashara',
     sendCode: 'Tuma msimbo',

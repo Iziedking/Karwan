@@ -238,7 +238,23 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
             </div>
           ) : null}
 
-          {step === 'email' ? (
+          {step === 'email' && verified ? (
+            // One email at a time. Once verified, the only action is removal;
+            // adding a different address means removing this one first.
+            <>
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                {t.manageNote}
+              </p>
+              <button
+                type="button"
+                onClick={remove}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] border border-[var(--lp-border)] text-[var(--lp-text-sub)] hover:border-[var(--lp-critical)] hover:text-[var(--lp-critical)] transition-colors"
+                style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 4 }}
+              >
+                {t.remove}
+              </button>
+            </>
+          ) : step === 'email' ? (
             <>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 {isBusiness ? t.descriptionBusiness : t.descriptionIndividual}
@@ -267,15 +283,6 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                 >
                   {sending ? t.sending : t.sendCode}
                 </button>
-                {verified ? (
-                  <button
-                    type="button"
-                    onClick={remove}
-                    className="mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-critical)] transition-colors"
-                  >
-                    {t.remove}
-                  </button>
-                ) : null}
               </div>
             </>
           ) : (

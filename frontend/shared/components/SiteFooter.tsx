@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { api } from '@/core/api';
 
 const SUPPORT_EMAIL = 'support@karwan.site';
 
@@ -54,6 +55,7 @@ export function SiteFooter() {
                 {t.tagline}
               </p>
               <SectionTag>{t.builtFor}</SectionTag>
+              <NewsletterSignup />
             </div>
 
             {/* RIGHT. three columns of links */}
@@ -142,6 +144,81 @@ function SectionTag({ children }: { children: ReactNode }) {
       <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
       [:{children}:]
     </span>
+  );
+}
+
+/// Newsletter opt-in. This is a marketing subscription, deliberately separate
+/// from a user's verified contact email: subscribing here only adds the address
+/// to the broadcast list, and an unsubscribe later never touches the verified
+/// email on their account.
+function NewsletterSignup() {
+  const t = useTranslations().footer.newsletter;
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const value = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setState('error');
+      setMessage(t.invalid);
+      return;
+    }
+    setState('sending');
+    setMessage(null);
+    try {
+      await api.subscribeNewsletter(value);
+      setState('done');
+      setMessage(t.success);
+      setEmail('');
+    } catch {
+      setState('error');
+      setMessage(t.error);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-2.5 pt-1">
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        {t.title}
+      </p>
+      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
+        {t.blurb}
+      </p>
+      <div className="flex items-stretch gap-2 max-w-[360px]">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (state !== 'idle') setState('idle');
+            setMessage(null);
+          }}
+          placeholder={t.placeholder}
+          maxLength={200}
+          aria-label={t.title}
+          className="min-w-0 flex-1 px-3 py-2 text-[13.5px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-border-light)] placeholder:text-[var(--lp-text-muted)] focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+          style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
+        />
+        <button
+          type="submit"
+          disabled={state === 'sending'}
+          className="shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform"
+          style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
+        >
+          {state === 'sending' ? t.sending : t.cta}
+        </button>
+      </div>
+      {message ? (
+        <p
+          className="mono text-[10px] uppercase tracking-[0.12em]"
+          style={{ color: state === 'error' ? 'var(--lp-critical)' : 'var(--lp-accent)' }}
+        >
+          {message}
+        </p>
+      ) : null}
+    </form>
   );
 }
 
