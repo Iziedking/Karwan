@@ -142,13 +142,16 @@ export function ListingsBrowse() {
     return [...offerCards, ...briefCards].sort((x, y) => y.postedAt - x.postedAt);
   }, [listings, briefs, address]);
 
-  /// Business accounts see a business-linked market: finance-lane cards plus
-  /// anything a business posted. Person accounts see the full marketplace.
+  /// Business accounts see a B2B market: finance-lane cards plus anything a
+  /// business posted. Person accounts see the P2P market: everything EXCEPT
+  /// the finance lane (goods, invoices, PO financing), which is B2B-only. A
+  /// business's service request still shows to people, so a person can fulfil
+  /// it (business hiring a single-person service).
   const visibleCards = useMemo(
     () =>
       onBusinessTrack
         ? cards.filter((c) => c.tradeLane === 'finance' || c.partyKind === 'business')
-        : cards,
+        : cards.filter((c) => c.tradeLane !== 'finance'),
     [cards, onBusinessTrack],
   );
 
