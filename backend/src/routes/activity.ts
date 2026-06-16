@@ -142,6 +142,10 @@ activityRoutes.get('/', async (c) => {
   const caller = callerRaw && /^0x[a-fA-F0-9]{40}$/.test(callerRaw) ? callerRaw.toLowerCase() : null;
   const limit = limitParam ? Math.min(500, Math.max(1, Number(limitParam))) : 100;
 
+  // Reload from event_history if the in-memory ring came up cold (boot hydrate
+  // ran against a down Postgres). Throttled + no-op once warm.
+  await bus.ensureHydrated();
+
   // First pass: respect the existing jobId filter (used by per-deal timelines).
   const base = bus.recent(500, jobId);
 
