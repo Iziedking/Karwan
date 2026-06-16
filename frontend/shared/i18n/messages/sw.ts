@@ -2128,6 +2128,10 @@ export const sw: Messages = {
       idle: 'Pata USDC',
       busy: 'Inafungua',
     },
+    copyAddress: {
+      idle: 'Nakili',
+      copied: 'Imenakiliwa',
+    },
     bridgeActions: {
       topUpBase: 'Ongeza gesi ya Base',
       requesting: 'Inaomba',
