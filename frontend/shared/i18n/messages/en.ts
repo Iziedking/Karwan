@@ -2017,6 +2017,10 @@ interface MessagesShape {
       idle: string;
       busy: string;
     };
+    copyAddress: {
+      idle: string;
+      copied: string;
+    };
     bridgeActions: {
       topUpBase: string;
       requesting: string;
@@ -5708,6 +5712,10 @@ export const en: MessagesShape = {
     faucetButton: {
       idle: 'Get USDC',
       busy: 'Opening',
+    },
+    copyAddress: {
+      idle: 'Copy',
+      copied: 'Copied',
     },
     bridgeActions: {
       topUpBase: 'Top up Base gas',

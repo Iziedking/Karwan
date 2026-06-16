@@ -2128,6 +2128,10 @@ export const ar: Messages = {
       idle: 'احصل على USDC',
       busy: 'يفتح',
     },
+    copyAddress: {
+      idle: 'نسخ',
+      copied: 'تم النسخ',
+    },
     bridgeActions: {
       topUpBase: 'أعد تعبئة غاز Base',
       requesting: 'جارٍ الطلب',
