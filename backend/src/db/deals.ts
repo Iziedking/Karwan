@@ -235,6 +235,21 @@ export interface DirectDeal {
 // --- public API: same names as before, now async, Postgres-backed when
 // DATABASE_URL is set and flat-file otherwise ---
 
+// Shared short-TTL cache for the full-table read. The deal watcher, factoring
+// watcher, and reputation reconciler each call listAllDeals on a 60s loop, and
+// the reputation signal engine calls it on every cache-miss. Without this each
+// call pulls the entire deals table over the wire, which was the dominant Neon
+// egress drain. The TTL collapses them into at most one DB read per window, and
+// any local write busts it so a caller never reads stale data it just wrote.
+// Per-address reads (getDeal, listDealsForAddress) are not cached and stay live.
+// Set DEALS_CACHE_TTL_MS=0 to disable.
+const DEALS_CACHE_TTL_MS = Number(process.env.DEALS_CACHE_TTL_MS ?? 60_000);
+let allDealsCache: { at: number; rows: DirectDeal[] } | null = null;
+
+function invalidateDealsCache(): void {
+  allDealsCache = null;
+}
+
 export async function getDeal(jobId: string): Promise<DirectDeal | null> {
   const key = jobId.toLowerCase();
   if (pgEnabled) {
@@ -265,11 +280,13 @@ export async function createDeal(
       createdAt: deal.createdAt,
       data: deal,
     });
+    invalidateDealsCache();
     return deal;
   }
   const store = loadFile();
   store[key] = deal;
   saveFile(store);
+  invalidateDealsCache();
   return deal;
 }
 
@@ -286,11 +303,13 @@ export async function patchDeal(
       .update(directDeals)
       .set({ buyer: next.buyer, seller: next.seller, data: next })
       .where(eq(directDeals.jobId, key));
+    invalidateDealsCache();
     return next;
   }
   const store = loadFile();
   store[key] = next;
   saveFile(store);
+  invalidateDealsCache();
   return next;
 }
 
@@ -310,13 +329,25 @@ export async function listDealsForAddress(address: string): Promise<DirectDeal[]
     .sort((x, y) => y.createdAt - x.createdAt);
 }
 
-/// All deals, newest first. Used by the auto-release watcher.
+/// All deals, newest first. Used by the auto-release watcher, the reputation
+/// engine, and the activity feed. Served from a short-TTL cache (above) so the
+/// background loops and per-address reputation cache-misses share one DB read
+/// per window instead of each scanning the whole table. Returns a shallow copy
+/// so a caller can sort in place without corrupting the cached array.
 export async function listAllDeals(): Promise<DirectDeal[]> {
-  if (pgEnabled) {
-    const rows = await db().select().from(directDeals).orderBy(desc(directDeals.createdAt));
-    return rows.map((r) => r.data);
+  const now = Date.now();
+  if (DEALS_CACHE_TTL_MS > 0 && allDealsCache && now - allDealsCache.at < DEALS_CACHE_TTL_MS) {
+    return allDealsCache.rows.slice();
   }
-  return Object.values(loadFile()).sort((x, y) => y.createdAt - x.createdAt);
+  let rows: DirectDeal[];
+  if (pgEnabled) {
+    const result = await db().select().from(directDeals).orderBy(desc(directDeals.createdAt));
+    rows = result.map((r) => r.data);
+  } else {
+    rows = Object.values(loadFile()).sort((x, y) => y.createdAt - x.createdAt);
+  }
+  if (DEALS_CACHE_TTL_MS > 0) allDealsCache = { at: now, rows };
+  return rows.slice();
 }
 
 /// Removes every deal where the address is on either side of the deal. Used
@@ -334,6 +365,7 @@ export async function deleteDealsInvolvingAddress(addressLower: string): Promise
         removed += 1;
       }
     }
+    if (removed > 0) invalidateDealsCache();
     return removed;
   }
   const store = loadFile();
@@ -344,7 +376,10 @@ export async function deleteDealsInvolvingAddress(addressLower: string): Promise
       removed += 1;
     }
   }
-  if (removed > 0) saveFile(store);
+  if (removed > 0) {
+    saveFile(store);
+    invalidateDealsCache();
+  }
   return removed;
 }
 
