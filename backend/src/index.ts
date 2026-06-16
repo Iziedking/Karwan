@@ -59,6 +59,7 @@ import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
+import { startEmailNotifier } from './emails/dealNotifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
 
@@ -313,6 +314,13 @@ async function boot() {
     stopFns.push(startTelegramNotifier());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'telegram not started');
+  }
+  // Email notifier: deal lifecycle alerts to verified contact emails. No-op
+  // cleanly when RESEND_API_KEY is unset.
+  try {
+    stopFns.push(startEmailNotifier());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'email notifier not started');
   }
   // X broadcaster queues posts for users with a bound handle. The actual API
   // post is a follow-up; this just wires the subscription so the queue is

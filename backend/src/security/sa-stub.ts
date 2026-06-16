@@ -7,6 +7,7 @@
 ///
 /// Hooks are explicitly named per the SME design doc §14 so the SA build
 /// can grep for every integration point and replace them in lockstep.
+import { localScanProof, type ScanVerdict } from './localScan.js';
 
 export interface HoldVerdict {
   reason: string;
@@ -49,14 +50,40 @@ export async function shouldHoldPOFunding(_invoiceId: string): Promise<HoldVerdi
   return null;
 }
 
-/// Delivery gate. v1 lets every mark-delivered through; real SA runs the
-/// URL + file scanners and a content-match check against the brief's
-/// requirements before letting the buyer see the proof.
+/// Delivery gate. Runs the local URL safety scan over the proof before the
+/// buyer is shown the link. The paid engine layer (Web Risk / IPQS / Cloudflare)
+/// votes alongside this once keys are configured; until then the local scan
+/// gives real protection. Returns the verdict so the caller can both gate the
+/// proof and record the status on the deal. `clean`/`unverifiable` => null.
+export interface DeliveryScan {
+  verdict: ScanVerdict;
+  reasons: string[];
+  hold: HoldVerdict | null;
+}
+
+export async function scanDelivery(deliveryProof: string): Promise<DeliveryScan> {
+  const { verdict, reasons } = localScanProof(deliveryProof);
+  if (verdict === 'clean') return { verdict, reasons, hold: null };
+  const severity: HoldVerdict['severity'] = verdict === 'malicious' ? 'hard' : 'soft';
+  return {
+    verdict,
+    reasons,
+    hold: {
+      reason: reasons[0] ?? 'The delivery link could not be verified.',
+      severity,
+      reviewerSurface: 'in-app',
+      expiresAt: 0,
+    },
+  };
+}
+
+/// Back-compat seam kept so existing call sites compile. Prefer scanDelivery,
+/// which also returns the verdict + reasons for recording on the deal.
 export async function shouldHoldDelivery(
   _jobId: string,
-  _deliveryProof: string,
+  deliveryProof: string,
 ): Promise<HoldVerdict | null> {
-  return null;
+  return (await scanDelivery(deliveryProof)).hold;
 }
 
 /// Paid signal authorisation. v1 lets every call through under the

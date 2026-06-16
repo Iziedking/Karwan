@@ -52,6 +52,7 @@ import { sessionMismatchesClaim, viewerAddress, readSession } from '../auth/sess
 import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../emails/dealInvite.js';
 import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
 import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
+import { scanDelivery } from '../security/sa-stub.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -727,7 +728,17 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   if (!isParty) {
     return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
   }
-  return c.json({ deal: await enrich(deal) });
+  const enriched = await enrich(deal);
+  // Hold a suspicious/malicious delivery link back from the BUYER until it's
+  // cleared. The seller (who submitted it) always sees their own proof. The
+  // status + reasons still ride along so the UI can explain the hold.
+  const viewerIsBuyer = caller === deal.buyer.toLowerCase();
+  const held =
+    enriched.verificationStatus === 'suspicious' || enriched.verificationStatus === 'malicious';
+  if (viewerIsBuyer && held && enriched.deliveryProof) {
+    return c.json({ deal: { ...enriched, deliveryProof: undefined } });
+  }
+  return c.json({ deal: enriched });
 });
 
 /// Seller accepts the deal terms. This lazily provisions the seller's agent
@@ -1222,18 +1233,46 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     );
   }
 
+  // Security Agent: scan the delivery proof's links before the buyer is shown
+  // them. A clean (or link-free) proof is stored and shown normally; a
+  // suspicious or malicious verdict is recorded so the GET route holds the link
+  // back from the buyer pending review. The proof is still persisted for audit
+  // and the seller's own view; only the buyer's view is gated.
+  let verificationStatus: NonNullable<typeof deal.verificationStatus> | undefined;
+  let verificationReasons: string[] | undefined;
+  if (body.deliveryProof) {
+    try {
+      const scan = await scanDelivery(body.deliveryProof);
+      verificationStatus = scan.verdict; // 'clean' | 'suspicious' | 'malicious'
+      if (scan.reasons.length) verificationReasons = scan.reasons;
+      if (scan.hold) {
+        logger.warn(
+          { jobId, verdict: scan.verdict, reasons: scan.reasons },
+          'security: delivery proof held from buyer view',
+        );
+      }
+    } catch (err) {
+      // A scan failure must not block the seller from delivering; mark the
+      // proof unverifiable so the buyer is warned rather than falsely assured.
+      logger.warn({ jobId, err: (err as Error).message }, 'security: delivery scan failed');
+      verificationStatus = 'unverifiable';
+    }
+  }
+
   await patchDeal(jobId, {
     delivered: true,
     deliveredAt: Date.now(),
     ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
+    ...(verificationStatus ? { verificationStatus } : {}),
+    ...(verificationReasons ? { verificationReasons } : {}),
   });
   bus.emitEvent({
     type: 'deal.delivered',
     jobId,
     actor: 'seller',
-    payload: { seller: deal.seller, firstReleasePct: deal.firstReleasePct },
+    payload: { seller: deal.seller, firstReleasePct: deal.firstReleasePct, verificationStatus },
   });
-  return c.json({ accepted: true, jobId }, 200);
+  return c.json({ accepted: true, jobId, verificationStatus }, 200);
 });
 
 /// Buyer releases the next milestone. After the seller marks delivered, the

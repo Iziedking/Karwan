@@ -150,6 +150,15 @@ export function useAuth(): AuthState & {
   const address = session?.address ?? null;
   const method: AuthMethod | null = session?.method ?? null;
 
+  // Hold the loading state while wagmi is still auto-reconnecting on first
+  // paint. Without this, a returning web3 user whose session cookie has lapsed
+  // sees the first authMe() return null (loaded=true), the page paints the
+  // SignInGate, then wagmi reconnects + SIWE lands and the page flips to the
+  // authed view. That flash of "sign in" before the real page is exactly the
+  // jank we want to avoid. wagmi's 'reconnecting' status always resolves to
+  // 'connected' or 'disconnected' within a bounded window, so this can't hang.
+  const wagmiResolving = wagmiStatus === 'connecting' || wagmiStatus === 'reconnecting';
+
   // Mirror the address into the API client so private reads can pass it as a
   // `caller` hint (web3 users have no backend session cookie).
   useEffect(() => {
@@ -162,7 +171,10 @@ export function useAuth(): AuthState & {
     email: session?.email,
     hasPasskey: !!session?.hasPasskey,
     isAuthenticated: !!session,
-    isLoading: !loaded,
+    // Loading until the first authMe() resolves, and stay loading while wagmi
+    // is still auto-reconnecting with no session yet (the web3 reconnect + SIWE
+    // window) so gated chrome holds a skeleton instead of flashing "sign in".
+    isLoading: !loaded || (wagmiResolving && !session),
     signOut,
     refresh,
   };

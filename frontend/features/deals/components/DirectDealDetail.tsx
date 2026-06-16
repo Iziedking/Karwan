@@ -654,6 +654,30 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </div>
             </PageCard>
           )}
+
+          {/* Security Agent held the delivery link back from the buyer. The
+              proof field is absent (stripped server-side), so this notice
+              stands in its place and warns the buyer not to release yet. */}
+          {deal.delivered &&
+            !deal.deliveryProof &&
+            (deal.verificationStatus === 'suspicious' ||
+              deal.verificationStatus === 'malicious') && (
+              <PageCard>
+                <CardHead label={dd.terms.deliveryHeldLabel} />
+                <div className="p-5 md:p-6 space-y-3">
+                  <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                    {dd.terms.deliveryHeldBody}
+                  </p>
+                  {deal.verificationReasons && deal.verificationReasons.length > 0 && (
+                    <ul className="list-disc ps-5 space-y-1 text-[13px] text-[var(--lp-text-muted)]">
+                      {deal.verificationReasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </PageCard>
+            )}
         </div>
       </Band>
 

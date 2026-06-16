@@ -85,8 +85,12 @@ export function ProfileEmailButton({
 function EmailModal({ address, onClose }: { address: string; onClose: () => void }) {
   const t = useTranslations().profileEmail;
   const qc = useQueryClient();
-  const { profile } = useUserProfile();
+  const { profile, loading: profileLoading } = useUserProfile();
   const auth = useAuth();
+  // Until auth + profile resolve we can't tell verified from not, so hold the
+  // body in a neutral skeleton instead of flashing the "Add email" form before
+  // the verified card paints.
+  const notReady = auth.isLoading || profileLoading;
   const isBusiness = profile?.accountKind === 'business';
   // An email-login user's verified email is their login email even before the
   // backend backfills profile.email, so prefer it for display + prefill.
@@ -209,7 +213,12 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
         </div>
 
         <div className="px-6 pb-6 space-y-4">
-          {verified && step === 'email' ? (
+          {notReady && step === 'email' ? (
+            <div className="space-y-3" aria-hidden>
+              <div className="h-[68px] rounded-xl bg-[var(--lp-light)] animate-pulse motion-reduce:animate-none" />
+              <div className="h-4 w-2/3 rounded-md bg-[var(--lp-light)] animate-pulse motion-reduce:animate-none" />
+            </div>
+          ) : verified && step === 'email' ? (
             <div
               className="px-4 py-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
               style={{
