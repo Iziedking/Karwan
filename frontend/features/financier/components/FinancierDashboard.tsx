@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
 import { parseUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
+import { api, ApiError, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
@@ -19,6 +19,21 @@ import {
   buildTransferAuthorization,
   serializeAuthorization,
 } from '@/features/factoring/usdcAuthorization';
+
+/// Turn a thrown signing/submit error into one short human line. A wallet
+/// rejection is the common case and should read calmly, never dump the raw
+/// viem string (with its "Version: viem@x" tag) into the modal.
+function friendlyError(e: unknown): string {
+  if (e instanceof ApiError) {
+    return typeof e.detail === 'string' && e.detail.trim() ? e.detail : e.message;
+  }
+  const msg = (e as Error)?.message ?? '';
+  if (/user rejected|user denied|rejected the request|denied (the )?signature/i.test(msg)) {
+    return 'You declined the signature, so the offer was not posted.';
+  }
+  const firstLine = msg.split('\n')[0]?.replace(/\s*Version:\s*viem@[\d.]+\s*$/i, '').trim();
+  return firstLine || 'Could not post the offer. Please try again.';
+}
 
 // USDC + KarwanPOFinancing ABIs. Hoisted to module scope per Vercel
 // `rendering-hoist-jsx`; both are tiny and `as const` enables viem's
@@ -570,7 +585,7 @@ function OfferModal({
       });
       onPosted(r.offer);
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
     } finally {
       setSubmitting(false);
     }
@@ -662,15 +677,15 @@ function OfferModal({
             <input
               type="range"
               min={100}
-              max={800}
-              step={25}
+              max={2000}
+              step={50}
               value={discountBps}
               onChange={(e) => setDiscountBps(Number(e.target.value))}
               className="w-full"
             />
             <div className="mt-1 flex justify-between mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               <span>1%</span>
-              <span>8%</span>
+              <span>20%</span>
             </div>
           </div>
 
@@ -950,7 +965,7 @@ function FundModal({
         onFunded(r.line);
       }
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
     } finally {
       setSubmitting(false);
       setStep('idle');

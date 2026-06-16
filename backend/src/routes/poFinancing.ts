@@ -120,8 +120,12 @@ poFinancingRoutes.post('/fund', async (c) => {
   }
 
   const financier = session.address.toLowerCase();
+  // A financier must be a third party to the deal, on neither side.
   if (financier === deal.seller) {
     return c.json({ error: 'seller cannot fund their own PO' }, 403);
+  }
+  if (financier === deal.buyer.toLowerCase()) {
+    return c.json({ error: 'buyer cannot fund their own PO' }, 403);
   }
   if (Number(body.repayUsdc) <= Number(body.principalUsdc)) {
     return c.json({ error: 'repay must exceed principal' }, 400);
