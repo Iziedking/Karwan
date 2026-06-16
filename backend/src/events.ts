@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { desc } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 import { db, pgEnabled } from './db/client.js';
 import { eventHistory } from './db/schema.js';
 
@@ -282,6 +282,23 @@ class KarwanBus extends EventEmitter {
 
 export const bus = new KarwanBus();
 bus.setMaxListeners(0);
+
+/// Count rows durably stored in the event_history table. The backfill uses this
+/// to report `durable: N` right after persisting, so the operator can tell at a
+/// glance whether the injected events actually landed in Postgres (and will
+/// survive a restart) instead of only sitting in the in-memory ring. Returns
+/// null when Postgres isn't configured.
+export async function eventHistoryCount(): Promise<number | null> {
+  if (!pgEnabled) return null;
+  try {
+    const rows = await db()
+      .select({ n: sql<number>`count(*)::int` })
+      .from(eventHistory);
+    return Number(rows[0]?.n ?? 0);
+  } catch {
+    return null;
+  }
+}
 
 /// Postgres write paths. Fire-and-forget, so the bus stays usable even if the DB
 /// is unreachable; the disk JSON debounce path is the safety net. Returns

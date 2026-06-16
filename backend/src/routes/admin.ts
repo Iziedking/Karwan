@@ -21,6 +21,7 @@ import {
 } from '../db/deals.js';
 import { reconcileReputationOnce } from '../reputation/reconciler.js';
 import { backfillBusFromChain } from '../chain/eventBackfill.js';
+import { eventHistoryCount } from '../events.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
@@ -188,6 +189,11 @@ let lastBackfillResult: {
   scanned?: number;
   injected?: number;
   chunkErrors?: number;
+  /// Rows in the event_history table read right after the backfill persisted.
+  /// This is the durability check: if `injected` is high but `durable` is 0,
+  /// the events only reached the in-memory ring and will vanish on restart
+  /// (the symptom is the activity feed reading empty after a redeploy).
+  durable?: number | null;
   error?: string;
 } | null = null;
 
@@ -210,6 +216,11 @@ adminRoutes.post('/events/backfill', (c) => {
   void (async () => {
     try {
       const result = await backfillBusFromChain({ force: true });
+      // Read the durable row count so the status endpoint can prove the events
+      // actually persisted to event_history, not just the in-memory ring. The
+      // bulk insert is fire-and-forget; a short pause lets it settle first.
+      await new Promise((r) => setTimeout(r, 1500));
+      const durable = await eventHistoryCount();
       lastBackfillResult = {
         ...(lastBackfillResult ?? { startedAt: Date.now() }),
         completedAt: Date.now(),
@@ -217,8 +228,9 @@ adminRoutes.post('/events/backfill', (c) => {
         scanned: result.scanned,
         injected: result.injected,
         chunkErrors: result.chunkErrors,
+        durable,
       };
-      logger.info({ ...result }, 'admin: event backfill forced (async complete)');
+      logger.info({ ...result, durable }, 'admin: event backfill forced (async complete)');
     } catch (err) {
       const msg = (err as Error).message ?? 'unknown';
       lastBackfillResult = {
