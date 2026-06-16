@@ -989,8 +989,9 @@ export const sw: Messages = {
       txCta: 'utatuzi',
     },
     screen: {
-      label: 'UKAGUZI WA MWENZAKE',
-      template: 'Wakala alilipa {amount} kwenye Base kwa ukaguzi wa vikwazo na hatari. Uamuzi: {verdict}.',
+      label: 'UKAGUZI WA UZINGATIAJI',
+      template: 'Wakala wako alilipa {amount} kwenye Base kufanya ukaguzi wa vikwazo na hatari kwa muuzaji.',
+      txCta: 'Tazama malipo',
     },
     business: {
       label: 'BIASHARA ILIYOTHIBITISHWA',

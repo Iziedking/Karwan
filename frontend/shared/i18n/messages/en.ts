@@ -958,6 +958,7 @@ interface MessagesShape {
     screen: {
       label: string;
       template: string;
+      txCta: string;
     };
     business: {
       label: string;
@@ -4588,8 +4589,9 @@ export const en: MessagesShape = {
       txCta: 'settlement',
     },
     screen: {
-      label: 'COUNTERPARTY SCREEN',
-      template: 'Agent paid {amount} on Base for a sanctions and risk screen. Verdict: {verdict}.',
+      label: 'COMPLIANCE SCREEN',
+      template: 'Your agent paid {amount} on Base to run a sanctions and risk screen on the seller.',
+      txCta: 'View payment',
     },
     business: {
       label: 'VERIFIED BUSINESS',

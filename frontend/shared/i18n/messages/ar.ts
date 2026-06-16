@@ -989,8 +989,9 @@ export const ar: Messages = {
       txCta: 'التسوية',
     },
     screen: {
-      label: 'فحص الطرف المقابل',
-      template: 'دفع الوكيل {amount} على Base لفحص العقوبات والمخاطر. الحكم: {verdict}.',
+      label: 'فحص الامتثال',
+      template: 'دفع وكيلك {amount} على Base لإجراء فحص العقوبات والمخاطر على البائع.',
+      txCta: 'عرض الدفعة',
     },
     business: {
       label: 'نشاط تجاري موثّق',

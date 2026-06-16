@@ -211,33 +211,73 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </p>
       )}
 
-      {/* External paid compliance: the buyer agent paid a Base mainnet
-          x402 endpoint for a sanctions and counterparty-risk screen on
-          the seller. PASS stays quiet; WARN and BLOCK color up. */}
-      {proposal.counterpartyScreen && (
-        <p
-          className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em]"
-          style={{
-            color:
-              proposal.counterpartyScreen.verdict === 'BLOCK'
-                ? '#b25425'
-                : proposal.counterpartyScreen.verdict === 'WARN'
-                  ? '#b07d1f'
-                  : 'var(--color-ink-faint)',
-          }}
-        >
-          [:{mb.screen.label}:]{' '}
-          <span className="normal-case tracking-normal text-[11px]">
-            {mb.screen.template
-              .replace('{amount}', `$${proposal.counterpartyScreen.amountUsd}`)
-              .replace('{verdict}', proposal.counterpartyScreen.verdict)}
-            {proposal.counterpartyScreen.verdict !== 'PASS' &&
-              proposal.counterpartyScreen.reasons.length > 0 && (
-                <> ({proposal.counterpartyScreen.reasons.join('; ')})</>
+      {/* External paid compliance, shown only to the buyer whose agent paid:
+          a Base mainnet x402 sanctions + counterparty-risk screen on the
+          seller, with the on-chain payment as evidence. */}
+      {viewerIsBuyer && proposal.counterpartyScreen && (() => {
+        const screen = proposal.counterpartyScreen;
+        const tone =
+          screen.verdict === 'BLOCK'
+            ? { fg: '#b25425', bg: 'rgba(178,84,37,0.14)' }
+            : screen.verdict === 'WARN'
+              ? { fg: '#b07d1f', bg: 'rgba(176,125,31,0.14)' }
+              : { fg: '#4f8a3f', bg: 'rgba(79,138,63,0.14)' };
+        return (
+          <div
+            className="mt-3 px-4 py-3"
+            style={{
+              background: tone.bg,
+              border: `1px solid ${tone.fg}3a`,
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }}
+          >
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
+                [:{mb.screen.label}:]
+              </span>
+              <span
+                className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
+                style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
+              >
+                {screen.verdict}
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] leading-snug text-[var(--color-ink-faint)]">
+              {mb.screen.template.replace('{amount}', `$${screen.amountUsd}`)}
+            </p>
+            {screen.verdict !== 'PASS' && screen.reasons.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-1.5">
+                {screen.reasons.map((r) => (
+                  <li
+                    key={r}
+                    className="mono text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5"
+                    style={{ color: tone.fg, background: `${tone.fg}1f`, borderRadius: 3 }}
+                  >
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-2.5 flex items-center gap-3 mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+              <span>${screen.amountUsd} · x402 · Base</span>
+              {screen.txHash && (
+                <a
+                  href={`https://basescan.org/tx/${screen.txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2 hover:opacity-80"
+                  style={{ color: tone.fg }}
+                >
+                  {mb.screen.txCta} ↗
+                </a>
               )}
-          </span>
-        </p>
-      )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Verified-business badge: the counterparty trades as a Karwan-verified
           business. Compact by design, full company detail lives on the profile

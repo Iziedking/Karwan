@@ -39,6 +39,10 @@ export interface ExternalPayResult<T> {
   data: T;
   paidUsd: number;
   payer: string;
+  /// The on-chain settlement tx hash, decoded from the x402 `X-PAYMENT-RESPONSE`
+  /// header the resource server returns after its facilitator submits. Absent
+  /// when the server doesn't echo it; callers fall back to the payer address.
+  txHash?: string;
 }
 
 /// Full x402 round-trip against an external endpoint: initial request,
@@ -70,7 +74,26 @@ export async function payExternal<T = unknown>(url: string): Promise<ExternalPay
   // Price comes from the server's offer, atomic USDC at 6 decimals.
   const accepts = (paymentRequired as { accepts?: Array<{ amount?: string }> }).accepts;
   const paidUsd = Number(accepts?.[0]?.amount ?? 0) / 1e6;
-  return { data: (await paid.json()) as T, paidUsd, payer: payerAddress };
+
+  // Settlement evidence: the server echoes the on-chain tx in the standard
+  // x402 X-PAYMENT-RESPONSE header (base64 JSON). Best-effort; the screen still
+  // works without it.
+  let txHash: string | undefined;
+  try {
+    const settle = paid.headers.get('x-payment-response');
+    if (settle) {
+      const decoded = JSON.parse(Buffer.from(settle, 'base64').toString('utf8')) as {
+        transaction?: string;
+        txHash?: string;
+      };
+      const tx = decoded.transaction ?? decoded.txHash;
+      if (tx && /^0x[a-fA-F0-9]{64}$/.test(tx)) txHash = tx;
+    }
+  } catch {
+    /* no settlement header; evidence falls back to the payer address */
+  }
+
+  return { data: (await paid.json()) as T, paidUsd, payer: payerAddress, txHash };
 }
 
 // Counterparty screening (GlobalAPI)
@@ -86,6 +109,9 @@ export interface CounterpartyScreen {
   reasons: string[];
   paidUsd: number;
   payer: string;
+  /// On-chain settlement tx for the $0.01 payment (Base), when the server
+  /// echoes it. Surfaced as evidence the agent really paid for the screen.
+  txHash?: string;
   screenedAt: number;
 }
 
@@ -105,7 +131,7 @@ export async function screenCounterparty(address: string): Promise<CounterpartyS
   const hit = screenCache.get(key);
   if (hit && Date.now() - hit.screenedAt < SCREEN_CACHE_TTL_MS) return hit;
 
-  const { data, paidUsd, payer } = await payExternal<GlobalApiCounterpartyResponse>(
+  const { data, paidUsd, payer, txHash } = await payExternal<GlobalApiCounterpartyResponse>(
     `${COUNTERPARTY_CHECK_URL}/${key}`,
   );
   if (data.verdict !== 'PASS' && data.verdict !== 'WARN' && data.verdict !== 'BLOCK') {
@@ -117,6 +143,7 @@ export async function screenCounterparty(address: string): Promise<CounterpartyS
     reasons: (data.verdict_reasons ?? []).map((r) => String(r)).slice(0, 8),
     paidUsd,
     payer,
+    txHash,
     screenedAt: Date.now(),
   };
   screenCache.set(key, result);

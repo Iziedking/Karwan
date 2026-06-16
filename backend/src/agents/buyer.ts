@@ -717,6 +717,7 @@ async function handleBidSubmitted(log: Log) {
                 verdict: counterpartyScreen.verdict,
                 subject: counterpartyScreen.address,
                 amountUsd: counterpartyScreen.paidUsd,
+                txHash: counterpartyScreen.txHash,
               },
             }
           : {}),
@@ -1870,6 +1871,7 @@ async function proposeMatch(
               verdict: screenBid.verdict,
               reasons: screenBid.reasons,
               amountUsd: screenBid.paidUsd,
+              txHash: screenBid.txHash,
               screenedAt: screenBid.screenedAt,
             },
           }
