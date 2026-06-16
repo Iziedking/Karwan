@@ -2128,6 +2128,10 @@ export const fr: Messages = {
       idle: 'Obtenir USDC',
       busy: 'Ouverture',
     },
+    copyAddress: {
+      idle: 'Copier',
+      copied: 'Copié',
+    },
     bridgeActions: {
       topUpBase: 'Recharger le gaz Base',
       requesting: 'Demande en cours',

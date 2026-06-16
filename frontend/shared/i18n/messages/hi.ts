@@ -2128,6 +2128,10 @@ export const hi: Messages = {
       idle: 'USDC लें',
       busy: 'खुल रहा है',
     },
+    copyAddress: {
+      idle: 'कॉपी',
+      copied: 'कॉपी हो गया',
+    },
     bridgeActions: {
       topUpBase: 'Base गैस टॉप अप करें',
       requesting: 'अनुरोध जारी',
