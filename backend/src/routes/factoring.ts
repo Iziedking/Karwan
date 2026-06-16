@@ -140,8 +140,14 @@ factoringRoutes.post('/offer', async (c) => {
   }
 
   const financier = session.address.toLowerCase();
+  // A financier must be a third party. Block both sides of the deal so the
+  // seller can't discount their own invoice to themselves and the buyer can't
+  // front their own settlement (no real capital changes hands either way).
   if (financier === deal.seller) {
     return c.json({ error: 'seller cannot fund their own invoice' }, 403);
+  }
+  if (financier === deal.buyer.toLowerCase()) {
+    return c.json({ error: 'buyer cannot fund their own deal' }, 403);
   }
 
   const faceValueUsdc = deal.dealAmountUsdc;
@@ -207,6 +213,9 @@ factoringRoutes.post('/offer', async (c) => {
     payload: {
       offerId: offer.id,
       financier,
+      // The seller is the recipient of this offer; naming them routes the
+      // in-app notification + Telegram alert to the right party.
+      seller: deal.seller,
       discountBps,
       advance: body.offeredAdvanceUsdc,
     },

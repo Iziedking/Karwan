@@ -82,6 +82,8 @@ const RELEVANT = new Set([
   'deal.fund.insufficient',
   'bid.accepted',
   'reputation.recorded',
+  // A financier offered early payout on the seller's invoice.
+  'factoring.offered',
   'listing.matched',
   'listing.match.proactive',
   'chat.message',
@@ -194,6 +196,13 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     out.push({ address: deal.buyer, role: deal.buyer === sender ? 'self' : 'buyer' });
     out.push({ address: deal.seller, role: deal.seller === sender ? 'self' : 'seller' });
     return out;
+  }
+  // A financier's factoring offer is addressed to the seller only (it's an
+  // offer to pay them early). Route from the payload, not the both-parties
+  // deal lookup below.
+  if (e.type === 'factoring.offered') {
+    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
+    return seller ? [{ address: seller, role: 'seller' }] : [];
   }
   // Deal lifecycle events: notify both parties.
   if (e.jobId) {
@@ -521,6 +530,19 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         ? `*Tier up. you reached ${toTier} on Karwan.*\n${blurb}`
         : `*Tier up.* You reached ${toTier} on Karwan.`;
       return withLink(body, passportUrl(addr));
+    }
+    case 'factoring.offered': {
+      const advanceRaw = (e.payload?.advance as string | undefined) ?? '';
+      const advance = advanceRaw ? `${trimUsdcLabel(advanceRaw)} USDC now` : 'early payout';
+      const bps = e.payload?.discountBps;
+      const discount =
+        typeof bps === 'number'
+          ? ` at a ${(bps / 100).toFixed(1).replace(/\.0$/, '')}% discount`
+          : '';
+      return withLink(
+        `*A financier offered you early payout*: ${advance}${discount}. Open the deal to accept or pass.`,
+        dealUrl(e.jobId),
+      );
     }
     default:
       return null;
