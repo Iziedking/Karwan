@@ -75,6 +75,9 @@ export interface MatchProposal {
     verdict: 'PASS' | 'WARN' | 'BLOCK';
     reasons: string[];
     amountUsd: number;
+    /// On-chain settlement tx (Base) for the $0.01 screen payment, when the
+    /// GlobalAPI server echoes it. Surfaced as evidence on the buyer's banner.
+    txHash?: string;
     screenedAt: number;
   };
   /// Verified-business badge for the match. Set when the seller's owner is a

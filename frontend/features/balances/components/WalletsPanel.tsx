@@ -219,8 +219,9 @@ export function WalletsPanel({ address }: { address?: string }) {
     setNote(null);
     try {
       await navigator.clipboard?.writeText(addr);
+      // Confirmation shows per-row under this button (the markCopied chip), so
+      // no panel-wide bottom banner for the copy.
       markCopied(addr);
-      setNote(wp.notes.faucetCopied);
     } catch {
       setNote(wp.notes.faucetFallbackTemplate.replace('{addr}', short(addr)));
     }

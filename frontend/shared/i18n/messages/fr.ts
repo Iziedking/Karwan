@@ -989,8 +989,9 @@ export const fr: Messages = {
       txCta: 'règlement',
     },
     screen: {
-      label: 'CONTRÔLE CONTREPARTIE',
-      template: 'L\'agent a payé {amount} sur Base pour un contrôle sanctions et risque. Verdict : {verdict}.',
+      label: 'CONTRÔLE DE CONFORMITÉ',
+      template: 'Votre agent a payé {amount} sur Base pour un contrôle sanctions et risque sur le vendeur.',
+      txCta: 'Voir le paiement',
     },
     business: {
       label: 'ENTREPRISE VÉRIFIÉE',

@@ -523,6 +523,8 @@ export interface MatchProposal {
     verdict: 'PASS' | 'WARN' | 'BLOCK';
     reasons: string[];
     amountUsd: number;
+    /// On-chain settlement tx (Base) for the $0.01 screen payment, when echoed.
+    txHash?: string;
     screenedAt: number;
   };
   /// Compact verified-business badge for the match. Present when the seller's
