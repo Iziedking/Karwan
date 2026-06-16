@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { desc, sql } from 'drizzle-orm';
+import { desc, sql, and, eq, inArray } from 'drizzle-orm';
 import { db, pgEnabled } from './db/client.js';
 import { eventHistory } from './db/schema.js';
 
@@ -288,6 +288,34 @@ bus.setMaxListeners(0);
 /// glance whether the injected events actually landed in Postgres (and will
 /// survive a restart) instead of only sitting in the in-memory ring. Returns
 /// null when Postgres isn't configured.
+/// Read the most recent events of the given types straight from event_history,
+/// newest first. The public activity feed uses this so the capped in-memory
+/// ring (HISTORY_CAPACITY=500, easily saturated by non-public negotiation and
+/// chat noise) can't crowd the sparse public events out of view. Optionally
+/// scoped to a single jobId for per-deal timelines. Returns [] when Postgres
+/// isn't configured so the caller falls back to the in-memory ring.
+export async function recentEventsByType(
+  types: string[],
+  limit: number,
+  jobId?: string,
+): Promise<KarwanEvent[]> {
+  if (!pgEnabled || types.length === 0) return [];
+  try {
+    const where = jobId
+      ? and(inArray(eventHistory.type, types), eq(eventHistory.jobId, jobId))
+      : inArray(eventHistory.type, types);
+    const rows = await db()
+      .select()
+      .from(eventHistory)
+      .where(where)
+      .orderBy(desc(eventHistory.ts))
+      .limit(Math.max(1, Math.min(500, limit)));
+    return rows.map((r) => r.data as KarwanEvent);
+  } catch {
+    return [];
+  }
+}
+
 export async function eventHistoryCount(): Promise<number | null> {
   if (!pgEnabled) return null;
   try {
