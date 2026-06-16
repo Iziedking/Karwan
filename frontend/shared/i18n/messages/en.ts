@@ -1744,6 +1744,8 @@ interface MessagesShape {
       deadlineTemplate: string;
       noDeadline: string;
       deliveryProofLabel: string;
+      deliveryHeldLabel: string;
+      deliveryHeldBody: string;
     };
     progress: {
       eyebrow: string;
@@ -3889,11 +3891,11 @@ export const en: MessagesShape = {
     heroClose: 'settle in real time',
     newsletter: {
       title: 'NEWSLETTER',
-      blurb: 'Product updates and new corridors, now and then. No spam.',
+      blurb: 'Product updates and new corridors.',
       placeholder: 'you@example.com',
       cta: 'Subscribe',
       sending: 'Subscribing…',
-      success: 'Subscribed. Watch your inbox.',
+      success: 'Thanks for subscribing.',
       error: 'Could not subscribe. Try again.',
       invalid: 'Enter a valid email.',
     },
@@ -5452,6 +5454,8 @@ export const en: MessagesShape = {
       deadlineTemplate: 'Deadline {when}',
       noDeadline: 'No delivery deadline',
       deliveryProofLabel: 'Delivery proof',
+      deliveryHeldLabel: 'Delivery proof held',
+      deliveryHeldBody: 'Karwan flagged the delivery link and is holding it back until it is checked. Do not release escrow until it clears.',
     },
     progress: {
       eyebrow: 'PROGRESS',

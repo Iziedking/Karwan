@@ -298,11 +298,11 @@ export const ar: Messages = {
     heroClose: 'تسوية فورية',
     newsletter: {
       title: 'النشرة البريدية',
-      blurb: 'تحديثات المنتج وممرات تجارية جديدة، من حين لآخر. بلا إزعاج.',
+      blurb: 'تحديثات المنتج وممرات تجارية جديدة.',
       placeholder: 'you@example.com',
       cta: 'اشترك',
       sending: 'جارٍ الاشتراك…',
-      success: 'تم الاشتراك. تابع بريدك الوارد.',
+      success: 'شكرًا لاشتراكك.',
       error: 'تعذّر الاشتراك. حاول مرة أخرى.',
       invalid: 'أدخل بريدًا إلكترونيًا صحيحًا.',
     },
@@ -1855,6 +1855,8 @@ export const ar: Messages = {
       deadlineTemplate: 'الموعد النهائي {when}',
       noDeadline: 'لا يوجد موعد تسليم',
       deliveryProofLabel: 'إثبات التسليم',
+      deliveryHeldLabel: 'تم تعليق إثبات التسليم',
+      deliveryHeldBody: 'أبلغت كرَوان عن رابط التسليم وتحتجزه حتى يتم فحصه. لا تُحرِّر الضمان حتى يتم اعتماده.',
     },
     progress: {
       eyebrow: 'التقدم',

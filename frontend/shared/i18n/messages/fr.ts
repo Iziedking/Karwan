@@ -298,11 +298,11 @@ export const fr: Messages = {
     heroClose: 'régler en temps réel',
     newsletter: {
       title: 'NEWSLETTER',
-      blurb: 'Nouveautés produit et nouveaux corridors, de temps en temps. Pas de spam.',
+      blurb: 'Nouveautés produit et nouveaux corridors.',
       placeholder: 'vous@exemple.com',
       cta: 'S’abonner',
       sending: 'Abonnement…',
-      success: 'Abonné. Surveillez votre boîte mail.',
+      success: 'Merci de votre abonnement.',
       error: 'Abonnement impossible. Réessayez.',
       invalid: 'Saisissez un e-mail valide.',
     },
@@ -1855,6 +1855,8 @@ export const fr: Messages = {
       deadlineTemplate: 'Échéance {when}',
       noDeadline: 'Aucune échéance de livraison',
       deliveryProofLabel: 'Preuve de livraison',
+      deliveryHeldLabel: 'Preuve de livraison retenue',
+      deliveryHeldBody: 'Karwan a signalé le lien de livraison et le retient jusqu’à vérification. Ne libérez pas l’escrow tant qu’il n’est pas validé.',
     },
     progress: {
       eyebrow: 'AVANCEMENT',

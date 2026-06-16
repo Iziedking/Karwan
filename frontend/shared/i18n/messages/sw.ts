@@ -298,11 +298,11 @@ export const sw: Messages = {
     heroClose: 'lipa kwa muda halisi',
     newsletter: {
       title: 'JARIDA',
-      blurb: 'Masasisho ya bidhaa na njia mpya za biashara, mara kwa mara. Hakuna taka.',
+      blurb: 'Masasisho ya bidhaa na njia mpya za biashara.',
       placeholder: 'wewe@mfano.com',
       cta: 'Jiandikishe',
       sending: 'Inajiandikisha…',
-      success: 'Umejiandikisha. Angalia kikasha chako.',
+      success: 'Asante kwa kujiandikisha.',
       error: 'Imeshindwa kujiandikisha. Jaribu tena.',
       invalid: 'Weka barua pepe sahihi.',
     },
@@ -1855,6 +1855,8 @@ export const sw: Messages = {
       deadlineTemplate: 'Tarehe ya mwisho {when}',
       noDeadline: 'Hakuna tarehe ya mwisho ya kuwasilisha',
       deliveryProofLabel: 'Uthibitisho wa kuwasilisha',
+      deliveryHeldLabel: 'Uthibitisho wa kuwasilisha umezuiliwa',
+      deliveryHeldBody: 'Karwan imeashiria kiungo cha kuwasilisha na inakizuia hadi kikaguliwe. Usitoe escrow hadi kithibitishwe.',
     },
     progress: {
       eyebrow: 'MAENDELEO',

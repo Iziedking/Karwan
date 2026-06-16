@@ -298,11 +298,11 @@ export const hi: Messages = {
     heroClose: 'वास्तविक समय में निपटान',
     newsletter: {
       title: 'न्यूज़लेटर',
-      blurb: 'प्रोडक्ट अपडेट और नए कॉरिडोर, कभी-कभार। कोई स्पैम नहीं।',
+      blurb: 'प्रोडक्ट अपडेट और नए कॉरिडोर।',
       placeholder: 'you@example.com',
       cta: 'सदस्यता लें',
       sending: 'सदस्यता ली जा रही है…',
-      success: 'सदस्यता ले ली गई। अपना इनबॉक्स देखें।',
+      success: 'सदस्यता के लिए धन्यवाद।',
       error: 'सदस्यता नहीं ले सके। फिर से प्रयास करें।',
       invalid: 'मान्य ईमेल दर्ज करें।',
     },
@@ -1855,6 +1855,8 @@ export const hi: Messages = {
       deadlineTemplate: 'अंतिम तिथि {when}',
       noDeadline: 'कोई डिलीवरी की अंतिम तिथि नहीं',
       deliveryProofLabel: 'डिलीवरी प्रमाण',
+      deliveryHeldLabel: 'डिलीवरी प्रमाण रोका गया',
+      deliveryHeldBody: 'कारवान ने डिलीवरी लिंक को चिह्नित किया है और जांच होने तक उसे रोक रखा है. मंज़ूरी मिलने तक एस्क्रो जारी न करें.',
     },
     progress: {
       eyebrow: 'प्रगति',

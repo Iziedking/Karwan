@@ -315,6 +315,11 @@ export interface DirectDeal {
   delivered: boolean;
   deliveredAt?: number;
   deliveryProof?: string;
+  /// Security Agent verdict on the delivery proof links. When 'suspicious' or
+  /// 'malicious', the backend withholds deliveryProof from the buyer's view
+  /// until cleared; verificationReasons explains why in plain language.
+  verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
+  verificationReasons?: string[];
   reviewWindowStartedAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;

@@ -36,6 +36,12 @@ export interface DirectDeal {
   deliveredAt?: number;
   // Optional deliverable reference the seller submits on mark-delivered.
   deliveryProof?: string;
+  // Security Agent verdict on the deliveryProof links, set on mark-delivered.
+  // 'clean' (or absent) shows the proof to the buyer; 'suspicious'/'malicious'
+  // hold it back from the buyer pending review; 'unverifiable' means no link to
+  // check. verificationReasons explains a non-clean verdict in plain language.
+  verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
+  verificationReasons?: string[];
   // Set when the first milestone is released (by the buyer or by the auto
   // first-release). Starts the final-release window during which the buyer
   // must release the final milestone, else the agent auto-releases.
