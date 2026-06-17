@@ -1337,6 +1337,8 @@ export const hi: Messages = {
       'budget-below-seller-floor': 'बजट सीमा से बाहर',
       'deadline-out-of-range': 'डिलीवरी विंडो से बाहर',
       'own-auction': 'आपका अपना विक्रेता',
+      'finance-lane-requires-business': 'केवल व्यवसाय विक्रेता',
+      'insufficient-stake-trusted-match': 'ट्रस्टेड मैच के लिए पर्याप्त स्टेक नहीं',
     },
     scopeLabels: {
       counterEvaluation: 'LLM काउंटर-इवैल विफल',

@@ -4954,6 +4954,8 @@ export const en: MessagesShape = {
       'budget-below-seller-floor': 'Outside budget range',
       'deadline-out-of-range': 'Outside delivery window',
       'own-auction': 'Your own seller',
+      'finance-lane-requires-business': 'Business sellers only',
+      'insufficient-stake-trusted-match': 'Not enough stake for trusted match',
     },
     scopeLabels: {
       counterEvaluation: 'LLM counter-eval failed',

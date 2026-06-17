@@ -1337,6 +1337,8 @@ export const fr: Messages = {
       'budget-below-seller-floor': 'Hors fourchette budget',
       'deadline-out-of-range': 'Hors fenêtre de livraison',
       'own-auction': 'Votre propre vendeur',
+      'finance-lane-requires-business': 'Vendeurs entreprises uniquement',
+      'insufficient-stake-trusted-match': 'Stake insuffisant pour un match de confiance',
     },
     scopeLabels: {
       counterEvaluation: 'Échec éval contre-offre LLM',
