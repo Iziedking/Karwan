@@ -24,6 +24,16 @@ const EMPLOYEE_BAND_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'medium', label: 'Medium (50–250)' },
 ];
 
+const VOLUME_BAND_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: '', label: '—' },
+  { value: 'under_100k', label: 'Under $100k' },
+  { value: '100k_1m', label: '$100k – $1M' },
+  { value: '1m_10m', label: '$1M – $10M' },
+  { value: 'over_10m', label: 'Over $10M' },
+];
+
+type VolumeBand = 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
+
 type Sector =
   | 'agriculture'
   | 'textiles'
@@ -51,6 +61,9 @@ export function SmeCompanyBand({ address }: { address: string }) {
   const [yearFounded, setYearFounded] = useState<number | ''>('');
   const [employeeBand, setEmployeeBand] = useState<EmployeeBand | ''>('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [registrationId, setRegistrationId] = useState('');
+  const [primaryMarkets, setPrimaryMarkets] = useState('');
+  const [annualVolumeBand, setAnnualVolumeBand] = useState<VolumeBand | ''>('');
   const [verifiedAt, setVerifiedAt] = useState<number | null>(null);
   const [repayment, setRepayment] = useState<{
     windowDealCount: number;
@@ -72,6 +85,9 @@ export function SmeCompanyBand({ address }: { address: string }) {
           setYearFounded(r.smeProfile.yearFounded ?? '');
           setEmployeeBand((r.smeProfile.employeeBand as EmployeeBand) ?? '');
           setWebsiteUrl(r.smeProfile.websiteUrl ?? '');
+          setRegistrationId(r.smeProfile.registrationId ?? '');
+          setPrimaryMarkets(r.smeProfile.primaryMarkets ?? '');
+          setAnnualVolumeBand((r.smeProfile.annualVolumeBand as VolumeBand) ?? '');
           setVerifiedAt(r.smeProfile.verifiedAt ?? null);
         }
         if (r.repaymentBehavior) {
@@ -100,6 +116,9 @@ export function SmeCompanyBand({ address }: { address: string }) {
           yearFounded: typeof yearFounded === 'number' ? yearFounded : undefined,
           employeeBand: employeeBand || undefined,
           websiteUrl: websiteUrl.trim() || undefined,
+          registrationId: registrationId.trim() || undefined,
+          primaryMarkets: primaryMarkets.trim() || undefined,
+          annualVolumeBand: annualVolumeBand || undefined,
         },
       });
       setEditing(false);
@@ -111,7 +130,15 @@ export function SmeCompanyBand({ address }: { address: string }) {
   }
 
   const hasAny =
-    companyName || sector || region || yearFounded || employeeBand || websiteUrl;
+    companyName ||
+    sector ||
+    region ||
+    yearFounded ||
+    employeeBand ||
+    websiteUrl ||
+    registrationId ||
+    primaryMarkets ||
+    annualVolumeBand;
 
   if (!loaded) {
     return (
@@ -169,6 +196,12 @@ export function SmeCompanyBand({ address }: { address: string }) {
                 setEmployeeBand={setEmployeeBand}
                 websiteUrl={websiteUrl}
                 setWebsiteUrl={setWebsiteUrl}
+                registrationId={registrationId}
+                setRegistrationId={setRegistrationId}
+                primaryMarkets={primaryMarkets}
+                setPrimaryMarkets={setPrimaryMarkets}
+                annualVolumeBand={annualVolumeBand}
+                setAnnualVolumeBand={setAnnualVolumeBand}
                 disabled={saving}
               />
             ) : hasAny ? (
@@ -179,6 +212,9 @@ export function SmeCompanyBand({ address }: { address: string }) {
                 yearFounded={yearFounded}
                 employeeBand={employeeBand}
                 websiteUrl={websiteUrl}
+                registrationId={registrationId}
+                primaryMarkets={primaryMarkets}
+                annualVolumeBand={annualVolumeBand}
               />
             ) : (
               <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
@@ -260,7 +296,12 @@ function SmeViewRows(props: {
   yearFounded: number | '';
   employeeBand: string;
   websiteUrl: string;
+  registrationId: string;
+  primaryMarkets: string;
+  annualVolumeBand: string;
 }) {
+  const volumeLabel =
+    VOLUME_BAND_OPTIONS.find((o) => o.value === props.annualVolumeBand)?.label ?? '';
   return (
     <dl className="space-y-3">
       <ViewRow label="Name" value={props.companyName || '—'} />
@@ -270,6 +311,13 @@ function SmeViewRows(props: {
       {props.employeeBand ? (
         <ViewRow label="Size" value={props.employeeBand} capitalize />
       ) : null}
+      {props.registrationId ? (
+        <ViewRow label="Reg / Tax ID" value={props.registrationId} />
+      ) : null}
+      {props.primaryMarkets ? (
+        <ViewRow label="Markets" value={props.primaryMarkets} />
+      ) : null}
+      {volumeLabel ? <ViewRow label="Annual volume" value={volumeLabel} /> : null}
       {props.websiteUrl ? (
         <ViewRow
           label="Website"
@@ -328,6 +376,12 @@ function SmeEditGrid(props: {
   setEmployeeBand: (v: EmployeeBand | '') => void;
   websiteUrl: string;
   setWebsiteUrl: (v: string) => void;
+  registrationId: string;
+  setRegistrationId: (v: string) => void;
+  primaryMarkets: string;
+  setPrimaryMarkets: (v: string) => void;
+  annualVolumeBand: VolumeBand | '';
+  setAnnualVolumeBand: (v: VolumeBand | '') => void;
   disabled?: boolean;
 }) {
   return (
@@ -406,6 +460,42 @@ function SmeEditGrid(props: {
           maxLength={200}
           className="form-input"
         />
+      </EditField>
+      <EditField label="Reg / Tax ID">
+        <input
+          type="text"
+          value={props.registrationId}
+          disabled={props.disabled}
+          onChange={(e) => props.setRegistrationId(e.target.value)}
+          placeholder="e.g. trade-license / reg no."
+          maxLength={60}
+          className="form-input"
+        />
+      </EditField>
+      <EditField label="Primary markets">
+        <input
+          type="text"
+          value={props.primaryMarkets}
+          disabled={props.disabled}
+          onChange={(e) => props.setPrimaryMarkets(e.target.value)}
+          placeholder="e.g. MEASA, EU"
+          maxLength={200}
+          className="form-input"
+        />
+      </EditField>
+      <EditField label="Annual volume">
+        <select
+          value={props.annualVolumeBand}
+          disabled={props.disabled}
+          onChange={(e) => props.setAnnualVolumeBand(e.target.value as VolumeBand | '')}
+          className="form-input"
+        >
+          {VOLUME_BAND_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </EditField>
     </div>
   );

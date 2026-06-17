@@ -359,6 +359,11 @@ export const sw: Messages = {
       seller: { label: 'Muuzaji', description: 'Weka zabuni kwenye maombi, wasilisha kazi' },
       both: { label: 'Vyote viwili', description: 'Wasifu mmoja, pande mbili' },
     },
+    businessOptions: {
+      buyer: { label: 'Tafuta', description: 'Tuma maombi, tafuta bidhaa na huduma' },
+      seller: { label: 'Sambaza', description: 'Toa zabuni, sambaza bidhaa na huduma' },
+      both: { label: 'Vyote viwili', description: 'Kampuni moja, kutafuta na kusambaza' },
+    },
     needBuyerDetails: 'Kwanza ongeza maelezo ya mnunuzi',
     needSellerDetails: 'Kwanza ongeza maelezo ya muuzaji',
     saving: 'Inahifadhi…',

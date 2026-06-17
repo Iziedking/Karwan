@@ -74,7 +74,6 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
-import { LegacyBanner } from '@/shared/components/LegacyBanner';
 import { MigrationBanner } from '@/shared/components/MigrationBanner';
 import { shortAddress } from '@/shared/utils/format';
 import {
@@ -223,7 +222,6 @@ export default function AppHome() {
     <FullBleed>
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <MigrationBanner />
-      <LegacyBanner />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">
@@ -234,10 +232,13 @@ export default function AppHome() {
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
-              <HeroHeadline>
+              {/* The greeting stays in the display caps; the username renders in
+                  its natural case and is allowed to wrap, so a long single-word
+                  handle reads cleanly and never overflows on a phone. */}
+              <HeroHeadline className="break-words">
                 {t.hero.welcomeBack}
                 <br />
-                {profile.displayName}
+                <span className="normal-case">{profile.displayName}</span>
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>

@@ -359,6 +359,11 @@ export const fr: Messages = {
       seller: { label: 'Vendeur', description: 'Enchérissez sur les demandes, livrez le travail' },
       both: { label: 'Les deux', description: 'Un profil, les deux côtés' },
     },
+    businessOptions: {
+      buyer: { label: 'Approvisionnement', description: 'Publiez des demandes, sourcez biens et services' },
+      seller: { label: 'Fourniture', description: 'Répondez aux demandes, fournissez biens et services' },
+      both: { label: 'Les deux', description: 'Une entreprise, source et fourniture' },
+    },
     needBuyerDetails: "Ajoutez d'abord les détails acheteur",
     needSellerDetails: "Ajoutez d'abord les détails vendeur",
     saving: 'Enregistrement…',

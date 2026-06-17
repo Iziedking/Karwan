@@ -208,6 +208,9 @@ export interface UserProfile {
     yearFounded?: number;
     employeeBand?: 'micro' | 'small' | 'medium';
     websiteUrl?: string;
+    registrationId?: string;
+    primaryMarkets?: string;
+    annualVolumeBand?: 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
     verifiedAt?: number;
     repaymentBehavior?: {
       windowDealCount: number;
@@ -2017,6 +2020,9 @@ export const api = {
         yearFounded?: number;
         employeeBand?: string;
         websiteUrl?: string;
+        registrationId?: string;
+        primaryMarkets?: string;
+        annualVolumeBand?: string;
         verifiedAt?: number;
       } | null;
       repaymentBehavior: {
@@ -2037,6 +2043,9 @@ export const api = {
       yearFounded?: number;
       employeeBand?: 'micro' | 'small' | 'medium';
       websiteUrl?: string;
+      registrationId?: string;
+      primaryMarkets?: string;
+      annualVolumeBand?: 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
     };
   }) =>
     json<{ smeProfile: NonNullable<UserProfile['smeProfile']> | undefined }>(

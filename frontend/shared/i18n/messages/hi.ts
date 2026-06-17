@@ -359,6 +359,11 @@ export const hi: Messages = {
       seller: { label: 'विक्रेता', description: 'अनुरोधों पर बोली लगाएँ, काम डिलीवर करें' },
       both: { label: 'दोनों', description: 'एक प्रोफ़ाइल, दोनों पक्ष' },
     },
+    businessOptions: {
+      buyer: { label: 'सोर्स', description: 'अनुरोध पोस्ट करें, सामान और सेवाएँ सोर्स करें' },
+      seller: { label: 'आपूर्ति', description: 'अनुरोधों पर बोली लगाएँ, सामान और सेवाएँ आपूर्ति करें' },
+      both: { label: 'दोनों', description: 'एक कंपनी, सोर्स और आपूर्ति' },
+    },
     needBuyerDetails: 'पहले क्रेता विवरण जोड़ें',
     needSellerDetails: 'पहले विक्रेता विवरण जोड़ें',
     saving: 'सहेज रहे हैं…',

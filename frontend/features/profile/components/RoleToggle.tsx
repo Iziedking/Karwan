@@ -15,10 +15,13 @@ export function RoleToggle({
   onUpdate: (next: UserProfile) => void;
 }) {
   const t = useTranslations().roleToggle;
+  // A business reads as a company sourcing/supplying goods and services, not an
+  // individual buyer/seller, so it gets the business-framed labels.
+  const opts = profile.accountKind === 'business' ? t.businessOptions : t.options;
   const OPTIONS: Option[] = [
-    { value: 'buyer', ...t.options.buyer },
-    { value: 'seller', ...t.options.seller },
-    { value: 'both', ...t.options.both },
+    { value: 'buyer', ...opts.buyer },
+    { value: 'seller', ...opts.seller },
+    { value: 'both', ...opts.both },
   ];
   const [submitting, setSubmitting] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);

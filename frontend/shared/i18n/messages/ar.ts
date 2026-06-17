@@ -359,6 +359,11 @@ export const ar: Messages = {
       seller: { label: 'بائع', description: 'قدّم عروضًا، سلّم العمل' },
       both: { label: 'كلاهما', description: 'ملف واحد، الدوران' },
     },
+    businessOptions: {
+      buyer: { label: 'توريد', description: 'انشر الطلبات ووفّر احتياجاتك من السلع والخدمات' },
+      seller: { label: 'إمداد', description: 'قدّم عروضاً وورّد السلع والخدمات' },
+      both: { label: 'كلاهما', description: 'شركة واحدة، توريد وإمداد' },
+    },
     needBuyerDetails: 'أضف تفاصيل المشتري أولًا',
     needSellerDetails: 'أضف تفاصيل البائع أولًا',
     saving: 'جارٍ الحفظ…',
