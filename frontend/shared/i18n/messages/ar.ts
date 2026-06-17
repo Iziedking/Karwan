@@ -60,6 +60,7 @@ export const ar: Messages = {
       sound: 'الصوت',
     },
     allSettings: 'كل الإعدادات',
+    help: 'المساعدة وكيف يعمل',
   },
   settings: {
     eyebrow: 'الإعدادات',

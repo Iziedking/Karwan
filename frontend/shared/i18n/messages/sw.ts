@@ -60,6 +60,7 @@ export const sw: Messages = {
       sound: 'Sauti',
     },
     allSettings: 'Mipangilio yote',
+    help: 'Msaada na jinsi inavyofanya kazi',
   },
   settings: {
     eyebrow: 'MAPENDELEO',
