@@ -49,6 +49,33 @@ export const HOME_STEPS: TourStep[] = [
   },
 ];
 
+/// Business trade-desk tour (/app for a verified-business account). The desk is
+/// a different surface from the individual home: a company funds invoices and
+/// purchase orders, gets a verified badge, and watches its own book, so it gets
+/// its own walkthrough rather than the buyer/seller framing.
+export const BIZ_HOME_TOUR_ID = 'biz-home-v1';
+export const BIZ_HOME_STEPS: TourStep[] = [
+  {
+    title: 'Your trade desk',
+    body: 'Open the financier desk to fund supplier invoices and purchase orders, or start a new trade. Your agents handle the matching and the settlement; you approve the terms.',
+    target: 'biz-desk',
+  },
+  {
+    title: 'Your verified status',
+    body: 'This shows whether your business is verified. Register your company and anchor a registration or tax document to unlock SME trade-finance deals; Karwan reviews it and grants the badge.',
+    target: 'biz-verify',
+  },
+  {
+    title: 'Your book',
+    body: 'Every deal your company runs, with how many are active, how many have settled, and your total volume charted over time.',
+    target: 'biz-book',
+  },
+  {
+    title: 'You stay in control',
+    body: 'Agents negotiate and match, but nothing funds until you approve it, and money sits safely in escrow until the work lands. Tap Help any time for a refresher.',
+  },
+];
+
 /// Buyer desk tour. Spotlight steps point at elements tagged with the matching
 /// `data-guide` value on /buyer.
 export const BUYER_TOUR_ID = 'buyer-v1';
