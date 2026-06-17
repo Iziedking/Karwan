@@ -4,6 +4,9 @@ import { randomBytes } from 'node:crypto';
 import { getDeal } from '../db/deals.js';
 import { listMessages, addMessage } from '../db/messages.js';
 import { bus } from '../events.js';
+import { localScanProof } from '../security/localScan.js';
+import { recordLinkOffense } from '../security/linkOffenses.js';
+import { logger } from '../logger.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -55,6 +58,35 @@ chatRoutes.post('/:jobId', async (c) => {
 
   const trimmed = body.body.trim();
   if (!trimmed) return c.json({ error: 'message body is empty' }, 400);
+
+  // Security Agent: scan links in the message before it is stored or broadcast.
+  // The chat is a second channel a bad actor could use to slip a phishing link
+  // past the delivery-proof gate, so a flagged link is blocked outright (never
+  // reaches the counterparty) and counts against the sender's reputation.
+  const scan = localScanProof(trimmed);
+  if (scan.verdict !== 'clean') {
+    recordLinkOffense({
+      address: body.caller.toLowerCase(),
+      jobId,
+      surface: 'chat',
+      verdict: scan.verdict,
+      reasons: scan.reasons,
+    });
+    logger.warn(
+      { jobId, sender: body.caller.toLowerCase(), verdict: scan.verdict, reasons: scan.reasons },
+      'security: chat message blocked for a flagged link',
+    );
+    return c.json(
+      {
+        error:
+          'Karwan flagged a link in this message and will not send it. Share work through a normal, verifiable link.',
+        code: 'link-blocked',
+        verdict: scan.verdict,
+        reasons: scan.reasons,
+      },
+      422,
+    );
+  }
 
   const message = {
     id: `${jobId}-${Date.now()}-${randomBytes(4).toString('hex')}`,

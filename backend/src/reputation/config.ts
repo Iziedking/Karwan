@@ -48,6 +48,14 @@ export const repConfig = {
   penaltyCancel: num('REP_PENALTY_CANCEL_W', 0.12),
   penaltySpam: num('REP_PENALTY_SPAM_W', 0.2),
   penaltyAbandon: num('REP_PENALTY_ABANDON_W', 0.08),
+  // Submitting a flagged (suspicious/malicious) link at a counterparty is a
+  // severe trust breach, so it carries the heaviest single penalty weight: one
+  // offense alone should knock the score down hard (toward the cap), not nudge
+  // it. Still a capped multiplier, so there is a path back over time.
+  penaltySecurity: num('REP_PENALTY_SECURITY_W', 0.5),
+  // Flagged-link offenses that saturate the security penalty to 1.0. Low on
+  // purpose: a single offense already lands most of the hit.
+  securityOffenseCap: num('REP_SECURITY_OFFENSE_CAP', 2),
 
   // ---- decay + spam -----------------------------------------------------
   decayHalflifeDays: num('REP_DECAY_HALFLIFE_DAYS', 180),

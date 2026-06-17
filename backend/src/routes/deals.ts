@@ -53,6 +53,8 @@ import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../e
 import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
 import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
 import { scanDelivery } from '../security/sa-stub.js';
+import { recordLinkOffense } from '../security/linkOffenses.js';
+import { extractUrls } from '../security/extractUrls.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -1153,6 +1155,22 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   if (deal.delivered) {
     return c.json({ error: 'deal already marked delivered' }, 409);
   }
+  // Work is submitted as a link so the buyer can open and verify it (and the
+  // Security Agent can scan it). Physical-goods deals deliver against a PoD, not
+  // a link, so they are exempt; everything else must carry a URL. A file
+  // deliverable belongs on a share link (e.g. Google Drive), which satisfies this.
+  if (deal.tradeType !== 'goods') {
+    if (extractUrls(body.deliveryProof ?? '').length === 0) {
+      return c.json(
+        {
+          error:
+            'Submit your work as a link the buyer can open (e.g. a Google Drive or repo URL). Files must be shared via a link.',
+          code: 'link-required',
+        },
+        400,
+      );
+    }
+  }
 
   let account = await readEscrow(jobId);
 
@@ -1250,6 +1268,15 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
           { jobId, verdict: scan.verdict, reasons: scan.reasons },
           'security: delivery proof held from buyer view',
         );
+        // A flagged delivery link is a trust breach: record it against the
+        // seller so the reputation engine drops their score hard.
+        recordLinkOffense({
+          address: deal.seller,
+          jobId,
+          surface: 'delivery',
+          verdict: scan.verdict === 'malicious' ? 'malicious' : 'suspicious',
+          reasons: scan.reasons,
+        });
       }
     } catch (err) {
       // A scan failure must not block the seller from delivering; mark the

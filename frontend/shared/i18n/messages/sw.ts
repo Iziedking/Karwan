@@ -1967,6 +1967,7 @@ export const sw: Messages = {
         buyerAutoReleasePrefixTemplate: 'Hutolewa kiotomatiki asilimia ya kwanza {firstPct}% baada ya',
         buyerAutoReleaseSuffix: 'kama hutendi.',
         buyerExpiredTemplate: 'Dirisha la kutoa limepita. Wakala atatoa asilimia ya kwanza {firstPct}% hivi karibuni isipokuwa utende sasa.',
+        releaseHeldNote: 'Utoaji wa kiotomatiki umesimamishwa. Karwan imeashiria kiungo cha kuwasilisha na inakikagua. Kipima muda kitaendelea mara kiungo kitakapothibitishwa.',
         releaseCtaTemplate: 'Toa asilimia ya kwanza {firstPct}%',
         releaseBusy: 'Kuthibitisha kwenye Arc…',
         appealCta: 'Kata rufaa kwa mkataba huu',

@@ -1967,6 +1967,7 @@ export const hi: Messages = {
         buyerAutoReleasePrefixTemplate: 'पहले {firstPct}% स्वतः रिलीज़ होंगे',
         buyerAutoReleaseSuffix: 'में अगर आप कुछ नहीं करते.',
         buyerExpiredTemplate: 'रिलीज़ विंडो बीत गई. अगर आप अभी कुछ नहीं करते, तो एजेंट जल्द ही पहले {firstPct}% रिलीज़ कर देगा.',
+        releaseHeldNote: 'ऑटो-रिलीज़ रुका हुआ है. कारवान ने डिलीवरी लिंक को चिह्नित किया है और उसकी जांच कर रहा है. लिंक मंज़ूर होते ही रिलीज़ टाइमर फिर से शुरू होगा.',
         releaseCtaTemplate: 'पहले {firstPct}% रिलीज़ करें',
         releaseBusy: 'Arc पर पुष्टि…',
         appealCta: 'इस डील पर अपील',
