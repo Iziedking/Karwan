@@ -85,6 +85,13 @@ export interface UserProfile {
     yearFounded?: number;
     employeeBand?: 'micro' | 'small' | 'medium';
     websiteUrl?: string;
+    /// Public company registration / trade-license number (distinct from the
+    /// encrypted taxId). Financier-facing.
+    registrationId?: string;
+    /// Markets the business trades into, free text (e.g. "MEASA, EU").
+    primaryMarkets?: string;
+    /// Annual trade-volume band, what financiers size exposure against.
+    annualVolumeBand?: 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
     /// AES-encrypted blob; the encryption key lives off-DB. Never returned
     /// from public routes.
     taxIdEncrypted?: string;

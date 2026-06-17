@@ -335,6 +335,11 @@ interface MessagesShape {
       seller: { label: string; description: string };
       both: { label: string; description: string };
     };
+    businessOptions: {
+      buyer: { label: string; description: string };
+      seller: { label: string; description: string };
+      both: { label: string; description: string };
+    };
     needBuyerDetails: string;
     needSellerDetails: string;
     saving: string;
@@ -3969,6 +3974,11 @@ export const en: MessagesShape = {
       buyer: { label: 'Buyer', description: 'Post requests, accept bids' },
       seller: { label: 'Seller', description: 'Bid on requests, deliver work' },
       both: { label: 'Both', description: 'One profile, both sides' },
+    },
+    businessOptions: {
+      buyer: { label: 'Source', description: 'Post requests, source goods and services' },
+      seller: { label: 'Supply', description: 'Bid on requests, supply goods and services' },
+      both: { label: 'Both', description: 'One company, source and supply' },
     },
     needBuyerDetails: 'Add buyer details first',
     needSellerDetails: 'Add seller details first',

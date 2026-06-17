@@ -131,6 +131,19 @@ function ProfilePageInner() {
     );
   }
 
+  // Business accounts read as a company, not a person: the title comes from the
+  // structured company name (the freeform displayName often has the whole
+  // "Name, sector, region" string crammed in), with sector + region as chips.
+  const isBusiness = profile?.accountKind === 'business';
+  const heroTitle =
+    (isBusiness ? profile?.smeProfile?.companyName?.trim() : '') ||
+    (profile ? profile.displayName : t.hero.fallbackName);
+  const bizSector = isBusiness ? profile?.smeProfile?.sector : undefined;
+  const bizRegion = isBusiness ? profile?.smeProfile?.region?.trim() : undefined;
+  // A business edits its structured company details (the TRADE CARD), not the
+  // individual display-name onboarding flow.
+  const editHref = isBusiness ? '/profile#company' : '/onboarding?edit=1';
+
   return (
     <FullBleed>
       <PageTour id={PROFILE_TOUR_ID} steps={buildProfileSteps(isCircleUser)} />
@@ -144,11 +157,33 @@ function ProfilePageInner() {
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
-              <HeroHeadline>
-                {profile ? profile.displayName : t.hero.fallbackName}
+              {/* Username/company in its natural case (not the display all-caps)
+                  and allowed to wrap so a long handle never overflows. */}
+              <HeroHeadline className="break-words">
+                <span className="normal-case">{heroTitle}</span>
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
+            {isBusiness && (bizSector || bizRegion) && (
+              <div className="fade-up fade-up-1 mt-3 flex flex-wrap items-center gap-2">
+                {bizSector && (
+                  <span
+                    className="mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 bg-white/[0.08] text-white/80"
+                    style={{ borderRadius: 3 }}
+                  >
+                    {bizSector}
+                  </span>
+                )}
+                {bizRegion && (
+                  <span
+                    className="mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 bg-white/[0.08] text-white/80"
+                    style={{ borderRadius: 3 }}
+                  >
+                    {bizRegion}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="fade-up fade-up-2 mt-6 flex flex-wrap items-center gap-3">
               {address && <AddressPill address={shortAddress(address)} tone="dark" />}
               {address && (
@@ -169,7 +204,7 @@ function ProfilePageInner() {
             </div>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {profile ? (
-                <CTAPill href="/onboarding?edit=1" variant="secondary" tone="dark">
+                <CTAPill href={editHref} variant="secondary" tone="dark">
                   {t.hero.editDetailsCta}
                 </CTAPill>
               ) : (
@@ -369,6 +404,8 @@ function ProfilePageInner() {
           the SME rail too. Register-as-business gates the verified tag; the
           company band holds the trade card. Independent components so editing
           one re-renders nothing else on this page. */}
+      {/* Company section anchor: a business's EDIT DETAILS scrolls here. */}
+      <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
       {SME_TRADES_ENABLED && address && profile?.accountKind === 'business' ? (
         <RegisterBusinessBand address={address} />
       ) : null}

@@ -44,6 +44,15 @@ const smeProfileBodySchema = z.object({
         return /^https?:\/\//i.test(t) ? t : `https://${t}`;
       }, z.string().url().max(200))
       .optional(),
+    // Public company registration / trade-license number (not the sensitive
+    // tax id, which stays in the encrypted path). Financier-facing.
+    registrationId: z.string().max(60).optional(),
+    // Markets the business actually trades into, free text (e.g. "MEASA, EU").
+    primaryMarkets: z.string().max(200).optional(),
+    // Annual trade-volume band — what financiers size exposure against.
+    annualVolumeBand: z
+      .enum(['under_100k', '100k_1m', '1m_10m', 'over_10m'])
+      .optional(),
   }),
 });
 
