@@ -128,8 +128,12 @@ interface GlobalApiCounterpartyResponse {
 
 export async function screenCounterparty(address: string): Promise<CounterpartyScreen> {
   const key = address.toLowerCase();
-  const hit = screenCache.get(key);
-  if (hit && Date.now() - hit.screenedAt < SCREEN_CACHE_TTL_MS) return hit;
+  // Demo mode re-pays every time so the spend is visible on chain; otherwise
+  // reuse a recent verdict (a sanctions status doesn't move bid to bid).
+  if (!config.X402_SCREEN_CACHE_DISABLED) {
+    const hit = screenCache.get(key);
+    if (hit && Date.now() - hit.screenedAt < SCREEN_CACHE_TTL_MS) return hit;
+  }
 
   const { data, paidUsd, payer, txHash } = await payExternal<GlobalApiCounterpartyResponse>(
     `${COUNTERPARTY_CHECK_URL}/${key}`,

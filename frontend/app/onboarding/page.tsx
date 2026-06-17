@@ -81,6 +81,9 @@ function OnboardingInner() {
 
   // seller fields
   const [skills, setSkills] = useState('');
+  // Business trade type (Goods / Services / Both). Only used on the business
+  // profile step; individual sellers leave it null.
+  const [tradeType, setTradeType] = useState<'goods' | 'services' | 'both' | null>(null);
   const [bio, setBio] = useState('');
   const [sellerMin, setSellerMin] = useState(50);
   const [sellerMax, setSellerMax] = useState(2000);
@@ -236,6 +239,7 @@ function OnboardingInner() {
         ...(wantsSeller && {
           seller: {
             skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+            ...(accountType === 'business' && tradeType ? { tradeType } : {}),
             bio,
             minBudgetUsdc: sellerMin,
             maxBudgetUsdc: sellerMax,
@@ -397,6 +401,8 @@ function OnboardingInner() {
               setDisplayName={setDisplayName}
               skills={skills}
               setSkills={setSkills}
+              tradeType={tradeType}
+              setTradeType={setTradeType}
               bio={bio}
               setBio={setBio}
               dealMin={sellerMin}
@@ -927,11 +933,49 @@ function RoleCard({
   );
 }
 
+/// Segmented Goods / Services / Both chooser for the business profile. A click
+/// selector instead of free text so the trade type is clean, structured data.
+function TradeTypeChooser({
+  value,
+  onChange,
+  options,
+}: {
+  value: 'goods' | 'services' | 'both' | null;
+  onChange: (v: 'goods' | 'services' | 'both') => void;
+  options: { value: 'goods' | 'services' | 'both'; label: string }[];
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {options.map((o) => {
+        const sel = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            aria-pressed={sel}
+            className={cn(
+              'rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
+              sel
+                ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-accent)]'
+                : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function BusinessProfileStep(props: {
   displayName: string;
   setDisplayName: (v: string) => void;
   skills: string;
   setSkills: (v: string) => void;
+  tradeType: 'goods' | 'services' | 'both' | null;
+  setTradeType: (v: 'goods' | 'services' | 'both') => void;
   bio: string;
   setBio: (v: string) => void;
   dealMin: number;
@@ -959,7 +1003,18 @@ function BusinessProfileStep(props: {
       </ProfileSection>
 
       <ProfileSection number="02" eyebrow={bs.tradeEyebrow} title={bs.goodsLabel}>
-        <Field label={bs.goodsLabel} hint={bs.goodsHint}>
+        <Field label={bs.goodsLabel} hint={bs.tradeTypeHint}>
+          <TradeTypeChooser
+            value={props.tradeType}
+            onChange={props.setTradeType}
+            options={[
+              { value: 'goods', label: bs.tradeGoods },
+              { value: 'services', label: bs.tradeServices },
+              { value: 'both', label: bs.tradeBoth },
+            ]}
+          />
+        </Field>
+        <Field label={bs.categoriesLabel} hint={bs.goodsHint}>
           <input
             value={props.skills}
             onChange={(e) => props.setSkills(e.target.value)}

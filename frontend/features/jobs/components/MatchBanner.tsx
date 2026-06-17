@@ -267,9 +267,9 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
                 ))}
               </ul>
             )}
-            <div className="mt-2.5 flex items-center gap-3 mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+            <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
               <span>${screen.amountUsd} · x402 · Base</span>
-              {screen.txHash && (
+              {screen.txHash ? (
                 <a
                   href={`https://basescan.org/tx/${screen.txHash}`}
                   target="_blank"
@@ -279,7 +279,20 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
                 >
                   {mb.screen.txCta} ↗
                 </a>
-              )}
+              ) : screen.payer ? (
+                // GlobalAPI doesn't echo a settlement tx, so link the agent's
+                // payer wallet instead: its BaseScan history is the on-chain
+                // proof of the real USDC spend.
+                <a
+                  href={`https://basescan.org/address/${screen.payer}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2 hover:opacity-80"
+                  style={{ color: tone.fg }}
+                >
+                  {mb.screen.payerCta} ↗
+                </a>
+              ) : null}
             </div>
           </div>
         );

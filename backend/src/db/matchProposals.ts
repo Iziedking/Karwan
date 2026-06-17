@@ -78,6 +78,10 @@ export interface MatchProposal {
     /// On-chain settlement tx (Base) for the $0.01 screen payment, when the
     /// GlobalAPI server echoes it. Surfaced as evidence on the buyer's banner.
     txHash?: string;
+    /// The agent's Base payer wallet. Surfaced as on-chain evidence even when
+    /// the server doesn't echo a settlement tx: a judge can open the wallet on
+    /// BaseScan and see the real USDC spend history.
+    payer?: string;
     screenedAt: number;
   };
   /// The mirror screen: the seller agent's compliance screen of the BUYER,
@@ -89,6 +93,7 @@ export interface MatchProposal {
     reasons: string[];
     amountUsd: number;
     txHash?: string;
+    payer?: string;
     screenedAt: number;
   };
   /// Verified-business badge for the match. Set when the seller's owner is a

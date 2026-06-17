@@ -623,22 +623,28 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   });
 }
 
+/// Bounded undercut depth: a seller's opening bid never starts more than this
+/// far below the buyer's posted budget. Keeps competition real without a
+/// race-to-the-floor on the first move. The seller's own minimum still wins if
+/// it sits higher than this bound.
+const MAX_UNDERCUT_PCT = 0.3;
+
 /// Per-seller opening bid, demand-driven, with bounded jitter so it doesn't
 /// fall into a fixed pattern.
 ///
-/// Economic model: a buyer who posts a brief has committed to that budget as
-/// their valuation, so it is the FLOOR of the negotiation, not a ceiling to
-/// undercut. The seller opens between the buyer's posted budget and the
-/// tolerance ceiling (budget x (1 + maxIncrease%)) and only ever negotiates
-/// upward within that band. It never bids below what the buyer already offered.
+/// Economic model: the buyer's posted budget is their MAX valuation. Sellers
+/// compete for the work by pricing within [floor, ceiling], where floor is the
+/// seller's own minimum or a bounded undercut below budget (whichever is higher)
+/// and ceiling is min(seller max, budget x (1 + tolerance%)). So a seller can
+/// open BELOW the budget to win, and only reaches above it when the buyer left
+/// negotiation room. Without this, a zero-tolerance brief collapses every bid to
+/// exactly the budget and there is nothing to choose between or negotiate.
 ///
-/// Sellers want more, so the opening biases toward the ceiling, lifted by market
-/// demand (a hot skill holds near the ceiling) and softened for trusted buyers
-/// (an elite/repeat buyer is quoted nearer the floor). A per-seller address seed
-/// keeps a multi-seller auction spread out instead of every seller converging on
-/// one number. Returns null when no point in [budget, ceiling] is reachable for
-/// this seller (their max is below the buyer's budget, or their min above the
-/// ceiling), i.e. no possible deal, so skip.
+/// Market demand lifts a scarce skill toward the ceiling; a common skill or a
+/// trusted repeat buyer draws the open down toward the floor. A per-seller
+/// address seed plus jitter spreads a multi-seller auction out instead of every
+/// seller converging on one number. Returns null when no point is reachable for
+/// this seller (their minimum is above the buyer's ceiling), i.e. no deal.
 function sellerOpeningBid(
   seller: SellerProfile,
   job: JobContext,
@@ -648,13 +654,20 @@ function sellerOpeningBid(
   const budget = Number(job.budgetUsdc);
   const tol = job.negotiationMaxIncreasePct ?? 0;
   const buyerCeiling = budget * (1 + tol / 100);
-  // Floor = the buyer's posted budget, never below it. (The seller's own
-  // minimum still applies if it's higher. That seller wants more than the
-  // buyer offered, so they open above the buyer's price.)
-  const floor = Math.max(seller.minBudgetUsdc, budget);
   const ceiling = Math.min(seller.maxBudgetUsdc, buyerCeiling);
-  if (!Number.isFinite(ceiling) || ceiling < floor) return null;
-  if (ceiling === floor) return Number(floor.toFixed(2));
+  if (!Number.isFinite(ceiling)) return null;
+  // The seller wants more than the buyer will ever pay: stand down.
+  if (seller.minBudgetUsdc > ceiling) return null;
+  // Sellers compete by underbidding: a seller may open BELOW the buyer's posted
+  // budget, down to its own minimum or a bounded undercut floor (whichever is
+  // higher), so the buyer sees genuine price competition instead of every
+  // seller pinned at the budget when tolerance is zero. Market heat still pulls
+  // a scarce skill back toward the top of the band; a common skill or a trusted
+  // repeat buyer draws the open down toward the floor. MAX_UNDERCUT_PCT bounds
+  // the race so nobody dumps to their absolute reservation on the first move.
+  const undercutFloor = budget * (1 - MAX_UNDERCUT_PCT);
+  const floor = Math.max(seller.minBudgetUsdc, Math.min(undercutFloor, ceiling));
+  if (ceiling <= floor) return Number(floor.toFixed(2));
 
   // Higher bias = nearer the ceiling (seller earns more). NEW/COLD buyers pay
   // toward the top of the band; ELITE/STRONG repeat buyers are quoted nearer

@@ -97,6 +97,15 @@ const envSchema = z.object({
     blankToUndefined,
     z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
   ),
+  /// Bypass the 24h per-address cache on external screens / market lookups.
+  /// Off by default (caching avoids re-spending on a counterparty whose
+  /// sanctions status doesn't move bid to bid). Set 'true' for a live demo so
+  /// every match visibly re-pays on chain and the payer wallet's BaseScan
+  /// activity proves the spend instead of a stale cached verdict.
+  X402_SCREEN_CACHE_DISABLED: z.preprocess(
+    (v) => v === 'true' || v === '1',
+    z.boolean(),
+  ),
   /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
   /// users with funds still locked on the legacy contract (Funded or
   /// pre-v2.D "accepted" but never delivered) can refund / cancel from

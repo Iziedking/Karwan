@@ -1298,6 +1298,19 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   if (!deal.delivered) {
     return c.json({ error: 'seller has not marked the work delivered yet' }, 409);
   }
+  // Security Agent hold: the delivery link was flagged and withheld from the
+  // buyer. Block release (the buyer hasn't actually seen the deliverable) until
+  // the link clears. Mirrors the auto-release pause in dealWatcher.
+  if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') {
+    return c.json(
+      {
+        error:
+          'Karwan flagged the delivery link and is holding it for review. Release is paused until it clears.',
+        code: 'delivery-held',
+      },
+      409,
+    );
+  }
   if (!deal.buyerAgentWalletId) {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
