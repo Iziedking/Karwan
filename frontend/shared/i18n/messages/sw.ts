@@ -564,6 +564,16 @@ export const sw: Messages = {
       postOfferCta: 'Tuma offa →',
       viewActivityCta: 'Tazama shughuli →',
     },
+    quickStart: {
+      eyebrow: 'MPYA HAPA',
+      title: 'Hatua tatu hadi biashara yako ya kwanza',
+      dismissAria: 'Ondoa mwongozo wa haraka',
+      steps: {
+        activate: { title: 'Washa mawakala wako', body: 'Wape mawakala wako wa mnunuzi na muuzaji kikomo kidogo cha matumizi. Hawatii saini chochote bila idhini yako.', cta: 'Washa →' },
+        post: { title: 'Tuma ombi au ofa', body: 'Sema unachohitaji au unachosambaza. Wakala wako huendesha mnada na kuleta mechi.', cta: 'Fungua madawati →' },
+        settle: { title: 'Idhinisha, kisha malizia', body: 'Idhinisha mechi aliyoipata wakala wako. Fedha hutolewa kwa hatua kazi inapowasilishwa.' },
+      },
+    },
     heroAgentCard: {
       eyebrow: 'Udhibiti wa wakala',
       statePrefix: 'Wakala wa mnunuzi',
