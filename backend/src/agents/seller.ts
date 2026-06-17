@@ -190,9 +190,13 @@ export function startSellerAgents() {
     onError: (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
   });
 
+  // Periodic safety net for missed websocket JobPosted events.
+  const stopReconciler = startSellerReconciler();
+
   return () => {
     unwatchPosted();
     unwatchCounter();
+    stopReconciler();
     logger.info('seller agent stopped');
   };
 }
@@ -215,10 +219,21 @@ function safe(label: string, fn: () => Promise<unknown>) {
     });
 }
 
-async function handleJobPosted(log: Log) {
+/// Sellers already evaluated for a given job (bid OR skipped OR excluded),
+/// keyed by jobId. Lets the periodic reconciler re-run a job's scan without
+/// re-evaluating sellers that were already handled, so a rescan only picks up
+/// sellers the live listener missed and never double-bids or spams skip events.
+const evaluatedSellers = new Map<string, Set<string>>();
+
+async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   const dedupeKey = logDedupeKey('JobPosted', log);
-  if (handledEvents.has(dedupeKey)) return;
-  handledEvents.add(dedupeKey);
+  // The live path dedupes per JobPosted log. The reconciler passes rescan:true
+  // to bypass that and re-enter the scan; the per-seller guard below keeps it
+  // idempotent, so an already-fully-scanned job is a cheap no-op on rescan.
+  if (!opts?.rescan) {
+    if (handledEvents.has(dedupeKey)) return;
+    handledEvents.add(dedupeKey);
+  }
 
   const args = (log as unknown as { args: JobPostedArgs }).args;
   const jobId = args.jobId;
@@ -228,6 +243,8 @@ async function handleJobPosted(log: Log) {
 
   // Keep a user's own seller agent out of their own auction.
   const excludeSeller = (await siblingSellerAddress(args.buyer))?.toLowerCase();
+  const evaluated = evaluatedSellers.get(jobId) ?? new Set<string>();
+  evaluatedSellers.set(jobId, evaluated);
 
   // Pull off-chain brief metadata if the buyer posted via our API. Lets the
   // LLM bid decision evaluate topical match against the seller's profile.
@@ -271,11 +288,15 @@ async function handleJobPosted(log: Log) {
   }
 
   for (const seller of sellers) {
-    if (seller.address.toLowerCase() === excludeSeller) {
+    const sellerLower = seller.address.toLowerCase();
+    // Skip sellers already handled for this job (idempotent rescans).
+    if (evaluated.has(sellerLower)) continue;
+    if (sellerLower === excludeSeller) {
       // The buyer's own seller agent is kept out of their own request so they
       // don't bid against themselves. Emit it so the owner sees why their seller
       // stood down instead of wondering where their bid went (the silent skip
       // here read as "my agent ignored my request").
+      evaluated.add(sellerLower);
       bus.emitEvent({
         type: 'agent.skipped',
         jobId,
@@ -288,8 +309,12 @@ async function handleJobPosted(log: Log) {
       });
       continue;
     }
-    if (activeBids.has(bidKey(jobId, seller.address))) continue;
+    if (activeBids.has(bidKey(jobId, seller.address))) {
+      evaluated.add(sellerLower);
+      continue;
+    }
     await evaluateAndBid(seller, { ...baseJob });
+    evaluated.add(sellerLower);
   }
 
   // After profile-driven evaluation, scan open listings against this fresh
@@ -1157,17 +1182,49 @@ export function getSellerSnapshot(
   };
 }
 
-/// Replays recent JobPosted logs through the live handler, so a freshly started
-/// agent picks up jobs posted while it was down.
-export async function backfillRecentJobs(fromBlock?: bigint) {
+/// Replays recent JobPosted logs through the handler. `rescan` re-enters the
+/// scan for already-seen jobs (the per-seller guard keeps it idempotent); the
+/// default (startup backfill) relies on the per-log dedupe.
+async function replayRecentJobLogs(opts: { fromBlock?: bigint; rescan?: boolean }) {
   const latest = await publicClient.getBlockNumber();
-  const from = fromBlock ?? (latest > 10_000n ? latest - 10_000n : 0n);
+  const from = opts.fromBlock ?? (latest > 10_000n ? latest - 10_000n : 0n);
   const logs = await publicClient.getLogs({
     address: jobBoard.address,
     event: jobBoardAbi.find((x) => x.type === 'event' && x.name === 'JobPosted')! as never,
     fromBlock: from,
     toBlock: latest,
   });
-  logger.info({ count: logs.length, fromBlock: from.toString() }, 'seller backfilling jobs');
-  for (const log of logs) await handleJobPosted(log as unknown as Log);
+  for (const log of logs) await handleJobPosted(log as unknown as Log, { rescan: opts.rescan });
+  return logs.length;
+}
+
+/// Replays recent JobPosted logs through the live handler, so a freshly started
+/// agent picks up jobs posted while it was down.
+export async function backfillRecentJobs(fromBlock?: bigint) {
+  const count = await replayRecentJobLogs({ fromBlock });
+  logger.info({ count }, 'seller backfilling jobs');
+}
+
+/// Periodic self-heal for the websocket JobPosted listener, which can silently
+/// drop events on Arc testnet. Every tick it re-runs the seller scan over recent
+/// jobs (rescan: per-seller guard makes already-scanned jobs no-ops), so a job
+/// whose live event was missed still gets evaluated and bid on within one tick
+/// instead of sitting at zero bids forever. Returns a stop handle.
+const RECONCILE_INTERVAL_MS = 90_000;
+// Bounded look-back per tick. Arc ~0.5s blocks, so ~2400 blocks is ~20 min:
+// wide enough to catch a transient websocket drop (which resolves in minutes)
+// across several ticks, narrow enough to keep each sweep cheap. Restart-scale
+// gaps are covered by the wider startup backfill.
+const RECONCILE_LOOKBACK_BLOCKS = 2_400n;
+export function startSellerReconciler(): () => void {
+  const tick = () =>
+    safe('reconcile', async () => {
+      const latest = await publicClient.getBlockNumber();
+      const fromBlock = latest > RECONCILE_LOOKBACK_BLOCKS ? latest - RECONCILE_LOOKBACK_BLOCKS : 0n;
+      const count = await replayRecentJobLogs({ fromBlock, rescan: true });
+      logger.debug({ count }, 'seller reconciler swept recent jobs');
+    });
+  const id = setInterval(tick, RECONCILE_INTERVAL_MS);
+  logger.info({ everyMs: RECONCILE_INTERVAL_MS }, 'seller reconciler started');
+  return () => clearInterval(id);
 }

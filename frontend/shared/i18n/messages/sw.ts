@@ -1337,6 +1337,8 @@ export const sw: Messages = {
       'budget-below-seller-floor': 'Nje ya kima cha bajeti',
       'deadline-out-of-range': 'Nje ya dirisha la kupokea',
       'own-auction': 'Muuzaji wako mwenyewe',
+      'finance-lane-requires-business': 'Wauzaji wa biashara pekee',
+      'insufficient-stake-trusted-match': 'Dhamana haitoshi kwa mechi ya kuaminika',
     },
     scopeLabels: {
       counterEvaluation: 'Tathmini ya ofa ya majibu ya LLM imeshindwa',

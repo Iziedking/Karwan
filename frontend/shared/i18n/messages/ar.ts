@@ -1337,6 +1337,8 @@ export const ar: Messages = {
       'budget-below-seller-floor': 'خارج نطاق الميزانية',
       'deadline-out-of-range': 'خارج نافذة التسليم',
       'own-auction': 'بائعك الخاص',
+      'finance-lane-requires-business': 'بائعو الأعمال فقط',
+      'insufficient-stake-trusted-match': 'حصة غير كافية لمطابقة موثوقة',
     },
     scopeLabels: {
       counterEvaluation: 'فشل تقييم العرض المضاد LLM',
