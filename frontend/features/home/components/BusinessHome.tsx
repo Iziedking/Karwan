@@ -10,6 +10,8 @@ import { PendingMatchesBand } from '@/features/notifications/components/PendingM
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import { PageTour } from '@/shared/guide/PageTour';
+import { BIZ_HOME_TOUR_ID, BIZ_HOME_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortAddress } from '@/shared/utils/format';
 import {
@@ -82,6 +84,7 @@ export function BusinessHome({
 
   return (
     <FullBleed>
+      <PageTour id={BIZ_HOME_TOUR_ID} steps={BIZ_HOME_STEPS} />
       {/* HERO. trade desk, no post-request / post-offer */}
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">
@@ -99,13 +102,16 @@ export function BusinessHome({
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
-            <div className="fade-up fade-up-2 mt-5">
+            <div className="fade-up fade-up-2 mt-5" data-guide="biz-verify">
               <StatusChip status={status} bh={bh} />
             </div>
             <p className="fade-up fade-up-2 mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
               {bh.hero.description}
             </p>
-            <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
+            <div
+              className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3"
+              data-guide="biz-desk"
+            >
               <CTAPill href="/financier">{bh.hero.openDeskCta}</CTAPill>
               <CTAPill href="/deals" variant="secondary" tone="dark">
                 {bh.hero.newTradeCta}
@@ -148,7 +154,7 @@ export function BusinessHome({
           {bh.analytics.description}
         </p>
 
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3" data-guide="biz-book">
           <BookTile label={bh.analytics.tiles.total} value={book.total} />
           <BookTile label={bh.analytics.tiles.active} value={book.active} />
           <BookTile label={bh.analytics.tiles.settled} value={book.settled} />
