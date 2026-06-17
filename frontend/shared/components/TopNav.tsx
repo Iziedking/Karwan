@@ -285,6 +285,10 @@ export function TopNav() {
             <MobileNavLink href="/profile" active={pathname.startsWith('/profile')}>
               {t.nav.profile}
             </MobileNavLink>
+            <div className="my-1.5 border-t border-[var(--color-line)]" />
+            <MobileNavLink href="/how-it-works" active={pathname.startsWith('/how-it-works')}>
+              {t.nav.help}
+            </MobileNavLink>
             <div className="mt-2 pt-2 border-t border-[var(--color-line)] flex items-center justify-around text-[12px] text-[var(--color-ink-dim)]">
               <SoundToggle />
               <ThemeToggle />
@@ -487,6 +491,16 @@ function QuickControls({
             <ControlRow label={t.controlLabels.sound}>
               <SoundToggle />
             </ControlRow>
+            <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
+            <Link
+              href="/how-it-works"
+              className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+            >
+              <span>{t.help}</span>
+              <span aria-hidden className="text-[var(--color-ink-faint)]">
+                →
+              </span>
+            </Link>
             {isAuthenticated && (
               <>
                 <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />

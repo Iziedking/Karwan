@@ -61,6 +61,7 @@ interface MessagesShape {
       sound: string;
     };
     allSettings: string;
+    help: string;
   };
   settings: {
     eyebrow: string;
@@ -3686,6 +3687,7 @@ export const en: MessagesShape = {
       sound: 'Sound',
     },
     allSettings: 'All settings',
+    help: 'Help and how it works',
   },
   settings: {
     eyebrow: 'SETTINGS',

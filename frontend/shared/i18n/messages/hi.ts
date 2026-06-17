@@ -60,6 +60,7 @@ export const hi: Messages = {
       sound: 'ध्वनि',
     },
     allSettings: 'सभी सेटिंग्स',
+    help: 'मदद और यह कैसे काम करता है',
   },
   settings: {
     eyebrow: 'सेटिंग्स',

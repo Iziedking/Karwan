@@ -60,6 +60,7 @@ export const fr: Messages = {
       sound: 'Son',
     },
     allSettings: 'Tous les paramètres',
+    help: 'Aide et fonctionnement',
   },
   settings: {
     eyebrow: 'PARAMÈTRES',
