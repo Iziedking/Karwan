@@ -46,6 +46,11 @@ export const ar: Messages = {
       sellerTitle: 'مكتب البائع',
       sellerSub: 'انشر عرضًا. تقبّل الصفقات الواردة.',
     },
+    p2pHub: {
+      eyebrow: 'P2P TRADES',
+      title: 'اختر مكتبًا',
+      lede: 'طريقتان للدخول. انشر طلبًا ودع الوكلاء يديرون المزايدة، أو انشر عرضًا وتقبّل الصفقات الواردة.',
+    },
     menuOpenAria: 'فتح القائمة',
     menuCloseAria: 'إغلاق القائمة',
     preferencesAria: 'التفضيلات',

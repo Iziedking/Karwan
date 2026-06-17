@@ -46,6 +46,11 @@ export const fr: Messages = {
       sellerTitle: 'Bureau vendeur',
       sellerSub: 'Publiez une offre. Acceptez les deals entrants.',
     },
+    p2pHub: {
+      eyebrow: 'P2P TRADES',
+      title: 'Choisissez un bureau',
+      lede: 'Deux entrées. Publiez une demande et laissez les agents mener les enchères, ou publiez une offre et acceptez les deals entrants.',
+    },
     menuOpenAria: 'Ouvrir le menu',
     menuCloseAria: 'Fermer le menu',
     preferencesAria: 'Préférences',

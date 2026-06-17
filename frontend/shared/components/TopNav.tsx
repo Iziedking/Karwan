@@ -36,6 +36,7 @@ export function TopNav() {
   const showAppChrome = isApp && isAuthenticated;
 
   const tradesActive =
+    pathname.startsWith('/p2p') ||
     pathname.startsWith('/buyer') ||
     pathname.startsWith('/seller') ||
     pathname.startsWith('/jobs') ||
@@ -115,7 +116,9 @@ export function TopNav() {
             >
               {t.nav.home}
             </NavLink>
-            <TradesDropdown active={tradesActive} />
+            <NavLink href="/p2p" active={tradesActive}>
+              {t.nav.trades}
+            </NavLink>
             <NavLink
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
@@ -236,23 +239,19 @@ export function TopNav() {
             <MobileNavLink href="/app" active={pathname === '/app'}>
               {t.nav.home}
             </MobileNavLink>
-            {/* Trades group: buyer + seller, labelled so the two desks read as
-                distinct surfaces, not a flat list. */}
-            <p className="px-3 pt-3 pb-1 mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-              {t.nav.tradesGroupEyebrow}
-            </p>
+            {/* P2P Trades is a single nav item now; it opens the desk picker
+                page (/p2p) where buyer and seller each get a card. */}
             <MobileNavLink
-              href="/buyer"
+              href="/p2p"
               active={
+                pathname.startsWith('/p2p') ||
                 pathname.startsWith('/buyer') ||
+                pathname.startsWith('/seller') ||
                 pathname.startsWith('/jobs') ||
                 pathname.startsWith('/deals')
               }
             >
-              {t.nav.buyer}
-            </MobileNavLink>
-            <MobileNavLink href="/seller" active={pathname.startsWith('/seller')}>
-              {t.nav.seller}
+              {t.nav.trades}
             </MobileNavLink>
             <div className="my-1.5 border-t border-[var(--color-line)]" />
             <MobileNavLink
@@ -430,136 +429,6 @@ function MobileNavLinkSoon({
         }}
       >
         {soonLabel}
-      </span>
-    </Link>
-  );
-}
-
-/// Buyer + Seller collapse into one "Trades" rail slot. The dropdown gives each
-/// desk its own labelled row with a distinct accent dot, so the two surfaces
-/// read as separate, not a flat list. Hover-opens on desktop; chevron rotates.
-function TradesDropdown({ active }: { active: boolean }) {
-  const t = useTranslations().nav;
-  const [open, setOpen] = useState(false);
-  return (
-    <div
-      className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={cn(
-          'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors inline-flex items-center gap-1.5',
-          active
-            ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-[0_2px_0_rgba(0,0,0,0.15)]'
-            : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
-        )}
-      >
-        {t.trades}
-        <svg
-          width="9"
-          height="9"
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden
-          className={cn('transition-transform duration-200', open && 'rotate-180')}
-        >
-          <path
-            d="M3 6l5 5 5-5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-40">
-          {/* Two choice cards, mirroring the individual/business account picker:
-              a plain pair, click either to go to its desk. */}
-          <div
-            className="w-[440px] p-3 border bg-[var(--color-surface)] fade-up grid grid-cols-2 gap-3"
-            style={{
-              borderColor: 'var(--color-line)',
-              borderTopLeftRadius: 18,
-              borderTopRightRadius: 18,
-              borderBottomLeftRadius: 18,
-              borderBottomRightRadius: 5,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
-            }}
-          >
-            <TradesChoiceCard
-              href="/buyer"
-              tone="cream"
-              eyebrow={t.tradesDropdown.buyerTitle}
-              sub={t.tradesDropdown.buyerSub}
-              onPick={() => setOpen(false)}
-            />
-            <TradesChoiceCard
-              href="/seller"
-              tone="accent"
-              eyebrow={t.tradesDropdown.sellerTitle}
-              sub={t.tradesDropdown.sellerSub}
-              onPick={() => setOpen(false)}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/// One of the two P2P choice cards. Styled like the onboarding account-kind
-/// picker: asymmetric corners, hover lift, cream for the buyer desk and the
-/// lime accent for the seller desk so the pair reads as a deliberate choice,
-/// not a flat menu.
-function TradesChoiceCard({
-  href,
-  tone,
-  eyebrow,
-  sub,
-  onPick,
-}: {
-  href: string;
-  tone: 'cream' | 'accent';
-  eyebrow: string;
-  sub: string;
-  onPick: () => void;
-}) {
-  const surface =
-    tone === 'accent'
-      ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
-      : 'bg-[var(--color-surface-2)] text-[var(--color-ink)] border border-[var(--color-line)]';
-  const subColor = tone === 'accent' ? 'text-[var(--lp-band-dark)]/85' : 'text-[var(--color-ink-dim)]';
-  return (
-    <Link
-      href={href}
-      onClick={onPick}
-      className={cn(
-        'group block text-start p-4 transition-[transform,box-shadow] duration-200 ease-out',
-        'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(0,0,0,0.28)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-1',
-        surface,
-      )}
-      style={{
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <span className="block font-sans text-[16px] font-extrabold tracking-[-0.01em]">
-        {eyebrow}
-      </span>
-      <span className={cn('mt-1 block text-[12px] leading-snug', subColor)}>{sub}</span>
-      <span
-        aria-hidden
-        className="mt-3 inline-flex items-center mono text-[13px] opacity-70 transition-transform duration-200 group-hover:translate-x-0.5"
-      >
-        →
       </span>
     </Link>
   );

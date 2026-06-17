@@ -46,6 +46,11 @@ export const sw: Messages = {
       sellerTitle: 'Dawati la muuzaji',
       sellerSub: 'Tuma ofa. Pokea biashara zinazoingia.',
     },
+    p2pHub: {
+      eyebrow: 'P2P TRADES',
+      title: 'Chagua dawati',
+      lede: 'Njia mbili. Tuma ombi uwaache mawakala waendeshe minada, au tuma ofa upokee biashara zinazoingia.',
+    },
     menuOpenAria: 'Fungua menyu',
     menuCloseAria: 'Funga menyu',
     preferencesAria: 'Mapendelo',
