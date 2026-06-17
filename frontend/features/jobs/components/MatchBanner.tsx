@@ -280,11 +280,13 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
                   {mb.screen.txCta} ↗
                 </a>
               ) : screen.payer ? (
-                // GlobalAPI doesn't echo a settlement tx, so link the agent's
-                // payer wallet instead: its BaseScan history is the on-chain
-                // proof of the real USDC spend.
+                // GlobalAPI doesn't echo a per-call settlement tx, and the
+                // facilitator (not the payer) submits the EIP-3009 transfer, so
+                // the payment shows under the payer wallet's ERC-20 token
+                // transfers, NOT its own "Transactions" tab. Link straight to
+                // the token-transfers view so the real USDC outflows are visible.
                 <a
-                  href={`https://basescan.org/address/${screen.payer}`}
+                  href={`https://basescan.org/tokentxns?a=${screen.payer}`}
                   target="_blank"
                   rel="noreferrer"
                   className="underline underline-offset-2 hover:opacity-80"
