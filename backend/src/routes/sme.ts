@@ -33,7 +33,17 @@ const smeProfileBodySchema = z.object({
     region: z.string().min(2).max(80).optional(),
     yearFounded: z.number().int().min(1800).max(2100).optional(),
     employeeBand: employeeBandSchema.optional(),
-    websiteUrl: z.string().url().max(200).optional(),
+    // Accept a bare domain ("fze.org/uae") by normalising to https:// before
+    // validating, so the whole trade card doesn't fail "invalid body" just
+    // because the user left the scheme off the website.
+    websiteUrl: z
+      .preprocess((v) => {
+        if (typeof v !== 'string') return v;
+        const t = v.trim();
+        if (!t) return undefined;
+        return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+      }, z.string().url().max(200))
+      .optional(),
   }),
 });
 
