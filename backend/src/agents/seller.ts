@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
-import { publicClient, wsClient } from '../chain/client.js';
+import { publicClient } from '../chain/client.js';
 import { jobBoard, vault, getReservationBps } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -167,23 +167,36 @@ function logDedupeKey(label: string, log: Log): string {
 /// Starts the multi-tenant seller agent. One set of watchers serves every user:
 /// each posted job is evaluated by every activated user who has a seller
 /// profile, and each bids through their own seller agent wallet.
+/// Event-watch poll cadence. Arc blocks are ~0.5s, so a 4s poll picks up a new
+/// JobPosted / counter within a few seconds while keeping getLogs load light.
+const WATCH_POLL_MS = 4_000;
+
 export function startSellerAgents() {
   logger.info({ jobBoard: jobBoard.address }, 'seller agent starting (multi-tenant)');
 
-  const unwatchPosted = wsClient.watchContractEvent({
+  // HTTP polling, not a websocket subscription. Arc testnet's wss drops at boot
+  // and viem's ws watcher never recovered, silently killing every event the
+  // agents depend on. watchContractEvent over the HTTP client polls getLogs on
+  // an interval, so an RPC blip just delays a poll instead of taking the loop
+  // down. The reconciler below is the additional backstop.
+  const unwatchPosted = publicClient.watchContractEvent({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'JobPosted',
+    poll: true,
+    pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
       for (const log of logs) safe('JobPosted', () => handleJobPosted(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
 
-  const unwatchCounter = wsClient.watchContractEvent({
+  const unwatchCounter = publicClient.watchContractEvent({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'CounterOfferIssued',
+    poll: true,
+    pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
       for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(log));
     },
