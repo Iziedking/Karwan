@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
-import { publicClient, wsClient } from '../chain/client.js';
+import { publicClient } from '../chain/client.js';
 import {
   jobBoard,
   escrow,
@@ -310,36 +310,49 @@ function logDedupeKey(label: string, log: Log): string {
 /// Starts the multi-tenant buyer agent. One set of watchers serves every user:
 /// each posted job is matched to the buyer profile of whoever's buyer agent
 /// posted it, and that profile drives the auction.
+/// Event-watch poll cadence (HTTP polling, no websocket). Matches the seller
+/// agent; ~4s picks up bids/counters within seconds without heavy getLogs load.
+const WATCH_POLL_MS = 4_000;
+
 export function startBuyerAgents() {
   logger.info(
     { jobBoard: jobBoard.address, escrow: escrow.address },
     'buyer agent starting (multi-tenant)',
   );
 
-  const unwatchPosted = wsClient.watchContractEvent({
+  // HTTP polling, not a websocket subscription: Arc testnet's wss drops at boot
+  // and viem's ws watcher never recovered, silently killing the buyer agent's
+  // view of bids and counters. Polling getLogs survives RPC blips.
+  const unwatchPosted = publicClient.watchContractEvent({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'JobPosted',
+    poll: true,
+    pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
       for (const log of logs) safe('JobPosted', () => handleJobPosted(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
 
-  const unwatchBid = wsClient.watchContractEvent({
+  const unwatchBid = publicClient.watchContractEvent({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'BidSubmitted',
+    poll: true,
+    pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
       for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(log));
     },
     onError: (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
   });
 
-  const unwatchCounter = wsClient.watchContractEvent({
+  const unwatchCounter = publicClient.watchContractEvent({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'CounterResponse',
+    poll: true,
+    pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
       for (const log of logs) safe('CounterResponse', () => handleCounterResponse(log));
     },
