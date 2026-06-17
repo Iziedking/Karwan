@@ -46,6 +46,11 @@ export const hi: Messages = {
       sellerTitle: 'विक्रेता डेस्क',
       sellerSub: 'ऑफ़र पोस्ट करें। आती हुई डील स्वीकार करें।',
     },
+    p2pHub: {
+      eyebrow: 'P2P TRADES',
+      title: 'एक डेस्क चुनें',
+      lede: 'दो रास्ते। अनुरोध पोस्ट करें और एजेंट बोली चलाने दें, या ऑफ़र पोस्ट करें और आती हुई डील स्वीकार करें।',
+    },
     menuOpenAria: 'मेन्यू खोलें',
     menuCloseAria: 'मेन्यू बंद करें',
     preferencesAria: 'प्राथमिकताएँ',

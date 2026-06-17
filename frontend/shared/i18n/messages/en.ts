@@ -47,6 +47,11 @@ interface MessagesShape {
       sellerTitle: string;
       sellerSub: string;
     };
+    p2pHub: {
+      eyebrow: string;
+      title: string;
+      lede: string;
+    };
     menuOpenAria: string;
     menuCloseAria: string;
     preferencesAria: string;
@@ -3647,6 +3652,11 @@ export const en: MessagesShape = {
       buyerSub: 'Post a request. Agents run the bidding.',
       sellerTitle: 'Seller desk',
       sellerSub: 'Post an offer. Take incoming deals.',
+    },
+    p2pHub: {
+      eyebrow: 'P2P TRADES',
+      title: 'Pick a desk',
+      lede: 'Two ways in. Post a request and let agents run the bidding, or post an offer and take incoming deals.',
     },
     menuOpenAria: 'Open menu',
     menuCloseAria: 'Close menu',
