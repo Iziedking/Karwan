@@ -75,6 +75,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { MigrationBanner } from '@/shared/components/MigrationBanner';
+import { QuickStartBand } from '@/shared/components/QuickStartBand';
 import { shortAddress } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -279,6 +280,10 @@ export default function AppHome() {
           </div>
         </div>
       </Band>
+
+      {/* QUICK START. First-run orientation for brand-new users; hides once
+          agents are activated or the user dismisses it. */}
+      <QuickStartBand />
 
       {/* YOUR MONEY. First personal surface after the hero: where your money is
           and that it's safe, in plain dollars. The trust answer up front.

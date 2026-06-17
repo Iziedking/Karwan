@@ -539,6 +539,16 @@ interface MessagesShape {
       postOfferCta: string;
       viewActivityCta: string;
     };
+    quickStart: {
+      eyebrow: string;
+      title: string;
+      dismissAria: string;
+      steps: {
+        activate: { title: string; body: string; cta: string };
+        post: { title: string; body: string; cta: string };
+        settle: { title: string; body: string };
+      };
+    };
     heroAgentCard: {
       eyebrow: string;
       statePrefix: string;
@@ -4185,6 +4195,27 @@ export const en: MessagesShape = {
       postRequestCta: 'Post a request →',
       postOfferCta: 'Post an offer →',
       viewActivityCta: 'View activity →',
+    },
+    quickStart: {
+      eyebrow: 'NEW HERE',
+      title: 'Three steps to your first deal',
+      dismissAria: 'Dismiss quick start',
+      steps: {
+        activate: {
+          title: 'Activate your agents',
+          body: 'Give your buyer and seller agents a small spend allowance. They sign nothing without your approval.',
+          cta: 'Activate →',
+        },
+        post: {
+          title: 'Post a request or an offer',
+          body: 'Say what you need or what you supply. Your agent runs the auction and brings back a match.',
+          cta: 'Open the desks →',
+        },
+        settle: {
+          title: 'Approve, then settle',
+          body: 'Approve the match your agent reaches. Funds release in milestones as the work lands.',
+        },
+      },
     },
     heroAgentCard: {
       eyebrow: 'Agent control',

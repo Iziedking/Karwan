@@ -564,6 +564,16 @@ export const fr: Messages = {
       postOfferCta: 'Publier une offre →',
       viewActivityCta: 'Voir l’activité →',
     },
+    quickStart: {
+      eyebrow: 'NOUVEAU ICI',
+      title: 'Trois étapes vers votre premier deal',
+      dismissAria: 'Masquer le démarrage rapide',
+      steps: {
+        activate: { title: 'Activez vos agents', body: 'Donnez à vos agents acheteur et vendeur une petite autorisation de dépense. Ils ne signent rien sans votre accord.', cta: 'Activer →' },
+        post: { title: 'Publiez une demande ou une offre', body: 'Dites ce dont vous avez besoin ou ce que vous fournissez. Votre agent mène les enchères et rapporte un match.', cta: 'Ouvrir les bureaux →' },
+        settle: { title: 'Approuvez, puis réglez', body: 'Approuvez le match trouvé par votre agent. Les fonds se libèrent par jalons à mesure que le travail arrive.' },
+      },
+    },
     heroAgentCard: {
       eyebrow: 'Contrôle agent',
       statePrefix: 'Agent acheteur',
