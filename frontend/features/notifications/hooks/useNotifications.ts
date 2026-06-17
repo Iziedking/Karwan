@@ -56,6 +56,8 @@ const DIRECT_TYPES = new Set([
   'deal.invite.claimed',
   'deal.accepted',
   'deal.delivered',
+  'deal.delivery.flagged',
+  'deal.delivery.cleared',
   'deal.fund.insufficient',
   'escrow.milestone.released',
   'deal.review.started',
@@ -97,6 +99,8 @@ const ACTION_TYPES = new Set([
   'deal.match.approved',
   'deal.direct.created',
   'deal.delivered',
+  'deal.delivery.flagged',
+  'deal.delivery.cleared',
   'deal.review.started',
   'deal.fund.insufficient',
 ]);
@@ -142,6 +146,8 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.invite.claimed': 'seller', // the claimer is the seller; surface "deal is yours" in their bell post-claim
   'deal.accepted': 'buyer', // the seller knows they accepted; the buyer's agent funded
   'deal.delivered': 'buyer', // the buyer verifies and releases
+  'deal.delivery.flagged': 'both', // seller fixes the link, buyer learns release is paused
+  'deal.delivery.cleared': 'both', // both learn the hold lifted
   'deal.fund.insufficient': 'buyer',
   'escrow.milestone.released': 'both',
   'deal.review.started': 'buyer',
@@ -306,6 +312,14 @@ function summaryFor(
     case 'deal.delivered':
       // Buyer-facing: the buyer verifies and releases.
       return 'Seller marked the work delivered. Release the first milestone.';
+    case 'deal.delivery.flagged':
+      return role === 'seller'
+        ? 'Karwan flagged your delivery link. Submit a corrected link to clear it.'
+        : 'A delivery link was flagged and withheld. Release is paused until it clears.';
+    case 'deal.delivery.cleared':
+      return role === 'seller'
+        ? 'Your corrected link cleared. The buyer can see it now.'
+        : 'The flagged link cleared. You can review the work and release.';
     case 'deal.fund.insufficient':
       return 'Your buyer agent needs USDC to fund escrow. Top it up from your profile.';
     case 'escrow.milestone.released':

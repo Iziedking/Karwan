@@ -1857,6 +1857,9 @@ interface MessagesShape {
         buyerAutoReleaseSuffix: string;
         buyerExpiredTemplate: string;
         releaseHeldNote: string;
+        resubmitLabel: string;
+        resubmitCta: string;
+        resubmitBusy: string;
         releaseCtaTemplate: string;
         releaseBusy: string;
         appealCta: string;
@@ -4926,6 +4929,8 @@ export const en: MessagesShape = {
       'deal.direct.created': 'Direct deal opened and funded',
       'deal.accepted': 'Seller accepted the deal terms',
       'deal.delivered': 'Seller marked the work delivered',
+      'deal.delivery.flagged': 'Delivery link flagged and held for review',
+      'deal.delivery.cleared': 'Corrected delivery link cleared',
       'deal.review.started': 'Buyer review window opened',
       'deal.review.heartbeat': 'Buyer is still reviewing',
       'deal.auto_released': 'Final milestone auto-released',
@@ -5582,6 +5587,9 @@ export const en: MessagesShape = {
         buyerAutoReleaseSuffix: "if you don't act.",
         buyerExpiredTemplate: 'Release window passed. The agent will release the first {firstPct}% shortly unless you act now.',
         releaseHeldNote: 'Auto-release is paused. Karwan flagged the delivery link and is verifying it. The release timer resumes once the link clears.',
+        resubmitLabel: 'Submit a corrected link to clear the hold',
+        resubmitCta: 'Submit corrected link',
+        resubmitBusy: 'Re-scanning…',
         releaseCtaTemplate: 'Release first {firstPct}%',
         releaseBusy: 'Confirming on Arc…',
         appealCta: 'Appeal this deal',
