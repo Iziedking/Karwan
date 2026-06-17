@@ -1263,6 +1263,7 @@ export const ar: Messages = {
       where: 'أين',
       amount: 'المبلغ',
       from: 'من',
+      security: 'الأمان',
     },
     sourceDomains: {
       ethereumSepolia: 'Ethereum Sepolia',
@@ -1857,6 +1858,8 @@ export const ar: Messages = {
       deliveryProofLabel: 'إثبات التسليم',
       deliveryHeldLabel: 'تم تعليق إثبات التسليم',
       deliveryHeldBody: 'أبلغت كرَوان عن رابط التسليم وتحتجزه حتى يتم فحصه. لا تُحرِّر الضمان حتى يتم اعتماده.',
+      deliveryVerifyingLabel: 'الرابط قيد المراجعة',
+      deliveryVerifyingBody: 'أبلغت كرَوان عن رابط التسليم الخاص بك وتتحقق منه قبل أن يراه المشتري. سيراه بمجرد اعتماده.',
     },
     progress: {
       eyebrow: 'التقدم',

@@ -1263,6 +1263,7 @@ export const sw: Messages = {
       where: 'Wapi',
       amount: 'Kiasi',
       from: 'Kutoka',
+      security: 'Usalama',
     },
     sourceDomains: {
       ethereumSepolia: 'Ethereum Sepolia',
@@ -1857,6 +1858,8 @@ export const sw: Messages = {
       deliveryProofLabel: 'Uthibitisho wa kuwasilisha',
       deliveryHeldLabel: 'Uthibitisho wa kuwasilisha umezuiliwa',
       deliveryHeldBody: 'Karwan imeashiria kiungo cha kuwasilisha na inakizuia hadi kikaguliwe. Usitoe escrow hadi kithibitishwe.',
+      deliveryVerifyingLabel: 'Kiungo kinakaguliwa',
+      deliveryVerifyingBody: 'Karwan imeashiria kiungo chako cha kuwasilisha na inakithibitisha kabla mnunuzi hajakiona. Atakiona mara tu kitakapothibitishwa.',
     },
     progress: {
       eyebrow: 'MAENDELEO',

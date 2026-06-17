@@ -1263,6 +1263,7 @@ export const hi: Messages = {
       where: 'कहाँ',
       amount: 'राशि',
       from: 'से',
+      security: 'सुरक्षा',
     },
     sourceDomains: {
       ethereumSepolia: 'Ethereum Sepolia',
@@ -1857,6 +1858,8 @@ export const hi: Messages = {
       deliveryProofLabel: 'डिलीवरी प्रमाण',
       deliveryHeldLabel: 'डिलीवरी प्रमाण रोका गया',
       deliveryHeldBody: 'कारवान ने डिलीवरी लिंक को चिह्नित किया है और जांच होने तक उसे रोक रखा है. मंज़ूरी मिलने तक एस्क्रो जारी न करें.',
+      deliveryVerifyingLabel: 'लिंक की जांच जारी है',
+      deliveryVerifyingBody: 'कारवान ने आपके डिलीवरी लिंक को चिह्नित किया है और खरीदार के देखने से पहले उसकी जांच कर रहा है. मंज़ूरी मिलते ही वे इसे देख सकेंगे.',
     },
     progress: {
       eyebrow: 'प्रगति',

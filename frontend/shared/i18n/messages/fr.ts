@@ -1263,6 +1263,7 @@ export const fr: Messages = {
       where: 'Où',
       amount: 'Montant',
       from: 'De',
+      security: 'Sécurité',
     },
     sourceDomains: {
       ethereumSepolia: 'Ethereum Sepolia',
@@ -1857,6 +1858,8 @@ export const fr: Messages = {
       deliveryProofLabel: 'Preuve de livraison',
       deliveryHeldLabel: 'Preuve de livraison retenue',
       deliveryHeldBody: 'Karwan a signalé le lien de livraison et le retient jusqu’à vérification. Ne libérez pas l’escrow tant qu’il n’est pas validé.',
+      deliveryVerifyingLabel: 'Lien en cours de vérification',
+      deliveryVerifyingBody: 'Karwan a signalé votre lien de livraison et le vérifie avant que l’acheteur puisse le voir. Il le verra une fois validé.',
     },
     progress: {
       eyebrow: 'AVANCEMENT',

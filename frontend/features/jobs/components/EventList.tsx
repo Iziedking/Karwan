@@ -183,6 +183,16 @@ function chipsFor(
       value: `${payload.amountUsdc} USDC`,
     });
   }
+  // Security Agent verdict on a delivery link. Only surfaced when the scan
+  // flagged it, so a clean delivery stays quiet; a held link reads as a clear
+  // signal in the timeline for both parties.
+  if (payload.verificationStatus === 'suspicious' || payload.verificationStatus === 'malicious') {
+    out.push({
+      key: 'security',
+      label: copy.chipLabels.security,
+      value: String(payload.verificationStatus).toUpperCase(),
+    });
+  }
   if (payload.sourceDomain != null) {
     const sourceName =
       payload.sourceDomain === 0

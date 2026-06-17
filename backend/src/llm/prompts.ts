@@ -11,6 +11,9 @@ export interface JobContext {
   /** Buyer's per-brief tolerance: agent may accept counters up to
    *  budgetUsdc * (1 + pct/100). Undefined means strict (no tolerance). */
   negotiationMaxIncreasePct?: number;
+  /// Per-brief milestone split the buyer stated in the request. Overrides the
+  /// buyer profile's default split at escrow funding when present and two-part.
+  milestonePcts?: number[];
   /** Human-readable brief text. Sourced from the off-chain briefs store; absent
    *  for jobs posted before we tracked it, in which case the LLM falls back to
    *  budget/deadline matching only. */

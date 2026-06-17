@@ -439,6 +439,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       buyerReputationBps: 5000,
       negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct,
       keywords: brief?.keywords,
+      milestonePcts: brief?.milestonePcts,
       trustedMatch: brief?.trustedMatch === true,
       tradeLane: brief?.tradeLane ?? 'service',
     },
@@ -771,23 +772,31 @@ async function handleBidSubmitted(log: Log) {
   }
 }
 
-async function finalizeBidCollection(state: JobState) {
-  if (state.collectionFired || state.finalized) return;
-  state.collectionFired = true;
-  state.collectionTimer = null;
+const TIER_RANK: Record<Tier, number> = {
+  elite: 4,
+  strong: 3,
+  established: 2,
+  cold: 1,
+  new: 0,
+};
 
-  // Ranking is match-first: the seller whose skills/keywords best cover the
-  // brief wins, ahead of price and reputation (the karwan-match-ranking rule).
-  // Bids in the same topical-match band are "comparable" and ranked by the
-  // deterministic score (price + reputation + completion + age + velocity),
-  // with reputation breaking near-ties inside that. When the brief carries no
-  // keywords, every bid shares one neutral band and the deterministic score
-  // decides alone, exactly as it did before match ranking. The deterministic
-  // score is keyed off the same signals the LLM had, so two evaluations of the
-  // same pool can't disagree; the LLM score is recorded only for narrative.
+interface RankedBidEntry {
+  bid: Bid;
+  deterministicScore: number;
+}
+
+/// Rank the bids currently in the pool, highest first. Match-first: the seller
+/// whose skills/keywords best cover the brief wins ahead of price and
+/// reputation (the karwan-match-ranking rule). Within a topical-match band the
+/// deterministic score (price + reputation + completion + age + velocity)
+/// decides, with reputation breaking near-ties. Trusted Match flips it to
+/// reputation tier first, stake second, price third. Shared by the collection
+/// window and the late-bid supersede guard so both rank by identical rules.
+function rankBidEntries(state: JobState): RankedBidEntry[] {
   const budget = Number(state.context.budgetUsdc);
   const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
-  const scoredBids = [...state.bids.values()]
+  const trusted = state.context.trustedMatch === true;
+  return [...state.bids.values()]
     .filter((b) => typeof b.score === 'number')
     .map((b) => {
       const det = scoreBidDeterministic({
@@ -798,43 +807,88 @@ async function finalizeBidCollection(state: JobState) {
         sellerCompletionRate: b.completionRate,
         sellerVelocity24h: b.velocity24h,
       });
-      return { bid: b, deterministicScore: det.score, breakdown: det.breakdown };
+      return { bid: b, deterministicScore: det.score };
+    })
+    .sort((a, b) => {
+      const bandDelta = matchBand(b.bid) - matchBand(a.bid);
+      if (bandDelta !== 0) return bandDelta;
+
+      if (trusted) {
+        const tierA = TIER_RANK[(a.bid.sellerTier ?? 'established') as Tier];
+        const tierB = TIER_RANK[(b.bid.sellerTier ?? 'established') as Tier];
+        if (tierA !== tierB) return tierB - tierA;
+        const stakeA = a.bid.sellerFreeStakeUsdc ?? 0;
+        const stakeB = b.bid.sellerFreeStakeUsdc ?? 0;
+        if (stakeA !== stakeB) return stakeB - stakeA;
+        // Within the same tier and stake, cheaper wins.
+        return Number(a.bid.priceUsdc) - Number(b.bid.priceUsdc);
+      }
+
+      const scoreDelta = b.deterministicScore - a.deterministicScore;
+      if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
+        const repA = a.bid.sellerReputationBps ?? 5000;
+        const repB = b.bid.sellerReputationBps ?? 5000;
+        if (repA !== repB) return repB - repA;
+      }
+      return scoreDelta;
     });
-  // Trusted Match flips the ranker: reputation tier first, stake second, price
-  // third. This is the "is reputation good? is price fair?" order the buyer
-  // asked for explicitly when they opted in. Normal mode keeps the existing
-  // band → deterministic-score → reputation-tiebreak path (price-aware match).
-  const TIER_RANK: Record<Tier, number> = {
-    elite: 4,
-    strong: 3,
-    established: 2,
-    cold: 1,
-    new: 0,
-  };
-  const trusted = state.context.trustedMatch === true;
-  const rankedEntries = scoredBids.sort((a, b) => {
-    const bandDelta = matchBand(b.bid) - matchBand(a.bid);
-    if (bandDelta !== 0) return bandDelta;
+}
 
-    if (trusted) {
-      const tierA = TIER_RANK[(a.bid.sellerTier ?? 'established') as Tier];
-      const tierB = TIER_RANK[(b.bid.sellerTier ?? 'established') as Tier];
-      if (tierA !== tierB) return tierB - tierA;
-      const stakeA = a.bid.sellerFreeStakeUsdc ?? 0;
-      const stakeB = b.bid.sellerFreeStakeUsdc ?? 0;
-      if (stakeA !== stakeB) return stakeB - stakeA;
-      // Within the same tier and stake, cheaper wins.
-      return Number(a.bid.priceUsdc) - Number(b.bid.priceUsdc);
-    }
+/// Late-bid supersede guard. The collection window ranks and queues candidates
+/// once; a stronger bid that lands after it closed (e.g. an ELITE arriving while
+/// the agent is mid-negotiation with a COLD seller) would otherwise never be
+/// reconsidered. Before a match commits, re-rank the whole pool: if the best bid
+/// is now a different, untried seller that strictly outranks the one about to be
+/// proposed AND its bid price is already within the buyer's cap (acceptable
+/// directly, no fresh negotiation), return it to commit instead. Returns null
+/// when the intended seller is still best, when it has no bid in the pool, or
+/// when the better bid would need negotiation. It never abandons an in-flight
+/// negotiation; it only redirects the commit to an already-acceptable winner.
+function pickSupersedingBid(
+  state: JobState,
+  intendedSeller: `0x${string}`,
+): Bid | null {
+  const ranked = rankBidEntries(state);
+  if (ranked.length === 0) return null;
+  const top = ranked[0]!.bid;
+  if (top.seller.toLowerCase() === intendedSeller.toLowerCase()) return null;
+  if (state.triedSellers.has(top.seller)) return null;
 
-    const scoreDelta = b.deterministicScore - a.deterministicScore;
-    if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
-      const repA = a.bid.sellerReputationBps ?? 5000;
-      const repB = b.bid.sellerReputationBps ?? 5000;
-      if (repA !== repB) return repB - repA;
-    }
-    return scoreDelta;
-  });
+  const intendedEntry = ranked.find(
+    (e) => e.bid.seller.toLowerCase() === intendedSeller.toLowerCase(),
+  );
+  // Without the intended seller's own bid to compare against (listing-driven or
+  // near-miss commits), stay conservative and don't redirect.
+  if (!intendedEntry) return null;
+
+  // Only supersede on a clear edge: a higher match band, or the same band with a
+  // higher reputation tier. A marginal score shuffle inside a band shouldn't
+  // yank a converged negotiation away at the last moment.
+  const betterBand = matchBand(top) > matchBand(intendedEntry.bid);
+  const sameBand = matchBand(top) === matchBand(intendedEntry.bid);
+  const betterTier =
+    TIER_RANK[(top.sellerTier ?? 'established') as Tier] >
+    TIER_RANK[(intendedEntry.bid.sellerTier ?? 'established') as Tier];
+  if (!betterBand && !(sameBand && betterTier)) return null;
+
+  // The winner must be acceptable at its own bid price; we do not reopen
+  // negotiation here.
+  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
+  if (Number(top.priceUsdc) > effectiveCap) return null;
+
+  return top;
+}
+
+async function finalizeBidCollection(state: JobState) {
+  if (state.collectionFired || state.finalized) return;
+  state.collectionFired = true;
+  state.collectionTimer = null;
+
+  // Match-first ranking (see rankBidEntries). budget + effectiveCap are also
+  // used by the tier-aware branches below.
+  const budget = Number(state.context.budgetUsdc);
+  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
+  const rankedEntries = rankBidEntries(state);
   const ranked = rankedEntries.map((entry) => entry.bid);
 
   // Audit: log when a ranking rule put a seller on top that a plain price+rep
@@ -1788,7 +1842,46 @@ async function proposeMatch(
   seller: `0x${string}`,
   agreedPriceUsdc: string,
   pattern?: ReturnType<typeof classifyBid>,
+  opts?: { allowSupersede?: boolean },
 ) {
+  // Re-rank the full pool before committing. A stronger bid that landed after
+  // the collection window closed (a late ELITE while the agent negotiated a
+  // COLD seller) supersedes the about-to-propose seller when it's acceptable at
+  // its own price. Skipped for explicit human-chosen commits (near-miss resume).
+  if (opts?.allowSupersede !== false && !state.finalized) {
+    const better = pickSupersedingBid(state, seller);
+    if (better && better.seller.toLowerCase() !== seller.toLowerCase()) {
+      logger.info(
+        {
+          jobId: state.jobId,
+          supersededSeller: seller,
+          supersededPrice: agreedPriceUsdc,
+          winner: better.seller,
+          winnerPrice: better.priceUsdc,
+          winnerTier: better.sellerTier,
+          winnerMatch: better.topicalMatch,
+        },
+        'late higher-ranked bid superseded the about-to-propose seller',
+      );
+      bus.emitEvent({
+        type: 'agent.decision',
+        jobId: state.jobId,
+        actor: 'buyer',
+        payload: {
+          scope: 'late-supersede',
+          seller: better.seller,
+          priceUsdc: better.priceUsdc,
+          tier: better.sellerTier,
+          reasoning:
+            'A stronger bid arrived after the auction window closed and is accepted directly instead of the seller in negotiation.',
+        },
+      });
+      seller = better.seller;
+      agreedPriceUsdc = better.priceUsdc;
+      pattern = better.pattern;
+    }
+  }
+
   state.finalized = true;
   clearCounterWatchdog(state);
   try {
@@ -2105,7 +2198,11 @@ export async function proceedAgentNearMiss(
     return { ok: false, code: 'BID_FAILED', message: bidRes.reason };
   }
 
-  await proposeMatch(state, sellerAgentAddress as `0x${string}`, proceedPriceUsdc);
+  // Human explicitly chose to proceed with this near-miss seller; never let a
+  // late bid supersede that decision.
+  await proposeMatch(state, sellerAgentAddress as `0x${string}`, proceedPriceUsdc, undefined, {
+    allowSupersede: false,
+  });
   return approveAgentMatch(jobId);
 }
 
@@ -2119,9 +2216,13 @@ async function persistApprovedMatch(
     const buyerWallets = await findAgentWalletByAgentAddress(proposal.buyerAgent);
     const sellerWallets = await findAgentWalletByAgentAddress(proposal.sellerAgent);
     if (!buyerWallets || !sellerWallets) return;
-    const firstReleasePct = state.buyer.milestonePcts[0];
+    // Mirror the split the escrow was actually funded with (a stated per-brief
+    // split overrides the profile default), so the persisted deal's
+    // firstReleasePct matches the on-chain milestones.
+    const milestonePcts = effectiveMilestonePcts(state);
+    const firstReleasePct = milestonePcts[0];
     if (firstReleasePct == null) return;
-    if (state.buyer.milestonePcts.length !== 2) return;
+    if (milestonePcts.length !== 2) return;
 
     const now = Date.now();
     // Re-anchor the delivery deadline to ACCEPTANCE time, not brief-posting
@@ -2194,6 +2295,23 @@ export async function declineAgentMatch(
 /// it to 50% (the form default) on chain. Casual briefs pass 0.
 const AGENT_FLOW_TRUSTED_BPS = 5000;
 
+/// The milestone split to fund this deal with. A buyer who stated a split in
+/// the request ("I pay 30% then 70%") overrides their profile default, but only
+/// when it's the two-part shape the managed flow funds and persists. Anything
+/// else (absent, malformed, or a 3-4 part split) falls back to the profile.
+function effectiveMilestonePcts(state: JobState): number[] {
+  const stated = state.context.milestonePcts;
+  if (
+    Array.isArray(stated) &&
+    stated.length === 2 &&
+    stated.every((n) => Number.isInteger(n) && n >= 1 && n <= 99) &&
+    stated[0]! + stated[1]! === 100
+  ) {
+    return stated;
+  }
+  return state.buyer.milestonePcts;
+}
+
 async function fundEscrow(
   state: JobState,
   seller: `0x${string}`,
@@ -2201,6 +2319,7 @@ async function fundEscrow(
 ): Promise<{ ok: boolean; reason?: string }> {
   if (state.escrowFunded) return { ok: true };
   const buyer = state.buyer;
+  const milestonePcts = effectiveMilestonePcts(state);
 
   // The escrow pulls dealAmount + the buyer's half of the platform fee, so the
   // approval must cover the full funded amount, not just the deal price.
@@ -2246,7 +2365,7 @@ async function fundEscrow(
           state.jobId,
           seller,
           priceWei.toString(),
-          buyer.milestonePcts,
+          milestonePcts,
           reservationBps,
         ],
       },
@@ -2288,7 +2407,7 @@ async function fundEscrow(
       seller,
       dealAmountWei: priceWei.toString(),
       fundedAmountWei: fundedAmount.toString(),
-      milestonePcts: buyer.milestonePcts,
+      milestonePcts,
       ...fundResult,
     },
     'escrow funded',
@@ -2300,7 +2419,7 @@ async function fundEscrow(
     payload: {
       seller,
       amountWei: priceWei.toString(),
-      milestonePcts: buyer.milestonePcts,
+      milestonePcts,
       txHash: fundResult.txHash,
     },
   });
