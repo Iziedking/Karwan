@@ -9,6 +9,7 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { logger } from '../logger.js';
 import { activeStakeSummary } from './stake.js';
 import { computeSpamSignals, type SpamBreakdown } from './spam.js';
+import { getLinkOffenseCount } from '../security/linkOffenses.js';
 
 export interface ReputationInputs {
   /// Lowercased subject address.
@@ -67,6 +68,10 @@ export interface ReputationInputs {
   /// True when concentrationRatio >= 80%. Buyer agent forces
   /// humanReview regardless of tier.
   concentrationHard: boolean;
+  /// Count of flagged-link offenses (delivery proof or chat) recorded against
+  /// this wallet by the Security Agent. Feeds the heaviest penalty term; one
+  /// offense alone drops the score hard.
+  securityOffenses: number;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -225,6 +230,7 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
     spamBreakdown: spam.breakdown,
     counterAbandonRate: spam.counterAbandonRate,
     ...computeConcentration(address, deals),
+    securityOffenses: getLinkOffenseCount(address),
   };
 }
 

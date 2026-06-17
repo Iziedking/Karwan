@@ -1967,6 +1967,7 @@ export const fr: Messages = {
         buyerAutoReleasePrefixTemplate: 'Libère automatiquement les premiers {firstPct} % dans',
         buyerAutoReleaseSuffix: 'si vous n\'agissez pas.',
         buyerExpiredTemplate: 'Fenêtre de libération dépassée. L\'agent libérera les premiers {firstPct} % sous peu sauf si vous agissez maintenant.',
+        releaseHeldNote: 'La libération automatique est en pause. Karwan a signalé le lien de livraison et le vérifie. Le minuteur reprend une fois le lien validé.',
         releaseCtaTemplate: 'Libérer les premiers {firstPct} %',
         releaseBusy: 'Confirmation sur Arc…',
         appealCta: 'Faire appel de cette transaction',

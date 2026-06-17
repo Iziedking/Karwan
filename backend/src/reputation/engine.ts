@@ -38,6 +38,7 @@ export interface ReputationTerms {
     cancel: number;
     spam: number;
     counterAbandon: number;
+    security: number;
   };
 }
 
@@ -73,6 +74,8 @@ export function compute(inputs: ReputationInputs): ReputationResult {
     cancel: ratio(inputs.cancelsLast90d, inputs.totalStarted),
     spam: clamp01(inputs.spamScore),
     counterAbandon: clamp01(inputs.counterAbandonRate),
+    // Flagged-link offenses, saturated to 1.0 at securityOffenseCap.
+    security: clamp01(inputs.securityOffenses / Math.max(1, repConfig.securityOffenseCap)),
   };
   const penalty = Math.min(
     repConfig.penaltyCap,
@@ -80,7 +83,8 @@ export function compute(inputs: ReputationInputs): ReputationResult {
       repConfig.penaltyDispute * rates.disputesLost +
         repConfig.penaltyCancel * rates.cancel +
         repConfig.penaltySpam * rates.spam +
-        repConfig.penaltyAbandon * rates.counterAbandon,
+        repConfig.penaltyAbandon * rates.counterAbandon +
+        repConfig.penaltySecurity * rates.security,
     ),
   );
 

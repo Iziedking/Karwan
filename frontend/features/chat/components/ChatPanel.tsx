@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { ApiError } from '@/core/api';
 import { useChat } from '../hooks/useChat';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -28,6 +29,7 @@ export function ChatPanel({
   const cp = useTranslations().chatPanel;
   const { messages, fetchState, send, sending } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
+  const [sendError, setSendError] = useState<string | null>(null);
   const me = caller.toLowerCase();
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -54,10 +56,15 @@ export function ChatPanel({
     if (sending || !draft.trim()) return;
     const body = draft;
     setDraft('');
+    setSendError(null);
     try {
       await send(body);
-    } catch {
+    } catch (err) {
       setDraft(body);
+      // Surface the reason a message didn't go through. The Security Agent
+      // blocks a flagged link (422) with a clear message; show it instead of
+      // silently restoring the draft so the sender knows why.
+      setSendError(err instanceof ApiError ? err.message : cp.loadError);
     }
   }
 
@@ -152,6 +159,22 @@ export function ChatPanel({
         })}
       </div>
 
+      {sendError && (
+        <div
+          className="mx-6 mt-3 px-3 py-2.5 text-[12.5px]"
+          style={{
+            background: 'rgba(178, 84, 37, 0.10)',
+            color: '#b25425',
+            border: '1px solid rgba(178, 84, 37, 0.35)',
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
+            borderBottomLeftRadius: 10,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          {sendError}
+        </div>
+      )}
       <form
         onSubmit={onSubmit}
         className="px-6 py-4 border-t border-[var(--lp-border-light)] flex items-center gap-2"
@@ -160,7 +183,10 @@ export function ChatPanel({
           ref={inputRef}
           type="text"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (sendError) setSendError(null);
+          }}
           placeholder={cp.inputPlaceholder}
           maxLength={2000}
           className="chat-input flex-1 bg-[var(--lp-light)] px-4 py-2.5 text-[13px] focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] transition-shadow"

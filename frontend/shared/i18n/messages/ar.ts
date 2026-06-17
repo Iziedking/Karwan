@@ -1967,6 +1967,7 @@ export const ar: Messages = {
         buyerAutoReleasePrefixTemplate: 'سيُحرَّر تلقائياً أول {firstPct}% خلال',
         buyerAutoReleaseSuffix: 'إن لم تتصرف.',
         buyerExpiredTemplate: 'انتهت نافذة التحرير. سيحرّر الوكيل أول {firstPct}% قريباً ما لم تتصرف الآن.',
+        releaseHeldNote: 'تم إيقاف التحرير التلقائي مؤقتاً. أبلغت كروان عن رابط التسليم وتتحقق منه. يستأنف مؤقّت التحرير بمجرد اعتماد الرابط.',
         releaseCtaTemplate: 'تحرير أول {firstPct}%',
         releaseBusy: 'جارٍ التأكيد على Arc…',
         appealCta: 'تقديم طعن على هذه الصفقة',

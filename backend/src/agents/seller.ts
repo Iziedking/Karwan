@@ -623,20 +623,34 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   });
 }
 
+/// Demand-scaled opening headroom above the buyer's budget. The seller's open
+/// reaches `HEADROOM_BASE_PCT + heat * HEADROOM_DEMAND_SPAN_PCT` percent above
+/// the budget, so a cold/oversupplied skill (heat -> 0) opens near the buyer's
+/// price with little to negotiate, while a scarce, in-demand skill (heat -> 1)
+/// opens well above it with a real walk down. `heat` is the live marketHeat
+/// signal (Karwan internal supply scarcity blended with external demand
+/// findings). The buyer's own tolerance still floors the headroom, and the
+/// buyer's acceptance cap is unchanged, so this only shapes the opening ask,
+/// never what the buyer ultimately pays.
+const HEADROOM_BASE_PCT = 5;
+const HEADROOM_DEMAND_SPAN_PCT = 45;
+
 /// Per-seller opening bid, demand-driven, with bounded jitter so it doesn't
 /// fall into a fixed pattern.
 ///
 /// Economic model: a buyer who posts a brief has committed to that budget as
-/// their valuation, so it is the FLOOR of the negotiation, not a ceiling to
-/// undercut. The seller opens between the buyer's posted budget and the
-/// tolerance ceiling (budget x (1 + maxIncrease%)) and only ever negotiates
-/// upward within that band. It never bids below what the buyer already offered.
+/// their valuation, so it is the FLOOR of the negotiation. The seller never
+/// bids below it. How far ABOVE it the seller opens is demand-scaled: the
+/// opening ceiling is budget x (1 + headroom%), where headroom grows with
+/// marketHeat (scarce / in-demand skill) and shrinks toward the budget as
+/// demand drops. The buyer's own tolerance floors the headroom. So a hot skill
+/// opens high with a real walk down; a common one opens near the buyer's price.
 ///
-/// Sellers want more, so the opening biases toward the ceiling, lifted by market
-/// demand (a hot skill holds near the ceiling) and softened for trusted buyers
-/// (an elite/repeat buyer is quoted nearer the floor). A per-seller address seed
-/// keeps a multi-seller auction spread out instead of every seller converging on
-/// one number. Returns null when no point in [budget, ceiling] is reachable for
+/// Within that band the opening biases toward the ceiling, lifted again by
+/// market demand and softened for trusted buyers (an elite/repeat buyer is
+/// quoted nearer the floor). A per-seller address seed keeps a multi-seller
+/// auction spread out instead of every seller converging on one number. Returns
+/// null when no point in [budget, ceiling] is reachable for
 /// this seller (their max is below the buyer's budget, or their min above the
 /// ceiling), i.e. no possible deal, so skip.
 function sellerOpeningBid(
@@ -647,12 +661,23 @@ function sellerOpeningBid(
 ): number | null {
   const budget = Number(job.budgetUsdc);
   const tol = job.negotiationMaxIncreasePct ?? 0;
-  const buyerCeiling = budget * (1 + tol / 100);
-  // Floor = the buyer's posted budget, never below it. The budget is what the
-  // buyer is willing to pay, so a seller only ever asks AT or ABOVE it and is
-  // negotiated down. (The seller's own minimum still applies if it's higher.)
+  const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
+  // Sellers open ABOVE the budget and get negotiated down toward it (never
+  // below). How far above scales with DEMAND: the opening headroom grows as
+  // marketHeat rises (scarce / in-demand skill, Karwan supply + external
+  // findings) and shrinks toward the budget as demand drops, so a hot skill
+  // opens with room to negotiate while a common one opens near the buyer's
+  // price. The buyer's own tolerance is a floor on the headroom (they
+  // explicitly allowed that much). The buyer agent counters anything above its
+  // actual cap (budget x (1+tol)) back down, so a high open only means a longer
+  // walk to the buyer's price, never a worse deal.
+  const demandHeadroomPct = HEADROOM_BASE_PCT + h * HEADROOM_DEMAND_SPAN_PCT;
+  const openHeadroomPct = Math.max(tol, demandHeadroomPct);
+  const openCeiling = budget * (1 + openHeadroomPct / 100);
+  // Floor = the buyer's posted budget, never below it. (The seller's own
+  // minimum still applies if it is higher; that seller wants more than offered.)
   const floor = Math.max(seller.minBudgetUsdc, budget);
-  const ceiling = Math.min(seller.maxBudgetUsdc, buyerCeiling);
+  const ceiling = Math.min(seller.maxBudgetUsdc, openCeiling);
   if (!Number.isFinite(ceiling) || ceiling < floor) return null;
   if (ceiling === floor) return Number(floor.toFixed(2));
 
@@ -666,7 +691,6 @@ function sellerOpeningBid(
     cold: 0.7,
     new: 0.8,
   };
-  const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
   // Market heat is the heaviest input, so a hot skill genuinely holds nearer the
   // ceiling and a common one prices down. The open tracks live demand, not a
   // fixed formula. A per-bid jitter keeps the same seller from opening at the

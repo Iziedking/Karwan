@@ -1856,6 +1856,7 @@ interface MessagesShape {
         buyerAutoReleasePrefixTemplate: string;
         buyerAutoReleaseSuffix: string;
         buyerExpiredTemplate: string;
+        releaseHeldNote: string;
         releaseCtaTemplate: string;
         releaseBusy: string;
         appealCta: string;
@@ -5580,6 +5581,7 @@ export const en: MessagesShape = {
         buyerAutoReleasePrefixTemplate: 'Auto-releases the first {firstPct}% in',
         buyerAutoReleaseSuffix: "if you don't act.",
         buyerExpiredTemplate: 'Release window passed. The agent will release the first {firstPct}% shortly unless you act now.',
+        releaseHeldNote: 'Auto-release is paused. Karwan flagged the delivery link and is verifying it. The release timer resumes once the link clears.',
         releaseCtaTemplate: 'Release first {firstPct}%',
         releaseBusy: 'Confirming on Arc…',
         appealCta: 'Appeal this deal',

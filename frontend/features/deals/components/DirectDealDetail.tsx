@@ -648,9 +648,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             <PageCard>
               <CardHead label={dd.terms.deliveryProofLabel} />
               <div className="p-5 md:p-6 space-y-4">
-                <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap break-words">
-                  {deal.deliveryProof}
-                </p>
+                <ProofText
+                  text={deal.deliveryProof}
+                  // Only a cleared link is clickable. A flagged link is never
+                  // shown to the buyer (stripped server-side) and stays plain
+                  // text for the seller, so a phishy URL is never one-tap live.
+                  linkify={
+                    deal.verificationStatus !== 'suspicious' &&
+                    deal.verificationStatus !== 'malicious'
+                  }
+                />
                 {/* Seller-side mirror of the buyer's hold notice. The seller
                     still sees their own proof, so without this they'd have no
                     sign Karwan held the link back from the buyer. */}
@@ -925,6 +932,39 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         />
       )}
     </FullBleed>
+  );
+}
+
+/// Renders delivery-proof text. When `linkify` is true (a cleared proof), any
+/// http(s) URL becomes a clickable link the buyer can open to verify the work;
+/// when false (a flagged proof) the text stays inert so a phishy URL is never
+/// one tap from being opened.
+function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
+  const base =
+    'text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap break-words';
+  if (!linkify) {
+    return <p className={base}>{text}</p>;
+  }
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return (
+    <p className={base}>
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="underline underline-offset-2 break-all"
+            style={{ color: 'var(--lp-accent-strong, var(--lp-band-dark))' }}
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </p>
   );
 }
 
@@ -1503,8 +1543,13 @@ function ActionPanel({
   if (stage === 'awaiting-first-release') {
     const endsAt = deal.deliveredAt ? deal.deliveredAt + windowMs : null;
     const msLeft = endsAt ? endsAt - now : 0;
-    const open = endsAt != null && msLeft > 0;
-    const expired = endsAt != null && msLeft <= 0;
+    // A flagged delivery link freezes the release: the backend pauses the
+    // auto-release and rejects a manual release. Reflect that here instead of
+    // the misleading "auto-releases / will release shortly" countdown.
+    const held =
+      deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
+    const open = !held && endsAt != null && msLeft > 0;
+    const expired = !held && endsAt != null && msLeft <= 0;
 
     if (viewerIsBuyer) {
       return (
@@ -1514,6 +1559,11 @@ function ActionPanel({
               .replace('{firstPct}', String(firstPct))
               .replace('{remainPct}', String(100 - firstPct))}
           </Body>
+          {held && (
+            <WindowNote tone="warning">
+              {copy.awaitingFirstRelease.releaseHeldNote}
+            </WindowNote>
+          )}
           {open && (
             <WindowNote tone="warning">
               {copy.awaitingFirstRelease.buyerAutoReleasePrefixTemplate.replace('{firstPct}', String(firstPct))}{' '}
@@ -1526,7 +1576,7 @@ function ActionPanel({
             </WindowNote>
           )}
           <div className="flex flex-wrap gap-2">
-            <CTAPill disabled={busy} onClick={onRelease}>
+            <CTAPill disabled={busy || held} onClick={onRelease}>
               {busy ? copy.awaitingFirstRelease.releaseBusy : copy.awaitingFirstRelease.releaseCtaTemplate.replace('{firstPct}', String(firstPct))}
             </CTAPill>
             <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
@@ -1539,6 +1589,11 @@ function ActionPanel({
     return (
       <div className="space-y-4">
         <Body>{copy.awaitingFirstRelease.sellerWaitingTemplate.replace('{firstPct}', String(firstPct))}</Body>
+        {held && (
+          <WindowNote tone="warning">
+            {copy.awaitingFirstRelease.releaseHeldNote}
+          </WindowNote>
+        )}
         {open && (
           <WindowNote tone="muted">
             {copy.awaitingFirstRelease.sellerOpenPrefix}{' '}
