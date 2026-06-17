@@ -87,18 +87,6 @@ Karwan runs on the Circle commerce stack end to end.
 
 The agent layer wraps Circle wallets so neither side handles keys. Web3 users can sign in with their own wallet through Sign-In with Ethereum if they prefer.
 
-## Repo layout
-
-```
-karwan/
-├── contracts/   Foundry. Escrow, vault, reputation, treasury, registry,
-│                PO financing, deploy scripts, and tests.
-├── backend/     Hono. Auctions, agents, deal lifecycle, CCTP relay,
-│                reputation engine, x402 settlement, Telegram notifier, SSE bus.
-├── frontend/    Next.js, wagmi, RainbowKit. App shell, i18n, every user
-│                surface, React Query throughout.
-└── docs/        Architecture, Circle integration, reputation model.
-```
 
 ## Docs
 
@@ -108,34 +96,6 @@ karwan/
 - [docs/why-karwan.md](./docs/why-karwan.md). The longer design brief.
 - [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). Notes from building on Circle.
 
-## Run it
-
-Backend:
-
-```bash
-cd backend
-cp .env.example .env
-# fill in OPENROUTER_API_KEY, Circle keys, Arc RPC, contract addresses
-npm install
-npm run dev
-```
-
-Frontend:
-
-```bash
-cd frontend
-cp .env.example .env
-npm install
-npm run dev
-```
-
-Contracts (Foundry):
-
-```bash
-cd contracts
-forge build
-forge test
-```
 
 ## License
 

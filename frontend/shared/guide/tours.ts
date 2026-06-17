@@ -15,7 +15,7 @@ export const WELCOME_STEPS: TourStep[] = [
   },
   {
     title: 'Where things live',
-    body: 'Use the top menu: Buyer to hire, Seller to offer work, Activity to follow everything live. Your money stays in your own wallet until you fund a deal.',
+    body: 'Open P2P Trades from the top menu to hire or to offer work, Market to browse what others have posted, and Activity to follow everything live. Your money stays in your own wallet until you fund a deal.',
   },
   {
     title: 'Two buttons, always there',
