@@ -51,8 +51,9 @@ interface GuideContextValue {
   recordAction: (type: string) => void;
   mastered: boolean;
   /// A page registers its tour here on mount so the global floating Tour pill
-  /// knows what to launch. Page tours no longer auto-open (only the first-run
-  /// welcome does); the pill is the on-demand trigger on every page.
+  /// knows what to launch. PageTour also auto-opens the tour once for a
+  /// newcomer (after the first-run welcome); the pill is the on-demand trigger
+  /// thereafter and on every page.
   registerTour: (id: string, steps: TourStep[], label?: string) => void;
   unregisterTour: (id: string) => void;
   currentTour: { id: string; steps: TourStep[]; label: string } | null;
