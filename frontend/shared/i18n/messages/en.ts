@@ -1216,6 +1216,7 @@ interface MessagesShape {
       where: string;
       amount: string;
       from: string;
+      security: string;
     };
     sourceDomains: {
       ethereumSepolia: string;
@@ -1746,6 +1747,8 @@ interface MessagesShape {
       deliveryProofLabel: string;
       deliveryHeldLabel: string;
       deliveryHeldBody: string;
+      deliveryVerifyingLabel: string;
+      deliveryVerifyingBody: string;
     };
     progress: {
       eyebrow: string;
@@ -4862,6 +4865,7 @@ export const en: MessagesShape = {
       where: 'Where',
       amount: 'Amount',
       from: 'From',
+      security: 'Security',
     },
     sourceDomains: {
       ethereumSepolia: 'Ethereum Sepolia',
@@ -5456,6 +5460,8 @@ export const en: MessagesShape = {
       deliveryProofLabel: 'Delivery proof',
       deliveryHeldLabel: 'Delivery proof held',
       deliveryHeldBody: 'Karwan flagged the delivery link and is holding it back until it is checked. Do not release escrow until it clears.',
+      deliveryVerifyingLabel: 'Link under review',
+      deliveryVerifyingBody: 'Karwan flagged your delivery link and is verifying it before the buyer can see it. They will see it once it clears.',
     },
     progress: {
       eyebrow: 'PROGRESS',

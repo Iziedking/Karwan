@@ -999,6 +999,9 @@ export const api = {
       budgetUsdc: number;
       negotiationMaxIncreasePct?: number;
       trustedMatch?: boolean;
+      // Per-brief milestone split stated in the request ("30% then 70%").
+      // Percentages sum to 100; overrides the buyer profile default at funding.
+      milestonePcts?: number[];
       // SME trade-finance fields (Phase 2 Track 2). All optional; legacy
       // service flows continue to post without them.
       tradeType?: 'service' | 'goods' | 'mixed';

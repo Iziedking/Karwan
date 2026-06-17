@@ -35,6 +35,17 @@ function paramsFor(e: ExtractedDeal): URLSearchParams {
   return out;
 }
 
+/// Turn the LLM's first-milestone percentage into the two-part split the brief
+/// post accepts. "I pay 30% then 70%" → [30, 70]. Returns undefined when the
+/// user didn't state a split, so the buyer profile default stands. Clamped to a
+/// sane 10-90 first release so a stray extraction can't post a degenerate split.
+function milestoneSplitFrom(firstPct: number | null): number[] | undefined {
+  if (firstPct == null) return undefined;
+  const first = Math.round(firstPct);
+  if (!Number.isFinite(first) || first < 10 || first > 90) return undefined;
+  return [first, 100 - first];
+}
+
 function missingFields(e: ExtractedDeal): string[] {
   const missing: string[] = [];
   if (!e.terms || e.terms.trim().length < 8) missing.push('the work description');
@@ -127,6 +138,7 @@ export function BriefComposer() {
         ...deadlinePayload(e.deadlineDays!),
         negotiationMaxIncreasePct:
           e.tolerancePct != null ? Math.round(e.tolerancePct) : undefined,
+        milestonePcts: milestoneSplitFrom(e.suggestedFirstMilestonePct),
         trustedMatch: e.suggestedTrustedMatch === true,
       });
       sfx.send();

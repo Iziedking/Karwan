@@ -14,6 +14,12 @@ export interface Brief {
   postedBy: string;
   negotiationMaxIncreasePct?: number;
   keywords?: string[];
+  /// Per-brief milestone split (percentages summing to 100). When the buyer
+  /// states one in the request ("I pay 30% then 70%") it overrides the buyer
+  /// profile's default split at escrow funding. Absent means the profile
+  /// default is used. The managed flow funds a two-part split, so only a
+  /// length-2 value takes effect downstream.
+  milestonePcts?: number[];
   createdAt: number;
   /// Set by jobExpiryWatcher when a brief passes its deadline with no
   /// accepted bid + no approved match proposal. Survives backend restarts so

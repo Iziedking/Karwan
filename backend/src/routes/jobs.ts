@@ -86,6 +86,18 @@ const postJobSchema = z
      *  and stake above price, and gates bids on the seller's free stake covering
      *  the deal's insurance reservation. For higher-value or one-shot deals. */
     trustedMatch: z.boolean().optional(),
+    /** Per-brief milestone split the buyer stated in the request ("30% then
+     *  70%"). Percentages must sum to 100. Overrides the buyer profile default
+     *  at escrow funding; the managed flow funds a two-part split, so a 1 or
+     *  3-4 part value is stored but only takes effect when it's two parts. */
+    milestonePcts: z
+      .array(z.number().int().min(1).max(99))
+      .min(1)
+      .max(4)
+      .refine((a) => a.reduce((s, n) => s + n, 0) === 100, {
+        message: 'milestonePcts must sum to 100',
+      })
+      .optional(),
     /** SME trade-finance fields (Phase 2 Track 2). All optional; service deals
      *  omit them entirely so the auction surface stays clean. The brief store
      *  (db/briefs.ts) snapshots these alongside the brief text so the buyer
@@ -275,6 +287,7 @@ jobsRoutes.post('/', async (c) => {
     briefText: body.brief,
     postedBy: body.posterAddress,
     negotiationMaxIncreasePct: body.negotiationMaxIncreasePct,
+    milestonePcts: body.milestonePcts,
     trustedMatch: body.trustedMatch === true,
     tradeLane: deriveLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,

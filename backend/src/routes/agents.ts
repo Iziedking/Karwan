@@ -117,7 +117,7 @@ const extractionSchema = z.object({
     .max(90)
     .nullable()
     .describe(
-      'DIRECT ONLY. If the user mentioned a milestone split (e.g. "50/50", "30 upfront 70 on delivery"), return the FIRST milestone percentage. Null otherwise.',
+      'DIRECT OR BRIEF. If the user mentioned a milestone split (e.g. "50/50", "30 upfront 70 on delivery", "I pay 30% then 70%"), return the FIRST milestone percentage. Null otherwise.',
     ),
   suggestedTrustedMatch: z
     .boolean()
@@ -159,7 +159,7 @@ function buildExtractPrompt(
     surface === 'direct'
       ? 'SURFACE: direct deal. The user is a BUYER posting a deal with a specific counterparty they already have in mind. Focus on: amountUsdc, deadlineDays, terms, suggestedFirstMilestonePct, suggestedTrustedMatch, counterpartyHint, acceptanceWindowHours. Leave title, tolerancePct null. Distinguish "deadline / deliver by" (deadlineDays) from "accept by / respond by" (acceptanceWindowHours) — these are two DIFFERENT clocks. The user often gives both ("1 hour to accept, 7 days to deliver"); extract each into its own field.'
       : surface === 'brief'
-        ? 'SURFACE: brief. The user is a BUYER posting an open request that other sellers will bid on. Focus on: amountUsdc (budget cap), deadlineDays, terms, tolerancePct (negotiation room), suggestedTrustedMatch. Leave title, counterpartyHint, suggestedFirstMilestonePct null.'
+        ? 'SURFACE: brief. The user is a BUYER posting an open request that other sellers will bid on. Focus on: amountUsdc (budget cap), deadlineDays, terms, tolerancePct (negotiation room), suggestedFirstMilestonePct (if they state a payment split like "30% then 70%"), suggestedTrustedMatch. Leave title, counterpartyHint null.'
         : 'SURFACE: listing. The user is a SELLER posting an offer for buyers to find. Focus on: title (headline), amountUsdc (ask price), deadlineDays (TTL of the listing), terms (description), tolerancePct. Leave counterpartyHint, suggestedFirstMilestonePct, suggestedTrustedMatch null.';
 
   return [

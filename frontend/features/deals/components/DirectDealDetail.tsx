@@ -647,10 +647,35 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           {deal.delivered && deal.deliveryProof && (
             <PageCard>
               <CardHead label={dd.terms.deliveryProofLabel} />
-              <div className="p-5 md:p-6">
+              <div className="p-5 md:p-6 space-y-4">
                 <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap break-words">
                   {deal.deliveryProof}
                 </p>
+                {/* Seller-side mirror of the buyer's hold notice. The seller
+                    still sees their own proof, so without this they'd have no
+                    sign Karwan held the link back from the buyer. */}
+                {viewerIsSeller &&
+                  (deal.verificationStatus === 'suspicious' ||
+                    deal.verificationStatus === 'malicious') && (
+                    <div
+                      className="px-4 py-3"
+                      style={{
+                        background: 'rgba(178, 84, 37, 0.10)',
+                        border: '1px solid rgba(178, 84, 37, 0.35)',
+                        borderTopLeftRadius: 10,
+                        borderTopRightRadius: 10,
+                        borderBottomLeftRadius: 10,
+                        borderBottomRightRadius: 3,
+                      }}
+                    >
+                      <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
+                        [:{dd.terms.deliveryVerifyingLabel}:]
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                        {dd.terms.deliveryVerifyingBody}
+                      </p>
+                    </div>
+                  )}
               </div>
             </PageCard>
           )}
