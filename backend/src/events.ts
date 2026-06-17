@@ -33,6 +33,8 @@ export type KarwanEventType =
   | 'deal.direct.edited'
   | 'deal.accepted'
   | 'deal.delivered'
+  | 'deal.delivery.flagged'
+  | 'deal.delivery.cleared'
   | 'deal.matched'
   | 'deal.match.declined'
   | 'deal.match.approved'

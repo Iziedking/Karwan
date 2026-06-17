@@ -28,6 +28,8 @@ const SSE_TYPES = [
   'deal.direct.created',
   'deal.accepted',
   'deal.delivered',
+  'deal.delivery.flagged',
+  'deal.delivery.cleared',
   'deal.matched',
   'deal.match.declined',
   'deal.match.approved',

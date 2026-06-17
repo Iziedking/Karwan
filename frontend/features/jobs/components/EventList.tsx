@@ -11,6 +11,7 @@ import type { Messages } from '@/shared/i18n/messages/en';
 function hrefForEvent(e: ChainEvent): string | null {
   if (!e.jobId) return null;
   if (e.type.startsWith('deal.direct.') || e.type === 'deal.delivered' ||
+      e.type === 'deal.delivery.flagged' || e.type === 'deal.delivery.cleared' ||
       e.type === 'deal.accepted' || e.type === 'deal.review.started' ||
       e.type === 'deal.review.heartbeat' || e.type === 'deal.auto_released' ||
       e.type === 'deal.disputed' || e.type === 'deal.cancelled') {
@@ -52,6 +53,8 @@ const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
   'deal.direct.created': 'buyer',
   'deal.accepted': 'seller',
   'deal.delivered': 'seller',
+  'deal.delivery.flagged': 'error',
+  'deal.delivery.cleared': 'system',
   'deal.review.started': 'buyer',
   'deal.review.heartbeat': 'buyer',
   'deal.auto_released': 'system',

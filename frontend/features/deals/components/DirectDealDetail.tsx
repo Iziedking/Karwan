@@ -1590,9 +1590,35 @@ function ActionPanel({
       <div className="space-y-4">
         <Body>{copy.awaitingFirstRelease.sellerWaitingTemplate.replace('{firstPct}', String(firstPct))}</Body>
         {held && (
-          <WindowNote tone="warning">
-            {copy.awaitingFirstRelease.releaseHeldNote}
-          </WindowNote>
+          <>
+            <WindowNote tone="warning">
+              {copy.awaitingFirstRelease.releaseHeldNote}
+            </WindowNote>
+            {/* Re-delivery is the primary resolution: the seller submits a
+                corrected link, the backend re-scans it, and a clean result
+                clears the hold and resumes the release. */}
+            <label className="block space-y-1.5">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+                [:{copy.awaitingFirstRelease.resubmitLabel}:]
+              </span>
+              <textarea
+                value={deliveryProof}
+                onChange={(e) => onDeliveryProofChange(e.target.value)}
+                rows={2}
+                placeholder={copy.awaitingDelivery.proofPlaceholder}
+                className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] resize-none transition-shadow"
+                style={{
+                  borderTopLeftRadius: 12,
+                  borderTopRightRadius: 12,
+                  borderBottomLeftRadius: 12,
+                  borderBottomRightRadius: 3,
+                }}
+              />
+            </label>
+            <CTAPill onClick={onMarkDelivered} disabled={busy || !deliveryProof.trim()}>
+              {busy ? copy.awaitingFirstRelease.resubmitBusy : copy.awaitingFirstRelease.resubmitCta}
+            </CTAPill>
+          </>
         )}
         {open && (
           <WindowNote tone="muted">

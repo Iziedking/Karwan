@@ -24,6 +24,8 @@ function routes(event: ChainEvent): readonly (readonly string[])[] {
     t === 'deal.direct.created' ||
     t === 'deal.accepted' ||
     t === 'deal.delivered' ||
+    t === 'deal.delivery.flagged' ||
+    t === 'deal.delivery.cleared' ||
     t === 'deal.matched' ||
     t === 'deal.match.approved' ||
     t === 'deal.match.declined' ||

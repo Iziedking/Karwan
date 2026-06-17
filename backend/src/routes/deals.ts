@@ -1152,7 +1152,12 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   if (!deal.acceptedAt) {
     return c.json({ error: 'accept the deal terms before marking it delivered' }, 409);
   }
-  if (deal.delivered) {
+  // A held (flagged) delivery can be re-submitted with a corrected link to
+  // clear the hold; that is the primary resolution path. A normal, cleared
+  // delivery is final and can't be re-marked.
+  const wasHeld =
+    deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
+  if (deal.delivered && !wasHeld) {
     return c.json({ error: 'deal already marked delivered' }, 409);
   }
   // Work is submitted as a link so the buyer can open and verify it (and the
@@ -1286,19 +1291,54 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     }
   }
 
+  const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
+  const isRedelivery = deal.delivered === true;
+
   await patchDeal(jobId, {
     delivered: true,
+    // Reset the review clock to now on every (re)delivery. While a link is held
+    // the auto-release is paused anyway, so a corrected clean link gives the
+    // buyer a fresh, full window to review what they can finally see.
     deliveredAt: Date.now(),
     ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
+    // Always overwrite the verdict + reasons so a corrected link clears the old
+    // flag (reasons explicitly emptied when the new link is clean).
     ...(verificationStatus ? { verificationStatus } : {}),
-    ...(verificationReasons ? { verificationReasons } : {}),
+    verificationReasons: verificationReasons ?? [],
   });
-  bus.emitEvent({
-    type: 'deal.delivered',
-    jobId,
-    actor: 'seller',
-    payload: { seller: deal.seller, firstReleasePct: deal.firstReleasePct, verificationStatus },
-  });
+
+  // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
+  if (!isRedelivery) {
+    bus.emitEvent({
+      type: 'deal.delivered',
+      jobId,
+      actor: 'seller',
+      payload: { seller: deal.seller, firstReleasePct: deal.firstReleasePct, verificationStatus },
+    });
+  }
+  // Notify BOTH parties when a link is flagged, and again when a corrected link
+  // clears the hold, so the seller knows to fix it and the buyer knows the
+  // release is paused / resumed.
+  if (nowHeld) {
+    bus.emitEvent({
+      type: 'deal.delivery.flagged',
+      jobId,
+      actor: 'seller',
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        verificationStatus,
+        reasons: verificationReasons ?? [],
+      },
+    });
+  } else if (wasHeld) {
+    bus.emitEvent({
+      type: 'deal.delivery.cleared',
+      jobId,
+      actor: 'seller',
+      payload: { buyer: deal.buyer, seller: deal.seller, firstReleasePct: deal.firstReleasePct },
+    });
+  }
   return c.json({ accepted: true, jobId, verificationStatus }, 200);
 });
 
