@@ -1984,6 +1984,7 @@ async function proposeMatch(
               reasons: screenBid.reasons,
               amountUsd: screenBid.paidUsd,
               txHash: screenBid.txHash,
+              payer: screenBid.payer,
               screenedAt: screenBid.screenedAt,
             },
           }
@@ -1996,6 +1997,7 @@ async function proposeMatch(
               reasons: buyerScreen.reasons,
               amountUsd: buyerScreen.paidUsd,
               txHash: buyerScreen.txHash,
+              payer: buyerScreen.payer,
               screenedAt: buyerScreen.screenedAt,
             },
           }

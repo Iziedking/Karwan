@@ -118,6 +118,11 @@ interface MessagesShape {
       tradeEyebrow: string;
       goodsLabel: string;
       goodsHint: string;
+      tradeTypeHint: string;
+      tradeGoods: string;
+      tradeServices: string;
+      tradeBoth: string;
+      categoriesLabel: string;
       aboutLabel: string;
       aboutHint: string;
       dealEyebrow: string;
@@ -970,6 +975,7 @@ interface MessagesShape {
       label: string;
       template: string;
       txCta: string;
+      payerCta: string;
     };
     business: {
       label: string;
@@ -3723,6 +3729,11 @@ export const en: MessagesShape = {
       tradeEyebrow: 'WHAT YOU TRADE',
       goodsLabel: 'Goods or services',
       goodsHint: 'Comma-separated. Example: textiles, garments, cotton.',
+      tradeTypeHint: 'Pick what your business trades.',
+      tradeGoods: 'Goods',
+      tradeServices: 'Services',
+      tradeBoth: 'Both',
+      categoriesLabel: 'Categories',
       aboutLabel: 'About your business',
       aboutHint: 'One or two sentences shown to counterparties.',
       dealEyebrow: 'DEAL SIZE',
@@ -4619,6 +4630,7 @@ export const en: MessagesShape = {
       label: 'COMPLIANCE SCREEN',
       template: 'Your agent paid {amount} on Base to run a sanctions and risk screen on the counterparty.',
       txCta: 'View payment',
+      payerCta: 'View payer wallet',
     },
     business: {
       label: 'VERIFIED BUSINESS',

@@ -36,6 +36,9 @@ const profileSchema = z.object({
   seller: z
     .object({
       skills: z.array(z.string().min(1)).min(1).max(20),
+      /// What the business trades. Chosen as Goods / Services / Both on the
+      /// business profile; absent for individual sellers (kept optional).
+      tradeType: z.enum(['goods', 'services', 'both']).optional(),
       bio: z.string().max(400).default(''),
       minBudgetUsdc: z.number().nonnegative(),
       maxBudgetUsdc: z.number().positive(),

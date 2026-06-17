@@ -181,6 +181,9 @@ export interface UserProfile {
   settings?: UserSettings;
   seller?: {
     skills: string[];
+    /// Goods / Services / Both, chosen on the business profile. Absent for
+    /// individual sellers.
+    tradeType?: 'goods' | 'services' | 'both';
     bio: string;
     minBudgetUsdc: number;
     maxBudgetUsdc: number;
@@ -530,6 +533,9 @@ export interface MatchProposal {
     amountUsd: number;
     /// On-chain settlement tx (Base) for the $0.01 screen payment, when echoed.
     txHash?: string;
+    /// The agent's Base payer wallet. On-chain evidence even without a tx hash:
+    /// its BaseScan history shows the real USDC spend.
+    payer?: string;
     screenedAt: number;
   };
   /// Mirror screen: the seller agent's compliance screen of the BUYER. subject
@@ -541,6 +547,7 @@ export interface MatchProposal {
     reasons: string[];
     amountUsd: number;
     txHash?: string;
+    payer?: string;
     screenedAt: number;
   };
   /// Compact verified-business badge for the match. Present when the seller's

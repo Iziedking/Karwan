@@ -54,6 +54,9 @@ export interface UserProfile {
   settings?: UserSettings;
   seller?: {
     skills: string[];
+    /// What the business trades (Goods / Services / Both). Optional; set on the
+    /// business profile, absent for individual sellers.
+    tradeType?: 'goods' | 'services' | 'both';
     bio: string;
     minBudgetUsdc: number;
     maxBudgetUsdc: number;

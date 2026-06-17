@@ -70,6 +70,15 @@ async function tick() {
       if (account.state !== ESCROW_ACCEPTED) continue;
       const buyerWalletId = deal.buyerAgentWalletId;
 
+      // Security Agent hold: a delivery link the scan flagged is withheld from
+      // the buyer, so the buyer can't review it. The auto-release must pause
+      // while held, otherwise money flows to a possibly-malicious seller on a
+      // link the buyer never even saw. Manual release is also blocked server-side
+      // (see the release route). Stays paused until the link clears.
+      const deliveryHeld =
+        deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
+      if (deliveryHeld) continue;
+
       // Timer 1: first-release auto.
       const firstWindowOpen =
         deal.delivered &&
