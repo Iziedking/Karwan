@@ -8,8 +8,11 @@
   through an inline CCTP progress card.
 - **Backend.** Hono API. Holds the buyer and seller agent loops with their
   asymmetric negotiation walk, the deal watcher that runs review-window
-  timers and the auto-release ladder, the CCTP relay (both directions),
-  the SSE event bus, the OTP and SIWE auth flow, and the cashout router.
+  timers and the auto-release ladder, the SecurityAgent that scans delivery
+  proofs and chat links, the CCTP relay (both directions), the SSE event bus,
+  the OTP and SIWE auth flow, and the cashout router. The agent loops watch
+  chain events by polling the RPC over HTTP, so a dropped websocket never
+  silently stops them.
 - **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury`, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002), plus `KarwanInvoiceRegistry` and `KarwanPOFinancing` for the SME layer. USDC is the native gas asset. The treasury subscribes idle USDC into Hashnote USYC through an ERC-4626 Teller. Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
 - **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2, Gas Station, Hashnote USYC, and x402 nanopayments. See [circle-integration.md](./circle-integration.md).
 - **Storage.** Postgres (via Drizzle) for profile and direct-deal metadata,
@@ -140,6 +143,24 @@ If the seller never marks delivered and the deadline passes, the buyer
 cancels. The escrow goes to `Disputed` and either party settles it through
 `releaseFromDispute` (refund the buyer or release to the seller). The
 reservation slashes to the buyer on a refund-out path.
+
+## Delivery safety
+
+Most work is handed over as a link, so a link is the attack surface. A
+SecurityAgent scans every delivery proof before the buyer opens it. It pulls
+the URLs out of the proof and checks them: credentials embedded in a URL read
+as malicious, while raw-IP hosts, punycode look-alikes, link shorteners, and
+high-risk top-level domains read as suspicious.
+
+A suspicious or malicious verdict pauses the deal watcher's auto-release, so a
+stalling timer never settles a deal onto a bad link. Both sides are notified and
+routed to resolve it together in chat. The same scan guards the in-app chat
+itself, so a flagged link is blocked before it reaches the counterparty. A
+confirmed bad link records a security offense against the sender that weighs
+heavily on their reputation score.
+
+When the delivery is a file, it is shared through a link the agent can check
+rather than an unverified attachment.
 
 ## Reputation
 

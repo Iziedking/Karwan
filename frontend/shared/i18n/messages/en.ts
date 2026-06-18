@@ -3096,7 +3096,9 @@ interface MessagesShape {
       q7: { q: string; a: string };
       q8: { q: string; a: string };
       q9: { q: string; a: string };
+      q10: { q: string; a: string };
     };
+    videoGuides: { eyebrow: string; title: string; body: string; badge: string };
     cta: { title: string; body: string; button: string; chainPrefix: string };
   };
   brandPage: {
@@ -7039,7 +7041,9 @@ export const en: MessagesShape = {
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
       q8: { q: 'Which corridors does this serve?', a: 'Karwan works for any cross-border service deal anywhere in the world. The early language roster covers several corridors where bank rails are slowest today, including the Gulf, North and West Africa, the Indian subcontinent, and East Africa, but the escrow, reputation, and agent layer is corridor-agnostic. New languages and corridors come on as the user base grows.' },
       q9: { q: 'Where does the agent reasoning run?', a: 'Every decision that touches money is handled by a deterministic rule set in the backend: budget and deadline bounds, topical match, stake requirements, reservation math. A language model only handles the parts that need judgement, such as whether two non-overlapping skill descriptions describe the same job, or how to phrase a counter. If the language model goes offline, the agent keeps working through its deterministic fallbacks.' },
+      q10: { q: 'How does Karwan keep delivery safe?', a: 'Work is usually handed over as a link, so a SecurityAgent scans every delivery proof before you open it, and it guards the in-app chat so a phishing or malware link cannot be sent to you in the first place. A flagged link pauses the deal\'s automatic release, notifies both sides, and routes you to resolve it together in chat. A confirmed bad link is a heavy hit to the sender\'s reputation. When a delivery is a file, it is shared through a link the agent can check rather than an unverified attachment.' },
     },
+    videoGuides: { eyebrow: 'Video guides', title: 'Watch it in action', body: 'Short video walkthroughs of each flow are on the way. While they are in production, the in-app tour walks you through any page step by step. Open it from the Tour control at the bottom of the screen.', badge: 'Coming soon' },
     cta: { title: 'Try it on Arc Testnet', body: 'The dashboard runs both flows against real testnet contracts.', button: 'Launch app', chainPrefix: 'chain' },
   },
   brandPage: {

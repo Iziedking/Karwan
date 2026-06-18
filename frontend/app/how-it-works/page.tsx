@@ -248,6 +248,37 @@ export default function HowItWorksPage() {
           <Faq q={t.faq.q9.q}>
             {t.faq.q9.a}
           </Faq>
+          <Faq q={t.faq.q10.q}>
+            {t.faq.q10.a}
+          </Faq>
+        </div>
+      </section>
+
+      {/* VIDEO GUIDES (placeholder until the walkthroughs are recorded) */}
+      <section className="space-y-4">
+        <div className="max-w-2xl">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            {t.videoGuides.eyebrow}
+          </span>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">{t.videoGuides.title}</h2>
+        </div>
+        <div className="rounded-xl border border-dashed border-[var(--color-line-strong)] bg-[var(--color-surface)] p-6 flex items-start gap-4">
+          <div
+            aria-hidden
+            className="shrink-0 w-11 h-11 rounded-full border border-[var(--color-line-strong)] flex items-center justify-center text-[var(--color-ink-faint)]"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+              <path d="M5 3.5v9l7-4.5-7-4.5z" />
+            </svg>
+          </div>
+          <div className="space-y-1.5">
+            <span className="inline-block text-[10px] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] text-[var(--color-ink-dim)]">
+              {t.videoGuides.badge}
+            </span>
+            <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
+              {t.videoGuides.body}
+            </p>
+          </div>
         </div>
       </section>
 
