@@ -368,6 +368,8 @@ export function useBridges() {
   const arbitrumSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.arbitrumSepolia.chainId });
   const baseSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.baseSepolia.chainId });
   const polygonAmoyClient = usePublicClient({ chainId: SOURCE_CHAINS.polygonAmoy.chainId });
+  // Arc reads for the web3 bridge-out path (balance, allowance, burn receipt).
+  const arcClient = usePublicClient({ chainId: ARC_TESTNET.chainId });
   const sourceClients = useMemo<Record<CctpChainKey, ReturnType<typeof usePublicClient>>>(
     () => ({
       sepolia: sepoliaClient,
@@ -1052,12 +1054,126 @@ export function useBridges() {
     [patch],
   );
 
+  /// Web3 bridge-out: the user's own wallet signs the Arc burn, then the backend
+  /// relays the destination mint. Mirrors the inbound runFlow (approve +
+  /// depositForBurn + receipt) but Arc -> destination, using the backend quote so
+  /// the burn carries the right domain, padded recipient, and Fast maxFee.
+  const startWeb3Out = useCallback(
+    async (input: {
+      destChainKey: CctpChainKey;
+      amountUsdc: number;
+      recipient: `0x${string}`;
+      userAddress: string;
+    }) => {
+      if (!isConnected || !address || !walletClient || !arcClient) return;
+      const id = `${input.destChainKey}-out-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'switching',
+        direction: 'out',
+        sourceChainKey: input.destChainKey, // the non-Arc chain = destination
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.recipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+
+      let activePhase: BridgePhase = 'switching';
+      try {
+        if (chainId !== ARC_TESTNET.chainId) {
+          await switchChainAsync({ chainId: ARC_TESTNET.chainId });
+        }
+        const quote = await api.web3BridgeOutQuote({
+          destChainKey: input.destChainKey,
+          amountUsdc: input.amountUsdc,
+          recipient: input.recipient,
+        });
+        const amountWei = BigInt(quote.amountWei);
+
+        const balance = (await arcClient.readContract({
+          address: quote.usdc,
+          abi: usdcAbi,
+          functionName: 'balanceOf',
+          args: [address],
+        })) as bigint;
+        if (balance < amountWei) throw new Error('Not enough USDC on Arc');
+
+        const allowance = (await arcClient.readContract({
+          address: quote.usdc,
+          abi: usdcAbi,
+          functionName: 'allowance',
+          args: [address, quote.tokenMessenger],
+        })) as bigint;
+        if (allowance < amountWei) {
+          activePhase = 'approving';
+          patch(id, (b) => ({ ...b, phase: 'approving' }));
+          const approveHash = await walletClient.writeContract({
+            address: quote.usdc,
+            abi: usdcAbi,
+            functionName: 'approve',
+            args: [quote.tokenMessenger, amountWei],
+            chain: walletClient.chain,
+            account: address,
+          });
+          await arcClient.waitForTransactionReceipt({ hash: approveHash });
+          patch(id, (b) => ({ ...b, approveTxHash: approveHash }));
+        }
+
+        activePhase = 'burning';
+        patch(id, (b) => ({ ...b, phase: 'burning' }));
+        const burnHash = await walletClient.writeContract({
+          address: quote.tokenMessenger,
+          abi: tokenMessengerV2Abi,
+          functionName: 'depositForBurn',
+          args: [
+            amountWei,
+            quote.destDomain,
+            quote.mintRecipient,
+            quote.usdc,
+            quote.destinationCaller,
+            BigInt(quote.maxFee),
+            quote.finalityThreshold,
+          ],
+          chain: walletClient.chain,
+          account: address,
+        });
+        await arcClient.waitForTransactionReceipt({ hash: burnHash });
+        sfx.send();
+        activePhase = 'relaying';
+        patch(id, (b) => ({ ...b, burnTxHash: burnHash, phase: 'relaying' }));
+
+        await api.web3BridgeOut({
+          bridgeId: id,
+          address: input.userAddress,
+          destChainKey: input.destChainKey,
+          amountUsdc: input.amountUsdc,
+          recipient: input.recipient,
+          sourceTxHash: burnHash,
+        });
+        patch(id, (b) => ({ ...b, phase: 'attesting' }));
+      } catch (err) {
+        const raw = errorToString(err).toLowerCase();
+        const friendly =
+          raw.includes('not enough') || raw.includes('insufficient')
+            ? 'Your Arc balance is short. Lower the amount and try again.'
+            : raw.includes('rejected') || raw.includes('denied')
+              ? 'You declined the transaction in your wallet.'
+              : 'Bridge-out could not start. Try again in a moment.';
+        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+      }
+    },
+    [address, isConnected, walletClient, arcClient, chainId, switchChainAsync, patch],
+  );
+
   return {
     bridges,
     start,
     startCircle,
     startCircleAppKit,
     startCircleOut,
+    startWeb3Out,
     retry,
     recheck,
     dismiss,
