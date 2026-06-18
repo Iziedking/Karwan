@@ -1102,7 +1102,25 @@ async function finalizeBidCollection(state: JobState) {
     'top bid above budget, issuing counter',
   );
 
-  await issueCounter(state, top);
+  // The LLM scoring does not always attach a counter suggestion. We still owe a
+  // counter on an above-budget bid, so fall back to anchoring at the buyer's
+  // budget (their committed valuation) over their deadline window, the same way
+  // the cold-tier path builds its counter, rather than stalling the deal inside
+  // issueCounter when the suggestion is missing.
+  const fallbackCounterDeadlineDays =
+    top.suggestedCounterDeadlineDays ??
+    Math.max(
+      state.buyer.minDeadlineDays,
+      Math.min(
+        state.buyer.maxDeadlineDays,
+        Math.floor((top.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+      ),
+    );
+  await issueCounter(state, {
+    ...top,
+    suggestedCounterPrice: top.suggestedCounterPrice ?? budget.toFixed(2),
+    suggestedCounterDeadlineDays: fallbackCounterDeadlineDays,
+  });
 }
 
 /// Returns the tried candidate with the lowest last seller-counter price.
@@ -1280,7 +1298,23 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
       { jobId: state.jobId, seller: next.seller, bidPrice: nextPrice, effectiveCap },
       'next candidate above budget but in cap, issuing fresh counter',
     );
-    await issueCounter(state, next);
+    // Same fallback as the primary counter path: if the LLM did not attach a
+    // counter suggestion, anchor at budget over the deadline window instead of
+    // stalling in issueCounter.
+    const fallbackCounterDeadlineDays =
+      next.suggestedCounterDeadlineDays ??
+      Math.max(
+        state.buyer.minDeadlineDays,
+        Math.min(
+          state.buyer.maxDeadlineDays,
+          Math.floor((next.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+        ),
+      );
+    await issueCounter(state, {
+      ...next,
+      suggestedCounterPrice: next.suggestedCounterPrice ?? budget.toFixed(2),
+      suggestedCounterDeadlineDays: fallbackCounterDeadlineDays,
+    });
     return;
   }
   // Their bid is outside the effective cap. Before walking, raise a
