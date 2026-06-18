@@ -26,6 +26,10 @@ You either know your counterparty or you do not. Both lead to the same escrow.
 
 An agent never opens an escrow without your approval. New and low-reputation counterparties route to human review rather than an automatic decline.
 
+### Safety built into delivery
+
+Work changes hands through links, and links are where scams hide. A SecurityAgent scans every delivery proof before the buyer sees it, and the same scan guards the in-app chat so a phishing or malware link cannot be sent to a counterparty in the first place. A flagged link pauses the deal's automatic release, notifies both sides, and routes them to resolve it together in chat. A confirmed bad link is a heavy hit to the sender's reputation. When a delivery is a file, it is shared through a link the agent can check rather than an unverified attachment.
+
 ### An in-app cross-chain bridge
 
 USDC flows in from Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus Solana Devnet. The backend relays the mint on Arc, so a user never has to hold an Arc gas asset. After settlement, the seller picks a destination chain and recipient on the cashout page. Arc-to-Arc transfers are instant; cross-chain cashout routes through CCTP V2 with an inline progress card.
