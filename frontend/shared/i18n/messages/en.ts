@@ -28,6 +28,8 @@ interface MessagesShape {
     deals: string;
     market: string;
     bridge: string;
+    topUpWithdraw: string;
+    topUpBlurb: string;
     smeTrades: string;
     trades: string;
     tradesGroupEyebrow: string;
@@ -3667,6 +3669,8 @@ export const en: MessagesShape = {
     deals: 'Deals',
     market: 'Market',
     bridge: 'Bridge',
+    topUpWithdraw: 'Top up / Withdraw',
+    topUpBlurb: 'Move USDC in and out of Arc.',
     smeTrades: 'SME Trades',
     trades: 'P2P Trades',
     tradesGroupEyebrow: 'P2P Trades',
@@ -4083,7 +4087,7 @@ export const en: MessagesShape = {
         jobs: 'Jobs',
         negotiation: 'Negotiation',
         settlement: 'Settlement',
-        bridge: 'Bridge',
+        bridge: 'Top up / Withdraw',
       },
       filtering: '↳ filtering',
       events: 'events',
@@ -4187,7 +4191,7 @@ export const en: MessagesShape = {
       tag: 'HOLDINGS',
       headlinePrefix: 'Your ',
       headlineAccent: 'wallets',
-      body: 'Balances at a glance. Bridge USDC in and out from the Bridge tab.',
+      body: 'Balances at a glance. Top up and withdraw USDC from the Top up / Withdraw page.',
     },
     agentTreasury: {
       tag: 'AGENT TREASURY',
@@ -4389,10 +4393,10 @@ export const en: MessagesShape = {
   },
   bridge: {
     signInGate: {
-      tag: 'BRIDGE',
-      body: 'Bridging USDC in and out of Arc is keyed to your wallet. Sign in to continue.',
+      tag: 'TOP UP / WITHDRAW',
+      body: 'Topping up and withdrawing USDC on Arc is keyed to your wallet. Sign in to continue.',
     },
-    sectionTag: 'BRIDGE',
+    sectionTag: 'TOP UP / WITHDRAW',
     headlinePrefix: 'Move ',
     description: 'Bring USDC to Arc from another chain, or send your Arc balance out. Native USDC over Circle CCTP. No wrapped tokens.',
     directions: {
@@ -5257,13 +5261,13 @@ export const en: MessagesShape = {
     },
   },
   bridgeCard: {
-    title: 'Bridge to Arc',
+    title: 'Top up / Withdraw',
     cctpV2: 'CCTP V2',
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Buyer agent not configured.',
     inFlightTemplate: '{n} IN FLIGHT',
     eyebrow: {
-      bridge: '[:BRIDGE:]',
+      bridge: '[:TOP UP / WITHDRAW:]',
       topUpAgent: '[:TOP UP AGENT:]',
       sourceChain: '[:SOURCE CHAIN:]',
       amount: '[:AMOUNT:]',
@@ -6631,7 +6635,7 @@ export const en: MessagesShape = {
         agents: { label: 'Agents', blurb: 'How the buyer and seller agents negotiate.' },
         deals: { label: 'Deals & Escrow', blurb: 'Both deal flows, milestones, settlement.' },
         reputation: { label: 'Reputation & Stake', blurb: 'The composite score and the vault.' },
-        bridge: { label: 'Bridge', blurb: 'Cross-chain USDC with CCTP V2.' },
+        bridge: { label: 'Top up / Withdraw', blurb: 'Cross-chain USDC with CCTP V2.' },
         roadmap: { label: 'Roadmap', blurb: 'Strong functionality shipping next.' },
         faq: { label: 'FAQs', blurb: 'Quick answers for first-time users.' },
       },
@@ -6663,7 +6667,7 @@ export const en: MessagesShape = {
       },
       fund: {
         label: 'Fund your balance.',
-        body: 'Bring USDC to Arc from any of the supported source chains through the bridge, or use the Arc faucet for testnet USDC.',
+        body: 'Bring USDC to Arc from any of the supported source chains with Top up / Withdraw, or use the Arc faucet for testnet USDC.',
       },
       open: {
         label: 'Open a deal.',
@@ -6677,7 +6681,7 @@ export const en: MessagesShape = {
         agents: { title: 'Agents', blurb: 'How your buyer and seller agents negotiate price and deadline.' },
         deals: { title: 'Deals and Escrow', blurb: 'The deal lifecycle from acceptance to settlement, plus cashout.' },
         reputation: { title: 'Reputation and Stake', blurb: 'How your score is built, how it resists gaming, and how staking lifts your tier.' },
-        bridge: { title: 'Bridge', blurb: 'Moving USDC in and out of Arc using Circle CCTP.' },
+        bridge: { title: 'Top up / Withdraw', blurb: 'Moving USDC in and out of Arc using Circle CCTP.' },
         roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
         faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
       },
@@ -6718,9 +6722,9 @@ export const en: MessagesShape = {
     },
   },
   docsBridgePage: {
-    eyebrow: 'BRIDGE',
+    eyebrow: 'TOP UP / WITHDRAW',
     title: 'Move USDC in and out of Arc',
-    intro: 'Deals settle in USDC on Arc. The bridge moves your USDC over from another chain and, after settlement, sends it back out to wherever you want it. The whole flow runs on Circle Cross-Chain Transfer Protocol, so your USDC is burned on the source chain and minted fresh on the destination. No wrapped tokens, no third-party liquidity pools.',
+    intro: 'Deals settle in USDC on Arc. Top up to bring your USDC over from another chain and, after settlement, withdraw it back out to wherever you want it. The whole flow runs on Circle Cross-Chain Transfer Protocol, so your USDC is burned on the source chain and minted fresh on the destination. No wrapped tokens, no third-party liquidity pools.',
     supportedChains: {
       heading: 'Supported chains',
       body: 'Six chains today, in both directions. New chains come on as Circle rolls them out.',
@@ -6735,12 +6739,12 @@ export const en: MessagesShape = {
       },
     },
     figure: {
-      alt: 'Bridge card showing the approve, burn, attestation, and mint steps',
-      caption: 'The four steps of an inbound bridge, tracked live.',
+      alt: 'Top up card showing the approve, burn, attestation, and mint steps',
+      caption: 'The four steps of an inbound top up, tracked live.',
     },
     callout: {
       title: '[:ATTESTATION TAKES TIME ON TESTNET:]',
-      body: 'Standard transfers wait for source-chain finality, which runs ten to nineteen minutes on Sepolia testnets. If a bridge shows as still attesting, give it time before retrying. The Recheck button on the bridge card re-queries Circle.',
+      body: 'Standard transfers wait for source-chain finality, which runs ten to nineteen minutes on Sepolia testnets. If a transfer shows as still attesting, give it time before retrying. The Recheck button on the Top up / Withdraw card re-queries Circle.',
     },
     cashout: {
       heading: 'Cashing out after a deal settles',
@@ -6752,7 +6756,7 @@ export const en: MessagesShape = {
     },
     emailPasskey: {
       heading: 'If you sign in with email or a passkey',
-      body: "You get a dedicated bridge wallet on each chain the first time you bridge from it. Send USDC to that wallet's address and Karwan handles the burn for you. The bridge page shows the address and the balance.",
+      body: "You get a dedicated wallet on each chain the first time you top up from it. Send USDC to that wallet's address and Karwan handles the burn for you. The Top up / Withdraw page shows the address and the balance.",
     },
     whyThisRail: {
       heading: 'Why this rail and not a generic bridge',
@@ -7310,7 +7314,7 @@ export const en: MessagesShape = {
   bridgeOut: {
     header: {
       eyebrow: 'SEND OUT',
-      title: 'Bridge from Arc',
+      title: 'Withdraw from Arc',
       subtitle: 'CCTP V2 · gas sponsored',
     },
     web3Fallback: 'Bridging out from a web3 wallet signs the Arc burn yourself, which is coming soon. Use a Karwan email account to send out now.',

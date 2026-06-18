@@ -27,6 +27,8 @@ export const fr: Messages = {
     deals: 'Transactions',
     market: 'Marché',
     bridge: 'Bridge',
+    topUpWithdraw: 'Recharger / Retirer',
+    topUpBlurb: 'Déplacez des USDC vers et depuis Arc.',
     smeTrades: 'Trades PME',
     trades: 'Trades P2P',
     tradesGroupEyebrow: 'Trades P2P',
@@ -437,7 +439,7 @@ export const fr: Messages = {
         jobs: 'Missions',
         negotiation: 'Négociation',
         settlement: 'Règlement',
-        bridge: 'Pont',
+        bridge: 'Dépôt / Retrait',
       },
       filtering: '↳ filtrage',
       events: 'évènements',
@@ -541,7 +543,7 @@ export const fr: Messages = {
       tag: 'AVOIRS',
       headlinePrefix: 'Vos ',
       headlineAccent: 'wallets',
-      body: 'Soldes en un coup d’œil. Faites entrer ou sortir l’USDC depuis l’onglet Bridge.',
+      body: 'Soldes en un coup d’œil. Déposez ou retirez l’USDC depuis la page Dépôt / Retrait.',
     },
     agentTreasury: {
       tag: 'TRÉSORERIE AGENT',
@@ -732,10 +734,10 @@ export const fr: Messages = {
   },
   bridge: {
     signInGate: {
-      tag: 'BRIDGE',
-      body: 'Le bridge d’USDC vers et depuis Arc est lié à votre wallet. Connectez-vous pour continuer.',
+      tag: 'DÉPÔT / RETRAIT',
+      body: 'Déposer et retirer de l’USDC sur Arc est lié à votre wallet. Connectez-vous pour continuer.',
     },
-    sectionTag: 'BRIDGE',
+    sectionTag: 'DÉPÔT / RETRAIT',
     headlinePrefix: 'Déplacer ',
     description: 'Faites entrer de l’USDC sur Arc depuis une autre chaîne, ou sortez votre solde Arc. USDC natif via Circle CCTP. Pas de tokens wrappés.',
     directions: {
@@ -1600,13 +1602,13 @@ export const fr: Messages = {
     },
   },
   bridgeCard: {
-    title: 'Passerelle vers Arc',
+    title: 'Dépôt / Retrait',
     cctpV2: 'CCTP V2',
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Agent acheteur non configuré.',
     inFlightTemplate: '{n} EN COURS',
     eyebrow: {
-      bridge: '[:PASSERELLE:]',
+      bridge: '[:DÉPÔT / RETRAIT:]',
       topUpAgent: '[:RECHARGER AGENT:]',
       sourceChain: '[:CHAÎNE SOURCE:]',
       amount: '[:MONTANT:]',
@@ -2950,7 +2952,7 @@ export const fr: Messages = {
         agents: { label: 'Agents', blurb: 'Comment les agents acheteur et vendeur négocient.' },
         deals: { label: 'Accords et séquestre', blurb: 'Les deux flux d\'accord, les étapes, le règlement.' },
         reputation: { label: 'Réputation et mise', blurb: 'Le score composite et le coffre.' },
-        bridge: { label: 'Pont', blurb: 'USDC inter-chaînes avec CCTP V2.' },
+        bridge: { label: 'Dépôt / Retrait', blurb: 'USDC inter-chaînes avec CCTP V2.' },
         roadmap: { label: 'Feuille de route', blurb: 'Les fonctionnalités majeures à venir.' },
         faq: { label: 'FAQ', blurb: 'Réponses rapides pour les nouveaux utilisateurs.' },
       },
@@ -2971,7 +2973,7 @@ export const fr: Messages = {
     getStarted: {
       title: 'Démarrez en trois étapes',
       signIn: { label: 'Connectez-vous.', body: 'Utilisez votre email avec une passkey, un code par email, ou votre propre wallet web3 via Sign-In with Ethereum. Aucune seed phrase requise pour les parcours email.' },
-      fund: { label: 'Approvisionnez votre solde.', body: 'Amenez des USDC sur Arc depuis n\'importe quelle chaîne source supportée via le bridge, ou utilisez le faucet Arc pour des USDC de testnet.' },
+      fund: { label: 'Approvisionnez votre solde.', body: 'Amenez des USDC sur Arc depuis n\'importe quelle chaîne source supportée avec Dépôt / Retrait, ou utilisez le faucet Arc pour des USDC de testnet.' },
       open: { label: 'Ouvrez un deal.', body: 'Postez une demande, désignez une contrepartie par wallet ou email, ou parcourez les offres du marché. L\'escrow s\'occupe du reste.' },
     },
     next: {
@@ -2981,7 +2983,7 @@ export const fr: Messages = {
         agents: { title: 'Agents', blurb: 'Comment vos agents acheteur et vendeur négocient le prix et l\'échéance.' },
         deals: { title: 'Deals et Escrow', blurb: 'Le cycle de vie du deal, de l\'acceptation au règlement, plus le cashout.' },
         reputation: { title: 'Réputation et Stake', blurb: 'Comment votre score est construit, résiste au gaming, et comment le staking vous fait monter de palier.' },
-        bridge: { title: 'Bridge', blurb: 'Déplacer des USDC vers Arc et depuis Arc avec Circle CCTP.' },
+        bridge: { title: 'Dépôt / Retrait', blurb: 'Déplacer des USDC vers Arc et depuis Arc avec Circle CCTP.' },
         roadmap: { title: 'Roadmap', blurb: 'Ce qui est live aujourd\'hui et ce qui arrive ensuite.' },
         faq: { title: 'FAQ', blurb: 'Réponses rapides aux questions que les nouveaux utilisateurs posent en premier.' },
       },
@@ -3010,9 +3012,9 @@ export const fr: Messages = {
     guardrailsFigure: { alt: 'Le formulaire de demande affichant le budget, l\'échéance et les garde-fous de tolérance', caption: 'Les garde-fous dans lesquels votre agent négocie' },
   },
   docsBridgePage: {
-    eyebrow: 'PONT',
+    eyebrow: 'DÉPÔT / RETRAIT',
     title: 'Déplacer USDC vers et depuis Arc',
-    intro: 'Les affaires se règlent en USDC sur Arc. Le pont transfère votre USDC depuis une autre chaîne et, après règlement, le renvoie là où vous le souhaitez. Tout le flux fonctionne sur Circle Cross-Chain Transfer Protocol. Votre USDC est brûlé sur la chaîne source et frappé à neuf sur la destination. Aucun jeton enveloppé, aucun pool de liquidité tiers.',
+    intro: 'Les affaires se règlent en USDC sur Arc. Le dépôt amène votre USDC depuis une autre chaîne et, après règlement, le retrait le renvoie là où vous le souhaitez. Tout le flux fonctionne sur Circle Cross-Chain Transfer Protocol. Votre USDC est brûlé sur la chaîne source et frappé à neuf sur la destination. Aucun jeton enveloppé, aucun pool de liquidité tiers.',
     supportedChains: { heading: 'Chaînes prises en charge', body: 'Six chaînes aujourd hui, dans les deux sens. De nouvelles chaînes arrivent au fur et à mesure que Circle les déploie.' },
     bringingIn: {
       heading: 'Amener USDC sur Arc',
@@ -3023,8 +3025,8 @@ export const fr: Messages = {
         mintArc: { label: 'Frapper sur Arc.', body: 'Karwan relaie la frappe pour vous, vous n avez donc pas besoin de gas Arc pour recevoir vos fonds.' },
       },
     },
-    figure: { alt: 'Carte du pont montrant les étapes d approbation, de combustion, d attestation et de frappe', caption: 'Les quatre étapes d un pont entrant, suivies en direct.' },
-    callout: { title: '[:L ATTESTATION PREND DU TEMPS SUR TESTNET:]', body: 'Les transferts standard attendent la finalité de la chaîne source, qui dure dix à dix-neuf minutes sur les testnets Sepolia. Si un pont apparaît encore en attestation, laissez-lui du temps avant de réessayer. Le bouton Recheck sur la carte du pont relance la requête vers Circle.' },
+    figure: { alt: 'Carte de dépôt montrant les étapes d approbation, de combustion, d attestation et de frappe', caption: 'Les quatre étapes d un dépôt entrant, suivies en direct.' },
+    callout: { title: '[:L ATTESTATION PREND DU TEMPS SUR TESTNET:]', body: 'Les transferts standard attendent la finalité de la chaîne source, qui dure dix à dix-neuf minutes sur les testnets Sepolia. Si un transfert apparaît encore en attestation, laissez-lui du temps avant de réessayer. Le bouton Recheck sur la carte Dépôt / Retrait relance la requête vers Circle.' },
     cashout: {
       heading: 'Encaisser après le règlement d une affaire',
       body: 'Une fois votre affaire réglée, la page Cashout vous permet d envoyer votre USDC où vous le souhaitez. Deux destinations:',
@@ -3033,7 +3035,7 @@ export const fr: Messages = {
         crossChain: { label: 'Inter-chaînes.', body: 'Envoyez vers l une des six chaînes sources prises en charge. Votre USDC est brûlé sur Arc, attesté par Circle, et frappé sur la destination. La carte de progression sur la page indique en temps réel les états brûlure, brûlé, attesté et frappé, sans jamais avoir à suivre un hash de transaction sur un explorateur de blocs.' },
       },
     },
-    emailPasskey: { heading: 'Si vous vous connectez avec email ou passkey', body: 'Vous obtenez un portefeuille de pont dédié sur chaque chaîne la première fois que vous y faites un pont. Envoyez USDC à l adresse de ce portefeuille et Karwan s occupe de la combustion pour vous. La page du pont affiche l adresse et le solde.' },
+    emailPasskey: { heading: 'Si vous vous connectez avec email ou passkey', body: 'Vous obtenez un portefeuille dédié sur chaque chaîne la première fois que vous y faites un dépôt. Envoyez USDC à l adresse de ce portefeuille et Karwan s occupe de la combustion pour vous. La page Dépôt / Retrait affiche l adresse et le solde.' },
     whyThisRail: { heading: 'Pourquoi cette voie et non un pont générique', body: 'L USDC qui quitte Base est le même USDC qui arrive sur Arc. Circle le brûle d un côté et le frappe de l autre. Il n y a ni jeton enveloppé, ni pool de liquidité, ni garde tierce entre les deux extrémités. Cela compte pour un produit de confiance: l actif que vous recevez est le même actif qui est parti.' },
   },
   x402Page: {
@@ -3559,7 +3561,7 @@ export const fr: Messages = {
   bridgeOut: {
     header: {
       eyebrow: 'ENVOI SORTANT',
-      title: 'Bridge depuis Arc',
+      title: 'Retrait depuis Arc',
       subtitle: 'CCTP V2 · gas sponsorisé',
     },
     web3Fallback: 'Sortir depuis un wallet web3 signe le burn Arc vous-même, c’est en cours. Utilisez un compte Karwan email pour sortir maintenant.',

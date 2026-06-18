@@ -181,7 +181,7 @@ export function BridgeHistoryModal({
                 [:NO BRIDGES YET:]
               </p>
               <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">
-                Your bridge history shows up here once you move USDC in or out of Arc.
+                Your transfer history shows up here once you move USDC in or out of Arc.
               </p>
             </div>
           ) : filtered.length === 0 ? (
