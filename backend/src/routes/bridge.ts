@@ -1698,6 +1698,160 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   );
 });
 
+// --- Web3 bridge-out: the user's own wallet signs the Arc burn -----------------
+// A web3 (SIWE) user does not have a Circle wallet to burn from, and the
+// /circle-bridge-out path rejects them. Instead they sign approve + depositForBurn
+// on Arc from their own wallet, then hand us the burn so we relay the destination
+// mint with the same machinery the Circle path uses (startOutRelay).
+
+const web3OutQuoteSchema = z.object({
+  destChainKey: z.enum(CCTP_CHAIN_KEYS),
+  amountUsdc: z.number().positive(),
+  recipient: z.string().startsWith('0x'),
+});
+
+/// Hands the frontend the exact parameters to sign on Arc, so a web3 user's
+/// depositForBurn matches what the relay expects (right domain, padded
+/// recipient, and a Fast maxFee so the transfer settles in seconds, not the
+/// ~13-19 min Standard path).
+bridgeRoutes.post('/web3-bridge-out/quote', async (c) => {
+  let body;
+  try {
+    body = web3OutQuoteSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const dest = CCTP_CHAINS[body.destChainKey];
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+  const maxFee = await computeFastMaxFee(ARC_DOMAIN, dest.domain, amountWei);
+  return c.json({
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    usdc: ARC_USDC,
+    arcDomain: ARC_DOMAIN,
+    destDomain: dest.domain,
+    amountWei: amountWei.toString(),
+    mintRecipient: addressToBytes32(body.recipient),
+    destinationCaller: `0x${'0'.repeat(64)}`,
+    maxFee,
+    finalityThreshold: FINALITY_THRESHOLD_FAST,
+    // depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)
+    depositForBurnArgs: [
+      amountWei.toString(),
+      dest.domain,
+      addressToBytes32(body.recipient),
+      ARC_USDC,
+      `0x${'0'.repeat(64)}`,
+      maxFee,
+      FINALITY_THRESHOLD_FAST,
+    ],
+  });
+});
+
+const web3OutSchema = z.object({
+  bridgeId: z.string().min(1),
+  address: z.string().startsWith('0x'),
+  destChainKey: z.enum(CCTP_CHAIN_KEYS),
+  amountUsdc: z.number().positive(),
+  recipient: z.string().startsWith('0x'),
+  /// The Arc burn the user already signed from their own wallet.
+  sourceTxHash: z.string().startsWith('0x'),
+});
+
+/// Resume the destination mint after a user-signed Arc burn. We never touch the
+/// burn ourselves; we provision the destination relay wallet (which pays the
+/// mint gas), persist the record, and run the same outbound relay as the Circle
+/// path. The IRIS attestation step gates a bogus burn hash, so an invalid
+/// sourceTxHash simply never produces a mint rather than minting wrongly.
+bridgeRoutes.post('/web3-bridge-out', async (c) => {
+  let body;
+  try {
+    body = web3OutSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+
+  // Don't clobber an existing bridge's burn hash (stale tab / double submit).
+  const existing = await getBridge(body.bridgeId);
+  if (existing && existing.sourceTxHash && existing.sourceTxHash.toLowerCase() !== body.sourceTxHash.toLowerCase()) {
+    return c.json(
+      { accepted: false, reason: 'bridge already exists with a different burn; use /:bridgeId/recheck' },
+      409,
+    );
+  }
+
+  const dest = CCTP_CHAINS[body.destChainKey];
+
+  // The destination bridge DCW relays the mint and pays its gas. Provision it
+  // lazily on the user's first bridge to that chain, exactly like the Circle path.
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
+  let destWallet = wallets.bridgeWallets?.[dest.circleBlockchain];
+  if (!destWallet) {
+    try {
+      const created = await provisionUserBridgeWallet(userAddress, dest.circleBlockchain);
+      destWallet = { walletId: created.walletId, address: created.address };
+      await saveAgentWallets({
+        ...wallets,
+        bridgeWallets: {
+          ...(wallets.bridgeWallets ?? {}),
+          [dest.circleBlockchain]: destWallet,
+        },
+      });
+    } catch (err) {
+      return c.json(
+        { error: 'destination wallet provisioning failed', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+  void dripTestnetUsdc(destWallet.address, {
+    blockchain: dest.circleBlockchain,
+    native: true,
+    usdc: false,
+  });
+
+  await createBridge({
+    bridgeId: body.bridgeId,
+    direction: 'out',
+    sourceDomain: ARC_DOMAIN,
+    sourceTxHash: body.sourceTxHash,
+    amountUsdc: body.amountUsdc.toString(),
+    mintRecipient: body.recipient,
+    status: 'relaying',
+    destChainKey: body.destChainKey,
+    bridgeWalletId: destWallet.walletId,
+    bridgeWalletAddress: destWallet.address,
+  });
+
+  bus.emitEvent({
+    type: 'bridge.burned',
+    actor: 'buyer',
+    payload: {
+      bridgeId: body.bridgeId,
+      direction: 'out',
+      destChainKey: body.destChainKey,
+      sourceTxHash: body.sourceTxHash,
+      amountUsdc: body.amountUsdc.toString(),
+      web3: true,
+    },
+  });
+
+  startOutRelay({
+    bridgeId: body.bridgeId,
+    destChainKey: body.destChainKey,
+    sourceTxHash: body.sourceTxHash,
+    amountUsdc: body.amountUsdc.toString(),
+    recipient: body.recipient,
+    destWalletId: destWallet.walletId,
+  });
+
+  return c.json(
+    { accepted: true, bridgeId: body.bridgeId, status: 'relaying', direction: 'out' },
+    202,
+  );
+});
+
 interface OutPipelineInput {
   bridgeId: string;
   identityWalletId: string;

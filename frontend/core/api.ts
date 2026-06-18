@@ -1788,6 +1788,40 @@ export const api = {
       '/api/bridge/circle-bridge-out',
       { method: 'POST', body: JSON.stringify(input) },
     ),
+  /// Web3 bridge-out: the user's own wallet signs the Arc burn. First fetch the
+  /// exact burn params (the Fast maxFee matters), sign approve + depositForBurn
+  /// on Arc, then hand the burn back so the backend relays the destination mint.
+  web3BridgeOutQuote: (input: {
+    destChainKey: BridgeChainKey;
+    amountUsdc: number;
+    recipient: string;
+  }) =>
+    json<{
+      tokenMessenger: `0x${string}`;
+      usdc: `0x${string}`;
+      arcDomain: number;
+      destDomain: number;
+      amountWei: string;
+      mintRecipient: `0x${string}`;
+      destinationCaller: `0x${string}`;
+      maxFee: string;
+      finalityThreshold: number;
+    }>('/api/bridge/web3-bridge-out/quote', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  web3BridgeOut: (input: {
+    bridgeId: string;
+    address: string;
+    destChainKey: BridgeChainKey;
+    amountUsdc: number;
+    recipient: string;
+    sourceTxHash: string;
+  }) =>
+    json<{ accepted: true; bridgeId: string; status: string; direction: 'out' }>(
+      '/api/bridge/web3-bridge-out',
+      { method: 'POST', body: JSON.stringify(input) },
+    ),
   /// Resume a Circle bridge stuck mid source-pipeline (approving/burning) or
   /// waiting on the mint relay. Idempotent. Used by retry + auto-recheck for
   /// Circle bridges, where re-POSTing circle-bridge would 409 on the existing id.

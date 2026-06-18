@@ -59,7 +59,7 @@ export function BridgeOutCard() {
   const t = useTranslations().bridgeOut;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
-  const { bridges, startCircleOut, dismiss, isActive } = useBridges();
+  const { bridges, startCircleOut, startWeb3Out, dismiss, isActive } = useBridges();
   const outBridges = bridges.filter((b) => b.direction === 'out');
 
   const [destKey, setDestKey] = useState<CctpChainKey>('baseSepolia');
@@ -89,7 +89,6 @@ export function BridgeOutCard() {
   const dest = SOURCE_CHAINS[destKey];
   const recipientValid = ADDRESS_RE.test(recipient.trim());
   const canSubmit =
-    isCircle &&
     !!auth.address &&
     typeof amount === 'number' &&
     amount > 0 &&
@@ -98,12 +97,16 @@ export function BridgeOutCard() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !auth.address) return;
-    startCircleOut({
+    const args = {
       destChainKey: destKey,
       amountUsdc: amount as number,
       recipient: recipient.trim() as `0x${string}`,
       userAddress: auth.address,
-    });
+    };
+    // Circle accounts burn on the backend from their DCW; web3 users sign the
+    // Arc burn from their own wallet, then the backend relays the mint.
+    if (isCircle) startCircleOut(args);
+    else startWeb3Out(args);
     setAmount('');
   }
 
@@ -122,22 +125,7 @@ export function BridgeOutCard() {
       </div>
 
       <div className="px-6 pb-6">
-        {!isCircle ? (
-          <div
-            className="px-4 py-3 text-[13px] leading-snug text-[var(--lp-text-sub)]"
-            style={{
-              background: 'var(--lp-light)',
-              border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
-            }}
-          >
-            {t.web3Fallback}
-          </div>
-        ) : (
-          <form onSubmit={submit} className="space-y-5">
+        <form onSubmit={submit} className="space-y-5">
             {/* DESTINATION DROPDOWN */}
             <div className="relative">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -251,18 +239,22 @@ export function BridgeOutCard() {
               </div>
             </div>
 
-            {/* TOP UP ARC USDC: bridge-out spends the identity wallet balance. */}
-            <div className="flex items-center justify-end">
-              <button
-                type="button"
-                onClick={runFaucet}
-                disabled={faucetBusy}
-                className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50"
-              >
-                {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
-              </button>
-            </div>
-            {faucetNote && (
+            {/* TOP UP ARC USDC: Circle accounts burn from their identity DCW, so
+                offer a one-tap top-up of that wallet. A web3 user burns from their
+                own wallet, which they fund themselves, so this does not apply. */}
+            {isCircle && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={runFaucet}
+                  disabled={faucetBusy}
+                  className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  {faucetBusy ? t.form.faucetBusy : t.form.faucetCta}
+                </button>
+              </div>
+            )}
+            {isCircle && faucetNote && (
               <p
                 className="px-3 py-2 text-[11.5px] leading-snug"
                 style={{
@@ -331,7 +323,6 @@ export function BridgeOutCard() {
               </span>
             </button>
           </form>
-        )}
 
         {outBridges.length > 0 && (
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
