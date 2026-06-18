@@ -157,12 +157,12 @@ export const STAKE_STEPS: TourStep[] = [
   },
 ];
 
-/// Bridge tour (add funds to Arc).
+/// Top up / Withdraw tour (add funds to Arc).
 export const BRIDGE_TOUR_ID = 'bridge-v1';
 export const BRIDGE_STEPS: TourStep[] = [
   {
     title: 'Where your USDC is now',
-    body: 'Pick the chain your USDC sits on today. Karwan moves it to Arc, where every deal settles.',
+    body: 'Pick the chain your USDC sits on today. Karwan tops it up onto Arc, where every deal settles.',
     target: 'bridge-source',
   },
   {
@@ -171,7 +171,7 @@ export const BRIDGE_STEPS: TourStep[] = [
     target: 'bridge-amount',
   },
   {
-    title: 'Bring it over',
+    title: 'Top it up',
     body: 'Start the transfer. It usually lands on Arc in 10 to 19 minutes; you can leave the page and come back.',
     target: 'bridge-submit',
   },

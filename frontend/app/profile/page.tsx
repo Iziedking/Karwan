@@ -53,6 +53,7 @@ export default function ProfilePage() {
 
 function ProfilePageInner() {
   const t = useTranslations().profile;
+  const navT = useTranslations().nav;
   const router = useRouter();
   const { profile: loadedProfile, address, isConnected, fetchState } = useUserProfile();
   const { method } = useAuth();
@@ -219,15 +220,43 @@ function ProfilePageInner() {
             {/* Persistent tier card. your reputation right at the top of the profile. */}
             <ProfileTierCard address={address} />
           </div>
-          <div className="hidden lg:block fade-up fade-up-4">
-            <AgentStatusVignette
-              activated={activation.activated}
-              loading={activation.loading}
-              buyer={agents.buyer}
-              seller={agents.seller}
-              buyerName={activation.agents?.buyerName}
-              sellerName={activation.agents?.sellerName}
-            />
+          <div className="fade-up fade-up-4 mt-8 lg:mt-0">
+            <div className="hidden lg:block">
+              <AgentStatusVignette
+                activated={activation.activated}
+                loading={activation.loading}
+                buyer={agents.buyer}
+                seller={agents.seller}
+                buyerName={activation.agents?.buyerName}
+                sellerName={activation.agents?.sellerName}
+              />
+            </div>
+            {/* Top up / Withdraw. The Arc money-movement utility, surfaced on the
+                profile now that it is no longer a nav item. Visible on every
+                viewport so mobile keeps the entry the navbar used to give. */}
+            <a
+              href="/bridge"
+              className="group mt-0 lg:mt-4 block p-5 border border-white/15 hover:border-[var(--lp-accent)] transition-colors"
+              style={{
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                borderBottomLeftRadius: 16,
+                borderBottomRightRadius: 4,
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+                  [:USDC:]
+                </span>
+                <span aria-hidden className="text-white/40 group-hover:text-[var(--lp-accent)] transition-colors">
+                  →
+                </span>
+              </div>
+              <p className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] leading-none text-white">
+                {navT.topUpWithdraw}
+              </p>
+              <p className="mt-2 text-[13px] leading-snug text-white/55">{navT.topUpBlurb}</p>
+            </a>
           </div>
         </div>
       </Band>

@@ -109,7 +109,7 @@ function BridgePageInner() {
                 borderRadius: 999,
               }}
             >
-              Bridge history
+              Transfer history
             </button>
           </div>
 

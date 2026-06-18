@@ -27,6 +27,8 @@ export const sw: Messages = {
     deals: 'Mikataba',
     market: 'Soko',
     bridge: 'Daraja',
+    topUpWithdraw: 'Ongeza / Toa',
+    topUpBlurb: 'Hamisha USDC ndani na nje ya Arc.',
     smeTrades: 'Biashara za SME',
     trades: 'Biashara za P2P',
     tradesGroupEyebrow: 'Biashara za P2P',
@@ -437,7 +439,7 @@ export const sw: Messages = {
         jobs: 'Kazi',
         negotiation: 'Mazungumzo',
         settlement: 'Malipo',
-        bridge: 'Daraja',
+        bridge: 'Weka / Toa',
       },
       filtering: '↳ inachuja',
       events: 'matukio',
@@ -541,7 +543,7 @@ export const sw: Messages = {
       tag: 'MILIKI',
       headlinePrefix: 'Pochi ',
       headlineAccent: 'zako',
-      body: 'Salio kwa mtazamo mmoja. Lete au toa USDC kupitia kichupo cha Bridge.',
+      body: 'Salio kwa mtazamo mmoja. Weka au toa USDC kupitia ukurasa wa Weka / Toa.',
     },
     agentTreasury: {
       tag: 'HAZINA YA MAWAKALA',
@@ -732,10 +734,10 @@ export const sw: Messages = {
   },
   bridge: {
     signInGate: {
-      tag: 'DARAJA',
-      body: 'Kupeleka USDC ndani na nje ya Arc kunaunganishwa na pochi yako. Ingia ili kuendelea.',
+      tag: 'WEKA / TOA',
+      body: 'Kuweka na kutoa USDC kwenye Arc kunaunganishwa na pochi yako. Ingia ili kuendelea.',
     },
-    sectionTag: 'DARAJA',
+    sectionTag: 'WEKA / TOA',
     headlinePrefix: 'Hamisha ',
     description: 'Lete USDC kwenye Arc kutoka mnyororo mwingine, au peleka salio lako la Arc nje. USDC asili kupitia Circle CCTP. Hakuna tokeni zilizofungwa.',
     directions: {
@@ -1600,13 +1602,13 @@ export const sw: Messages = {
     },
   },
   bridgeCard: {
-    title: 'Daraja hadi Arc',
+    title: 'Weka / Toa',
     cctpV2: 'CCTP V2',
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Wakala wa mnunuzi hajasanidiwa.',
     inFlightTemplate: '{n} INASAFIRI',
     eyebrow: {
-      bridge: '[:DARAJA:]',
+      bridge: '[:WEKA / TOA:]',
       topUpAgent: '[:JAZA WAKALA:]',
       sourceChain: '[:CHANZO CHA MNYORORO:]',
       amount: '[:KIASI:]',
@@ -2950,7 +2952,7 @@ export const sw: Messages = {
         agents: { label: 'Mawakala', blurb: 'Jinsi wakala wa mnunuzi na muuzaji wanavyojadiliana.' },
         deals: { label: 'Mikataba na Eskro', blurb: 'Mitiririko miwili ya mkataba, hatua, malipo.' },
         reputation: { label: 'Sifa na Dhamana', blurb: 'Alama ya pamoja na chumba cha dhamana.' },
-        bridge: { label: 'Daraja', blurb: 'USDC kati ya minyororo kwa kutumia CCTP V2.' },
+        bridge: { label: 'Weka / Toa', blurb: 'USDC kati ya minyororo kwa kutumia CCTP V2.' },
         roadmap: { label: 'Ramani ya Njia', blurb: 'Vipengele imara vinavyokuja hivi karibuni.' },
         faq: { label: 'Maswali ya Mara kwa Mara', blurb: 'Majibu ya haraka kwa watumiaji wapya.' },
       },
@@ -2971,7 +2973,7 @@ export const sw: Messages = {
     getStarted: {
       title: 'Anza kwa hatua tatu',
       signIn: { label: 'Ingia.', body: 'Tumia barua pepe na passkey, msimbo wa barua pepe, au wallet yako ya web3 kupitia Sign-In with Ethereum. Hakuna seed phrase inayohitajika kwa njia za barua pepe.' },
-      fund: { label: 'Jaza salio lako.', body: 'Leta USDC kwenye Arc kutoka chain yoyote inayoungwa mkono kupitia bridge, au tumia faucet ya Arc kupata USDC ya testnet.' },
+      fund: { label: 'Jaza salio lako.', body: 'Leta USDC kwenye Arc kutoka chain yoyote inayoungwa mkono kupitia Weka / Toa, au tumia faucet ya Arc kupata USDC ya testnet.' },
       open: { label: 'Fungua mkataba.', body: 'Tuma ombi, taja mwenzio kwa wallet au barua pepe, au angalia matoleo sokoni. Escrow itashughulikia mengine.' },
     },
     next: {
@@ -2981,7 +2983,7 @@ export const sw: Messages = {
         agents: { title: 'Mawakala', blurb: 'Jinsi wakala wako wa mnunuzi na muuzaji wanavyojadiliana bei na tarehe ya mwisho.' },
         deals: { title: 'Mikataba na Escrow', blurb: 'Mzunguko wa mkataba kutoka kukubaliwa hadi malipo, pamoja na cashout.' },
         reputation: { title: 'Sifa na Stake', blurb: 'Jinsi alama yako inavyojengwa, jinsi inavyozuia udanganyifu, na jinsi staking inavyoinua kiwango chako.' },
-        bridge: { title: 'Bridge', blurb: 'Kuhamisha USDC kuingia na kutoka Arc kwa kutumia Circle CCTP.' },
+        bridge: { title: 'Weka / Toa', blurb: 'Kuhamisha USDC kuingia na kutoka Arc kwa kutumia Circle CCTP.' },
         roadmap: { title: 'Ramani ya Njia', blurb: 'Kilicho hai leo na kinachofuata.' },
         faq: { title: 'Maswali Yanayoulizwa Mara kwa Mara', blurb: 'Majibu ya haraka kwa maswali ambayo watumiaji wapya wanauliza kwanza.' },
       },
@@ -3010,9 +3012,9 @@ export const sw: Messages = {
     guardrailsFigure: { alt: 'Fomu ya ombi inayoonyesha bajeti, tarehe ya mwisho, na mipaka ya uvumilivu', caption: 'Mipaka ambayo wakala wako anajadiliana ndani yake' },
   },
   docsBridgePage: {
-    eyebrow: 'DARAJA',
+    eyebrow: 'WEKA / TOA',
     title: 'Hamisha USDC kuingia na kutoka Arc',
-    intro: 'Mikataba inalipwa kwa USDC kwenye Arc. Daraja hili linahamisha USDC yako kutoka mnyororo mwingine na, baada ya malipo, linairudisha popote unapotaka. Mtiririko mzima unaendeshwa kwenye Circle Cross-Chain Transfer Protocol, hivyo USDC yako inachomwa kwenye mnyororo wa chanzo na inachapishwa upya kwenye mnyororo wa lengo. Hakuna tokeni zilizofungwa, hakuna mabwawa ya ukwasi ya watu wa tatu.',
+    intro: 'Mikataba inalipwa kwa USDC kwenye Arc. Kuweka huleta USDC yako kutoka mnyororo mwingine na, baada ya malipo, kutoa huirudisha popote unapotaka. Mtiririko mzima unaendeshwa kwenye Circle Cross-Chain Transfer Protocol, hivyo USDC yako inachomwa kwenye mnyororo wa chanzo na inachapishwa upya kwenye mnyororo wa lengo. Hakuna tokeni zilizofungwa, hakuna mabwawa ya ukwasi ya watu wa tatu.',
     supportedChains: { heading: 'Minyororo inayoungwa mkono', body: 'Minyororo sita leo, kwa pande zote mbili. Minyororo mipya inajumuishwa kadri Circle inavyoizindua.' },
     bringingIn: {
       heading: 'Kuleta USDC kwenye Arc',
@@ -3023,8 +3025,8 @@ export const sw: Messages = {
         mintArc: { label: 'Chapisha kwenye Arc.', body: 'Karwan inasambaza uchapishaji kwa niaba yako, hivyo huhitaji gesi ya Arc kupokea pesa zako.' },
       },
     },
-    figure: { alt: 'Kadi ya daraja inayoonyesha hatua za idhini, kuchoma, uthibitisho, na uchapishaji', caption: 'Hatua nne za daraja la kuingia, zinafuatiliwa moja kwa moja.' },
-    callout: { title: '[:UTHIBITISHO HUCHUKUA MUDA KWENYE TESTNET:]', body: 'Uhamishaji wa kawaida unasubiri ukomavu wa mnyororo wa chanzo, ambao huchukua dakika kumi hadi kumi na tisa kwenye testnets za Sepolia. Ikiwa daraja linaonyesha bado linathibitishwa, lipe muda kabla ya kujaribu tena. Kitufe cha Recheck kwenye kadi ya daraja kinauliza Circle tena.' },
+    figure: { alt: 'Kadi ya kuweka inayoonyesha hatua za idhini, kuchoma, uthibitisho, na uchapishaji', caption: 'Hatua nne za kuweka kwa kuingia, zinafuatiliwa moja kwa moja.' },
+    callout: { title: '[:UTHIBITISHO HUCHUKUA MUDA KWENYE TESTNET:]', body: 'Uhamishaji wa kawaida unasubiri ukomavu wa mnyororo wa chanzo, ambao huchukua dakika kumi hadi kumi na tisa kwenye testnets za Sepolia. Ikiwa uhamishaji unaonyesha bado unathibitishwa, lipe muda kabla ya kujaribu tena. Kitufe cha Recheck kwenye kadi ya Weka / Toa kinauliza Circle tena.' },
     cashout: {
       heading: 'Kutoa pesa baada ya mkataba kukamilika',
       body: 'Mara mkataba wako unapokamilika, ukurasa wa Cashout unakuwezesha kutuma USDC yako popote unapotaka. Maelekeo mawili:',
@@ -3033,7 +3035,7 @@ export const sw: Messages = {
         crossChain: { label: 'Kati ya minyororo.', body: 'Tuma kwenye mojawapo ya minyororo sita ya chanzo inayoungwa mkono. USDC yako inachomwa kwenye Arc, inathibitishwa na Circle, na inachapishwa kwenye lengo. Kadi ya maendeleo kwenye ukurasa inaonyesha kuchomwa, imechomwa, imethibitishwa, na imechapishwa kwa wakati halisi, hivyo hutalazimika kufuatilia hashi ya muamala kwenye kichunguzi cha bloki.' },
       },
     },
-    emailPasskey: { heading: 'Ikiwa unaingia na email au passkey', body: 'Unapata pochi ya daraja maalum kwenye kila mnyororo mara ya kwanza unapotumia daraja kutoka kwake. Tuma USDC kwenye anwani ya pochi hiyo na Karwan inashughulikia kuchomwa kwa niaba yako. Ukurasa wa daraja unaonyesha anwani na salio.' },
+    emailPasskey: { heading: 'Ikiwa unaingia na email au passkey', body: 'Unapata pochi maalum kwenye kila mnyororo mara ya kwanza unapoweka kutoka kwake. Tuma USDC kwenye anwani ya pochi hiyo na Karwan inashughulikia kuchomwa kwa niaba yako. Ukurasa wa Weka / Toa unaonyesha anwani na salio.' },
     whyThisRail: { heading: 'Kwa nini reli hii na siyo daraja la kawaida', body: 'USDC inayotoka Base ni USDC ile ile inayofika Arc. Circle inaichoma upande mmoja na kuichapisha upande mwingine. Hakuna tokeni iliyofungwa, hakuna bwawa la ukwasi, hakuna ulinzi wa mtu wa tatu kati ya ncha hizo mbili. Hili ni muhimu kwa bidhaa ya kuaminiwa: mali unayopokea ni mali ile ile iliyoondoka.' },
   },
   x402Page: {
@@ -3559,7 +3561,7 @@ export const sw: Messages = {
   bridgeOut: {
     header: {
       eyebrow: 'PELEKA NJE',
-      title: 'Daraja kutoka Arc',
+      title: 'Toa kutoka Arc',
       subtitle: 'CCTP V2 · gesi imefadhiliwa',
     },
     web3Fallback: 'Kupeleka nje kutoka pochi ya web3 unahitaji kutia saini burn ya Arc mwenyewe, hii inakuja hivi karibuni. Tumia akaunti ya Karwan ya barua pepe kupeleka nje sasa.',

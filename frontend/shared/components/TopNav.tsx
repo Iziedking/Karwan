@@ -126,13 +126,6 @@ export function TopNav() {
             >
               {t.nav.market}
             </NavLink>
-            <NavLink
-              href="/bridge"
-              active={pathname.startsWith('/bridge')}
-              title={t.nav.hints.bridge}
-            >
-              {t.nav.bridge}
-            </NavLink>
             {SME_TRADES_ENABLED ? (
               <NavLink
                 href="/financier"
@@ -259,9 +252,6 @@ export function TopNav() {
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
             >
               {t.nav.market}
-            </MobileNavLink>
-            <MobileNavLink href="/bridge" active={pathname.startsWith('/bridge')}>
-              {t.nav.bridge}
             </MobileNavLink>
             {SME_TRADES_ENABLED ? (
               <MobileNavLink href="/financier" active={pathname.startsWith('/financier')}>
