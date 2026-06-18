@@ -2053,6 +2053,13 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
+  // In-app support assistant. Sends the recent turns and gets one reply back.
+  assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+    json<{ reply: string }>('/api/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
+
   // --- verified-business accounts ---------------------------------------
   /// Public verification status + compact company snapshot for an address.
   getBusinessStatus: (address: string) =>

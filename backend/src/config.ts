@@ -303,6 +303,11 @@ const envSchema = z.object({
   OPENROUTER_API_KEY: optionalString,
   LLM_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
 
+  // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
+  // low-cost model. Assistant is disabled gracefully if the key is absent.
+  ANTHROPIC_API_KEY: optionalString,
+  ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
+
   // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to mint).
   CCTP_MESSAGE_TRANSMITTER_ADDR: z
     .string()

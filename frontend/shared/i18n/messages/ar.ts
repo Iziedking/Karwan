@@ -378,6 +378,17 @@ export const ar: Messages = {
     connecting: 'جارٍ الاتصال',
     offline: 'غير متصل',
   },
+  assistant: {
+    launcherLabel: 'اسأل',
+    launcherAria: 'اسأل مساعد Karwan',
+    title: 'مساعد Karwan',
+    subtitle: 'اسأل أي شيء عن Karwan',
+    placeholder: 'اطرح سؤالاً...',
+    send: 'إرسال',
+    greeting: 'مرحباً. يمكنني شرح كيفية عمل Karwan وإرشادك إلى الصفحة المناسبة. ماذا تريد أن تفعل؟',
+    error: 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
+    disclaimer: 'إرشاد فقط. لا يستطيع المساعد تحريك الأموال أو التصرف في حسابك.',
+  },
   countdown: {
     closed: 'مغلق',
   },

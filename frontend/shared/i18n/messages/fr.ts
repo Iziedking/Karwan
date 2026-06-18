@@ -378,6 +378,17 @@ export const fr: Messages = {
     connecting: 'Connexion',
     offline: 'Hors ligne',
   },
+  assistant: {
+    launcherLabel: 'Demander',
+    launcherAria: 'Demander à l\'assistant Karwan',
+    title: 'Assistant Karwan',
+    subtitle: 'Posez vos questions sur Karwan',
+    placeholder: 'Posez une question...',
+    send: 'Envoyer',
+    greeting: 'Bonjour. Je peux expliquer comment Karwan fonctionne et vous orienter vers la bonne page. Que voulez-vous faire ?',
+    error: 'Une erreur est survenue. Veuillez réessayer.',
+    disclaimer: 'Aide uniquement. L\'assistant ne peut pas déplacer de fonds ni agir sur votre compte.',
+  },
   countdown: {
     closed: 'clôturé',
   },
