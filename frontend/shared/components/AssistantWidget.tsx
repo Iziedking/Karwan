@@ -201,55 +201,81 @@ function Dot() {
   );
 }
 
-const LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+// One match is either a markdown link [label](href) or **bold** text.
+const INLINE_RE = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
 
-/// Renders the assistant reply: line breaks preserved, markdown links made
-/// clickable. Internal paths (starting with "/") become in-app links that close
-/// the panel; external links open in a new tab. No raw HTML is injected.
+/// Turns one line of reply text into nodes, resolving markdown links and bold.
+/// Internal paths (starting with "/") become in-app links that close the panel;
+/// external links open in a new tab. No raw HTML is injected.
+function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  INLINE_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = INLINE_RE.exec(line)) !== null) {
+    if (m.index > last) parts.push(line.slice(last, m.index));
+    if (m[1] !== undefined && m[2] !== undefined) {
+      const label = m[1];
+      const href = m[2];
+      parts.push(
+        href.startsWith('/') ? (
+          <Link
+            key={`k${key}`}
+            href={href}
+            onClick={onNavigate}
+            className="font-semibold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+          >
+            {label}
+          </Link>
+        ) : (
+          <a
+            key={`k${key}`}
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="font-semibold underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+          >
+            {label}
+          </a>
+        ),
+      );
+    } else if (m[3] !== undefined) {
+      parts.push(
+        <strong key={`k${key}`} className="font-bold text-[var(--lp-dark)]">
+          {m[3]}
+        </strong>,
+      );
+    }
+    last = m.index + m[0].length;
+    key += 1;
+  }
+  if (last < line.length) parts.push(line.slice(last));
+  return parts;
+}
+
+/// Renders the assistant reply: line breaks preserved, dash bullets shown with a
+/// lime marker, markdown links and bold resolved.
 function RichText({ text, onNavigate }: { text: string; onNavigate: () => void }) {
   const lines = text.split('\n');
   return (
     <div className="space-y-1.5">
-      {lines.map((line, li) => {
-        if (line.trim() === '') return null;
-        const parts: React.ReactNode[] = [];
-        let last = 0;
-        let key = 0;
-        LINK_RE.lastIndex = 0;
-        let m: RegExpExecArray | null;
-        while ((m = LINK_RE.exec(line)) !== null) {
-          if (m.index > last) parts.push(line.slice(last, m.index));
-          const label = m[1];
-          const href = m[2];
-          if (href.startsWith('/')) {
-            parts.push(
-              <Link
-                key={`l${key}`}
-                href={href}
-                onClick={onNavigate}
-                className="font-semibold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
-              >
-                {label}
-              </Link>,
-            );
-          } else {
-            parts.push(
-              <a
-                key={`l${key}`}
-                href={href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="font-semibold underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
-              >
-                {label}
-              </a>,
-            );
-          }
-          last = m.index + m[0].length;
-          key += 1;
+      {lines.map((raw, li) => {
+        if (raw.trim() === '') return null;
+        const isBullet = /^\s*[-*]\s+/.test(raw);
+        const line = isBullet ? raw.replace(/^\s*[-*]\s+/, '') : raw;
+        const inline = renderInline(line, onNavigate);
+        if (isBullet) {
+          return (
+            <div key={li} className="flex gap-2">
+              <span aria-hidden className="text-[var(--lp-accent)] leading-relaxed">
+                •
+              </span>
+              <p className="flex-1">{inline}</p>
+            </div>
+          );
         }
-        if (last < line.length) parts.push(line.slice(last));
-        return <p key={li}>{parts}</p>;
+        return <p key={li}>{inline}</p>;
       })}
     </div>
   );
