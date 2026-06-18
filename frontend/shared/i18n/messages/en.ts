@@ -360,6 +360,17 @@ interface MessagesShape {
     connecting: string;
     offline: string;
   };
+  assistant: {
+    launcherLabel: string;
+    launcherAria: string;
+    title: string;
+    subtitle: string;
+    placeholder: string;
+    send: string;
+    greeting: string;
+    error: string;
+    disclaimer: string;
+  };
   countdown: {
     closed: string;
   };
@@ -4012,6 +4023,17 @@ export const en: MessagesShape = {
     live: 'Live',
     connecting: 'Connecting',
     offline: 'Offline',
+  },
+  assistant: {
+    launcherLabel: 'Ask',
+    launcherAria: 'Ask the Karwan assistant',
+    title: 'Karwan assistant',
+    subtitle: 'Ask anything about Karwan',
+    placeholder: 'Ask a question...',
+    send: 'Send',
+    greeting: 'Hi. I can explain how Karwan works and point you to the right page. What do you want to do?',
+    error: 'Something went wrong. Please try again.',
+    disclaimer: 'Guidance only. The assistant cannot move funds or act on your account.',
   },
   countdown: {
     closed: 'closed',

@@ -378,6 +378,17 @@ export const hi: Messages = {
     connecting: 'जुड़ रहे हैं',
     offline: 'ऑफ़लाइन',
   },
+  assistant: {
+    launcherLabel: 'पूछें',
+    launcherAria: 'Karwan असिस्टेंट से पूछें',
+    title: 'Karwan असिस्टेंट',
+    subtitle: 'Karwan के बारे में कुछ भी पूछें',
+    placeholder: 'कोई प्रश्न पूछें...',
+    send: 'भेजें',
+    greeting: 'नमस्ते. मैं बता सकता हूँ कि Karwan कैसे काम करता है और आपको सही पेज तक पहुँचा सकता हूँ. आप क्या करना चाहते हैं?',
+    error: 'कुछ गलत हो गया. कृपया फिर से कोशिश करें.',
+    disclaimer: 'केवल मार्गदर्शन. असिस्टेंट फंड नहीं ले जा सकता या आपके खाते पर कार्य नहीं कर सकता.',
+  },
   countdown: {
     closed: 'बंद',
   },

@@ -378,6 +378,17 @@ export const sw: Messages = {
     connecting: 'Inaunganisha',
     offline: 'Nje ya mtandao',
   },
+  assistant: {
+    launcherLabel: 'Uliza',
+    launcherAria: 'Uliza msaidizi wa Karwan',
+    title: 'Msaidizi wa Karwan',
+    subtitle: 'Uliza chochote kuhusu Karwan',
+    placeholder: 'Uliza swali...',
+    send: 'Tuma',
+    greeting: 'Habari. Naweza kueleza jinsi Karwan inavyofanya kazi na kukuelekeza kwenye ukurasa sahihi. Unataka kufanya nini?',
+    error: 'Hitilafu imetokea. Tafadhali jaribu tena.',
+    disclaimer: 'Mwongozo tu. Msaidizi hawezi kuhamisha fedha au kutenda kwenye akaunti yako.',
+  },
   countdown: {
     closed: 'imefungwa',
   },

@@ -11,6 +11,7 @@ import { makeQueryPersister, persistOptions } from '@/core/queryPersister';
 import { QueryInvalidator } from '@/core/queryInvalidator';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
+import { AssistantWidget } from '@/shared/components/AssistantWidget';
 import { SiweGate } from '@/shared/components/SiweGate';
 import type { Locale } from '@/shared/i18n/locales';
 
@@ -60,7 +61,10 @@ export function AppProviders({
     <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
       <SiweGate />
       <QueryInvalidator />
-      <GuideProvider>{children}</GuideProvider>
+      <GuideProvider>
+        {children}
+        <AssistantWidget />
+      </GuideProvider>
     </RainbowKitProvider>
   );
 
