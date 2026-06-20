@@ -1851,6 +1851,11 @@ export const ar: Messages = {
       notFoundTitle: 'تعذّر تحميل هذه الصفقة',
       notFoundBody: 'قد يكون الرابط خاطئاً، أو لا تكون محفظتك طرفاً فيها.',
       notFoundCta: 'العودة إلى مكتب المشتري',
+      transientEyebrow: 'تعذّر الوصول إلى الصفقة',
+      transientTitle: 'تعذّر الوصول إلى هذه الصفقة الآن',
+      transientBody: 'صفقتك آمنة وما زالت على السلسلة. هذا خلل مؤقت في الشبكة وليس صفقة ضائعة. انتظر لحظة ثم حاول مرة أخرى.',
+      transientCta: 'حاول مرة أخرى',
+      transientRetrying: 'جارٍ الوصول إلى الصفقة',
     },
     connectGate: {
       eyebrow: 'صفقة خاصة',

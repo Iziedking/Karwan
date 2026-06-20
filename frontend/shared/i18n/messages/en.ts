@@ -1736,6 +1736,11 @@ interface MessagesShape {
       notFoundTitle: string;
       notFoundBody: string;
       notFoundCta: string;
+      transientEyebrow: string;
+      transientTitle: string;
+      transientBody: string;
+      transientCta: string;
+      transientRetrying: string;
     };
     connectGate: {
       eyebrow: string;
@@ -5510,6 +5515,11 @@ export const en: MessagesShape = {
       notFoundTitle: 'We could not load this deal',
       notFoundBody: 'The link may be wrong, or your wallet may not be a party.',
       notFoundCta: 'Back to buyer desk',
+      transientEyebrow: 'CANNOT REACH DEAL',
+      transientTitle: 'We could not reach this deal right now',
+      transientBody: 'Your deal is safe and still on chain. This is a network hiccup, not a lost deal. Give it a moment and try again.',
+      transientCta: 'Try again',
+      transientRetrying: 'Reaching deal',
     },
     connectGate: {
       eyebrow: 'PRIVATE DEAL',
