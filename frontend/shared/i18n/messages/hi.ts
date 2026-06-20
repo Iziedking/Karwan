@@ -1851,6 +1851,11 @@ export const hi: Messages = {
       notFoundTitle: 'हम यह डील लोड नहीं कर सके',
       notFoundBody: 'लिंक गलत हो सकता है, या आपका वॉलेट पक्षकार नहीं हो सकता.',
       notFoundCta: 'खरीदार डेस्क पर वापस',
+      transientEyebrow: 'डील तक नहीं पहुंच सके',
+      transientTitle: 'हम अभी इस डील तक नहीं पहुंच सके',
+      transientBody: 'आपकी डील सुरक्षित है और अब भी चेन पर है. यह नेटवर्क की एक झलक भर है, खोई हुई डील नहीं. एक पल रुकें और फिर कोशिश करें.',
+      transientCta: 'फिर कोशिश करें',
+      transientRetrying: 'डील तक पहुंच रहे हैं',
     },
     connectGate: {
       eyebrow: 'निजी डील',

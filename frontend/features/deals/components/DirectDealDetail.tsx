@@ -117,7 +117,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
-  const { deal, fetchState, refresh, errorCode } = useDirectDeal(jobId);
+  const { deal, fetchState, refresh, errorKind, isRefetching } = useDirectDeal(jobId);
   const { activated } = useActivation();
   const [busy, setBusy] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ code?: string; message: string } | null>(null);
@@ -192,23 +192,50 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   }
 
   if (fetchState === 'error' || !deal) {
-    const isPrivate = errorCode === 'private';
+    const es = dd.errorStates;
+    // A missing `deal` without an explicit error kind is safer read as a
+    // transient blip than as a permanent "gone": the deal is durably stored,
+    // so a hiccup must never tell the user their in-flight deal vanished.
+    const kind = errorKind ?? 'transient';
+    const copy =
+      kind === 'private'
+        ? { eyebrow: es.privateEyebrow, title: es.privateTitle, body: es.privateBody }
+        : kind === 'gone'
+          ? { eyebrow: es.notFoundEyebrow, title: es.notFoundTitle, body: es.notFoundBody }
+          : { eyebrow: es.transientEyebrow, title: es.transientTitle, body: es.transientBody };
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[44ch]">
-            <SectionTag tone="dark">{isPrivate ? dd.errorStates.privateEyebrow : dd.errorStates.notFoundEyebrow}</SectionTag>
+            <SectionTag tone="dark">{copy.eyebrow}</SectionTag>
             <HeroHeadline size="md">
-              {isPrivate ? dd.errorStates.privateTitle : dd.errorStates.notFoundTitle}
+              {copy.title}
               <Punc>.</Punc>
             </HeroHeadline>
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {isPrivate ? dd.errorStates.privateBody : dd.errorStates.notFoundBody}
+              {copy.body}
             </p>
             <div className="mt-7">
-              <CTAPill href={isPrivate ? '/market' : '/buyer'}>
-                {isPrivate ? dd.errorStates.privateCta : dd.errorStates.notFoundCta}
-              </CTAPill>
+              {kind === 'transient' ? (
+                <button
+                  type="button"
+                  onClick={() => refresh()}
+                  disabled={isRefetching}
+                  className="inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{
+                    borderTopLeftRadius: 12,
+                    borderTopRightRadius: 12,
+                    borderBottomLeftRadius: 12,
+                    borderBottomRightRadius: 3,
+                  }}
+                >
+                  {isRefetching ? es.transientRetrying : es.transientCta}
+                </button>
+              ) : (
+                <CTAPill href={kind === 'private' ? '/market' : '/buyer'}>
+                  {kind === 'private' ? es.privateCta : es.notFoundCta}
+                </CTAPill>
+              )}
             </div>
           </div>
         </Band>

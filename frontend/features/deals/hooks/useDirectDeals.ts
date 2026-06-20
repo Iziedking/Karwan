@@ -48,6 +48,27 @@ export function useDirectDeals() {
   };
 }
 
+/// How a failed deal read should read to the user.
+/// - 'private'   : a real 403, the viewer is not a party. Stable, no retry.
+/// - 'gone'      : a real 404, the deal id does not exist.
+/// - 'transient' : the backend or its database could not answer right now
+///                 (network drop, 5xx, timeout, rate limit). The deal is
+///                 durably stored and almost certainly fine; this must not
+///                 read as "your deal is gone". Retry, then offer a refresh.
+export type DealErrorKind = 'private' | 'gone' | 'transient';
+
+function classifyDealError(err: unknown): DealErrorKind {
+  if (err instanceof ApiError) {
+    if (err.code === 'private' || err.status === 403) return 'private';
+    if (err.status === 404) return 'gone';
+    // 0 (no response), 408, 429, and any 5xx are not a missing deal.
+    return 'transient';
+  }
+  // A thrown fetch (TypeError) means the request never completed: offline,
+  // CORS, DNS, backend down. Never a missing deal.
+  return 'transient';
+}
+
 export function useDirectDeal(jobId: string) {
   const auth = useAuth();
   const qc = useQueryClient();
@@ -62,14 +83,25 @@ export function useDirectDeal(jobId: string) {
     enabled: !auth.isLoading,
     staleTime: 30_000,
     retry: (failureCount, err) => {
-      // A 403 'private' is a stable answer for non-parties, never retry it.
-      if (err instanceof ApiError && err.code === 'private') return false;
+      const kind = classifyDealError(err);
+      // A non-party 403 is a stable answer; never retry it.
+      if (kind === 'private') return false;
+      // A transient failure (backend or DB blip) is exactly the case that
+      // used to flash "DEAL NOT FOUND" mid-deal. Retry it a few times before
+      // giving up so a short outage self-heals without alarming the user.
+      if (kind === 'transient') return failureCount < 4;
+      // A true 404 on a freshly created agent deal can lag the on-chain
+      // event by a beat; one retry covers that without hiding a real miss.
       return failureCount < 1;
     },
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   const errorCode =
     query.error instanceof ApiError ? query.error.code : undefined;
+  const errorKind: DealErrorKind | undefined = query.isError
+    ? classifyDealError(query.error)
+    : undefined;
 
   return {
     deal: (query.data ?? null) as DirectDeal | null,
@@ -78,5 +110,7 @@ export function useDirectDeal(jobId: string) {
       qc.invalidateQueries({ queryKey: qk.deals.item(jobId, viewer) });
     },
     errorCode,
+    errorKind,
+    isRefetching: query.isRefetching,
   };
 }

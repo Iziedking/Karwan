@@ -1851,6 +1851,11 @@ export const sw: Messages = {
       notFoundTitle: 'Hatukuweza kupakia mkataba huu',
       notFoundBody: 'Kiungo huenda kibaya, au mkoba wako huenda si mhusika.',
       notFoundCta: 'Rudi kwa dawati la mnunuzi',
+      transientEyebrow: 'HATUKUFIKIA MKATABA',
+      transientTitle: 'Hatukuweza kufikia mkataba huu kwa sasa',
+      transientBody: 'Mkataba wako uko salama na bado uko kwenye chain. Hili ni tatizo dogo la mtandao, si mkataba uliopotea. Subiri kidogo kisha ujaribu tena.',
+      transientCta: 'Jaribu tena',
+      transientRetrying: 'Tunafikia mkataba',
     },
     connectGate: {
       eyebrow: 'MKATABA WA FARAGHA',

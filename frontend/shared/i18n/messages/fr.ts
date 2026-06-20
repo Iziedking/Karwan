@@ -1851,6 +1851,11 @@ export const fr: Messages = {
       notFoundTitle: 'Impossible de charger cette transaction',
       notFoundBody: 'Le lien est peut-être incorrect, ou votre portefeuille n\'est peut-être pas partie prenante.',
       notFoundCta: 'Retour au bureau acheteur',
+      transientEyebrow: 'TRANSACTION INJOIGNABLE',
+      transientTitle: 'Impossible de joindre cette transaction pour le moment',
+      transientBody: 'Votre transaction est en sécurité et toujours sur la chaîne. C\'est un incident réseau, pas une transaction perdue. Patientez un instant et réessayez.',
+      transientCta: 'Réessayer',
+      transientRetrying: 'Connexion en cours',
     },
     connectGate: {
       eyebrow: 'TRANSACTION PRIVÉE',
