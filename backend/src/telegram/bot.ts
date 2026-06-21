@@ -3,6 +3,13 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/telegramLinks.js';
 import { bus, type KarwanEvent } from '../events.js';
+import {
+  appendOperatorMessage,
+  closeConversation,
+  getConversation,
+  type SupportConversation,
+} from '../support/store.js';
+import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
 // getUpdates so we don't need a public webhook in dev. When the token is
@@ -149,6 +156,7 @@ async function loop() {
           message?: {
             chat: { id: number; type: string; username?: string };
             text?: string;
+            reply_to_message?: { text?: string };
           };
         }>;
       };

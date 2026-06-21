@@ -57,10 +57,14 @@ const REVERSE_CACHE_TTL_MS = 60_000;
 
 // Full-list cache. listAllAgentWallets is called by the balance watcher every
 // 60s and by the buyer-history scan + admin surfaces; without this each call
-// pulls the whole agent_wallets table over the wire. Same TTL + write-bust
-// discipline as the reverse cache. Set AGENT_WALLETS_CACHE_TTL_MS=0 to disable.
+// pulls the whole agent_wallets table over the wire (~21kB/scan, the second
+// largest Neon egress drain after the deals loop). The default 5min TTL holds
+// ~1440 reads/day down to ~288. A write (activation) busts the cache in-process
+// immediately, and the balance watcher shares that process, so a newly
+// activated wallet is still watched without delay. Set AGENT_WALLETS_CACHE_TTL_MS=0
+// to disable.
 let listCache: { rows: AgentWallets[]; builtAt: number } | null = null;
-const LIST_CACHE_TTL_MS = Number(process.env.AGENT_WALLETS_CACHE_TTL_MS ?? 60_000);
+const LIST_CACHE_TTL_MS = Number(process.env.AGENT_WALLETS_CACHE_TTL_MS ?? 300_000);
 
 function invalidateAgentWalletCaches() {
   reverseCache = null;

@@ -248,8 +248,12 @@ export interface DirectDeal {
 // egress drain. The TTL collapses them into at most one DB read per window, and
 // any local write busts it so a caller never reads stale data it just wrote.
 // Per-address reads (getDeal, listDealsForAddress) are not cached and stay live.
-// Set DEALS_CACHE_TTL_MS=0 to disable.
-const DEALS_CACHE_TTL_MS = Number(process.env.DEALS_CACHE_TTL_MS ?? 60_000);
+// Set DEALS_CACHE_TTL_MS=0 to disable. Default 5min: the background loops
+// (deal watcher 60s, factoring watcher, reputation reconciler 10min) only need
+// eventually-consistent reads, so a longer TTL collapses ~1440 full-table reads
+// per day down to ~288, the dominant Neon egress drain. Per-address reads and
+// any write still bypass/bust this cache, so user-facing data stays live.
+const DEALS_CACHE_TTL_MS = Number(process.env.DEALS_CACHE_TTL_MS ?? 300_000);
 let allDealsCache: { at: number; rows: DirectDeal[] } | null = null;
 
 function invalidateDealsCache(): void {
