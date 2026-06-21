@@ -79,11 +79,12 @@ export function UsycReservesWidget() {
         ))}
       </div>
 
-      {/* Price + provenance strip */}
+      {/* Price + provenance strip. Stacks on mobile so the long feed label
+          wraps under the price instead of overflowing the card. */}
       <div
-        className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-4 rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)]"
+        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-2 px-4 py-4 sm:px-5 rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-card)]"
       >
-        <div className="flex items-baseline gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
           <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             USYC price
           </span>

@@ -2133,6 +2133,30 @@ export const api = {
       body: JSON.stringify({ messages }),
     }),
 
+  // Live support handoff. The widget escalates from the AI to a human; the
+  // operator replies over Telegram and the widget polls for the deltas.
+  supportStatus: () => json<{ enabled: boolean }>('/api/support/status'),
+  supportStart: (
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    email?: string,
+  ) =>
+    json<{ conversationId: string; at: number }>(withCaller('/api/support/start'), {
+      method: 'POST',
+      body: JSON.stringify({ messages, ...(email ? { email } : {}) }),
+    }),
+  supportSend: (id: string, text: string) =>
+    json<{ ok: boolean }>(`/api/support/${id}/message`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+  supportPoll: (id: string, since: number) =>
+    json<{
+      status: 'open' | 'closed';
+      messages: Array<{ role: 'user' | 'assistant' | 'operator' | 'system'; text: string; ts: number }>;
+    }>(`/api/support/${id}/messages?since=${since}`),
+  supportClose: (id: string) =>
+    json<{ ok: boolean }>(`/api/support/${id}/close`, { method: 'POST' }),
+
   // --- verified-business accounts ---------------------------------------
   /// Public verification status + compact company snapshot for an address.
   getBusinessStatus: (address: string) =>

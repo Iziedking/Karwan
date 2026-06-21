@@ -372,6 +372,16 @@ interface MessagesShape {
     greeting: string;
     error: string;
     disclaimer: string;
+    /// Live human-handoff strings. Optional so locales without them fall back
+    /// to the English copy inlined in the widget.
+    humanButton?: string;
+    liveHeader?: string;
+    liveBanner?: string;
+    liveClosed?: string;
+    livePlaceholder?: string;
+    endChat?: string;
+    backToAssistant?: string;
+    operatorName?: string;
   };
   countdown: {
     closed: string;
@@ -4043,6 +4053,14 @@ export const en: MessagesShape = {
     greeting: 'Hi. I can explain how Karwan works and point you to the right page. What do you want to do?',
     error: 'Something went wrong. Please try again.',
     disclaimer: 'Guidance only. The assistant cannot move funds or act on your account.',
+    humanButton: 'Talk to a human',
+    liveHeader: 'Live support',
+    liveBanner: 'Connected to support. A person will reply here, usually within a few minutes.',
+    liveClosed: 'This support chat is closed. The transcript was emailed to you.',
+    livePlaceholder: 'Message support...',
+    endChat: 'End chat',
+    backToAssistant: 'Back to assistant',
+    operatorName: 'Support',
   },
   countdown: {
     closed: 'closed',
