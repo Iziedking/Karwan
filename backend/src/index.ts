@@ -41,6 +41,7 @@ import { factoringRoutes } from './routes/factoring.js';
 import { poFinancingRoutes } from './routes/poFinancing.js';
 import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
+import { supportRoutes, startSupportSweeper } from './routes/support.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { x402Routes } from './routes/x402.js';
 import { feedbackRoutes } from './routes/feedback.js';
@@ -178,6 +179,7 @@ app.route('/api/factoring', factoringRoutes);
 app.route('/api/po-financing', poFinancingRoutes);
 app.route('/api/sme', smeRoutes);
 app.route('/api/assistant', assistantRoutes);
+app.route('/api/support', supportRoutes);
 app.route('/api/business', businessRoutes);
 app.route('/api/admin/business', businessAdminRoutes);
 app.route('/api/x402', x402Routes);
@@ -319,6 +321,9 @@ async function boot() {
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'telegram not started');
   }
+  // Live-support housekeeping: prune closed conversations, archive abandoned
+  // ones. No-op-safe regardless of whether the handoff is configured.
+  stopFns.push(startSupportSweeper());
   // Email notifier: deal lifecycle alerts to verified contact emails. No-op
   // cleanly when RESEND_API_KEY is unset.
   try {

@@ -6,7 +6,6 @@ import { bus, type KarwanEvent } from '../events.js';
 import {
   appendOperatorMessage,
   closeConversation,
-  getConversation,
   type SupportConversation,
 } from '../support/store.js';
 import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
@@ -60,15 +59,19 @@ export async function sendTelegramMessage(
   chatId: number,
   text: string,
   buttons?: InlineButton[],
+  opts?: { plain?: boolean },
 ): Promise<void> {
   if (!config.TELEGRAM_BOT_TOKEN) return;
   try {
     const body: Record<string, unknown> = {
       chat_id: chatId,
       text,
-      parse_mode: 'Markdown',
       disable_web_page_preview: true,
     };
+    // Markdown is the default for our own copy. Operator-facing transcripts
+    // carry user text that may contain stray * or _ and would 400 the whole
+    // send under Markdown, so those go plain.
+    if (!opts?.plain) body.parse_mode = 'Markdown';
     if (buttons && buttons.length > 0) {
       // Inline keyboards render as tappable buttons below the message and work
       // reliably across mobile + desktop clients, where embedded markdown
@@ -175,10 +178,21 @@ async function loop() {
 async function handleMessage(message: {
   chat: { id: number; type: string; username?: string };
   text?: string;
+  reply_to_message?: { text?: string };
 }) {
   const text = message.text ?? '';
   const chatId = message.chat.id;
   const username = message.chat.username;
+
+  // Operator replies to live-support requests arrive in the support chat. A
+  // reply to the bot's request message carries the #KSUP tag in the quoted
+  // text; an explicit `/r KSUP-xxxx ...` works without quoting. Handle this
+  // before the linking commands so an operator's reply is never mistaken for a
+  // /start or treated as a normal user message.
+  const opChat = supportOperatorChatId();
+  if (opChat !== null && chatId === opChat) {
+    if (await handleOperatorMessage(chatId, text, message.reply_to_message?.text)) return;
+  }
 
   if (text.startsWith('/start ')) {
     const token = text.slice('/start '.length).trim();
@@ -247,6 +261,120 @@ async function handleMessage(message: {
 
 async function findLinkedAddressForChat(chatId: number): Promise<string | null> {
   return findAddressByChatId(chatId);
+}
+
+// --- live support: operator side over Telegram ---
+
+/// The chat that receives live-support handoffs. Falls back to the feedback
+/// chat so a solo operator only needs one. Null = the handoff is disabled and
+/// the frontend hides the "talk to a human" action.
+export function supportOperatorChatId(): number | null {
+  return config.SUPPORT_TELEGRAM_CHAT_ID ?? config.FEEDBACK_TELEGRAM_CHAT_ID ?? null;
+}
+
+export function supportHandoffEnabled(): boolean {
+  return telegramEnabled() && supportOperatorChatId() !== null;
+}
+
+const CONV_TAG_RE = /(KSUP-[0-9a-f]+)/i;
+
+function roleTag(role: 'user' | 'assistant' | 'operator' | 'system'): string {
+  switch (role) {
+    case 'user':
+      return 'User';
+    case 'assistant':
+      return 'AI';
+    case 'operator':
+      return 'You';
+    default:
+      return 'System';
+  }
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
+/// Routes an operator's Telegram message to the right conversation. Returns true
+/// when the message was a support action (handled), false to let normal command
+/// handling run. A reply to the request message carries the #KSUP tag; `/r` and
+/// `/close` work without quoting.
+async function handleOperatorMessage(
+  chatId: number,
+  text: string,
+  repliedText?: string,
+): Promise<boolean> {
+  const trimmed = text.trim();
+
+  const closeMatch = trimmed.match(/^\/close\s+(KSUP-[0-9a-f]+)/i);
+  if (closeMatch) {
+    const convo = closeConversation(closeMatch[1]!);
+    if (convo) void sendSupportTranscriptEmail(convo);
+    await sendTelegramMessage(
+      chatId,
+      convo
+        ? `*Karwan*: closed \`${closeMatch[1]}\` and emailed the transcript.`
+        : `*Karwan*: no open conversation \`${closeMatch[1]}\`.`,
+    );
+    return true;
+  }
+
+  let convId: string | null = null;
+  let body = trimmed;
+  const explicit = trimmed.match(/^\/r\s+(KSUP-[0-9a-f]+)\s+([\s\S]+)/i);
+  if (explicit) {
+    convId = explicit[1]!;
+    body = explicit[2]!;
+  } else if (repliedText) {
+    const m = repliedText.match(CONV_TAG_RE);
+    if (m) convId = m[1]!;
+  }
+  if (!convId) return false;
+
+  const convo = appendOperatorMessage(convId, body);
+  if (!convo) {
+    await sendTelegramMessage(
+      chatId,
+      `*Karwan*: \`${convId}\` is closed or unknown, so the user won't see that. Start fresh when they re-open the chat.`,
+    );
+    return true;
+  }
+  return true;
+}
+
+/// Pushes a new live-support request (with its AI transcript) to the operator
+/// chat. The #KSUP tag at the foot is what an operator reply quotes back so we
+/// can route the response. No-op when the handoff isn't configured.
+export async function sendSupportRequestToOperator(convo: SupportConversation): Promise<void> {
+  const chatId = supportOperatorChatId();
+  if (chatId === null) return;
+  const lines = convo.messages
+    .slice(-12)
+    .map((m) => `${roleTag(m.role)}: ${truncate(m.text, 600)}`);
+  const who = convo.address ? short(convo.address) : 'a guest';
+  const head = `Live support request from ${who}\n${convo.id}`;
+  const tail =
+    `Reply to this message to respond. Or: /r ${convo.id} your reply  •  /close ${convo.id} to end + email it.`;
+  await sendTelegramMessage(
+    chatId,
+    `${head}\n\n${lines.join('\n')}\n\n${tail}\n#${convo.id}`,
+    undefined,
+    { plain: true },
+  );
+}
+
+/// Relays a user's follow-up message (sent after handoff) to the operator chat,
+/// tagged so a reply routes back to the same conversation.
+export async function relaySupportUserMessage(convo: SupportConversation, text: string): Promise<void> {
+  const chatId = supportOperatorChatId();
+  if (chatId === null) return;
+  const who = convo.address ? short(convo.address) : 'guest';
+  await sendTelegramMessage(
+    chatId,
+    `${who} (${convo.id}):\n${truncate(text, 1200)}\n\n#${convo.id}`,
+    undefined,
+    { plain: true },
+  );
 }
 
 function pruneExpired() {

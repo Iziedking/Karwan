@@ -128,14 +128,24 @@ treasuryRoutes.get('/usyc', async (c) => {
         usycShares: operatorUsyc,
         usycValueUsd: value,
         outForYieldUsdc: costBasis,
-        yieldUsd: Math.max(0, value - operatorUsyc),
+        // Real yield is appreciation since the protocol subscribed: current USYC
+        // value minus the USDC actually paid for it (outForYield). NOT value
+        // minus shares — USYC trades well above its $1 launch par, so these
+        // shares were bought at ~$1.12 and the pre-purchase appreciation was
+        // never ours to count.
+        yieldUsd: Math.max(0, value - costBasis),
       };
     }
 
     const combinedShares = treasuryUsycN + (vaultBlock?.usycShares ?? 0);
     const combinedValue = treasuryValue + (vaultBlock?.usycValueUsd ?? 0);
-    // USYC launches at $1 par, so shares ~= USDC principal; appreciation = value - shares.
-    const combinedYield = Math.max(0, combinedValue - combinedShares);
+    // Sum the per-leg yields so each uses its own cost basis. The treasury leg
+    // wraps tiny fee amounts near the current price, so value - shares is a fair
+    // proxy there; the vault leg uses its real USDC cost basis (above). Summing
+    // value - combinedShares would treat every share as if bought at $1 par and
+    // massively overstate the gain.
+    const combinedYield =
+      Math.max(0, treasuryValue - treasuryUsycN) + (vaultBlock?.yieldUsd ?? 0);
 
     return c.json({
       configured: true,

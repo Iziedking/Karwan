@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -9,10 +9,23 @@ interface Turn {
   content: string;
 }
 
+interface LiveMsg {
+  role: 'user' | 'assistant' | 'operator' | 'system';
+  text: string;
+  ts: number;
+}
+
+const POLL_MS = 4000;
+
 /// In-app support assistant. A floating launcher opens a chat panel that talks
 /// to /api/assistant/chat. The model is grounded in the Karwan knowledge base
 /// and answers with in-app links, so it doubles as guidance and support. It is
 /// read-only: it never touches funds or the user's account.
+///
+/// When a human operator channel is configured, the panel also offers a
+/// "Talk to a human" handoff: it opens a support conversation, relays it to an
+/// operator over Telegram, and polls for the replies. The AI history stays
+/// visible above the live thread so the operator's context is the user's too.
 export function AssistantWidget() {
   const t = useTranslations().assistant;
   const [open, setOpen] = useState(false);
@@ -20,17 +33,116 @@ export function AssistantWidget() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [handoffEnabled, setHandoffEnabled] = useState<boolean | null>(null);
+  const [convoId, setConvoId] = useState<string | null>(null);
+  const [live, setLive] = useState<LiveMsg[]>([]);
+  const [liveClosed, setLiveClosed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastTsRef = useRef(0);
+  const pollBusyRef = useRef(false);
 
   useEffect(() => {
     if (open && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [open, turns, loading]);
+  }, [open, turns, live, loading, liveClosed]);
+
+  // Probe once whether a human operator channel is wired. The handoff button
+  // only appears when it is.
+  useEffect(() => {
+    if (!open || handoffEnabled !== null) return;
+    let cancelled = false;
+    api
+      .supportStatus()
+      .then((r) => !cancelled && setHandoffEnabled(r.enabled))
+      .catch(() => !cancelled && setHandoffEnabled(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, handoffEnabled]);
+
+  const pollLive = useCallback(async () => {
+    if (!convoId || pollBusyRef.current) return;
+    pollBusyRef.current = true;
+    try {
+      const r = await api.supportPoll(convoId, lastTsRef.current);
+      if (r.messages.length > 0) {
+        lastTsRef.current = Math.max(lastTsRef.current, ...r.messages.map((m) => m.ts));
+        setLive((prev) => [...prev, ...r.messages]);
+      }
+      if (r.status === 'closed') setLiveClosed(true);
+    } catch {
+      /* transient network blip; the next tick retries */
+    } finally {
+      pollBusyRef.current = false;
+    }
+  }, [convoId]);
+
+  // Drain operator replies while the live thread is open and on screen.
+  useEffect(() => {
+    if (!open || !convoId || liveClosed) return;
+    const id = setInterval(() => void pollLive(), POLL_MS);
+    return () => clearInterval(id);
+  }, [open, convoId, liveClosed, pollLive]);
+
+  async function startHandoff() {
+    if (loading || convoId) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const transcript = turns.map((m) => ({ role: m.role, content: m.content }));
+      const res = await api.supportStart(transcript);
+      lastTsRef.current = res.at;
+      setLive([]);
+      setLiveClosed(false);
+      setConvoId(res.conversationId);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function endChat() {
+    if (!convoId) return;
+    try {
+      await api.supportClose(convoId);
+    } catch {
+      /* the sweeper closes + archives it regardless */
+    }
+    setLiveClosed(true);
+  }
+
+  function resetToAssistant() {
+    setConvoId(null);
+    setLive([]);
+    setLiveClosed(false);
+    lastTsRef.current = 0;
+  }
 
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
+
+    // Live (human) mode: relay to the operator, then poll so the user's own
+    // line and any reply surface from the single server source of truth.
+    if (convoId) {
+      if (liveClosed) return;
+      setInput('');
+      setError(null);
+      setLoading(true);
+      try {
+        await api.supportSend(convoId, text);
+        await pollLive();
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : t.error);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // AI mode.
     const next = [...turns, { role: 'user' as const, content: text }];
     setTurns(next);
     setInput('');
@@ -53,6 +165,9 @@ export function AssistantWidget() {
       send();
     }
   }
+
+  const isLive = convoId !== null;
+  const showHandoffButton = handoffEnabled === true && !isLive && turns.length > 0;
 
   return (
     <>
@@ -122,6 +237,39 @@ export function AssistantWidget() {
                 )}
               </Bubble>
             ))}
+            {isLive && (
+              <>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
+                  <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                    {t.liveHeader ?? 'Live support'}
+                  </span>
+                  <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
+                </div>
+                {!liveClosed && (
+                  <p className="mono text-[10px] leading-snug text-[var(--lp-text-sub)] px-1">
+                    {t.liveBanner ??
+                      'Connected to support. A person will reply here, usually within a few minutes.'}
+                  </p>
+                )}
+                {live.map((m, i) => (
+                  <div key={`l${i}`}>
+                    {m.role === 'operator' && (
+                      <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-accent)] mb-1 ms-1">
+                        {t.operatorName ?? 'Support'}
+                      </p>
+                    )}
+                    <Bubble role={m.role === 'user' ? 'user' : 'assistant'}>{m.text}</Bubble>
+                  </div>
+                ))}
+                {liveClosed && (
+                  <p className="mono text-[10px] leading-snug text-[var(--lp-text-muted)] px-1 pt-1">
+                    {t.liveClosed ??
+                      'This support chat is closed. The transcript was emailed to you.'}
+                  </p>
+                )}
+              </>
+            )}
             {loading && (
               <Bubble role="assistant">
                 <span className="inline-flex gap-1" aria-label="Thinking">
@@ -136,33 +284,68 @@ export function AssistantWidget() {
 
           {/* input */}
           <div className="p-3 border-t border-[var(--lp-border-light)]">
-            <div className="flex items-end gap-2">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={t.placeholder}
-                rows={1}
-                className="form-input flex-1 resize-none max-h-28 text-[14px]"
-              />
+            {showHandoffButton && (
               <button
                 type="button"
-                onClick={send}
-                disabled={loading || !input.trim()}
-                className="shrink-0 mono text-[11px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50 transition"
-                style={{
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 3,
-                }}
+                onClick={startHandoff}
+                disabled={loading}
+                className="w-full mb-2 mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 rounded-[10px] border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:bg-black/[0.04] disabled:opacity-50 transition"
               >
-                {t.send}
+                {t.humanButton ?? 'Talk to a human'}
               </button>
-            </div>
-            <p className="mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-2 leading-snug">
-              {t.disclaimer}
-            </p>
+            )}
+            {isLive && !liveClosed && (
+              <div className="flex justify-end mb-2">
+                <button
+                  type="button"
+                  onClick={endChat}
+                  className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition"
+                >
+                  {t.endChat ?? 'End chat'}
+                </button>
+              </div>
+            )}
+            {liveClosed ? (
+              <button
+                type="button"
+                onClick={resetToAssistant}
+                className="w-full mono text-[11px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--lp-dark)] text-[var(--lp-bg)] transition"
+              >
+                {t.backToAssistant ?? 'Back to assistant'}
+              </button>
+            ) : (
+              <>
+                <div className="flex items-end gap-2">
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder={isLive ? t.livePlaceholder ?? 'Message support...' : t.placeholder}
+                    rows={1}
+                    className="form-input flex-1 resize-none max-h-28 text-[14px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={send}
+                    disabled={loading || !input.trim()}
+                    className="shrink-0 mono text-[11px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50 transition"
+                    style={{
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    {t.send}
+                  </button>
+                </div>
+                {!isLive && (
+                  <p className="mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-2 leading-snug">
+                    {t.disclaimer}
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
