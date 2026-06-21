@@ -389,6 +389,19 @@ const envSchema = z.object({
     blankToUndefined,
     z.coerce.number().int().optional(),
   ),
+  // Live support handoff. When a user asks for a human in the assistant widget,
+  // the conversation (with its AI transcript) is pushed to this Telegram chat;
+  // the operator replies there and the reply relays back into the widget. Falls
+  // back to FEEDBACK_TELEGRAM_CHAT_ID when unset so a solo operator needs only
+  // one chat. Unset (and no feedback chat) = the handoff button is hidden.
+  SUPPORT_TELEGRAM_CHAT_ID: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().optional(),
+  ),
+  // Durable archive recipient for closed support conversations. Every closed
+  // conversation is emailed here (and to the user when their email is known) so
+  // the record lives in an inbox, not a growing Postgres table.
+  SUPPORT_EMAIL: z.preprocess(blankToUndefined, z.string().default('support@karwan.site')),
   // This backend's own public origin, e.g. https://api.karwan.site. Used to
   // build absolute screenshot URLs so Telegram can fetch them and the feedback
   // viewer can link them. Unset = screenshots are stored but not pushed to
