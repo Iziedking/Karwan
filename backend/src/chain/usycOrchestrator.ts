@@ -76,6 +76,11 @@ export interface UsycRunResult {
 }
 
 type Wallet = ReturnType<typeof createWalletClient>;
+/// The local signer. It MUST be passed to writeContract as the `account` so
+/// viem signs locally and broadcasts via eth_sendRawTransaction. Passing a bare
+/// address string instead makes viem emit eth_sendTransaction, which public RPCs
+/// (dRPC, most nodes) do not support.
+type Signer = ReturnType<typeof privateKeyToAccount>;
 
 async function balanceOf(token: `0x${string}`, holder: `0x${string}`): Promise<bigint> {
   return (await publicClient.readContract({ address: token, abi: erc20Abi, functionName: 'balanceOf', args: [holder] })) as bigint;
@@ -83,7 +88,7 @@ async function balanceOf(token: `0x${string}`, holder: `0x${string}`): Promise<b
 
 async function rebalance(
   wallet: Wallet,
-  account: `0x${string}`,
+  account: Signer,
   dryRun: boolean,
   steps: UsycStep[],
 ): Promise<void> {
@@ -93,10 +98,10 @@ async function rebalance(
     return;
   }
   const operator = (await publicClient.readContract({ address: vault, abi: vaultAbi, functionName: 'operator' })) as `0x${string}`;
-  if (getAddress(operator) !== getAddress(account)) {
+  if (getAddress(operator) !== getAddress(account.address)) {
     steps.push({
       action: 'vault-rebalance',
-      detail: `signer ${account} is not the vault operator ${operator}`,
+      detail: `signer ${account.address} is not the vault operator ${operator}`,
       skipped: true,
     });
     return;
@@ -117,7 +122,7 @@ async function rebalance(
     try {
       await send(wallet, { address: vault, abi: vaultAbi, functionName: 'withdrawForYield', args: [amount], account, chain: arcTestnet });
       await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [TELLER, amount], account, chain: arcTestnet });
-      step.txHash = await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'deposit', args: [amount, account], account, chain: arcTestnet });
+      step.txHash = await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'deposit', args: [amount, account.address], account, chain: arcTestnet });
     } catch (err) {
       step.failed = true;
       step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
@@ -138,7 +143,7 @@ async function rebalance(
     const round = (await publicClient.readContract({ address: oracle, abi: oracleAbi, functionName: 'latestRoundData' })) as readonly [bigint, bigint, bigint, bigint, bigint];
     const price = round[1] > 0n ? round[1] : 10n ** 18n;
     let shares = (need * 10n ** 18n) / price;
-    const held = await balanceOf(USYC, account);
+    const held = await balanceOf(USYC, account.address);
     if (shares > held) shares = held;
     if (shares === 0n) {
       steps.push({ action: 'vault-unwind', detail: `under buffer but no USYC to unwind (need ${fmt(need)})`, skipped: true });
@@ -149,8 +154,8 @@ async function rebalance(
     if (dryRun) return;
     try {
       await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
-      await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account, account], account, chain: arcTestnet });
-      const usdcOut = await balanceOf(usdc, account);
+      await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcTestnet });
+      const usdcOut = await balanceOf(usdc, account.address);
       await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, usdcOut], account, chain: arcTestnet });
       step.txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [usdcOut], account, chain: arcTestnet });
     } catch (err) {
@@ -165,7 +170,7 @@ async function rebalance(
 
 async function sweep(
   wallet: Wallet,
-  account: `0x${string}`,
+  account: Signer,
   dryRun: boolean,
   steps: UsycStep[],
 ): Promise<void> {
@@ -176,7 +181,7 @@ async function sweep(
   }
   const feeEoa = cfg.KARWAN_TREASURY_ADDR as `0x${string}` | undefined;
 
-  if (feeEoa && getAddress(feeEoa) === getAddress(account)) {
+  if (feeEoa && getAddress(feeEoa) === getAddress(account.address)) {
     const feeBal = await balanceOf(usdc, feeEoa);
     if (feeBal >= toUnits(config.USYC_TREASURY_SWEEP_MIN_USDC)) {
       const step: UsycStep = { action: 'treasury-fund', detail: `move ${fmt(feeBal)} USDC of fees into the treasury` };
@@ -250,10 +255,10 @@ export async function runUsycWrap(opts: { dryRun?: boolean } = {}): Promise<Usyc
   logger.info({ operator: account.address, dryRun }, `usyc-orchestrator: start${dryRun ? ' (dry-run)' : ''}`);
 
   const steps: UsycStep[] = [];
-  await rebalance(wallet, account.address, dryRun, steps).catch((err) =>
+  await rebalance(wallet, account, dryRun, steps).catch((err) =>
     steps.push({ action: 'vault-rebalance', detail: `failed: ${(err as Error).message}`, skipped: true }),
   );
-  await sweep(wallet, account.address, dryRun, steps).catch((err) =>
+  await sweep(wallet, account, dryRun, steps).catch((err) =>
     steps.push({ action: 'treasury-sweep', detail: `failed: ${(err as Error).message}`, skipped: true }),
   );
 
