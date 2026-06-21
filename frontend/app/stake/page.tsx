@@ -13,6 +13,7 @@ import {
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
+import { UsycReservesWidget } from '@/features/reputation/components/UsycReservesWidget';
 import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPanel';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
@@ -173,6 +174,9 @@ function StakePageInner() {
           provable on chain.
         </p>
         <div className="mt-9">
+          <UsycReservesWidget />
+        </div>
+        <div className="mt-5">
           <ReservesWidget />
         </div>
       </Band>

@@ -56,6 +56,10 @@ export const qk = {
     me: (address: string) => ['yield', 'me', address.toLowerCase()] as const,
   },
 
+  treasury: {
+    usyc: () => ['treasury', 'usyc'] as const,
+  },
+
   job: {
     all: () => ['job'] as const,
     snapshot: (jobId: string) => ['job', 'snapshot', jobId] as const,

@@ -15,6 +15,8 @@
     "wallets:create": "tsx --env-file=../.env src/scripts/create-wallets.ts",
     "reviewer:create": "tsx --env-file=../.env src/scripts/provision-reviewer-wallet.ts",
     "usyc:cron": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
+    "usyc:wrap": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
+    "usyc:prove": "tsx --env-file=../.env src/scripts/prove-usyc.ts",
     "identity:register": "tsx --env-file=../.env src/scripts/register-identities.ts",
     "agent:seller": "tsx --env-file=../.env src/scripts/seller-agent.ts",
     "agent:buyer": "tsx --env-file=../.env src/scripts/buyer-agent.ts",

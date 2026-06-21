@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { logger } from '../logger.js';
+import { runUsycWrap } from '../chain/usycOrchestrator.js';
 
 /// Admin USYC yield monitor. Read-only. Marks the platform's USYC holdings to
 /// the live Hashnote oracle so the demo can show reserves earning yield in real
@@ -152,5 +153,22 @@ adminUsycRoutes.get('/', async (c) => {
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'admin usyc monitor read failed');
     return c.json({ configured: true, error: (err as Error).message }, 502);
+  }
+});
+
+/// One-click wrap. Runs the operator-signed orchestration (vault rebalance +
+/// treasury sweep into USYC). `?dry=1` previews without signing. The signer is
+/// USYC_OPERATOR_PRIVATE_KEY; on testnet that is the deployer EOA (whitelisted,
+/// vault operator + treasury keeper). 503 when no operator key is configured.
+adminUsycRoutes.post('/run', async (c) => {
+  const dryRun = c.req.query('dry') === '1' || c.req.query('dryRun') === '1';
+  try {
+    const result = await runUsycWrap({ dryRun });
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    const message = (err as Error).message;
+    const noKey = message.includes('USYC_OPERATOR_PRIVATE_KEY');
+    logger.warn({ err: message, dryRun }, 'admin usyc run failed');
+    return c.json({ ok: false, error: message }, noKey ? 503 : 502);
   }
 });

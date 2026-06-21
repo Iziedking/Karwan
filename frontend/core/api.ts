@@ -1312,6 +1312,45 @@ export const api = {
       outstandingUsdc?: string;
       usdcBalance?: string;
     }>('/api/yield/protocol'),
+  /// Live USYC reserves: the protocol's real USYC holdings (treasury +
+  /// vault-routed stake) marked to the live Hashnote price feed, with the
+  /// on-chain oracle as a conservative fallback. Drives the live USYC balance
+  /// + yield readout on /stake and the home page.
+  usycReserves: () =>
+    json<{
+      configured: boolean;
+      error?: string;
+      price?: {
+        markUsd: number;
+        source: 'live' | 'onchain';
+        liveUsd: number | null;
+        liveRound: string | null;
+        liveUpdatedAt: number | null;
+        onchainUsd: number;
+        onchainUpdatedAt: number;
+        onchainStale: boolean;
+      };
+      treasury?: {
+        address: string;
+        idleUsdc: number;
+        usycShares: number;
+        usycValueUsd: number;
+        yieldUsd: number;
+      };
+      vault?: {
+        address: string;
+        usycShares: number;
+        usycValueUsd: number;
+        outForYieldUsdc: number;
+        yieldUsd: number;
+      } | null;
+      combined?: {
+        usycShares: number;
+        usycValueUsd: number;
+        yieldUsd: number;
+        idleUsdc: number;
+      };
+    }>('/api/treasury/usyc'),
   /// Per-day distribution timeseries. Without `address`, returns the
   /// protocol's aggregate accrual curve. With `address`, returns the
   /// per-staker series. Both cached 30s on the backend.

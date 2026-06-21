@@ -45,6 +45,7 @@ backend/data/
 
 # internal, not for public repo
 PLAN.md
+USYC.md
 todo.md
 docs/agent.md
 docs/api-healthcheck.md
