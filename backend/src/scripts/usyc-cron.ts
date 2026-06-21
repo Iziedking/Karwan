@@ -20,7 +20,7 @@ async function main() {
     : 'usyc-cron: done';
   console.log(`\n${head}  operator=${result.operator}`);
   for (const s of result.steps) {
-    const tag = s.skipped ? 'skip' : s.txHash ? `tx ${s.txHash.slice(0, 10)}…` : 'ok';
+    const tag = s.failed ? 'FAIL' : s.skipped ? 'skip' : s.txHash ? `tx ${s.txHash.slice(0, 10)}…` : 'ok';
     console.log(`  - [${tag}] ${s.action}: ${s.detail}`);
   }
   console.log('');
