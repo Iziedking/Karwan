@@ -69,16 +69,22 @@ const httpTransports = RPC_URLS.map((url) =>
   }),
 );
 
+/// Shared Arc transport: a single http() when only one RPC is configured,
+/// otherwise a fallback() that rotates on any per-transport error. Exported so
+/// write paths (the USYC wrap signer) ride the same fallback as reads instead of
+/// pinning a single RPC, which makes a rate-limited primary rotate to a backup.
+export const arcTransport =
+  httpTransports.length === 1
+    ? httpTransports[0]!
+    : fallback(httpTransports, {
+        rank: false,
+        retryCount: 0,
+        shouldThrow: () => false,
+      });
+
 export const publicClient = createPublicClient({
   chain: arcTestnet,
-  transport:
-    httpTransports.length === 1
-      ? httpTransports[0]!
-      : fallback(httpTransports, {
-          rank: false,
-          retryCount: 0,
-          shouldThrow: () => false,
-        }),
+  transport: arcTransport,
 });
 
 export const wsClient = createPublicClient({

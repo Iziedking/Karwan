@@ -230,20 +230,13 @@ yieldRoutes.get('/me', async (c) => {
     const fallbackBack = 14n * 24n * 60n * 60n / 1n;
     const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
 
-    const [claimable, creditedLogs, claimedLogs] = await Promise.all([
+    const [claimable, claimedLogs] = await Promise.all([
       publicClient.readContract({
         address: distributor,
         abi: distributorAbi,
         functionName: 'claimable',
         args: [checksummed],
       }) as Promise<bigint>,
-      chunkedGetLogs({
-        address: distributor,
-        event: YieldCreditedEvent,
-        fromBlock: start,
-        toBlock: head,
-        args: { staker: checksummed },
-      }),
       chunkedGetLogs({
         address: distributor,
         event: YieldClaimedEvent,
@@ -253,10 +246,19 @@ yieldRoutes.get('/me', async (c) => {
       }),
     ]);
 
-    let lifetimeCredited = 0n;
-    for (const log of creditedLogs) lifetimeCredited += (log.args.amount as bigint | undefined) ?? 0n;
     let lifetimeClaimed = 0n;
     for (const log of claimedLogs) lifetimeClaimed += (log.args.amount as bigint | undefined) ?? 0n;
+    /// Derive lifetime credited from the on-chain identity rather than a second
+    /// event scan: every unit ever credited to a staker is either still
+    /// `claimable` or already `claimed`, so credited = claimable + claimed. This
+    /// guarantees distributed = available + claimed (the panel's three numbers
+    /// always reconcile) and sidesteps the credited-scan truncation that made
+    /// claimed look larger than distributed. Claimed itself is complete only
+    /// when the scan starts at the distributor deploy block, so set
+    /// KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK (else the 14-day fallback can still
+    /// undercount both claimed and credited by the same amount, but they stay
+    /// internally consistent).
+    const lifetimeCredited = claimable + lifetimeClaimed;
 
     const snapshot: MeSnapshot = {
       claimableUsdc: formatUnits(claimable, USDC_DECIMALS),

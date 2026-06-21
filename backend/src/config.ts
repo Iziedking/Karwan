@@ -209,6 +209,16 @@ const envSchema = z.object({
   // claim(). Read-only here; the cron operator key is set on the contract via
   // setOperator, NOT loaded into the backend.
   KARWAN_YIELD_DISTRIBUTOR_ADDR: optionalAddr,
+  // Block the YieldDistributor was deployed at. Bounds the YieldCredited /
+  // YieldClaimed event scans in routes/yield.ts. When unset the route falls back
+  // to a sliding 14-day window, which truncates older credits/claims and makes
+  // the per-staker lifetime totals drift between reads. Set it (gen-4 deploy:
+  // 45476130) so the scans cover full history deterministically. Kept as a
+  // string because the route parses it itself.
+  KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^\d+$/).optional(),
+  ),
   // Direct-deal review window in milliseconds. Used for two timers: the buyer
   // has this long to release the first milestone after the seller delivers, and
   // again to release the final milestone. When it expires the agent

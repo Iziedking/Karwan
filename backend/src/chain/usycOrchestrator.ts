@@ -1,6 +1,6 @@
-import { createWalletClient, http, formatUnits, getAddress } from 'viem';
+import { createWalletClient, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet, publicClient } from './client.js';
+import { arcTestnet, arcTransport, publicClient } from './client.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -52,6 +52,22 @@ export interface UsycStep {
   detail: string;
   txHash?: string;
   skipped?: boolean;
+  failed?: boolean;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/// Spacing between sequential transactions so a burst does not trip the public
+/// RPC rate limiter (the cause of the 429s on the first live wrap).
+const SEND_GAP_MS = 600;
+
+/// A rate-limit / overload response is safe to retry: the request was rejected
+/// before execution, so retrying never double-sends. We retry ONLY these, never
+/// an ambiguous error, to avoid resubmitting a tx that may have landed.
+function isRateLimited(err: unknown): boolean {
+  const e = err as { status?: number; message?: string };
+  if (e?.status === 429) return true;
+  const m = (e?.message ?? '').toLowerCase();
+  return m.includes('429') || m.includes('too many requests') || m.includes('rate limit');
 }
 export interface UsycRunResult {
   operator: string | null;
@@ -98,9 +114,14 @@ async function rebalance(
     };
     steps.push(step);
     if (dryRun) return;
-    await send(wallet, { address: vault, abi: vaultAbi, functionName: 'withdrawForYield', args: [amount], account, chain: arcTestnet });
-    await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [TELLER, amount], account, chain: arcTestnet });
-    step.txHash = await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'deposit', args: [amount, account], account, chain: arcTestnet });
+    try {
+      await send(wallet, { address: vault, abi: vaultAbi, functionName: 'withdrawForYield', args: [amount], account, chain: arcTestnet });
+      await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [TELLER, amount], account, chain: arcTestnet });
+      step.txHash = await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'deposit', args: [amount, account], account, chain: arcTestnet });
+    } catch (err) {
+      step.failed = true;
+      step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
+    }
     return;
   }
 
@@ -126,12 +147,16 @@ async function rebalance(
     const step: UsycStep = { action: 'vault-unwind', detail: `unwind ${fmt(shares)} USYC to restore ${fmt(need)} USDC` };
     steps.push(step);
     if (dryRun) return;
-    await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
-    const redeemHash = await wallet.writeContract({ address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account, account], account, chain: arcTestnet });
-    await publicClient.waitForTransactionReceipt({ hash: redeemHash });
-    const usdcOut = await balanceOf(usdc, account);
-    await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, usdcOut], account, chain: arcTestnet });
-    step.txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [usdcOut], account, chain: arcTestnet });
+    try {
+      await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
+      await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account, account], account, chain: arcTestnet });
+      const usdcOut = await balanceOf(usdc, account);
+      await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, usdcOut], account, chain: arcTestnet });
+      step.txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [usdcOut], account, chain: arcTestnet });
+    } catch (err) {
+      step.failed = true;
+      step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
+    }
     return;
   }
 
@@ -157,8 +182,13 @@ async function sweep(
       const step: UsycStep = { action: 'treasury-fund', detail: `move ${fmt(feeBal)} USDC of fees into the treasury` };
       steps.push(step);
       if (!dryRun) {
-        await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [treasury, feeBal], account, chain: arcTestnet });
-        step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'deposit', args: [feeBal], account, chain: arcTestnet });
+        try {
+          await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [treasury, feeBal], account, chain: arcTestnet });
+          step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'deposit', args: [feeBal], account, chain: arcTestnet });
+        } catch (err) {
+          step.failed = true;
+          step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
+        }
       }
     }
   }
@@ -170,16 +200,40 @@ async function sweep(
   try {
     step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'sweepToUSYC', args: [], account, chain: arcTestnet });
   } catch (err) {
-    step.skipped = true;
-    step.detail += ` — no-op or not keeper (${(err as Error).message.slice(0, 80)})`;
+    // A rate-limit is a real failure to surface; a plain revert here is the
+    // benign "below idleThreshold / not keeper" no-op.
+    if (isRateLimited(err)) {
+      step.failed = true;
+      step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
+    } else {
+      step.skipped = true;
+      step.detail += ` — no-op or not keeper (${(err as Error).message.slice(0, 80)})`;
+    }
   }
 }
 
 async function send(wallet: Wallet, params: Parameters<Wallet['writeContract']>[0]): Promise<string> {
-  const hash = await wallet.writeContract(params);
-  await publicClient.waitForTransactionReceipt({ hash });
-  logger.info({ hash }, `usyc-orchestrator: ${params.functionName} mined`);
-  return hash;
+  // Retry only on rate-limit (429) with exponential backoff; a 429 means the
+  // request never executed, so this can't double-send. Space every send so a
+  // multi-tx run does not burst the public RPC into throttling.
+  const MAX = 4;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const hash = await wallet.writeContract(params);
+      await publicClient.waitForTransactionReceipt({ hash });
+      logger.info({ hash }, `usyc-orchestrator: ${params.functionName} mined`);
+      await sleep(SEND_GAP_MS);
+      return hash;
+    } catch (err) {
+      if (isRateLimited(err) && attempt < MAX) {
+        const wait = 1000 * 2 ** attempt;
+        logger.warn({ fn: params.functionName, attempt, wait }, 'usyc-orchestrator: rate limited, backing off');
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 /// Run both legs. Returns the steps taken (or that would be taken in dryRun).
@@ -190,7 +244,9 @@ export async function runUsycWrap(opts: { dryRun?: boolean } = {}): Promise<Usyc
     throw new Error('USYC_OPERATOR_PRIVATE_KEY not set');
   }
   const account = privateKeyToAccount(config.USYC_OPERATOR_PRIVATE_KEY as `0x${string}`);
-  const wallet = createWalletClient({ account, chain: arcTestnet, transport: http(config.ARC_TESTNET_RPC_URL) });
+  // Share the public client's fallback transport so a rate-limited primary
+  // rotates to a backup RPC instead of failing the wrap.
+  const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
   logger.info({ operator: account.address, dryRun }, `usyc-orchestrator: start${dryRun ? ' (dry-run)' : ''}`);
 
   const steps: UsycStep[] = [];

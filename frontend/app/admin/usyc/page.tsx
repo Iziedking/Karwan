@@ -98,7 +98,7 @@ export default function AdminUsycPage() {
   );
 }
 
-type RunStep = { action: string; detail: string; txHash?: string; skipped?: boolean };
+type RunStep = { action: string; detail: string; txHash?: string; skipped?: boolean; failed?: boolean };
 type RunResult = { ok: boolean; operator?: string | null; dryRun?: boolean; steps?: RunStep[]; error?: string };
 
 function Console({ token, onLock }: { token: string; onLock: () => void }) {
@@ -309,10 +309,16 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                         </span>
                         <span
                           className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] ${
-                            s.skipped ? 'text-zinc-600' : s.txHash ? 'text-emerald-400' : 'text-zinc-400'
+                            s.failed
+                              ? 'text-red-400'
+                              : s.skipped
+                                ? 'text-zinc-600'
+                                : s.txHash
+                                  ? 'text-emerald-400'
+                                  : 'text-zinc-400'
                           }`}
                         >
-                          {s.skipped ? 'skip' : s.txHash ? `${s.txHash.slice(0, 10)}…` : 'ok'}
+                          {s.failed ? 'fail' : s.skipped ? 'skip' : s.txHash ? `${s.txHash.slice(0, 10)}…` : 'ok'}
                         </span>
                       </li>
                     ))}
