@@ -17,6 +17,7 @@
     "usyc:cron": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
     "usyc:wrap": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
     "usyc:prove": "tsx --env-file=../.env src/scripts/prove-usyc.ts",
+    "research:smoke": "tsx --env-file=../.env src/scripts/research-smoke.ts",
     "identity:register": "tsx --env-file=../.env src/scripts/register-identities.ts",
     "agent:seller": "tsx --env-file=../.env src/scripts/seller-agent.ts",
     "agent:buyer": "tsx --env-file=../.env src/scripts/buyer-agent.ts",

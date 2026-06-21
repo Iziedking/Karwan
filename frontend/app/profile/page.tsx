@@ -18,6 +18,7 @@ import { ReputationBadge } from '@/features/reputation/components/ReputationBadg
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
+import { AgentResearchCard } from '@/features/reputation/components/AgentResearchCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
@@ -489,6 +490,11 @@ function ProfilePageInner() {
             />
           )}
         </div>
+        {activation.activated && (
+          <div className="mt-5">
+            <AgentResearchCard />
+          </div>
+        )}
       </Band>
 
       {/* STAKING anchor */}

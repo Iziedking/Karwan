@@ -65,36 +65,28 @@ export interface MatchProposal {
     transaction: string;
     paidAt: number;
   };
-  /// Sanctions and counterparty-risk screen the buyer agent paid for on
-  /// Base mainnet (GlobalAPI over x402, $0.01: OFAC SDN + UK FCDO + UN SC
-  /// + wallet labels). subject is the seller's OWNER address. The
-  /// MatchBanner renders the verdict so both parties see the agent ran
-  /// real compliance before matching.
-  counterpartyScreen?: {
-    subject: string;
-    verdict: 'PASS' | 'WARN' | 'BLOCK';
-    reasons: string[];
+  /// Market read the agent PAID for over x402 on Base mainnet (Exa web search,
+  /// ~$0.007, synthesised with the platform LLM). Keyed to the deal's keywords,
+  /// not a counterparty, so it answers "what's the market for this deal right
+  /// now" rather than screening a wallet. The MatchBanner renders it with the
+  /// settlement reference so both parties see the agent researched the market
+  /// against paid live data before matching.
+  marketRead?: {
+    keywords: string[];
+    summary: string;
+    demand: 'hot' | 'steady' | 'soft';
+    priceNote: string;
+    highlights: string[];
+    sources: { title: string; url: string }[];
     amountUsd: number;
-    /// On-chain settlement tx (Base) for the $0.01 screen payment, when the
-    /// GlobalAPI server echoes it. Surfaced as evidence on the buyer's banner.
+    /// On-chain settlement tx (Base) for the research payment, when the server
+    /// echoes it. Surfaced as evidence on the banner.
     txHash?: string;
-    /// The agent's Base payer wallet. Surfaced as on-chain evidence even when
+    /// The agent's Base payer wallet. On-chain evidence of the spend even when
     /// the server doesn't echo a settlement tx: a judge can open the wallet on
-    /// BaseScan and see the real USDC spend history.
+    /// BaseScan and see the real USDC history.
     payer?: string;
-    screenedAt: number;
-  };
-  /// The mirror screen: the seller agent's compliance screen of the BUYER,
-  /// run at proposal build. subject is the buyer's owner address. Shown only
-  /// to the seller, so each side sees only the screen its own agent paid for.
-  buyerScreen?: {
-    subject: string;
-    verdict: 'PASS' | 'WARN' | 'BLOCK';
-    reasons: string[];
-    amountUsd: number;
-    txHash?: string;
-    payer?: string;
-    screenedAt: number;
+    researchedAt: number;
   };
   /// Verified-business badge for the match. Set when the seller's owner is a
   /// verified business, so the MatchBanner renders a compact company chip

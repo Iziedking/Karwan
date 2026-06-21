@@ -111,6 +111,17 @@ export interface UserProfile {
       computedAt: number;
     };
   };
+  /// Agent research activation. The user pays a one-time fee (USDC on Arc) to
+  /// let their agent pay for live market research that tunes how it negotiates.
+  /// The fee becomes a prepaid credit that decrements per real research call.
+  /// In the UI this reads as "agent research", never "x402".
+  research?: {
+    active: boolean;
+    /// Remaining prepaid research credit, in USDC.
+    creditUsdc: number;
+    activatedAt: number;
+    lastChargedAt?: number;
+  };
   /// Account type. Every wallet is a person by default; a wallet becomes a
   /// business only when Karwan approves its on-chain registration (the
   /// `business` envelope below). Absent reads as 'person'. Flipped to
