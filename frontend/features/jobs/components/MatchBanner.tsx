@@ -211,23 +211,18 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </p>
       )}
 
-      {/* External paid compliance, shown to each party only for the screen
-          THEIR OWN agent paid: the buyer sees the seller screen, the seller
-          sees the buyer screen. Base mainnet x402, with the payment as
-          evidence. */}
-      {(() => {
-        const screen = viewerIsBuyer
-          ? proposal.counterpartyScreen
-          : viewerIsSeller
-            ? proposal.buyerScreen
-            : undefined;
-        if (!screen) return null;
+      {/* Market read: the agent PAID an external x402 web-search service (Exa
+          on Base) for live market data on the deal's keywords, then synthesised
+          it with the platform LLM. Shown to both parties, with the payment as
+          on-chain evidence. */}
+      {proposal.marketRead && (() => {
+        const mr = proposal.marketRead;
         const tone =
-          screen.verdict === 'BLOCK'
-            ? { fg: '#b25425', bg: 'rgba(178,84,37,0.14)' }
-            : screen.verdict === 'WARN'
+          mr.demand === 'hot'
+            ? { fg: '#4f8a3f', bg: 'rgba(79,138,63,0.14)' }
+            : mr.demand === 'soft'
               ? { fg: '#b07d1f', bg: 'rgba(176,125,31,0.14)' }
-              : { fg: '#4f8a3f', bg: 'rgba(79,138,63,0.14)' };
+              : { fg: '#3a6ea5', bg: 'rgba(58,110,165,0.12)' };
         return (
           <div
             className="mt-3 px-4 py-3"
@@ -242,59 +237,63 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-                [:{mb.screen.label}:]
+                [:MARKET READ:]
               </span>
               <span
                 className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
                 style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
               >
-                {screen.verdict}
+                {mr.demand} demand
               </span>
             </div>
             <p className="mt-2 text-[12px] leading-snug text-[var(--color-ink-faint)]">
-              {mb.screen.template.replace('{amount}', `$${screen.amountUsd}`)}
+              {mr.summary}
             </p>
-            {screen.verdict !== 'PASS' && screen.reasons.length > 0 && (
-              <ul className="mt-2 flex flex-wrap gap-1.5">
-                {screen.reasons.map((r) => (
+            {mr.priceNote && (
+              <p className="mt-1.5 text-[11px] leading-snug text-[var(--color-ink-faint)] italic">
+                {mr.priceNote}
+              </p>
+            )}
+            {mr.highlights.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {mr.highlights.map((h) => (
                   <li
-                    key={r}
-                    className="mono text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5"
-                    style={{ color: tone.fg, background: `${tone.fg}1f`, borderRadius: 3 }}
+                    key={h}
+                    className="text-[11px] leading-snug text-[var(--color-ink-faint)] ps-3"
+                    style={{ textIndent: '-0.7rem' }}
                   >
-                    {r}
+                    • {h}
                   </li>
                 ))}
               </ul>
             )}
             <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-              <span>${screen.amountUsd} · x402 · Base</span>
-              {screen.txHash ? (
+              <span>agent paid ${mr.amountUsd} to research · Base</span>
+              {mr.txHash ? (
                 <a
-                  href={`https://basescan.org/tx/${screen.txHash}`}
+                  href={`https://basescan.org/tx/${mr.txHash}`}
                   target="_blank"
                   rel="noreferrer"
                   className="underline underline-offset-2 hover:opacity-80"
                   style={{ color: tone.fg }}
                 >
-                  {mb.screen.txCta} ↗
+                  view payment ↗
                 </a>
-              ) : screen.payer ? (
-                // GlobalAPI doesn't echo a per-call settlement tx, and the
-                // facilitator (not the payer) submits the EIP-3009 transfer, so
-                // the payment shows under the payer wallet's ERC-20 token
-                // transfers, NOT its own "Transactions" tab. Link straight to
-                // the token-transfers view so the real USDC outflows are visible.
+              ) : mr.payer ? (
+                // The facilitator (not the payer) submits the EIP-3009 transfer,
+                // so the spend shows under the payer wallet's ERC-20 token
+                // transfers, not its own Transactions tab. Link the token view.
                 <a
-                  href={`https://basescan.org/tokentxns?a=${screen.payer}`}
+                  href={`https://basescan.org/tokentxns?a=${mr.payer}`}
                   target="_blank"
                   rel="noreferrer"
                   className="underline underline-offset-2 hover:opacity-80"
                   style={{ color: tone.fg }}
                 >
-                  {mb.screen.payerCta} ↗
+                  view payer ↗
                 </a>
               ) : null}
+              {mr.sources.length > 0 && <span>{mr.sources.length} sources</span>}
             </div>
           </div>
         );

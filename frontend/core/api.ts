@@ -526,32 +526,23 @@ export interface MatchProposal {
     transaction: string;
     paidAt: number;
   };
-  /// Sanctions and counterparty-risk screen the buyer agent paid for on
-  /// Base mainnet (OFAC SDN + UK FCDO + UN SC + wallet labels) at bid
-  /// time. subject is the seller's owner address.
-  counterpartyScreen?: {
-    subject: string;
-    verdict: 'PASS' | 'WARN' | 'BLOCK';
-    reasons: string[];
+  /// Market read the agent paid for over x402 on Base (Exa web search,
+  /// synthesised with the platform LLM). Keyed to the deal's keywords, shown to
+  /// both parties with the payment as on-chain evidence.
+  marketRead?: {
+    keywords: string[];
+    summary: string;
+    demand: 'hot' | 'steady' | 'soft';
+    priceNote: string;
+    highlights: string[];
+    sources: { title: string; url: string }[];
     amountUsd: number;
-    /// On-chain settlement tx (Base) for the $0.01 screen payment, when echoed.
+    /// On-chain settlement tx (Base) for the research payment, when echoed.
     txHash?: string;
     /// The agent's Base payer wallet. On-chain evidence even without a tx hash:
     /// its BaseScan history shows the real USDC spend.
     payer?: string;
-    screenedAt: number;
-  };
-  /// Mirror screen: the seller agent's compliance screen of the BUYER. subject
-  /// is the buyer's owner address. Shown only to the seller, so each party sees
-  /// only the screen its own agent paid for.
-  buyerScreen?: {
-    subject: string;
-    verdict: 'PASS' | 'WARN' | 'BLOCK';
-    reasons: string[];
-    amountUsd: number;
-    txHash?: string;
-    payer?: string;
-    screenedAt: number;
+    researchedAt: number;
   };
   /// Compact verified-business badge for the match. Present when the seller's
   /// owner is a verified business. The deal page renders a chip from this, not
@@ -2156,6 +2147,18 @@ export const api = {
     }>(`/api/support/${id}/messages?since=${since}`),
   supportClose: (id: string) =>
     json<{ ok: boolean }>(`/api/support/${id}/close`, { method: 'POST' }),
+
+  // Agent research activation. UI copy frames this as the agent paying for its
+  // own market research; "x402" stays out of the interface.
+  researchStatus: () =>
+    json<{ active: boolean; creditUsdc: number; priceUsdc: number }>(
+      withCaller('/api/research/status'),
+    ),
+  researchActivate: () =>
+    json<{ active: boolean; creditUsdc: number; txHash?: string }>(
+      withCaller('/api/research/activate'),
+      { method: 'POST' },
+    ),
 
   // --- verified-business accounts ---------------------------------------
   /// Public verification status + compact company snapshot for an address.

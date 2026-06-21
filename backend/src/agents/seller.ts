@@ -33,11 +33,14 @@ import {
 } from './strategy.js';
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
-import { marketHeat } from './marketDemand.js';
+import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
+import { researchMarket } from '../x402/externalClient.js';
+import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
+import { config } from '../config.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -342,6 +345,36 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
   }
 }
 
+/// The seller agent researches an open order before pricing it, so it arrives
+/// informed even when its principal is away. Gated on the SELLER owner having
+/// agent research active (and the platform x402 rail configured); metered
+/// against that account. Writes the order's demand into the shared heat cache
+/// so the seller anchoring (and the buyer, on the same keywords) negotiates
+/// tuned to it. Keyword-scoped, never tied to the counterparty. Best-effort.
+async function maybeSellerResearch(seller: SellerProfile, keywords: string[]): Promise<void> {
+  if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return;
+  if (keywords.length === 0) return;
+  try {
+    const wallet = await findAgentWalletByAgentAddress(seller.address);
+    const owner = wallet?.userAddress;
+    if (!owner) return;
+    const rs = await getResearchState(owner);
+    if (!rs.active) return;
+    const read = await researchMarket(keywords);
+    setResearchHeat(keywords, read.demand);
+    if (!read.cached) await chargeResearch(owner, read.paidUsd);
+    logger.info(
+      { seller: seller.address, demand: read.demand, cached: read.cached },
+      'seller agent researched the order before pricing',
+    );
+  } catch (err) {
+    logger.warn(
+      { seller: seller.address, err: (err as Error).message },
+      'seller market research failed (non-fatal)',
+    );
+  }
+}
+
 async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const mismatch = profileMismatchReason(seller, job);
   if (mismatch) {
@@ -569,9 +602,17 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // ceiling)] and biased by the buyer's reputation tier. The buyer agent is the
   // one that sees the incoming bids and ranks them by reputation and price.
   const buyerTier = (job.buyerRepTier ?? 'established') as Tier;
-  // Market heat for this seller's skills: hot skill -> hold nearer the buyer's
-  // tolerance ceiling, common skill -> price nearer the buyer's posted budget.
-  const heat = await marketHeat([...(seller.keywords ?? []), ...(seller.skills ?? [])], seller.address);
+  // Research the order first (gated on this seller's agent-research activation),
+  // then price by the deal's market heat. Keying on the brief's keywords (the
+  // order) rather than the seller's generic skills means the seller and buyer
+  // agents share one heat signal for the same deal. Hot -> hold nearer the
+  // buyer's ceiling; soft -> price nearer the posted budget.
+  const dealKeywords =
+    (job.keywords ?? []).length > 0
+      ? job.keywords!
+      : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
+  await maybeSellerResearch(seller, dealKeywords);
+  const heat = await marketHeat(dealKeywords, seller.address);
   const opening = sellerOpeningBid(seller, job, buyerTier, heat);
   if (opening === null) {
     // Seller floor sits above the buyer's ceiling, so no price clears both
@@ -825,10 +866,12 @@ async function runCounterEvaluation(
   // Tier elasticity + urgency lean the move in the right direction; the LLM
   // ratifies (and writes the reasoning trace).
   const buyerTier = (active.jobContext.buyerRepTier ?? 'established') as Tier;
-  const heat = await marketHeat(
-    [...(seller.keywords ?? []), ...(seller.skills ?? [])],
-    seller.address,
-  );
+  const dealKeywords =
+    (active.jobContext.keywords ?? []).length > 0
+      ? active.jobContext.keywords!
+      : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
+  await maybeSellerResearch(seller, dealKeywords);
+  const heat = await marketHeat(dealKeywords, seller.address);
   const sellerDaysToDeadline = Math.max(
     1,
     Math.floor(

@@ -105,6 +105,24 @@ async function refreshExternalHeat(key: string, kw: string[]): Promise<void> {
   }
 }
 
+/// Map a paid-research demand verdict to a 0..1 heat. hot = sellers have
+/// leverage (hold near the ceiling), soft = oversupply (price down).
+export function demandToHeat(demand: 'hot' | 'steady' | 'soft'): number {
+  return demand === 'hot' ? 0.85 : demand === 'soft' ? 0.2 : 0.5;
+}
+
+/// Override the external-heat cache with a REAL market read (from the paid x402
+/// research). Once an active account's agent researches a keyword set, every
+/// agent negotiating those keywords reads this heat for the TTL instead of the
+/// LLM estimate, so the finding tunes negotiation. Keyword-scoped, never tied
+/// to a counterparty.
+export function setResearchHeat(keywords: string[], demand: 'hot' | 'steady' | 'soft'): void {
+  const kw = normKeywords(keywords);
+  if (kw.length === 0) return;
+  const key = [...kw].sort().join('|');
+  heatCache.set(key, { heat: demandToHeat(demand), ts: Date.now() });
+}
+
 /// Composite 0..1 market heat for a skill set. The seller agent uses it to
 /// decide WHERE in [buyer budget, tolerance ceiling] to anchor its bid: a hot
 /// skill holds near the ceiling, a common skill prices nearer the buyer's offer.

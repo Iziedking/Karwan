@@ -73,7 +73,9 @@ import { classifyAgentError } from '../chain/errors.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
-import { screenCounterparty, type CounterpartyScreen } from '../x402/externalClient.js';
+import { researchMarket, type MarketRead } from '../x402/externalClient.js';
+import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
+import { setResearchHeat, demandToHeat } from './marketDemand.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -134,11 +136,6 @@ interface Bid {
   /// Absent when paid signals are disabled or the call failed; the bid
   /// scores on local signals alone in that case.
   paidSignal?: PaidPassportSignal;
-  /// Sanctions and counterparty-risk screen the agent PAID for over x402
-  /// on Base mainnet (GlobalAPI, $0.01: OFAC SDN + UK FCDO + UN SC +
-  /// wallet labels). Screens the seller's OWNER address, not the agent
-  /// DCW. Absent when the Base payer key is unset or the call failed.
-  counterpartyScreen?: CounterpartyScreen;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -172,6 +169,11 @@ interface JobState {
   // the state so bid/counter handlers do not have to re-resolve it per event.
   buyer: BuyerProfile;
   context: JobContext;
+  /// The paid market read for this brief's keywords, fetched once when the
+  /// collection window opens (gated on the buyer's agent-research activation).
+  /// Tunes scoring + seller anchoring via the heat cache and is reused on the
+  /// proposal for display. Absent when research is off or the call failed.
+  marketRead?: MarketRead;
   bids: Map<`0x${string}`, Bid>;
   collectionTimer: NodeJS.Timeout | null;
   collectionFired: boolean;
@@ -605,37 +607,6 @@ async function handleBidSubmitted(log: Log) {
     }
   }
 
-  // External paid signal: sanctions and counterparty-risk screen on Base
-  // mainnet (GlobalAPI over x402, $0.01). Screens the seller's OWNER
-  // address; the agent DCW is a fresh platform wallet and carries no
-  // history. Cached 24h per address so rebids don't re-spend. Best-effort
-  // like the passport pull.
-  let counterpartyScreen: CounterpartyScreen | undefined;
-  if (config.X402_PAID_SIGNALS_ENABLED && config.X402_BASE_PRIVATE_KEY) {
-    try {
-      counterpartyScreen = await Promise.race([
-        screenCounterparty(sellerUserAddress ?? args.seller),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('counterparty screen timed out')), 20_000),
-        ),
-      ]);
-      logger.info(
-        {
-          jobId: state.jobId,
-          seller: args.seller,
-          subject: counterpartyScreen.address,
-          verdict: counterpartyScreen.verdict,
-        },
-        'x402: counterparty screened at bid time',
-      );
-    } catch (err) {
-      logger.warn(
-        { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
-        'x402: counterparty screen failed (non-fatal)',
-      );
-    }
-  }
-
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
@@ -654,7 +625,6 @@ async function handleBidSubmitted(log: Log) {
     sellerUserAddress,
     sellerDisplayName,
     paidSignal,
-    counterpartyScreen,
   };
 
   const bidContext: BidContext = {
@@ -725,16 +695,6 @@ async function handleBidSubmitted(log: Log) {
               },
             }
           : {}),
-        ...(counterpartyScreen
-          ? {
-              counterpartyScreen: {
-                verdict: counterpartyScreen.verdict,
-                subject: counterpartyScreen.address,
-                amountUsd: counterpartyScreen.paidUsd,
-                txHash: counterpartyScreen.txHash,
-              },
-            }
-          : {}),
         ...score,
       },
     });
@@ -781,6 +741,39 @@ async function handleBidSubmitted(log: Log) {
     logger.info(
       { jobId: state.jobId, waitSec: buyer.bidCollectionSeconds },
       'first bid received, starting collection window',
+    );
+    // Kick off paid market research now (non-blocking) so the finding lands
+    // during the window and tunes later scoring + the seller anchoring.
+    void maybeResearchMarket(state);
+  }
+}
+
+/// Paid market research for the brief's keywords, gated on the buyer owner
+/// having agent research active (and the platform x402 rail configured). Runs
+/// once per auction. Stores the read on the state for the proposal, pushes the
+/// demand into the shared heat cache so both agents negotiate tuned to it, and
+/// meters the account's credit only on a fresh (uncached) call. Best-effort.
+async function maybeResearchMarket(state: JobState): Promise<void> {
+  if (state.marketRead) return;
+  if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return;
+  const keywords = state.context.keywords ?? [];
+  if (keywords.length === 0) return;
+  const owner = state.context.buyer;
+  try {
+    const rs = await getResearchState(owner);
+    if (!rs.active) return;
+    const read = await researchMarket(keywords);
+    state.marketRead = read;
+    setResearchHeat(keywords, read.demand);
+    if (!read.cached) await chargeResearch(owner, read.paidUsd);
+    logger.info(
+      { jobId: state.jobId, demand: read.demand, cached: read.cached },
+      'agent market research applied to negotiation',
+    );
+  } catch (err) {
+    logger.warn(
+      { jobId: state.jobId, err: (err as Error).message },
+      'agent market research failed (non-fatal)',
     );
   }
 }
@@ -1540,6 +1533,10 @@ async function handleCounterResponse(log: Log) {
             suggestedCounterPrice: suggestedCounter,
             marketMedianPrice: priceHistorySnapshot()?.median,
             marketSampleCount: priceHistorySnapshot()?.sampleCount,
+            // Live demand from the agent's paid research tilts the concession
+            // WITHIN the buyer's cap (hot: pay nearer the cap; soft: hold near
+            // budget). The cap above is hard; out-of-cap still routes to human.
+            marketHeat: state.marketRead ? demandToHeat(state.marketRead.demand) : undefined,
             trustedMatch: state.context.trustedMatch === true,
           },
         ),
@@ -1968,7 +1965,6 @@ async function proposeMatch(
       ([k]) => k.toLowerCase() === seller.toLowerCase(),
     )?.[1];
     const paidBid = winningBid?.paidSignal;
-    const screenBid = winningBid?.counterpartyScreen;
     // Compact verified-business snapshot for the match badge. Only the seller's
     // owner profile is read; the full company detail stays on the profile so
     // the deal page renders a chip, not a dossier.
@@ -1982,25 +1978,12 @@ async function proposeMatch(
             region: sellerOwnerProfile.smeProfile?.region,
           }
         : undefined;
-    // Symmetric compliance: screen the BUYER too, surfaced only to the seller
-    // (mirror of the buyer-side seller screen). Same platform x402 payer on
-    // Base; cached 24h per address so the second screen doesn't re-spend.
-    let buyerScreen: CounterpartyScreen | undefined;
-    if (config.X402_PAID_SIGNALS_ENABLED && config.X402_BASE_PRIVATE_KEY) {
-      try {
-        buyerScreen = await Promise.race([
-          screenCounterparty(buyerWallets.userAddress),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('buyer screen timed out')), 20_000),
-          ),
-        ]);
-      } catch (err) {
-        logger.warn(
-          { jobId: state.jobId, err: (err as Error).message },
-          'x402: buyer screen failed; proposal proceeds without it',
-        );
-      }
-    }
+    // The market read the agent researched when the auction opened (gated on
+    // the buyer's agent-research activation, metered, keyword-cached). Reused
+    // here for the proposal display; the heat already tuned the negotiation.
+    // Backstop: research once now if the window opened before activation.
+    if (!state.marketRead) await maybeResearchMarket(state);
+    const marketRead = state.marketRead;
     const proposal: MatchProposal = {
       jobId: state.jobId,
       buyerUser: buyerWallets.userAddress,
@@ -2023,29 +2006,19 @@ async function proposeMatch(
             },
           }
         : {}),
-      ...(screenBid
+      ...(marketRead
         ? {
-            counterpartyScreen: {
-              subject: screenBid.address,
-              verdict: screenBid.verdict,
-              reasons: screenBid.reasons,
-              amountUsd: screenBid.paidUsd,
-              txHash: screenBid.txHash,
-              payer: screenBid.payer,
-              screenedAt: screenBid.screenedAt,
-            },
-          }
-        : {}),
-      ...(buyerScreen
-        ? {
-            buyerScreen: {
-              subject: buyerScreen.address,
-              verdict: buyerScreen.verdict,
-              reasons: buyerScreen.reasons,
-              amountUsd: buyerScreen.paidUsd,
-              txHash: buyerScreen.txHash,
-              payer: buyerScreen.payer,
-              screenedAt: buyerScreen.screenedAt,
+            marketRead: {
+              keywords: marketRead.keywords,
+              summary: marketRead.summary,
+              demand: marketRead.demand,
+              priceNote: marketRead.priceNote,
+              highlights: marketRead.highlights,
+              sources: marketRead.sources,
+              amountUsd: marketRead.paidUsd,
+              txHash: marketRead.txHash,
+              payer: marketRead.payer,
+              researchedAt: marketRead.researchedAt,
             },
           }
         : {}),

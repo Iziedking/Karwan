@@ -27,7 +27,7 @@ import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { screenCounterparty, externalPayerAddress } from '../x402/externalClient.js';
+import { researchMarket, externalPayerAddress } from '../x402/externalClient.js';
 
 export const adminRoutes = new Hono();
 
@@ -39,20 +39,24 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
-/// Smoke test for the Base mainnet external x402 rail: screens any EVM
-/// address through GlobalAPI's counterparty check ($0.01, real USDC from
-/// the payer wallet). Also reports the payer address so the operator
-/// knows where to send funding.
-adminRoutes.get('/x402/screen/:address', async (c) => {
-  const parsed = addrSchema.safeParse(c.req.param('address'));
-  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+/// Smoke test for the Base mainnet external x402 rail: researches the market
+/// for a set of keywords via Exa web search (real USDC from the payer wallet)
+/// and synthesises a market read. `?q=` is a comma-separated keyword list.
+/// Also reports the payer address so the operator knows where to send funding.
+adminRoutes.get('/x402/research', async (c) => {
+  const q = (c.req.query('q') ?? '').trim();
+  const keywords = q
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (keywords.length === 0) return c.json({ error: 'pass ?q=keyword,keyword' }, 400);
   try {
-    const result = await screenCounterparty(parsed.data);
+    const result = await researchMarket(keywords);
     return c.json(result);
   } catch (err) {
     return c.json(
       {
-        error: 'screen failed',
+        error: 'research failed',
         detail: (err as Error).message,
         payer: externalPayerAddress(),
       },
