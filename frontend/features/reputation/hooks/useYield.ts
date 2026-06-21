@@ -54,6 +54,23 @@ export function useYieldHistory() {
   };
 }
 
+/// Live USYC reserves: the protocol's real USYC holdings marked to the live
+/// Hashnote price feed. Backs the live USYC balance + yield readout.
+export function useUsycReserves() {
+  const query = useQuery({
+    queryKey: qk.treasury.usyc(),
+    queryFn: () => api.usycReserves(),
+    staleTime: POLL_MS,
+    refetchInterval: POLL_MS,
+  });
+  const fresh = isCachedDataFresh(query.dataUpdatedAt);
+  return {
+    data: fresh ? (query.data ?? null) : null,
+    isLoading: query.isPending || (!fresh && query.isFetching),
+    isError: query.isError,
+  };
+}
+
 /// Per-account yield slice. Backs the YieldClaimPanel; takes a wallet
 /// address and re-keys on change.
 export function useYieldMe(address: string | null | undefined) {

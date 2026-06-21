@@ -98,10 +98,15 @@ export default function AdminUsycPage() {
   );
 }
 
+type RunStep = { action: string; detail: string; txHash?: string; skipped?: boolean };
+type RunResult = { ok: boolean; operator?: string | null; dryRun?: boolean; steps?: RunStep[]; error?: string };
+
 function Console({ token, onLock }: { token: string; onLock: () => void }) {
   const [data, setData] = useState<UsycResp | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [run, setRun] = useState<RunResult | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -127,6 +132,27 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       setLoading(false);
     }
   }, [token]);
+
+  const wrap = useCallback(
+    async (dry: boolean) => {
+      setRunning(true);
+      setRun(null);
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/admin/usyc/run${dry ? '?dry=1' : ''}`, {
+          method: 'POST',
+          headers: { 'x-admin-token': token },
+        });
+        const body = (await r.json()) as RunResult;
+        setRun(body);
+        if (!dry && body.ok) refresh();
+      } catch (e) {
+        setRun({ ok: false, error: (e as Error).message });
+      } finally {
+        setRunning(false);
+      }
+    },
+    [token, refresh],
+  );
 
   useEffect(() => {
     refresh();
@@ -229,6 +255,76 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
             </section>
           </>
         ) : null}
+
+        {/* One-click wrap: operator-signed vault rebalance + treasury sweep. */}
+        <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold tracking-tight">Wrap idle USDC into USYC</h2>
+              <p className="mt-1 text-xs text-zinc-500">
+                Operator-signed. Wraps the vault above its buffer and sweeps the treasury into USYC.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => wrap(true)}
+                disabled={running}
+                className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-900 disabled:opacity-40"
+              >
+                {running ? 'Working' : 'Preview'}
+              </button>
+              <button
+                onClick={() => wrap(false)}
+                disabled={running}
+                className="rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:opacity-40"
+              >
+                Wrap now
+              </button>
+            </div>
+          </header>
+
+          {run ? (
+            <div className="mt-4">
+              {run.error ? (
+                <p className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+                  {run.error}
+                </p>
+              ) : (
+                <>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                    {run.dryRun ? 'preview (no transactions)' : 'executed'} · operator{' '}
+                    {short(run.operator)}
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {(run.steps ?? []).map((s, i) => (
+                      <li
+                        key={i}
+                        className="flex items-baseline justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2"
+                      >
+                        <span className="text-sm text-zinc-200">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                            {s.action}
+                          </span>{' '}
+                          {s.detail}
+                        </span>
+                        <span
+                          className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] ${
+                            s.skipped ? 'text-zinc-600' : s.txHash ? 'text-emerald-400' : 'text-zinc-400'
+                          }`}
+                        >
+                          {s.skipped ? 'skip' : s.txHash ? `${s.txHash.slice(0, 10)}…` : 'ok'}
+                        </span>
+                      </li>
+                    ))}
+                    {(run.steps ?? []).length === 0 ? (
+                      <li className="text-sm text-zinc-500">Nothing to do.</li>
+                    ) : null}
+                  </ul>
+                </>
+              )}
+            </div>
+          ) : null}
+        </section>
       </div>
     </main>
   );
