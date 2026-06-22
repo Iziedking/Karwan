@@ -1,0 +1,11 @@
+{
+  "name": "karwan-email-inbound",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "postal-mime": "^2.4.3"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
