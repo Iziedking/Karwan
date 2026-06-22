@@ -71,6 +71,7 @@ import {
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
+import { clearNearMiss } from '../db/nearMiss.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
@@ -194,6 +195,11 @@ interface JobState {
   /// at MAX_CANDIDATES so a 10-bid auction can't spawn 10 sequential rounds.
   candidateQueue: Bid[];
   triedSellers: Set<`0x${string}`>;
+  /// Snapshot of triedSellers at the moment a near-miss was passed and the
+  /// auction re-opened. The walk-end near-miss skips these, so only genuinely
+  /// NEW sellers (bidding after the pass) can raise a fresh prompt — old offers
+  /// the buyer already declined never re-nag.
+  sellersAtLastPass?: Set<`0x${string}`>;
   /// Seller's most recent on-chain counter price, keyed by seller agent
   /// address. Updated every time handleCounterResponse processes a non-accept
   /// reply. Used by the walk-end near-miss path so the buyer sees the best
@@ -1255,6 +1261,9 @@ function pickLowestSellerLast(
   let best: { seller: `0x${string}`; lastPrice: string } | null = null;
   for (const [seller, lastPrice] of state.lastSellerCounterBySeller.entries()) {
     if (!state.triedSellers.has(seller)) continue;
+    // Skip sellers already exhausted before the buyer's last pass — only a fresh
+    // bidder may raise a new near-miss, so a pass can't loop on old offers.
+    if (state.sellersAtLastPass?.has(seller)) continue;
     const n = Number(lastPrice);
     if (!Number.isFinite(n) || n <= 0) continue;
     if (!best || n < Number(best.lastPrice)) {
@@ -2744,6 +2753,11 @@ export function reopenForNewBids(jobId: string): boolean {
     clearTimeout(state.collectionTimer);
     state.collectionTimer = null;
   }
+  // Remember who was exhausted at the pass so the next near-miss only fires for
+  // genuinely new bidders, and clear the resolved near-miss so a fresh one is
+  // not blocked as "already-resolved".
+  state.sellersAtLastPass = new Set(state.triedSellers);
+  clearNearMiss(state.jobId);
   state.finalized = false;
   state.collectionFired = false;
   state.collectionStartedAt = undefined;
