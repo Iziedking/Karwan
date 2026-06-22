@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { formatUnits } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
-import { getAgentWallets, listAllAgentWallets } from '../db/agentWallets.js';
+import { getAgentWallets, listAllAgentWallets, agentWalletIntegrity } from '../db/agentWallets.js';
 import { listAllDeals } from '../db/deals.js';
 import { reputation } from '../chain/contracts.js';
 import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
@@ -42,6 +42,17 @@ adminRoutes.use('*', requireAdmin);
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+/// Agent-wallet integrity: any address in `sharedAddresses` is claimed by more
+/// than one user — the corrupt data that makes a seller agent get wrongly
+/// 'own-auction' excluded from everyone's deals. Empty arrays = clean.
+adminRoutes.get('/agent-wallets/integrity', async (c) => {
+  try {
+    return c.json(await agentWalletIntegrity());
+  } catch (err) {
+    return c.json({ error: 'scan failed', detail: (err as Error).message }, 502);
+  }
+});
 
 /// Event log for the admin debug view. `?jobId=` traces a whole auction;
 /// `?address=` traces one agent/wallet across deals; `?type=` filters (comma-

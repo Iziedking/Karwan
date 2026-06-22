@@ -3,6 +3,9 @@ import { dirname, resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { agentWallets } from './schema.js';
+import { logger } from '../logger.js';
+
+const ZERO_ADDR = '0x0000000000000000000000000000000000000000';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'agent-wallets.json');
 
@@ -95,17 +98,85 @@ export async function findAgentWalletByAgentAddress(
   agentAddress: string,
 ): Promise<AgentWallets | null> {
   const a = agentAddress.toLowerCase();
+  if (!a || a === ZERO_ADDR) return null;
   const now = Date.now();
   if (!reverseCache || now - reverseCache.builtAt > REVERSE_CACHE_TTL_MS) {
     const all = await listAllAgentWallets();
     const map = new Map<string, AgentWallets>();
     for (const w of all) {
-      map.set(w.buyerAddress, w);
-      map.set(w.sellerAddress, w);
+      for (const addr of [w.buyerAddress, w.sellerAddress]) {
+        // Skip blank/placeholder addresses so a half-provisioned record can't
+        // poison the map under a shared empty key.
+        if (!addr || addr === ZERO_ADDR) continue;
+        const existing = map.get(addr);
+        // A real agent address belongs to exactly one user. If two records
+        // claim the same address (corrupt/duplicated data, e.g. after a
+        // migration), KEEP THE FIRST and do not let the later one overwrite it —
+        // a silent overwrite is what made one user's seller agent look like
+        // everyone's "own" agent and get wrongly excluded from every auction.
+        if (existing && existing.userAddress !== w.userAddress) {
+          logger.warn(
+            { addr, users: [existing.userAddress, w.userAddress] },
+            'agent-wallet address claimed by two users; ignoring the duplicate. Data needs dedupe.',
+          );
+          continue;
+        }
+        map.set(addr, w);
+      }
     }
     reverseCache = { map, builtAt: now };
   }
-  return reverseCache.map.get(a) ?? null;
+  const result = reverseCache.map.get(a) ?? null;
+  // Only ever return a record that actually owns this address. Guards against a
+  // poisoned/stale entry making one agent resolve to another user's wallet.
+  if (result && result.buyerAddress !== a && result.sellerAddress !== a) {
+    logger.warn(
+      { agentAddress: a, returnedUser: result.userAddress },
+      'reverse-cache returned a record that does not own the looked-up address; treating as unknown',
+    );
+    return null;
+  }
+  return result;
+}
+
+/// Integrity scan over all agent-wallet records. A real agent address must
+/// belong to exactly one user; any address claimed by two+ users is the corrupt
+/// data that makes a seller agent get wrongly 'own-auction' excluded from
+/// everyone's deals. Also flags blank/placeholder agent addresses.
+export async function agentWalletIntegrity(): Promise<{
+  total: number;
+  emptyBuyer: string[];
+  emptySeller: string[];
+  sharedAddresses: { address: string; role: 'buyer' | 'seller' | 'mixed'; users: string[] }[];
+}> {
+  const all = await listAllAgentWallets();
+  const byAddr = new Map<string, { buyers: Set<string>; sellers: Set<string> }>();
+  const emptyBuyer: string[] = [];
+  const emptySeller: string[] = [];
+  const bump = (addr: string, user: string, role: 'buyer' | 'seller') => {
+    if (!addr || addr === ZERO_ADDR) return;
+    const e = byAddr.get(addr) ?? { buyers: new Set<string>(), sellers: new Set<string>() };
+    (role === 'buyer' ? e.buyers : e.sellers).add(user);
+    byAddr.set(addr, e);
+  };
+  for (const w of all) {
+    if (!w.buyerAddress || w.buyerAddress === ZERO_ADDR) emptyBuyer.push(w.userAddress);
+    if (!w.sellerAddress || w.sellerAddress === ZERO_ADDR) emptySeller.push(w.userAddress);
+    bump(w.buyerAddress, w.userAddress, 'buyer');
+    bump(w.sellerAddress, w.userAddress, 'seller');
+  }
+  const sharedAddresses: { address: string; role: 'buyer' | 'seller' | 'mixed'; users: string[] }[] = [];
+  for (const [address, e] of byAddr) {
+    const users = new Set([...e.buyers, ...e.sellers]);
+    if (users.size > 1) {
+      sharedAddresses.push({
+        address,
+        role: e.buyers.size && e.sellers.size ? 'mixed' : e.buyers.size ? 'buyer' : 'seller',
+        users: [...users],
+      });
+    }
+  }
+  return { total: all.length, emptyBuyer, emptySeller, sharedAddresses };
 }
 
 export async function saveAgentWallets(
