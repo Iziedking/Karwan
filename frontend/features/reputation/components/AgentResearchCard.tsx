@@ -2,10 +2,11 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 
-/// Profile card to activate "agent research": the user pays a one-time fee in
-/// USDC so their agent pays for live market research that tunes how it
-/// negotiates. Deliberate wording: this is "agent research" everywhere on the
-/// surface; the x402 mechanism is documentation-only.
+/// Profile card for "agent research" credit. Every agent researches the market
+/// on every deal now; this prepaid USDC credit is what's drawn down when the
+/// user actually matches a deal (the matched buyer + seller split the cost), so
+/// they're never charged just for bidding. Deliberate wording: "agent research"
+/// everywhere on the surface; the x402 mechanism is documentation-only.
 
 interface ResearchState {
   active: boolean;
@@ -42,7 +43,7 @@ export function AgentResearchCard() {
     try {
       const next = await api.researchActivate();
       setState((prev) => ({ priceUsdc: prev?.priceUsdc ?? price, ...next }));
-      setNote('Agent research is on. Your agent will research the market on your deals.');
+      setNote('Research credit added. You are charged only on deals you actually match.');
     } catch (e) {
       if (e instanceof ApiError && /insufficient/i.test(e.message)) {
         setError('Not enough USDC in your agent wallet. Top up, then activate.');
@@ -78,24 +79,25 @@ export function AgentResearchCard() {
             className="shrink-0 mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-1"
             style={{ color: '#4f8a3f', background: 'rgba(79,138,63,0.16)', borderRadius: 4 }}
           >
-            Active
+            Credited
           </span>
         ) : (
           <span className="shrink-0 mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-1 text-[var(--lp-text-muted)] bg-black/[0.05] rounded">
-            Off
+            No credit
           </span>
         )}
       </div>
 
       <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        Let your agent pay for live market research on every deal. It reads what is
-        hot for your deal&apos;s keywords and uses it to negotiate harder within your
-        cap. It never spends beyond it, and tells you when the best offer lands outside it.
+        Your agent researches the live market on every deal and negotiates to it: it
+        reads what your keywords are worth, tells you if you are over or under market,
+        and never spends beyond your cap. You are charged a fraction of a cent only on
+        deals you actually match, split with the other side.
       </p>
 
       {state?.active && (
         <p className="mt-3 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Research balance: ${state.creditUsdc.toFixed(2)} · about {dealsLeft.toLocaleString()} deals left
+          Research balance: ${state.creditUsdc.toFixed(2)} · about {dealsLeft.toLocaleString()} matched deals
         </p>
       )}
 
@@ -112,7 +114,7 @@ export function AgentResearchCard() {
             borderBottomRightRadius: 3,
           }}
         >
-          {busy ? 'Confirming...' : state?.active ? `Add research · ${price} USDC` : `Activate · ${price} USDC`}
+          {busy ? 'Confirming...' : state?.active ? `Add credit · ${price} USDC` : `Add research credit · ${price} USDC`}
         </button>
         <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           paid from your agent wallet (Arc)

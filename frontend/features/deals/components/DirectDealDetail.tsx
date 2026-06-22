@@ -27,6 +27,7 @@ import {
 import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { CopyId } from '@/shared/components/CopyId';
 import { MarketReadCard } from '@/shared/components/MarketReadCard';
+import { ProfilePeekModal } from '@/features/jobs/components/ProfilePeekModal';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import {
   FullBleed,
@@ -170,6 +171,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   // rules of hooks. must be called on every render in the same order.
   const [proposeOpen, setProposeOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -632,6 +634,20 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 youLabel={dd.parties.youSuffix}
                 showReputation
               />
+              {(viewerIsBuyer || viewerIsSeller) && (
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(true)}
+                  className="w-full mt-1 flex items-center justify-between gap-2 px-3 py-2.5 border border-[var(--lp-border-light)] rounded-xl hover:bg-black/[0.02] transition-colors text-start"
+                >
+                  <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                    your agent&apos;s read on the counterparty
+                  </span>
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-accent)] shrink-0">
+                    view report ↗
+                  </span>
+                </button>
+              )}
             </div>
           </PageCard>
 
@@ -976,6 +992,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           onSaved={refresh}
         />
       )}
+
+      <ProfilePeekModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        address={viewerIsBuyer ? deal.seller : deal.buyer}
+        role={viewerIsBuyer ? 'seller' : 'buyer'}
+      />
     </FullBleed>
   );
 }

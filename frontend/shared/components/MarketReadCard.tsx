@@ -9,6 +9,7 @@ export interface MarketReadData {
   summary: string;
   demand: 'hot' | 'steady' | 'soft';
   priceNote: string;
+  fairPriceUsdc?: number;
   highlights: string[];
   sources: { title: string; url: string }[];
   amountUsd: number;
@@ -41,12 +42,22 @@ export function MarketReadCard({ mr }: { mr: MarketReadData }) {
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           [:MARKET READ:]
         </span>
-        <span
-          className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
-          style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
-        >
-          {mr.demand} demand
-        </span>
+        <div className="flex items-center gap-2">
+          {mr.fairPriceUsdc != null && (
+            <span
+              className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)]"
+              style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
+            >
+              market ~${mr.fairPriceUsdc.toFixed(0)}
+            </span>
+          )}
+          <span
+            className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
+            style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
+          >
+            {mr.demand} demand
+          </span>
+        </div>
       </div>
       <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">{mr.summary}</p>
       {mr.priceNote && (

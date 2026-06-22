@@ -573,6 +573,17 @@ export interface MatchProposal {
 /// outside one party's range. Instead of skipping, the agent asks that party
 /// to proceed at the agreed price (anchored at the other side's boundary, so a
 /// single yes closes the deal). Valid until expiresAt; lapses to nothing.
+export interface MarketAdvisory {
+  jobId: string;
+  buyer: string;
+  budgetUsdc: number;
+  fairPriceUsdc?: number;
+  overPct: number;
+  demand?: 'hot' | 'steady' | 'soft';
+  note?: string;
+  createdAt: number;
+}
+
 export interface NearMissApproval {
   jobId: string;
   buyerUser: string;
@@ -591,6 +602,9 @@ export interface NearMissApproval {
   proceededAt?: number;
   declinedAt?: number;
   buyerAsked?: boolean;
+  marketDemand?: 'hot' | 'steady' | 'soft';
+  marketNote?: string;
+  marketFairPriceUsdc?: number;
 }
 
 export interface DirectDealFunding {
@@ -963,6 +977,10 @@ export const api = {
   nearMiss: (jobId: string, caller?: string | null) =>
     json<{ nearMiss: NearMissApproval | null }>(
       withCaller(`/api/jobs/${jobId}/near-miss`, caller),
+    ),
+  marketAdvisory: (jobId: string, caller?: string | null) =>
+    json<{ advisory: MarketAdvisory | null }>(
+      withCaller(`/api/jobs/${jobId}/market-advisory`, caller),
     ),
   proceedNearMiss: (jobId: string, caller: string) =>
     json<{ proceeded: boolean; jobId: string; txHash: string }>(

@@ -181,7 +181,10 @@ export function NegotiationCard({
           </button>
 
           {open && (
-            <div className="mt-4">
+            // Bounded, internally-scrolling: the timeline can run to dozens of
+            // events on a busy auction; cap its height so it never stretches the
+            // page, and let it scroll within instead.
+            <div className="mt-4 max-h-[50vh] overflow-y-auto overscroll-contain [scrollbar-width:thin] pe-1">
               <EventList events={events} explorer={explorer} variant="card" />
             </div>
           )}

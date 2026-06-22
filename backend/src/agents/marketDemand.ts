@@ -170,6 +170,34 @@ export function setResearchHeat(keywords: string[], demand: 'hot' | 'steady' | '
   heatCache.set(key, { heat: demandToHeat(demand), ts: Date.now() });
 }
 
+/// How far the buyer's budget must sit above the grounded market price before
+/// the buyer agent raises an overpay advisory. Below this, the buyer is just
+/// willing to pay a bit more than market and the deal proceeds; only a real
+/// overshoot is worth interrupting. Fixed 40% per the design.
+export const MARKET_OVERPAY_ALERT_PCT = Number(process.env.MARKET_OVERPAY_ALERT_PCT ?? 40);
+
+export type MarketVerdict = 'overpriced' | 'underpriced' | 'fair' | 'unknown';
+
+/// One-time read of the buyer's budget against the grounded market price.
+/// `fairPriceUsdc` is only set when the research was confident, so an absent
+/// price yields 'unknown' and the agents behave as if there were no market
+/// reference (the guard against acting on a guess). Evaluated once per deal so
+/// the agent commits to a stance instead of oscillating round to round.
+export function classifyVsMarket(
+  budgetUsdc: number,
+  fairPriceUsdc?: number,
+): { verdict: MarketVerdict; overPct: number; fairPriceUsdc?: number } {
+  if (!fairPriceUsdc || fairPriceUsdc <= 0 || budgetUsdc <= 0) {
+    return { verdict: 'unknown', overPct: 0 };
+  }
+  const overPct = Math.round(((budgetUsdc - fairPriceUsdc) / fairPriceUsdc) * 100);
+  if (budgetUsdc >= fairPriceUsdc * (1 + MARKET_OVERPAY_ALERT_PCT / 100)) {
+    return { verdict: 'overpriced', overPct, fairPriceUsdc };
+  }
+  if (budgetUsdc < fairPriceUsdc) return { verdict: 'underpriced', overPct, fairPriceUsdc };
+  return { verdict: 'fair', overPct, fairPriceUsdc };
+}
+
 /// Composite 0..1 market heat for a skill set. The seller agent uses it to
 /// decide WHERE in [buyer budget, tolerance ceiling] to anchor its bid: a hot
 /// skill holds near the ceiling, a common skill prices nearer the buyer's offer.

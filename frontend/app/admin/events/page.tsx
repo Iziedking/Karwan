@@ -22,7 +22,9 @@ function tone(type: string): string {
   return '#8a8a8a';
 }
 
-const FIELDS = ['seller', 'buyer', 'price', 'priceUsdc', 'agreedPriceUsdc', 'score', 'topicalMatch', 'tier', 'pattern', 'reason', 'message', 'detail', 'scope'];
+const FIELDS = ['agent', 'kind', 'rail', 'amountUsd', 'demand', 'budgetUsdc', 'fairPriceUsdc', 'overPct', 'marketFairPriceUsdc', 'proceedPriceUsdc', 'limitUsdc', 'gapUsdc', 'seller', 'buyer', 'price', 'priceUsdc', 'agreedPriceUsdc', 'score', 'topicalMatch', 'tier', 'pattern', 'reason', 'message', 'detail', 'scope'];
+
+const PAGE_SIZE = 50;
 
 function fmtTime(ts: number): string {
   try {
@@ -37,6 +39,7 @@ export default function AdminEvents() {
   const [events, setEvents] = useState<AdminEventEntry[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [page, setPage] = useState(0);
 
   async function run(term: string) {
     const v = term.trim();
@@ -53,6 +56,7 @@ export default function AdminEvents() {
             : { type: v };
       const r = await api.adminEvents({ ...params, limit: 300 });
       setEvents(r.events);
+      setPage(0);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Query failed');
     } finally {
@@ -64,6 +68,9 @@ export default function AdminEvents() {
     setQ(addr);
     void run(addr);
   }
+
+  const pageCount = events ? Math.max(1, Math.ceil(events.length / PAGE_SIZE)) : 1;
+  const pageItems = events ? events.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE) : [];
 
   return (
     <div>
@@ -96,13 +103,35 @@ export default function AdminEvents() {
 
       {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
       {events && (
-        <p className="mt-4 mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-          {events.length} events
-        </p>
+        <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/35">
+            {events.length} events{pageCount > 1 ? ` · page ${page + 1}/${pageCount}` : ''}
+          </p>
+          {pageCount > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 rounded border border-white/15 disabled:opacity-30 hover:border-white/40"
+              >
+                prev
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={page >= pageCount - 1}
+                className="mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 rounded border border-white/15 disabled:opacity-30 hover:border-white/40"
+              >
+                next
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="mt-3 space-y-1.5">
-        {events?.map((e, i) => {
+        {pageItems.map((e, i) => {
           const p = e.data.payload ?? {};
           const seller = typeof p.seller === 'string' ? p.seller : '';
           return (

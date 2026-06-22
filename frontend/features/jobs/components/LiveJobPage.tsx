@@ -14,6 +14,7 @@ import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
 import { CopyId } from '@/shared/components/CopyId';
 import { AgentX402Panel } from '@/shared/components/AgentX402Panel';
+import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { NearMissCard } from './NearMissCard';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
@@ -276,6 +277,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             <MatchBanner proposal={proposal} onChange={refreshProposal} trustedMatch={job.trustedMatch === true} />
           </div>
         )}
+
+        {/* Non-destructive overpay advisory: appears live when the buyer agent
+            finds the budget sits well above the grounded market price. */}
+        <div className="mt-6 fade-up fade-up-1">
+          <MarketAdvisoryBanner jobId={job.jobId} />
+        </div>
 
         {/* Live agent payments: streams each x402 nanopayment the agents make
             for this deal. Renders nothing until there's activity. */}
