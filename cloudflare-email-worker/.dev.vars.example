@@ -1,0 +1,4 @@
+# Copy to .dev.vars (gitignored) for local `wrangler dev`.
+# For the DEPLOYED worker, do NOT use a file — run:
+#   npx wrangler secret put WEBHOOK_URL
+WEBHOOK_URL="https://api.karwan.site/api/support/inbound/REPLACE_WITH_SECRET"
