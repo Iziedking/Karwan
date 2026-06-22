@@ -2,10 +2,12 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { viewerAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 import {
   appendUserMessage,
   closeConversation,
   createConversation,
+  createEmailConversation,
   getConversation,
   messagesSince,
   sweep,
@@ -99,6 +101,64 @@ supportRoutes.post('/:id/close', async (c) => {
   if (!convo) return c.json({ error: 'not-found' }, 404);
   void sendSupportTranscriptEmail(convo);
   return c.json({ ok: true });
+});
+
+/// Inbound email -> ticket. The mail provider (Resend Inbound, or a Cloudflare
+/// Email Worker) POSTs a received email here. The secret in the path gates it.
+/// A reply to one of our emails carries "Ticket KSUP-…" in the subject and
+/// re-threads into that conversation; anything else opens a new email ticket.
+function parseEmailAddress(raw: string): string {
+  const m = raw.match(/<([^>]+)>/);
+  const addr = (m?.[1] ?? raw).trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr) ? addr : '';
+}
+
+supportRoutes.post('/inbound/:secret', async (c) => {
+  if (!config.INBOUND_EMAIL_SECRET || c.req.param('secret') !== config.INBOUND_EMAIL_SECRET) {
+    return c.json({ error: 'not found' }, 404);
+  }
+  let payload: Record<string, unknown>;
+  try {
+    payload = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    return c.json({ error: 'invalid body' }, 400);
+  }
+  // Accept Resend's { type, data:{...} } envelope or a normalized {from,subject,text}.
+  const data = ((payload.data as Record<string, unknown>) ?? payload) as Record<string, unknown>;
+  const fromRaw =
+    typeof data.from === 'string'
+      ? data.from
+      : ((data.from as Record<string, string> | undefined)?.address ??
+        (data.from as Record<string, string> | undefined)?.email ??
+        '');
+  const email = parseEmailAddress(String(fromRaw));
+  const subject = String(data.subject ?? '').slice(0, 200);
+  const text = String(data.text ?? data.plain ?? '').trim();
+  if (!email || !text) return c.json({ error: 'missing from/text' }, 400);
+
+  const tagged = subject.match(/(KSUP-[0-9a-f]+)/i);
+  if (tagged) {
+    const existing = appendUserMessage(tagged[1]!, text);
+    if (existing) {
+      try {
+        await relaySupportUserMessage(existing, text);
+      } catch {
+        /* telegram relay best-effort */
+      }
+      logger.info({ id: existing.id, email }, 'inbound email threaded into ticket');
+      return c.json({ ok: true, ticketId: existing.id, threaded: true });
+    }
+  }
+
+  const convo = createEmailConversation({ email, subject, text });
+  try {
+    await sendSupportRequestToOperator(convo);
+  } catch {
+    /* telegram best-effort */
+  }
+  void sendSupportAlertEmail(convo);
+  logger.info({ id: convo.id, email }, 'inbound email opened a new ticket');
+  return c.json({ ok: true, ticketId: convo.id, threaded: false });
 });
 
 /// Slow housekeeping: drop expired closed conversations and auto-close abandoned
