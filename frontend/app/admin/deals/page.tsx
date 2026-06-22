@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api, type AdminDealRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// Admin deals monitor: every deal as a searchable table. Search by ID, buyer,
 /// seller, or stage; open any deal in the full deal page. This is how an
@@ -21,11 +22,19 @@ function short(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+const PAGE_SIZE = 50;
+
 export default function AdminDeals() {
   const [deals, setDeals] = useState<AdminDealRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const { confirm, prompt, notify } = useDialog();
+
+  useEffect(() => {
+    setPage(0);
+  }, [q]);
 
   async function reload() {
     try {
@@ -41,29 +50,44 @@ export default function AdminDeals() {
   }, []);
 
   async function extend(jobId: string) {
-    const days = window.prompt('Extend the delivery deadline by how many days?', '3');
+    const days = await prompt({
+      title: 'Extend deadline',
+      message: 'Extend the delivery deadline by how many days?',
+      defaultValue: '3',
+    });
+    if (days === null) return;
     const n = Number(days);
-    if (!Number.isFinite(n) || n <= 0) return;
+    if (!Number.isFinite(n) || n <= 0) {
+      notify('Enter a number of days', 'error');
+      return;
+    }
     setBusy(jobId);
     try {
       await api.adminExtendDeal(jobId, Math.round(n * 86400));
       await reload();
+      notify('Deadline extended');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Extend failed');
+      notify(e instanceof Error ? e.message : 'Extend failed', 'error');
     } finally {
       setBusy(null);
     }
   }
 
   async function release(jobId: string) {
-    if (!window.confirm('Force-release the next milestone on this deal? This moves real USDC.')) return;
+    const ok = await confirm({
+      title: 'Force-release milestone',
+      message: 'Release the next milestone on this deal? This moves real USDC.',
+      confirmLabel: 'Release',
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(jobId);
     try {
       const r = await api.adminReleaseDeal(jobId);
-      window.alert(r.settled ? 'Released and settled.' : `Released milestone ${r.milestoneIndex}.`);
       await reload();
+      notify(r.settled ? 'Released and settled' : `Released milestone ${r.milestoneIndex}`);
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Release failed');
+      notify(e instanceof Error ? e.message : 'Release failed', 'error');
     } finally {
       setBusy(null);
     }
@@ -82,6 +106,9 @@ export default function AdminDeals() {
     );
   }, [deals, q]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   return (
     <div>
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -99,7 +126,7 @@ export default function AdminDeals() {
       </p>
 
       <div className="mt-3 overflow-x-auto border border-white/10 rounded-xl">
-        <table className="w-full text-[13px]">
+        <table className="w-full min-w-[680px] text-[13px]">
           <thead>
             <tr className="text-white/40 mono text-[10px] uppercase tracking-[0.12em] text-start">
               <th className="text-start font-normal px-3 py-2.5">Deal ID</th>
@@ -111,7 +138,7 @@ export default function AdminDeals() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((d) => (
+            {paged.map((d) => (
               <tr key={d.jobId} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
                 <td className="px-3 py-2.5">
                   <CopyId value={d.jobId} label={short(d.jobId)} className="text-[12px] text-white/70" />
@@ -164,6 +191,30 @@ export default function AdminDeals() {
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 && (
+        <div className="mt-4 flex items-center justify-between gap-3 mono text-[11px] uppercase tracking-[0.1em] text-white/45">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="hover:text-white disabled:opacity-30"
+          >
+            ← prev
+          </button>
+          <span>
+            page {page + 1} / {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            disabled={page >= pageCount - 1}
+            className="hover:text-white disabled:opacity-30"
+          >
+            next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

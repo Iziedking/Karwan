@@ -1035,7 +1035,7 @@ export const fr: Messages = {
   matchBanner: {
     paidData: {
       label: 'VÉRIFICATION PAYANTE',
-      template: 'L\'agent acheteur a payé {amount} via x402 pour le passeport de crédit de ce vendeur.',
+      template: 'L\'agent acheteur a payé {amount} pour vérifier le passeport de crédit de ce vendeur.',
       txCta: 'règlement',
     },
     screen: {

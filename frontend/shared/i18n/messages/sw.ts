@@ -1035,7 +1035,7 @@ export const sw: Messages = {
   matchBanner: {
     paidData: {
       label: 'UTHIBITISHO WA KULIPIA',
-      template: 'Wakala wa mnunuzi alilipa {amount} kupitia x402 kwa pasipoti ya mikopo ya muuzaji huyu.',
+      template: 'Wakala wa mnunuzi alilipa {amount} kuthibitisha pasipoti ya mikopo ya muuzaji huyu.',
       txCta: 'utatuzi',
     },
     screen: {

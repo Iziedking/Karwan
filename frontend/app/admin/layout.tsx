@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api, setAdminToken, ApiError } from '@/core/api';
+import { DialogProvider } from '@/shared/components/Dialog';
 
 /// Admin chrome. Gates every /admin/* route behind the operator token, held
 /// IN MEMORY ONLY (see api.ts setAdminToken) — it survives navigation between
@@ -61,10 +62,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">[:ADMIN:]</p>
           <h1 className="mt-2 font-sans text-[22px] font-extrabold text-white">Operator access</h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-white/45">
-            Enter the admin token. It is held in memory only and cleared on
-            refresh, so nothing is stored on this device.
-          </p>
           <input
             type="password"
             value={token}
@@ -115,7 +112,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </header>
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8">{children}</main>
+      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8">
+        <DialogProvider>{children}</DialogProvider>
+      </main>
     </div>
   );
 }

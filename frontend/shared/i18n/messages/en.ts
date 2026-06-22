@@ -4731,7 +4731,7 @@ export const en: MessagesShape = {
     },
     paidData: {
       label: 'PAID VERIFICATION',
-      template: 'Buyer agent paid {amount} over x402 for this seller\'s credit passport.',
+      template: 'Buyer agent paid {amount} to verify this seller\'s credit passport.',
       txCta: 'settlement',
     },
     screen: {

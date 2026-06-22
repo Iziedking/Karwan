@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api, type AdminProfileRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// Admin profiles monitor: every registered account as a searchable table.
 /// Search by address, name, or email; jump to the public credit passport.
@@ -11,11 +12,19 @@ function short(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+const PAGE_SIZE = 50;
+
 export default function AdminProfiles() {
   const [profiles, setProfiles] = useState<AdminProfileRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const { confirm, prompt, notify } = useDialog();
+
+  useEffect(() => {
+    setPage(0);
+  }, [q]);
 
   async function reload() {
     try {
@@ -31,19 +40,28 @@ export default function AdminProfiles() {
   }, []);
 
   async function toggleResearch(p: AdminProfileRow) {
+    let credit: number | undefined;
+    if (!p.researchActive) {
+      const amt = await prompt({
+        title: 'Grant research credit',
+        message: 'How much research credit, in USDC?',
+        defaultValue: '5',
+      });
+      if (amt === null) return;
+      credit = Number(amt);
+      if (!Number.isFinite(credit) || credit <= 0) {
+        notify('Enter an amount', 'error');
+        return;
+      }
+    }
     setBusy(p.address);
     try {
-      if (p.researchActive) {
-        await api.adminSetResearch(p.address, false, 0);
-      } else {
-        const amt = window.prompt('Grant how much research credit (USDC)?', '5');
-        const n = Number(amt);
-        if (!Number.isFinite(n) || n <= 0) return;
-        await api.adminSetResearch(p.address, true, n);
-      }
+      if (p.researchActive) await api.adminSetResearch(p.address, false, 0);
+      else await api.adminSetResearch(p.address, true, credit);
       await reload();
+      notify(p.researchActive ? 'Research cleared' : 'Research granted');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Failed');
+      notify(e instanceof Error ? e.message : 'Failed', 'error');
     } finally {
       setBusy(null);
     }
@@ -51,13 +69,22 @@ export default function AdminProfiles() {
 
   async function toggleBusiness(p: AdminProfileRow) {
     const verify = p.businessStatus !== 'verified';
-    if (!window.confirm(verify ? 'Mark this account as a verified business?' : 'Remove verified-business status?')) return;
+    const ok = await confirm({
+      title: verify ? 'Verify business' : 'Remove verification',
+      message: verify
+        ? 'Mark this account as a verified business?'
+        : 'Remove verified-business status?',
+      confirmLabel: verify ? 'Verify' : 'Remove',
+      danger: !verify,
+    });
+    if (!ok) return;
     setBusy(p.address);
     try {
       await api.adminSetBusiness(p.address, verify ? 'verified' : 'rejected');
       await reload();
+      notify(verify ? 'Marked verified' : 'Verification removed');
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Failed');
+      notify(e instanceof Error ? e.message : 'Failed', 'error');
     } finally {
       setBusy(null);
     }
@@ -74,6 +101,9 @@ export default function AdminProfiles() {
         (p.email ?? '').toLowerCase().includes(needle),
     );
   }, [profiles, q]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div>
@@ -92,7 +122,7 @@ export default function AdminProfiles() {
       </p>
 
       <div className="mt-3 overflow-x-auto border border-white/10 rounded-xl">
-        <table className="w-full text-[13px]">
+        <table className="w-full min-w-[680px] text-[13px]">
           <thead>
             <tr className="text-white/40 mono text-[10px] uppercase tracking-[0.12em]">
               <th className="text-start font-normal px-3 py-2.5">Account</th>
@@ -104,7 +134,7 @@ export default function AdminProfiles() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p) => (
+            {paged.map((p) => (
               <tr key={p.address} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
                 <td className="px-3 py-2.5">
                   <div className="text-white/85">{p.displayName || '—'}</div>
@@ -170,6 +200,30 @@ export default function AdminProfiles() {
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 && (
+        <div className="mt-4 flex items-center justify-between gap-3 mono text-[11px] uppercase tracking-[0.1em] text-white/45">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="hover:text-white disabled:opacity-30"
+          >
+            ← prev
+          </button>
+          <span>
+            page {page + 1} / {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            disabled={page >= pageCount - 1}
+            className="hover:text-white disabled:opacity-30"
+          >
+            next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

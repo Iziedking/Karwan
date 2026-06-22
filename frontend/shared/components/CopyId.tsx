@@ -34,7 +34,9 @@ export function CopyId({
       aria-label={`Copy ID ${value}`}
       className={`group inline-flex items-center gap-1.5 mono tabular-nums hover:opacity-80 transition ${className}`}
     >
-      <span className="break-all text-start">{label ?? value}</span>
+      <span className={`text-start ${label ? 'whitespace-nowrap' : 'break-all'}`}>
+        {label ?? value}
+      </span>
       {copied ? (
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0">
           <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

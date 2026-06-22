@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type AdminTicketRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// Admin support tickets: the third operator channel (with Telegram + email).
 /// Pick up an open ticket and reply here; the reply relays to the user's chat
@@ -22,6 +23,7 @@ export default function AdminSupport() {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const { confirm, notify } = useDialog();
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selected;
 
@@ -67,14 +69,20 @@ export default function AdminSupport() {
       setReply('');
       await loadThread(selected);
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Reply failed');
+      notify(e instanceof Error ? e.message : 'Reply failed', 'error');
     } finally {
       setBusy(false);
     }
   }
 
   async function close() {
-    if (!selected || !window.confirm('Close this ticket and email the transcript?')) return;
+    if (!selected) return;
+    const ok = await confirm({
+      title: 'Close ticket',
+      message: 'Close this ticket and email the transcript?',
+      confirmLabel: 'Close',
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await api.adminSupportClose(selected);
@@ -82,7 +90,7 @@ export default function AdminSupport() {
       setMessages([]);
       await loadList();
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Close failed');
+      notify(e instanceof Error ? e.message : 'Close failed', 'error');
     } finally {
       setBusy(false);
     }
