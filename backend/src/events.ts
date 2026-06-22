@@ -71,6 +71,10 @@ export type KarwanEventType =
   | 'agent.error'
   | 'agent.fallback'
   | 'agent.decision'
+  /// An agent paid for data over x402: internal Arc reputation pull, or
+  /// off-platform market research. Surfaced on the deal timeline + activity so
+  /// the agent's nanopayments are visible while a deal runs.
+  | 'agent.paid'
   | 'negotiation.attempt-ended'
   | 'negotiation.next-candidate'
   | 'negotiation.exhausted'
@@ -319,6 +323,70 @@ export async function recentEventsByType(
   } catch {
     return [];
   }
+}
+
+export interface AdminEventRow {
+  type: string;
+  jobId: string;
+  ts: number;
+  data: KarwanEvent;
+}
+
+/// Durable event query for the admin debug log. Reads the persisted
+/// event_history (not the rotating in-memory ring) so an auction can be traced
+/// long after it ran. Filter by jobId (everything for one deal), by a wallet
+/// (events that name it as seller/buyer/address/user, so an agent's activity is
+/// traceable), and/or by type. Falls back to the in-memory ring without PG.
+export async function adminQueryEvents(opts: {
+  jobId?: string;
+  address?: string;
+  types?: string[];
+  limit?: number;
+}): Promise<AdminEventRow[]> {
+  const limit = Math.min(500, Math.max(1, opts.limit ?? 200));
+  const addr = opts.address?.toLowerCase();
+
+  if (!pgEnabled) {
+    let evts = bus.recent(500, opts.jobId);
+    if (addr) {
+      evts = evts.filter((e) => {
+        const p = e.payload ?? {};
+        return [p.seller, p.buyer, p.address, p.user, p.sellerUser, p.buyerUser]
+          .map((v) => (typeof v === 'string' ? v.toLowerCase() : ''))
+          .includes(addr);
+      });
+    }
+    if (opts.types?.length) evts = evts.filter((e) => opts.types!.includes(e.type));
+    return evts
+      .slice(0, limit)
+      .map((e) => ({ type: e.type, jobId: e.jobId ?? '', ts: e.ts, data: e }));
+  }
+
+  const conds = [];
+  if (opts.jobId) conds.push(eq(eventHistory.jobId, opts.jobId));
+  if (opts.types?.length) conds.push(inArray(eventHistory.type, opts.types));
+  if (addr) {
+    conds.push(
+      sql`(lower(${eventHistory.data}->'payload'->>'seller') = ${addr}
+        OR lower(${eventHistory.data}->'payload'->>'buyer') = ${addr}
+        OR lower(${eventHistory.data}->'payload'->>'address') = ${addr}
+        OR lower(${eventHistory.data}->'payload'->>'user') = ${addr}
+        OR lower(${eventHistory.data}->'payload'->>'sellerUser') = ${addr}
+        OR lower(${eventHistory.data}->'payload'->>'buyerUser') = ${addr})`,
+    );
+  }
+  const rows = await db()
+    .select()
+    .from(eventHistory)
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(eventHistory.ts))
+    .limit(limit);
+  return rows.map((r) => ({
+    type: r.type,
+    jobId: r.jobId,
+    ts: r.ts,
+    data: r.data as KarwanEvent,
+  }));
 }
 
 export async function eventHistoryCount(): Promise<number | null> {

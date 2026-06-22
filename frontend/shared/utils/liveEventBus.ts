@@ -50,6 +50,7 @@ const SSE_TYPES = [
   'agent.skipped',
   'agent.declined',
   'agent.error',
+  'agent.paid',
 ];
 
 type Handler = (event: ChainEvent) => void;

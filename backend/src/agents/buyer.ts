@@ -176,6 +176,9 @@ interface JobState {
   marketRead?: MarketRead;
   bids: Map<`0x${string}`, Bid>;
   collectionTimer: NodeJS.Timeout | null;
+  /// When the first bid landed. The collection window's floor + hard cap are
+  /// measured from here for the adaptive soft-close.
+  collectionStartedAt?: number;
   collectionFired: boolean;
   counterRoundsBySeller: Map<`0x${string}`, number>;
   lastCounterPriceBySeller: Map<`0x${string}`, string>;
@@ -599,6 +602,21 @@ async function handleBidSubmitted(log: Log) {
         },
         'x402: paid credit passport pulled at bid time',
       );
+      bus.emitEvent({
+        type: 'agent.paid',
+        jobId: state.jobId,
+        actor: 'buyer',
+        payload: {
+          rail: 'arc',
+          kind: 'reputation',
+          agent: 'buyer',
+          seller: args.seller,
+          amountUsd: paidSignal.amountUsd,
+          txHash: paidSignal.transaction,
+          tier: paidSignal.tier,
+          score: paidSignal.score,
+        },
+      });
     } catch (err) {
       logger.warn(
         { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
@@ -733,19 +751,45 @@ async function handleBidSubmitted(log: Log) {
 
   state.bids.set(args.seller, bid);
 
-  if (!state.collectionTimer && !state.collectionFired) {
-    state.collectionTimer = setTimeout(
-      () => finalizeBidCollection(state),
-      buyer.bidCollectionSeconds * 1000,
-    );
-    logger.info(
-      { jobId: state.jobId, waitSec: buyer.bidCollectionSeconds },
-      'first bid received, starting collection window',
-    );
-    // Kick off paid market research now (non-blocking) so the finding lands
-    // during the window and tunes later scoring + the seller anchoring.
-    void maybeResearchMarket(state);
+  if (!state.collectionFired) {
+    if (state.collectionStartedAt == null) {
+      state.collectionStartedAt = Date.now();
+      logger.info(
+        { jobId: state.jobId, floorSec: buyer.bidCollectionSeconds },
+        'first bid received, collection window open',
+      );
+      // Kick off paid market research now (non-blocking) so the finding lands
+      // during the window and tunes later scoring + the seller anchoring.
+      void maybeResearchMarket(state);
+    }
+    // Adaptive soft close: each new bid keeps the window open a little longer,
+    // so a slower agent's bid is still caught instead of missing a fixed
+    // window. Bounded by the buyer's set window (floor) and a hard cap.
+    scheduleCollectionClose(state, buyer.bidCollectionSeconds * 1000);
   }
+}
+
+/// Quiet period after the last bid before the window closes, and the hard cap
+/// from the first bid. The buyer's bidCollectionSeconds is the floor. Real
+/// agents bid over a wider span than a demo's 30s, so the window stays open
+/// while bids are still arriving rather than slamming shut on a fixed timer.
+const BID_WINDOW_QUIET_MS = Number(process.env.BID_WINDOW_QUIET_MS ?? 15_000);
+const BID_WINDOW_MAX_MS = Number(process.env.BID_WINDOW_MAX_MS ?? 180_000);
+
+function scheduleCollectionClose(state: JobState, floorMs: number): void {
+  if (state.collectionFired) return;
+  const now = Date.now();
+  const started = state.collectionStartedAt ?? now;
+  const floorEnd = started + floorMs;
+  const capEnd = started + BID_WINDOW_MAX_MS;
+  // Close no sooner than the floor, extend by the quiet period on each new bid,
+  // never past the cap.
+  const nextClose = Math.min(capEnd, Math.max(floorEnd, now + BID_WINDOW_QUIET_MS));
+  if (state.collectionTimer) clearTimeout(state.collectionTimer);
+  state.collectionTimer = setTimeout(
+    () => finalizeBidCollection(state),
+    Math.max(0, nextClose - now),
+  );
 }
 
 /// Paid market research for the brief's keywords, gated on the buyer owner
@@ -765,7 +809,24 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
     const read = await researchMarket(keywords);
     state.marketRead = read;
     setResearchHeat(keywords, read.demand);
-    if (!read.cached) await chargeResearch(owner, read.paidUsd);
+    if (!read.cached) {
+      await chargeResearch(owner, read.paidUsd);
+      bus.emitEvent({
+        type: 'agent.paid',
+        jobId: state.jobId,
+        actor: 'buyer',
+        payload: {
+          rail: 'base',
+          kind: 'research',
+          agent: 'buyer',
+          amountUsd: read.paidUsd,
+          txHash: read.txHash,
+          payer: read.payer,
+          demand: read.demand,
+          keywords,
+        },
+      });
+    }
     logger.info(
       { jobId: state.jobId, demand: read.demand, cached: read.cached },
       'agent market research applied to negotiation',

@@ -13,6 +13,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
 import { CopyId } from '@/shared/components/CopyId';
+import { AgentX402Panel } from '@/shared/components/AgentX402Panel';
 import { NearMissCard } from './NearMissCard';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
@@ -275,6 +276,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             <MatchBanner proposal={proposal} onChange={refreshProposal} trustedMatch={job.trustedMatch === true} />
           </div>
         )}
+
+        {/* Live agent payments: streams each x402 nanopayment the agents make
+            for this deal. Renders nothing until there's activity. */}
+        <div className="mt-6 fade-up fade-up-2">
+          <AgentX402Panel jobId={job.jobId} />
+        </div>
 
         {/* NEAR-MISS. The agent found a match just outside one side's range and
             is asking that party whether to proceed. Sits in the banner slot

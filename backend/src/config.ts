@@ -427,6 +427,12 @@ const envSchema = z.object({
   // Fail-closed: when unset, the admin surface is DISABLED, not open. Set a
   // long random value in production.
   ADMIN_API_TOKEN: optionalString,
+  // Support-team token. Grants access to the support tickets ONLY (read +
+  // reply + close), never the rest of the admin surface (deals, profiles,
+  // management, events). Give this to support staff so they can answer
+  // tickets without the power to touch deals or accounts. Unset = no support-
+  // only access (only the full admin token works).
+  SUPPORT_API_TOKEN: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

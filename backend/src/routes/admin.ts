@@ -12,14 +12,6 @@ import { releaseMilestone, finalizeIfSettled } from '../chain/settlement.js';
 import { readEscrow } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import {
-  listOpenConversations,
-  getConversation,
-  appendOperatorMessage,
-  closeConversation,
-} from '../support/store.js';
-import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
-import { notifyUserOfReply } from '../support/notify.js';
-import {
   listAllMatchProposals,
   getBuyerSnapshot,
   deleteBuyerJobsForBuyer,
@@ -33,7 +25,7 @@ import {
 } from '../db/deals.js';
 import { reconcileReputationOnce } from '../reputation/reconciler.js';
 import { backfillBusFromChain } from '../chain/eventBackfill.js';
-import { eventHistoryCount } from '../events.js';
+import { eventHistoryCount, adminQueryEvents } from '../events.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
@@ -50,6 +42,29 @@ adminRoutes.use('*', requireAdmin);
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+/// Event log for the admin debug view. `?jobId=` traces a whole auction;
+/// `?address=` traces one agent/wallet across deals; `?type=` filters (comma-
+/// separated). Durable (reads event_history), so a problem like "agent never
+/// bid" is visible long after the in-memory ring rotated.
+adminRoutes.get('/events', async (c) => {
+  const jobId = c.req.query('jobId')?.trim() || undefined;
+  const address = c.req.query('address')?.trim() || undefined;
+  const typeRaw = c.req.query('type')?.trim();
+  const types = typeRaw
+    ? typeRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : undefined;
+  const limit = Number(c.req.query('limit') ?? 200) || 200;
+  if (!jobId && !address && !types) {
+    return c.json({ error: 'pass jobId, address, or type' }, 400);
+  }
+  try {
+    const events = await adminQueryEvents({ jobId, address, types, limit });
+    return c.json({ count: events.length, events });
+  } catch (err) {
+    return c.json({ error: 'query failed', detail: (err as Error).message }, 502);
+  }
+});
 
 /// Coarse lifecycle stage for the admin deals table.
 function dealStage(d: DirectDeal): string {
@@ -229,64 +244,9 @@ adminRoutes.post('/profiles/:address/business', async (c) => {
   return c.json({ ok: true, status: body.status, accountType: verified ? 'business' : 'person' });
 });
 
-// --- live support: the admin page as a third operator channel (alongside
-// Telegram + email). The operator can pick up open tickets and reply here;
-// the reply relays to the user's widget through the same store the Telegram
-// path uses, so all three channels share one conversation. ---
-
-/// Open support tickets, newest activity first, with a compact preview.
-adminRoutes.get('/support', (c) => {
-  const rows = listOpenConversations().map((convo) => {
-    const last = convo.messages[convo.messages.length - 1];
-    return {
-      id: convo.id,
-      address: convo.address ?? null,
-      email: convo.email ?? null,
-      messageCount: convo.messages.length,
-      lastRole: last?.role ?? null,
-      lastText: last ? last.text.slice(0, 160) : '',
-      createdAt: convo.createdAt,
-      updatedAt: convo.updatedAt,
-    };
-  });
-  return c.json({ count: rows.length, tickets: rows });
-});
-
-/// Full transcript of one ticket for the admin reply view.
-adminRoutes.get('/support/:id', (c) => {
-  const convo = getConversation(c.req.param('id'));
-  if (!convo) return c.json({ error: 'ticket not found' }, 404);
-  return c.json({
-    id: convo.id,
-    address: convo.address ?? null,
-    email: convo.email ?? null,
-    status: convo.status,
-    messages: convo.messages,
-  });
-});
-
-const adminReplySchema = z.object({ text: z.string().min(1).max(4000) });
-adminRoutes.post('/support/:id/reply', async (c) => {
-  const id = c.req.param('id');
-  let body;
-  try {
-    body = adminReplySchema.parse(await c.req.json());
-  } catch (e) {
-    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
-  }
-  const convo = appendOperatorMessage(id, body.text);
-  if (!convo) return c.json({ error: 'ticket not open' }, 404);
-  // Reach the user on every channel they have: email, Telegram, and the widget.
-  void notifyUserOfReply(convo, body.text);
-  return c.json({ ok: true });
-});
-
-adminRoutes.post('/support/:id/close', (c) => {
-  const convo = closeConversation(c.req.param('id'));
-  if (!convo) return c.json({ error: 'ticket not found' }, 404);
-  void sendSupportTranscriptEmail(convo);
-  return c.json({ ok: true });
-});
+// Live-support ticket endpoints moved to routes/supportTeam.ts (mounted at
+// /api/admin/support), gated by requireSupport so the scoped support-team token
+// can answer tickets without reaching the rest of this admin-only surface.
 
 /// Smoke test for the Base mainnet external x402 rail: researches the market
 /// for a set of keywords via Exa web search (real USDC from the payer wallet)
