@@ -153,6 +153,17 @@ export interface MarketRead {
   demand: 'hot' | 'steady' | 'soft';
   /// Short pricing/leverage note for the negotiating side.
   priceNote: string;
+  /// Best-effort fair market price for a typical deal of this type, in USDC, or
+  /// undefined when the evidence gives no basis. The number both agents compare
+  /// the buyer's budget against: too far above it = overpriced, below it =
+  /// underpriced. Estimated from market evidence only, never from the budget.
+  fairPriceUsdc?: number;
+  /// How much to trust fairPriceUsdc. The agents only act on the price (overpay
+  /// advisory, near-miss justification) when it is 'grounded' — backed by the
+  /// web evidence. 'rough' and 'none' are treated as no-price: behave as if
+  /// there were no market reference. This is the guard against acting on a
+  /// hallucinated number.
+  priceConfidence?: 'grounded' | 'rough' | 'none';
   /// A few concrete bullets pulled from the sources.
   highlights: string[];
   /// The sources the read was built from (title + url).
@@ -172,6 +183,24 @@ export interface MarketRead {
 const researchCache = new Map<string, MarketRead>();
 const RESEARCH_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
+/// In-flight paid calls, keyed by keyword set. Without this, several agents
+/// evaluating the same brief at once all miss the empty cache and each makes a
+/// paid Exa call before the first finishes writing — so one deal pays for the
+/// same intel 3+ times. Single-flight: concurrent callers await the running
+/// call and are served cached (they don't pay). Exactly one inference payment
+/// per keyword set per window, no matter how many agents ask.
+const researchInFlight = new Map<string, Promise<MarketRead>>();
+
+/// The grounded market price for a keyword set if it's in the research cache,
+/// else undefined. Lets the seller anchor to market without paying again (the
+/// research already ran for the deal). Only returns a number when the research
+/// was confident — fairPriceUsdc is unset otherwise.
+export function getCachedMarketPrice(keywords: string[]): number | undefined {
+  const hit = researchCache.get(keywordKey(keywords));
+  if (hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS) return hit.fairPriceUsdc;
+  return undefined;
+}
+
 function keywordKey(keywords: string[]): string {
   return [...new Set(keywords.map((k) => k.trim().toLowerCase()).filter(Boolean))]
     .sort()
@@ -182,6 +211,14 @@ const readSchema = z.object({
   summary: z.string(),
   demand: z.enum(['hot', 'steady', 'soft']),
   priceNote: z.string(),
+  fairPriceUsdc: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe('Fair market price in USDC for a typical deal of this type, or null if no basis'),
+  priceConfidence: z
+    .enum(['grounded', 'rough', 'none'])
+    .describe('grounded = price backed by the evidence; rough = weak guess; none = no basis'),
   highlights: z.array(z.string()).max(5),
 });
 
@@ -201,6 +238,31 @@ export async function researchMarket(
     return { ...hit, cached: true };
   }
 
+  // Single-flight: if a paid call for this keyword set is already running, wait
+  // for it and serve the result as cached so this agent does NOT pay again.
+  const running = researchInFlight.get(key);
+  if (running) {
+    const shared = await running;
+    return { ...shared, cached: true };
+  }
+
+  const work = doResearchMarket(cleaned, key, context);
+  researchInFlight.set(key, work);
+  try {
+    return await work;
+  } finally {
+    researchInFlight.delete(key);
+  }
+}
+
+/// The actual paid call + synthesis. Only ever runs once per keyword set at a
+/// time (guarded by researchInFlight); the caller that triggers it is the one
+/// charged (cached:false), everyone else awaiting it is served cached:true.
+async function doResearchMarket(
+  cleaned: string[],
+  key: string,
+  context?: string,
+): Promise<MarketRead> {
   const query =
     `Current market demand, pricing and notable suppliers or buyers for: ${cleaned.join(', ')}.` +
     (context ? ` Context: ${context}.` : '');
@@ -238,8 +300,12 @@ export async function researchMarket(
         evidence || '(no usable excerpts returned)',
         '',
         'Return: a one-paragraph summary (<=60 words); demand as hot/steady/soft;',
-        'a one-line price/leverage note for the side negotiating this deal; and up',
-        'to 4 short factual highlights drawn from the results. No preamble.',
+        'a one-line price/leverage note for the side negotiating this deal;',
+        'fairPriceUsdc as a realistic market price in USDC for a typical deal of',
+        'this type drawn ONLY from the evidence (null if the excerpts give no real',
+        'basis for a price — do not invent one); priceConfidence as grounded only',
+        'when the price is genuinely supported by the results, else rough or none;',
+        'and up to 4 short factual highlights drawn from the results. No preamble.',
       ].join('\n'),
     }),
   );
@@ -249,6 +315,11 @@ export async function researchMarket(
     summary: synth.object.summary,
     demand: synth.object.demand,
     priceNote: synth.object.priceNote,
+    fairPriceUsdc:
+      synth.object.priceConfidence === 'grounded' && synth.object.fairPriceUsdc
+        ? synth.object.fairPriceUsdc
+        : undefined,
+    priceConfidence: synth.object.priceConfidence,
     highlights: synth.object.highlights.slice(0, 4),
     sources,
     paidUsd,

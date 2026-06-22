@@ -38,8 +38,7 @@ import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
-import { researchMarket } from '../x402/externalClient.js';
-import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
+import { researchMarket, getCachedMarketPrice } from '../x402/externalClient.js';
 import { config } from '../config.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
@@ -359,15 +358,12 @@ async function maybeSellerResearch(
   if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return;
   if (keywords.length === 0) return;
   try {
-    const wallet = await findAgentWalletByAgentAddress(seller.address);
-    const owner = wallet?.userAddress;
-    if (!owner) return;
-    const rs = await getResearchState(owner);
-    if (!rs.active) return;
+    // General baseline: the seller agent researches the order regardless of any
+    // per-agent activation. The platform fronts the call and the cost is settled
+    // on the matched pair at match (buyer.ts persistApprovedMatch), not here.
     const read = await researchMarket(keywords);
     setResearchHeat(keywords, read.demand);
     if (!read.cached) {
-      await chargeResearch(owner, read.paidUsd);
       bus.emitEvent({
         type: 'agent.paid',
         jobId,
@@ -635,7 +631,13 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
   await maybeSellerResearch(seller, dealKeywords, job.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
-  const opening = sellerOpeningBid(seller, job, buyerTier, heat);
+  const opening = sellerOpeningBid(
+    seller,
+    job,
+    buyerTier,
+    heat,
+    getCachedMarketPrice(dealKeywords),
+  );
   if (opening === null) {
     // Seller floor sits above the buyer's ceiling, so no price clears both
     // ranges. When the gap is small, ask the blocked side to stretch instead of
@@ -759,10 +761,15 @@ function sellerOpeningBid(
   job: JobContext,
   buyerTier: Tier,
   heat: number,
+  marketPriceUsdc?: number,
 ): number | null {
   const budget = Number(job.budgetUsdc);
   const tol = job.negotiationMaxIncreasePct ?? 0;
   const h = Number.isFinite(heat) ? Math.max(0, Math.min(1, heat)) : 0.5;
+  // A grounded market price the deal is worth. Clamped to 2x budget so a single
+  // bad estimate can never price the deal out beyond the near-miss band; only a
+  // confident (grounded) price is ever passed in.
+  const market = marketPriceUsdc && marketPriceUsdc > 0 ? Math.min(marketPriceUsdc, budget * 2) : 0;
   // Sellers open ABOVE the budget and get negotiated down toward it (never
   // below). How far above scales with DEMAND: the opening headroom grows as
   // marketHeat rises (scarce / in-demand skill, Karwan supply + external
@@ -775,10 +782,15 @@ function sellerOpeningBid(
   const demandHeadroomPct = HEADROOM_BASE_PCT + h * HEADROOM_DEMAND_SPAN_PCT;
   const openHeadroomPct = Math.max(tol, demandHeadroomPct);
   const openCeiling = budget * (1 + openHeadroomPct / 100);
-  // Floor = the buyer's posted budget, never below it. (The seller's own
-  // minimum still applies if it is higher; that seller wants more than offered.)
-  const floor = Math.max(seller.minBudgetUsdc, budget);
-  const ceiling = Math.min(seller.maxBudgetUsdc, openCeiling);
+  // Floor = the buyer's posted budget, never below it (the seller's own minimum
+  // applies if higher). When the market price is ABOVE the budget, the floor
+  // rises to market: it is unprofessional to undersell below what the deal is
+  // worth when the buyer is the one underpaying — the seller holds for market
+  // value and the buyer agent surfaces it as a proceed-or-pass near-miss. When
+  // the market sits BELOW the budget, the floor stays at the budget so the
+  // seller captures the buyer's full willingness to pay, never less.
+  const floor = Math.max(seller.minBudgetUsdc, budget, market);
+  const ceiling = Math.min(seller.maxBudgetUsdc, Math.max(openCeiling, market));
   if (!Number.isFinite(ceiling) || ceiling < floor) return null;
   if (ceiling === floor) return Number(floor.toFixed(2));
 
@@ -881,7 +893,6 @@ async function runCounterEvaluation(
         Number.isFinite(briefBudget) ? briefBudget : 0,
         Number((originalBid * (1 - PROFILE_MAX_DECREASE_PCT / 100)).toFixed(2)),
       );
-  const minAcceptable = profileFloor;
   const maxAcceptable = active.listingAskingPriceUsdc ?? seller.maxBudgetUsdc;
 
   // Strategy module computes a deterministic counter price for this round.
@@ -894,6 +905,17 @@ async function runCounterEvaluation(
       : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
   await maybeSellerResearch(seller, dealKeywords, active.jobContext.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
+  // Market-aware counter floor: the seller won't concede below what the deal is
+  // worth across rounds either. A grounded market price above the budget lifts
+  // the floor toward market (clamped to 2x budget and the seller's own max);
+  // below the budget it stays at the profile/budget floor.
+  const counterMarket = getCachedMarketPrice(dealKeywords);
+  const budgetForClamp = Number.isFinite(briefBudget) ? briefBudget : 0;
+  const marketFloor =
+    counterMarket && counterMarket > 0 && budgetForClamp > 0
+      ? Math.min(counterMarket, budgetForClamp * 2, maxAcceptable)
+      : 0;
+  const minAcceptable = Math.max(profileFloor, marketFloor);
   const sellerDaysToDeadline = Math.max(
     1,
     Math.floor(

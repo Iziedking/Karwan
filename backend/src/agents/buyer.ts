@@ -74,8 +74,9 @@ import { maybeRaiseNearMiss } from './nearMiss.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
-import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
-import { setResearchHeat, demandToHeat } from './marketDemand.js';
+import { chargeResearch } from '../x402/researchAccount.js';
+import { upsertMarketAdvisory } from '../db/marketAdvisory.js';
+import { setResearchHeat, demandToHeat, classifyVsMarket, type MarketVerdict } from './marketDemand.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -174,6 +175,10 @@ interface JobState {
   /// Tunes scoring + seller anchoring via the heat cache and is reused on the
   /// proposal for display. Absent when research is off or the call failed.
   marketRead?: MarketRead;
+  /// One-time verdict of the buyer's budget vs the grounded market price.
+  /// Computed when research lands; drives the overpay advisory. Stays put for
+  /// the rest of the deal so the agent doesn't re-decide and oscillate.
+  marketVerdict?: MarketVerdict;
   bids: Map<`0x${string}`, Bid>;
   collectionTimer: NodeJS.Timeout | null;
   /// When the first bid landed. The collection window's floor + hard cap are
@@ -304,6 +309,21 @@ const ASK_MODE_NEAR_MISS_BAND_PCT = (() => {
 /// when the buyer explicitly set a tolerance.
 function nearMissBandFor(ctx: { negotiationMaxIncreasePct?: number }): number | undefined {
   return isAskMode(ctx) ? ASK_MODE_NEAR_MISS_BAND_PCT : undefined;
+}
+
+/// The deal's paid market read, shaped for the near-miss. Lets the proceed-or-
+/// pass alert justify an over-budget price with the market ("demand is hot...")
+/// and widens the gap band when the market backs the price.
+function marketContextFor(
+  state: JobState,
+): { demand: 'hot' | 'steady' | 'soft'; note: string; fairPriceUsdc?: number } | undefined {
+  return state.marketRead
+    ? {
+        demand: state.marketRead.demand,
+        note: state.marketRead.priceNote,
+        fairPriceUsdc: state.marketRead.fairPriceUsdc,
+      }
+    : undefined;
 }
 
 function logDedupeKey(label: string, log: Log): string {
@@ -804,13 +824,54 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
   if (keywords.length === 0) return;
   const owner = state.context.buyer;
   try {
-    const rs = await getResearchState(owner);
-    if (!rs.active) return;
+    // Market research is a general baseline now: every deal is researched (the
+    // platform fronts the Base call), the intel is shared, and only the matched
+    // buyer + seller are charged for it at match (see persistApprovedMatch). No
+    // per-agent activation gate, no charge at trigger time.
     const read = await researchMarket(keywords);
     state.marketRead = read;
     setResearchHeat(keywords, read.demand);
+
+    // One-time budget-vs-market verdict. fairPriceUsdc is only present when the
+    // research was grounded, so unknown/rough prices simply yield 'unknown' and
+    // nothing fires. When the buyer's cap sits 40%+ above a grounded market
+    // price, advise (non-destructively) that they may be overpaying — the
+    // operator decides whether to reopen at market, the agent never cancels.
+    const cap = computeBuyerEffectiveCap(state.context, state.buyer);
+    const verdict = classifyVsMarket(cap, read.fairPriceUsdc);
+    state.marketVerdict = verdict.verdict;
+    if (verdict.verdict === 'overpriced') {
+      const advisory = {
+        jobId: state.jobId,
+        buyer: owner,
+        budgetUsdc: Number(cap.toFixed(2)),
+        fairPriceUsdc: verdict.fairPriceUsdc,
+        overPct: verdict.overPct,
+        demand: read.demand,
+        note: read.priceNote,
+        createdAt: Date.now(),
+      };
+      upsertMarketAdvisory(advisory); // persist so it survives a refresh
+      bus.emitEvent({
+        type: 'negotiation.market-advisory',
+        jobId: state.jobId,
+        actor: 'buyer',
+        payload: {
+          buyer: owner,
+          budgetUsdc: advisory.budgetUsdc,
+          fairPriceUsdc: verdict.fairPriceUsdc,
+          overPct: verdict.overPct,
+          demand: read.demand,
+          note: read.priceNote,
+        },
+      });
+      logger.info(
+        { jobId: state.jobId, cap, fairPriceUsdc: verdict.fairPriceUsdc, overPct: verdict.overPct },
+        'market advisory: buyer budget sits well above market price',
+      );
+    }
+
     if (!read.cached) {
-      await chargeResearch(owner, read.paidUsd);
       bus.emitEvent({
         type: 'agent.paid',
         jobId: state.jobId,
@@ -1258,6 +1319,7 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
           sellerFloorUsdc: Number(best.lastPrice),
           confirmedTopical: true,
           bandPctOverride: nearMissBandFor(state.context),
+          market: marketContextFor(state),
         });
         if (raised) {
           state.finalized = true;
@@ -1384,6 +1446,7 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
       sellerFloorUsdc: nextPrice,
       confirmedTopical: true,
       bandPctOverride: nearMissBandFor(state.context),
+      market: marketContextFor(state),
     });
     if (raised) {
       state.finalized = true;
@@ -1675,6 +1738,7 @@ async function handleCounterResponse(log: Log) {
           sellerFloorUsdc: sellerOfferLowConf,
           confirmedTopical: true,
           bandPctOverride: nearMissBandFor(state.context),
+          market: marketContextFor(state),
         });
         if (raised) {
           state.finalized = true;
@@ -1736,6 +1800,7 @@ async function handleCounterResponse(log: Log) {
         sellerFloorUsdc: sellerOfferN,
         confirmedTopical: true,
         bandPctOverride: nearMissBandFor(state.context),
+        market: marketContextFor(state),
       });
       if (raised) {
         state.finalized = true;
@@ -2074,6 +2139,7 @@ async function proposeMatch(
               summary: marketRead.summary,
               demand: marketRead.demand,
               priceNote: marketRead.priceNote,
+              fairPriceUsdc: marketRead.fairPriceUsdc,
               highlights: marketRead.highlights,
               sources: marketRead.sources,
               amountUsd: marketRead.paidUsd,
@@ -2343,6 +2409,18 @@ async function persistApprovedMatch(
       { jobId: proposal.jobId, buyer: proposal.buyerUser, seller: proposal.sellerUser },
       'approved match persisted as deal row',
     );
+
+    // Settle the research cost on the MATCHED pair only. The platform fronted
+    // the calls for the whole auction; here we draw it down from the two
+    // accounts that actually transacted, out of their 5 USDC research credit.
+    // The buyer also bears the internal counterparty pull it ran on the seller.
+    // Best-effort and a no-op for an account with no credit.
+    const externalUsd = proposal.marketRead?.amountUsd ?? 0;
+    const internalPullUsd = proposal.paidSignal?.amountUsd ?? 0;
+    await Promise.allSettled([
+      chargeResearch(buyerWallets.userAddress, externalUsd + internalPullUsd),
+      chargeResearch(sellerWallets.userAddress, externalUsd),
+    ]);
   } catch (err) {
     logger.warn(
       { jobId: proposal.jobId, err: (err as Error).message },

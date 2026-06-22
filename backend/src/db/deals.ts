@@ -38,6 +38,7 @@ export interface DirectDeal {
     summary: string;
     demand: 'hot' | 'steady' | 'soft';
     priceNote: string;
+    fairPriceUsdc?: number;
     highlights: string[];
     sources: { title: string; url: string }[];
     amountUsd: number;

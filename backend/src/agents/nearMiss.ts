@@ -23,6 +23,12 @@ const MAX_GAP_PCT = numEnv('NEAR_MISS_MAX_GAP_PCT', 40);
 /// to 100% (up to twice the budget); above that it is a different purchase, not
 /// a near-miss.
 const LISTING_MAX_GAP_PCT = numEnv('NEAR_MISS_LISTING_MAX_GAP_PCT', 100);
+/// Band when paid market analysis backs the over-cap price. If the agent
+/// researched the deal and demand is real (not soft), a price above the buyer's
+/// budget is the market talking, not a bad match — widen the band so the buyer
+/// hears "market says this is worth more, proceed or pass?" instead of a silent
+/// skip. Defaults to 100% (up to 2x budget).
+const MARKET_MAX_GAP_PCT = numEnv('NEAR_MISS_MARKET_GAP_PCT', 100);
 /// Consent window. After this the near-miss lapses and nothing funds. Capped by
 /// the brief's own deadline so we never ask past the point a deal could deliver.
 const WINDOW_MS = numEnv('NEAR_MISS_WINDOW_MS', 60 * 60 * 1000);
@@ -65,6 +71,10 @@ interface NearMissInput {
   /// the override (default 200% above budget = 3x budget) and only decline
   /// silently when the seller's price is genuinely outrageous.
   bandPctOverride?: number;
+  /// Paid market analysis for the deal, when the buyer agent has research
+  /// active. When demand is real it both widens the gap band and is carried
+  /// into the alert so the buyer sees the market justification for the price.
+  market?: { demand: 'hot' | 'steady' | 'soft'; note: string; fairPriceUsdc?: number };
 }
 
 /// Detection + creation. Called from a give-up point where the agents found a
@@ -83,7 +93,12 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   }
   const relGap = gap / buyerCeilingUsdc;
   const defaultCap = input.confirmedTopical ? LISTING_MAX_GAP_PCT : MAX_GAP_PCT;
-  const cap = input.bandPctOverride ?? defaultCap;
+  let cap = input.bandPctOverride ?? defaultCap;
+  // Market analysis legitimises an over-budget price. If the agent paid to
+  // research the deal and demand is real, the seller pricing above the buyer's
+  // cap is the market — widen the band so it surfaces as proceed-or-pass.
+  const marketBacked = input.market != null && input.market.demand !== 'soft';
+  if (marketBacked) cap = Math.max(cap, MARKET_MAX_GAP_PCT);
   if (relGap > cap / 100) {
     emitSkipped(jobId, 'gap-too-wide', {
       buyerCeilingUsdc: round2(buyerCeilingUsdc),
@@ -93,6 +108,7 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
       capPct: cap,
       confirmedTopical: input.confirmedTopical === true,
       bandPctOverride: input.bandPctOverride,
+      marketBacked,
     });
     return false;
   }
@@ -151,6 +167,9 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     sellerFloorUsdc: round2(sellerFloorUsdc),
     createdAt: now,
     expiresAt: windowExpiry(input.deadlineUnix, now),
+    marketDemand: input.market?.demand,
+    marketNote: input.market?.note,
+    marketFairPriceUsdc: input.market?.fairPriceUsdc,
     // carried so the resume path can rebuild context without the in-memory job
     // state if needed; budget/terms ride the job state today.
   };
@@ -232,6 +251,9 @@ function emitNearMiss(n: NearMissApproval) {
       limitUsdc: n.limitUsdc,
       gapUsdc: n.gapUsdc,
       expiresAt: n.expiresAt,
+      marketDemand: n.marketDemand,
+      marketNote: n.marketNote,
+      marketFairPriceUsdc: n.marketFairPriceUsdc,
     },
   });
 }

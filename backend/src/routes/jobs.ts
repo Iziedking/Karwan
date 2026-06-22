@@ -19,6 +19,7 @@ import {
   type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
+import { getMarketAdvisory } from '../db/marketAdvisory.js';
 import { flipOrEndOnDecline } from '../agents/nearMiss.js';
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
@@ -550,6 +551,17 @@ jobsRoutes.get('/:jobId/near-miss', (c) => {
     !!caller && (caller === nm.buyerUser || caller === nm.sellerUser);
   if (!isParty) return c.json({ nearMiss: null });
   return c.json({ nearMiss: nm });
+});
+
+/// The persisted overpay advisory for a job, gated to the buyer. Non-destructive
+/// market check that survives a refresh (the live SSE event shows it during the
+/// auction; this reappears it on load).
+jobsRoutes.get('/:jobId/market-advisory', (c) => {
+  const adv = getMarketAdvisory(c.req.param('jobId'));
+  if (!adv) return c.json({ advisory: null });
+  const caller = viewerAddress(c);
+  if (!caller || caller !== adv.buyer) return c.json({ advisory: null });
+  return c.json({ advisory: adv });
 });
 
 const nearMissActionSchema = z.object({

@@ -124,6 +124,19 @@ export function NearMissCard({ nearMiss, onChange }: Props) {
               : nm.otherBodyBuyerTemplate}
         </p>
 
+        {(nearMiss.marketFairPriceUsdc != null || nearMiss.marketNote) && (
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
+            <span className="mono uppercase tracking-[0.12em] text-[10px]" style={{ color: rail }}>
+              market check ·{' '}
+            </span>
+            {nearMiss.marketFairPriceUsdc != null && (
+              <>about ${nearMiss.marketFairPriceUsdc.toFixed(0)} in the market</>
+            )}
+            {nearMiss.marketDemand && <> · demand {nearMiss.marketDemand}</>}
+            {nearMiss.marketNote ? `. ${nearMiss.marketNote}` : '.'}
+          </p>
+        )}
+
         {viewerIsAsked && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button

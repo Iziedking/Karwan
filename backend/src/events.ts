@@ -82,6 +82,9 @@ export type KarwanEventType =
   | 'negotiation.near-miss.proceeded'
   | 'negotiation.near-miss.declined'
   | 'negotiation.near-miss.skipped'
+  /// Buyer agent found the budget sits well above the grounded market price and
+  /// is advising the operator they may be overpaying (non-destructive).
+  | 'negotiation.market-advisory'
   | 'market.scanned'
   | 'reputation.tier-up'
   | 'feedback.submitted'

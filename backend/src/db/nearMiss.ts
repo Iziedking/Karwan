@@ -39,6 +39,14 @@ export interface NearMissApproval {
   /// True once the buyer has had (and passed on) their turn, so a flip to the
   /// seller can't loop back to the buyer.
   buyerAsked?: boolean;
+  /// Market analysis that justifies the over-cap price, when the agent paid to
+  /// research the deal. Surfaced in the proceed-or-pass alert so the buyer sees
+  /// WHY the best price sits above their budget ("market demand is hot...").
+  marketDemand?: 'hot' | 'steady' | 'soft';
+  marketNote?: string;
+  /// Grounded market price for the deal, when known. Shows the buyer the
+  /// concrete number behind "best match is above your budget".
+  marketFairPriceUsdc?: number;
 }
 
 export function isPending(n: NearMissApproval, now = Date.now()): boolean {
