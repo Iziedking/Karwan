@@ -408,6 +408,14 @@ const envSchema = z.object({
   // immediately instead of waiting for the close-out transcript. Falls back to
   // SUPPORT_EMAIL when unset.
   SUPPORT_TEAM_EMAIL: optionalString,
+  // Inbound email -> ticket. Secret in the webhook URL path
+  // (/api/support/inbound/:secret) so only the configured mail provider can
+  // post. Unset = the inbound route is disabled (404).
+  INBOUND_EMAIL_SECRET: optionalString,
+  // Address mail to this domain is received on (e.g. tickets@inbound.karwan.site),
+  // set as Reply-To on outbound support mail so replies thread back to the
+  // inbound webhook. Falls back to SUPPORT_EMAIL when unset.
+  SUPPORT_REPLY_TO: optionalString,
   // This backend's own public origin, e.g. https://api.karwan.site. Used to
   // build absolute screenshot URLs so Telegram can fetch them and the feedback
   // viewer can link them. Unset = screenshots are stored but not pushed to

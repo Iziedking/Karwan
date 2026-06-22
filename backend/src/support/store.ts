@@ -21,8 +21,14 @@ export interface SupportConversation {
   id: string;
   /// Wallet address of the requester when known (signed-in users), lowercased.
   address?: string;
-  /// Email for the close-out archive when known.
+  /// Email for the close-out archive when known. For email-origin tickets this
+  /// is the sender, and operator replies are emailed back to it.
   email?: string;
+  /// Where the ticket originated. 'widget' replies reach the user by poll;
+  /// 'email' replies are emailed back to `email`. Absent reads as 'widget'.
+  channel?: 'widget' | 'email';
+  /// Last inbound email subject, so a reply keeps the "Re: …" thread + Ticket id.
+  subject?: string;
   status: 'open' | 'closed';
   messages: SupportMessage[];
   createdAt: number;
@@ -92,6 +98,7 @@ export function createConversation(input: {
     id: newId(),
     address: input.address?.toLowerCase(),
     email: input.email?.toLowerCase(),
+    channel: 'widget',
     status: 'open',
     messages,
     createdAt: now,
@@ -104,6 +111,29 @@ export function createConversation(input: {
 
 export function getConversation(id: string): SupportConversation | null {
   return conversations.get(id) ?? null;
+}
+
+/// Open an email-origin ticket (someone emailed support directly, not via the
+/// widget). Operator replies are emailed back to `email`.
+export function createEmailConversation(input: {
+  email: string;
+  subject: string;
+  text: string;
+}): SupportConversation {
+  const now = Date.now();
+  const convo: SupportConversation = {
+    id: newId(),
+    email: input.email.toLowerCase(),
+    channel: 'email',
+    subject: input.subject.slice(0, 200),
+    status: 'open',
+    messages: [{ role: 'user', text: input.text.trim().slice(0, 4000), ts: now }],
+    createdAt: now,
+    updatedAt: now,
+  };
+  conversations.set(convo.id, convo);
+  schedulePersist();
+  return convo;
 }
 
 /// Open conversations, most-recently-active first. For the admin tickets view.

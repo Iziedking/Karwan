@@ -8,7 +8,7 @@ import {
   closeConversation,
   type SupportConversation,
 } from '../support/store.js';
-import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
+import { sendSupportTranscriptEmail, emailOperatorReply } from '../emails/supportTranscript.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
 // getUpdates so we don't need a public webhook in dev. When the token is
@@ -339,6 +339,8 @@ async function handleOperatorMessage(
     );
     return true;
   }
+  // Email-origin tickets get the reply mailed back; widget tickets see it on poll.
+  if (convo.channel === 'email') void emailOperatorReply(convo, body);
   return true;
 }
 

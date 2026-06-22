@@ -8,6 +8,50 @@ import { resendClient } from './resend.js';
 import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
 import type { SupportConversation, SupportRole } from '../support/store.js';
 
+/// Reply-To for outbound support mail. When the inbound subdomain is set,
+/// replies thread back to the webhook (and into the same ticket); otherwise
+/// they land in the support inbox.
+function replyToAddress(): string {
+  return config.SUPPORT_REPLY_TO ?? config.SUPPORT_EMAIL;
+}
+
+/// Email an operator's reply back to an email-origin ticket's sender. The
+/// Ticket id in the subject lets the inbound webhook re-thread their reply.
+export async function emailOperatorReply(
+  convo: SupportConversation,
+  text: string,
+): Promise<{ delivered: boolean }> {
+  const client = resendClient();
+  if (!client || !convo.email) return { delivered: false };
+  const base = convo.subject?.replace(/^re:\s*/i, '') ?? 'your Karwan support request';
+  try {
+    const { error } = await client.emails.send({
+      from: config.RESEND_FROM,
+      replyTo: replyToAddress(),
+      to: convo.email,
+      subject: `Re: ${base} (Ticket ${convo.id})`,
+      html: brandedEmailHtml({
+        eyebrow: 'KARWAN SUPPORT',
+        title: `Ticket ${convo.id}`,
+        inner: `
+          <tr><td style="padding:28px;">
+            <div style="font-size:15px;line-height:1.6;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(text)}</div>
+          </td></tr>`,
+        footerNote: `Reply to this email to continue. Ticket ${convo.id}.`,
+      }),
+      text: `${text}\n\nReply to this email to continue. Ticket ${convo.id}.`,
+    });
+    if (error) {
+      logger.warn({ err: error.message, id: convo.id }, 'resend rejected operator reply email');
+      return { delivered: false };
+    }
+    return { delivered: true };
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, id: convo.id }, 'resend threw on operator reply');
+    return { delivered: false };
+  }
+}
+
 const ROLE_LABEL: Record<SupportRole, string> = {
   user: 'User',
   assistant: 'Assistant',
@@ -89,7 +133,7 @@ export async function sendSupportAlertEmail(
   try {
     const { error } = await client.emails.send({
       from: config.RESEND_FROM,
-      replyTo: config.SUPPORT_EMAIL,
+      replyTo: replyToAddress(),
       to,
       subject: `New support ticket ${convo.id}`,
       html,
@@ -125,7 +169,7 @@ export async function sendSupportTranscriptEmail(
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,
-      replyTo: config.SUPPORT_EMAIL,
+      replyTo: replyToAddress(),
       to: recipients,
       subject: `Karwan support transcript (${convo.id})`,
       html,

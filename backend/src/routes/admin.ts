@@ -17,7 +17,7 @@ import {
   appendOperatorMessage,
   closeConversation,
 } from '../support/store.js';
-import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
+import { sendSupportTranscriptEmail, emailOperatorReply } from '../emails/supportTranscript.js';
 import {
   listAllMatchProposals,
   getBuyerSnapshot,
@@ -275,6 +275,8 @@ adminRoutes.post('/support/:id/reply', async (c) => {
   }
   const convo = appendOperatorMessage(id, body.text);
   if (!convo) return c.json({ error: 'ticket not open' }, 404);
+  // Email-origin tickets get the reply mailed back; widget tickets see it on poll.
+  if (convo.channel === 'email') void emailOperatorReply(convo, body.text);
   return c.json({ ok: true });
 });
 
