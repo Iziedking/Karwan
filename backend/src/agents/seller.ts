@@ -351,7 +351,11 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
 /// against that account. Writes the order's demand into the shared heat cache
 /// so the seller anchoring (and the buyer, on the same keywords) negotiates
 /// tuned to it. Keyword-scoped, never tied to the counterparty. Best-effort.
-async function maybeSellerResearch(seller: SellerProfile, keywords: string[]): Promise<void> {
+async function maybeSellerResearch(
+  seller: SellerProfile,
+  keywords: string[],
+  jobId: string,
+): Promise<void> {
   if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) return;
   if (keywords.length === 0) return;
   try {
@@ -362,7 +366,25 @@ async function maybeSellerResearch(seller: SellerProfile, keywords: string[]): P
     if (!rs.active) return;
     const read = await researchMarket(keywords);
     setResearchHeat(keywords, read.demand);
-    if (!read.cached) await chargeResearch(owner, read.paidUsd);
+    if (!read.cached) {
+      await chargeResearch(owner, read.paidUsd);
+      bus.emitEvent({
+        type: 'agent.paid',
+        jobId,
+        actor: 'seller',
+        payload: {
+          rail: 'base',
+          kind: 'research',
+          agent: 'seller',
+          seller: seller.address,
+          amountUsd: read.paidUsd,
+          txHash: read.txHash,
+          payer: read.payer,
+          demand: read.demand,
+          keywords,
+        },
+      });
+    }
     logger.info(
       { seller: seller.address, demand: read.demand, cached: read.cached },
       'seller agent researched the order before pricing',
@@ -611,7 +633,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     (job.keywords ?? []).length > 0
       ? job.keywords!
       : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
-  await maybeSellerResearch(seller, dealKeywords);
+  await maybeSellerResearch(seller, dealKeywords, job.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
   const opening = sellerOpeningBid(seller, job, buyerTier, heat);
   if (opening === null) {
@@ -870,7 +892,7 @@ async function runCounterEvaluation(
     (active.jobContext.keywords ?? []).length > 0
       ? active.jobContext.keywords!
       : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
-  await maybeSellerResearch(seller, dealKeywords);
+  await maybeSellerResearch(seller, dealKeywords, active.jobContext.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
   const sellerDaysToDeadline = Math.max(
     1,

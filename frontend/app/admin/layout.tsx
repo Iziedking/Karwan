@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { api, setAdminToken, ApiError } from '@/core/api';
 import { DialogProvider } from '@/shared/components/Dialog';
 
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/deals', label: 'Deals' },
   { href: '/admin/profiles', label: 'Profiles' },
   { href: '/admin/support', label: 'Support' },
+  { href: '/admin/events', label: 'Events' },
   { href: '/admin/treasury', label: 'Treasury' },
   { href: '/admin/usyc', label: 'USYC' },
   { href: '/admin/feedback', label: 'Feedback' },
@@ -23,10 +24,12 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [unlocked, setUnlocked] = useState(false);
+  const [role, setRole] = useState<'admin' | 'support' | null>(null);
   const [token, setToken] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -36,9 +39,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setErr(null);
     setAdminToken(t);
     try {
-      // Cheap authenticated call validates the token before unlocking.
-      await api.adminProfiles();
-      setUnlocked(true);
+      // whoami accepts both the full admin token and the scoped support token,
+      // and tells us which one this is so we can show the right surface.
+      const r = await api.adminWhoami();
+      if (r.role === 'admin' || r.role === 'support') {
+        setRole(r.role);
+        setUnlocked(true);
+      } else {
+        setAdminToken(null);
+        setErr('Invalid token');
+      }
     } catch (e) {
       setAdminToken(null);
       setErr(e instanceof ApiError ? e.message : 'Invalid token');
@@ -50,8 +60,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   function lock() {
     setAdminToken(null);
     setUnlocked(false);
+    setRole(null);
     setToken('');
   }
+
+  // A support-only token can reach nothing but the tickets surface. Keep it
+  // pinned there even if the URL is changed by hand.
+  useEffect(() => {
+    if (unlocked && role === 'support' && pathname !== '/admin/support') {
+      router.replace('/admin/support');
+    }
+  }, [unlocked, role, pathname, router]);
+
+  const nav = role === 'support' ? NAV.filter((n) => n.href === '/admin/support') : NAV;
 
   if (!unlocked) {
     return (
@@ -88,7 +109,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="sticky top-0 z-10 bg-[#0e0e0e]/95 backdrop-blur border-b border-white/10">
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 h-14">
           <nav className="flex items-center gap-1 overflow-x-auto">
-            {NAV.map((n) => {
+            {nav.map((n) => {
               const active = pathname === n.href;
               return (
                 <Link

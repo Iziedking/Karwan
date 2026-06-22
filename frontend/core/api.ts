@@ -840,6 +840,19 @@ export interface AdminDealRow {
   deadlineUnix?: number;
 }
 
+export interface AdminEventEntry {
+  type: string;
+  jobId: string;
+  ts: number;
+  data: {
+    type: string;
+    jobId?: string;
+    actor: string;
+    ts: number;
+    payload?: Record<string, unknown>;
+  };
+}
+
 export interface AdminTicketRow {
   id: string;
   address: string | null;
@@ -1081,6 +1094,10 @@ export const api = {
       `/api/admin/profiles/${address}/business`,
       { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ status }) },
     ),
+  adminWhoami: () =>
+    json<{ role: 'admin' | 'support' | null }>('/api/admin/support/whoami', {
+      headers: adminHeaders(),
+    }),
   adminSupportList: () =>
     json<{ count: number; tickets: AdminTicketRow[] }>('/api/admin/support', {
       headers: adminHeaders(),
@@ -1104,6 +1121,16 @@ export const api = {
       method: 'POST',
       headers: adminHeaders(),
     }),
+  adminEvents: (params: { jobId?: string; address?: string; type?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params.jobId) qs.set('jobId', params.jobId);
+    if (params.address) qs.set('address', params.address);
+    if (params.type) qs.set('type', params.type);
+    if (params.limit) qs.set('limit', String(params.limit));
+    return json<{ count: number; events: AdminEventEntry[] }>(`/api/admin/events?${qs.toString()}`, {
+      headers: adminHeaders(),
+    });
+  },
   postJob: (
     body: {
       posterAddress: string;
@@ -2227,6 +2254,14 @@ export const api = {
       '/api/sme/profile',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  // Recent events for a job (public, durable ring snapshot). Used to seed the
+  // live x402 agent-payments panel before SSE takes over.
+  recentEvents: (jobId: string, type?: string, limit = 100) => {
+    const qs = new URLSearchParams({ jobId, limit: String(limit) });
+    if (type) qs.set('type', type);
+    return json<{ events: ChainEvent[] }>(`/api/events/recent?${qs.toString()}`);
+  },
 
   // In-app support assistant. Sends the recent turns and gets one reply back.
   assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
