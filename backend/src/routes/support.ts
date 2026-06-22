@@ -95,11 +95,13 @@ supportRoutes.get('/:id/messages', (c) => {
   return c.json({ status: convo.status, messages: messagesSince(id, since) });
 });
 
-supportRoutes.post('/:id/close', async (c) => {
+supportRoutes.post('/:id/close', (c) => {
   const id = c.req.param('id');
   const convo = closeConversation(id);
   if (!convo) return c.json({ error: 'not-found' }, 404);
-  void sendSupportTranscriptEmail(convo);
+  // The user ending their chat does NOT email a transcript. The archive
+  // transcript is sent once when the operator closes it (admin/Telegram) or
+  // when the sweeper auto-closes an abandoned ticket, so it never doubles up.
   return c.json({ ok: true });
 });
 

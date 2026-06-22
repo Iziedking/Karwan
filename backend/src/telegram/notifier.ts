@@ -103,6 +103,8 @@ const RELEVANT = new Set([
   'agent.withdrawal',
   // Reputation-tier celebration. Fires once per all-time-high tier.
   'reputation.tier-up',
+  // Operator reply on a support ticket -> the user's Telegram.
+  'support.reply',
 ]);
 
 interface Recipient {
@@ -131,6 +133,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // Agent fund / withdraw routes carry the identity address under `user`.
   if (e.type === 'agent.funded' || e.type === 'agent.withdrawal') {
     const owner = (e.payload?.user as string | undefined)?.toLowerCase();
+    return owner ? [{ address: owner, role: 'self' }] : [];
+  }
+  // Support reply carries the recipient wallet in the payload.
+  if (e.type === 'support.reply') {
+    const owner = (e.payload?.address as string | undefined)?.toLowerCase();
     return owner ? [{ address: owner, role: 'self' }] : [];
   }
   // Reputation tier-up carries the subject address. Same shape as vault events.
@@ -542,6 +549,14 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       return withLink(
         `*A financier offered you early payout*: ${advance}${discount}. Open the deal to accept or pass.`,
         dealUrl(e.jobId),
+      );
+    }
+    case 'support.reply': {
+      const body = (e.payload?.text as string | undefined) ?? '';
+      const ticketId = (e.payload?.ticketId as string | undefined) ?? '';
+      return withLink(
+        `*Karwan support*${ticketId ? ` (${ticketId})` : ''}\n${body}\n\nReply here to continue.`,
+        null,
       );
     }
     default:

@@ -143,6 +143,18 @@ export function listOpenConversations(): SupportConversation[] {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+/// The caller's most-recently-active OPEN ticket, by wallet. Used to route a
+/// reply that arrives on another channel (Telegram, inbound email) back into
+/// the one ticket the user already has open.
+export function findOpenConversationByAddress(address: string): SupportConversation | null {
+  const a = address.toLowerCase();
+  return (
+    [...conversations.values()]
+      .filter((c) => c.status === 'open' && c.address === a)
+      .sort((x, y) => y.updatedAt - x.updatedAt)[0] ?? null
+  );
+}
+
 function append(id: string, role: SupportRole, text: string): SupportConversation | null {
   const convo = conversations.get(id);
   if (!convo || convo.status === 'closed') return null;

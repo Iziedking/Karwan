@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type AdminTicketRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
+import { stripMarkdown } from '@/shared/utils/format';
 
 /// Admin support tickets: the third operator channel (with Telegram + email).
 /// Pick up an open ticket and reply here; the reply relays to the user's chat
@@ -23,7 +24,18 @@ export default function AdminSupport() {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const { confirm, notify } = useDialog();
+
+  async function copyMsg(text: string, idx: number) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1200);
+    } catch {
+      /* clipboard blocked; text is still selectable */
+    }
+  }
   const selectedRef = useRef<string | null>(null);
   selectedRef.current = selected;
 
@@ -39,7 +51,15 @@ export default function AdminSupport() {
   const loadThread = useCallback(async (id: string) => {
     try {
       const r = await api.adminSupportGet(id);
-      if (selectedRef.current === id) setMessages(r.messages);
+      if (selectedRef.current !== id) return;
+      // Only replace the array when it actually changed, so a background poll
+      // doesn't re-render the thread and wipe a text selection mid-copy.
+      setMessages((prev) => {
+        const same =
+          prev.length === r.messages.length &&
+          (prev.length === 0 || prev[prev.length - 1].ts === r.messages[r.messages.length - 1].ts);
+        return same ? prev : r.messages;
+      });
     } catch {
       /* transient */
     }
@@ -165,10 +185,21 @@ export default function AdminSupport() {
                             : 'bg-white/[0.04] text-white/55'
                       }`}
                     >
-                      <span className="mono text-[8px] uppercase tracking-[0.14em] opacity-50 block mb-0.5">
-                        {m.role}
-                      </span>
-                      {m.text}
+                      <div className="flex items-center justify-between gap-3 mb-0.5">
+                        <span className="mono text-[8px] uppercase tracking-[0.14em] opacity-50">
+                          {m.role}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyMsg(stripMarkdown(m.text), i)}
+                          className="mono text-[8px] uppercase tracking-[0.12em] opacity-40 hover:opacity-100"
+                        >
+                          {copiedIdx === i ? 'copied' : 'copy'}
+                        </button>
+                      </div>
+                      <div className="whitespace-pre-wrap break-words select-text">
+                        {stripMarkdown(m.text)}
+                      </div>
                     </div>
                   </div>
                 ))}
