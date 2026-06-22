@@ -63,6 +63,18 @@ export function getPendingNearMiss(jobId: string): NearMissApproval | null {
   return n && isPending(n) ? n : null;
 }
 
+/// Remove a job's near-miss record entirely. Used when a passed near-miss
+/// re-opens the auction: clearing the resolved record lets a genuinely new
+/// seller raise a fresh near-miss instead of being blocked by "already-resolved".
+export function clearNearMiss(jobId: string): void {
+  const store = loadFile();
+  const key = jobId.toLowerCase();
+  if (store[key]) {
+    delete store[key];
+    saveFile(store);
+  }
+}
+
 export function upsertNearMiss(n: NearMissApproval): NearMissApproval {
   const next: NearMissApproval = {
     ...n,
