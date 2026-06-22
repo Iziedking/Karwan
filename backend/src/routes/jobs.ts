@@ -16,11 +16,12 @@ import {
   cancelBriefByBuyer,
   proceedAgentNearMiss,
   patchTrackedJobContext,
+  reopenForNewBids,
   type MarketplaceBrief,
 } from '../agents/buyer.js';
 import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
 import { getMarketAdvisory } from '../db/marketAdvisory.js';
-import { flipOrEndOnDecline } from '../agents/nearMiss.js';
+import { endNearMissOnDecline } from '../agents/nearMiss.js';
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
@@ -591,8 +592,11 @@ jobsRoutes.post('/:jobId/near-miss', async (c) => {
   }
 
   if (body.action === 'decline') {
-    const { flipped } = flipOrEndOnDecline(jobId);
-    return c.json({ declined: true, flipped, jobId }, 200);
+    // Pass = end this near-miss and keep the request live for new bids instead
+    // of dead-ending or hanging on a flip to a silent seller agent.
+    endNearMissOnDecline(jobId);
+    const reopened = reopenForNewBids(jobId);
+    return c.json({ declined: true, reopened, jobId }, 200);
   }
 
   // proceed

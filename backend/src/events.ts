@@ -82,6 +82,9 @@ export type KarwanEventType =
   | 'negotiation.near-miss.proceeded'
   | 'negotiation.near-miss.declined'
   | 'negotiation.near-miss.skipped'
+  /// A passed near-miss re-opened the auction: the request stays live for new
+  /// bids instead of dead-ending.
+  | 'negotiation.reopened'
   /// Buyer agent found the budget sits well above the grounded market price and
   /// is advising the operator they may be overpaying (non-destructive).
   | 'negotiation.market-advisory'

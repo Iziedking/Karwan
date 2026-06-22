@@ -40,6 +40,21 @@ export default function AdminEvents() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(0);
+  const [integrity, setIntegrity] = useState<Awaited<
+    ReturnType<typeof api.adminWalletIntegrity>
+  > | null>(null);
+  const [intBusy, setIntBusy] = useState(false);
+
+  async function checkIntegrity() {
+    setIntBusy(true);
+    try {
+      setIntegrity(await api.adminWalletIntegrity());
+    } catch {
+      setIntegrity(null);
+    } finally {
+      setIntBusy(false);
+    }
+  }
 
   async function run(term: string) {
     const v = term.trim();
@@ -78,6 +93,43 @@ export default function AdminEvents() {
       <p className="mt-1 text-[13px] text-white/45">
         Paste a deal ID to trace an auction, or a wallet to trace one agent across deals.
       </p>
+
+      <div className="mt-4 border border-white/10 rounded-lg p-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+            wallet integrity — finds agent addresses claimed by more than one user
+          </span>
+          <button
+            type="button"
+            onClick={() => void checkIntegrity()}
+            disabled={intBusy}
+            className="mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-1.5 rounded border border-white/20 hover:border-white/50 disabled:opacity-50"
+          >
+            {intBusy ? 'checking…' : 'check'}
+          </button>
+        </div>
+        {integrity && (
+          <div className="mt-3 text-[12px]">
+            <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+              {integrity.total} records · {integrity.sharedAddresses.length} shared ·{' '}
+              {integrity.emptyBuyer.length + integrity.emptySeller.length} blank
+            </p>
+            {integrity.sharedAddresses.length === 0 ? (
+              <p className="mt-2 text-[#5aa56a]">Clean — no agent address is shared across users.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {integrity.sharedAddresses.map((s) => (
+                  <li key={s.address} className="font-mono text-[11px] text-[#e0794f]">
+                    <span className="text-white/80">{s.address}</span>{' '}
+                    <span className="text-white/40">({s.role})</span> →{' '}
+                    {s.users.map((u) => short(u)).join(', ')}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
 
       <form
         onSubmit={(e) => {

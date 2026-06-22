@@ -168,10 +168,16 @@ export interface BidScoreInputs {
   sellerDealsCompleted?: number;
   sellerAccountAgeDays?: number;
   sellerVelocity24h?: number;
+  /// 0..100 skill/topical fit for this brief. The single most important factor
+  /// (Karwan ranks best fit first), so the deterministic fallback MUST weigh it
+  /// — without it, a great-fit seller bidding a touch over budget scores low and
+  /// gets buried whenever the scoring LLM fails. Neutral 50 when unknown.
+  topicalMatch?: number;
 }
 export interface BidScore {
   score: number;
   breakdown: {
+    topical: number;
     price: number;
     tier: number;
     completion: number;
@@ -225,17 +231,24 @@ export function scoreBidDeterministic(args: BidScoreInputs): BidScore {
   else if (vel <= 15) velocityScore = 100 - (vel - 10) * 10;
   else velocityScore = Math.max(10, 50 - (vel - 15) * 4);
 
+  // Skill/topical fit. Neutral 50 when unknown so a missing value neither
+  // rewards nor punishes. Carries the heaviest single weight, matching how the
+  // LLM scorer (and Karwan's match-first ranking) treat fit.
+  const topicalScore = Math.max(0, Math.min(100, args.topicalMatch ?? 50));
+
   const weighted =
-    priceScore * 0.4 +
-    tierScore * 0.25 +
-    completionScore * 0.15 +
-    dealsScore * 0.1 +
-    ageScore * 0.05 +
-    velocityScore * 0.05;
+    topicalScore * 0.3 +
+    priceScore * 0.3 +
+    tierScore * 0.2 +
+    completionScore * 0.1 +
+    dealsScore * 0.05 +
+    ageScore * 0.025 +
+    velocityScore * 0.025;
 
   return {
     score: Math.round(weighted),
     breakdown: {
+      topical: Math.round(topicalScore),
       price: Math.round(priceScore),
       tier: Math.round(tierScore),
       completion: Math.round(completionScore),

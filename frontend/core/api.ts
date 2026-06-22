@@ -988,7 +988,7 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ caller, action: 'proceed' }) },
     ),
   declineNearMiss: (jobId: string, caller: string) =>
-    json<{ declined: boolean; flipped: boolean; jobId: string }>(
+    json<{ declined: boolean; reopened: boolean; jobId: string }>(
       `/api/jobs/${jobId}/near-miss`,
       { method: 'POST', body: JSON.stringify({ caller, action: 'decline' }) },
     ),
@@ -1139,6 +1139,13 @@ export const api = {
       method: 'POST',
       headers: adminHeaders(),
     }),
+  adminWalletIntegrity: () =>
+    json<{
+      total: number;
+      emptyBuyer: string[];
+      emptySeller: string[];
+      sharedAddresses: { address: string; role: 'buyer' | 'seller' | 'mixed'; users: string[] }[];
+    }>('/api/admin/agent-wallets/integrity', { headers: adminHeaders() }),
   adminEvents: (params: { jobId?: string; address?: string; type?: string; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params.jobId) qs.set('jobId', params.jobId);

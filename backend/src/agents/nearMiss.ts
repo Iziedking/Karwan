@@ -182,36 +182,14 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
   return true;
 }
 
-/// The asked party declined. If it was the buyer's turn, flip the ask to the
-/// seller at the buyer's ceiling (the buyer is now within range, so one seller
-/// yes closes it). If it was the seller's turn, the near-miss ends.
-export function flipOrEndOnDecline(jobId: string): { flipped: boolean } {
+/// The asked party passed. End this near-miss cleanly. We no longer flip the ask
+/// to the other side: an agent counterparty does not sit and answer a flipped
+/// prompt, so the deal just hung "waiting on them" until the window lapsed. The
+/// caller re-opens the auction instead (reopenForNewBids), keeping the request
+/// live for fresh sellers rather than dead-ending.
+export function endNearMissOnDecline(jobId: string): { ended: boolean } {
   const n = getPendingNearMiss(jobId);
-  if (!n) return { flipped: false };
-
-  if (n.askedSide === 'buyer' && !n.buyerAsked) {
-    const now = Date.now();
-    const flipped: NearMissApproval = {
-      ...n,
-      askedSide: 'seller',
-      askedUser: n.sellerUser,
-      proceedPriceUsdc: n.buyerCeilingUsdc, // seller stretches down to the buyer's cap
-      limitUsdc: n.sellerFloorUsdc,
-      gapUsdc: round2(Number(n.sellerFloorUsdc) - Number(n.buyerCeilingUsdc)),
-      buyerAsked: true,
-      createdAt: now,
-      expiresAt: windowExpiry(0, now),
-      declinedAt: undefined,
-    };
-    upsertNearMiss(flipped);
-    emitNearMiss(flipped);
-    logger.info(
-      { jobId, proceedPriceUsdc: flipped.proceedPriceUsdc },
-      'near-miss: buyer passed, asking seller to meet the buyer ceiling',
-    );
-    return { flipped: true };
-  }
-
+  if (!n) return { ended: false };
   const ended: NearMissApproval = { ...n, declinedAt: Date.now() };
   upsertNearMiss(ended);
   bus.emitEvent({
@@ -220,7 +198,7 @@ export function flipOrEndOnDecline(jobId: string): { flipped: boolean } {
     actor: 'platform',
     payload: { buyer: ended.buyerUser, sellerUser: ended.sellerUser, askedSide: n.askedSide },
   });
-  return { flipped: false };
+  return { ended: true };
 }
 
 /// Emit a structured "near-miss skipped" event for every silent-false return.
