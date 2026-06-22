@@ -27,6 +27,9 @@ eventsRoutes.get('/', (c) =>
     let resolveWait: (() => void) | null = null;
 
     const unsub = bus.subscribe((e) => {
+      // Private support replies go to the user over Telegram + their own ticket
+      // poll, never the public broadcast (which every client receives).
+      if (e.type === 'support.reply') return;
       queue.push(e);
       resolveWait?.();
       resolveWait = null;

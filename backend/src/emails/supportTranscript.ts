@@ -52,6 +52,18 @@ export async function emailOperatorReply(
   }
 }
 
+/// Flatten the assistant's markdown to plain text. Email and the admin panel
+/// render raw text, so **bold** and [label](url) would otherwise show their
+/// literal syntax.
+function stripMd(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/(^|\s)\*(\S.*?\S)\*(?=\s|$)/g, '$1$2')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+}
+
 const ROLE_LABEL: Record<SupportRole, string> = {
   user: 'User',
   assistant: 'Assistant',
@@ -76,7 +88,7 @@ function transcriptInnerHtml(convo: SupportConversation): string {
           <tr>
             <td style="padding:10px 14px;background:${bg};border:1px solid #e6e2d8;border-radius:10px;">
               <div style="font-size:10px;letter-spacing:0.16em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:5px;">${escapeHtml(who)} &middot; ${escapeHtml(fmtTime(m.ts))}</div>
-              <div style="font-size:14px;line-height:1.5;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(m.text)}</div>
+              <div style="font-size:14px;line-height:1.5;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(stripMd(m.text))}</div>
             </td>
           </tr>
           <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>`;
@@ -101,7 +113,7 @@ function transcriptText(convo: SupportConversation): string {
     (convo.address ? `Wallet: ${convo.address}\n` : '') +
     `Opened: ${fmtTime(convo.createdAt)}\n\n`;
   const body = convo.messages
-    .map((m) => `[${fmtTime(m.ts)}] ${ROLE_LABEL[m.role] ?? m.role}: ${m.text}`)
+    .map((m) => `[${fmtTime(m.ts)}] ${ROLE_LABEL[m.role] ?? m.role}: ${stripMd(m.text)}`)
     .join('\n\n');
   return head + body;
 }

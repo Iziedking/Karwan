@@ -1,4 +1,15 @@
-﻿export function shortHash(h: string, head = 6, tail = 4): string {
+﻿/// Flatten markdown to plain text for surfaces that don't render it (the admin
+/// support thread). **bold**, *italic*, `code`, and [label](url) become plain.
+export function stripMarkdown(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/(^|\s)\*(\S.*?\S)\*(?=\s|$)/g, '$1$2')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+}
+
+export function shortHash(h: string, head = 6, tail = 4): string {
   if (!h) return '-';
   if (h.length <= head + tail + 1) return h;
   return `${h.slice(0, head)}…${h.slice(-tail)}`;

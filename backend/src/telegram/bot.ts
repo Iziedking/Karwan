@@ -5,10 +5,13 @@ import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/
 import { bus, type KarwanEvent } from '../events.js';
 import {
   appendOperatorMessage,
+  appendUserMessage,
   closeConversation,
+  findOpenConversationByAddress,
   type SupportConversation,
 } from '../support/store.js';
-import { sendSupportTranscriptEmail, emailOperatorReply } from '../emails/supportTranscript.js';
+import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
+import { notifyUserOfReply } from '../support/notify.js';
 
 // Minimal Telegram Bot API client. Direct HTTP calls (no SDK), long-polling
 // getUpdates so we don't need a public webhook in dev. When the token is
@@ -257,6 +260,22 @@ async function handleMessage(message: {
     }
     return;
   }
+
+  // A linked user typing here while they have an open support ticket: route it
+  // into that ticket so the operator sees it, same as a widget or email reply.
+  // (The operator chat is handled above and returns before this point.)
+  const linkedAddr = await findAddressByChatId(chatId);
+  if (linkedAddr) {
+    const ticket = findOpenConversationByAddress(linkedAddr);
+    if (ticket) {
+      appendUserMessage(ticket.id, text);
+      try {
+        await relaySupportUserMessage(ticket, text);
+      } catch {
+        /* operator relay best-effort */
+      }
+    }
+  }
 }
 
 async function findLinkedAddressForChat(chatId: number): Promise<string | null> {
@@ -339,8 +358,8 @@ async function handleOperatorMessage(
     );
     return true;
   }
-  // Email-origin tickets get the reply mailed back; widget tickets see it on poll.
-  if (convo.channel === 'email') void emailOperatorReply(convo, body);
+  // Reach the user on every channel they have: email, Telegram, and the widget.
+  void notifyUserOfReply(convo, body);
   return true;
 }
 

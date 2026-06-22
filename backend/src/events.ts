@@ -91,6 +91,9 @@ export type KarwanEventType =
   | 'wallet.debited'
   | 'circle.webhook'
   | 'system.error'
+  /// Operator reply on a support ticket, routed to the user's Telegram by the
+  /// notifier. Kept OFF the public SSE feed (carries private reply text).
+  | 'support.reply'
   // SME trade-finance rail.
   | 'trade.document.anchored'
   | 'trade.pod.accepted'

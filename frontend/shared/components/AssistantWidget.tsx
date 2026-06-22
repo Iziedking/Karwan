@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
+import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 interface Turn {
@@ -16,6 +17,11 @@ interface LiveMsg {
 }
 
 const POLL_MS = 4000;
+// Slower poll of the user's own ticket while the widget is closed, so a reply
+// that lands while they're away badges the launcher without a heavy live feed.
+const BG_POLL_MS = 20000;
+// The live ticket id is remembered here so a refresh restores the chat.
+const SUPPORT_STORAGE_KEY = 'karwan.support.convo';
 
 /// In-app support assistant. A floating launcher opens a chat panel that talks
 /// to /api/assistant/chat. The model is grounded in the Karwan knowledge base
@@ -41,8 +47,11 @@ export function AssistantWidget() {
   const [live, setLive] = useState<LiveMsg[]>([]);
   const [liveClosed, setLiveClosed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [unread, setUnread] = useState(false);
   const lastTsRef = useRef(0);
   const pollBusyRef = useRef(false);
+  const openRef = useRef(open);
+  openRef.current = open;
 
   useEffect(() => {
     if (open && scrollRef.current) {
@@ -64,6 +73,22 @@ export function AssistantWidget() {
     };
   }, [open, handoffEnabled]);
 
+  // Restore a live ticket after a refresh so the user doesn't lose the chat
+  // until they end it. Loads the full thread on the next poll (cursor at 0).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = window.localStorage.getItem(SUPPORT_STORAGE_KEY);
+    if (saved) {
+      lastTsRef.current = 0;
+      setLive([]);
+      setLiveClosed(false);
+      setHumanSuggested(true);
+      setConvoId(saved);
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const pollLive = useCallback(async () => {
     if (!convoId || pollBusyRef.current) return;
     pollBusyRef.current = true;
@@ -72,8 +97,15 @@ export function AssistantWidget() {
       if (r.messages.length > 0) {
         lastTsRef.current = Math.max(lastTsRef.current, ...r.messages.map((m) => m.ts));
         setLive((prev) => [...prev, ...r.messages]);
+        // A reply that arrives while the widget is closed badges the launcher.
+        if (!openRef.current && r.messages.some((m) => m.role === 'operator')) {
+          setUnread(true);
+        }
       }
-      if (r.status === 'closed') setLiveClosed(true);
+      if (r.status === 'closed') {
+        setLiveClosed(true);
+        if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
+      }
     } catch {
       /* transient network blip; the next tick retries */
     } finally {
@@ -81,10 +113,12 @@ export function AssistantWidget() {
     }
   }, [convoId]);
 
-  // Drain operator replies while the live thread is open and on screen.
+  // Poll the ticket: fast while open, slow in the background while closed (so a
+  // reply still surfaces). Stops once the ticket closes.
   useEffect(() => {
-    if (!open || !convoId || liveClosed) return;
-    const id = setInterval(() => void pollLive(), POLL_MS);
+    if (!convoId || liveClosed) return;
+    if (open) void pollLive();
+    const id = setInterval(() => void pollLive(), open ? POLL_MS : BG_POLL_MS);
     return () => clearInterval(id);
   }, [open, convoId, liveClosed, pollLive]);
 
@@ -99,6 +133,9 @@ export function AssistantWidget() {
       setLive([]);
       setLiveClosed(false);
       setConvoId(res.conversationId);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SUPPORT_STORAGE_KEY, res.conversationId);
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.error);
     } finally {
@@ -114,6 +151,7 @@ export function AssistantWidget() {
       /* the sweeper closes + archives it regardless */
     }
     setLiveClosed(true);
+    if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
   }
 
   function resetToAssistant() {
@@ -121,7 +159,9 @@ export function AssistantWidget() {
     setLive([]);
     setLiveClosed(false);
     setHumanSuggested(false);
+    setUnread(false);
     lastTsRef.current = 0;
+    if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
   }
 
   async function send() {
@@ -186,7 +226,10 @@ export function AssistantWidget() {
       {!open && (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setUnread(false);
+            setOpen(true);
+          }}
           aria-label={t.launcherAria}
           className="fixed z-[60] end-4 sm:end-5 bottom-16 sm:bottom-20 inline-flex items-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 transition"
           style={{
@@ -196,10 +239,18 @@ export function AssistantWidget() {
             borderBottomRightRadius: 3,
           }}
         >
+          {unread && (
+            <span
+              aria-label="New reply"
+              className="absolute -top-1 -end-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--lp-critical)] text-white text-[9px] font-bold"
+            >
+              1
+            </span>
+          )}
           <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
             <path d="M8 1.5c-3.6 0-6.5 2.4-6.5 5.4 0 1.7.9 3.2 2.4 4.2-.1.8-.5 1.7-1.2 2.5 1.3-.1 2.5-.5 3.4-1.1.6.1 1.2.2 1.9.2 3.6 0 6.5-2.4 6.5-5.4S11.6 1.5 8 1.5z" />
           </svg>
-          <span className="hidden sm:inline">{t.launcherLabel}</span>
+          <span className="hidden sm:inline">{unread ? 'New reply' : t.launcherLabel}</span>
         </button>
       )}
 
@@ -276,7 +327,9 @@ export function AssistantWidget() {
                         {t.operatorName ?? 'Support'}
                       </p>
                     )}
-                    <Bubble role={m.role === 'user' ? 'user' : 'assistant'}>{m.text}</Bubble>
+                    <Bubble role={m.role === 'user' ? 'user' : 'assistant'}>
+                      {m.role === 'user' ? m.text : stripMarkdown(m.text)}
+                    </Bubble>
                   </div>
                 ))}
                 {liveClosed && (
