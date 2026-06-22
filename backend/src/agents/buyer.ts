@@ -758,6 +758,7 @@ async function handleBidSubmitted(log: Log) {
       sellerTier: (sellerRepTier ?? 'established') as Tier,
       sellerCompletionRate,
       sellerVelocity24h,
+      topicalMatch,
     });
     bid.score = det.score;
     bid.pattern = pattern;
@@ -1016,7 +1017,10 @@ async function finalizeBidCollection(state: JobState) {
   // used by the tier-aware branches below.
   const budget = Number(state.context.budgetUsdc);
   const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
-  const rankedEntries = rankBidEntries(state);
+  // Only rank sellers not already worked through. On the first run triedSellers
+  // is empty (no effect); after a re-open (near-miss passed) this leaves just
+  // the fresh bids, so the same exhausted pool can never re-negotiate in a loop.
+  const rankedEntries = rankBidEntries(state).filter((e) => !state.triedSellers.has(e.bid.seller));
   const ranked = rankedEntries.map((entry) => entry.bid);
 
   // Audit: log when a ranking rule put a seller on top that a plain price+rep
@@ -2724,6 +2728,33 @@ export function getBuyerJob(jobId: string): BuyerJobSnapshot | null {
   const s = jobs.get(jobId as `0x${string}`);
   if (!s) return null;
   return getBuyerSnapshot().jobs.find((j) => j.jobId === jobId) ?? null;
+}
+
+/// Re-open a finalized auction so it keeps collecting NEW bids until the
+/// deadline instead of dead-ending. Used when a near-miss is passed: the request
+/// stays live, and the next fresh seller's bid re-arms the collection window and
+/// negotiation. Already-tried sellers stay in triedSellers, and
+/// finalizeBidCollection now ranks only untried bids, so the same exhausted pool
+/// can't loop. Returns false when there's no live state to re-open.
+export function reopenForNewBids(jobId: string): boolean {
+  const state = jobs.get(jobId as `0x${string}`);
+  if (!state) return false;
+  clearCounterWatchdog(state);
+  if (state.collectionTimer) {
+    clearTimeout(state.collectionTimer);
+    state.collectionTimer = null;
+  }
+  state.finalized = false;
+  state.collectionFired = false;
+  state.collectionStartedAt = undefined;
+  bus.emitEvent({
+    type: 'negotiation.reopened',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: { reason: 'near-miss-passed' },
+  });
+  logger.info({ jobId: state.jobId }, 'auction re-opened for new bids after near-miss pass');
+  return true;
 }
 
 /// Patches the cached negotiation context for a tracked job. Used by the brief
