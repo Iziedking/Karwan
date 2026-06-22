@@ -34,6 +34,9 @@ export function AssistantWidget() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [handoffEnabled, setHandoffEnabled] = useState<boolean | null>(null);
+  // Only true once the assistant itself decides the issue needs a person, so
+  // the handoff button stays hidden during ordinary Q&A and can't be spammed.
+  const [humanSuggested, setHumanSuggested] = useState(false);
   const [convoId, setConvoId] = useState<string | null>(null);
   const [live, setLive] = useState<LiveMsg[]>([]);
   const [liveClosed, setLiveClosed] = useState(false);
@@ -117,6 +120,7 @@ export function AssistantWidget() {
     setConvoId(null);
     setLive([]);
     setLiveClosed(false);
+    setHumanSuggested(false);
     lastTsRef.current = 0;
   }
 
@@ -150,10 +154,18 @@ export function AssistantWidget() {
     setLoading(true);
     try {
       const { reply } = await api.assistantChat(next);
-      setTurns([...next, { role: 'assistant', content: reply }]);
+      // The assistant appends [[HUMAN]] only when it judges the issue needs a
+      // person. Strip the marker from what we show and reveal the handoff.
+      const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
+      const clean = reply.replace(/\[\[HUMAN\]\]/gi, '').trim();
+      setTurns([...next, { role: 'assistant', content: clean }]);
+      if (needsHuman) setHumanSuggested(true);
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : t.error;
       setError(msg || t.error);
+      // A failed assistant call leaves the user stuck; offer a human as a
+      // fallback so they aren't stranded.
+      setHumanSuggested(true);
     } finally {
       setLoading(false);
     }
@@ -167,7 +179,7 @@ export function AssistantWidget() {
   }
 
   const isLive = convoId !== null;
-  const showHandoffButton = handoffEnabled === true && !isLive && turns.length > 0;
+  const showHandoffButton = handoffEnabled === true && !isLive && humanSuggested;
 
   return (
     <>

@@ -44,6 +44,11 @@ export default function AdminFeedbackPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filter]);
 
   // Prompts for the X-Admin-Token if we don't have one yet. Returns false when
   // the operator dismisses the prompt, so callers can stop instead of firing a
@@ -107,6 +112,9 @@ export default function AdminFeedbackPage() {
     () => (items ?? []).filter((it) => filter === 'all' || it.status === filter),
     [items, filter],
   );
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const paged = visible.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   async function changeStatus(id: string, status: FeedbackStatus) {
     setBusyId(id);
@@ -229,7 +237,7 @@ export default function AdminFeedbackPage() {
               {filter !== 'all' ? t.emptyInFilter.replace('{filter}', filterLabels[filter]) : t.emptyAll}
             </p>
           )}
-          {visible.map((it) => (
+          {paged.map((it) => (
             <FeedbackCard
               key={it.id}
               item={it}
@@ -242,6 +250,30 @@ export default function AdminFeedbackPage() {
               actionLabels={t.actions}
             />
           ))}
+
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between gap-3 pt-2 mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="hover:text-[var(--lp-dark)] disabled:opacity-30"
+              >
+                ← prev
+              </button>
+              <span>
+                page {page + 1} / {pageCount}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={page >= pageCount - 1}
+                className="hover:text-[var(--lp-dark)] disabled:opacity-30"
+              >
+                next →
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1035,7 +1035,7 @@ export const ar: Messages = {
   matchBanner: {
     paidData: {
       label: 'تحقق مدفوع',
-      template: 'دفع وكيل المشتري {amount} عبر x402 مقابل جواز ائتمان هذا البائع.',
+      template: 'دفع وكيل المشتري {amount} للتحقق من جواز ائتمان هذا البائع.',
       txCta: 'التسوية',
     },
     screen: {
