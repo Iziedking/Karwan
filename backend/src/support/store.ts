@@ -106,6 +106,13 @@ export function getConversation(id: string): SupportConversation | null {
   return conversations.get(id) ?? null;
 }
 
+/// Open conversations, most-recently-active first. For the admin tickets view.
+export function listOpenConversations(): SupportConversation[] {
+  return [...conversations.values()]
+    .filter((c) => c.status === 'open')
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
 function append(id: string, role: SupportRole, text: string): SupportConversation | null {
   const convo = conversations.get(id);
   if (!convo || convo.status === 'closed') return null;

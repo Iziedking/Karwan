@@ -15,7 +15,7 @@ import {
   sendSupportRequestToOperator,
   supportHandoffEnabled,
 } from '../telegram/bot.js';
-import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
+import { sendSupportTranscriptEmail, sendSupportAlertEmail } from '../emails/supportTranscript.js';
 
 /// Live-support handoff. The assistant widget calls /start to escalate from the
 /// AI to a human; the operator answers over Telegram (see telegram/bot.ts) and
@@ -57,8 +57,13 @@ supportRoutes.post('/start', async (c) => {
   } catch (err) {
     logger.warn({ err: (err as Error).message, id: convo.id }, 'support: operator notify failed');
   }
+  // Team email alert so the support group can pick up the ticket immediately,
+  // not just on close. Fire-and-forget; Telegram + admin page are the other
+  // two channels.
+  void sendSupportAlertEmail(convo);
   // `at` anchors the widget's poll cursor: it only pulls messages newer than
   // the seeded transcript, so the handoff doesn't echo the AI history back.
+  // conversationId IS the ticket id (KSUP-…), shown to the user for tracing.
   return c.json({ conversationId: convo.id, at: convo.updatedAt });
 });
 

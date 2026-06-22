@@ -400,8 +400,14 @@ const envSchema = z.object({
   ),
   // Durable archive recipient for closed support conversations. Every closed
   // conversation is emailed here (and to the user when their email is known) so
-  // the record lives in an inbox, not a growing Postgres table.
+  // the record lives in an inbox, not a growing Postgres table. Make this a
+  // Google Group to fan every transcript out to the whole support team.
   SUPPORT_EMAIL: z.preprocess(blankToUndefined, z.string().default('support@karwan.site')),
+  // Team alert recipient. When set (e.g. a Google Group), a short "new ticket"
+  // alert email fires the moment a live chat opens, so the team can pick it up
+  // immediately instead of waiting for the close-out transcript. Falls back to
+  // SUPPORT_EMAIL when unset.
+  SUPPORT_TEAM_EMAIL: optionalString,
   // This backend's own public origin, e.g. https://api.karwan.site. Used to
   // build absolute screenshot URLs so Telegram can fetch them and the feedback
   // viewer can link them. Unset = screenshots are stored but not pushed to

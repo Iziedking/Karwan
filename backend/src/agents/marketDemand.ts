@@ -1,6 +1,7 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { resolveAllSellerProfiles } from './agent-registry.js';
+import { listAllBriefs } from '../db/briefs.js';
 import { llmModel } from '../llm/client.js';
 import { withLlmRetry } from './llm-utils.js';
 import { logger } from '../logger.js';
@@ -53,6 +54,52 @@ async function internalScarcityHeat(keywords: string[], selfAddress?: string): P
   }
   // 0 competitors -> 0.85, ~3 -> ~0.5, 5+ -> floor 0.2.
   return clamp(0.85 - competing * 0.12, 0.2, 0.85);
+}
+
+/// How many recent, still-open briefs on Karwan ask for a skill — the DEMAND
+/// side. Price works on demand AND supply: many buyers wanting a skill lets a
+/// seller hold a higher price. Counts non-expired briefs in the window whose
+/// keywords overlap. 0 briefs reads slightly soft (0.4); ramps to 0.9 as
+/// demand stacks up.
+const DEMAND_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+export interface SkillDemand {
+  keywords: string[];
+  /// Open briefs in the window asking for these skills.
+  briefCount: number;
+  /// 0..1 demand heat derived from the count.
+  heat: number;
+  windowDays: number;
+}
+
+function demandBriefCount(kw: string[]): number {
+  const cutoff = Date.now() - DEMAND_WINDOW_MS;
+  let matching = 0;
+  for (const b of listAllBriefs()) {
+    if (b.expiredAt || b.createdAt < cutoff) continue;
+    const bk = normKeywords(b.keywords ?? []);
+    if (bk.some((k) => kw.includes(k))) matching += 1;
+  }
+  return matching;
+}
+
+function internalDemandHeat(keywords: string[]): number {
+  const kw = normKeywords(keywords);
+  if (kw.length === 0) return 0.5;
+  return clamp(0.4 + demandBriefCount(kw) * 0.1, 0.4, 0.9);
+}
+
+/// On-platform skill-demand snapshot for the paid x402 endpoint and the agents.
+/// Pure on-platform data (no external call), so it is cheap and synchronous.
+export function skillDemand(keywords: string[]): SkillDemand {
+  const kw = normKeywords(keywords);
+  const briefCount = kw.length === 0 ? 0 : demandBriefCount(kw);
+  return {
+    keywords: kw,
+    briefCount,
+    heat: internalDemandHeat(keywords),
+    windowDays: Math.round(DEMAND_WINDOW_MS / 86_400_000),
+  };
 }
 
 // Off-platform demand estimate, cached per skill set. The LLM scores how hot a
@@ -127,8 +174,12 @@ export function setResearchHeat(keywords: string[], demand: 'hot' | 'steady' | '
 /// decide WHERE in [buyer budget, tolerance ceiling] to anchor its bid: a hot
 /// skill holds near the ceiling, a common skill prices nearer the buyer's offer.
 export async function marketHeat(keywords: string[], selfAddress?: string): Promise<number> {
-  const internal = await internalScarcityHeat(keywords, selfAddress);
+  // On-platform price pressure = demand x supply: scarce sellers (supply) AND
+  // many open briefs wanting the skill (demand) both push heat up.
+  const supply = await internalScarcityHeat(keywords, selfAddress);
+  const demand = internalDemandHeat(keywords);
+  const onPlatform = clamp(0.5 * supply + 0.5 * demand, 0, 1);
   const external = await externalMarketHeat(keywords);
-  if (external == null) return internal;
-  return clamp(0.5 * internal + 0.5 * external, 0, 1);
+  if (external == null) return onPlatform;
+  return clamp(0.5 * onPlatform + 0.5 * external, 0, 1);
 }

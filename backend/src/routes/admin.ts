@@ -6,7 +6,18 @@ import { publicClient } from '../chain/client.js';
 import { getAgentWallets, listAllAgentWallets } from '../db/agentWallets.js';
 import { listAllDeals } from '../db/deals.js';
 import { reputation } from '../chain/contracts.js';
-import { getProfile } from '../db/profiles.js';
+import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
+import type { DirectDeal } from '../db/deals.js';
+import { releaseMilestone, finalizeIfSettled } from '../chain/settlement.js';
+import { readEscrow } from '../chain/contracts.js';
+import { bus } from '../events.js';
+import {
+  listOpenConversations,
+  getConversation,
+  appendOperatorMessage,
+  closeConversation,
+} from '../support/store.js';
+import { sendSupportTranscriptEmail } from '../emails/supportTranscript.js';
 import {
   listAllMatchProposals,
   getBuyerSnapshot,
@@ -38,6 +49,241 @@ adminRoutes.use('*', requireAdmin);
 const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
+
+/// Coarse lifecycle stage for the admin deals table.
+function dealStage(d: DirectDeal): string {
+  if (d.cancelledAt) return 'cancelled';
+  if (d.settledAt) return 'settled';
+  if (d.disputed) return 'disputed';
+  if (d.delivered) return 'delivered';
+  if (d.acceptedAt) return 'accepted';
+  return 'open';
+}
+
+/// All deals as compact rows for the admin monitor, newest first. The full
+/// per-deal detail stays on the deal page; this is the index the operator
+/// searches by ID/party/stage.
+adminRoutes.get('/deals', async (c) => {
+  const deals = await listAllDeals().catch(() => []);
+  const rows = deals
+    .map((d) => ({
+      jobId: d.jobId,
+      buyer: d.buyer,
+      seller: d.seller,
+      amountUsdc: d.dealAmountUsdc,
+      origin: d.origin ?? 'direct',
+      stage: dealStage(d),
+      createdAt: d.createdAt,
+      acceptedAt: d.acceptedAt,
+      settledAt: d.settledAt,
+      cancelledAt: d.cancelledAt,
+      disputed: d.disputed === true,
+      deadlineUnix: d.deadlineUnix,
+    }))
+    .sort((a, b) => b.createdAt - a.createdAt);
+  return c.json({ count: rows.length, deals: rows });
+});
+
+/// All registered profiles as compact rows for the admin monitor. taxId and
+/// other encrypted fields are never included here.
+adminRoutes.get('/profiles', async (c) => {
+  const profiles = await listProfiles().catch(() => []);
+  const rows = profiles
+    .map((p) => ({
+      address: p.address,
+      displayName: p.displayName,
+      role: p.role,
+      accountType: p.accountType ?? 'person',
+      accountKind: p.accountKind ?? 'person',
+      email: p.email ?? null,
+      emailVerified: p.emailVerified === true,
+      businessStatus: p.business?.status ?? 'none',
+      researchActive: p.research?.active === true,
+      researchCreditUsdc: p.research?.creditUsdc ?? 0,
+      createdAt: p.createdAt,
+    }))
+    .sort((a, b) => b.createdAt - a.createdAt);
+  return c.json({ count: rows.length, profiles: rows });
+});
+
+// --- admin management actions ---
+
+/// Extend a deal's delivery deadline (operator override, e.g. to defuse a
+/// reputation slash while the parties sort out a delay off-platform).
+const adminExtendSchema = z.object({
+  additionalSeconds: z.number().int().positive().max(365 * 24 * 3600),
+});
+adminRoutes.post('/deals/:jobId/extend', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = adminExtendSchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  const base = deal.deadlineUnix ?? Math.floor(Date.now() / 1000);
+  const newDeadlineUnix = base + body.additionalSeconds;
+  await patchDeal(jobId, { deadlineUnix: newDeadlineUnix });
+  bus.emitEvent({
+    type: 'deal.extension.approved',
+    jobId,
+    actor: 'platform',
+    payload: { buyer: deal.buyer, seller: deal.seller, newDeadlineUnix, by: 'admin' },
+  });
+  logger.info({ jobId, newDeadlineUnix }, 'admin extended deal deadline');
+  return c.json({ ok: true, newDeadlineUnix });
+});
+
+/// Force-release the next milestone on a stuck deal (the same action the
+/// watcher auto-fires, on demand). Power tool: surfaces chain errors verbatim.
+adminRoutes.post('/deals/:jobId/release', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  if (!deal.buyerAgentWalletId) return c.json({ error: 'deal has no buyer agent wallet' }, 400);
+  if (deal.settledAt) return c.json({ error: 'deal already settled' }, 409);
+  try {
+    const account = await readEscrow(jobId);
+    const idx = account.milestonesReleased;
+    const txHash = await releaseMilestone(jobId, idx, deal.buyerAgentWalletId);
+    const settled = await finalizeIfSettled(jobId);
+    const patch: Partial<DirectDeal> = {};
+    if (idx === 0 && !deal.reviewWindowStartedAt) patch.reviewWindowStartedAt = Date.now();
+    if (settled) patch.settledAt = Date.now();
+    if (Object.keys(patch).length > 0) await patchDeal(jobId, patch);
+    bus.emitEvent({
+      type: settled ? 'escrow.settled' : 'escrow.milestone.released',
+      jobId,
+      actor: 'platform',
+      payload: { buyer: deal.buyer, seller: deal.seller, milestoneIndex: idx, by: 'admin', txHash },
+    });
+    logger.info({ jobId, milestoneIndex: idx, settled, txHash }, 'admin force-released milestone');
+    return c.json({ ok: true, txHash, settled, milestoneIndex: idx });
+  } catch (err) {
+    return c.json({ error: 'release failed', detail: (err as Error).message }, 502);
+  }
+});
+
+/// Set a profile's agent-research state (grant/clear/top up credit) to fix
+/// account issues without the user re-paying.
+const adminResearchSchema = z.object({
+  active: z.boolean(),
+  creditUsdc: z.number().min(0).max(10_000).optional(),
+});
+adminRoutes.post('/profiles/:address/research', async (c) => {
+  const parsed = addrSchema.safeParse(c.req.param('address'));
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  const p = await getProfile(parsed.data);
+  if (!p) return c.json({ error: 'profile not found' }, 404);
+  let body;
+  try {
+    body = adminResearchSchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  const creditUsdc = body.creditUsdc ?? p.research?.creditUsdc ?? 0;
+  const active = body.active && creditUsdc > 0;
+  await upsertProfile({
+    ...p,
+    research: {
+      active,
+      creditUsdc,
+      activatedAt: p.research?.activatedAt ?? Date.now(),
+      lastChargedAt: p.research?.lastChargedAt,
+    },
+  });
+  logger.info({ address: parsed.data, active, creditUsdc }, 'admin set research state');
+  return c.json({ ok: true, active, creditUsdc });
+});
+
+/// Set a profile's verified-business status (operator override of the on-chain
+/// registry flow, to fix a stuck verification).
+const adminBusinessSchema = z.object({
+  status: z.enum(['none', 'submitted', 'verified', 'rejected']),
+});
+adminRoutes.post('/profiles/:address/business', async (c) => {
+  const parsed = addrSchema.safeParse(c.req.param('address'));
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  const p = await getProfile(parsed.data);
+  if (!p) return c.json({ error: 'profile not found' }, 404);
+  let body;
+  try {
+    body = adminBusinessSchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  const verified = body.status === 'verified';
+  await upsertProfile({
+    ...p,
+    accountType: verified ? 'business' : 'person',
+    business: {
+      ...(p.business ?? { status: 'none' }),
+      status: body.status,
+      ...(verified ? { verifiedAt: Date.now() } : {}),
+    },
+  });
+  logger.info({ address: parsed.data, status: body.status }, 'admin set business status');
+  return c.json({ ok: true, status: body.status, accountType: verified ? 'business' : 'person' });
+});
+
+// --- live support: the admin page as a third operator channel (alongside
+// Telegram + email). The operator can pick up open tickets and reply here;
+// the reply relays to the user's widget through the same store the Telegram
+// path uses, so all three channels share one conversation. ---
+
+/// Open support tickets, newest activity first, with a compact preview.
+adminRoutes.get('/support', (c) => {
+  const rows = listOpenConversations().map((convo) => {
+    const last = convo.messages[convo.messages.length - 1];
+    return {
+      id: convo.id,
+      address: convo.address ?? null,
+      email: convo.email ?? null,
+      messageCount: convo.messages.length,
+      lastRole: last?.role ?? null,
+      lastText: last ? last.text.slice(0, 160) : '',
+      createdAt: convo.createdAt,
+      updatedAt: convo.updatedAt,
+    };
+  });
+  return c.json({ count: rows.length, tickets: rows });
+});
+
+/// Full transcript of one ticket for the admin reply view.
+adminRoutes.get('/support/:id', (c) => {
+  const convo = getConversation(c.req.param('id'));
+  if (!convo) return c.json({ error: 'ticket not found' }, 404);
+  return c.json({
+    id: convo.id,
+    address: convo.address ?? null,
+    email: convo.email ?? null,
+    status: convo.status,
+    messages: convo.messages,
+  });
+});
+
+const adminReplySchema = z.object({ text: z.string().min(1).max(4000) });
+adminRoutes.post('/support/:id/reply', async (c) => {
+  const id = c.req.param('id');
+  let body;
+  try {
+    body = adminReplySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  const convo = appendOperatorMessage(id, body.text);
+  if (!convo) return c.json({ error: 'ticket not open' }, 404);
+  return c.json({ ok: true });
+});
+
+adminRoutes.post('/support/:id/close', (c) => {
+  const convo = closeConversation(c.req.param('id'));
+  if (!convo) return c.json({ error: 'ticket not found' }, 404);
+  void sendSupportTranscriptEmail(convo);
+  return c.json({ ok: true });
+});
 
 /// Smoke test for the Base mainnet external x402 rail: researches the market
 /// for a set of keywords via Exa web search (real USDC from the payer wallet)

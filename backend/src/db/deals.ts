@@ -29,6 +29,22 @@ export interface DirectDeal {
   /// post-deadline buyer cancel + reputation slash path stays.
   deadlineUnix?: number;
   terms: string;
+  /// The agent's paid market read for this deal, carried over from the match
+  /// proposal at acceptance so the research stays visible on the deal page for
+  /// the whole lifecycle (the proposal banner is gone once the deal funds).
+  /// Only present on agent-matched deals where the buyer had research active.
+  marketRead?: {
+    keywords: string[];
+    summary: string;
+    demand: 'hot' | 'steady' | 'soft';
+    priceNote: string;
+    highlights: string[];
+    sources: { title: string; url: string }[];
+    amountUsd: number;
+    txHash?: string;
+    payer?: string;
+    researchedAt: number;
+  };
   // The seller has confirmed they agree to the deal terms. A deal cannot be
   // marked delivered until it is accepted.
   acceptedAt?: number;

@@ -11,7 +11,15 @@ export const pgEnabled = !!config.DATABASE_URL;
 let _db: NodePgDatabase<typeof schema> | null = null;
 
 if (pgEnabled) {
-  const pool = new pg.Pool({ connectionString: config.DATABASE_URL });
+  // Bounded pool. Over a localhost VPS Postgres the watchers' reads are cheap,
+  // but an unbounded pool can still pile idle connections; cap it and recycle
+  // idle ones. All env-overridable for a different host/tier.
+  const pool = new pg.Pool({
+    connectionString: config.DATABASE_URL,
+    max: Number(process.env.PG_POOL_MAX ?? 10),
+    idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS ?? 30_000),
+    connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT_MS ?? 10_000),
+  });
   pool.on('error', (err) => logger.error({ err: err.message }, 'pg pool error'));
   _db = drizzle(pool, { schema });
 }
