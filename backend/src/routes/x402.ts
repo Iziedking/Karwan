@@ -8,6 +8,7 @@ import { listDealsForAddress } from '../db/deals.js';
 import { listAnchorsForInvoice } from '../db/documentAnchors.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { computeRepaymentBehavior } from './sme.js';
+import { skillDemand } from '../agents/marketDemand.js';
 import { logger } from '../logger.js';
 
 /// Karwan's paid data endpoints. Financiers and external agents pay
@@ -31,6 +32,7 @@ const PRICES = {
   repaymentBehavior: 0.005,
   concentration: 0.005,
   documentAnchors: 0.005,
+  skillDemand: 0.005,
 } as const;
 
 /// Resolve an agent DCW to its owner so paid queries against either
@@ -87,8 +89,36 @@ x402Routes.get('/', (c) => {
         returns:
           'On-chain anchored document hashes for an invoice: kind, label, anchorer, tx hash.',
       },
+      {
+        path: '/api/x402/skill-demand/:keywords',
+        priceUsd: PRICES.skillDemand,
+        returns:
+          'On-platform demand for a skill: count of recent open briefs requesting it (comma-separated keywords) and a 0-1 demand heat. Lets a seller agent price up when a skill is hot.',
+      },
     ],
   });
+});
+
+/// GET /api/x402/skill-demand/:keywords: $0.005. Comma-separated keywords.
+/// On-platform demand signal: how many recent open briefs want this skill, so
+/// a seller agent can hold a higher price when demand is high.
+x402Routes.get('/skill-demand/:keywords', async (c) => {
+  const raw = c.req.param('keywords');
+  const keywords = decodeURIComponent(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  if (keywords.length === 0) return c.json({ error: 'no keywords' }, 400);
+
+  const payment = await requirePayment(
+    c,
+    PRICES.skillDemand,
+    'Karwan skill demand: open-brief demand for a skill',
+  );
+  if (payment instanceof Response) return payment;
+
+  return c.json(skillDemand(keywords));
 });
 
 /// GET /api/x402/credit-passport/:address: $0.01.

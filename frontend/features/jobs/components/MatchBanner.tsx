@@ -7,6 +7,7 @@ import { api, ApiError, type MatchProposal, type UserProfile, type Reputation } 
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { MarketReadCard } from '@/shared/components/MarketReadCard';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { ProfilePeekModal } from './ProfilePeekModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -211,93 +212,14 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </p>
       )}
 
-      {/* Market read: the agent PAID an external x402 web-search service (Exa
-          on Base) for live market data on the deal's keywords, then synthesised
-          it with the platform LLM. Shown to both parties, with the payment as
-          on-chain evidence. */}
-      {proposal.marketRead && (() => {
-        const mr = proposal.marketRead;
-        const tone =
-          mr.demand === 'hot'
-            ? { fg: '#4f8a3f', bg: 'rgba(79,138,63,0.14)' }
-            : mr.demand === 'soft'
-              ? { fg: '#b07d1f', bg: 'rgba(176,125,31,0.14)' }
-              : { fg: '#3a6ea5', bg: 'rgba(58,110,165,0.12)' };
-        return (
-          <div
-            className="mt-3 px-4 py-3"
-            style={{
-              background: tone.bg,
-              border: `1px solid ${tone.fg}3a`,
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
-            }}
-          >
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-                [:MARKET READ:]
-              </span>
-              <span
-                className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
-                style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
-              >
-                {mr.demand} demand
-              </span>
-            </div>
-            <p className="mt-2 text-[12px] leading-snug text-[var(--color-ink-faint)]">
-              {mr.summary}
-            </p>
-            {mr.priceNote && (
-              <p className="mt-1.5 text-[11px] leading-snug text-[var(--color-ink-faint)] italic">
-                {mr.priceNote}
-              </p>
-            )}
-            {mr.highlights.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {mr.highlights.map((h) => (
-                  <li
-                    key={h}
-                    className="text-[11px] leading-snug text-[var(--color-ink-faint)] ps-3"
-                    style={{ textIndent: '-0.7rem' }}
-                  >
-                    • {h}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-              <span>agent paid ${mr.amountUsd} to research · Base</span>
-              {mr.txHash ? (
-                <a
-                  href={`https://basescan.org/tx/${mr.txHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:opacity-80"
-                  style={{ color: tone.fg }}
-                >
-                  view payment ↗
-                </a>
-              ) : mr.payer ? (
-                // The facilitator (not the payer) submits the EIP-3009 transfer,
-                // so the spend shows under the payer wallet's ERC-20 token
-                // transfers, not its own Transactions tab. Link the token view.
-                <a
-                  href={`https://basescan.org/tokentxns?a=${mr.payer}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2 hover:opacity-80"
-                  style={{ color: tone.fg }}
-                >
-                  view payer ↗
-                </a>
-              ) : null}
-              {mr.sources.length > 0 && <span>{mr.sources.length} sources</span>}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Market read: the agent paid for live market research on the deal's
+          keywords (off-platform), shown to both parties with the payment as
+          evidence. Shared component, also rendered on the deal page. */}
+      {proposal.marketRead && (
+        <div className="mt-3">
+          <MarketReadCard mr={proposal.marketRead} />
+        </div>
+      )}
 
       {/* Verified-business badge: the counterparty trades as a Karwan-verified
           business. Compact by design, full company detail lives on the profile

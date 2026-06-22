@@ -12,6 +12,7 @@ import { LiveBidsPanel } from './LiveBidsPanel';
 import { PageTour } from '@/shared/guide/PageTour';
 import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
+import { CopyId } from '@/shared/components/CopyId';
 import { NearMissCard } from './NearMissCard';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
@@ -135,8 +136,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
-            <p className="fade-up fade-up-3 mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45 tabular-nums break-all">
-              {job.jobId}
+            <p className="fade-up fade-up-3 mt-4">
+              <CopyId
+                value={job.jobId}
+                className="text-[11px] uppercase tracking-[0.12em] text-white/45"
+              />
             </p>
           </div>
           <div className="fade-up fade-up-4">

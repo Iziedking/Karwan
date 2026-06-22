@@ -406,6 +406,20 @@ export interface DirectDeal {
   /// Stake percentage chosen by the buyer for this deal (50..100). Only
   /// meaningful when requireStake is true.
   requireStakePct?: number;
+  /// The agent's paid market read, carried from the match proposal so it stays
+  /// visible on the deal page after funding. Agent-matched deals only.
+  marketRead?: {
+    keywords: string[];
+    summary: string;
+    demand: 'hot' | 'steady' | 'soft';
+    priceNote: string;
+    highlights: string[];
+    sources: { title: string; url: string }[];
+    amountUsd: number;
+    txHash?: string;
+    payer?: string;
+    researchedAt: number;
+  };
   // --- SME trade-finance fields (Phase 2 Track 2) ---------------------
   /// Trade type drives the milestone vocabulary on the deal page and the
   /// trade-context band's visibility. Absent on legacy service deals.
@@ -790,26 +804,65 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// Operator-only admin token for the feedback viewer. Held in sessionStorage so
-// it survives navigation within the tab but never persists to disk, and sent as
-// the X-Admin-Token header on admin-gated calls. The backend fail-closes when
-// ADMIN_API_TOKEN is unset (503) and 401s on a mismatch.
-const ADMIN_TOKEN_KEY = 'karwan.adminToken';
+// Operator-only admin token, held IN MEMORY ONLY — a module variable, never
+// written to sessionStorage/localStorage/cookies. It survives client-side
+// navigation between admin pages (the SPA keeps this module alive) but is gone
+// on a hard refresh or new tab, so there is no persisted credential for an XSS
+// or cookie-theft attacker to lift. Sent as the X-Admin-Token header; the
+// backend fail-closes when ADMIN_API_TOKEN is unset (503) and 401s on mismatch.
+let adminToken: string | null = null;
 
 export function getAdminToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return window.sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  return adminToken;
 }
 
 export function setAdminToken(token: string | null): void {
-  if (typeof window === 'undefined') return;
-  if (token) window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
-  else window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  adminToken = token && token.trim() ? token.trim() : null;
 }
 
 function adminHeaders(): Record<string, string> {
   const t = getAdminToken();
   return t ? { 'x-admin-token': t } : {};
+}
+
+export interface AdminDealRow {
+  jobId: string;
+  buyer: string;
+  seller: string;
+  amountUsdc: string;
+  origin: string;
+  stage: string;
+  createdAt: number;
+  acceptedAt?: number;
+  settledAt?: number;
+  cancelledAt?: number;
+  disputed: boolean;
+  deadlineUnix?: number;
+}
+
+export interface AdminTicketRow {
+  id: string;
+  address: string | null;
+  email: string | null;
+  messageCount: number;
+  lastRole: string | null;
+  lastText: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AdminProfileRow {
+  address: string;
+  displayName: string;
+  role: string;
+  accountType: string;
+  accountKind: string;
+  email: string | null;
+  emailVerified: boolean;
+  businessStatus: string;
+  researchActive: boolean;
+  researchCreditUsdc: number;
+  createdAt: number;
 }
 
 export const api = {
@@ -992,6 +1045,64 @@ export const api = {
       method: 'POST',
       headers: adminHeaders(),
       body: JSON.stringify({ status }),
+    }),
+
+  // Admin monitoring (token-gated, in-memory token).
+  adminDeals: () =>
+    json<{ count: number; deals: AdminDealRow[] }>('/api/admin/deals', {
+      headers: adminHeaders(),
+    }),
+  adminProfiles: () =>
+    json<{ count: number; profiles: AdminProfileRow[] }>('/api/admin/profiles', {
+      headers: adminHeaders(),
+    }),
+  adminExtendDeal: (jobId: string, additionalSeconds: number) =>
+    json<{ ok: true; newDeadlineUnix: number }>(`/api/admin/deals/${jobId}/extend`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ additionalSeconds }),
+    }),
+  adminReleaseDeal: (jobId: string) =>
+    json<{ ok: true; txHash: string; settled: boolean; milestoneIndex: number }>(
+      `/api/admin/deals/${jobId}/release`,
+      { method: 'POST', headers: adminHeaders() },
+    ),
+  adminSetResearch: (address: string, active: boolean, creditUsdc?: number) =>
+    json<{ ok: true; active: boolean; creditUsdc: number }>(
+      `/api/admin/profiles/${address}/research`,
+      {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ active, ...(creditUsdc !== undefined ? { creditUsdc } : {}) }),
+      },
+    ),
+  adminSetBusiness: (address: string, status: 'none' | 'submitted' | 'verified' | 'rejected') =>
+    json<{ ok: true; status: string; accountType: string }>(
+      `/api/admin/profiles/${address}/business`,
+      { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ status }) },
+    ),
+  adminSupportList: () =>
+    json<{ count: number; tickets: AdminTicketRow[] }>('/api/admin/support', {
+      headers: adminHeaders(),
+    }),
+  adminSupportGet: (id: string) =>
+    json<{
+      id: string;
+      address: string | null;
+      email: string | null;
+      status: 'open' | 'closed';
+      messages: Array<{ role: 'user' | 'assistant' | 'operator' | 'system'; text: string; ts: number }>;
+    }>(`/api/admin/support/${id}`, { headers: adminHeaders() }),
+  adminSupportReply: (id: string, text: string) =>
+    json<{ ok: true }>(`/api/admin/support/${id}/reply`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ text }),
+    }),
+  adminSupportClose: (id: string) =>
+    json<{ ok: true }>(`/api/admin/support/${id}/close`, {
+      method: 'POST',
+      headers: adminHeaders(),
     }),
   postJob: (
     body: {

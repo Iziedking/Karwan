@@ -2276,6 +2276,7 @@ async function persistApprovedMatch(
       acceptedAt: now,
       fundTxHash,
       origin: 'agent',
+      ...(proposal.marketRead ? { marketRead: proposal.marketRead } : {}),
     });
     logger.info(
       { jobId: proposal.jobId, buyer: proposal.buyerUser, seller: proposal.sellerUser },

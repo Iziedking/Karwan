@@ -62,6 +62,50 @@ function transcriptText(convo: SupportConversation): string {
   return head + body;
 }
 
+/// Fires the moment a live chat opens so the team can pick up the ticket. Goes
+/// to SUPPORT_TEAM_EMAIL (a Google Group fans it to everyone) or SUPPORT_EMAIL.
+/// Short by design; the full transcript is emailed on close.
+export async function sendSupportAlertEmail(
+  convo: SupportConversation,
+): Promise<{ delivered: boolean }> {
+  const client = resendClient();
+  if (!client) return { delivered: false };
+  const to = config.SUPPORT_TEAM_EMAIL ?? config.SUPPORT_EMAIL;
+  const who = convo.address ? convo.address : 'a guest';
+  const firstAsk = convo.messages.filter((m) => m.role === 'user').slice(-1)[0]?.text ?? '';
+  const html = brandedEmailHtml({
+    eyebrow: 'NEW SUPPORT TICKET',
+    title: `Ticket ${convo.id}`,
+    inner: `
+          <tr>
+            <td style="padding:28px;">
+              <p style="margin:0 0 12px 0;font-size:14px;color:#3a352c;">A user opened live support. Pick it up in the admin page, Telegram, or by replying to the close-out email.</p>
+              <p style="margin:0 0 6px 0;font-size:13px;color:#7a7466;">From: ${escapeHtml(who)}</p>
+              ${firstAsk ? `<p style="margin:8px 0 0 0;font-size:14px;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(firstAsk.slice(0, 400))}</p>` : ''}
+            </td>
+          </tr>`,
+    footerNote: `Ticket ${convo.id}. Reply lands when the operator answers in the admin page or Telegram.`,
+  });
+  try {
+    const { error } = await client.emails.send({
+      from: config.RESEND_FROM,
+      replyTo: config.SUPPORT_EMAIL,
+      to,
+      subject: `New support ticket ${convo.id}`,
+      html,
+      text: `New support ticket ${convo.id} from ${who}.\n\n${firstAsk}`.trim(),
+    });
+    if (error) {
+      logger.warn({ err: error.message, id: convo.id }, 'resend rejected support alert');
+      return { delivered: false };
+    }
+    return { delivered: true };
+  } catch (err) {
+    logger.warn({ err: (err as Error).message, id: convo.id }, 'resend threw on support alert');
+    return { delivered: false };
+  }
+}
+
 export async function sendSupportTranscriptEmail(
   convo: SupportConversation,
 ): Promise<{ delivered: boolean }> {

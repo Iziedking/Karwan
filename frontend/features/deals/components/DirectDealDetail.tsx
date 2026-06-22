@@ -25,6 +25,8 @@ import {
   MAX_REVIEW_EXTENSIONS,
 } from '../config';
 import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { CopyId } from '@/shared/components/CopyId';
+import { MarketReadCard } from '@/shared/components/MarketReadCard';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import {
   FullBleed,
@@ -553,10 +555,26 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             USDC
           </span>
         </div>
-        <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-white/45">
-          {shortHash(deal.jobId, 10, 6)} · {dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}
+        <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-white/45 flex items-center gap-2 flex-wrap">
+          <CopyId value={deal.jobId} label={shortHash(deal.jobId, 10, 6)} />
+          <span>· {dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}</span>
         </p>
       </Band>
+
+      {deal.marketRead && (
+        <Band tone="light" compact>
+          <div className="fade-up">
+            <SectionTag>AGENT RESEARCH</SectionTag>
+            <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
+              Your agent researched this market before negotiating. It tuned the
+              price within your cap.
+            </p>
+            <div className="mt-5 max-w-[640px]">
+              <MarketReadCard mr={deal.marketRead} />
+            </div>
+          </div>
+        </Band>
+      )}
 
       {deal.legacyEscrow && (
         <Band tone="light" compact>

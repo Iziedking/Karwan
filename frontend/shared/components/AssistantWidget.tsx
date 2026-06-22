@@ -246,6 +246,11 @@ export function AssistantWidget() {
                   </span>
                   <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
                 </div>
+                {convoId && (
+                  <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center">
+                    Ticket {convoId}
+                  </p>
+                )}
                 {!liveClosed && (
                   <p className="mono text-[10px] leading-snug text-[var(--lp-text-sub)] px-1">
                     {t.liveBanner ??
