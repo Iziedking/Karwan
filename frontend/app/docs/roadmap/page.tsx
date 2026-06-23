@@ -28,6 +28,10 @@ export default function DocsRoadmapPage() {
           <strong>{t.live.items.match.title}</strong> {t.live.items.match.body}
         </DocsListItem>
         <DocsListItem>
+          <strong>{t.live.items.negotiation.title}</strong>{' '}
+          {t.live.items.negotiation.body}
+        </DocsListItem>
+        <DocsListItem>
           <strong>{t.live.items.stake.title}</strong> {t.live.items.stake.body}
         </DocsListItem>
         <DocsListItem>
@@ -62,6 +66,9 @@ export default function DocsRoadmapPage() {
       </DocsList>
 
       <DocsH2>{t.next.title}</DocsH2>
+
+      <DocsH3 id="skills-verification">{t.next.skills.title}</DocsH3>
+      <DocsP>{t.next.skills.body}</DocsP>
 
       <DocsH3>{t.next.x402.title}</DocsH3>
       <DocsP>{t.next.x402.body}</DocsP>

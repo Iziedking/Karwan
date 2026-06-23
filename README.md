@@ -30,6 +30,16 @@ An agent never opens an escrow without your approval. New and low-reputation cou
 
 Work changes hands through links, and links are where scams hide. A SecurityAgent scans every delivery proof before the buyer sees it, and the same scan guards the in-app chat so a phishing or malware link cannot be sent to a counterparty in the first place. A flagged link pauses the deal's automatic release, notifies both sides, and routes them to resolve it together in chat. A confirmed bad link is a heavy hit to the sender's reputation. When a delivery is a file, it is shared through a link the agent can check rather than an unverified attachment.
 
+### Agents that negotiate with market context
+
+The agent loop is more than a price matcher.
+
+- **Market research, shared.** Before negotiating, an agent can spend a fraction of a cent over Circle's x402 surface to pull a live market read on the deal: a web search plus a grounded price. The read is a general skill, so once one side researches an order, both agents negotiate against the same grounded number instead of guessing. The research credit is charged only to the buyer and seller who actually match.
+- **Proceed or pass, never a silent no.** When the best achievable price lands just outside your range, the agent surfaces it as a proceed-or-pass with the market reason attached, instead of declining behind your back. You decide, and nothing funds until you do.
+- **No match at your budget.** When the only fit is priced far past your budget and nothing cheaper exists, the deal stops pretending to negotiate. It tells you plainly, shows the closest price, and gives you one tap to raise your budget or bring back an offer you passed. The request stays open for a cheaper seller.
+- **Best fit first.** Ranking leads with skill and topical fit. Reputation only breaks ties between comparable matches, so a strong specialist is never buried under a higher-reputation generalist.
+- **Overpay check.** If your budget sits well above the market read, the agent flags it as advisory, so you can proceed at your price or reopen closer to market. The agent never cancels on its own.
+
 ### In-app top up and withdraw across chains
 
 USDC flows in from Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus Solana Devnet. The backend relays the mint on Arc, so a user never has to hold an Arc gas asset. After settlement, the seller picks a destination chain and recipient on the cashout page. Arc-to-Arc transfers are instant; cross-chain cashout routes through CCTP V2 with an inline progress card.
@@ -49,6 +59,20 @@ The business-to-business path needs richer context than a P2P deal. A supplier n
 - **Purchase-order financing.** Working capital advanced against an accepted purchase order, released to the supplier on verified proof of delivery.
 - **Credit passport.** A portable, on-chain record of completed deals, repayment behaviour, and counterparty concentration that travels with each business.
 - **Paid agent signals.** Through Circle's x402 nanopayment surface, agents pull outside data during negotiation for fractions of a cent: counterparty sanctions screening, market-rate medians, and credit checks against a passport.
+
+## Skills verification (coming soon)
+
+Today an agent ranks a seller on what they say they do plus their settled-deal record. The next layer proves it.
+
+Sellers will bind external identities, GitHub first, then X, Substack, and Dribbble, with a wallet-signed proof published as a public gist. No OAuth, no passwords, no tokens to leak. The agent reads public signals for the seller's skill category, commits and languages for a developer, audit-contest placements for a security researcher, published work for a writer, and blends that evidence into the match score. A buyer sees why a seller ranks where they do, in plain language, on the match.
+
+The design holds to a few rules:
+
+- **Evidence and reputation stay separate labels.** Proving a skill never overwrites a track record, and a thin track record never hides a proven skill. One strong proof is enough; weak proofs never drag a strong one down.
+- **Opt-in and deal-scoped.** A seller verifies what they want, when a deal is worth it. The binding follows the wallet, so it survives a key rotation, with a cool-down that stops a verified handle from being resold with a fresh reputation.
+- **Free first, paid only where it earns it.** Public sources cover the common categories at no cost. Deeper or paid checks gate behind reputation tier and deal value, paid per call over x402, so the cost only shows up where it is worth paying.
+
+Full design in [docs/skill-verification-roadmap.md](./docs/skill-verification-roadmap.md).
 
 ## Contracts on Arc Testnet (chain 5042002)
 
@@ -97,6 +121,7 @@ The agent layer wraps Circle wallets so neither side handles keys. Web3 users ca
 - [docs/architecture.md](./docs/architecture.md). Components, both deal flows, the wallet model.
 - [docs/circle-integration.md](./docs/circle-integration.md). Each Circle product and where it lands in the code.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite score, tier breakpoints, and agent integration.
+- [docs/skill-verification-roadmap.md](./docs/skill-verification-roadmap.md). How agents will prove a seller's skill, not just rank their claims.
 - [docs/why-karwan.md](./docs/why-karwan.md). The longer design brief.
 - [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). Notes from building on Circle.
 

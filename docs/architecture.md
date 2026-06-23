@@ -70,6 +70,54 @@ flowchart TD
     R1 -. buyer keeps stalling .-> AP1[Seller appeals, escrow goes to dispute]
 ```
 
+## Negotiation intelligence
+
+The agent loop runs on a deterministic spine, with the LLM used for nuance
+inside ranges the user authorized. Several layers make the negotiation behave
+like a human broker rather than a price matcher.
+
+- **Bid ranking is fit-first.** `scoreBidDeterministic` leads with the
+  seller's topical and skill fit, weighted above price, tier, completion, and
+  age. Reputation only breaks ties between comparable matches, so a strong
+  specialist bidding slightly over budget is never buried under a
+  higher-reputation generalist. The fallback path used when an LLM call fails
+  carries the same fit signal, so a flaky model call cannot drop a clear match.
+- **Adaptive bid window.** Collection opens with a floor and soft-closes:
+  each new bid extends the window by a short quiet period up to a hard cap, so
+  a late strong bid still gets ranked, and a quiet auction finalizes fast.
+- **Market research, shared as a skill.** During negotiation an agent can pay
+  a sub-cent x402 fee on Base for a market read: an Exa web search plus a
+  grounded price, blended by the LLM. The read is general, not profile-gated,
+  so the first agent to research an order surfaces a keyword-heat both sides
+  negotiate against. The call is single-flight, so concurrent agents on the
+  same order share one paid result. The 5 USDC research credit is a prepaid
+  balance charged only to the matched buyer and seller at match time, never to
+  every browser that scans the market.
+- **Near-miss, proceed or pass.** When the best achievable price lands just
+  outside one party's range, the agent asks the blocked side to proceed at the
+  other side's boundary, instead of declining silently. The market read rides
+  along so the buyer sees why the price sits where it does. The band widens
+  when paid research shows real demand. Passing re-opens the auction for fresh
+  sellers rather than dead-ending, and already-tried sellers are not re-nagged.
+- **No match at your budget.** When the buyer has passed the best real price
+  and the only remaining topical match is priced far past the ceiling, a
+  durable out-of-reach marker stops the "negotiating" spinner and surfaces a
+  plain advisory with the closest price. The request stays open for a cheaper
+  seller; a fresh crossable bid clears the marker. The buyer can reconsider the
+  offer they passed in one tap, which re-raises the original near-miss to
+  proceed.
+- **Overpay advisory.** When the budget sits well above the grounded market
+  price, the buyer agent flags it as non-destructive advisory. The agent never
+  cancels on its own; the operator decides whether to proceed or reopen closer
+  to market.
+
+The recurring market reconciler re-touches every open listing against every
+open request on a fixed interval. A per-(request, listing) match cache skips
+the LLM round-trip once a confirmed match is known, so an uncrossable listing
+that bounces off the price wall every tick does not re-pay the model to
+rediscover the same verdict. Only positive verdicts are cached, and price is
+not part of the cache basis, so a budget edit re-checks crossability fresh.
+
 ## Escrow and the fee split
 
 `KarwanEscrow` funds on a milestone schedule. A platform fee, 150 basis
