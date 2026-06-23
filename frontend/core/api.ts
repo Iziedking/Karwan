@@ -241,6 +241,17 @@ export interface UsdcAuthorization {
 /// Invoice factoring offer (Phase 2 Track 2). Mirrors backend
 /// db/factoring.ts FactoringOffer interface. Status drives the
 /// state machine UI on both the financier and the seller side.
+export type FactoringTier = 'new' | 'cold' | 'established' | 'strong' | 'elite';
+
+/// The signed-in seller's factoring stake status, so the offer UI can show the
+/// requirement before they accept. `requiredBps` is the bps of the advance their
+/// tier must back; the per-offer requirement is advance × requiredBps / 10000.
+export interface FactoringQualification {
+  tier: FactoringTier;
+  requiredBps: number;
+  freeStakeUsdc: string | null;
+}
+
 export interface FactoringOffer {
   id: string;
   invoiceId: string;
@@ -424,6 +435,12 @@ export interface DirectDeal {
   /// Trade type drives the milestone vocabulary on the deal page and the
   /// trade-context band's visibility. Absent on legacy service deals.
   tradeType?: 'service' | 'goods' | 'mixed';
+  /// Match lane. 'finance' is the trade-finance (SME) lane factoring applies to;
+  /// 'service' (or absent) is the P2P lane, never factorable.
+  tradeLane?: 'service' | 'finance';
+  /// The seller's reputation tier, stamped only on the financier's factoring
+  /// available-deals feed so they can price risk. Absent elsewhere.
+  sellerTier?: FactoringTier;
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
   paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
   counterpartyCompany?: { name?: string; sector?: string; region?: string };
@@ -582,6 +599,24 @@ export interface MarketAdvisory {
   demand?: 'hot' | 'steady' | 'soft';
   note?: string;
   createdAt: number;
+}
+
+export interface WorkRecordRow {
+  category: string;
+  amountBand: string;
+  outcome: 'clean' | 'disputed' | 'failed';
+  deliveredVia: 'code' | 'design' | 'file' | 'link' | null;
+  ageLabel: string;
+}
+
+export interface CounterpartyReport {
+  locked: boolean;
+  subject: string;
+  record?: {
+    rows: WorkRecordRow[];
+    summary: { total: number; clean: number; disputed: number; failed: number; avgBand: string };
+    asBuyer: { funded: number; cleanRate: number | null };
+  };
 }
 
 export interface NearMissApproval {
@@ -1737,6 +1772,10 @@ export const api = {
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
   directDeal: (jobId: string, caller?: string | null) =>
     json<{ deal: DirectDeal }>(withCaller(`/api/deals/direct/${jobId}`, caller)),
+  counterpartyReport: (jobId: string, caller?: string | null) =>
+    json<CounterpartyReport>(
+      withCaller(`/api/deals/direct/${jobId}/counterparty-report`, caller),
+    ),
   acceptDirectDeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/accept`,
@@ -2153,6 +2192,8 @@ export const api = {
     }),
   listOffersForInvoice: (invoiceId: string) =>
     json<{ offers: FactoringOffer[] }>(`/api/factoring/offers/${invoiceId}`),
+  myFactoringQualification: () =>
+    json<FactoringQualification>('/api/factoring/my-qualification'),
   listMyFactoringOffers: () =>
     json<{ asFinancier: FactoringOffer[]; asSeller: FactoringOffer[] }>(
       '/api/factoring/mine',

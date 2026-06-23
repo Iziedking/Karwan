@@ -1120,6 +1120,14 @@ export const fr: Messages = {
     copied: 'Copié',
     xNotConnected: 'X non connecté',
     loading: 'Chargement',
+    workRecord: {
+      eyebrow: 'DOSSIER DE TRAVAIL',
+      subtitle: 'Vraies transactions livrées par ce vendeur. Privé, absent du passeport public.',
+      loading: 'Chargement du dossier de travail…',
+      locked: "Activez la recherche de l'agent sur une transaction pour débloquer le vrai dossier de travail du vendeur.",
+      empty: 'Aucun travail terminé au dossier pour le moment.',
+      summaryTemplate: '{total} transactions · {clean} propres · {disputed} en litige · moyenne {avg}',
+    },
   },
   listingDetail: {
     notFound: {

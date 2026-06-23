@@ -1120,6 +1120,14 @@ export const ar: Messages = {
     copied: 'تم النسخ',
     xNotConnected: 'X غير مرتبط',
     loading: 'جاري التحميل',
+    workRecord: {
+      eyebrow: 'سجل العمل',
+      subtitle: 'صفقات حقيقية نفّذها هذا البائع. خاصة بك، وليست على جواز السمعة العام.',
+      loading: 'جارٍ تحميل سجل العمل…',
+      locked: 'فعّل بحث الوكيل على صفقة لفتح سجل العمل الحقيقي للبائع.',
+      empty: 'لا يوجد عمل مكتمل في السجل بعد.',
+      summaryTemplate: '{total} صفقة · {clean} نظيفة · {disputed} متنازع عليها · بمتوسط {avg}',
+    },
   },
   listingDetail: {
     notFound: {

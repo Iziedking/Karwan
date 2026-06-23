@@ -775,16 +775,21 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </div>
       </Band>
 
-      {/* SME trade-finance surfaces. Part of the SME Trades rail, hidden
-          until launch. Trade context, the seller factoring banner, and the
-          buyer proof-of-delivery panel each render their own state and stay
-          off the P2P deal view. */}
+      {/* A live factoring offer is a real obligation, not a teaser: the seller
+          gets a notification to accept or pass, so the banner must surface even
+          while the broader SME rail is gated. It self-gates, rendering nothing
+          unless the seller actually has an open offer on an eligible deal, so a
+          plain service deal never shows it. */}
+      <SellerOfferBanner deal={deal} viewerIsSeller={viewerIsSeller} />
+
+      {/* The rest of the SME trade-finance rail stays hidden until launch:
+          trade context and the buyer proof-of-delivery panel each render their
+          own state and stay off the P2P deal view. */}
       {SME_TRADES_ENABLED && (
         <>
           {deal.tradeType && deal.tradeType !== 'service' ? (
             <TradeContextBand deal={deal} />
           ) : null}
-          <SellerOfferBanner deal={deal} viewerIsSeller={viewerIsSeller} />
           <BuyerPodPanel deal={deal} viewerIsBuyer={viewerIsBuyer} onPodAccepted={refresh} />
         </>
       )}
@@ -999,6 +1004,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         onClose={() => setReportOpen(false)}
         address={viewerIsBuyer ? deal.seller : deal.buyer}
         role={viewerIsBuyer ? 'seller' : 'buyer'}
+        workRecordJobId={deal.jobId}
+        caller={address ?? undefined}
       />
     </FullBleed>
   );
@@ -1024,8 +1031,11 @@ function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
             href={part}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="underline underline-offset-2 break-all"
-            style={{ color: 'var(--lp-accent-strong, var(--lp-band-dark))' }}
+            // Primary ink, so it flips with the theme (near-black on a light
+            // card, soft-white on a dark card) and stays legible in both. The
+            // old --lp-band-dark fallback was near-black and vanished on dark.
+            className="underline underline-offset-2 break-all hover:text-[var(--lp-accent-hover)]"
+            style={{ color: 'var(--lp-dark)' }}
           >
             {part}
           </a>

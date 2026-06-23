@@ -1081,6 +1081,14 @@ interface MessagesShape {
     copied: string;
     xNotConnected: string;
     loading: string;
+    workRecord: {
+      eyebrow: string;
+      subtitle: string;
+      loading: string;
+      locked: string;
+      empty: string;
+      summaryTemplate: string;
+    };
   };
   listingDetail: {
     notFound: {
@@ -4819,6 +4827,14 @@ export const en: MessagesShape = {
     copied: 'Copied',
     xNotConnected: 'X not connected',
     loading: 'Loading',
+    workRecord: {
+      eyebrow: 'WORK RECORD',
+      subtitle: 'Real deals this seller delivered. Private to you, not on the public passport.',
+      loading: 'Loading work record…',
+      locked: 'Activate agent research on a deal to unlock the seller’s real work record.',
+      empty: 'No completed work on record yet.',
+      summaryTemplate: '{total} deals · {clean} clean · {disputed} disputed · avg {avg}',
+    },
   },
   listingDetail: {
     notFound: {

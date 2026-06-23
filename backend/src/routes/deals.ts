@@ -41,6 +41,7 @@ import {
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
@@ -741,6 +742,31 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
     return c.json({ deal: { ...enriched, deliveryProof: undefined } });
   }
   return c.json({ deal: enriched });
+});
+
+/// The counterparty's real work record: the granular, DB-private view a buyer
+/// pays the internal pull to see, not the aggregate tier on the public passport.
+/// Party-gated. Unlocked when agent research was paid for this deal (the same
+/// signal behind the AGENT RESEARCH card); otherwise returns a locked stub. The
+/// record never leaks the counterparty's PAST counterparties or exact terms.
+dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const caller = viewerAddress(c);
+  const isParty =
+    !!caller &&
+    (caller === deal.buyer.toLowerCase() || caller === deal.seller.toLowerCase());
+  if (!isParty) {
+    return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
+  }
+  // Report on the caller's counterparty.
+  const subject = caller === deal.buyer.toLowerCase() ? deal.seller : deal.buyer;
+  if (!deal.marketRead) {
+    return c.json({ locked: true, subject });
+  }
+  const record = await buildWorkRecord(subject);
+  return c.json({ locked: false, subject, record });
 });
 
 /// Seller accepts the deal terms. This lazily provisions the seller's agent
