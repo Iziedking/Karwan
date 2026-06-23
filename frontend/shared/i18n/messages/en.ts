@@ -1827,6 +1827,8 @@ interface MessagesShape {
       deliveryHeldBody: string;
       deliveryVerifyingLabel: string;
       deliveryVerifyingBody: string;
+      deliveryReviewLabel: string;
+      deliveryReviewBody: string;
     };
     progress: {
       eyebrow: string;
@@ -5643,6 +5645,8 @@ export const en: MessagesShape = {
       deliveryHeldBody: 'Karwan flagged the delivery link and is holding it back until it is checked. Do not release escrow until it clears.',
       deliveryVerifyingLabel: 'Link under review',
       deliveryVerifyingBody: 'Karwan flagged your delivery link and is verifying it before the buyer can see it. They will see it once it clears.',
+      deliveryReviewLabel: 'Check this meets your request',
+      deliveryReviewBody: 'Your agent reviewed the delivery against your request and is not sure it fully matches. Open it and confirm before you release.',
     },
     progress: {
       eyebrow: 'PROGRESS',

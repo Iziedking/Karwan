@@ -54,6 +54,7 @@ import { sendDealInviteEmail, formatExpiresLabel, formatWindowLabel } from '../e
 import { sendDealUpdateEmail } from '../emails/dealUpdate.js';
 import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
 import { scanDelivery } from '../security/sa-stub.js';
+import { verifyDeliverable } from '../security/requirementCheck.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
 import { extractUrls } from '../security/extractUrls.js';
 
@@ -1317,11 +1318,38 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     }
   }
 
+  // Security Agent: does the delivery meet the buyer's request? Separate from
+  // link safety. Reasons over the proof vs the agreed terms and flags an
+  // off-topic or empty deliverable so the buyer reviews before releasing. Never
+  // withholds the proof and never blocks the seller; a mismatch just pauses
+  // auto-release (see dealWatcher) so money never moves on a bad delivery
+  // without the buyer's explicit look. Skipped for physical-goods deals, which
+  // deliver against a proof-of-delivery, not a described deliverable.
+  let deliveryMatch: NonNullable<typeof deal.deliveryMatch> | undefined;
+  if (body.deliveryProof && deal.tradeType !== 'goods' && deal.terms) {
+    try {
+      const check = await verifyDeliverable({
+        requirement: deal.terms,
+        deliveryProof: body.deliveryProof,
+      });
+      deliveryMatch = check;
+      if (check.verdict === 'mismatch' || check.verdict === 'partial') {
+        logger.info(
+          { jobId, verdict: check.verdict, reason: check.reason },
+          'security: delivery may not meet the request',
+        );
+      }
+    } catch (err) {
+      logger.warn({ jobId, err: (err as Error).message }, 'security: requirement check failed');
+    }
+  }
+
   const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
   const isRedelivery = deal.delivered === true;
 
   await patchDeal(jobId, {
     delivered: true,
+    ...(deliveryMatch ? { deliveryMatch } : {}),
     // Reset the review clock to now on every (re)delivery. While a link is held
     // the auto-release is paused anyway, so a corrected clean link gives the
     // buyer a fresh, full window to review what they can finally see.
@@ -1339,7 +1367,14 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       type: 'deal.delivered',
       jobId,
       actor: 'seller',
-      payload: { seller: deal.seller, firstReleasePct: deal.firstReleasePct, verificationStatus },
+      payload: {
+        seller: deal.seller,
+        firstReleasePct: deal.firstReleasePct,
+        verificationStatus,
+        ...(deliveryMatch && deliveryMatch.verdict !== 'aligned'
+          ? { deliveryMatch: deliveryMatch.verdict }
+          : {}),
+      },
     });
   }
   // Notify BOTH parties when a link is flagged, and again when a corrected link

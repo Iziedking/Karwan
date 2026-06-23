@@ -337,6 +337,10 @@ export interface DirectDeal {
   /// until cleared; verificationReasons explains why in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
+  /// Security Agent verdict on whether the delivery meets the request (separate
+  /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
+  /// pause auto-release; the proof is always shown, the buyer decides.
+  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
   reviewWindowStartedAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;

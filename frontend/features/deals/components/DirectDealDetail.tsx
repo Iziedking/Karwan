@@ -745,6 +745,32 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       </p>
                     </div>
                   )}
+                {/* Requirement review: the SecurityAgent judged the delivery off
+                    or partly off-topic for the request. The proof is shown (the
+                    buyer is the judge); this warns them to confirm before
+                    releasing, and auto-release is paused on a clear mismatch. */}
+                {(deal.deliveryMatch?.verdict === 'mismatch' ||
+                  deal.deliveryMatch?.verdict === 'partial') && (
+                  <div
+                    className="px-4 py-3"
+                    style={{
+                      background: 'rgba(178, 84, 37, 0.10)',
+                      border: '1px solid rgba(178, 84, 37, 0.35)',
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
+                      [:{dd.terms.deliveryReviewLabel}:]
+                    </p>
+                    <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                      {dd.terms.deliveryReviewBody}
+                      {deal.deliveryMatch?.reason ? ` ${deal.deliveryMatch.reason}` : ''}
+                    </p>
+                  </div>
+                )}
               </div>
             </PageCard>
           )}

@@ -79,6 +79,13 @@ async function tick() {
         deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
       if (deliveryHeld) continue;
 
+      // Requirement hold: the SecurityAgent judged the delivery off-topic for
+      // the buyer's request. The proof IS shown (the buyer is the judge), but
+      // auto-release pauses so a clear mismatch never settles on the timer
+      // without the buyer's explicit look. The buyer can still release manually.
+      // A 'partial' is advisory only and does not pause; only a clear mismatch.
+      if (deal.deliveryMatch?.verdict === 'mismatch') continue;
+
       // Timer 1: first-release auto.
       const firstWindowOpen =
         deal.delivered &&

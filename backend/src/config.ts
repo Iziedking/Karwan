@@ -312,6 +312,13 @@ const envSchema = z.object({
 
   OPENROUTER_API_KEY: optionalString,
   LLM_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
+  // Model for release-gating checks where structured-output reliability matters
+  // more than cost (the deliverable-meets-requirement verdict). Native Anthropic
+  // id (not the OpenRouter `anthropic/...` form) since it runs through the
+  // Anthropic provider on ANTHROPIC_API_KEY. Haiku follows the JSON schema far
+  // more reliably than Flash Lite, at a tiny per-call cost (one check per
+  // delivery). Falls back to the OpenRouter model when no Anthropic key is set.
+  VERIFIER_LLM_MODEL: z.string().default('claude-haiku-4-5'),
 
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.

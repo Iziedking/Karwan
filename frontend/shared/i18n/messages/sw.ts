@@ -1936,6 +1936,8 @@ export const sw: Messages = {
       deliveryHeldBody: 'Karwan imeashiria kiungo cha kuwasilisha na inakizuia hadi kikaguliwe. Usitoe escrow hadi kithibitishwe.',
       deliveryVerifyingLabel: 'Kiungo kinakaguliwa',
       deliveryVerifyingBody: 'Karwan imeashiria kiungo chako cha kuwasilisha na inakithibitisha kabla mnunuzi hajakiona. Atakiona mara tu kitakapothibitishwa.',
+      deliveryReviewLabel: 'Hakikisha inakidhi ombi lako',
+      deliveryReviewBody: 'Wakala wako alilinganisha uwasilishaji na ombi lako na hana uhakika unakidhi kikamilifu. Fungua na uthibitishe kabla ya kuachilia malipo.',
     },
     progress: {
       eyebrow: 'MAENDELEO',
