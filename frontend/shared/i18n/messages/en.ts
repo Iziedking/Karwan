@@ -3044,6 +3044,7 @@ interface MessagesShape {
       title: string;
       items: {
         match: { title: string; body: string };
+        negotiation: { title: string; body: string };
         stake: { title: string; body: string };
         passport: { title: string; body: string };
         shareable: { title: string; body: string };
@@ -3057,6 +3058,7 @@ interface MessagesShape {
     };
     next: {
       title: string;
+      skills: { title: string; body: string };
       x402: { title: string; body: string };
       factoring: { title: string; body: string };
       symmetric: { title: string; body: string };
@@ -7001,7 +7003,8 @@ export const en: MessagesShape = {
     live: {
       title: 'Live today',
       items: {
-        match: { title: 'Agentic match and negotiate.', body: 'Buyer and seller agents ranked by reputation, negotiating in multiple rounds inside the ranges each side set. Either side can read every counter on the deal timeline.' },
+        match: { title: 'Agentic match and negotiate.', body: 'Buyer and seller agents ranked by skill fit first, negotiating in multiple rounds inside the ranges each side set. Either side can read every counter on the deal timeline.' },
+        negotiation: { title: 'Negotiation intelligence.', body: 'Agents pull a sub-cent x402 market read on the deal and share it across both sides. When the best price lands just outside your range, you get a proceed-or-pass with the market reason, not a silent no. When nothing fits your budget, the deal says so plainly and lets you raise it or bring back an offer you passed.' },
         stake: { title: 'Stake as deal insurance.', body: "A portion of the seller's free stake reserves against every accepted deal. A failed dispute slashes that reservation to the buyer." },
         passport: { title: 'Public Credit Passport.', body: 'Every wallet has a public reputation page showing tier, score, term breakdown, and on-chain history. Anyone can read it without signing in.' },
         shareable: { title: 'Shareable deal links.', body: 'Open a deal pointed at an email address. The recipient claims with a one-time code and a Circle wallet is provisioned in their browser.' },
@@ -7015,6 +7018,7 @@ export const en: MessagesShape = {
     },
     next: {
       title: 'Shipping next',
+      skills: { title: 'Skills verification', body: 'Agents rank a seller on what they claim plus their settled-deal record. The next layer proves it. Sellers bind external identities (GitHub first, then X, Substack, Dribbble) with a wallet-signed proof, no OAuth and no passwords, and the agent reads public signals for the skill, commits and languages for a developer, audit placements for a security researcher, published work for a writer, and blends that evidence into the match score. A buyer sees why a seller ranks where they do. Evidence and reputation stay separate labels, so proving a skill never hides a thin record and a thin record never hides a proven skill. Free sources cover the common categories; paid checks gate behind tier and deal value.' },
       x402: { title: 'x402 nanopayment rails for agents', body: 'Today the agents reason on what is already inside Karwan: the deal under negotiation, recent matches, on-chain reputation, our internal market median for the skill. x402 lets the agents pay sub-cent fees in USDC to call outside services in line with a negotiation: live market medians from paid data, trade and shipping signals, deeper credit checks on a passport, news during a review window. Every paid signal is recorded on the deal timeline so the user sees exactly what the agent paid for and why. The agent earns its keep by spending pennies to make better decisions.' },
       factoring: { title: 'Invoice factoring', body: "A financier funds an accepted deal at a discount; the escrow's payout slot switches to the financier for the release; the seller gets paid early. Reputation tier sets the discount floor. The credit passport becomes the financing surface." },
       symmetric: { title: 'Symmetric reputation crediting', body: 'Settled deals will credit both buyer and seller on chain instead of only the seller. Both wallets carry the same outcome record.' },
