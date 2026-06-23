@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { api, type UserProfile } from '@/core/api';
+import { api, type UserProfile, type CounterpartyReport } from '@/core/api';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
@@ -28,9 +28,23 @@ interface Props {
   /// like a bid card during an auction. Renders just the display name and
   /// the masked address with a tiny close button.
   compact?: boolean;
+  /// When set, the modal shows the counterparty's real work record (granular,
+  /// DB-private, paid). Pass the deal's jobId so the read is party-gated. Only
+  /// rendered on the full (non-compact) peek.
+  workRecordJobId?: string;
+  /// The viewer, sent as the caller for the party-gated work-record read.
+  caller?: string;
 }
 
-export function ProfilePeekModal({ open, onClose, address, role, compact = false }: Props) {
+export function ProfilePeekModal({
+  open,
+  onClose,
+  address,
+  role,
+  compact = false,
+  workRecordJobId,
+  caller,
+}: Props) {
   const pp = useTranslations().profilePeek;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -263,8 +277,125 @@ export function ProfilePeekModal({ open, onClose, address, role, compact = false
             </span>
           )}
         </div>
+
+        {workRecordJobId && (
+          <WorkRecordSection jobId={workRecordJobId} caller={caller} role={role} />
+        )}
       </div>
     </div>,
     document.body,
+  );
+}
+
+const OUTCOME_HUE: Record<string, string> = {
+  clean: '#0a7553',
+  disputed: '#b25425',
+  failed: '#b03d3a',
+};
+
+/// The counterparty's real, DB-private work record. Granular per-deal proof a
+/// buyer paid the internal pull to see, never the aggregate on the public
+/// passport. Anonymized server-side: no past-counterparty, no exact terms.
+function WorkRecordSection({
+  jobId,
+  caller,
+  role,
+}: {
+  jobId: string;
+  caller?: string;
+  role: 'buyer' | 'seller';
+}) {
+  const wr = useTranslations().profilePeek.workRecord;
+  const [state, setState] = useState<
+    { kind: 'loading' } | { kind: 'error' } | { kind: 'done'; data: CounterpartyReport }
+  >({ kind: 'loading' });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ kind: 'loading' });
+    api
+      .counterpartyReport(jobId, caller)
+      .then((data) => {
+        if (!cancelled) setState({ kind: 'done', data });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ kind: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, caller]);
+
+  // Only the seller side carries a delivered-work record. Skip for a buyer peek.
+  if (role !== 'seller') return null;
+  if (state.kind === 'error') return null;
+
+  return (
+    <div className="px-6 pb-6 pt-4 border-t border-[var(--lp-border-light)]">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:{wr.eyebrow}:]
+      </span>
+      <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{wr.subtitle}</p>
+
+      {state.kind === 'loading' && (
+        <p className="mt-3 mono text-[11px] text-[var(--lp-text-muted)]">{wr.loading}</p>
+      )}
+
+      {state.kind === 'done' && state.data.locked && (
+        <p className="mt-3 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{wr.locked}</p>
+      )}
+
+      {state.kind === 'done' && !state.data.locked && state.data.record && (
+        <>
+          {state.data.record.rows.length === 0 ? (
+            <p className="mt-3 text-[12px] text-[var(--lp-text-sub)]">{wr.empty}</p>
+          ) : (
+            <ul className="mt-3 space-y-1.5 max-h-[40vh] overflow-y-auto">
+              {state.data.record.rows.slice(0, 30).map((row, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-2.5 px-3 py-2"
+                  style={{
+                    background: 'var(--lp-light)',
+                    border: '1px solid var(--lp-border-light)',
+                    borderTopLeftRadius: 8,
+                    borderTopRightRadius: 8,
+                    borderBottomLeftRadius: 8,
+                    borderBottomRightRadius: 2,
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="shrink-0 inline-block w-[7px] h-[7px]"
+                    style={{ background: OUTCOME_HUE[row.outcome] ?? '#6b6b6b' }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--lp-dark)]">
+                    {row.category}
+                  </span>
+                  {row.deliveredVia && (
+                    <span className="shrink-0 mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+                      {row.deliveredVia}
+                    </span>
+                  )}
+                  <span className="shrink-0 mono text-[12px] tabular-nums text-[var(--lp-text-sub)]">
+                    {row.amountBand}
+                  </span>
+                  <span className="shrink-0 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
+                    {row.ageLabel}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            {wr.summaryTemplate
+              .replace('{total}', String(state.data.record.summary.total))
+              .replace('{clean}', String(state.data.record.summary.clean))
+              .replace('{disputed}', String(state.data.record.summary.disputed))
+              .replace('{avg}', state.data.record.summary.avgBand)}
+          </p>
+        </>
+      )}
+    </div>
   );
 }

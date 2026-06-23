@@ -2,7 +2,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useWalletClient } from 'wagmi';
-import { api, type DirectDeal, type FactoringOffer } from '@/core/api';
+import {
+  api,
+  ApiError,
+  type DirectDeal,
+  type FactoringOffer,
+  type FactoringQualification,
+} from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
@@ -13,7 +19,7 @@ import {
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
-/// and the deal is eligible (accepted, not delivered, not factored).
+/// and the deal is eligible (accepted, not settled, not factored).
 /// Renders nothing when no open offers exist, service-flow deals never
 /// see this band. Top-level component per Vercel
 /// `rerender-no-inline-components`.
@@ -24,12 +30,17 @@ export function SellerOfferBanner({
   deal: DirectDeal;
   viewerIsSeller: boolean;
 }) {
-  // Eligibility gate. Fires the fetch only when the seller-side
-  // conditions hold; service-flow deals skip the network call entirely.
+  // Eligibility gate. Mirrors the backend's factoring eligibility exactly
+  // (routes/factoring.ts: accepted, not settled/cancelled/disputed, not already
+  // factored). Delivery is NOT a gate: a seller who has delivered and is waiting
+  // on the buyer's release is precisely who wants early payout, and the backend
+  // both lists and lets a financier post offers on a delivered-not-settled deal,
+  // so requiring `!delivered` here hid the accept UI for a live, notified offer.
   const eligible =
     viewerIsSeller &&
+    // Finance-lane only: factoring never applies to a P2P service deal.
+    deal.tradeLane === 'finance' &&
     !!deal.acceptedAt &&
-    !deal.delivered &&
     !deal.settledAt &&
     !deal.cancelledAt &&
     !deal.disputed &&
@@ -155,12 +166,33 @@ function OffersModal({
   const { data: walletClient } = useWalletClient();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsStake, setNeedsStake] = useState(false);
+  const [qual, setQual] = useState<FactoringQualification | null>(null);
+
+  // The seller's tier + free stake, so the requirement to take an advance shows
+  // BEFORE they try to accept. Same for every offer; the per-offer amount is
+  // advance × requiredBps / 10000.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .myFactoringQualification()
+      .then((q) => {
+        if (!cancelled) setQual(q);
+      })
+      .catch(() => {
+        /* best-effort; the accept route still enforces the gate */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isCircleUser = auth.method === 'circle';
 
   async function accept(offer: FactoringOffer) {
     setAcceptingId(offer.id);
     setError(null);
+    setNeedsStake(false);
     try {
       // Accepting moves real money: the financier's advance pays out the
       // moment the backend confirms. Web3 sellers also sign the
@@ -194,6 +226,12 @@ function OffersModal({
       onAccepted(r.offer);
     } catch (e) {
       setError((e as Error).message);
+      // A reputation-tiered stake shortfall: point the seller at staking. The
+      // financier's default risk is backed by stake, so an elite is waived and
+      // a new wallet must collateralize the advance.
+      if (e instanceof ApiError && e.code === 'INSUFFICIENT_STAKE') {
+        setNeedsStake(true);
+      }
       setAcceptingId(null);
     }
   }
@@ -245,6 +283,18 @@ function OffersModal({
             Accept an offer to take immediate payout. Settlement on buyer release
             routes the agreed amount to the financier.
           </p>
+          {qual ? (
+            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
+              Your tier{' '}
+              <span className="font-bold text-[var(--lp-dark)]">{qual.tier.toUpperCase()}</span>
+              {qual.requiredBps === 0
+                ? ' waives the stake requirement.'
+                : ` backs ${qual.requiredBps / 100}% of the advance.`}
+              {qual.freeStakeUsdc != null
+                ? ` You have ${Number(qual.freeStakeUsdc).toFixed(2)} USDC staked.`
+                : ''}
+            </p>
+          ) : null}
           <ul className="space-y-3">
             {offers.map((o, i) => (
               <OfferRow
@@ -253,13 +303,22 @@ function OffersModal({
                 isBest={i === 0}
                 acceptingId={acceptingId}
                 onAccept={accept}
+                qual={qual}
               />
             ))}
           </ul>
           {error ? (
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-              {error}
-            </p>
+            <div className="space-y-1.5">
+              <p className="text-[12px] leading-snug text-[var(--lp-critical)]">{error}</p>
+              {needsStake ? (
+                <Link
+                  href="/stake"
+                  className="inline-block mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] underline underline-offset-2"
+                >
+                  Stake to qualify →
+                </Link>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
@@ -272,11 +331,13 @@ function OfferRow({
   isBest,
   acceptingId,
   onAccept,
+  qual,
 }: {
   offer: FactoringOffer;
   isBest: boolean;
   acceptingId: string | null;
   onAccept: (offer: FactoringOffer) => void;
+  qual: FactoringQualification | null;
 }) {
   const advance = Number(offer.offeredAdvanceUsdc);
   const face = Number(offer.faceValueUsdc);
@@ -285,6 +346,11 @@ function OfferRow({
   const expiresInHours = Math.max(0, Math.round((offer.expiresAt - Date.now()) / 3_600_000));
   const isAccepting = acceptingId === offer.id;
   const anyAccepting = acceptingId !== null;
+
+  // Stake this advance needs at the seller's tier, and whether they're short.
+  const requiredStake = qual && qual.requiredBps > 0 ? (advance * qual.requiredBps) / 10_000 : 0;
+  const freeStake = qual?.freeStakeUsdc != null ? Number(qual.freeStakeUsdc) : null;
+  const stakeShort = requiredStake > 0 && freeStake != null && freeStake < requiredStake;
   return (
     <li
       className={cn(
@@ -319,6 +385,17 @@ function OfferRow({
           <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             Expires in {expiresInHours}h
           </p>
+          {requiredStake > 0 ? (
+            <p
+              className={cn(
+                'mt-0.5 mono text-[10px] uppercase tracking-[0.14em] tabular-nums',
+                stakeShort ? 'text-[var(--lp-critical)] font-bold' : 'text-[var(--lp-text-muted)]',
+              )}
+            >
+              Needs {requiredStake.toFixed(2)} USDC staked
+              {stakeShort && freeStake != null ? ` · you have ${freeStake.toFixed(2)}` : ''}
+            </p>
+          ) : null}
           <Link
             href={`/credit-passport/${offer.financier}`}
             target="_blank"
@@ -327,25 +404,36 @@ function OfferRow({
             Financier passport ↗
           </Link>
         </div>
-        <button
-          type="button"
-          onClick={() => onAccept(offer)}
-          disabled={anyAccepting}
-          className={cn(
-            'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
-            isBest
-              ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-              : 'bg-transparent text-[var(--lp-dark)] border border-black/15 hover:border-black/40',
-          )}
-          style={{
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
-          }}
-        >
-          {isAccepting ? 'Accepting…' : 'Accept'}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            onClick={() => onAccept(offer)}
+            disabled={anyAccepting || stakeShort}
+            title={stakeShort ? 'Stake more to qualify at your tier' : undefined}
+            className={cn(
+              'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
+              isBest
+                ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)]'
+                : 'bg-transparent text-[var(--lp-dark)] border border-black/15 hover:border-black/40',
+            )}
+            style={{
+              borderTopLeftRadius: 6,
+              borderTopRightRadius: 6,
+              borderBottomLeftRadius: 6,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {isAccepting ? 'Accepting…' : 'Accept'}
+          </button>
+          {stakeShort ? (
+            <Link
+              href="/stake"
+              className="mono text-[9px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] underline underline-offset-2"
+            >
+              Stake to qualify →
+            </Link>
+          ) : null}
+        </div>
       </div>
     </li>
   );

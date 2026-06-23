@@ -1120,6 +1120,14 @@ export const hi: Messages = {
     copied: 'कॉपी हो गया',
     xNotConnected: 'X कनेक्ट नहीं',
     loading: 'लोड हो रहा है',
+    workRecord: {
+      eyebrow: 'वर्क रिकॉर्ड',
+      subtitle: 'इस विक्रेता द्वारा डिलीवर किए गए असली सौदे. आपके लिए निजी, सार्वजनिक पासपोर्ट पर नहीं.',
+      loading: 'वर्क रिकॉर्ड लोड हो रहा है…',
+      locked: 'विक्रेता का असली वर्क रिकॉर्ड देखने के लिए किसी सौदे पर एजेंट रिसर्च सक्रिय करें.',
+      empty: 'अभी तक कोई पूरा किया काम रिकॉर्ड में नहीं.',
+      summaryTemplate: '{total} सौदे · {clean} साफ · {disputed} विवादित · औसत {avg}',
+    },
   },
   listingDetail: {
     notFound: {

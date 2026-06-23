@@ -79,6 +79,15 @@ const poFinancingAbi = [
 // Hoisted constants per Vercel `rendering-hoist-jsx`.
 type Tab = 'factor' | 'po';
 
+// Seller reputation tier colours, mirroring the rest of the app's tier hues.
+const SELLER_TIER_HUE: Record<string, string> = {
+  new: '#9a9a9a',
+  cold: '#e0a23c',
+  established: 'var(--lp-accent)',
+  strong: '#5fd08a',
+  elite: '#39e08a',
+};
+
 const TABS: ReadonlyArray<{ id: Tab; label: string; available: boolean }> = [
   { id: 'factor', label: 'Factor invoices', available: true },
   { id: 'po', label: 'Fund POs', available: true },
@@ -384,9 +393,23 @@ function InvoiceCard({
               </span>
             </p>
           </div>
-          <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/15 text-[var(--lp-dark)]">
-            {settlementWindow}
-          </span>
+          <div className="flex flex-col items-end gap-1.5">
+            {deal.sellerTier ? (
+              <span
+                className="mono text-[10px] uppercase tracking-[0.16em] font-bold px-2.5 py-1"
+                style={{
+                  border: `1px solid ${SELLER_TIER_HUE[deal.sellerTier] ?? '#9a9a9a'}`,
+                  color: 'var(--lp-dark)',
+                }}
+                title="Seller reputation tier. Drives the discount floor and the stake the seller must post to take the advance."
+              >
+                {deal.sellerTier.toUpperCase()}
+              </span>
+            ) : null}
+            <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/15 text-[var(--lp-dark)]">
+              {settlementWindow}
+            </span>
+          </div>
         </div>
         <CompanyLine deal={deal} />
         <div className="pt-3 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">

@@ -18,7 +18,9 @@ import {
   submitTransferWithAuthorization,
   transferFromCircleWallet,
 } from '../chain/usdc3009.js';
-import { parseUnits } from 'viem';
+import { vault } from '../chain/contracts.js';
+import { actorSignalsFor, type RepTier } from '../agents/signals.js';
+import { parseUnits, formatUnits } from 'viem';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
@@ -84,6 +86,19 @@ function atomicUsdc(decimal: string): string {
 /// could both pass the factoringOfferId check and both pay an advance.
 const acceptingInvoices = new Set<string>();
 
+/// Stake a seller must hold to take a factoring advance, as basis points of the
+/// advance, by reputation tier. The financier's loss on a default (buyer refunds
+/// after the advance is paid) is the advance, so a proven elite is waived and a
+/// new wallet must fully collateralize. Reputation buys the collateral down:
+/// stake is the skin in the game a thin track record has not yet earned.
+const FACTORING_STAKE_BPS: Record<RepTier, number> = {
+  elite: 0,
+  strong: 2_000,
+  established: 5_000,
+  cold: 8_000,
+  new: 10_000,
+};
+
 const rejectBodySchema = z.object({
   offerId: z.string().uuid(),
 });
@@ -100,6 +115,11 @@ factoringRoutes.get('/available', async (c) => {
   const deals = await listAllDeals();
   const available = deals.filter(
     (d) =>
+      // Factoring is a finance-lane (trade-finance) product only. P2P
+      // service deals are private to their two persons, who never opted into
+      // a financier seeing or fronting them. Without this, the financier
+      // marketplace leaked every accepted P2P deal.
+      d.tradeLane === 'finance' &&
       d.acceptedAt &&
       !d.settledAt &&
       !d.cancelledAt &&
@@ -111,7 +131,46 @@ factoringRoutes.get('/available', async (c) => {
     if (region && d.counterpartyCompany?.region !== region) return false;
     return true;
   });
-  return c.json({ deals: filtered });
+  // Stamp each deal with the seller's reputation tier so the financier can price
+  // risk at a glance (tier drives both the discount floor and the stake the
+  // seller must post to take the advance).
+  const withTier = await Promise.all(
+    filtered.map(async (d) => {
+      let sellerTier: RepTier = 'new';
+      try {
+        sellerTier = (await actorSignalsFor(d.seller)).repTier;
+      } catch {
+        sellerTier = 'new';
+      }
+      return { ...d, sellerTier };
+    }),
+  );
+  return c.json({ deals: withTier });
+});
+
+/// GET /api/factoring/my-qualification: the signed-in seller's factoring stake
+/// status, so the offer UI can show the requirement BEFORE they accept. Returns
+/// their reputation tier, the bps of the advance their tier must back, and their
+/// current free stake. The frontend computes the per-offer requirement from the
+/// advance. freeStakeUsdc is null when the on-chain read failed.
+factoringRoutes.get('/my-qualification', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  const seller = session.address.toLowerCase();
+  let tier: RepTier = 'new';
+  try {
+    tier = (await actorSignalsFor(seller)).repTier;
+  } catch {
+    tier = 'new';
+  }
+  let freeStakeUsdc: string | null = null;
+  try {
+    const freeWei = (await vault.read.freeStakeOf([seller as `0x${string}`])) as bigint;
+    freeStakeUsdc = formatUnits(freeWei, 6);
+  } catch {
+    freeStakeUsdc = null;
+  }
+  return c.json({ tier, requiredBps: FACTORING_STAKE_BPS[tier], freeStakeUsdc });
 });
 
 /// POST /api/factoring/offer: financier proposes an offer on a seller's
@@ -132,6 +191,11 @@ factoringRoutes.post('/offer', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Finance-lane only. A P2P service deal between two persons is private and
+  // never factorable; the lane separation must hold at the write path too.
+  if (deal.tradeLane !== 'finance') {
+    return c.json({ error: 'factoring is only available on trade-finance deals' }, 409);
+  }
   if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal not eligible for factoring' }, 409);
   }
@@ -301,6 +365,46 @@ factoringRoutes.post('/accept', async (c) => {
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
   }
+
+  // Reputation + stake gate. The financier's downside on a default is the
+  // advance, so the seller must hold free stake covering a tier-scaled fraction
+  // of it: a proven elite is waived, a new wallet posts the full amount. The
+  // existing default path slashes that stake to make the financier whole.
+  let repTier: RepTier = 'new';
+  try {
+    repTier = (await actorSignalsFor(seller)).repTier;
+  } catch {
+    repTier = 'new'; // conservative on a read failure: never waive the collateral
+  }
+  const requiredBps = FACTORING_STAKE_BPS[repTier];
+  if (requiredBps > 0) {
+    const requiredAtomic = (parseUnits(offer.offeredAdvanceUsdc, 6) * BigInt(requiredBps)) / 10_000n;
+    let freeWei: bigint;
+    try {
+      freeWei = (await vault.read.freeStakeOf([seller as `0x${string}`])) as bigint;
+    } catch {
+      return c.json(
+        { error: 'could not read your stake balance, try again', code: 'STAKE_READ_FAILED' },
+        503,
+      );
+    }
+    if (freeWei < requiredAtomic) {
+      const requiredUsdc = Number(formatUnits(requiredAtomic, 6)).toFixed(2);
+      const freeStakeUsdc = Number(formatUnits(freeWei, 6)).toFixed(2);
+      return c.json(
+        {
+          error: `You need ${requiredUsdc} USDC staked to take this advance at your ${repTier.toUpperCase()} tier (you have ${freeStakeUsdc}). Build reputation or stake to qualify.`,
+          code: 'INSUFFICIENT_STAKE',
+          tier: repTier,
+          requiredBps,
+          requiredUsdc,
+          freeStakeUsdc,
+        },
+        409,
+      );
+    }
+  }
+
   if (acceptingInvoices.has(offer.invoiceId)) {
     return c.json({ error: 'another acceptance on this invoice is in progress' }, 409);
   }

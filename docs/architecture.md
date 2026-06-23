@@ -235,7 +235,11 @@ the flag is set.
 - **Invoice factoring.** A financier advances a seller a discounted payout
   against an accepted invoice, signed as a USDC EIP-3009 authorization at offer
   time. On settlement, a settlement watcher routes the repayment from seller to
-  financier. The discount is gated by the seller's reputation tier.
+  financier. The discount is gated by the seller's reputation tier. To take an
+  advance the seller must also hold free stake covering a tier-scaled fraction
+  of it (waived for elite, full for a new wallet), so the financier's
+  default risk is backed by slashable insurance rather than a bare promise.
+  Factoring is finance-lane only; a P2P service deal is never factorable.
 - **Purchase-order financing.** `KarwanPOFinancing` holds a financier's
   advance against an accepted purchase order and releases it to the supplier
   when proof of delivery is anchored on the registry.

@@ -1120,6 +1120,14 @@ export const sw: Messages = {
     copied: 'Imenakiliwa',
     xNotConnected: 'X haijaunganishwa',
     loading: 'Inapakia',
+    workRecord: {
+      eyebrow: 'REKODI YA KAZI',
+      subtitle: 'Mikataba halisi aliyowasilisha muuzaji huyu. Ni ya faragha kwako, haiko kwenye pasipoti ya umma.',
+      loading: 'Inapakia rekodi ya kazi…',
+      locked: 'Washa utafiti wa wakala kwenye mkataba ili kufungua rekodi halisi ya kazi ya muuzaji.',
+      empty: 'Hakuna kazi iliyokamilika kwenye rekodi bado.',
+      summaryTemplate: 'Mikataba {total} · {clean} safi · {disputed} yenye mzozo · wastani {avg}',
+    },
   },
   listingDetail: {
     notFound: {
