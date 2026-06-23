@@ -16,6 +16,7 @@ import { CopyId } from '@/shared/components/CopyId';
 import { AgentX402Panel } from '@/shared/components/AgentX402Panel';
 import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { NearMissCard } from './NearMissCard';
+import { OutOfReachCard } from './OutOfReachCard';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -37,10 +38,13 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const t = useTranslations();
   const lj = t.liveJob;
   const { job, refresh: refreshJob } = useJobSnapshot(initial);
-  const { events, active, completed, declined, ended } = useJobLiveState(job);
+  const { address } = useAuth();
+  const { events, active, completed, declined, ended, outOfReach } = useJobLiveState(
+    job,
+    address ?? undefined,
+  );
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
   const { nearMiss, refresh: refreshNearMiss } = useNearMiss(initial.jobId);
-  const { address } = useAuth();
   const router = useRouter();
 
   // Once escrow funds, the deal has crossed into the direct-deal lifecycle:
@@ -79,7 +83,9 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
       }
     : expired
       ? { label: lj.statusLabels.requestExpired, tone: 'default', live: false }
-      : declined
+      : ended === 'out-of-reach'
+        ? { label: lj.outOfReach.title, tone: 'default', live: false }
+        : declined
         ? { label: lj.statusLabels.negotiationEnded, tone: 'critical', live: false }
         : matchPending
           ? {
@@ -290,6 +296,23 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <AgentX402Panel jobId={job.jobId} />
         </div>
 
+        {/* OUT OF REACH. The only topical match is priced far past the budget,
+            so nothing can settle here. Non-destructive: the request stays open
+            for a cheaper seller. Stops the spinner and offers a one-tap repost
+            at a workable budget. */}
+        {ended === 'out-of-reach' && outOfReach && !proposal && !nearMiss && !expired && !job.escrowFunded && (
+          <div className="mt-8 fade-up fade-up-1">
+            <OutOfReachCard
+              jobId={job.jobId}
+              closestFloorUsdc={outOfReach.closestFloorUsdc}
+              budgetUsdc={Number(job.budgetUsdc)}
+              passedPriceUsdc={outOfReach.passedPriceUsdc}
+              caller={address ?? undefined}
+              onReconsidered={refreshNearMiss}
+            />
+          </div>
+        )}
+
         {/* NEAR-MISS. The agent found a match just outside one side's range and
             is asking that party whether to proceed. Sits in the banner slot
             before any match proposal exists; once proceeded it becomes a funded
@@ -316,7 +339,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <NegotiationCard
                 events={events}
                 explorer={explorer}
-                terminal={expired || declined}
+                terminal={expired || declined || ended === 'out-of-reach'}
               />
             </div>
 

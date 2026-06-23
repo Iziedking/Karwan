@@ -992,6 +992,13 @@ export const api = {
       `/api/jobs/${jobId}/near-miss`,
       { method: 'POST', body: JSON.stringify({ caller, action: 'decline' }) },
     ),
+  /// Bring back the offer the buyer passed (out-of-reach advisory). Re-raises the
+  /// near-miss so the buyer can proceed; the near-miss card then renders.
+  reconsiderPassed: (jobId: string, caller: string) =>
+    json<{ reconsidered: boolean; jobId: string; proceedPriceUsdc: string }>(
+      `/api/jobs/${jobId}/reconsider`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
   listings: () => json<{ listings: Listing[] }>('/api/listings'),
   listingsForSeller: (address: string) =>
     json<{ listings: Listing[] }>(`/api/listings/mine?address=${address}`),

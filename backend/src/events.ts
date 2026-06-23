@@ -88,6 +88,12 @@ export type KarwanEventType =
   /// Buyer agent found the budget sits well above the grounded market price and
   /// is advising the operator they may be overpaying (non-destructive).
   | 'negotiation.market-advisory'
+  /// The only topical match sits far past the buyer's ceiling and the buyer has
+  /// already passed the best real price, so nothing can settle at this budget.
+  /// Non-destructive: the request stays open for a cheaper seller. Stops the
+  /// "negotiating" spinner and carries the closest floor + ceiling for the
+  /// "no match at your budget" advisory.
+  | 'negotiation.out-of-reach'
   | 'market.scanned'
   | 'reputation.tier-up'
   | 'feedback.submitted'

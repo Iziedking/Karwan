@@ -991,6 +991,18 @@ export const sw: Messages = {
       confirmYesBusy: 'Inaghairi…',
       confirmNo: 'Weka ombi',
     },
+    outOfReach: {
+      tag: 'HAKUNA OFA NDANI YA BAJETI YAKO',
+      title: 'Hakuna ofa ndani ya bajeti yako',
+      bodyTemplate:
+        'Ofa ya karibu zaidi inahitaji takriban {floor} USDC, juu zaidi ya bajeti yako ya {budget} USDC. Ongeza bajeti yako kuelekea {floor}, au subiri ofa rahisi zaidi.',
+      reconsiderHintTemplate:
+        'Ulikataa ofa ya {price} USDC awali. Hakuna ofa rahisi iliyojitokeza, kwa hivyo unaweza kuirudisha.',
+      reconsiderCtaTemplate: 'Fikiria upya ofa ya {price}',
+      reconsiderBusy: 'Inairudisha…',
+      raiseCta: 'Ongeza bajeti',
+      waitCta: 'Endelea kusubiri',
+    },
   },
   nearMissCard: {
     eyebrow: 'Ujumbe karibu · wakala wako anahitaji uamuzi',
@@ -2830,7 +2842,7 @@ export const sw: Messages = {
       milestones: 'HATUA',
       settled: 'IMEKAMILIKA',
     },
-    terminal: { expired: 'IMEKWISHA', ended: 'IMEKOMA HAPA' },
+    terminal: { expired: 'IMEKWISHA', ended: 'IMEKOMA HAPA', outOfReach: 'HAKUNA OFA' },
   },
   agentShell: {
     role: { buyer: 'Wakala wa mnunuzi', seller: 'Wakala wa muuzaji' },

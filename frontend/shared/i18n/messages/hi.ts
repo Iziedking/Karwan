@@ -991,6 +991,18 @@ export const hi: Messages = {
       confirmYesBusy: 'रद्द हो रहा है…',
       confirmNo: 'अनुरोध रखें',
     },
+    outOfReach: {
+      tag: 'आपके बजट में कोई मैच नहीं',
+      title: 'आपके बजट में कोई मैच नहीं',
+      bodyTemplate:
+        'सबसे करीबी ऑफर को लगभग {floor} USDC चाहिए, जो आपके {budget} USDC बजट से काफी ज़्यादा है. अपना बजट {floor} की ओर बढ़ाएं, या सस्ते ऑफर का इंतज़ार करें.',
+      reconsiderHintTemplate:
+        'आपने पहले {price} USDC का ऑफर पास किया था. कुछ सस्ता नहीं मिला, तो आप उसे वापस ला सकते हैं.',
+      reconsiderCtaTemplate: '{price} वाले ऑफर पर फिर से विचार करें',
+      reconsiderBusy: 'वापस ला रहे हैं…',
+      raiseCta: 'बजट बढ़ाएं',
+      waitCta: 'इंतज़ार जारी रखें',
+    },
   },
   nearMissCard: {
     eyebrow: 'पास का मैच · आपके एजेंट को निर्णय चाहिए',
@@ -2830,7 +2842,7 @@ export const hi: Messages = {
       milestones: 'चरण',
       settled: 'निपटाया गया',
     },
-    terminal: { expired: 'समाप्त', ended: 'यहाँ रुका' },
+    terminal: { expired: 'समाप्त', ended: 'यहाँ रुका', outOfReach: 'कोई मैच नहीं' },
   },
   agentShell: {
     role: { buyer: 'खरीदार एजेंट', seller: 'विक्रेता एजेंट' },

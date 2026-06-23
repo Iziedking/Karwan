@@ -991,6 +991,18 @@ export const ar: Messages = {
       confirmYesBusy: 'جاري الإلغاء…',
       confirmNo: 'احتفظ بالطلب',
     },
+    outOfReach: {
+      tag: 'لا تطابق ضمن ميزانيتك',
+      title: 'لا تطابق ضمن ميزانيتك',
+      bodyTemplate:
+        'أقرب عرض يحتاج نحو {floor} USDC، أعلى بكثير من ميزانيتك البالغة {budget} USDC. ارفع ميزانيتك نحو {floor}، أو انتظر عرضاً أرخص.',
+      reconsiderHintTemplate:
+        'لقد تجاوزت عرضاً بسعر {price} USDC سابقاً. لم يظهر عرض أرخص، فيمكنك استعادته.',
+      reconsiderCtaTemplate: 'أعد النظر في عرض {price}',
+      reconsiderBusy: 'جارٍ الاستعادة…',
+      raiseCta: 'ارفع الميزانية',
+      waitCta: 'تابع الانتظار',
+    },
   },
   nearMissCard: {
     eyebrow: 'تطابق قريب · يحتاج وكيلك قراراً',
@@ -2830,7 +2842,7 @@ export const ar: Messages = {
       milestones: 'مراحل',
       settled: 'تمت التسوية',
     },
-    terminal: { expired: 'انتهت الصلاحية', ended: 'توقف هنا' },
+    terminal: { expired: 'انتهت الصلاحية', ended: 'توقف هنا', outOfReach: 'لا تطابق' },
   },
   agentShell: {
     role: { buyer: 'وكيل المشتري', seller: 'وكيل البائع' },

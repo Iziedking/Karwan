@@ -3,7 +3,7 @@ import { bus } from '../events.js';
 /// Where a decision came from. The whole point of the reliability doctrine
 /// (docs/agent.md) is that you can always tell whether the model decided, the
 /// deterministic spine decided, or the spine caught a model failure.
-export type DecisionSource = 'llm' | 'deterministic' | 'fallback';
+export type DecisionSource = 'llm' | 'deterministic' | 'fallback' | 'cache';
 
 /// Which step of the negotiation loop made the call.
 export type DecisionStage =
