@@ -566,10 +566,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {deal.marketRead && (
         <Band tone="light" compact>
           <div className="fade-up">
-            <SectionTag>AGENT RESEARCH</SectionTag>
+            <SectionTag>{dd.agentResearch.tag}</SectionTag>
             <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-              Your agent researched this market before negotiating. It tuned the
-              price within your cap.
+              {viewerIsSeller
+                ? dd.agentResearch.sellerIntro
+                : dd.agentResearch.buyerIntro}
             </p>
             <div className="mt-5 max-w-[640px]">
               <MarketReadCard mr={deal.marketRead} />

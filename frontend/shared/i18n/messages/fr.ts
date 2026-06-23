@@ -1854,6 +1854,13 @@ export const fr: Messages = {
       eyebrow: 'TRANSACTION DIRECTE',
       openedTemplate: 'ouverte {when}',
     },
+    agentResearch: {
+      tag: 'RECHERCHE AGENT',
+      buyerIntro:
+        "Votre agent a étudié ce marché avant de négocier. Il a utilisé cette lecture pour fixer un prix juste dans la limite de votre plafond.",
+      sellerIntro:
+        "Votre agent a étudié ce marché avant de négocier. Il a utilisé cette lecture pour fixer le prix de votre service, jamais sous votre plancher.",
+    },
     errorStates: {
       privateEyebrow: 'TRANSACTION PRIVÉE',
       privateTitle: 'Cette transaction est privée',

@@ -1854,6 +1854,13 @@ export const ar: Messages = {
       eyebrow: 'صفقة مباشرة',
       openedTemplate: 'فُتحت {when}',
     },
+    agentResearch: {
+      tag: 'بحث الوكيل',
+      buyerIntro:
+        'بحث وكيلك في هذا السوق قبل التفاوض. واستخدم القراءة للوصول إلى سعر عادل ضمن حدّك الأقصى.',
+      sellerIntro:
+        'بحث وكيلك في هذا السوق قبل التفاوض. واستخدم القراءة لتسعير خدمتك، دون النزول أبداً تحت حدّك الأدنى.',
+    },
     errorStates: {
       privateEyebrow: 'صفقة خاصة',
       privateTitle: 'هذه الصفقة خاصة',
