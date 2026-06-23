@@ -8,7 +8,13 @@ import {
   isPending,
   type NearMissApproval,
 } from '../db/nearMiss.js';
-import { markPassed, noteFarFloor, clearOutOfReach, getOutOfReach } from '../db/outOfReach.js';
+import {
+  markPassed,
+  noteFarFloor,
+  clearOutOfReach,
+  getOutOfReach,
+  markLastCall,
+} from '../db/outOfReach.js';
 
 /// How far beyond a party's limit still counts as a near-miss worth surfacing
 /// for a FUZZY (profile / no-overlap) match. A real near-miss, not a wild
@@ -121,7 +127,10 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     // harmless: it's idempotent and off the public feed, and keeps a fresh
     // signal in the ring for a reload. The request stays open; a genuinely
     // cheaper seller clears the marker and supersedes this on the page.
-    if (input.confirmedTopical) {
+    // Don't surface the out-of-reach advisory while a proceed/pass is already on
+    // the table (a fresh seller's near-miss, or the deadline last-call). The
+    // pending near-miss owns the page; re-arming out-of-reach here would fight it.
+    if (input.confirmedTopical && !getPendingNearMiss(jobId)) {
       const marked = noteFarFloor(jobId, sellerFloorUsdc);
       if (marked) {
         bus.emitEvent({
@@ -247,6 +256,7 @@ export function endNearMissOnDecline(jobId: string): { ended: boolean } {
 export function reRaiseNearMissFromPassed(
   jobId: string,
   deadlineUnix: number,
+  opts?: { auto?: boolean },
 ): NearMissApproval | null {
   const rec = getOutOfReach(jobId);
   if (!rec?.passed) return null;
@@ -271,13 +281,16 @@ export function reRaiseNearMissFromPassed(
     expiresAt: windowExpiry(deadlineUnix, now),
   };
   upsertNearMiss(record);
-  // The buyer chose to reconsider: the deal is actionable again, so leave the
-  // out-of-reach state behind and surface the proceed/pass card.
-  clearOutOfReach(jobId);
+  // Keep the out-of-reach marker: re-raising the same passed offer is not a new
+  // crossable path (only a fresh seller or a funded deal clears it). The pending
+  // near-miss now owns the page, and the emit guard above stops the advisory
+  // from fighting it. When this is the automatic deadline last-call, stamp it so
+  // it only fires once.
+  if (opts?.auto) markLastCall(jobId);
   emitNearMiss(record);
   logger.info(
-    { jobId, proceedPriceUsdc: record.proceedPriceUsdc },
-    'near-miss re-raised from passed offer: buyer reconsidered',
+    { jobId, proceedPriceUsdc: record.proceedPriceUsdc, auto: opts?.auto === true },
+    'near-miss re-raised from passed offer',
   );
   return record;
 }
