@@ -72,6 +72,7 @@ import {
 import { classifyAgentError } from '../chain/errors.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { clearNearMiss } from '../db/nearMiss.js';
+import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
@@ -2027,6 +2028,9 @@ async function proposeMatch(
   pattern?: ReturnType<typeof classifyBid>,
   opts?: { allowSupersede?: boolean },
 ) {
+  // A crossable deal is closing: drop any "no match at your budget" marker so a
+  // stale out-of-reach state can't linger on the job page after a real match.
+  clearOutOfReach(state.jobId);
   // Re-rank the full pool before committing. A stronger bid that landed after
   // the collection window closed (a late ELITE while the agent negotiated a
   // COLD seller) supersedes the about-to-propose seller when it's acceptable at

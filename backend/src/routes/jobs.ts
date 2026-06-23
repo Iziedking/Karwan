@@ -21,7 +21,8 @@ import {
 } from '../agents/buyer.js';
 import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
 import { getMarketAdvisory } from '../db/marketAdvisory.js';
-import { endNearMissOnDecline } from '../agents/nearMiss.js';
+import { getOutOfReach } from '../db/outOfReach.js';
+import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearMiss.js';
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
@@ -632,4 +633,39 @@ jobsRoutes.post('/:jobId/near-miss', async (c) => {
   } finally {
     inFlight.delete(jobId);
   }
+});
+
+/// Reconsider the offer the buyer passed. When the auction found nothing cheaper
+/// and only out-of-reach matches remain, the buyer can bring back the exact ask
+/// they declined and proceed after all. Re-raises the near-miss from the durable
+/// snapshot; the buyer then hits Proceed on the near-miss card as usual. Gated to
+/// the buyer named on the out-of-reach record.
+jobsRoutes.post('/:jobId/reconsider', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const rec = getOutOfReach(jobId);
+  if (!rec?.passed) {
+    return c.json({ error: 'no passed offer to reconsider', code: 'NO_PASSED_OFFER' }, 404);
+  }
+  if (body.caller.toLowerCase() !== rec.passed.buyerUser) {
+    return c.json({ error: 'only the buyer can reconsider this', code: 'forbidden' }, 403);
+  }
+  const job = getBuyerJob(jobId);
+  if (!job) return c.json({ error: 'not found' }, 404);
+  if (job.expiredAt || job.cancelledAt) {
+    return c.json({ error: 'request is no longer live', code: 'NOT_LIVE' }, 409);
+  }
+  const raised = reRaiseNearMissFromPassed(jobId, job.deadlineUnix);
+  if (!raised) {
+    return c.json({ error: 'could not reconsider', code: 'NO_PASSED_OFFER' }, 409);
+  }
+  return c.json({ reconsidered: true, jobId, proceedPriceUsdc: raised.proceedPriceUsdc }, 200);
 });

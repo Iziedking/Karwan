@@ -309,6 +309,39 @@ listingsRoutes.post('/', async (c) => {
   return c.json({ listing }, 201);
 });
 
+/// Cache of confirmed listing↔brief topical matches, keyed jobId → listingId →
+/// the content the verdict was made on. The periodic re-scan re-touches every
+/// open listing against every open brief each tick; without this it re-pays the
+/// LLM to rediscover a match (or an uncrossable wall) it already found. We only
+/// cache a POSITIVE match (a flaky LLM could wrongly cache a miss), and key it
+/// on the brief + listing TEXT so an edit re-evaluates. Price is deliberately
+/// not in the basis: the floor/ceiling check downstream runs fresh every tick,
+/// so a budget edit re-checks crossability without busting this cache. Cleared
+/// when a listing is consumed; otherwise bounded by open jobs × listings and
+/// reset on restart.
+const confirmedMatchCache = new Map<string, Map<string, string>>();
+
+function matchBasis(
+  job: { briefText?: string; keywords?: string[] },
+  listing: Listing,
+): string {
+  return [
+    (job.briefText ?? '').trim(),
+    (job.keywords ?? []).join(','),
+    listing.title,
+    listing.description,
+  ].join('||');
+}
+
+function rememberConfirmedMatch(jobId: string, listingId: string, basis: string): void {
+  let m = confirmedMatchCache.get(jobId);
+  if (!m) {
+    m = new Map();
+    confirmedMatchCache.set(jobId, m);
+  }
+  m.set(listingId, basis);
+}
+
 async function scanBriefsForListing(
   listing: Listing,
   seller: Awaited<ReturnType<typeof resolveSellerProfile>>,
@@ -442,86 +475,109 @@ async function tryMatchListingToJob(
     return false;
   }
 
-  let decision: { match: boolean; confidence: number; reasoning?: string } | null = null;
-  try {
-    const result = await withLlmRetry(`listingMatch(${listing.id}:${job.jobId})`, () =>
-      generateObject({
-        model: llmModel,
-        schema: matchDecisionSchema,
-        prompt: buildListingMatchPrompt(listing, job),
-      }),
-    );
-    decision = result.object;
-  } catch (err) {
-    logger.warn(
-      { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
-      'match LLM failed; falling back to keyword overlap',
-    );
-  }
-
   // Deterministic topical signal so a flaky LLM call can't silently drop a real
   // match (and with it the bid / near-miss). Brief keywords vs the listing's own
   // words, generic filler ("account", "service") stripped.
   const topical =
     topicalOverlap(job.keywords ?? [], [listing.title, listing.description]) > 0;
 
-  logger.info(
-    { listingId: listing.id, jobId: job.jobId, decision, topical },
-    'listing-brief match decision',
-  );
+  // Skip the LLM when this exact brief + listing text already confirmed a match
+  // on a prior scan. The recurring reconciler otherwise re-pays the model every
+  // ~90s to rediscover the same verdict (most visibly on an uncrossable listing
+  // that bounces off the price wall forever). The price check below still runs
+  // fresh, so a budget change re-evaluates crossability.
+  const basis = matchBasis(job, listing);
+  const cachedConfirmed = confirmedMatchCache.get(job.jobId)?.get(listing.id) === basis;
 
-  if (decision) {
-    // The LLM answered. Respect an explicit rejection (it also runs the
-    // direction check: offer-vs-request).
-    // Trust the LLM's positive match more aggressively. Below 0.4 confidence
-    // is fence-sitting; above is intent. The old 0.6 floor dropped
-    // textbook-clear matches like "API services" vs "I need API services"
-    // when Gemini Flash Lite returned 0.5-0.6. The topical fallback then
-    // missed because keywords hadn't been extracted yet.
-    if (!decision.match || decision.confidence < 0.4) {
+  let decision: { match: boolean; confidence: number; reasoning?: string } | null = null;
+  if (cachedConfirmed) {
+    emitAgentDecision({
+      jobId: job.jobId,
+      actor: 'seller',
+      stage: 'relevance',
+      decision: 'matched',
+      source: 'cache',
+      detail: `"${listing.title}" matches this request`,
+      signals: { listingId: listing.id, topical, cached: true },
+    });
+  } else {
+    try {
+      const result = await withLlmRetry(`listingMatch(${listing.id}:${job.jobId})`, () =>
+        generateObject({
+          model: llmModel,
+          schema: matchDecisionSchema,
+          prompt: buildListingMatchPrompt(listing, job),
+        }),
+      );
+      decision = result.object;
+    } catch (err) {
+      logger.warn(
+        { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
+        'match LLM failed; falling back to keyword overlap',
+      );
+    }
+
+    logger.info(
+      { listingId: listing.id, jobId: job.jobId, decision, topical },
+      'listing-brief match decision',
+    );
+
+    if (decision) {
+      // The LLM answered. Respect an explicit rejection (it also runs the
+      // direction check: offer-vs-request).
+      // Trust the LLM's positive match more aggressively. Below 0.4 confidence
+      // is fence-sitting; above is intent. The old 0.6 floor dropped
+      // textbook-clear matches like "API services" vs "I need API services"
+      // when Gemini Flash Lite returned 0.5-0.6. The topical fallback then
+      // missed because keywords hadn't been extracted yet.
+      if (!decision.match || decision.confidence < 0.4) {
+        emitAgentDecision({
+          jobId: job.jobId,
+          actor: 'seller',
+          stage: 'relevance',
+          decision: 'skipped',
+          source: 'llm',
+          reason: 'not-a-match',
+          detail: `"${listing.title}" is not a match for this request`,
+          reasoning: decision.reasoning,
+          signals: { listingId: listing.id, confidence: decision.confidence, topical },
+        });
+        return false;
+      }
+    } else if (!topical) {
+      // LLM unavailable AND no keyword overlap to lean on. Genuinely can't tell.
       emitAgentDecision({
         jobId: job.jobId,
         actor: 'seller',
         stage: 'relevance',
         decision: 'skipped',
-        source: 'llm',
-        reason: 'not-a-match',
-        detail: `"${listing.title}" is not a match for this request`,
-        reasoning: decision.reasoning,
-        signals: { listingId: listing.id, confidence: decision.confidence, topical },
+        source: 'deterministic',
+        reason: 'no-topical-overlap',
+        detail: `"${listing.title}" shares no topic with this request, and the matcher was unavailable`,
+        signals: { listingId: listing.id, topical: false },
       });
       return false;
     }
-  } else if (!topical) {
-    // LLM unavailable AND no keyword overlap to lean on. Genuinely can't tell.
+    // Proceeding: either the LLM confirmed, or it errored but the brief and
+    // listing share a real topic word (e.g. "amazon").
     emitAgentDecision({
       jobId: job.jobId,
       actor: 'seller',
       stage: 'relevance',
-      decision: 'skipped',
-      source: 'deterministic',
-      reason: 'no-topical-overlap',
-      detail: `"${listing.title}" shares no topic with this request, and the matcher was unavailable`,
-      signals: { listingId: listing.id, topical: false },
+      decision: 'matched',
+      source: decision ? 'llm' : 'fallback',
+      detail: `"${listing.title}" matches this request`,
+      reasoning: decision?.reasoning,
+      signals: {
+        listingId: listing.id,
+        topical,
+        ...(decision ? { confidence: decision.confidence } : {}),
+      },
     });
-    return false;
+    // Confirmed: cache it so the next scan skips the LLM. Only positive verdicts
+    // are cached; a miss is never cached (the LLM is intermittent).
+    rememberConfirmedMatch(job.jobId, listing.id, basis);
   }
-  // Proceeding: either the LLM confirmed, or it errored but the brief and listing
-  // share a real topic word (e.g. "amazon").
-  emitAgentDecision({
-    jobId: job.jobId,
-    actor: 'seller',
-    stage: 'relevance',
-    decision: 'matched',
-    source: decision ? 'llm' : 'fallback',
-    detail: `"${listing.title}" matches this request`,
-    reasoning: decision?.reasoning,
-    signals: {
-      listingId: listing.id,
-      topical,
-      ...(decision ? { confidence: decision.confidence } : {}),
-    },
-  });
 
   const floor = listingFloor(listing);
   const buyerPct = job.negotiationMaxIncreasePct ?? 0;
@@ -589,6 +645,9 @@ async function tryMatchListingToJob(
   if (!result.ok) return false;
 
   markListingMatched(listing.id, job.jobId);
+  // The brief is consumed by this listing; drop its match cache so it doesn't
+  // linger after the job leaves the open pool.
+  confirmedMatchCache.delete(job.jobId);
   bus.emitEvent({
     type: 'listing.matched',
     jobId: job.jobId,

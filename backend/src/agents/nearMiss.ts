@@ -8,6 +8,7 @@ import {
   isPending,
   type NearMissApproval,
 } from '../db/nearMiss.js';
+import { markPassed, noteFarFloor, clearOutOfReach, getOutOfReach } from '../db/outOfReach.js';
 
 /// How far beyond a party's limit still counts as a near-miss worth surfacing
 /// for a FUZZY (profile / no-overlap) match. A real near-miss, not a wild
@@ -110,6 +111,33 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
       bandPctOverride: input.bandPctOverride,
       marketBacked,
     });
+    // A confirmed-topical match priced far past the ceiling, after the buyer
+    // already passed the best real price, means the deal can never settle at
+    // this budget. The near-miss record is deleted on re-open, so the durable
+    // "passed" marker (set in endNearMissOnDecline) is what we check. When it's
+    // set, record this far floor and emit a durable out-of-reach signal so the
+    // job page stops the "negotiating" spinner and explains the gap, rather than
+    // churning this same skip every reconcile tick. Re-emitting on each tick is
+    // harmless: it's idempotent and off the public feed, and keeps a fresh
+    // signal in the ring for a reload. The request stays open; a genuinely
+    // cheaper seller clears the marker and supersedes this on the page.
+    if (input.confirmedTopical) {
+      const marked = noteFarFloor(jobId, sellerFloorUsdc);
+      if (marked) {
+        bus.emitEvent({
+          type: 'negotiation.out-of-reach',
+          jobId,
+          actor: 'platform',
+          payload: {
+            closestFloorUsdc: round2(marked.closestFloorUsdc ?? sellerFloorUsdc),
+            ceilingUsdc: round2(marked.ceilingUsdc),
+            // The best real price the buyer passed, so the advisory can offer to
+            // reconsider it when nothing cheaper turned up.
+            passedPriceUsdc: marked.passed.proceedPriceUsdc,
+          },
+        });
+      }
+    }
     return false;
   }
 
@@ -174,6 +202,10 @@ export async function maybeRaiseNearMiss(input: NearMissInput): Promise<boolean>
     // state if needed; budget/terms ride the job state today.
   };
   upsertNearMiss(record);
+  // A fresh crossable ask supersedes any earlier out-of-reach state: a real
+  // near-match is back on the table, so drop the "no match at your budget"
+  // marker (a cheaper seller showed up after the pass).
+  clearOutOfReach(jobId);
   emitNearMiss(record);
   logger.info(
     { jobId, askedSide: 'buyer', proceedPriceUsdc, gapUsdc: record.gapUsdc },
@@ -192,6 +224,11 @@ export function endNearMissOnDecline(jobId: string): { ended: boolean } {
   if (!n) return { ended: false };
   const ended: NearMissApproval = { ...n, declinedAt: Date.now() };
   upsertNearMiss(ended);
+  // Durable trace that the buyer saw the best real price and passed. The
+  // near-miss record gets deleted when the auction re-opens, so this marker is
+  // what later out-of-reach skips check against, and it snapshots the offer so
+  // the advisory can re-raise it if nothing cheaper turns up.
+  markPassed(jobId, n);
   bus.emitEvent({
     type: 'negotiation.near-miss.declined',
     jobId,
@@ -199,6 +236,50 @@ export function endNearMissOnDecline(jobId: string): { ended: boolean } {
     payload: { buyer: ended.buyerUser, sellerUser: ended.sellerUser, askedSide: n.askedSide },
   });
   return { ended: true };
+}
+
+/// Re-raise the offer the buyer passed, from the durable out-of-reach snapshot.
+/// Powers the advisory's "reconsider" action: when no cheaper seller turned up,
+/// the buyer can bring back the exact ask they declined and proceed. The seller
+/// already offered this floor, so the price is within their authorization and no
+/// second gate is needed. Returns the re-raised record, or null when there's no
+/// passed offer to bring back (already resolved, or never had one).
+export function reRaiseNearMissFromPassed(
+  jobId: string,
+  deadlineUnix: number,
+): NearMissApproval | null {
+  const rec = getOutOfReach(jobId);
+  if (!rec?.passed) return null;
+  // Don't stomp a live near-miss (a fresh seller may already be on the table).
+  if (getPendingNearMiss(jobId)) return null;
+  const p = rec.passed;
+  const now = Date.now();
+  const record: NearMissApproval = {
+    jobId: jobId.toLowerCase(),
+    buyerUser: p.buyerUser,
+    buyerAgent: p.buyerAgent,
+    sellerUser: p.sellerUser,
+    sellerAgent: p.sellerAgent,
+    askedSide: 'buyer',
+    askedUser: p.buyerUser,
+    proceedPriceUsdc: p.proceedPriceUsdc,
+    limitUsdc: p.limitUsdc,
+    gapUsdc: round2(Math.max(0, Number(p.sellerFloorUsdc) - Number(p.buyerCeilingUsdc))),
+    buyerCeilingUsdc: p.buyerCeilingUsdc,
+    sellerFloorUsdc: p.sellerFloorUsdc,
+    createdAt: now,
+    expiresAt: windowExpiry(deadlineUnix, now),
+  };
+  upsertNearMiss(record);
+  // The buyer chose to reconsider: the deal is actionable again, so leave the
+  // out-of-reach state behind and surface the proceed/pass card.
+  clearOutOfReach(jobId);
+  emitNearMiss(record);
+  logger.info(
+    { jobId, proceedPriceUsdc: record.proceedPriceUsdc },
+    'near-miss re-raised from passed offer: buyer reconsidered',
+  );
+  return record;
 }
 
 /// Emit a structured "near-miss skipped" event for every silent-false return.

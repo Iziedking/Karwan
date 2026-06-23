@@ -991,6 +991,18 @@ export const fr: Messages = {
       confirmYesBusy: 'Annulation…',
       confirmNo: 'Garder la requête',
     },
+    outOfReach: {
+      tag: 'AUCUNE OFFRE DANS VOTRE BUDGET',
+      title: 'Aucune offre dans votre budget',
+      bodyTemplate:
+        "L'offre la plus proche demande environ {floor} USDC, bien au-dessus de votre budget de {budget} USDC. Augmentez votre budget vers {floor}, ou attendez une offre moins chère.",
+      reconsiderHintTemplate:
+        "Vous avez refusé une offre à {price} USDC plus tôt. Rien de moins cher ne s'est présenté, vous pouvez la reprendre.",
+      reconsiderCtaTemplate: "Reconsidérer l'offre à {price}",
+      reconsiderBusy: 'Reprise en cours…',
+      raiseCta: 'Augmenter le budget',
+      waitCta: 'Continuer à attendre',
+    },
   },
   nearMissCard: {
     eyebrow: "Match proche · votre agent attend votre décision",
@@ -2830,7 +2842,7 @@ export const fr: Messages = {
       milestones: 'JALONS',
       settled: 'RÉGLÉ',
     },
-    terminal: { expired: 'EXPIRÉ', ended: 'ARRÊTÉ ICI' },
+    terminal: { expired: 'EXPIRÉ', ended: 'ARRÊTÉ ICI', outOfReach: 'AUCUNE OFFRE' },
   },
   agentShell: {
     role: { buyer: 'Agent acheteur', seller: 'Agent vendeur' },

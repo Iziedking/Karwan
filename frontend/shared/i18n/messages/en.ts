@@ -954,6 +954,16 @@ interface MessagesShape {
       confirmYesBusy: string;
       confirmNo: string;
     };
+    outOfReach: {
+      tag: string;
+      title: string;
+      bodyTemplate: string;
+      reconsiderHintTemplate: string;
+      reconsiderCtaTemplate: string;
+      reconsiderBusy: string;
+      raiseCta: string;
+      waitCta: string;
+    };
   };
   nearMissCard: {
     eyebrow: string;
@@ -2725,7 +2735,7 @@ interface MessagesShape {
       milestones: string;
       settled: string;
     };
-    terminal: { expired: string; ended: string };
+    terminal: { expired: string; ended: string; outOfReach: string };
   };
   agentShell: {
     role: { buyer: string; seller: string };
@@ -4673,6 +4683,18 @@ export const en: MessagesShape = {
       confirmYesBusy: 'Cancelling…',
       confirmNo: 'Keep request',
     },
+    outOfReach: {
+      tag: 'NO MATCH AT YOUR BUDGET',
+      title: 'No match at your budget',
+      bodyTemplate:
+        'The closest offer needs about {floor} USDC, well above your {budget} USDC budget. Raise your budget toward {floor}, or keep waiting for a cheaper offer.',
+      reconsiderHintTemplate:
+        'You passed an offer at {price} USDC earlier. Nothing cheaper turned up, so you can bring it back.',
+      reconsiderCtaTemplate: 'Reconsider the {price} offer',
+      reconsiderBusy: 'Bringing it back…',
+      raiseCta: 'Raise budget',
+      waitCta: 'Keep waiting',
+    },
   },
   nearMissCard: {
     eyebrow: 'Near match · your agent needs a call',
@@ -6536,7 +6558,7 @@ export const en: MessagesShape = {
       milestones: 'MILESTONES',
       settled: 'SETTLED',
     },
-    terminal: { expired: 'EXPIRED', ended: 'ENDED HERE' },
+    terminal: { expired: 'EXPIRED', ended: 'ENDED HERE', outOfReach: 'NO MATCH' },
   },
   agentShell: {
     role: { buyer: 'Buyer agent', seller: 'Seller agent' },

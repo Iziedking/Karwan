@@ -32,8 +32,9 @@ export function FlowStepper({
   completed: StepKey[];
   /// 'declined' = negotiation ended without agreement (red terminal label).
   /// 'expired' = request deadline lapsed with no match (neutral terminal label).
+  /// 'out-of-reach' = no seller could meet the budget (neutral terminal label).
   /// null = live; the active step blinks. Replaces the old `declined` boolean.
-  ended?: 'declined' | 'expired' | null;
+  ended?: 'declined' | 'expired' | 'out-of-reach' | null;
 }) {
   const fs = useTranslations().flowStepper;
   const steps: Array<{ key: StepKey; label: string }> = stepKeys.map((key) => ({
@@ -45,8 +46,14 @@ export function FlowStepper({
     0,
   );
   const completedSet = new Set(completed);
-  const terminalColor = ended === 'expired' ? NEUTRAL : CRITICAL;
-  const terminalLabel = ended === 'expired' ? fs.terminal.expired : fs.terminal.ended;
+  // Out-of-reach and expiry are neutral (no fault); only a real decline is red.
+  const terminalColor = ended === 'declined' ? CRITICAL : NEUTRAL;
+  const terminalLabel =
+    ended === 'expired'
+      ? fs.terminal.expired
+      : ended === 'out-of-reach'
+        ? fs.terminal.outOfReach
+        : fs.terminal.ended;
 
   return (
     <ol className="relative">
