@@ -1747,6 +1747,11 @@ interface MessagesShape {
       eyebrow: string;
       openedTemplate: string;
     };
+    agentResearch: {
+      tag: string;
+      buyerIntro: string;
+      sellerIntro: string;
+    };
     errorStates: {
       privateEyebrow: string;
       privateTitle: string;
@@ -5547,6 +5552,13 @@ export const en: MessagesShape = {
     hero: {
       eyebrow: 'DIRECT DEAL',
       openedTemplate: 'opened {when}',
+    },
+    agentResearch: {
+      tag: 'AGENT RESEARCH',
+      buyerIntro:
+        'Your agent researched this market before negotiating. It used the read to settle a fair price within your cap.',
+      sellerIntro:
+        'Your agent researched this market before negotiating. It used the read to price your service, never below your floor.',
     },
     errorStates: {
       privateEyebrow: 'PRIVATE DEAL',

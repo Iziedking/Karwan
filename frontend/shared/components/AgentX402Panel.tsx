@@ -174,7 +174,7 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
                   {p.kind === 'research' && p.demand && (
                     <p className="mt-2">
                       Found: demand <strong className="text-[var(--lp-dark)]">{p.demand}</strong>. The
-                      agent priced this deal accordingly, within your cap.
+                      agent used this read to price the deal.
                     </p>
                   )}
                   <div className="mt-2 flex items-center gap-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">

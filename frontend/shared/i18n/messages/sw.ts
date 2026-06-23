@@ -1854,6 +1854,13 @@ export const sw: Messages = {
       eyebrow: 'MKATABA WA MOJA KWA MOJA',
       openedTemplate: 'umefunguliwa {when}',
     },
+    agentResearch: {
+      tag: 'UTAFITI WA WAKALA',
+      buyerIntro:
+        'Wakala wako alifanya utafiti wa soko hili kabla ya kujadiliana. Alitumia usomaji huo kufikia bei ya haki ndani ya kikomo chako.',
+      sellerIntro:
+        'Wakala wako alifanya utafiti wa soko hili kabla ya kujadiliana. Alitumia usomaji huo kupanga bei ya huduma yako, bila kamwe kushuka chini ya sakafu yako.',
+    },
     errorStates: {
       privateEyebrow: 'MKATABA WA FARAGHA',
       privateTitle: 'Mkataba huu ni wa faragha',
