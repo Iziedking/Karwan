@@ -1936,6 +1936,8 @@ export const fr: Messages = {
       deliveryHeldBody: 'Karwan a signalé le lien de livraison et le retient jusqu’à vérification. Ne libérez pas l’escrow tant qu’il n’est pas validé.',
       deliveryVerifyingLabel: 'Lien en cours de vérification',
       deliveryVerifyingBody: 'Karwan a signalé votre lien de livraison et le vérifie avant que l’acheteur puisse le voir. Il le verra une fois validé.',
+      deliveryReviewLabel: 'Vérifiez que cela répond à votre demande',
+      deliveryReviewBody: 'Votre agent a comparé la livraison à votre demande et n’est pas sûr qu’elle corresponde entièrement. Ouvrez-la et confirmez avant de libérer les fonds.',
     },
     progress: {
       eyebrow: 'AVANCEMENT',

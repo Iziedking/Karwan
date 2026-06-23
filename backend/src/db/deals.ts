@@ -59,6 +59,12 @@ export interface DirectDeal {
   // check. verificationReasons explains a non-clean verdict in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
+  /// Security Agent verdict on whether the delivery meets the buyer's request,
+  /// separate from link safety. 'aligned' (or absent) flows normally; 'partial'
+  /// and 'mismatch' surface a buyer review notice and pause auto-release so the
+  /// buyer looks before money moves; 'unknown' means it could not be judged. The
+  /// proof is never withheld for a requirement verdict, the buyer is the judge.
+  deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
   // Set when the first milestone is released (by the buyer or by the auto
   // first-release). Starts the final-release window during which the buyer
   // must release the final milestone, else the agent auto-releases.
