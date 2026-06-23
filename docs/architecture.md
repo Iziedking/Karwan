@@ -105,7 +105,9 @@ like a human broker rather than a price matcher.
   plain advisory with the closest price. The request stays open for a cheaper
   seller; a fresh crossable bid clears the marker. The buyer can reconsider the
   offer they passed in one tap, which re-raises the original near-miss to
-  proceed.
+  proceed. If nothing cheaper arrives, the expiry watcher gives one last call as
+  the deadline nears, re-surfacing that passed offer as a proceed-or-pass so the
+  deal is not lost to silence. It asks, and never funds on its own.
 - **Overpay advisory.** When the budget sits well above the grounded market
   price, the buyer agent flags it as non-destructive advisory. The agent never
   cancels on its own; the operator decides whether to proceed or reopen closer

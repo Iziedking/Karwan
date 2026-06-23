@@ -38,6 +38,9 @@ export interface OutOfReachRecord {
   passed: PassedOffer;
   /// When the buyer passed the near-miss.
   passedAt: number;
+  /// When the automatic "last call" near the deadline was delivered, so it only
+  /// fires once. Unset until the expiry watcher re-surfaces the passed offer.
+  lastCallAt?: number;
   updatedAt: number;
 }
 
@@ -67,8 +70,22 @@ export function markPassed(jobId: string, nearMiss: NearMissApproval): void {
       sellerFloorUsdc: nearMiss.sellerFloorUsdc,
     },
     passedAt: prev?.passedAt ?? Date.now(),
+    // Preserve the last-call flag across a re-pass so a passed last call never
+    // re-arms the watcher.
+    lastCallAt: prev?.lastCallAt,
     updatedAt: Date.now(),
   };
+  saveFile(store);
+}
+
+/// Mark that the automatic last-call near the deadline has been delivered, so
+/// the expiry watcher re-surfaces the passed offer at most once.
+export function markLastCall(jobId: string): void {
+  const store = loadFile();
+  const key = jobId.toLowerCase();
+  const rec = store[key];
+  if (!rec) return;
+  store[key] = { ...rec, lastCallAt: Date.now(), updatedAt: Date.now() };
   saveFile(store);
 }
 
