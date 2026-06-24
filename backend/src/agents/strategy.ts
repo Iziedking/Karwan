@@ -148,8 +148,10 @@ export function sellerPremiumByBuyerTier(buyerTier: Tier): number {
 /// brief. The LLM still writes per-bid reasoning, but the ranking comes
 /// from this function so two scoring calls on the same bid can't disagree.
 ///
-/// Weights: 40% price / 25% tier / 15% completion / 10% deals
-///        + 5% age / 5% velocity.
+/// Weights (base, sums to 100): 30% topical / 30% price / 20% tier
+///        + 10% completion / 5% deals / 2.5% age / 2.5% velocity.
+/// Plus a relationship nudge of up to ~5 points added ON TOP (not folded in),
+/// so prior clean deals break a near-tie without ever beating a stronger bid.
 ///
 /// Each sub-score is itself bounded to [0, 100]:
 ///   priceScore       100 at-or-below budget, drops linearly to 30 at the
@@ -173,6 +175,12 @@ export interface BidScoreInputs {
   /// — without it, a great-fit seller bidding a touch over budget scores low and
   /// gets buried whenever the scoring LLM fails. Neutral 50 when unknown.
   topicalMatch?: number;
+  /// 0..100 relationship strength: how well the buyer knows this seller from
+  /// prior clean deals (see relationshipScoreFromDeals). Applied as a small
+  /// additive nudge ON TOP of the weighted base, never folded into it, so a
+  /// familiar seller can flip a near-tie with a comparable bid but can never
+  /// out-rank a clearly stronger one. 0 (no nudge) when there is no history.
+  relationshipScore?: number;
 }
 export interface BidScore {
   score: number;
@@ -184,7 +192,17 @@ export interface BidScore {
     deals: number;
     age: number;
     velocity: number;
+    relationship: number;
   };
+}
+
+/// Map a count of prior CLEAN buyer->seller deals to a 0..100 relationship
+/// score. Diminishing returns: the first repeat deal earns most of the nudge,
+/// it caps at three. Fed into scoreBidDeterministic where it contributes at most
+/// ~5 points (relationshipScore * 0.05), keeping it a tiebreaker, not a lever.
+export function relationshipScoreFromDeals(cleanDeals: number): number {
+  if (cleanDeals <= 0) return 0;
+  return Math.min(100, 40 + (cleanDeals - 1) * 30);
 }
 
 const TIER_SCORE: Record<Tier, number> = {
@@ -245,8 +263,15 @@ export function scoreBidDeterministic(args: BidScoreInputs): BidScore {
     ageScore * 0.025 +
     velocityScore * 0.025;
 
+  // Relationship nudge sits ON TOP of the weighted base (which already sums to
+  // 100), contributing at most ~5 points. It only reorders bids that are
+  // already close within the same match band, so a known-good seller wins a
+  // near-tie but never overtakes a clearly better-fit or cheaper stranger.
+  const relationshipScore = Math.max(0, Math.min(100, args.relationshipScore ?? 0));
+  const relationshipBonus = relationshipScore * 0.05;
+
   return {
-    score: Math.round(weighted),
+    score: Math.round(weighted + relationshipBonus),
     breakdown: {
       topical: Math.round(topicalScore),
       price: Math.round(priceScore),
@@ -255,6 +280,7 @@ export function scoreBidDeterministic(args: BidScoreInputs): BidScore {
       deals: Math.round(dealsScore),
       age: Math.round(ageScore),
       velocity: Math.round(velocityScore),
+      relationship: Math.round(relationshipScore),
     },
   };
 }

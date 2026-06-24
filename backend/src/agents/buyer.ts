@@ -15,7 +15,7 @@ import {
 import { ESCROW_FUNDED } from '../chain/settlement.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
-import { llmModel } from '../llm/client.js';
+import { negotiationModel } from '../llm/client.js';
 import {
   bidScoreSchema,
   counterEvaluationSchema,
@@ -36,10 +36,12 @@ import { resolveBuyerProfile, resolveSellerProfile } from './agent-registry.js';
 import {
   heuristicCounterDecision,
   nextCounterPrice,
+  relationshipScoreFromDeals,
   scoreBidDeterministic,
   shouldAcceptOnFinalRound,
   type Tier,
 } from './strategy.js';
+import { countCleanDealsBetween } from './workRecord.js';
 
 /// Hard cap on how many seller candidates the buyer agent will attempt
 /// sequentially on a single brief. Without this, a 10-bid auction could
@@ -139,6 +141,11 @@ interface Bid {
   /// Absent when paid signals are disabled or the call failed; the bid
   /// scores on local signals alone in that case.
   paidSignal?: PaidPassportSignal;
+  /// Relationship memory: prior CLEAN deals this buyer has closed with this
+  /// seller before. Resolved once at bid time (countCleanDealsBetween) and fed
+  /// to scoreBidDeterministic as a small within-band ranking nudge so a
+  /// familiar, proven counterparty wins a near-tie. 0 when there is no history.
+  priorCleanDealsWithBuyer?: number;
 }
 
 /// Score difference under which two bids are "tied" for the purposes of the
@@ -656,6 +663,24 @@ async function handleBidSubmitted(log: Log) {
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
   const anomaly = priceAnomalyScore(Number(priceUsdc));
+
+  // Relationship memory: prior clean deals this buyer has closed with this
+  // seller. Resolved once here so the ranking nudge stays a synchronous read.
+  // Non-fatal: a lookup failure just means no nudge, never a dropped bid.
+  let priorCleanDealsWithBuyer = 0;
+  try {
+    priorCleanDealsWithBuyer = await countCleanDealsBetween(
+      state.context.buyer,
+      sellerUserAddress ?? null,
+      args.seller,
+    );
+  } catch (err) {
+    logger.warn(
+      { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
+      'relationship lookup failed (non-fatal, no nudge applied)',
+    );
+  }
+
   const bid: Bid = {
     seller: args.seller,
     priceUsdc,
@@ -670,6 +695,7 @@ async function handleBidSubmitted(log: Log) {
     sellerUserAddress,
     sellerDisplayName,
     paidSignal,
+    priorCleanDealsWithBuyer,
   };
 
   const bidContext: BidContext = {
@@ -682,6 +708,7 @@ async function handleBidSubmitted(log: Log) {
     priceMultiple,
     priceAnomaly: anomaly,
     sellerReputationBps,
+    priorCleanDeals: priorCleanDealsWithBuyer,
   };
 
   // Classify the bid against deterministic patterns BEFORE the LLM call. The
@@ -706,7 +733,7 @@ async function handleBidSubmitted(log: Log) {
   try {
     const { object: score } = await withLlmRetry(`bidScore(${state.jobId})`, () =>
       generateObject({
-        model: llmModel,
+        model: negotiationModel,
         schema: bidScoreSchema,
         prompt: buildBidRankingPrompt(state.context, bidContext, buyer),
       }),
@@ -730,6 +757,10 @@ async function handleBidSubmitted(log: Log) {
         pattern,
         tier: sellerRepTier,
         topicalMatch,
+        // Surface the relationship nudge so the timeline shows when the buyer
+        // favored a seller it has a clean track record with (only when there is
+        // one, to keep the audit trail quiet for first-time counterparties).
+        ...(priorCleanDealsWithBuyer > 0 ? { priorCleanDeals: priorCleanDealsWithBuyer } : {}),
         ...(paidSignal
           ? {
               paidSignal: {
@@ -766,6 +797,7 @@ async function handleBidSubmitted(log: Log) {
       sellerCompletionRate,
       sellerVelocity24h,
       topicalMatch,
+      relationshipScore: relationshipScoreFromDeals(priorCleanDealsWithBuyer),
     });
     bid.score = det.score;
     bid.pattern = pattern;
@@ -942,6 +974,7 @@ function rankBidEntries(state: JobState): RankedBidEntry[] {
         sellerTier: (b.sellerTier ?? 'established') as Tier,
         sellerCompletionRate: b.completionRate,
         sellerVelocity24h: b.velocity24h,
+        relationshipScore: relationshipScoreFromDeals(b.priorCleanDealsWithBuyer ?? 0),
       });
       return { bid: b, deterministicScore: det.score };
     })
@@ -1504,9 +1537,43 @@ async function issueCounter(state: JobState, bid: Bid) {
   const counterPrice = Number(bid.suggestedCounterPrice);
   const effectiveCap = computeBuyerEffectiveCap(state.context, buyer);
   if (counterPrice > effectiveCap) {
+    // The best-ranked seller can't be countered within budget. Surface IT to the
+    // buyer as a proceed/pass near-miss at the seller's price — it is the buyer's
+    // best over-budget option — instead of silently abandoning it and walking to
+    // a worse, pricier candidate. This was the dominance bug: an ELITE bid over
+    // cap was dropped here while a pricier COLD seller got the near-miss and the
+    // match. Only fall through to the next candidate when the gap is too wide to
+    // be a near-miss at all (maybeRaiseNearMiss returns false on gap-too-wide).
+    const sellerFloor = Number(bid.priceUsdc);
+    try {
+      const raised = await maybeRaiseNearMiss({
+        jobId: state.jobId,
+        buyerAgent: state.buyer.address,
+        sellerAgent: bid.seller,
+        deadlineUnix: state.context.deadlineUnix,
+        buyerCeilingUsdc: effectiveCap,
+        sellerFloorUsdc: Number.isFinite(sellerFloor) ? sellerFloor : counterPrice,
+        confirmedTopical: true,
+        bandPctOverride: nearMissBandFor(state.context),
+        market: marketContextFor(state),
+      });
+      if (raised) {
+        state.finalized = true;
+        logger.info(
+          { jobId: state.jobId, seller: bid.seller, sellerFloor, effectiveCap },
+          'best bid over cap: raised near-miss on the best seller instead of walking to a worse one',
+        );
+        return;
+      }
+    } catch (err) {
+      logger.warn(
+        { jobId: state.jobId, err: (err as Error).message },
+        'over-cap near-miss raise failed; falling through to next candidate',
+      );
+    }
     logger.warn(
       { jobId: state.jobId, counterPrice, effectiveCap },
-      'LLM counter exceeds brief effective cap, trying next candidate',
+      'LLM counter exceeds cap and gap too wide for a near-miss, trying next candidate',
     );
     await tryNextCandidate(state, bid.seller, 'llm-counter-over-budget');
     return;
@@ -1650,7 +1717,7 @@ async function handleCounterResponse(log: Log) {
   try {
     const result = await withLlmRetry(`counterEvaluation(${state.jobId})`, () =>
       generateObject({
-        model: llmModel,
+        model: negotiationModel,
         schema: counterEvaluationSchema,
         prompt: buildCounterEvaluationPrompt(
           state.context,

@@ -41,6 +41,32 @@ function outcomeOf(d: DirectDeal): WorkOutcome | null {
   return null;
 }
 
+/// Relationship memory: how many deals THIS buyer has previously closed CLEAN
+/// with THIS seller. The signal behind the buyer agent's small, earned nudge
+/// toward a counterparty it has transacted with successfully before. Counts the
+/// buyer->seller direction only ("I have bought from this seller and it went
+/// clean"). Matched on OWNER addresses so the relationship survives either side
+/// rotating its agent wallet, with the seller's bidding agent address as a
+/// fallback when the owner link was never recorded on the old deal.
+export async function countCleanDealsBetween(
+  buyerOwner: string,
+  sellerOwner: string | null,
+  sellerAgentAddress: string | null,
+): Promise<number> {
+  const b = buyerOwner.toLowerCase();
+  const sOwner = sellerOwner?.toLowerCase() ?? null;
+  const sAgent = sellerAgentAddress?.toLowerCase() ?? null;
+  if (!sOwner && !sAgent) return 0;
+  const deals = await listDealsForAddress(buyerOwner);
+  return deals.filter((d) => {
+    if (d.buyer.toLowerCase() !== b) return false;
+    const sellerMatches =
+      (sOwner !== null && d.seller.toLowerCase() === sOwner) ||
+      (sAgent !== null && d.sellerAgentAddress?.toLowerCase() === sAgent);
+    return sellerMatches && outcomeOf(d) === 'clean';
+  }).length;
+}
+
 /// Coarse amount band so scale shows without revealing the exact private price.
 function band(usdc: string): string {
   const n = Number(usdc);
