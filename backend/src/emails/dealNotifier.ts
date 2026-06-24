@@ -45,6 +45,8 @@ const EMAIL_RELEVANT = new Set([
   'deal.disputed',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
+  'deal.deadline.passed',
+  'deal.match.raised',
   'factoring.offered',
   'reputation.tier-up',
 ]);
@@ -74,6 +76,16 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   if (e.type === 'factoring.offered') {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'seller' }] : [];
+  }
+  if (e.type === 'deal.deadline.passed') {
+    // Only the buyer needs this: their funds are reclaimable now.
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'deal.match.raised') {
+    // Only the buyer: the approval gate flipped to them after the seller raised.
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
   // Remaining events carry a jobId and notify both parties.
   if (e.jobId) {
@@ -121,6 +133,18 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
             ctaLabel: 'View the match',
             ctaUrl: jobUrl(e.jobId),
           };
+    }
+    case 'deal.match.raised': {
+      const raised = (e.payload?.raisedPriceUsdc as string | undefined) ?? '';
+      const suffix = raised ? ` to ${raised} USDC` : '';
+      return {
+        eyebrow: 'SELLER RAISED',
+        subject: `The seller raised the price${suffix}`,
+        heading: 'The seller wants a higher price',
+        body: `The seller is not taking the price your agent agreed and raised it${suffix}. Open the match to approve the new price or decline it. Nothing funds until you approve.`,
+        ctaLabel: 'Review the raised price',
+        ctaUrl: jobUrl(e.jobId),
+      };
     }
     case 'deal.match.approved':
       return {
@@ -195,6 +219,17 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
+    case 'deal.deadline.passed':
+      return role === 'buyer'
+        ? {
+            eyebrow: 'DEADLINE PASSED',
+            subject: 'Your deadline passed. You can reclaim your funds',
+            heading: 'Deadline passed without delivery',
+            body: 'The delivery deadline passed and the seller has not delivered. You can reclaim your escrowed funds now, or grant an extension if you want to wait. If you do nothing and the seller still does not deliver, Karwan reclaims the funds to you automatically.',
+            ctaLabel: 'Reclaim or extend',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : null; // the seller missed their own deadline; no email to them
     case 'deal.cancel.proposed': {
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       if (proposedBy && proposedBy === role) return null; // don't email the proposer

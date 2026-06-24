@@ -245,9 +245,6 @@ export default function HowItWorksPage() {
           <Faq q={t.faq.q8.q}>
             {t.faq.q8.a}
           </Faq>
-          <Faq q={t.faq.q9.q}>
-            {t.faq.q9.a}
-          </Faq>
           <Faq q={t.faq.q10.q}>
             {t.faq.q10.a}
           </Faq>

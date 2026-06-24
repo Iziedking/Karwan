@@ -23,6 +23,18 @@ export interface MatchProposal {
   proposedAt: number;
   approvedAt?: number;
   declinedAt?: number;
+  /// Seller raise. The agent settled at agreedPriceUsdc, but the seller wanted
+  /// more and named a higher price at the approval gate. When set, the approval
+  /// gate flips: the BUYER now approves (fund at raisedPriceUsdc) or declines.
+  /// originalPriceUsdc keeps the agent-settled price for "was X" display.
+  /// raiseOverCap is true when the raise sits above the buyer's authorized cap
+  /// (budget x tolerance), so the UI can warn the buyer they are paying over the
+  /// ceiling they set. awaitingParty drives who the approval gate belongs to.
+  raisedPriceUsdc?: string;
+  originalPriceUsdc?: string;
+  raisedAt?: number;
+  raiseOverCap?: boolean;
+  awaitingParty?: 'seller' | 'buyer';
   /// Deterministic risk classification from agents/signals.ts (honey-trap,
   /// lowball, spammy) OR a seller-side flag from adjustBidByTier when the
   /// buyer is NEW-tier (new-buyer). When set, the MatchBanner renders a

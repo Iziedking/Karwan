@@ -244,6 +244,13 @@ const envSchema = z.object({
   // buyer has this long to respond with a reason. Silence triggers final
   // auto-release. 5 min demo default.
   DEAL_DELAY_APPEAL_RESPONSE_MS: z.coerce.number().int().positive().default(300_000),
+  // After a delivery deadline passes with no delivery, the buyer is alerted at
+  // once that they can reclaim. If they take no action AND the seller still has
+  // not delivered after this grace window, the watcher auto-reclaims the escrow
+  // to the buyer (refund + seller reputation hit). The grace protects a seller
+  // who delivers slightly late and gives the buyer room to grant an extension.
+  // 24h default; lower it for demos via env.
+  DEAL_DEADLINE_RECLAIM_GRACE_MS: z.coerce.number().int().positive().default(86_400_000),
 
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,

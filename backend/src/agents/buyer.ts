@@ -73,7 +73,7 @@ import {
 } from './signals.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
-import { clearNearMiss } from '../db/nearMiss.js';
+import { clearNearMiss, getPendingNearMiss, type NearMissApproval } from '../db/nearMiss.js';
 import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
@@ -543,7 +543,15 @@ async function handleBidSubmitted(log: Log) {
 
   const args = (log as unknown as { args: BidSubmittedArgs }).args;
   const state = jobs.get(args.jobId);
-  if (!state || state.finalized) return;
+  if (!state) return;
+  // A pending near-miss finalizes the job, but a cheaper or stronger bid that
+  // lands during the proceed-or-pass window must not be dropped: that is how an
+  // elite undercutting the near-miss candidate 17s later got silently discarded.
+  // Collect + score it and let it supersede the near-miss if it dominates. Any
+  // other finalized reason (match proposed, escrow funded, cancelled) still bails.
+  const nmPending = state.finalized ? getPendingNearMiss(args.jobId) : null;
+  if (state.finalized && !nmPending) return;
+  if (state.escrowFunded) return;
   if (state.bids.has(args.seller)) return;
   const buyer = state.buyer;
 
@@ -811,6 +819,14 @@ async function handleBidSubmitted(log: Log) {
 
   state.bids.set(args.seller, bid);
 
+  // Bid landed during a pending near-miss: decide whether it beats the price the
+  // buyer is being asked to stretch to, and if so re-rank so the better seller
+  // is surfaced instead of the worse one.
+  if (nmPending) {
+    await maybeSupersedeNearMiss(state, bid, nmPending);
+    return;
+  }
+
   if (!state.collectionFired) {
     if (state.collectionStartedAt == null) {
       state.collectionStartedAt = Date.now();
@@ -827,6 +843,58 @@ async function handleBidSubmitted(log: Log) {
     // window. Bounded by the buyer's set window (floor) and a hard cap.
     scheduleCollectionClose(state, buyer.bidCollectionSeconds * 1000);
   }
+}
+
+/// A bid arrived while the buyer was sitting on a proceed-or-pass near-miss. If
+/// it offers a strictly better price than the near-miss is asking the buyer to
+/// stretch to, drop that near-miss and re-finalize so the cheaper or stronger
+/// seller is surfaced instead (it closes when it now fits the cap, or re-anchors
+/// the near-miss on itself via the dominance rule in finalizeBidCollection). A
+/// bid that does not beat the standing offer is left collected but does not
+/// disturb the buyer's pending decision.
+async function maybeSupersedeNearMiss(
+  state: JobState,
+  bid: Bid,
+  nm: NearMissApproval,
+): Promise<void> {
+  // Same seller re-bidding their own near-miss, or a worse/equal price: leave
+  // the pending decision untouched.
+  if (bid.seller.toLowerCase() === nm.sellerAgent.toLowerCase()) return;
+  if (state.triedSellers.has(bid.seller)) return;
+  const beatsPrice = Number(bid.priceUsdc) < Number(nm.proceedPriceUsdc);
+  // Don't let an off-topic cheap bid hijack a confirmed-topical near-miss.
+  const hasFit = (bid.topicalMatch ?? 50) >= 50;
+  if (!beatsPrice || !hasFit) return;
+
+  logger.info(
+    {
+      jobId: state.jobId,
+      newSeller: bid.seller,
+      newPrice: bid.priceUsdc,
+      nmSeller: nm.sellerAgent,
+      nmProceedPrice: nm.proceedPriceUsdc,
+    },
+    'late bid undercuts the pending near-miss, superseding to re-rank',
+  );
+  bus.emitEvent({
+    type: 'negotiation.near-miss.superseded',
+    jobId: state.jobId,
+    actor: 'buyer',
+    payload: {
+      seller: bid.seller,
+      priceUsdc: bid.priceUsdc,
+      supersededSeller: nm.sellerAgent,
+      supersededPriceUsdc: nm.proceedPriceUsdc,
+    },
+  });
+
+  // Drop the pending near-miss and reopen the finalize path. finalizeBidCollection
+  // ranks only untried sellers, so the standing near-miss candidate (already in
+  // triedSellers) is not re-surfaced; the fresh, cheaper bid is.
+  clearNearMiss(state.jobId);
+  state.finalized = false;
+  state.collectionFired = false;
+  await finalizeBidCollection(state);
 }
 
 /// Quiet period after the last bid before the window closes, and the hard cap
@@ -2443,6 +2511,66 @@ export async function proceedAgentNearMiss(
     allowSupersede: false,
   });
   return approveAgentMatch(jobId);
+}
+
+/// Seller raises the agreed price at the approval gate. The agent settled within
+/// the buyer's authorized range, but the seller wants more, so instead of just
+/// accept/decline they name a higher number. This does no on-chain work: it
+/// flips the approval gate to the BUYER, who then approves (funds at the raised
+/// price through proceedAgentNearMiss, the same path a near-miss proceed takes)
+/// or declines. raiseOverCap is informational so the buyer knows when the raise
+/// sits above the tolerance they set; their explicit approval is the consent.
+export async function raiseMatchOffer(
+  jobId: string,
+  raisedPriceUsdc: string,
+): Promise<{ ok: true; raiseOverCap: boolean } | { ok: false; code: string; message: string }> {
+  const proposal = await dbGetMatchProposal(jobId);
+  if (!proposal) return { ok: false, code: 'NO_PROPOSAL', message: 'no match proposal for this job' };
+  if (proposal.approvedAt) return { ok: false, code: 'ALREADY_APPROVED', message: 'match already approved' };
+  if (proposal.declinedAt) return { ok: false, code: 'DECLINED', message: 'match was declined' };
+  if (proposal.awaitingParty === 'buyer') {
+    return { ok: false, code: 'RAISE_PENDING', message: 'a raised price is already awaiting the buyer' };
+  }
+  const current = Number(proposal.raisedPriceUsdc ?? proposal.agreedPriceUsdc);
+  const raised = Number(raisedPriceUsdc);
+  if (!Number.isFinite(raised) || raised <= current) {
+    return {
+      ok: false,
+      code: 'NOT_HIGHER',
+      message: 'the raised price must be higher than the price the agent agreed',
+    };
+  }
+  // Cap is informational. Compute it when the live job context is still in
+  // memory; if the backend restarted and lost it, default to not-over-cap.
+  let raiseOverCap = false;
+  const state = jobs.get(jobId as `0x${string}`);
+  if (state) {
+    const cap = computeBuyerEffectiveCap(state.context, state.buyer);
+    raiseOverCap = raised > cap;
+  }
+  proposal.originalPriceUsdc = proposal.originalPriceUsdc ?? proposal.agreedPriceUsdc;
+  proposal.raisedPriceUsdc = raisedPriceUsdc;
+  proposal.raisedAt = Date.now();
+  proposal.raiseOverCap = raiseOverCap;
+  proposal.awaitingParty = 'buyer';
+  await dbUpsertMatchProposal(proposal);
+  bus.emitEvent({
+    type: 'deal.match.raised',
+    jobId,
+    actor: 'seller',
+    payload: {
+      buyer: proposal.buyerUser,
+      seller: proposal.sellerUser,
+      originalPriceUsdc: proposal.originalPriceUsdc,
+      raisedPriceUsdc,
+      overCap: raiseOverCap,
+    },
+  });
+  logger.info(
+    { jobId, raisedPriceUsdc, raiseOverCap },
+    'seller raised the match price, approval gate flipped to the buyer',
+  );
+  return { ok: true, raiseOverCap };
 }
 
 async function persistApprovedMatch(
