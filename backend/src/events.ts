@@ -38,9 +38,11 @@ export type KarwanEventType =
   | 'deal.matched'
   | 'deal.match.declined'
   | 'deal.match.approved'
+  | 'deal.match.raised'
   | 'deal.review.started'
   | 'deal.review.heartbeat'
   | 'deal.acceptance.expired'
+  | 'deal.deadline.passed'
   | 'deal.invite.created'
   | 'deal.invite.claimed'
   | 'deal.delay.appealed'
@@ -82,6 +84,7 @@ export type KarwanEventType =
   | 'negotiation.near-miss.proceeded'
   | 'negotiation.near-miss.declined'
   | 'negotiation.near-miss.skipped'
+  | 'negotiation.near-miss.superseded'
   /// A passed near-miss re-opened the auction: the request stays live for new
   /// bids instead of dead-ending.
   | 'negotiation.reopened'

@@ -15,6 +15,7 @@ import {
   getMarketplaceBriefs,
   cancelBriefByBuyer,
   proceedAgentNearMiss,
+  raiseMatchOffer,
   patchTrackedJobContext,
   reopenForNewBids,
   type MarketplaceBrief,
@@ -37,6 +38,7 @@ const addrSchema = z
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 const callerSchema = z.object({ caller: addrSchema });
 const declineSchema = z.object({ caller: addrSchema, reason: z.string().min(1).max(400).optional() });
+const raiseSchema = z.object({ caller: addrSchema, priceUsdc: z.coerce.number().positive().max(1_000_000) });
 /// Pre-match edit. Any of briefText, negotiationMaxIncreasePct, or trustedMatch
 /// can change. Each field is optional but at least one must be provided. The
 /// in-flight match guard at the route layer prevents a desync against a running
@@ -386,7 +388,16 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   }
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
-  if (body.caller.toLowerCase() !== proposal.sellerUser) {
+  // After a seller raise, the approval gate belongs to the buyer: they fund at
+  // the raised price (through the near-miss proceed path) or decline it. Without
+  // a raise, the seller is the gate as before.
+  const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
+  const caller = body.caller.toLowerCase();
+  if (pendingRaise) {
+    if (caller !== proposal.buyerUser) {
+      return c.json({ error: 'only the buyer can approve the raised price', code: 'forbidden' }, 403);
+    }
+  } else if (caller !== proposal.sellerUser) {
     return c.json({ error: 'only the seller can approve this match' }, 403);
   }
   if (inFlight.has(jobId)) {
@@ -395,7 +406,9 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
 
   inFlight.add(jobId);
   try {
-    const result = await approveAgentMatch(jobId);
+    const result = pendingRaise
+      ? await proceedAgentNearMiss(jobId, proposal.sellerAgent, proposal.raisedPriceUsdc!)
+      : await approveAgentMatch(jobId);
     if (!result.ok) {
       const status = result.code === 'INSUFFICIENT_AGENT_BALANCE' ? 409 : 502;
       return c.json({ error: 'approval failed', code: result.code, detail: result.message }, status);
@@ -404,6 +417,37 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } finally {
     inFlight.delete(jobId);
   }
+});
+
+/// Seller raises the agent-agreed price at the approval gate (they want more
+/// than the agent settled). This does no on-chain work: it flips the approval
+/// gate to the buyer, who approves at the raised price or declines. The buyer's
+/// pre-authorized cap stays the ceiling; an over-cap raise is surfaced to the
+/// buyer, who decides with eyes open. Only the seller can call it.
+jobsRoutes.post('/:jobId/raise-offer', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = raiseSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (sessionMismatchesClaim(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const proposal = await getMatchProposal(jobId);
+  if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
+  if (body.caller.toLowerCase() !== proposal.sellerUser) {
+    return c.json({ error: 'only the seller can raise the offer', code: 'forbidden' }, 403);
+  }
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this job' }, 409);
+  }
+  const result = await raiseMatchOffer(jobId, String(body.priceUsdc));
+  if (!result.ok) {
+    return c.json({ error: result.message, code: result.code }, 409);
+  }
+  return c.json({ accepted: true, jobId, overCap: result.raiseOverCap }, 200);
 });
 
 /// Buyer cancels their own managed brief BEFORE a match has been approved.
@@ -532,8 +576,16 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   }
   const proposal = await getMatchProposal(jobId);
   if (!proposal) return c.json({ error: 'no match proposal for this job' }, 404);
-  if (body.caller.toLowerCase() !== proposal.sellerUser) {
-    return c.json({ error: 'only the seller can decline this match' }, 403);
+  // After a seller raise, the buyer holds the gate, so the buyer can decline the
+  // raised price (the match ends; the seller chose more over the agreed price).
+  // Otherwise the seller is the one who declines the match.
+  const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
+  const decliner = pendingRaise ? proposal.buyerUser : proposal.sellerUser;
+  if (body.caller.toLowerCase() !== decliner) {
+    return c.json(
+      { error: pendingRaise ? 'only the buyer can decline the raised price' : 'only the seller can decline this match' },
+      403,
+    );
   }
   const result = await declineAgentMatch(jobId, body.reason);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, 409);

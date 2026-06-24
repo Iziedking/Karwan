@@ -26,10 +26,12 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
   const mb = useTranslations().matchBanner;
   const router = useRouter();
   const { address } = useAuth();
-  const [busy, setBusy] = useState<'approve' | 'decline' | null>(null);
+  const [busy, setBusy] = useState<'approve' | 'decline' | 'raise' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDeclineReason, setShowDeclineReason] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
+  const [showRaiseInput, setShowRaiseInput] = useState(false);
+  const [raisePrice, setRaisePrice] = useState('');
   const [peekOpen, setPeekOpen] = useState(false);
 
   // Seller is the approval gate. Buyer pre-committed via brief budget+tolerance;
@@ -40,6 +42,9 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
     !!address && address.toLowerCase() === proposal.buyerUser.toLowerCase();
   const approved = !!proposal.approvedAt;
   const declined = !!proposal.declinedAt;
+  // Seller raised the agent-agreed price; the approval gate is now the buyer's.
+  const pendingRaise = !!proposal.raisedPriceUsdc && proposal.awaitingParty === 'buyer';
+  const shownPrice = pendingRaise ? proposal.raisedPriceUsdc! : proposal.agreedPriceUsdc;
 
   // The risk flags new-buyer / honey-trap / lowball all hinge on the buyer being
   // unproven (NEW/COLD) at match time. They're a point-in-time snapshot; if the
@@ -87,6 +92,29 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
       await api.declineMatch(proposal.jobId, address, declineReason.trim() || undefined);
       setShowDeclineReason(false);
       setDeclineReason('');
+      onChange();
+    } catch (err) {
+      const detail =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setError(detail);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onRaise() {
+    if (!address) return;
+    const price = raisePrice.trim();
+    if (!price || !(Number(price) > 0)) {
+      setError('Enter a price higher than the agreed amount.');
+      return;
+    }
+    setBusy('raise');
+    setError(null);
+    try {
+      await api.raiseMatchOffer(proposal.jobId, address, price);
+      setShowRaiseInput(false);
+      setRaisePrice('');
       onChange();
     } catch (err) {
       const detail =
@@ -146,11 +174,16 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
               className="serif text-[38px] tabular-nums leading-none tracking-[-0.02em]"
               style={{ color: 'var(--color-ink)' }}
             >
-              {formatUsdc(proposal.agreedPriceUsdc, { withSuffix: false })}
+              {formatUsdc(shownPrice, { withSuffix: false })}
             </span>
             <span className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
               USDC
             </span>
+            {pendingRaise && proposal.originalPriceUsdc && (
+              <span className="mono text-[11px] text-[var(--color-ink-faint)] line-through">
+                {formatUsdc(proposal.originalPriceUsdc, { withSuffix: false })}
+              </span>
+            )}
           </div>
           <span className="text-[12px] text-[var(--color-ink-faint)]">
             {mb.proposedTemplate.replace('{time}', relativeTime(proposal.proposedAt))}
@@ -301,7 +334,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </div>
       )}
 
-      {viewerIsSeller && !showDeclineReason && (
+      {viewerIsSeller && !pendingRaise && !showDeclineReason && !showRaiseInput && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -315,6 +348,15 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
           </button>
           <button
             type="button"
+            onClick={() => setShowRaiseInput(true)}
+            disabled={busy !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
+            style={{ borderColor: 'var(--color-line-strong)', color: 'var(--color-ink-dim)' }}
+          >
+            Raise offer
+          </button>
+          <button
+            type="button"
             onClick={() => setShowDeclineReason(true)}
             disabled={busy !== null}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
@@ -325,6 +367,104 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
           >
             {mb.declineCta}
           </button>
+        </div>
+      )}
+
+      {/* Seller raise input. The agent settled at agreedPrice; the seller asks
+          for more. Submitting flips the approval gate to the buyer. English is
+          hardcoded as i18n debt, matching the risk-label note above. */}
+      {viewerIsSeller && !pendingRaise && showRaiseInput && (
+        <div className="mt-4 space-y-2">
+          <label className="block space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+              Your price (USDC). The buyer approves it or declines.
+            </span>
+            <input
+              value={raisePrice}
+              onChange={(e) => setRaisePrice(e.target.value)}
+              inputMode="decimal"
+              placeholder={`Higher than ${formatUsdc(proposal.agreedPriceUsdc, { withSuffix: false })}`}
+              className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--color-ink)]"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRaise}
+              disabled={busy !== null}
+              style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50"
+            >
+              {busy === 'raise' && <Spinner />}
+              {busy === 'raise' ? 'Sending' : 'Send to buyer'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowRaiseInput(false);
+                setRaisePrice('');
+              }}
+              disabled={busy !== null}
+              className="px-3 py-2 text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]"
+            >
+              {mb.declineCancelCta}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Raise pending: the seller waits, the buyer decides. */}
+      {pendingRaise && viewerIsSeller && (
+        <p className="mt-4 text-[13px] text-[var(--color-ink-dim)]">
+          You asked for {formatUsdc(proposal.raisedPriceUsdc!, { withSuffix: true })}. Waiting for
+          the buyer to approve the new price or decline.
+        </p>
+      )}
+
+      {pendingRaise && viewerIsBuyer && (
+        <div className="mt-4 space-y-3">
+          <p className="text-[13px] text-[var(--color-ink)]">
+            The seller is not taking the {formatUsdc(proposal.originalPriceUsdc ?? proposal.agreedPriceUsdc, { withSuffix: false })} your agent agreed and asked for{' '}
+            {formatUsdc(proposal.raisedPriceUsdc!, { withSuffix: true })}. Approve to fund at the new
+            price, or decline.
+          </p>
+          {proposal.raiseOverCap && (
+            <p
+              className="px-3 py-2 text-[12px] leading-snug"
+              style={{
+                background: 'rgba(224, 162, 60, 0.10)',
+                border: '1px solid rgba(224, 162, 60, 0.32)',
+                color: '#b07d1f',
+                borderRadius: 3,
+              }}
+            >
+              This is above the budget and tolerance you set. Approving pays over your original cap.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={busy !== null}
+              style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
+            >
+              {busy === 'approve' && <Spinner />}
+              {busy === 'approve'
+                ? mb.approveBusy
+                : `Approve ${formatUsdc(proposal.raisedPriceUsdc!, { withSuffix: false })}`}
+            </button>
+            <button
+              type="button"
+              onClick={onDecline}
+              disabled={busy !== null}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-medium border transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-50"
+              style={{ borderColor: 'var(--color-line-strong)', color: 'var(--color-ink-dim)' }}
+            >
+              {busy === 'decline' && <Spinner />}
+              {busy === 'decline' ? mb.declineConfirmBusy : mb.declineCta}
+            </button>
+          </div>
         </div>
       )}
 
@@ -371,7 +511,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         </div>
       )}
 
-      {viewerIsBuyer && proposal.fundable !== false && (
+      {viewerIsBuyer && !pendingRaise && proposal.fundable !== false && (
         <p className="mt-3 text-[13px] text-[var(--color-ink-dim)]">{mb.buyerWaiting}</p>
       )}
       {!viewerIsBuyer && !viewerIsSeller && (

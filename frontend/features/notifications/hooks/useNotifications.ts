@@ -45,6 +45,7 @@ const MANAGED_TYPES = new Set([
   'deal.matched',
   'deal.match.approved',
   'deal.match.declined',
+  'deal.match.raised',
   'negotiation.near-miss',
   'job.expired',
   'listing.matched',
@@ -62,6 +63,7 @@ const DIRECT_TYPES = new Set([
   'escrow.milestone.released',
   'deal.review.started',
   'deal.review.heartbeat',
+  'deal.deadline.passed',
   'deal.auto_released',
   'escrow.settled',
   'deal.disputed',
@@ -103,6 +105,7 @@ const ACTION_TYPES = new Set([
   'deal.delivery.cleared',
   'deal.review.started',
   'deal.fund.insufficient',
+  'deal.deadline.passed',
 ]);
 
 const NOTIFY_TYPES = new Set([
@@ -122,6 +125,8 @@ const TOAST_TYPES = new Set([
   'deal.fund.insufficient',
   'negotiation.near-miss',
   'job.expired',
+  'deal.deadline.passed',
+  'deal.match.raised',
   'wallet.credited',
   'wallet.debited',
   'vault.cooldown.completed',
@@ -138,6 +143,7 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.matched': 'both',
   'deal.match.approved': 'both',
   'deal.match.declined': 'both',
+  'deal.match.raised': 'buyer', // seller raised; the buyer now approves or declines
   'job.expired': 'buyer',
   'listing.matched': 'seller',
   'agent.declined': 'buyer',
@@ -151,6 +157,7 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.fund.insufficient': 'buyer',
   'escrow.milestone.released': 'both',
   'deal.review.started': 'buyer',
+  'deal.deadline.passed': 'buyer', // the seller missed it; the buyer can reclaim
   'deal.review.heartbeat': 'seller', // the buyer extended; the seller cares
   'deal.auto_released': 'both',
   'escrow.settled': 'both',
@@ -277,6 +284,12 @@ function summaryFor(
       return role === 'seller'
         ? 'You declined this match.'
         : 'The seller declined this match. Post a fresh request to retry.';
+    case 'deal.match.raised': {
+      const raised = (payload?.raisedPriceUsdc as string | undefined) ?? '';
+      return raised
+        ? `The seller raised the price to ${raised} USDC. Tap to approve or decline.`
+        : 'The seller raised the price. Tap to approve or decline.';
+    }
     case 'job.expired':
       return 'A request expired with no match. Repost to retry.';
     case 'listing.matched':
@@ -326,6 +339,8 @@ function summaryFor(
       return role === 'seller' ? 'A milestone was released to you.' : 'A milestone was released.';
     case 'deal.review.started':
       return 'Review window opened. Release the final milestone when ready.';
+    case 'deal.deadline.passed':
+      return 'Deadline passed and the seller did not deliver. Reclaim your funds or grant an extension.';
     case 'deal.review.heartbeat':
       return 'The buyer extended the review window.';
     case 'deal.auto_released':

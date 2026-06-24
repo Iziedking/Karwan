@@ -48,6 +48,7 @@ PLAN.md
 USYC.md
 todo.md
 docs/agent.md
+docs/agent_reasoning.md
 docs/api-healthcheck.md
 scripts/api-healthcheck.mjs
 docs/demo-script.md

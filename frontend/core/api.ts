@@ -530,6 +530,15 @@ export interface MatchProposal {
   proposedAt: number;
   approvedAt?: number;
   declinedAt?: number;
+  /// Seller raise at the approval gate. When awaitingParty is 'buyer', the seller
+  /// asked for more than the agent agreed: the buyer now approves at
+  /// raisedPriceUsdc (funds) or declines. originalPriceUsdc is the agent-settled
+  /// price for "was X" display; raiseOverCap flags a raise above the buyer's cap.
+  raisedPriceUsdc?: string;
+  originalPriceUsdc?: string;
+  raisedAt?: number;
+  raiseOverCap?: boolean;
+  awaitingParty?: 'seller' | 'buyer';
   /// Deterministic risk signal computed when the proposal was created.
   /// Surfaced in MatchBanner so the human sees why the agent flagged it.
   /// 'new-buyer' is set by the seller agent's tier adjustment for NEW-tier
@@ -982,6 +991,11 @@ export const api = {
     json<{ accepted: boolean; jobId: string }>(
       `/api/jobs/${jobId}/decline-match`,
       { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
+    ),
+  raiseMatchOffer: (jobId: string, caller: string, priceUsdc: string) =>
+    json<{ accepted: boolean; jobId: string; overCap: boolean }>(
+      `/api/jobs/${jobId}/raise-offer`,
+      { method: 'POST', body: JSON.stringify({ caller, priceUsdc }) },
     ),
   cancelBrief: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
