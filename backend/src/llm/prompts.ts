@@ -218,6 +218,10 @@ export interface NegotiationContext {
   /// neither side grinds for the last few percent on a high-trust deal; both
   /// converge toward market median faster.
   trustedMatch?: boolean;
+  /// Prior clean deals the buyer has closed with this exact seller. Buyer-side
+  /// goodwill: meet a familiar, proven counterparty a little sooner, always
+  /// within the hard cap. Ignored on the seller side.
+  priorCleanDeals?: number;
 }
 
 export function buildCounterEvaluationPrompt(
@@ -275,6 +279,9 @@ export function buildCounterEvaluationPrompt(
           : '',
         ctx.trustedMatch
           ? '- TRUSTED MATCH is ON. Buyer chose reputation + stake over price. Reputation buys restraint: do not grind for the last 5%. If both their-price-in-range AND the counterparty tier is ESTABLISHED/STRONG/ELITE, ACCEPT. Anchor toward the market median rather than the cap; the win is the trusted counterparty, not the squeeze.'
+          : '',
+        role === 'buyer' && ctx.priorCleanDeals && ctx.priorCleanDeals > 0
+          ? `- RELATIONSHIP: you have closed ${ctx.priorCleanDeals} clean deal${ctx.priorCleanDeals === 1 ? '' : 's'} with this seller before. Extend a little goodwill: lean toward accepting an in-range offer and don't grind a proven repeat seller for the last few percent. This NEVER raises your cap; an above-cap price is still declined.`
           : '',
       ]
         .filter(Boolean)

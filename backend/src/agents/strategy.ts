@@ -51,6 +51,16 @@ export function urgencyFactor(daysToDeadline: number): number {
   return 0.8;
 }
 
+/// Relationship goodwill in negotiation. A buyer concedes a touch faster to a
+/// seller it has closed clean deals with before, the same way TIER_ELASTICITY
+/// bends for a trusted tier. Earned and capped: 0 deals -> 1.0 (none),
+/// 1 -> 1.04, 2 -> 1.08, 3+ -> 1.12. It only speeds how fast the buyer reaches a
+/// fair middle; nextCounterPrice still clamps to the ceiling, so goodwill never
+/// pays a familiar seller above the buyer's authorized cap.
+export function relationshipElasticity(cleanDeals: number): number {
+  return 1 + Math.min(3, Math.max(0, cleanDeals)) * 0.04;
+}
+
 /// Computes a concrete counter price for the next round.
 ///
 /// For a buyer:    mine is the buyer's last counter, theirs is the seller's
@@ -62,6 +72,9 @@ export function urgencyFactor(daysToDeadline: number): number {
 ///                 latest counter (always <= mine in a healthy negotiation).
 ///                 The seller moves down by `factor` of the remaining gap,
 ///                 clamped to the seller's floor.
+///
+/// relationshipCleanDeals applies buyer-side only: a small goodwill concession
+/// toward a familiar seller, always inside the ceiling clamp.
 export function nextCounterPrice(args: {
   role: Role;
   mine: number;
@@ -71,8 +84,12 @@ export function nextCounterPrice(args: {
   ceiling: number;
   tier: Tier;
   daysToDeadline: number;
+  relationshipCleanDeals?: number;
 }): number {
-  const factor = concessionFactor(args.round, args.tier) * urgencyFactor(args.daysToDeadline);
+  const relMult =
+    args.role === 'buyer' ? relationshipElasticity(args.relationshipCleanDeals ?? 0) : 1;
+  const factor =
+    concessionFactor(args.round, args.tier) * urgencyFactor(args.daysToDeadline) * relMult;
   const gap = args.theirs - args.mine;
   const move = gap * Math.min(1, factor);
   const raw = args.mine + move;

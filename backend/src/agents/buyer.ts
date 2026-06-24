@@ -1691,7 +1691,9 @@ async function handleCounterResponse(log: Log) {
   // prompt. Concession decay + tier elasticity + urgency, all deterministic
   // so the LLM has a defensible target to ratify or refine.
   const currentRound = state.counterRoundsBySeller.get(args.seller) ?? 0;
-  const sellerTier = (state.bids.get(args.seller)?.sellerTier ?? 'established') as Tier;
+  const bidForSeller = state.bids.get(args.seller);
+  const sellerTier = (bidForSeller?.sellerTier ?? 'established') as Tier;
+  const priorCleanDeals = bidForSeller?.priorCleanDealsWithBuyer ?? 0;
   const daysToDeadline = Math.max(
     1,
     Math.floor((state.context.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
@@ -1711,6 +1713,9 @@ async function handleCounterResponse(log: Log) {
     ceiling: effectiveMaxAcceptable,
     tier: sellerTier,
     daysToDeadline,
+    // Goodwill: concede a touch faster toward a familiar seller, still clamped
+    // to effectiveMaxAcceptable so it never pays above the buyer's cap.
+    relationshipCleanDeals: priorCleanDeals,
   });
 
   let decision: CounterEvaluation;
@@ -1743,6 +1748,7 @@ async function handleCounterResponse(log: Log) {
             // budget). The cap above is hard; out-of-cap still routes to human.
             marketHeat: state.marketRead ? demandToHeat(state.marketRead.demand) : undefined,
             trustedMatch: state.context.trustedMatch === true,
+            priorCleanDeals,
           },
         ),
       }),
