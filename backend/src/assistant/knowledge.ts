@@ -20,6 +20,12 @@ This is a different thing from Top up / Withdraw. Top up / Withdraw (the old Bri
 # Network status (important)
 Karwan runs on Arc Testnet today. Mainnet is on the roadmap, and some features arrive with it, including cash out to local currency. When someone asks whether they can do something "now", answer for testnet.
 
+# Funding your wallets (read this for any "how do I get USDC / fund my agent" question)
+There are two ways to put USDC into a wallet, and on testnet one of them is much simpler.
+- Top up. This brings USDC to Arc from another chain (Base, Ethereum, Arbitrum, Optimism, Polygon, Solana). It is the real funding path for mainnet, and it works on testnet too. It is on the Profile page, the Top up / Withdraw section.
+- Faucet, the easy testnet path. Because Karwan is on Arc Testnet today, the Profile gives every wallet a one tap faucet. Your identity wallet and both agent wallets each have a "Get USDC" button. Tap it: Karwan auto copies that wallet's address for you and opens the Circle faucet page (faucet.circle.com), where you paste the address and claim test USDC. No bridging, nothing to install. Use it to fund a buyer agent before a deal, or your identity wallet, in a few seconds.
+When someone on testnet asks how to get USDC or fund an agent wallet, you can mention Top up first, then tell them Karwan is still on Arc Testnet so the simplest way is the Profile faucet: hit "Get USDC" on the wallet you want to fund, your address is copied automatically, and the Circle faucet page opens to claim. Point them to [your Profile](/profile).
+
 # What is live now
 - P2P Trades. Person to person, service or goods, any size. Two ways in:
   - Direct deal: you already know the counterparty. Enter their wallet or just their email, set amount, terms, and deadline. The escrow funds, they sign in, accept, deliver, and you release in milestones.
@@ -31,6 +37,9 @@ Karwan runs on Arc Testnet today. Mainnet is on the roadmap, and some features a
 - Business accounts. A wallet can register as a verified business by anchoring the hash of a registration or tax document; Karwan reviews it and grants the verified badge. Businesses fill in a trade card (company name, sector, region, registration or tax id, primary markets, annual volume band).
 - Agent research. Activate agent research on your Profile to let your agents pay for live market research on your deals. The agent reads what is in demand for your deal's topic and uses it to negotiate harder for you, always within the cap you set, and reports back if the best offer lands outside your cap. It is a one time activation that funds a research balance lasting many deals. When the agent has researched a deal, a short market read shows on the deal so you see what it found. Both the buyer and the seller activate it on their own account.
 - Guided tours and a Quick Start for new users, plus this assistant.
+
+# How your agents negotiate (so you can explain it)
+Your agent works for you like a careful broker, not a bot that grabs the first price. It ranks bids on skill fit first, then a fair price and the counterparty's reputation. It counters a high price down toward your posted budget and only ever pays above it when you approve. If the best price lands just outside your cap, it does not quietly settle for a worse deal; it asks you whether to proceed (a near miss) and otherwise holds the request open. The agent also remembers who you have worked with: when you have closed clean deals with a seller before, your buyer agent gives that familiar, proven seller a small edge and meets them a little sooner in negotiation, but it never overpays beyond your cap and never lets a familiar seller beat a clearly better or cheaper offer from someone new. Reliability and a fair price come first, the relationship is only a tie breaker. New or low reputation counterparties route to human review, never an automatic decline.
 
 # What is coming soon (not live yet, gated or on the roadmap)
 - Cash out to local currency. A direct off-ramp from USDC to local currencies (NGN, KES, INR, AED and more), powered by Circle, is coming with mainnet. It is previewed on the cashout page as coming soon. Today, on testnet, you can NOT cash out to local currency inside Karwan: you withdraw USDC to a chain you pick, then convert it yourself through your bank, a crypto exchange, or a remittance service in your country.
@@ -52,7 +61,7 @@ The "Talk to a human" button is hidden until you decide it is needed. ONLY when 
 - /market : browse open offers and requests
 - /bridge : Top up and Withdraw, move USDC to and from Arc (reached from the Profile page, not the nav)
 - /stake : stake USDC for reputation and yield
-- /profile : your identity, your two agent wallets and their balances, reputation, and the business trade card. This is also where you withdraw deal proceeds from an agent wallet
+- /profile : your identity, your two agent wallets and their balances, reputation, and the business trade card. This is also where you withdraw deal proceeds from an agent wallet, and where every wallet has a "Get USDC" testnet faucet button (auto copies the address, opens the Circle faucet)
 - /profile#agents : the Fund and withdraw section, where you move USDC out of your buyer or seller agent wallet to a wallet on Arc
 - /activity : the live network feed, every event links to the Arc explorer
 - /how-it-works : the full walkthrough, FAQ, and help

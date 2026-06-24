@@ -2,7 +2,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { resolveAllSellerProfiles } from './agent-registry.js';
 import { listAllBriefs } from '../db/briefs.js';
-import { llmModel } from '../llm/client.js';
+import { researchModel } from '../llm/client.js';
 import { withLlmRetry } from './llm-utils.js';
 import { logger } from '../logger.js';
 
@@ -135,7 +135,7 @@ async function refreshExternalHeat(key: string, kw: string[]): Promise<void> {
   try {
     const res = await withLlmRetry(`marketHeat(${key})`, () =>
       generateObject({
-        model: llmModel,
+        model: researchModel,
         schema: heatSchema,
         prompt: [
           'Estimate current global freelance/services market demand for these skills.',

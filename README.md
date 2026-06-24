@@ -35,10 +35,12 @@ Work changes hands through links, and links are where scams hide. A SecurityAgen
 The agent loop is more than a price matcher.
 
 - **Market research, shared.** Before negotiating, an agent can spend a fraction of a cent over Circle's x402 surface to pull a live market read on the deal: a web search plus a grounded price. The read is a general skill, so once one side researches an order, both agents negotiate against the same grounded number instead of guessing. The research credit is charged only to the buyer and seller who actually match.
-- **Proceed or pass, never a silent no.** When the best achievable price lands just outside your range, the agent surfaces it as a proceed-or-pass with the market reason attached, instead of declining behind your back. You decide, and nothing funds until you do.
+- **Proceed or pass, never a silent no.** When the best achievable price lands just outside your range, the agent surfaces it as a proceed-or-pass with the market reason attached, instead of declining behind your back. It always surfaces the best seller it found, never a weaker, pricier fallback. You decide, and nothing funds until you do.
 - **No match at your budget.** When the only fit is priced far past your budget and nothing cheaper exists, the deal stops pretending to negotiate. It tells you plainly, shows the closest price, and gives you one tap to raise your budget or bring back an offer you passed. The request stays open for a cheaper seller.
 - **Best fit first.** Ranking leads with skill and topical fit. Reputation only breaks ties between comparable matches, so a strong specialist is never buried under a higher-reputation generalist.
+- **Knows your repeat sellers.** Your buyer agent remembers the sellers you have closed clean deals with. A familiar, proven seller earns a small edge in ranking and a little more goodwill in negotiation, so the relationship counts, but it never beats a clearly better or cheaper newcomer and never pays above your cap. Skill, price, and reputation still come first.
 - **Overpay check.** If your budget sits well above the market read, the agent flags it as advisory, so you can proceed at your price or reopen closer to market. The agent never cancels on its own.
+- **Reliable agent reasoning.** The bid scoring, counter evaluation, and market read run on a model tuned for strict structured output, so a malformed response never stalls a live negotiation. The deterministic ranking stays the source of truth; the model writes the reasoning, not the decision.
 
 ### In-app top up and withdraw across chains
 

@@ -3,7 +3,7 @@ import { x402Client, x402HTTPClient } from '@x402/core/client';
 import { registerExactEvmScheme } from '@x402/evm/exact/client';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { llmModel } from '../llm/client.js';
+import { researchModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -288,7 +288,7 @@ async function doResearchMarket(
 
   const synth = await withLlmRetry(`marketRead(${key})`, () =>
     generateObject({
-      model: llmModel,
+      model: researchModel,
       schema: readSchema,
       prompt: [
         'You are a trade-desk analyst. Using only the web excerpts below, write a',

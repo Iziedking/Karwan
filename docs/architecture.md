@@ -73,8 +73,14 @@ flowchart TD
 ## Negotiation intelligence
 
 The agent loop runs on a deterministic spine, with the LLM used for nuance
-inside ranges the user authorized. Several layers make the negotiation behave
-like a human broker rather than a price matcher.
+inside ranges the user authorized. The structured reasoning calls that sit on
+the critical path (bid scoring and counter suggestion, accept/decline/counter
+evaluation on both sides, and the market read) run on a native Anthropic Haiku
+model for strict JSON adherence, so a malformed response never stalls a live
+deal. The cheaper OpenRouter model stays the fallback when no Anthropic key is
+present. The deterministic spine always owns the decision; the model writes the
+reasoning, not the outcome. Several layers make the negotiation behave like a
+human broker rather than a price matcher.
 
 - **Bid ranking is fit-first.** `scoreBidDeterministic` leads with the
   seller's topical and skill fit, weighted above price, tier, completion, and
@@ -82,6 +88,14 @@ like a human broker rather than a price matcher.
   specialist bidding slightly over budget is never buried under a
   higher-reputation generalist. The fallback path used when an LLM call fails
   carries the same fit signal, so a flaky model call cannot drop a clear match.
+- **Relationship memory.** The buyer agent remembers prior clean deals it has
+  closed with each seller (`countCleanDealsBetween`, matched on owner addresses
+  so it survives agent-wallet rotation). A familiar counterparty earns a small
+  nudge: up to ~5 points added on top of the deterministic score as a
+  within-band tiebreaker, plus a little extra concession in `nextCounterPrice`,
+  both buyer-side and both clamped so they can never beat a clearly better or
+  cheaper stranger, raise the cap, or overpay. Skill, price, and reputation come
+  first; the relationship only decides a genuine near-tie.
 - **Adaptive bid window.** Collection opens with a floor and soft-closes:
   each new bid extends the window by a short quiet period up to a hard cap, so
   a late strong bid still gets ranked, and a quiet auction finalizes fast.
@@ -99,6 +113,12 @@ like a human broker rather than a price matcher.
   along so the buyer sees why the price sits where it does. The band widens
   when paid research shows real demand. Passing re-opens the auction for fresh
   sellers rather than dead-ending, and already-tried sellers are not re-nagged.
+- **Always the best seller, never a worse fallback.** When the top-ranked
+  seller cannot be countered within budget, the agent surfaces that seller as
+  the near-miss at its price, rather than abandoning it and walking down to a
+  weaker, pricier candidate. The invariant: the buyer is never matched to, or
+  asked to proceed with, a seller strictly dominated (worse price and no better
+  fit or reputation) by one it already had in hand.
 - **No match at your budget.** When the buyer has passed the best real price
   and the only remaining topical match is priced far past the ceiling, a
   durable out-of-reach marker stops the "negotiating" spinner and surfaces a

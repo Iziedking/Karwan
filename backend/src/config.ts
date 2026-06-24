@@ -327,6 +327,10 @@ const envSchema = z.object({
   // runs natively on Haiku for reliable JSON. Falls back to the OpenRouter model
   // when no Anthropic key is set. Market research stays on the cheaper model.
   NEGOTIATION_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  // Model for paid market research synthesis (per-deal market read + demand
+  // score). Native Anthropic Haiku for a sharper read that feeds negotiation.
+  // Falls back to the OpenRouter model when no Anthropic key is set.
+  RESEARCH_LLM_MODEL: z.string().default('claude-haiku-4-5'),
 
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.
