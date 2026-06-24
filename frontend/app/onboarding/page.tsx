@@ -997,6 +997,7 @@ function BusinessProfileStep(props: {
           <input
             value={props.displayName}
             onChange={(e) => props.setDisplayName(e.target.value)}
+            maxLength={40}
             className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
           />
         </Field>
@@ -1109,6 +1110,7 @@ function ProfileStep(props: {
           <input
             value={props.displayName}
             onChange={(e) => props.setDisplayName(e.target.value)}
+            maxLength={40}
             className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
           />
         </Field>

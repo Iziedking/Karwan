@@ -1057,11 +1057,11 @@ function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
             href={part}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            // Primary ink, so it flips with the theme (near-black on a light
-            // card, soft-white on a dark card) and stays legible in both. The
-            // old --lp-band-dark fallback was near-black and vanished on dark.
-            className="underline underline-offset-2 break-all hover:text-[var(--lp-accent-hover)]"
-            style={{ color: 'var(--lp-dark)' }}
+            // Primary ink as a class (not inline style, which would beat the
+            // hover rule): flips with the theme — near-black on a light card,
+            // soft-white on a dark card — and stays legible in both. The old
+            // --lp-band-dark fallback was near-black and vanished on dark.
+            className="underline underline-offset-2 break-all font-medium text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)]"
           >
             {part}
           </a>

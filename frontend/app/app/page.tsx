@@ -239,7 +239,14 @@ export default function AppHome() {
               <HeroHeadline className="break-words">
                 {t.hero.welcomeBack}
                 <br />
-                <span className="normal-case">{profile.displayName}</span>
+                {/* Defensive clamp: new names cap at 40 on input, but a pre-cap
+                    row could still carry a pasted sentence. Truncate the render
+                    so an over-long value never dominates the hero. */}
+                <span className="normal-case">
+                  {profile.displayName.length > 40
+                    ? `${profile.displayName.slice(0, 40).trimEnd()}…`
+                    : profile.displayName}
+                </span>
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>

@@ -29,7 +29,10 @@ const addrSchema = z
 const profileSchema = z.object({
   address: addrSchema,
   role: z.enum(['buyer', 'seller', 'both']),
-  displayName: z.string().min(1).max(80),
+  // A display name is a name/handle, not a bio. Cap at 40 so a pasted sentence
+  // can't land here and blow up the home hero (X caps at 50, Discord 32; 40
+  // fits real names + a short suffix while making an essay impossible).
+  displayName: z.string().min(1).max(40),
   /// Onboarding account kind (individual vs business). User-chosen, drives UI
   /// surfaces only. The verification-bound accountType stays separate.
   accountKind: z.enum(['person', 'business']).optional(),
