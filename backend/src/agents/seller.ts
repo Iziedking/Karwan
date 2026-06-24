@@ -4,7 +4,7 @@ import { publicClient } from '../chain/client.js';
 import { jobBoard, vault, getReservationBps } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
-import { llmModel } from '../llm/client.js';
+import { negotiationModel } from '../llm/client.js';
 import {
   bidDecisionSchema,
   counterEvaluationSchema,
@@ -558,7 +558,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   try {
     const result = await withLlmRetry(`bidDecision(${job.jobId})`, () =>
       generateObject({
-        model: llmModel,
+        model: negotiationModel,
         schema: bidDecisionSchema,
         prompt: buildBidEvaluationPrompt(job, seller),
       }),
@@ -937,7 +937,7 @@ async function runCounterEvaluation(
   try {
     const result = await withLlmRetry(`counterEvaluation(${args.jobId})`, () =>
       generateObject({
-        model: llmModel,
+        model: negotiationModel,
         schema: counterEvaluationSchema,
         prompt: buildCounterEvaluationPrompt(
           active.jobContext,

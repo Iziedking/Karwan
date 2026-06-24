@@ -54,6 +54,10 @@ export interface BidContext {
   velocity24h?: number;
   priceMultiple?: number;
   priceAnomaly?: number | null;
+  /// Prior CLEAN deals the buyer has closed with this exact seller before. Lets
+  /// the agent's reasoning recognize a familiar, proven counterparty. A small
+  /// positive note only; the hard ranking nudge is applied deterministically.
+  priorCleanDeals?: number;
 }
 
 const DAY_SECONDS = 86_400;
@@ -148,6 +152,9 @@ export function buildBidRankingPrompt(
       : '',
     bid.priceAnomaly != null
       ? `- Price anomaly: ${bid.priceAnomaly.toFixed(2)}σ vs network median`
+      : '',
+    bid.priorCleanDeals && bid.priorCleanDeals > 0
+      ? `- Relationship: you have closed ${bid.priorCleanDeals} clean deal${bid.priorCleanDeals === 1 ? '' : 's'} with this seller before. A familiar, proven counterparty is a small plus you may note. It does NOT justify overpaying or preferring a clearly worse bid; price, fit, and reputation still come first.`
       : '',
     '',
     'Pattern guide (use this to read the signals together, not just the price):',

@@ -319,6 +319,14 @@ const envSchema = z.object({
   // more reliably than Flash Lite, at a tiny per-call cost (one check per
   // delivery). Falls back to the OpenRouter model when no Anthropic key is set.
   VERIFIER_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  // Model for the agent-to-agent negotiation loop (bid scoring + counter
+  // suggestion, accept/decline/counter evaluation, near-miss reasoning) on both
+  // the buyer and seller sides. The whole automation premise rests on these
+  // structured calls returning valid objects; Flash Lite via OpenRouter drops
+  // them often enough ("No object generated") to derail a negotiation, so this
+  // runs natively on Haiku for reliable JSON. Falls back to the OpenRouter model
+  // when no Anthropic key is set. Market research stays on the cheaper model.
+  NEGOTIATION_LLM_MODEL: z.string().default('claude-haiku-4-5'),
 
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.
