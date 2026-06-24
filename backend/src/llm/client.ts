@@ -25,3 +25,11 @@ export const verifierModel = config.ANTHROPIC_API_KEY
 export const negotiationModel = config.ANTHROPIC_API_KEY
   ? anthropic(config.NEGOTIATION_LLM_MODEL)
   : llmModel;
+
+/// Model for the paid market research synthesis (the per-deal market read and
+/// the market-demand score over Exa web excerpts). Native Anthropic Haiku for a
+/// sharper, more reliable read that feeds negotiation; falls back to the
+/// OpenRouter model when no Anthropic key is present.
+export const researchModel = config.ANTHROPIC_API_KEY
+  ? anthropic(config.RESEARCH_LLM_MODEL)
+  : llmModel;
