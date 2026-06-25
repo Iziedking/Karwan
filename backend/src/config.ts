@@ -252,6 +252,14 @@ const envSchema = z.object({
   // 24h default; lower it for demos via env.
   DEAL_DEADLINE_RECLAIM_GRACE_MS: z.coerce.number().int().positive().default(86_400_000),
 
+  // Financier application eligibility. Anyone can apply to fund factoring / PO
+  // lines in the SME rail, but must meet a real bar: minimum account tenure on
+  // Karwan, a non-zero stake, and reputation at least COLD. AUTO_APPROVE grants
+  // the desk immediately on an eligible apply (the admin review route is the
+  // hook for tightening this later).
+  FINANCIER_MIN_TENURE_DAYS: z.coerce.number().int().nonnegative().default(7),
+  FINANCIER_AUTO_APPROVE: z.preprocess((v) => v !== 'false' && v !== '0', z.boolean()),
+
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,
   CIRCLE_WALLET_SET_ID: optionalString,
