@@ -112,12 +112,15 @@ export function BusinessHome({
               className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3"
               data-guide="biz-desk"
             >
-              <CTAPill href="/financier">{bh.hero.openDeskCta}</CTAPill>
+              {/* A business's primary action is its own B2B trade (agent-matched
+                  via /buyer, or a direct deal). The financier desk, where they
+                  fund other businesses' invoices, is a secondary capability. */}
+              <CTAPill href="/buyer">{bh.hero.newTradeCta}</CTAPill>
               <CTAPill href="/deals" variant="secondary" tone="dark">
-                {bh.hero.newTradeCta}
+                Direct deal
               </CTAPill>
-              <CTAPill href="/activity" variant="secondary" tone="dark">
-                {bh.hero.viewActivityCta}
+              <CTAPill href="/financier" variant="secondary" tone="dark">
+                Financier desk
               </CTAPill>
               <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />

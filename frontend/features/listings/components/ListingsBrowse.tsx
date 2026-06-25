@@ -1,9 +1,9 @@
 ﻿'use client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { qk } from '@/core/queryKeys';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { SignInGate } from '@/shared/components/SignInGate';
@@ -22,7 +22,7 @@ import { MARKET_TOUR_ID, MARKET_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
-type Side = 'all' | 'offers' | 'briefs';
+type CardVariant = 'default' | 'summary' | 'hiring';
 
 /// A unified marketplace card type so the grid renders briefs and listings
 /// side by side. `side: "offer"` = a seller's listing; `side: "brief"` = a
@@ -48,23 +48,14 @@ interface Card {
 export function ListingsBrowse() {
   const lb = useTranslations().listingsBrowse;
   const { address, isAuthenticated, isLoading } = useAuth();
-  /// A business-account market view shows only business-linked cards:
-  /// finance-lane deals or anything a business posted. Plain person-to-person
-  /// cards drop out. Person accounts keep the full marketplace.
-  const businessQuery = useQuery({
-    queryKey: qk.business.status(address),
-    queryFn: () => api.getBusinessStatus(address!),
-    enabled: !!address,
-    staleTime: 60_000,
-  });
-  const onBusinessTrack =
-    businessQuery.data?.accountType === 'business' ||
-    businessQuery.data?.status === 'verified' ||
-    businessQuery.data?.status === 'submitted';
+  /// The market is sectioned by rail (see buckets below). A business sees the
+  /// B2B view; an individual sees the P2P view plus a read-only B2B strip. Keyed
+  /// on the account kind so it matches the nav and the rest of the app.
+  const { profile } = useUserProfile();
+  const onBusinessTrack = isBusinessAccount(profile);
   const [listings, setListings] = useState<Listing[] | null>(null);
   const [briefs, setBriefs] = useState<MarketplaceBrief[] | null>(null);
   const [error, setError] = useState(false);
-  const [side, setSide] = useState<Side>('all');
 
   useEffect(() => {
     let cancelled = false;
@@ -142,35 +133,37 @@ export function ListingsBrowse() {
     return [...offerCards, ...briefCards].sort((x, y) => y.postedAt - x.postedAt);
   }, [listings, briefs, address]);
 
-  /// Business accounts see a B2B market: finance-lane cards plus anything a
-  /// business posted. Person accounts see the P2P market: everything EXCEPT
-  /// the finance lane (goods, invoices, PO financing), which is B2B-only. A
-  /// business's service request still shows to people, so a person can fulfil
-  /// it (business hiring a single-person service).
-  const visibleCards = useMemo(
-    () =>
-      onBusinessTrack
-        ? cards.filter((c) => c.tradeLane === 'finance' || c.partyKind === 'business')
-        : cards.filter((c) => c.tradeLane !== 'finance'),
-    [cards, onBusinessTrack],
-  );
+  /// The marketplace keeps the two rails separate and visible. Three buckets:
+  ///  - P2P: pure person-to-person trades (service lane, not business-posted).
+  ///  - Hiring: a business sourcing an individual service (the one sanctioned
+  ///    bridge); individuals can bid on these like any request.
+  ///  - B2B: finance-lane trade-finance deals. Public, but view-only from a
+  ///    personal account, and actionable from a business one.
+  const buckets = useMemo(() => {
+    const hiring = cards.filter((c) => c.partyKind === 'business' && c.tradeLane === 'service');
+    const b2b = cards.filter((c) => c.tradeLane === 'finance');
+    const p2p = cards.filter((c) => c.tradeLane !== 'finance' && c.partyKind !== 'business');
+    return { hiring, b2b, p2p };
+  }, [cards]);
 
-  const offersCount = visibleCards.filter((c) => c.side === 'offer').length;
-  const briefsCount = visibleCards.filter((c) => c.side === 'brief').length;
-  const shown = visibleCards.filter((c) => {
-    if (side === 'offers') return c.side === 'offer';
-    if (side === 'briefs') return c.side === 'brief';
-    return true;
-  });
+  type Section = { key: string; title: string; note: string; cards: Card[]; variant: CardVariant };
+  const sections = useMemo<Section[]>(() => {
+    if (onBusinessTrack) {
+      return [
+        { key: 'b2b', title: 'Business deals', note: 'Open B2B trade-finance deals.', cards: buckets.b2b, variant: 'default' },
+        { key: 'hiring', title: 'Hiring individuals', note: 'Businesses sourcing individual services.', cards: buckets.hiring, variant: 'hiring' },
+      ];
+    }
+    return [
+      { key: 'p2p', title: 'Open trades', note: 'Peer-to-peer requests and offers you can take.', cards: buckets.p2p, variant: 'default' },
+      { key: 'hiring', title: 'Businesses hiring', note: 'Companies sourcing individual services. Bid like any request.', cards: buckets.hiring, variant: 'hiring' },
+      { key: 'b2b', title: 'Business deals', note: 'Public B2B trade activity. View-only from a personal account.', cards: buckets.b2b, variant: 'summary' },
+    ];
+  }, [onBusinessTrack, buckets]);
 
   const loading = listings === null || briefs === null;
-  const empty = !loading && shown.length === 0;
-
-  const FILTERS: Array<{ key: Side; label: string; count: number }> = [
-    { key: 'all', label: lb.filters.all, count: visibleCards.length },
-    { key: 'offers', label: lb.filters.offers, count: offersCount },
-    { key: 'briefs', label: lb.filters.briefs, count: briefsCount },
-  ];
+  const totalShown = sections.reduce((n, s) => n + s.cards.length, 0);
+  const empty = !loading && totalShown === 0;
 
   if (isLoading) return null;
 
@@ -208,43 +201,7 @@ export function ListingsBrowse() {
       </Band>
 
       <Band tone="light" compact>
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div
-            className="inline-flex items-center gap-1 p-1"
-            style={{
-              background: 'var(--lp-light)',
-              border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 9,
-              borderTopRightRadius: 9,
-              borderBottomLeftRadius: 9,
-              borderBottomRightRadius: 2,
-            }}
-          >
-            {FILTERS.map((f) => {
-              const active = side === f.key;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setSide(f.key)}
-                  aria-pressed={active}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-                  style={{
-                    background: active ? 'var(--lp-card)' : 'transparent',
-                    color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
-                    border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
-                    borderTopLeftRadius: 7,
-                    borderTopRightRadius: 7,
-                    borderBottomLeftRadius: 7,
-                    borderBottomRightRadius: 2,
-                  }}
-                >
-                  {f.label}
-                  <span className="tabular-nums opacity-70">{f.count}</span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-4 mb-6">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {onBusinessTrack ? lb.businessFilterNote : lb.liveCaption}
           </p>
@@ -269,21 +226,43 @@ export function ListingsBrowse() {
           <PageCard>
             <div className="px-6 py-12 text-center space-y-2">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {visibleCards.length === 0 ? lb.emptyAllTag : lb.emptyFilteredTag}
+                {lb.emptyAllTag}
               </p>
               <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
-                {visibleCards.length === 0
-                  ? lb.emptyAllBody
-                  : lb.emptyFilteredTemplate.replace('{side}', side)}
+                {lb.emptyAllBody}
               </p>
             </div>
           </PageCard>
         )}
-        {!loading && !error && shown.length > 0 && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shown.map((c) => (
-              <MarketCard key={`${c.side}-${c.id}`} card={c} copy={lb.card} />
-            ))}
+        {!loading && !error && totalShown > 0 && (
+          <div className="space-y-10">
+            {sections
+              .filter((s) => s.cards.length > 0)
+              .map((s) => (
+                <section key={s.key}>
+                  <div className="flex items-baseline justify-between gap-3 mb-4">
+                    <h2 className="font-sans text-[17px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+                      {s.title}
+                      <span className="ms-2 mono text-[11px] font-bold tabular-nums text-[var(--lp-text-muted)]">
+                        {s.cards.length}
+                      </span>
+                    </h2>
+                    <p className="hidden sm:block mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] text-end max-w-[40ch]">
+                      {s.note}
+                    </p>
+                  </div>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {s.cards.map((c) => (
+                      <MarketCard
+                        key={`${c.side}-${c.id}`}
+                        card={c}
+                        copy={lb.card}
+                        variant={s.variant}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
           </div>
         )}
       </Band>
@@ -294,30 +273,39 @@ export function ListingsBrowse() {
 function MarketCard({
   card,
   copy,
+  variant = 'default',
 }: {
   card: Card;
   copy: Messages['listingsBrowse']['card'];
+  variant?: CardVariant;
 }) {
   const sideTone = card.side === 'offer' ? '#0a7553' : '#b25425';
-  const statusLabel = card.matched
-    ? copy.statusMatched
-    : card.side === 'offer'
-      ? copy.statusOffer
-      : copy.statusRequest;
-  const statusTone = card.matched ? 'var(--lp-accent)' : sideTone;
-  return (
-    <Link
-      href={card.href}
-      className="group relative overflow-hidden block transition-[transform,box-shadow] duration-300 ease-out card-shimmer hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 5,
-      }}
-    >
+  const isSummary = variant === 'summary';
+  const isHiring = variant === 'hiring';
+  const statusLabel = isHiring
+    ? 'Hiring · Business'
+    : isSummary
+      ? 'Business deal'
+      : card.matched
+        ? copy.statusMatched
+        : card.side === 'offer'
+          ? copy.statusOffer
+          : copy.statusRequest;
+  const statusTone = isHiring ? '#1b3a5b' : isSummary ? '#6b6b6b' : card.matched ? 'var(--lp-accent)' : sideTone;
+
+  const cardStyle = {
+    background: 'var(--lp-card)',
+    border: '1px solid var(--lp-border-light)',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 5,
+  } as const;
+
+  // A view-only B2B summary is not actionable from a personal account, so it is
+  // a plain div (no link, no hover lift) and never shows the counterparty.
+  const inner = (
+    <>
       <div className="px-5 pt-5 pb-4 space-y-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span
@@ -358,12 +346,39 @@ function MarketCard({
           </span>
         </div>
         <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)] shrink-0">
-          {card.partyRole} {card.partyShort}
-          {card.partyIsYou && (
-            <span style={{ color: 'var(--lp-accent)' }}>{copy.selfSuffix}</span>
+          {isSummary || isHiring ? (
+            'Business'
+          ) : (
+            <>
+              {card.partyRole} {card.partyShort}
+              {card.partyIsYou && (
+                <span style={{ color: 'var(--lp-accent)' }}>{copy.selfSuffix}</span>
+              )}
+            </>
           )}
         </span>
       </div>
+    </>
+  );
+
+  if (isSummary) {
+    return (
+      <div
+        className="relative overflow-hidden block"
+        style={{ ...cardStyle, opacity: 0.9 }}
+        aria-label="Business deal, view only"
+      >
+        {inner}
+      </div>
+    );
+  }
+  return (
+    <Link
+      href={card.href}
+      className="group relative overflow-hidden block transition-[transform,box-shadow] duration-300 ease-out card-shimmer hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+      style={cardStyle}
+    >
+      {inner}
     </Link>
   );
 }
