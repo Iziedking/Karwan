@@ -6,6 +6,8 @@ import { parseUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
+import { PageTour } from '@/shared/guide/PageTour';
+import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tours';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import {
@@ -198,6 +200,7 @@ export function FinancierDashboard() {
 
   return (
     <main className="min-h-[70vh]">
+      <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
         <SectionTag>[:FINANCIER:]</SectionTag>
         <HeroHeadline size="md">

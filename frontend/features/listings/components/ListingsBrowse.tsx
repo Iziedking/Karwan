@@ -18,7 +18,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
-import { MARKET_TOUR_ID, MARKET_STEPS } from '@/shared/guide/tours';
+import { MARKET_TOUR_ID, MARKET_BIZ_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
@@ -179,7 +179,10 @@ export function ListingsBrowse() {
 
   return (
     <FullBleed>
-      <PageTour id={MARKET_TOUR_ID} steps={MARKET_STEPS} />
+      <PageTour
+        id={onBusinessTrack ? MARKET_BIZ_TOUR_ID : MARKET_TOUR_ID}
+        steps={buildMarketSteps(onBusinessTrack ? 'business' : 'person')}
+      />
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
           <SectionTag tone="dark" dot="live">

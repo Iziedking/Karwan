@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
+import { PageTour } from '@/shared/guide/PageTour';
+import { FINANCIER_APPLY_TOUR_ID, FINANCIER_APPLY_STEPS } from '@/shared/guide/tours';
 
 export interface FinancierEligibility {
   eligible: boolean;
@@ -72,6 +74,7 @@ export function FinancierApply({
 
   return (
     <div className="max-w-[640px] mx-auto py-12">
+      <PageTour id={FINANCIER_APPLY_TOUR_ID} steps={FINANCIER_APPLY_STEPS} />
       <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:FINANCIER:]
       </p>
