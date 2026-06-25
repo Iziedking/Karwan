@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { readSession } from '../auth/session.js';
+import { accountKindOf } from '../profile/accountType.js';
 import { getProfile, upsertProfile } from '../db/profiles.js';
 import { listDealsForAddress } from '../db/deals.js';
 import { logger } from '../logger.js';
@@ -77,6 +78,9 @@ smeRoutes.get('/profile/:address', async (c) => {
 smeRoutes.post('/profile', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if ((await accountKindOf(session.address)) !== 'business') {
+    return c.json({ error: 'The company profile is for business accounts.', code: 'sme_rail_only' }, 403);
+  }
 
   let body;
   try {

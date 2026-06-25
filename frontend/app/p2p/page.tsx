@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { cn } from '@/shared/utils/cn';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { AccountGate } from '@/shared/components/AccountGate';
 import {
   FullBleed,
   Band,
@@ -20,6 +21,7 @@ export default function P2PHubPage() {
   const p = t.p2pHub;
   return (
     <AuthGuard gateTag={p.eyebrow} gateBody={p.lede}>
+      <AccountGate kind="person">
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="fade-up">
@@ -53,6 +55,7 @@ export default function P2PHubPage() {
           </div>
         </Band>
       </FullBleed>
+      </AccountGate>
     </AuthGuard>
   );
 }
