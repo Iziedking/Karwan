@@ -1,8 +1,5 @@
 ﻿'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/core/api';
-import { qk } from '@/core/queryKeys';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -26,29 +23,16 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const address = auth.address ?? undefined;
   const isAuthed = auth.isAuthenticated;
   // Platform-wide stream: every deal moving across Karwan, not just the caller's.
-  // Passing no caller returns the global feed (job IDs and prices intact, wallet
-  // addresses masked). The page itself stays sign-in gated below.
+  // Passing no caller returns the global feed. The page itself stays sign-in
+  // gated below.
   const rawEvents = useLiveEvents(undefined, 200);
-  // Finance-lane (business) jobIds. Business trade is sensitive: those events
-  // stay in the feed but lose their amount and parties. The live SSE stream
-  // carries raw payloads, so the strip happens here on the client.
-  const financeQuery = useQuery({
-    queryKey: qk.activity.financeJobIds(),
-    queryFn: () => api.activityFinanceJobIds(),
-    staleTime: 30_000,
-  });
-  const financeJobIds = useMemo(
-    () => new Set((financeQuery.data?.jobIds ?? []).map((j) => j.toLowerCase())),
-    [financeQuery.data],
-  );
-  // Public/general feed: drop account, platform, and personal events (telegram
-  // link, activation, staking, bridging, tier-ups, private chat, errors) and
-  // mask wallet addresses. The live SSE stream carries everything raw, so this
-  // is the client-side counterpart to the backend's PUBLIC_EVENT_TYPES allowlist.
-  const events = useMemo(
-    () => publicizeEvents(rawEvents, financeJobIds),
-    [rawEvents, financeJobIds],
-  );
+  // General feed = a privacy PULSE: it shows that activity is happening and of
+  // what kind, never who, how much, or which deal. publicizeEvents drops every
+  // party, amount, deal id, and free-form field (the live SSE stream carries raw
+  // payloads, so the strip happens here, mirroring the backend's pulse). A user
+  // still sees full detail of their OWN deals on the deal page; this network
+  // feed is deliberately detail-free.
+  const events = useMemo(() => publicizeEvents(rawEvents), [rawEvents]);
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the
   // user signs in.
@@ -133,6 +117,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
         onJobIdSearch={setJobIdSearch}
         onClear={clearAll}
         hasAnyFilter={hasAnyFilter}
+        showSearch={false}
       />
 
       <div
@@ -158,7 +143,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
         </p>
       </div>
 
-      <EventList events={pageEvents} explorer={explorer} showJobId variant="card" />
+      <EventList events={pageEvents} explorer={explorer} variant="card" />
 
       <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
     </div>

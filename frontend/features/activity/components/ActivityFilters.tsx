@@ -9,6 +9,7 @@ export function ActivityFilters({
   onJobIdSearch,
   onClear,
   hasAnyFilter,
+  showSearch = true,
 }: {
   activeActors: Set<ActorFilter>;
   onToggleActor: (a: ActorFilter) => void;
@@ -16,6 +17,9 @@ export function ActivityFilters({
   onJobIdSearch: (v: string) => void;
   onClear: () => void;
   hasAnyFilter: boolean;
+  /// The general feed is a privacy pulse with no deal ids, so the id search is
+  /// hidden there. Defaults on for any caller-scoped feed that still has ids.
+  showSearch?: boolean;
 }) {
   const t = useTranslations().activity.filters;
   const actors: ActorFilter[] = ['buyer', 'seller', 'system'];
@@ -65,6 +69,7 @@ export function ActivityFilters({
         })}
       </div>
 
+      {showSearch && (
       <div className="relative flex-1 min-w-[200px] max-w-xs">
         <svg
           width="12"
@@ -115,6 +120,7 @@ export function ActivityFilters({
           }
         `}</style>
       </div>
+      )}
 
       {hasAnyFilter && (
         <button

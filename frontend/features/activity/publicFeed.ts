@@ -31,50 +31,18 @@ export const PUBLIC_EVENT_TYPES = new Set<string>([
   'bridge.minted',
 ]);
 
-// Full 20-byte wallet address. Job IDs and tx hashes are 32 bytes (0x + 64 hex)
-// and never match, so they stay intact for the explorer deep-links.
-const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
-
-// Payload keys that name a party or carry a deal value. For a finance-lane
-// (business) event they are dropped so only the fact of the event remains.
-const ADDRESS_KEYS = new Set<string>([
-  'buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy',
-  'buyerAgent', 'sellerAgent', 'user', 'recipient', 'from', 'to', 'mintRecipient',
-]);
-const AMOUNT_KEYS = new Set<string>([
-  'amountUsdc', 'dealAmountUsdc', 'agreedPriceUsdc', 'budgetUsdc', 'priceUsdc',
-  'askingPriceUsdc', 'milestoneAmountUsdc', 'faceValueUsdc', 'advanceUsdc', 'value',
-]);
-
-function maskValue(v: string): string {
-  return ADDR_RE.test(v) ? `${v.slice(0, 6)}…${v.slice(-4)}` : v;
-}
-
-function maskPayload(p: Record<string, unknown>, bare: boolean): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(p)) {
-    if (bare && (ADDRESS_KEYS.has(k) || AMOUNT_KEYS.has(k))) continue;
-    out[k] = typeof v === 'string' ? maskValue(v) : v;
-  }
-  return out;
-}
-
-/// Reduce the raw live stream to the general/public trade feed: drop non-trade
-/// event types and mask any wallet address for display. Backfill events arrive
-/// already masked from the backend; masking again is idempotent (a masked
-/// "0x1234…abcd" no longer matches the full-address regex). When a finance-lane
-/// jobId set is supplied, business-deal events are stripped to bare (amount and
-/// parties removed) so the public feed never exposes a business deal's size or
-/// counterparties.
-export function publicizeEvents(
-  events: ChainEvent[],
-  financeJobIds?: Set<string>,
-): ChainEvent[] {
+/// Reduce the raw live stream to the general/public PULSE: keep only trade
+/// event types, then strip each to the fact that something happened, of what
+/// kind, by which actor role, and when. No parties, amounts, deal id, or text
+/// ever reach the general feed for anyone. Parties still see full detail on
+/// their own /activity (caller-filtered) and on their private deal page. Mirrors
+/// the backend `pulseEvent` in routes/activity.ts; the live SSE stream carries
+/// raw payloads, so this is the client-side counterpart.
+export function publicizeEvents(events: ChainEvent[]): ChainEvent[] {
   const out: ChainEvent[] = [];
   for (const e of events) {
     if (!PUBLIC_EVENT_TYPES.has(e.type)) continue;
-    const bare = !!financeJobIds && !!e.jobId && financeJobIds.has(e.jobId.toLowerCase());
-    out.push({ ...e, payload: maskPayload(e.payload ?? {}, bare) });
+    out.push({ type: e.type, actor: e.actor, ts: e.ts, payload: {} });
   }
   return out;
 }
