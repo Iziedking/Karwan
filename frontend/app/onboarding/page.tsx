@@ -94,7 +94,6 @@ function OnboardingInner() {
   const [buyerMax, setBuyerMax] = useState(5000);
   const [buyerMinDays, setBuyerMinDays] = useState(1);
   const [buyerMaxDays, setBuyerMaxDays] = useState(60);
-  const [bidWindow, setBidWindow] = useState(30);
   const [milestoneSplit, setMilestoneSplit] = useState('50,50');
 
   const [submitting, setSubmitting] = useState(false);
@@ -121,7 +120,6 @@ function OnboardingInner() {
 
     if (wantsBuyer) {
       if (!(buyerMax > 0)) issues.push(v.buyerMaxBudget);
-      if (!(bidWindow >= 10)) issues.push(v.bidWindow);
       if (!(buyerMinDays > 0)) issues.push(v.buyerMinDeadline);
       if (!(buyerMaxDays >= buyerMinDays)) issues.push(v.buyerMaxDeadline);
       const pcts = milestoneSplit
@@ -192,7 +190,6 @@ function OnboardingInner() {
           setBuyerMax(p.buyer.maxBudgetUsdc);
           setBuyerMinDays(p.buyer.minDeadlineDays);
           setBuyerMaxDays(p.buyer.maxDeadlineDays);
-          setBidWindow(p.buyer.bidCollectionSeconds);
           setMilestoneSplit(p.buyer.milestonePcts.join(','));
         }
         // Land on the role step so the user can change buyer/seller/both
@@ -252,7 +249,6 @@ function OnboardingInner() {
             maxBudgetUsdc: buyerMax,
             minDeadlineDays: buyerMinDays,
             maxDeadlineDays: buyerMaxDays,
-            bidCollectionSeconds: bidWindow,
             milestonePcts,
           },
         }),
@@ -443,8 +439,6 @@ function OnboardingInner() {
               setBuyerMinDays={setBuyerMinDays}
               buyerMaxDays={buyerMaxDays}
               setBuyerMaxDays={setBuyerMaxDays}
-              bidWindow={bidWindow}
-              setBidWindow={setBidWindow}
               milestoneSplit={milestoneSplit}
               setMilestoneSplit={setMilestoneSplit}
               canSubmit={canSubmit}
@@ -1085,8 +1079,6 @@ function ProfileStep(props: {
   setBuyerMinDays: (v: number) => void;
   buyerMaxDays: number;
   setBuyerMaxDays: (v: number) => void;
-  bidWindow: number;
-  setBidWindow: (v: number) => void;
   milestoneSplit: string;
   setMilestoneSplit: (v: string) => void;
   canSubmit: boolean;
@@ -1174,12 +1166,6 @@ function ProfileStep(props: {
               hint={ps.buyer.maxBudgetHint}
               value={props.buyerMax}
               setValue={props.setBuyerMax}
-            />
-            <NumField
-              label={ps.buyer.bidWindowLabel}
-              hint={ps.buyer.bidWindowHint}
-              value={props.bidWindow}
-              setValue={props.setBidWindow}
             />
             <NumField
               label={ps.buyer.minDeadlineLabel}

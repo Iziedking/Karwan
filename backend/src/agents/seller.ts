@@ -39,6 +39,8 @@ import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
 import { researchMarket, getCachedMarketPrice } from '../x402/externalClient.js';
+import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
 import { config } from '../config.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
@@ -393,6 +395,76 @@ async function maybeSellerResearch(
   }
 }
 
+/// The buyer's passport the seller agent pulled for a job, keyed by jobId. Lets
+/// the seller vet the buyer it is negotiating with: the opening pull is fired
+/// non-blocking, lands here, and the counter round reads it to lean its
+/// concession on the buyer's real reliability. Short-lived, cleared lazily on a
+/// stale TTL so the map cannot grow without bound.
+const sellerBuyerPassport = new Map<string, { signal: PaidPassportSignal; at: number }>();
+const SELLER_PASSPORT_TTL_MS = 60 * 60 * 1000;
+
+function cachedBuyerPassport(jobId: string): PaidPassportSignal | undefined {
+  const hit = sellerBuyerPassport.get(jobId);
+  if (!hit) return undefined;
+  if (Date.now() - hit.at > SELLER_PASSPORT_TTL_MS) {
+    sellerBuyerPassport.delete(jobId);
+    return undefined;
+  }
+  return hit.signal;
+}
+
+/// Symmetric counterparty pull: the seller agent pays Karwan's credit-passport
+/// endpoint on the BUYER before negotiating, the mirror of the buyer pulling the
+/// seller. Gated on the seller owner having agent research active, so the 1.5
+/// USDC subscription is what unlocks the agent vetting its counterparty (the
+/// public passport is a bare score; this buys the settled-deal evidence). Fired
+/// non-blocking so it never sits on the bid path; the result lands in the cache
+/// for the counter round. Metered against the seller's research credit on the
+/// fresh paid call. Best-effort.
+async function maybeSellerCounterpartyPull(
+  seller: SellerProfile,
+  buyerAddress: string,
+  jobId: string,
+): Promise<void> {
+  if (!config.X402_PAID_SIGNALS_ENABLED || !config.KARWAN_TREASURY_ADDR) return;
+  if (cachedBuyerPassport(jobId)) return;
+  try {
+    const record = await findAgentWalletByAgentAddress(seller.address);
+    const owner = record?.userAddress;
+    if (!owner) return;
+    if (!(await getResearchState(owner)).active) return;
+
+    const signal = await paidCreditPassport(seller.address, buyerAddress);
+    sellerBuyerPassport.set(jobId, { signal, at: Date.now() });
+    await chargeResearch(owner, signal.amountUsd);
+    bus.emitEvent({
+      type: 'agent.paid',
+      jobId,
+      actor: 'seller',
+      payload: {
+        rail: 'arc',
+        kind: 'reputation',
+        agent: 'seller',
+        seller: seller.address,
+        subject: buyerAddress,
+        amountUsd: signal.amountUsd,
+        txHash: signal.transaction,
+        tier: signal.tier,
+        score: signal.score,
+      },
+    });
+    logger.info(
+      { jobId, seller: seller.address, buyer: buyerAddress, tier: signal.tier },
+      'seller agent pulled the buyer credit passport',
+    );
+  } catch (err) {
+    logger.warn(
+      { jobId, seller: seller.address, err: (err as Error).message },
+      'seller counterparty pull failed (non-fatal)',
+    );
+  }
+}
+
 async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const mismatch = profileMismatchReason(seller, job);
   if (mismatch) {
@@ -629,7 +701,19 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     (job.keywords ?? []).length > 0
       ? job.keywords!
       : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
-  await maybeSellerResearch(seller, dealKeywords, job.jobId);
+  // Fire research WITHOUT blocking the bid. The paid Exa web search plus LLM
+  // synthesis took ~15s, and whichever seller evaluated first ate that latency,
+  // pushing its bid past the buyer's collection window so it missed the auction
+  // outright (deals 0xb807, 0x9922, 0xb4ec). The read is cached by keywords and
+  // single-flight across agents, so the opening bid prices on whatever is
+  // already warm (often the buyer's research on the same order); the fresh read
+  // lands during the window and tunes the counter rounds. Mirrors the buyer's
+  // non-blocking `void maybeResearchMarket`.
+  void maybeSellerResearch(seller, dealKeywords, job.jobId);
+  // Symmetric counterparty pull (non-blocking, same latency reason): the seller
+  // vets the buyer it is about to negotiate with. Lands in the cache for the
+  // counter round; the opening price does not wait on it.
+  void maybeSellerCounterpartyPull(seller, job.buyer, job.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
   const opening = sellerOpeningBid(
     seller,
@@ -903,7 +987,12 @@ async function runCounterEvaluation(
     (active.jobContext.keywords ?? []).length > 0
       ? active.jobContext.keywords!
       : [...(seller.keywords ?? []), ...(seller.skills ?? [])];
-  await maybeSellerResearch(seller, dealKeywords, active.jobContext.jobId);
+  // Non-blocking research here too (same latency reason as the opening bid):
+  // by the counter round the read is almost always warm from the opening, so
+  // the counter still prices research-tuned without stalling on a fresh call.
+  void maybeSellerResearch(seller, dealKeywords, active.jobContext.jobId);
+  void maybeSellerCounterpartyPull(seller, active.jobContext.buyer, active.jobContext.jobId);
+  const buyerPassport = cachedBuyerPassport(active.jobContext.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
   // Market-aware counter floor: the seller won't concede below what the deal is
   // worth across rounds either. A grounded market price above the budget lifts
@@ -960,6 +1049,20 @@ async function runCounterEvaluation(
             marketSampleCount: priceHistorySnapshot()?.sampleCount,
             marketHeat: heat,
             trustedMatch: active.jobContext.trustedMatch === true,
+            ...(buyerPassport &&
+            (buyerPassport.successCount != null || buyerPassport.disputedCount != null)
+              ? {
+                  counterpartyReliability: {
+                    settledDeals:
+                      (buyerPassport.successCount ?? 0) +
+                      (buyerPassport.disputedCount ?? 0) +
+                      (buyerPassport.failedCount ?? 0),
+                    completionRate: buyerPassport.completionRate,
+                    disputed: buyerPassport.disputedCount ?? 0,
+                    failed: buyerPassport.failedCount ?? 0,
+                  },
+                }
+              : {}),
           },
         ),
       }),

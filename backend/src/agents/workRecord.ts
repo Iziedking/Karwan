@@ -23,7 +23,18 @@ export interface WorkRecord {
   /// Deals the subject delivered as the seller, newest first. The real-work
   /// proof a buyer is vetting.
   rows: WorkRow[];
-  summary: { total: number; clean: number; disputed: number; failed: number; avgBand: string };
+  summary: {
+    total: number;
+    clean: number;
+    disputed: number;
+    failed: number;
+    avgBand: string;
+    /// Headline numbers the public passport does not expose: share of delivered
+    /// deals that settled clean, and the share delivered on or before deadline.
+    /// Null when there is no basis (no terminal deals, or none with a deadline).
+    completionRate: number | null;
+    onTimeRate: number | null;
+  };
   /// Lighter signal for the subject's buyer side, when they also buy.
   asBuyer: { funded: number; cleanRate: number | null };
 }
@@ -139,6 +150,16 @@ export async function buildWorkRecord(subject: string, now = Date.now()): Promis
       ? sellerDeals.reduce((sum, x) => sum + (Number(x.d.dealAmountUsdc) || 0), 0) / total
       : 0;
 
+  // On-time: of the delivered deals that carried a deadline, how many were
+  // delivered on or before it. deliveredAt is ms, deadlineUnix is seconds.
+  const withDeadline = sellerDeals.filter(({ d }) => d.deliveredAt && d.deadlineUnix);
+  const onTime = withDeadline.filter(
+    ({ d }) => (d.deliveredAt as number) <= (d.deadlineUnix as number) * 1000,
+  ).length;
+  const completionRate = total > 0 ? Math.round((clean / total) * 100) : null;
+  const onTimeRate =
+    withDeadline.length > 0 ? Math.round((onTime / withDeadline.length) * 100) : null;
+
   // Buyer side: terminal deals the subject funded, and how many settled clean.
   const buyerDeals = deals
     .filter((d) => d.buyer.toLowerCase() === s)
@@ -149,7 +170,15 @@ export async function buildWorkRecord(subject: string, now = Date.now()): Promis
 
   return {
     rows,
-    summary: { total, clean, disputed, failed, avgBand: band(String(avgAmount)) },
+    summary: {
+      total,
+      clean,
+      disputed,
+      failed,
+      avgBand: band(String(avgAmount)),
+      completionRate,
+      onTimeRate,
+    },
     asBuyer: { funded, cleanRate: funded > 0 ? Math.round((buyerClean / funded) * 100) : null },
   };
 }
