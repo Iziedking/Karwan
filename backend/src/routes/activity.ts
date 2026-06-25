@@ -83,51 +83,15 @@ const PUBLIC_EVENT_TYPES = new Set<string>([
   'bridge.minted',
 ]);
 
-// Payload keys that hold wallet addresses; redacted to a short form on the
-// public feed so we don't leak full addresses to crawlers / observers.
-const ADDRESS_KEYS = new Set<string>([
-  'buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy',
-  'buyerAgent', 'sellerAgent', 'user', 'recipient', 'from', 'to',
-  'mintRecipient',
-]);
-// Payload keys that hold free-form text the parties exchanged. Stripped on the
-// public feed so cancel/decline reasons don't end up indexed.
-const FREEFORM_KEYS = new Set<string>(['reason', 'cancelReason', 'detail', 'deliveryProof']);
-
-// Payload keys that hold a deal value. Dropped for finance-lane events so a
-// business deal's size never surfaces on the public feed.
-const AMOUNT_KEYS = new Set<string>([
-  'amountUsdc', 'dealAmountUsdc', 'agreedPriceUsdc', 'budgetUsdc', 'priceUsdc',
-  'askingPriceUsdc', 'milestoneAmountUsdc', 'faceValueUsdc', 'advanceUsdc', 'value',
-]);
-
-function maskAddress(addr: string): string {
-  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return addr;
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-function redactPayload(p: Record<string, unknown>, bare: boolean): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(p)) {
-    if (FREEFORM_KEYS.has(k)) continue;
-    // Bare = a finance-lane (business) event: drop parties and amount entirely
-    // so only the fact that something happened remains.
-    if (bare && (ADDRESS_KEYS.has(k) || AMOUNT_KEYS.has(k))) continue;
-    if (ADDRESS_KEYS.has(k) && typeof v === 'string') {
-      out[k] = maskAddress(v);
-      continue;
-    }
-    out[k] = v;
-  }
-  return out;
-}
-
-function redactEvent(e: KarwanEvent, bare = false): KarwanEvent {
-  return {
-    ...e,
-    jobId: e.jobId,
-    payload: redactPayload(e.payload ?? {}, bare),
-  };
+/// The general/public feed is a privacy PULSE: it shows that activity is
+/// happening and of what kind, never who, how much, or which deal. We keep only
+/// the event type, the actor ROLE (a role, never an address), and the time, and
+/// drop the jobId and the entire payload. Parties still see full detail on their
+/// own feed (the caller branch below) and on their private deal page. This is
+/// the stronger privacy posture: even masked addresses and amounts no longer
+/// leave the platform for anyone but the two parties.
+function pulseEvent(e: KarwanEvent): KarwanEvent {
+  return { type: e.type, actor: e.actor, ts: e.ts, payload: {} };
 }
 
 /// Returns events filtered to the caller when ?caller= is set, otherwise the
@@ -150,24 +114,17 @@ activityRoutes.get('/', async (c) => {
   const base = bus.recent(500, jobId);
 
   if (!caller) {
-    // Public form: keep only trade activity, then redact wallet addresses and
-    // strip free-form text so the general feed and landing-page tickers never
-    // leak account/platform events, parties, or party-authored reasons.
-    // Finance-lane (business) events stay in the feed but lose amount + parties.
-    const financeIds = await financeJobIds();
-    // Read public-typed events straight from event_history. The in-memory ring
-    // is capped at 500 and is easily saturated by non-public negotiation/chat
-    // noise, which pushes the sparse public events out of the window and makes
-    // the feed read empty even though the durable store holds thousands. Fall
-    // back to the in-memory ring when Postgres is off or returns nothing.
+    // Public form: keep only trade-activity event types, then reduce each to a
+    // privacy pulse (type + actor role + time, no parties, amounts, deal id, or
+    // text) for EVERY lane. The general feed proves the network is alive without
+    // revealing anything about a specific deal. Read public-typed events from
+    // event_history (the in-memory ring is small and saturated by negotiation /
+    // chat noise that pushes sparse public events out); fall back to the ring
+    // when Postgres is off.
     const fromPg = await recentEventsByType([...PUBLIC_EVENT_TYPES], limit, jobId);
     const publicEvents =
       fromPg.length > 0 ? fromPg : base.filter((e) => PUBLIC_EVENT_TYPES.has(e.type));
-    return c.json({
-      events: publicEvents
-        .slice(0, limit)
-        .map((e) => redactEvent(e, !!e.jobId && financeIds.has(e.jobId.toLowerCase()))),
-    });
+    return c.json({ events: publicEvents.slice(0, limit).map(pulseEvent) });
   }
 
   // Two-pass filter so we don't drop follow-up events that lack party fields
