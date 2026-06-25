@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { readSession } from '../auth/session.js';
+import { accountKindOf } from '../profile/accountType.js';
 import { getProfile, upsertProfile, listProfiles } from '../db/profiles.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -130,6 +131,9 @@ businessRoutes.post('/register', async (c) => {
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if ((await accountKindOf(session.address)) !== 'business') {
+    return c.json({ error: 'Business registration is for business accounts.', code: 'sme_rail_only' }, 403);
+  }
 
   let body;
   try {
@@ -165,6 +169,9 @@ businessRoutes.post('/register-circle', async (c) => {
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if ((await accountKindOf(session.address)) !== 'business') {
+    return c.json({ error: 'Business registration is for business accounts.', code: 'sme_rail_only' }, 403);
+  }
 
   let body;
   try {
@@ -219,6 +226,9 @@ businessRoutes.post('/register-circle', async (c) => {
 businessRoutes.post('/profile', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if ((await accountKindOf(session.address)) !== 'business') {
+    return c.json({ error: 'This is a business profile.', code: 'sme_rail_only' }, 403);
+  }
 
   let body;
   try {
