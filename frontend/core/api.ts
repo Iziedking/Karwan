@@ -222,6 +222,21 @@ export interface UserProfile {
       computedAt: number;
     };
   };
+  /// Verification-bound business status (flips on registry approval). Distinct
+  /// from accountKind (the onboarding choice). Used as a legacy fallback when
+  /// deciding the rail for older profiles that predate accountKind.
+  accountType?: 'person' | 'business';
+  business?: {
+    status: 'none' | 'submitted' | 'verified' | 'rejected';
+    verifiedAt?: number;
+  };
+  /// Financier capability. Only an `approved` financier can fund factoring / PO
+  /// lines. Anyone may apply from the SME rail once eligible.
+  financier?: {
+    status: 'none' | 'applied' | 'approved' | 'rejected';
+    appliedAt?: number;
+    approvedAt?: number;
+  };
 }
 
 // KarwanEscrow.EscrowState: None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.

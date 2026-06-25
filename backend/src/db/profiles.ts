@@ -149,6 +149,29 @@ export interface UserProfile {
     verifiedAt?: number;
     rejectReason?: string;
   };
+  /// Financier capability. Anyone may apply (in the SME rail) to fund factoring
+  /// and PO-financing lines, but only an `approved` financier can post offers or
+  /// fund. Eligibility (tenure + stake + reputation >= COLD) is checked at apply
+  /// time and snapshotted. Absent reads as no financier access. Distinct from
+  /// `accountType`/`business`: a financier provides capital, they are not
+  /// posting B2B trades, so the gate is capability-based, not account-kind-based.
+  financier?: {
+    status: 'none' | 'applied' | 'approved' | 'rejected';
+    appliedAt?: number;
+    approvedAt?: number;
+    rejectedAt?: number;
+    /// What the eligibility check saw when access was granted, for audit.
+    eligibilitySnapshot?: {
+      tenureDays: number;
+      stakeUsdc: number;
+      repScore: number;
+      repTier: string;
+      at: number;
+    };
+    /// Admin signer that approved/rejected, when the auto-approve hook is off.
+    reviewer?: string;
+    rejectReason?: string;
+  };
 }
 
 // --- public API: same names as before, now async, Postgres-backed when
