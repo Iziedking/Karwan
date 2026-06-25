@@ -2421,6 +2421,28 @@ export const api = {
       { method: 'POST' },
     ),
 
+  // Financier application (SME rail). Anyone who meets the bar (tenure on
+  // Karwan, a stake, reputation >= COLD) can self-serve apply to fund factoring
+  // and PO-financing lines. The desk stays locked until approved.
+  financierEligibility: () =>
+    json<{
+      eligible: boolean;
+      tenureDays: number;
+      tenureOk: boolean;
+      stakeUsdc: number;
+      stakeOk: boolean;
+      repScore: number;
+      repTier: string;
+      repOk: boolean;
+      reasons: string[];
+      status: 'none' | 'applied' | 'approved' | 'rejected';
+    }>('/api/financier/eligibility'),
+  financierApply: () =>
+    json<{ ok: boolean; status: 'approved' | 'applied'; grandfathered?: boolean }>(
+      '/api/financier/apply',
+      { method: 'POST' },
+    ),
+
   // --- verified-business accounts ---------------------------------------
   /// Public verification status + compact company snapshot for an address.
   getBusinessStatus: (address: string) =>
