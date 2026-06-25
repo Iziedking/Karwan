@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { FinancierDashboard } from '@/features/financier/components/FinancierDashboard';
+import { FinancierGate } from '@/features/financier/components/FinancierGate';
 import { SmeTradesComingSoon } from '@/features/financier/components/SmeTradesComingSoon';
 
 // Read the launch flag straight from the public env here rather than from
@@ -25,5 +25,5 @@ export const metadata: Metadata = {
 };
 
 export default function FinancierPage() {
-  return SME_TRADES_ENABLED ? <FinancierDashboard /> : <SmeTradesComingSoon />;
+  return SME_TRADES_ENABLED ? <FinancierGate /> : <SmeTradesComingSoon />;
 }

@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { readSession } from '../auth/session.js';
+import { getProfile } from '../db/profiles.js';
+import { isApprovedFinancier } from '../profile/financier.js';
 import {
   createFactoringOffer,
   getFactoringOffer,
@@ -181,6 +183,9 @@ factoringRoutes.post('/offer', async (c) => {
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if (!isApprovedFinancier(await getProfile(session.address))) {
+    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
+  }
 
   let body;
   try {
