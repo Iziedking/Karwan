@@ -12,6 +12,8 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 import { ProfileAvatar } from './ProfileAvatar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 
 // Landing routes are forced dark via these var overrides, so every embedded
@@ -33,6 +35,13 @@ export function TopNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslations();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { profile } = useUserProfile();
+  // Business and individual are two separate rails. A business sees B2B Trades
+  // and the SME-rail home; an individual sees P2P Trades. The Financier desk is
+  // shown to both (anyone can provide capital). Until the profile loads we treat
+  // the account as a person so the nav never flashes business items to an
+  // individual.
+  const biz = isBusinessAccount(profile);
   const showAppChrome = isApp && isAuthenticated;
 
   const tradesActive =
@@ -116,8 +125,8 @@ export function TopNav() {
             >
               {t.nav.home}
             </NavLink>
-            <NavLink href="/p2p" active={tradesActive}>
-              {t.nav.trades}
+            <NavLink href={biz ? '/buyer' : '/p2p'} active={tradesActive}>
+              {biz ? 'B2B Trades' : t.nav.trades}
             </NavLink>
             <NavLink
               href="/market"
@@ -130,18 +139,18 @@ export function TopNav() {
               <NavLink
                 href="/financier"
                 active={pathname.startsWith('/financier')}
-                title={t.nav.hints.smeTrades}
+                title="Fund factoring and purchase orders"
               >
-                {t.nav.smeTrades}
+                Financier
               </NavLink>
             ) : (
               <NavLinkSoon
                 href="/financier"
                 active={pathname.startsWith('/financier')}
-                title={t.nav.hints.smeTrades}
+                title="Fund factoring and purchase orders"
                 soonLabel={t.nav.soonBadge}
               >
-                {t.nav.smeTrades}
+                Financier
               </NavLinkSoon>
             )}
             <NavLink
@@ -232,10 +241,10 @@ export function TopNav() {
             <MobileNavLink href="/app" active={pathname === '/app'}>
               {t.nav.home}
             </MobileNavLink>
-            {/* P2P Trades is a single nav item now; it opens the desk picker
-                page (/p2p) where buyer and seller each get a card. */}
+            {/* The trades hub adapts to the rail: a business opens its B2B
+                trade flow, an individual opens the P2P desk picker. */}
             <MobileNavLink
-              href="/p2p"
+              href={biz ? '/buyer' : '/p2p'}
               active={
                 pathname.startsWith('/p2p') ||
                 pathname.startsWith('/buyer') ||
@@ -244,7 +253,7 @@ export function TopNav() {
                 pathname.startsWith('/deals')
               }
             >
-              {t.nav.trades}
+              {biz ? 'B2B Trades' : t.nav.trades}
             </MobileNavLink>
             <div className="my-1.5 border-t border-[var(--color-line)]" />
             <MobileNavLink
@@ -255,7 +264,7 @@ export function TopNav() {
             </MobileNavLink>
             {SME_TRADES_ENABLED ? (
               <MobileNavLink href="/financier" active={pathname.startsWith('/financier')}>
-                {t.nav.smeTrades}
+                Financier
               </MobileNavLink>
             ) : (
               <MobileNavLinkSoon
@@ -263,7 +272,7 @@ export function TopNav() {
                 active={pathname.startsWith('/financier')}
                 soonLabel={t.nav.soonBadge}
               >
-                {t.nav.smeTrades}
+                Financier
               </MobileNavLinkSoon>
             )}
             <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
