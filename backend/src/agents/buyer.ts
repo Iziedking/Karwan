@@ -78,7 +78,8 @@ import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
-import { chargeResearch } from '../x402/researchAccount.js';
+import { chargeResearch, getResearchState } from '../x402/researchAccount.js';
+import { securityResearchOrder } from '../security/orderResearch.js';
 import { upsertMarketAdvisory } from '../db/marketAdvisory.js';
 import { setResearchHeat, demandToHeat, classifyVsMarket, type MarketVerdict } from './marketDemand.js';
 
@@ -534,6 +535,10 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     actor: 'buyer',
     payload: { budgetUsdc: state.context.budgetUsdc, deadlineUnix: state.context.deadlineUnix },
   });
+  // The SecurityAgent fronts the one paid market read for this order now, so the
+  // shared cache is warm before any seller evaluates and the paid call never
+  // sits on the bid critical path. Buyer/seller research then reads from cache.
+  safe('securityResearch', () => securityResearchOrder(args.jobId, state.context.keywords));
 }
 
 async function handleBidSubmitted(log: Log) {
@@ -622,12 +627,22 @@ async function handleBidSubmitted(log: Log) {
   // Paid x402 pull: the agent buys the seller's credit passport from
   // Karwan's own paid endpoint before scoring ($0.01, agent Gateway
   // deposit -> treasury, settled through Circle Gateway batching).
+  // Gated on the buyer owner having agent research active, mirroring the seller
+  // pull: the 1.5 USDC subscription is what unlocks the agent buying counterparty
+  // evidence beyond the public score. A non-activated buyer scores on local
+  // signals only and skips the pull entirely, so nothing waits on it.
   // Best-effort with a hard deadline: a cold start (EOA provisioning +
   // first Gateway deposit) can outrun the window, in which case the
   // deposit still lands and the next bid gets the signal. The bid is
   // never blocked or dropped over a failed pull.
   let paidSignal: PaidPassportSignal | undefined;
-  if (config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR) {
+  const buyerResearchActive =
+    config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR
+      ? await getResearchState(state.context.buyer)
+          .then((s) => s.active)
+          .catch(() => false)
+      : false;
+  if (buyerResearchActive) {
     try {
       paidSignal = await Promise.race([
         paidCreditPassport(buyer.address, args.seller),
@@ -717,6 +732,21 @@ async function handleBidSubmitted(log: Log) {
     priceAnomaly: anomaly,
     sellerReputationBps,
     priorCleanDeals: priorCleanDealsWithBuyer,
+    ...(paidSignal && (paidSignal.successCount != null || paidSignal.disputedCount != null)
+      ? {
+          paidEvidence: {
+            settledDeals:
+              (paidSignal.successCount ?? 0) +
+              (paidSignal.disputedCount ?? 0) +
+              (paidSignal.failedCount ?? 0),
+            clean: paidSignal.successCount ?? 0,
+            disputed: paidSignal.disputedCount ?? 0,
+            failed: paidSignal.failedCount ?? 0,
+            volumeUsdc: paidSignal.lifetimeVolumeUsdc,
+            completionRate: paidSignal.completionRate,
+          },
+        }
+      : {}),
   };
 
   // Classify the bid against deterministic patterns BEFORE the LLM call. The
@@ -831,7 +861,7 @@ async function handleBidSubmitted(log: Log) {
     if (state.collectionStartedAt == null) {
       state.collectionStartedAt = Date.now();
       logger.info(
-        { jobId: state.jobId, floorSec: buyer.bidCollectionSeconds },
+        { jobId: state.jobId, floorSec: BID_COLLECTION_FLOOR_MS / 1000 },
         'first bid received, collection window open',
       );
       // Kick off paid market research now (non-blocking) so the finding lands
@@ -840,8 +870,8 @@ async function handleBidSubmitted(log: Log) {
     }
     // Adaptive soft close: each new bid keeps the window open a little longer,
     // so a slower agent's bid is still caught instead of missing a fixed
-    // window. Bounded by the buyer's set window (floor) and a hard cap.
-    scheduleCollectionClose(state, buyer.bidCollectionSeconds * 1000);
+    // window. Bounded by Karwan's floor and a hard cap, not a per-buyer value.
+    scheduleCollectionClose(state, BID_COLLECTION_FLOOR_MS);
   }
 }
 
@@ -897,10 +927,13 @@ async function maybeSupersedeNearMiss(
   await finalizeBidCollection(state);
 }
 
-/// Quiet period after the last bid before the window closes, and the hard cap
-/// from the first bid. The buyer's bidCollectionSeconds is the floor. Real
-/// agents bid over a wider span than a demo's 30s, so the window stays open
-/// while bids are still arriving rather than slamming shut on a fixed timer.
+/// The bid-collection window is run by Karwan, not chosen per buyer. The floor
+/// is the minimum the window stays open from the first bid; the quiet period
+/// extends it on each new bid; the cap bounds it. Real agents bid over a wider
+/// span than a demo's 30s, so the window stays open while bids are still
+/// arriving rather than slamming shut on a fixed timer. All three are config,
+/// not user input, so the negotiation design can be retuned in one place.
+const BID_COLLECTION_FLOOR_MS = Number(process.env.BID_COLLECTION_FLOOR_SECONDS ?? 45) * 1000;
 const BID_WINDOW_QUIET_MS = Number(process.env.BID_WINDOW_QUIET_MS ?? 15_000);
 const BID_WINDOW_MAX_MS = Number(process.env.BID_WINDOW_MAX_MS ?? 180_000);
 
@@ -2628,10 +2661,10 @@ async function persistApprovedMatch(
       'approved match persisted as deal row',
     );
 
-    // Settle the research cost on the MATCHED pair only. The platform fronted
-    // the calls for the whole auction; here we draw it down from the two
-    // accounts that actually transacted, out of their 5 USDC research credit.
-    // The buyer also bears the internal counterparty pull it ran on the seller.
+    // Settle the research cost on the MATCHED pair only. The SecurityAgent
+    // fronted the call at post for the whole auction; here we draw it down from
+    // the two accounts that actually transacted, out of their 1.5 USDC research
+    // credit. The buyer also bears the internal counterparty pull it ran.
     // Best-effort and a no-op for an account with no credit.
     const externalUsd = proposal.marketRead?.amountUsd ?? 0;
     const internalPullUsd = proposal.paidSignal?.amountUsd ?? 0;

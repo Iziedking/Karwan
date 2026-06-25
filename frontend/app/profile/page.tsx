@@ -378,7 +378,6 @@ function ProfilePageInner() {
                         value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
                         mono: true,
                       },
-                      { label: t.agentProfiles.rows.bidWindow, value: `${profile.buyer.bidCollectionSeconds}s`, mono: true },
                       {
                         label: t.agentProfiles.rows.milestones,
                         value: profile.buyer.milestonePcts.join(' / ') || '-',

@@ -6,9 +6,10 @@ import { getProfile, upsertProfile } from '../db/profiles.js';
 /// out the account goes inactive until topped up. UI copy calls this "agent
 /// research"; "x402" only appears in developer docs.
 
-/// One-time activation / top-up fee, in USDC. Generous: ~hundreds of deals of
-/// research per payment at sub-cent per call.
-export const RESEARCH_ACTIVATION_USDC = 5;
+/// One-time activation / top-up fee, in USDC. The shared market read is fronted
+/// by the platform and only billed back to the matched pair at sub-cent per
+/// deal, so a single activation still covers a long run of deals.
+export const RESEARCH_ACTIVATION_USDC = 1.5;
 
 function round6(n: number): number {
   return Math.round(n * 1e6) / 1e6;

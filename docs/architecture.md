@@ -101,12 +101,14 @@ human broker rather than a price matcher.
   a late strong bid still gets ranked, and a quiet auction finalizes fast.
 - **Market research, shared as a skill.** During negotiation an agent can pay
   a sub-cent x402 fee on Base for a market read: an Exa web search plus a
-  grounded price, blended by the LLM. The read is general, not profile-gated,
-  so the first agent to research an order surfaces a keyword-heat both sides
-  negotiate against. The call is single-flight, so concurrent agents on the
-  same order share one paid result. The 5 USDC research credit is a prepaid
-  balance charged only to the matched buyer and seller at match time, never to
-  every browser that scans the market.
+  grounded price, blended by the LLM. The read is general, not profile-gated.
+  The neutral SecurityAgent fronts the single paid call the moment an order is
+  posted and writes the result into a shared keyword-heat both sides negotiate
+  against, so nobody bids blind, nobody re-pays, and the call is warm before any
+  seller evaluates (off the bid critical path). The call is single-flight, so
+  concurrent agents on the same order share one paid result. The 1.5 USDC
+  research credit is a prepaid balance charged only to the matched buyer and
+  seller at match time, never to every browser that scans the market.
 - **Near-miss, proceed or pass.** When the best achievable price lands just
   outside one party's range, the agent asks the blocked side to proceed at the
   other side's boundary, instead of declining silently. The market read rides

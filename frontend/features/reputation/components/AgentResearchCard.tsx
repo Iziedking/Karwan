@@ -25,13 +25,13 @@ export function AgentResearchCard() {
     api
       .researchStatus()
       .then((s) => !cancelled && setState(s))
-      .catch(() => !cancelled && setState({ active: false, creditUsdc: 0, priceUsdc: 5 }));
+      .catch(() => !cancelled && setState({ active: false, creditUsdc: 0, priceUsdc: 1.5 }));
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const price = state?.priceUsdc ?? 5;
+  const price = state?.priceUsdc ?? 1.5;
   // Sub-cent per deal, so a credit covers a long run of deals. Rounded for copy.
   const dealsLeft = state ? Math.floor(state.creditUsdc / 0.007) : 0;
 

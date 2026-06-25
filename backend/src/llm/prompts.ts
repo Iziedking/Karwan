@@ -58,6 +58,18 @@ export interface BidContext {
   /// the agent's reasoning recognize a familiar, proven counterparty. A small
   /// positive note only; the hard ranking nudge is applied deterministically.
   priorCleanDeals?: number;
+  /// Settled-deal evidence the agent bought from the paid counterparty pull,
+  /// richer than the public passport's bare score: how many deals settled and
+  /// how they ended, lifetime volume, and a completion rate. Present only when
+  /// the paid pull succeeded.
+  paidEvidence?: {
+    settledDeals: number;
+    clean: number;
+    disputed: number;
+    failed: number;
+    volumeUsdc?: number;
+    completionRate?: number | null;
+  };
 }
 
 const DAY_SECONDS = 86_400;
@@ -156,6 +168,13 @@ export function buildBidRankingPrompt(
     bid.priorCleanDeals && bid.priorCleanDeals > 0
       ? `- Relationship: you have closed ${bid.priorCleanDeals} clean deal${bid.priorCleanDeals === 1 ? '' : 's'} with this seller before. A familiar, proven counterparty is a small plus you may note. It does NOT justify overpaying or preferring a clearly worse bid; price, fit, and reputation still come first.`
       : '',
+    bid.paidEvidence && bid.paidEvidence.settledDeals > 0
+      ? `- Paid counterparty evidence (your agent bought this, beyond the public score): ${bid.paidEvidence.settledDeals} settled deal${bid.paidEvidence.settledDeals === 1 ? '' : 's'}` +
+        `${bid.paidEvidence.completionRate != null ? `, ${bid.paidEvidence.completionRate}% completed clean` : ''}` +
+        `, ${bid.paidEvidence.disputed} disputed, ${bid.paidEvidence.failed} failed` +
+        `${bid.paidEvidence.volumeUsdc ? `, ~${Math.round(bid.paidEvidence.volumeUsdc)} USDC lifetime volume` : ''}. ` +
+        `Real delivered history. Weight it above the bare reputation score; a high completion rate over real volume is the strongest reliability signal you have.`
+      : '',
     '',
     'Pattern guide (use this to read the signals together, not just the price):',
     '- "windfall": bid price well above budget + established/strong/elite rep → score high; this is a real buyer paying generously.',
@@ -222,6 +241,17 @@ export interface NegotiationContext {
   /// goodwill: meet a familiar, proven counterparty a little sooner, always
   /// within the hard cap. Ignored on the seller side.
   priorCleanDeals?: number;
+  /// Settled-deal evidence on the OTHER side, bought from the paid counterparty
+  /// pull (the seller vetting the buyer here). A high completion rate over real
+  /// deals means the counterparty reliably honors terms, so a little more
+  /// goodwill is safe; a poor record argues for holding firm. Never moves a hard
+  /// floor or cap.
+  counterpartyReliability?: {
+    settledDeals: number;
+    completionRate?: number | null;
+    disputed: number;
+    failed: number;
+  };
 }
 
 export function buildCounterEvaluationPrompt(
@@ -282,6 +312,12 @@ export function buildCounterEvaluationPrompt(
           : '',
         role === 'buyer' && ctx.priorCleanDeals && ctx.priorCleanDeals > 0
           ? `- RELATIONSHIP: you have closed ${ctx.priorCleanDeals} clean deal${ctx.priorCleanDeals === 1 ? '' : 's'} with this seller before. Extend a little goodwill: lean toward accepting an in-range offer and don't grind a proven repeat seller for the last few percent. This NEVER raises your cap; an above-cap price is still declined.`
+          : '',
+        ctx.counterpartyReliability && ctx.counterpartyReliability.settledDeals > 0
+          ? `- COUNTERPARTY EVIDENCE (your agent paid to pull this on the ${other}): ${ctx.counterpartyReliability.settledDeals} settled deal${ctx.counterpartyReliability.settledDeals === 1 ? '' : 's'}` +
+            `${ctx.counterpartyReliability.completionRate != null ? `, ${ctx.counterpartyReliability.completionRate}% clean` : ''}` +
+            `, ${ctx.counterpartyReliability.disputed} disputed, ${ctx.counterpartyReliability.failed} failed. ` +
+            `A strong, real track record earns a little more goodwill (concede a touch sooner within your range); a poor one argues for holding firm. This NEVER moves your hard floor or cap.`
           : '',
       ]
         .filter(Boolean)

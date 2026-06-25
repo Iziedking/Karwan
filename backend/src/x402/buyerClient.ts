@@ -218,6 +218,16 @@ export interface PaidPassportSignal {
   score: number;
   concentrationRatio?: number;
   concentrationHard?: boolean;
+  /// Settled-deal performance the free passport page does not expose. The
+  /// granular evidence the paid pull buys over a bare score: how many deals
+  /// settled, how they ended, lifetime volume, and the derived completion rate.
+  successCount?: number;
+  disputedCount?: number;
+  failedCount?: number;
+  lifetimeVolumeUsdc?: number;
+  /// Clean / (clean + disputed + failed), as a 0-100 percentage. Null when the
+  /// subject has no terminal deals yet.
+  completionRate?: number | null;
   amountUsd: number;
   payer: string;
   transaction: string;
@@ -226,16 +236,21 @@ export interface PaidPassportSignal {
 
 const CREDIT_PASSPORT_PRICE_USD = 0.01;
 
-/// The buyer agent's paid credit-passport pull during bid scoring. Resolves
-/// the agent's owner record, makes sure the x402 EOA exists and its Gateway
-/// deposit covers the call, then pays Karwan's own endpoint over real x402.
-/// Throws on any failure; the caller treats the signal as best-effort.
+/// A paid credit-passport pull, by either side, on its counterparty. The
+/// paying agent funds the call from its own Gateway deposit, so the buyer pulls
+/// the seller before scoring and the seller pulls the buyer before pricing
+/// through the same path. Resolves the payer's owner record, makes sure its
+/// x402 EOA exists and its Gateway deposit covers the call, then pays Karwan's
+/// own endpoint over real x402. Captures the settled-deal counts and volume the
+/// endpoint returns (which the free passport page does not), and derives a
+/// completion rate. Throws on any failure; callers treat the signal as
+/// best-effort.
 export async function paidCreditPassport(
-  buyerAgentAddress: string,
-  sellerAddress: string,
+  payerAgentAddress: string,
+  subjectAddress: string,
 ): Promise<PaidPassportSignal> {
-  const record = await findAgentWalletByAgentAddress(buyerAgentAddress);
-  if (!record) throw new Error('no agent wallet record behind buyer agent');
+  const record = await findAgentWalletByAgentAddress(payerAgentAddress);
+  if (!record) throw new Error('no agent wallet record behind the paying agent');
 
   const x402 = await ensureX402Wallet(record);
   const funding = await ensureGatewayFunding(record, x402, CREDIT_PASSPORT_PRICE_USD);
@@ -252,14 +267,29 @@ export async function paidCreditPassport(
     score: number;
     concentrationRatio?: number;
     concentrationHard?: boolean;
-  }>(`${base}/api/x402/credit-passport/${sellerAddress}`, x402);
+    successCount?: number;
+    disputedCount?: number;
+    failedCount?: number;
+    lifetimeVolumeUsdc?: number;
+  }>(`${base}/api/x402/credit-passport/${subjectAddress}`, x402);
+
+  const d = result.data;
+  const terminal =
+    (d.successCount ?? 0) + (d.disputedCount ?? 0) + (d.failedCount ?? 0);
+  const completionRate =
+    terminal > 0 ? Math.round(((d.successCount ?? 0) / terminal) * 100) : null;
 
   return {
-    subject: result.data.address,
-    tier: result.data.tier,
-    score: result.data.score,
-    concentrationRatio: result.data.concentrationRatio,
-    concentrationHard: result.data.concentrationHard,
+    subject: d.address,
+    tier: d.tier,
+    score: d.score,
+    concentrationRatio: d.concentrationRatio,
+    concentrationHard: d.concentrationHard,
+    successCount: d.successCount,
+    disputedCount: d.disputedCount,
+    failedCount: d.failedCount,
+    lifetimeVolumeUsdc: d.lifetimeVolumeUsdc,
+    completionRate,
     amountUsd: result.amountUsd,
     payer: result.payer,
     transaction: result.transaction,

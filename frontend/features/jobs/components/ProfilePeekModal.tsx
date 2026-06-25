@@ -347,6 +347,37 @@ function WorkRecordSection({
 
       {state.kind === 'done' && !state.data.locked && state.data.record && (
         <>
+          {(state.data.record.summary.completionRate != null ||
+            state.data.record.summary.onTimeRate != null) && (
+            <div className="mt-3 flex gap-2">
+              {state.data.record.summary.completionRate != null && (
+                <div
+                  className="flex-1 px-3 py-2"
+                  style={{ background: 'var(--lp-light)', border: '1px solid var(--lp-border-light)', borderRadius: 6 }}
+                >
+                  <p className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                    Completion
+                  </p>
+                  <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums text-[var(--lp-dark)]">
+                    {state.data.record.summary.completionRate}%
+                  </p>
+                </div>
+              )}
+              {state.data.record.summary.onTimeRate != null && (
+                <div
+                  className="flex-1 px-3 py-2"
+                  style={{ background: 'var(--lp-light)', border: '1px solid var(--lp-border-light)', borderRadius: 6 }}
+                >
+                  <p className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                    On time
+                  </p>
+                  <p className="mt-0.5 font-sans text-[18px] font-extrabold tabular-nums text-[var(--lp-dark)]">
+                    {state.data.record.summary.onTimeRate}%
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           {state.data.record.rows.length === 0 ? (
             <p className="mt-3 text-[12px] text-[var(--lp-text-sub)]">{wr.empty}</p>
           ) : (

@@ -54,7 +54,11 @@ const profileSchema = z.object({
       maxBudgetUsdc: z.number().positive(),
       minDeadlineDays: z.number().int().min(0).max(90),
       maxDeadlineDays: z.number().int().min(1).max(180),
-      bidCollectionSeconds: z.number().int().min(5).max(600),
+      // The bid-collection window is now run by Karwan, not chosen by users, so
+      // new signups omit it. Kept on the profile (inert, defaulted) so persisted
+      // profiles and types do not break; the engine ignores the stored value and
+      // uses BID_COLLECTION_FLOOR_SECONDS. See todo.md (revisit the 45s floor).
+      bidCollectionSeconds: z.number().int().min(5).max(600).optional().default(45),
       milestonePcts: z.array(z.number().int().min(1).max(100)).min(1).max(4),
     })
     .optional(),

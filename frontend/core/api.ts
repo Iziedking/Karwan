@@ -194,7 +194,8 @@ export interface UserProfile {
     maxBudgetUsdc: number;
     minDeadlineDays: number;
     maxDeadlineDays: number;
-    bidCollectionSeconds: number;
+    // Run by Karwan now, not chosen by users; new signups omit it.
+    bidCollectionSeconds?: number;
     milestonePcts: number[];
   };
   /// SME-grade profile for B2B trade-finance flows (Phase 2 Track 2).
@@ -627,7 +628,15 @@ export interface CounterpartyReport {
   subject: string;
   record?: {
     rows: WorkRecordRow[];
-    summary: { total: number; clean: number; disputed: number; failed: number; avgBand: string };
+    summary: {
+      total: number;
+      clean: number;
+      disputed: number;
+      failed: number;
+      avgBand: string;
+      completionRate: number | null;
+      onTimeRate: number | null;
+    };
     asBuyer: { funded: number; cleanRate: number | null };
   };
 }
