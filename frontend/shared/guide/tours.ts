@@ -15,7 +15,7 @@ export const WELCOME_STEPS: TourStep[] = [
   },
   {
     title: 'Where things live',
-    body: 'Open P2P Trades from the top menu to hire or to offer work, Market to browse what others have posted, and Activity to follow everything live. Your money stays in your own wallet until you fund a deal.',
+    body: 'Open Trades from the top menu to hire or to offer work, Market to browse what others have posted, and Activity to follow the network. Your money stays in your own wallet until you fund a deal.',
   },
   {
     title: 'Two buttons, always there',
@@ -258,17 +258,18 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
   ];
 }
 
-/// Activity stream tour.
-export const ACTIVITY_TOUR_ID = 'activity-v1';
+/// Activity stream tour. The general feed is a privacy pulse now: it shows that
+/// the network is alive without revealing any deal's parties or amounts.
+export const ACTIVITY_TOUR_ID = 'activity-v2';
 export const ACTIVITY_STEPS: TourStep[] = [
   {
-    title: 'The live network feed',
-    body: 'Every deal moving across Karwan shows here as it happens: posts, bids, escrow moves, settlements. Search by job ID to follow a specific one.',
+    title: 'The live network pulse',
+    body: 'A heartbeat of activity across Karwan: posts, bids, settlements as they happen. By design it shows only that something happened, never who or how much.',
     target: 'activity-stream',
   },
   {
-    title: 'Verify on chain',
-    body: 'Each row deep-links to the Arc explorer, so you can check any event yourself. Nothing is hidden.',
+    title: 'Your deals stay private',
+    body: 'Everyone’s deals are private to the two sides. The full detail of your own deals lives on each deal page, visible only to you and your counterparty.',
   },
 ];
 
@@ -289,15 +290,72 @@ export const SETTINGS_STEPS: TourStep[] = [
   },
 ];
 
-/// Marketplace tour.
-export const MARKET_TOUR_ID = 'market-v1';
-export const MARKET_STEPS: TourStep[] = [
+/// Marketplace tour. The market is sectioned by rail, so the walkthrough
+/// branches: an individual learns the P2P market plus the "businesses hiring"
+/// bridge and the view-only B2B strip; a business learns its B2B market.
+/// Distinct ids per variant so the "seen" set never suppresses the wrong one.
+export const MARKET_TOUR_ID = 'market-person-v1';
+export const MARKET_BIZ_TOUR_ID = 'market-biz-v1';
+export function buildMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
+  if (accountKind === 'business') {
+    return [
+      {
+        title: 'Your B2B market',
+        body: 'Open trade-finance deals you can fund or fulfil, and companies sourcing individual services, grouped into clear sections.',
+      },
+      {
+        title: 'Start from any card',
+        body: 'Open a deal to act on it. Your agents handle the matching and negotiation; you approve the terms.',
+      },
+    ];
+  }
+  return [
+    {
+      title: 'The marketplace',
+      body: 'Open requests and offers from people, in their own section. Browse for what you need and your assistant negotiates from there.',
+    },
+    {
+      title: 'Businesses hiring you',
+      body: 'Companies sometimes need an individual for a job. Those sit in their own section, and you bid on them like any request.',
+    },
+    {
+      title: 'Business deals are view-only',
+      body: 'You can see B2B trade activity for transparency, but acting on those needs a business account. Counterparties stay private.',
+    },
+  ];
+}
+
+/// Financier application tour (/financier, before approval). Explains the
+/// capability and the eligibility bar. Centered cards, no spotlight targets.
+export const FINANCIER_APPLY_TOUR_ID = 'financier-apply-v1';
+export const FINANCIER_APPLY_STEPS: TourStep[] = [
   {
-    title: 'The marketplace',
-    body: 'Live offers from sellers and open requests from buyers, side by side. Browse for what you need.',
+    title: 'Become a financier',
+    body: 'Financiers advance against accepted invoices and fund purchase orders, then collect repayment when the trade settles on chain. Anyone can apply.',
   },
   {
-    title: 'Start from any card',
-    body: 'Open an offer to start a deal with that seller, or pick up a request as a seller. Your assistant handles the negotiation from there.',
+    title: 'Clear the bar',
+    body: 'Three checks: time on Karwan, a stake in the vault, and at least the COLD reputation tier. Each shows live, with a link to fix what is missing.',
+  },
+  {
+    title: 'Apply and you are in',
+    body: 'Once all three pass, apply and your desk unlocks right away. Funding stays gated until then so capital and counterparties are protected.',
+  },
+];
+
+/// Financier desk tour (/financier, after approval).
+export const FINANCIER_DESK_TOUR_ID = 'financier-desk-v1';
+export const FINANCIER_DESK_STEPS: TourStep[] = [
+  {
+    title: 'Your financier desk',
+    body: 'Two tabs: invoices open to factoring, and purchase orders open to funding. Filter by sector and region to find the trade you want.',
+  },
+  {
+    title: 'Make an offer',
+    body: 'Set your discount or principal and post it. When the seller accepts, your advance goes out; repayment returns automatically when the deal settles.',
+  },
+  {
+    title: 'Every counterparty has a passport',
+    body: 'Each card links to the seller’s on-chain credit passport: tier, settled-deal history, and repayment behaviour, so you underwrite with real signals.',
   },
 ];
