@@ -9,6 +9,7 @@ import { wagmiConfig } from '@/core/wagmi';
 import { makeQueryClient } from '@/core/queryClient';
 import { makeQueryPersister, persistOptions } from '@/core/queryPersister';
 import { QueryInvalidator } from '@/core/queryInvalidator';
+import { LiveCallerSync } from '@/shared/components/LiveCallerSync';
 import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
 import { AssistantWidget } from '@/shared/components/AssistantWidget';
@@ -61,6 +62,7 @@ export function AppProviders({
     <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
       <SiweGate />
       <QueryInvalidator />
+      <LiveCallerSync />
       <GuideProvider>
         {children}
         <AssistantWidget />

@@ -78,10 +78,28 @@ function setStatus(next: LiveStatus) {
   for (const s of statusSubscribers) s(next);
 }
 
+// The signed-in caller for the current connection. The live stream is gated
+// server-side by the authenticated session (the cookie ridden via
+// withCredentials), so non-parties only ever receive a privacy pulse. When the
+// caller changes (sign in / out) we re-handshake so the new session applies.
+let currentCaller: string | null = null;
+
+export function setLiveCaller(caller: string | null) {
+  const next = caller ? caller.toLowerCase() : null;
+  if (next === currentCaller) return;
+  currentCaller = next;
+  if (source) {
+    teardownSource();
+    if (subscribers.size > 0 || statusSubscribers.size > 0) ensureSource();
+  }
+}
+
 function ensureSource() {
   if (source) return;
   setStatus('connecting');
-  source = new EventSource(api.eventsUrl());
+  // withCredentials sends the session cookie so the backend can scope the
+  // stream to this caller (full detail for their own deals, a pulse otherwise).
+  source = new EventSource(api.eventsUrl(), { withCredentials: true });
   const onMessage = (e: MessageEvent) => {
     try {
       const parsed = JSON.parse(e.data) as ChainEvent;
