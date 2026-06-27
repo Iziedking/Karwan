@@ -159,8 +159,10 @@ export function useAuth(): AuthState & {
   // 'connected' or 'disconnected' within a bounded window, so this can't hang.
   const wagmiResolving = wagmiStatus === 'connecting' || wagmiStatus === 'reconnecting';
 
-  // Mirror the address into the API client so private reads can pass it as a
-  // `caller` hint (web3 users have no backend session cookie).
+  // Mirror the address into the API client. Web3 users now hold a real session
+  // cookie (SIWE on connect), so the backend resolves identity from the cookie
+  // and ignores the `caller` hint on privacy reads; the hint is kept only for
+  // non-gated display lookups and harmless legacy callers.
   useEffect(() => {
     setApiCaller(address);
   }, [address]);

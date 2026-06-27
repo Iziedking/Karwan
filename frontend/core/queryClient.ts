@@ -15,7 +15,11 @@ import { QueryClient } from '@tanstack/react-query';
 ///   changed."
 /// - refetchOnReconnect true — networks come back, refetch once.
 /// - retry 1 — bounded retry; Arc RPC has sporadic 502s. More than 1 just
-///   delays the error display without changing the outcome.
+///   delays the error display without changing the outcome. Auth failures
+///   (401/403) and not-found (404) are never retried: they aren't transient.
+///   A 401 means the SIWE session hasn't landed yet; retrying won't change
+///   that, but the AUTH_CHANGED invalidation in QueryInvalidator refetches the
+///   moment sign-in completes.
 export function makeQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -24,7 +28,11 @@ export function makeQueryClient(): QueryClient {
         gcTime: 24 * 60 * 60 * 1000,
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
-        retry: 1,
+        retry: (failureCount, error) => {
+          const status = (error as { status?: number } | null | undefined)?.status;
+          if (status === 401 || status === 403 || status === 404) return false;
+          return failureCount < 1;
+        },
       },
       mutations: {
         retry: 0,

@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { AUTH_CHANGED_EVENT } from '@/shared/hooks/useAuth';
 import type { ChainEvent } from '@/core/api';
 import { qk } from './queryKeys';
 
@@ -98,6 +99,22 @@ function routes(event: ChainEvent): readonly (readonly string[])[] {
 /// hand.
 export function QueryInvalidator() {
   const qc = useQueryClient();
+
+  // Auth transitions. When SIWE sign-in completes (or a sign-out happens),
+  // every private read may resolve differently: a query that 401'd during the
+  // pre-signature window should refetch now that the session cookie is set.
+  // Invalidate the whole cache once; react-query refetches only the keys with
+  // mounted observers, so this is cheap. This is what makes the session-only
+  // read gates feel seamless instead of stranding a "sign in" state.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onAuth = () => {
+      qc.invalidateQueries();
+    };
+    window.addEventListener(AUTH_CHANGED_EVENT, onAuth);
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, onAuth);
+  }, [qc]);
+
   useEffect(() => {
     return subscribeLiveEvents((event) => {
       const keys = routes(event);

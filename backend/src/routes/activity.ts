@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { bus, recentEventsByType, type KarwanEvent } from '../events.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { listAllDeals } from '../db/deals.js';
+import { sessionAddress } from '../auth/session.js';
 
 export const activityRoutes = new Hono();
 
@@ -102,8 +103,10 @@ function pulseEvent(e: KarwanEvent): KarwanEvent {
 activityRoutes.get('/', async (c) => {
   const limitParam = c.req.query('limit');
   const jobId = c.req.query('jobId') ?? undefined;
-  const callerRaw = c.req.query('caller');
-  const caller = callerRaw && /^0x[a-fA-F0-9]{40}$/.test(callerRaw) ? callerRaw.toLowerCase() : null;
+  // The caller-filtered feed returns full unredacted events (amounts, parties)
+  // for deals the caller is a party to, so identity is the signed session, not
+  // a spoofable ?caller= param. No session falls through to the public pulse.
+  const caller = sessionAddress(c);
   const limit = limitParam ? Math.min(500, Math.max(1, Number(limitParam))) : 100;
 
   // Reload from event_history if the in-memory ring came up cold (boot hydrate
