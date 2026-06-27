@@ -72,8 +72,16 @@ const matchDecisionSchema = z.object({
 
 export const listingsRoutes = new Hono();
 
-function stripPrivateFields(l: Listing): Omit<Listing, 'negotiationMaxDecreasePct'> {
-  const { negotiationMaxDecreasePct: _drop, ...rest } = l;
+/// Public projection. Drops agent-private steering (negotiationMaxDecreasePct)
+/// and the matchedJobId. That id is the matched deal's secret handle, and the
+/// per-job read gate treats anyone who can name the jobId plus a party address
+/// as a party, so publishing (sellerUser, matchedJobId) pairs here would let an
+/// anonymous caller read the matched deal's full negotiation. The owner still
+/// gets matchedJobId via /listings/mine and the owner /:id view.
+function stripPrivateFields(
+  l: Listing,
+): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId'> {
+  const { negotiationMaxDecreasePct: _drop, matchedJobId: _drop2, ...rest } = l;
   return rest;
 }
 

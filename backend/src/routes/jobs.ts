@@ -135,7 +135,18 @@ const postJobSchema = z
 
 export const jobsRoutes = new Hono();
 
-jobsRoutes.get('/', (c) => c.json(getBuyerSnapshot()));
+/// The managed-jobs snapshot carries full negotiation state (bids, counter
+/// prices, amounts, buyer agent) and so must never enumerate every buyer's
+/// jobs. Scope it to a single caller address and return only that buyer's
+/// jobs. The masked public market surface is /marketplace; this is the owner's
+/// own dashboard feed.
+jobsRoutes.get('/', (c) => {
+  const caller = c.req.query('caller');
+  if (!caller || !/^0x[a-fA-F0-9]{40}$/.test(caller)) {
+    return c.json({ error: 'caller query param required (0x... address)' }, 400);
+  }
+  return c.json(getBuyerSnapshot(caller));
+});
 
 /// Open buyer briefs packaged for the marketplace surface. Public; we mask
 /// the buyer address so a crawler can't enumerate wallets. A brief leaves the
@@ -354,6 +365,12 @@ jobsRoutes.get('/matches/for', async (c) => {
   const caller = c.req.query('caller');
   if (!caller || !/^0x[a-fA-F0-9]{40}$/.test(caller)) {
     return c.json({ error: 'caller query param required (0x... address)' }, 400);
+  }
+  // A proposal names both parties and the agreed price, so a signed-in user may
+  // only read their own. Sessionless web3 callers still query by address until
+  // SIWE lands; tighten this to a hard session check then.
+  if (sessionMismatchesClaim(c, caller)) {
+    return c.json({ error: 'forbidden' }, 403);
   }
   const all = await listMatchProposalsForUser(caller);
   // Hide expired pending matches. A proposal whose agreed delivery deadline has
