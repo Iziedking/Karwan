@@ -30,7 +30,7 @@ import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
-import { sessionMismatchesClaim, viewerAddress } from '../auth/session.js';
+import { sessionMismatchesClaim, sessionAddress, viewerAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z
@@ -362,15 +362,12 @@ jobsRoutes.get('/:jobId/match', async (c) => {
 /// case: the `/seller` dashboard polls this to surface "your bid became a
 /// match" so sellers don't have to know jobIds to find their pending matches.
 jobsRoutes.get('/matches/for', async (c) => {
-  const caller = c.req.query('caller');
-  if (!caller || !/^0x[a-fA-F0-9]{40}$/.test(caller)) {
-    return c.json({ error: 'caller query param required (0x... address)' }, 400);
-  }
-  // A proposal names both parties and the agreed price, so a signed-in user may
-  // only read their own. Sessionless web3 callers still query by address until
-  // SIWE lands; tighten this to a hard session check then.
-  if (sessionMismatchesClaim(c, caller)) {
-    return c.json({ error: 'forbidden' }, 403);
+  // A proposal names both parties and the agreed price, so identity is the
+  // signed session only. Web3 users get one via SIWE on connect; a request
+  // without a session can't read anyone's matches.
+  const caller = sessionAddress(c);
+  if (!caller) {
+    return c.json({ error: 'sign in to view your matches' }, 401);
   }
   const all = await listMatchProposalsForUser(caller);
   // Hide expired pending matches. A proposal whose agreed delivery deadline has

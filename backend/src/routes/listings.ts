@@ -27,7 +27,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
-import { sessionMismatchesClaim } from '../auth/session.js';
+import { sessionMismatchesClaim, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 
 const addrSchema = z
@@ -109,10 +109,11 @@ listingsRoutes.get('/:id', (c) => {
   const id = c.req.param('id');
   const listing = getListing(id);
   if (!listing) return c.json({ error: 'listing not found' }, 404);
-  const callerRaw = c.req.query('caller');
-  const caller =
-    callerRaw && /^0x[a-fA-F0-9]{40}$/.test(callerRaw) ? callerRaw.toLowerCase() : null;
-  const isOwner = caller === listing.sellerUser.toLowerCase();
+  // The owner branch exposes the agent-private floor / steering, so ownership
+  // is decided by the signed session, never a spoofable ?caller= param. Web3
+  // sellers get a session via SIWE on connect.
+  const caller = sessionAddress(c);
+  const isOwner = !!caller && caller === listing.sellerUser.toLowerCase();
   const status = listingStatus(listing);
   if (isOwner) {
     return c.json({
