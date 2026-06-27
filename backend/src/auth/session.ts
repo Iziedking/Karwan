@@ -141,11 +141,14 @@ export function sessionMismatchesClaim(c: Context, claimed: string | null | unde
   return !!s && !!claimed && s !== claimed.toLowerCase();
 }
 
-/// Best-effort viewer identity for read-gating: the verified session if present,
-/// else a client-supplied `caller` query param (web3 users have no session). The
-/// param path is jobId-gated and replaced by a real session once SIWE ships.
+/// Viewer identity for read-gating: the verified session, and nothing else.
+/// Web3 users now complete SIWE on connect (SiweGate in AppProviders mints a
+/// real session cookie), so privacy reads no longer fall back to a client-
+/// supplied `caller` query param. That fallback was spoofable: anyone could
+/// read a private resource by naming a party's address, since the per-job gate
+/// trusted the param as identity. Identity is the signed session, full stop.
 export function viewerAddress(c: Context): string | null {
-  return sessionAddress(c) ?? c.req.query('caller')?.toLowerCase() ?? null;
+  return sessionAddress(c);
 }
 
 export function clearSessionCookie(c: Context) {

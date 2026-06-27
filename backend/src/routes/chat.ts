@@ -6,6 +6,7 @@ import { listMessages, addMessage } from '../db/messages.js';
 import { bus } from '../events.js';
 import { localScanProof } from '../security/localScan.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
+import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
@@ -28,9 +29,11 @@ export const chatRoutes = new Hono();
 /// deal; an unauthorised caller gets 403, not an empty list, so the UI knows.
 chatRoutes.get('/:jobId', async (c) => {
   const jobId = c.req.param('jobId');
-  const caller = c.req.query('caller');
-  if (!caller || !addrSchema.safeParse(caller).success) {
-    return c.json({ error: 'caller query param required' }, 400);
+  // Chat is private to the two parties, so identity is the signed session, not
+  // a client-supplied param. Web3 users get a session via SIWE on connect.
+  const caller = sessionAddress(c);
+  if (!caller) {
+    return c.json({ error: 'sign in to read this chat' }, 401);
   }
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
