@@ -12,7 +12,9 @@ import { logger } from '../logger.js';
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
 const postSchema = z.object({
-  caller: addrSchema,
+  // Deprecated: sender identity now comes from the session, not the body. Kept
+  // optional so existing clients that still send it don't 400.
+  caller: addrSchema.optional(),
   body: z.string().min(1).max(2000),
 });
 
@@ -53,9 +55,16 @@ chatRoutes.post('/:jobId', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  // Sender identity is the signed session, never the client-supplied
+  // body.caller, so a request can't post AS another party by naming their
+  // address. Web3 users get a session via SIWE on connect.
+  const sender = sessionAddress(c);
+  if (!sender) {
+    return c.json({ error: 'sign in to post to this chat' }, 401);
+  }
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  if (!(await callerIsParty(jobId, body.caller))) {
+  if (!(await callerIsParty(jobId, sender))) {
     return c.json({ error: 'only the buyer or seller of this deal can post to its chat' }, 403);
   }
 
@@ -69,14 +78,14 @@ chatRoutes.post('/:jobId', async (c) => {
   const scan = localScanProof(trimmed);
   if (scan.verdict !== 'clean') {
     recordLinkOffense({
-      address: body.caller.toLowerCase(),
+      address: sender,
       jobId,
       surface: 'chat',
       verdict: scan.verdict,
       reasons: scan.reasons,
     });
     logger.warn(
-      { jobId, sender: body.caller.toLowerCase(), verdict: scan.verdict, reasons: scan.reasons },
+      { jobId, sender, verdict: scan.verdict, reasons: scan.reasons },
       'security: chat message blocked for a flagged link',
     );
     return c.json(
@@ -94,7 +103,7 @@ chatRoutes.post('/:jobId', async (c) => {
   const message = {
     id: `${jobId}-${Date.now()}-${randomBytes(4).toString('hex')}`,
     jobId,
-    sender: body.caller.toLowerCase(),
+    sender,
     body: trimmed,
     ts: Date.now(),
   };
@@ -103,7 +112,7 @@ chatRoutes.post('/:jobId', async (c) => {
   bus.emitEvent({
     type: 'chat.message',
     jobId,
-    actor: body.caller.toLowerCase() === deal.buyer ? 'buyer' : 'seller',
+    actor: sender === deal.buyer ? 'buyer' : 'seller',
     payload: {
       messageId: message.id,
       sender: message.sender,

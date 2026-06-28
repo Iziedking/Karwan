@@ -11,6 +11,7 @@ import {
   type PositionRow,
 } from '../chain/vaultScanCache.js';
 import { getUserByAddress } from '../db/users.js';
+import { isSessionSelf } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -264,6 +265,11 @@ vaultRoutes.post('/deposit', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  // This moves the named user's USDC via their Circle wallet, so the session
+  // must BE that user. Without this, anyone could stake from a victim's wallet.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only stake from your own wallet.', code: 'forbidden' }, 403);
+  }
 
   const vault = vaultAddress();
   if (!vault) {
@@ -356,6 +362,11 @@ async function positionActionRoute(
     body = positionActionSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Moves the named user's staked funds via their Circle wallet — the session
+  // must BE that user, or anyone could withdraw/claim against a victim's stake.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only act on your own vault positions.', code: 'forbidden' }, 403);
   }
 
   const vault = vaultAddress();
