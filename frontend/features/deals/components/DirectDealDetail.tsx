@@ -746,11 +746,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     </div>
                   )}
                 {/* Requirement review: the SecurityAgent judged the delivery off
-                    or partly off-topic for the request. The proof is shown (the
-                    buyer is the judge); this warns them to confirm before
-                    releasing, and auto-release is paused on a clear mismatch. */}
-                {(deal.deliveryMatch?.verdict === 'mismatch' ||
-                  deal.deliveryMatch?.verdict === 'partial') && (
+                    or partly off-topic for the request. Buyer-only: the buyer is
+                    the judge, so this warns THEM to confirm before releasing (and
+                    auto-release is paused on a clear mismatch). The seller must
+                    never see the buyer's private review of their work. */}
+                {viewerIsBuyer &&
+                  (deal.deliveryMatch?.verdict === 'mismatch' ||
+                    deal.deliveryMatch?.verdict === 'partial') && (
                   <div
                     className="px-4 py-3"
                     style={{

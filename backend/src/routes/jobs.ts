@@ -30,7 +30,7 @@ import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
-import { sessionMismatchesClaim, sessionAddress, viewerAddress } from '../auth/session.js';
+import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z
@@ -245,7 +245,7 @@ jobsRoutes.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.posterAddress)) {
+  if (!isSessionSelf(c, body.posterAddress)) {
     return c.json({ error: 'You can only post a brief as your own wallet.', code: 'forbidden' }, 403);
   }
 
@@ -397,7 +397,7 @@ jobsRoutes.post('/:jobId/approve-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const proposal = await getMatchProposal(jobId);
@@ -446,7 +446,7 @@ jobsRoutes.post('/:jobId/raise-offer', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const proposal = await getMatchProposal(jobId);
@@ -482,7 +482,7 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const brief = getBrief(jobId);
@@ -563,7 +563,7 @@ jobsRoutes.post('/:jobId/cancel', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const result = cancelBriefByBuyer(jobId as `0x${string}`, body.caller);
@@ -585,7 +585,7 @@ jobsRoutes.post('/:jobId/decline-match', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const proposal = await getMatchProposal(jobId);
@@ -649,7 +649,7 @@ jobsRoutes.post('/:jobId/near-miss', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const nm = getPendingNearMiss(jobId);
@@ -714,7 +714,7 @@ jobsRoutes.post('/:jobId/reconsider', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.caller)) {
+  if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const rec = getOutOfReach(jobId);

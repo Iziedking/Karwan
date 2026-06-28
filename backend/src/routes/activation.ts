@@ -15,7 +15,7 @@ import {
   type AgentWallets,
 } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
-import { sessionMismatchesClaim } from '../auth/session.js';
+import { isSessionSelf } from '../auth/session.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
@@ -443,7 +443,7 @@ activationRoutes.post('/agent-names', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
-  if (sessionMismatchesClaim(c, body.address)) {
+  if (!isSessionSelf(c, body.address)) {
     return c.json({ error: 'You can only rename your own agents.', code: 'forbidden' }, 403);
   }
   const updated = await updateAgentNames(body.address, {

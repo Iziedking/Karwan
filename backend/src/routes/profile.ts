@@ -13,7 +13,7 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { deleteUser, getUserByAddress } from '../db/users.js';
 import { removeTelegramLink } from '../db/telegramLinks.js';
 import { readUsdcBalance } from '../chain/contracts.js';
-import { readSession, clearSessionCookie } from '../auth/session.js';
+import { readSession, clearSessionCookie, isSessionSelf } from '../auth/session.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { resendClient } from '../emails/resend.js';
 import { brandedEmailHtml } from '../emails/brand.js';
@@ -95,6 +95,13 @@ profileRoutes.post('/', async (c) => {
     body = profileSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Identity is the signed session: a user can only write their own profile.
+  // Onboarding saves the caller's own address with a session already in hand
+  // (SiweGate on /onboarding for web3, login for Circle), so this never blocks
+  // a legitimate save. Without it, anyone could overwrite a victim's profile.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only edit your own profile.', code: 'forbidden' }, 403);
   }
   if ((body.role === 'seller' || body.role === 'both') && !body.seller) {
     return c.json({ error: 'seller profile required when role includes seller' }, 400);

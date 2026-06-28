@@ -14,6 +14,7 @@ import {
 } from '../db/bridges.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
+import { isSessionSelf } from '../auth/session.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import {
   APP_KIT_SOURCE_CHAINS,
@@ -883,6 +884,11 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   }
 
   const userAddress = body.address.toLowerCase();
+  // Bridges the named user's USDC via their Circle wallet, so the session must
+  // BE that user, or anyone could move a victim's funds by naming their address.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
+  }
 
   const user = getUserByAddress(userAddress);
   if (!user) {
@@ -1116,6 +1122,10 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
   }
 
   const userAddress = body.address.toLowerCase();
+  // The session must BE the named user; this moves their USDC via a Circle wallet.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
+  }
   const user = getUserByAddress(userAddress);
   if (!user) {
     return c.json(
@@ -1566,6 +1576,12 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
+  // CRITICAL: this burns the named user's USDC and mints to body.recipient. The
+  // session must BE that user, or anyone could drain a victim's wallet to an
+  // address they control by naming the victim here.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only bridge out your own funds.', code: 'forbidden' }, 403);
+  }
   const user = getUserByAddress(userAddress);
   if (!user?.circleIdentityWalletId) {
     return c.json(
