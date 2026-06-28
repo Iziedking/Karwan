@@ -244,7 +244,16 @@ export async function recordReputation(
   if (!walletId) return;
   const label = OUTCOME_LABEL[outcome];
   try {
-    const { buyer, seller } = await readEscrow(jobId);
+    const { buyer, seller, state } = await readEscrow(jobId);
+    // No escrow on the current contract = an orphaned or pre-redeploy deal
+    // (its DB row outlived the contract it settled on). recordCompletion can
+    // never reference it, so skip quietly instead of firing a doomed tx and an
+    // agent.error on every reconciler tick. This is what made deal 0x45a953...
+    // loop. Real candidates (settled on the live contract) still pass through.
+    if (state === ESCROW_STATE.None) {
+      logger.info({ jobId }, 'reputation skip: deal has no escrow on the current contract');
+      return;
+    }
     const alreadyRecorded = (await reputation.read.recorded([
       jobId as `0x${string}`,
     ])) as boolean;
