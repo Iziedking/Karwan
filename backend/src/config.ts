@@ -260,6 +260,12 @@ const envSchema = z.object({
   FINANCIER_MIN_TENURE_DAYS: z.coerce.number().int().nonnegative().default(7),
   FINANCIER_AUTO_APPROVE: z.preprocess((v) => v !== 'false' && v !== '0', z.boolean()),
 
+  // Verify a business the moment it submits, skipping the manual admin review.
+  // OFF by default (verification is sensitive). Turn on for pilots and internal
+  // testing so a registration reaches 'verified' without the on-chain reviewer
+  // wallet being wired. Mirrors FINANCIER_AUTO_APPROVE.
+  BUSINESS_AUTO_APPROVE: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,
   CIRCLE_WALLET_SET_ID: optionalString,

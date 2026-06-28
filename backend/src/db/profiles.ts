@@ -172,6 +172,11 @@ export interface UserProfile {
     reviewer?: string;
     rejectReason?: string;
   };
+  /// Anti-spam ledger for legal-name edits (business companyName). A misentry can
+  /// be fixed, but the change is capped to once every 30 days and 5 over the
+  /// account lifetime so the verification-bound name can't be churned or used to
+  /// impersonate another business. Absent reads as never edited.
+  nameEdits?: { count: number; lastAt: number };
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

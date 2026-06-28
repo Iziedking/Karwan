@@ -396,6 +396,9 @@ function SmeEditGrid(props: {
           maxLength={120}
           className="form-input"
         />
+        <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          Editable to fix a misentry. Capped: once every 30 days, 5 lifetime.
+        </span>
       </EditField>
       <EditField label="Sector">
         <select
