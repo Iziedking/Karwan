@@ -171,7 +171,13 @@ const MATCH_BAND_SIZE = 25;
 /// are uniform, so bids are either all scored or all neutral; the two never mix.
 function matchBand(bid: Bid): number {
   if (typeof bid.topicalMatch !== 'number') return -1;
-  return Math.floor(bid.topicalMatch / MATCH_BAND_SIZE);
+  // Clamp to the top band so a perfect 100 stays in the documented 75-100 band
+  // instead of spilling into a band of its own. Without this, floor(100/25)=4
+  // sits above floor(88/25)=3, so a NEW seller at 100% outranks an ELITE at 88%
+  // on a one-point boundary, when the two are genuinely comparable and the
+  // deterministic score (tier + reputation + price) should decide between them.
+  const topBand = Math.ceil(100 / MATCH_BAND_SIZE) - 1;
+  return Math.min(Math.floor(bid.topicalMatch / MATCH_BAND_SIZE), topBand);
 }
 
 interface JobState {
