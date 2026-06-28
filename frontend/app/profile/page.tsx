@@ -149,7 +149,7 @@ function ProfilePageInner() {
   const bizRegion = isBusiness ? profile?.smeProfile?.region?.trim() : undefined;
   // A business edits its structured company details (the TRADE CARD), not the
   // individual display-name onboarding flow.
-  const editHref = isBusiness ? '/profile#company' : '/onboarding?edit=1';
+  const editHref = isBusiness ? '/profile#company' : '/profile/edit';
 
   return (
     <FullBleed>
