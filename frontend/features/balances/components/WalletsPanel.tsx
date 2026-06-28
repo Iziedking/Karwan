@@ -201,9 +201,20 @@ export function WalletsPanel({ address }: { address?: string }) {
   useEffect(() => {
     refresh();
     // Live cadence: silent 5s refetch so the wallet balances track top-ups,
-    // settlements, and the activation seed without a manual reload.
-    const id = window.setInterval(refresh, 5_000);
-    return () => window.clearInterval(id);
+    // settlements, and the activation seed without a manual reload. Skip ticks
+    // while the tab is hidden (and refresh on return) so a backgrounded tab
+    // does not keep hitting the RPC, matching react-query's default behaviour.
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible') refresh();
+    }, 5_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [refresh]);
 
   if (!address) return null;
