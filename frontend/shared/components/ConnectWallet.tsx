@@ -105,6 +105,33 @@ export function ConnectWalletButton() {
             >
               {(() => {
                 if (!connected) {
+                  // A backend session can outlive the wagmi connection: the
+                  // karwan_session cookie persists after the wallet disconnects
+                  // in this tab. The user is still signed in, so a lime "Sign in"
+                  // pill reads as a failed login. Show their identity instead
+                  // (click to manage or sign out); only offer the real sign-in
+                  // pill when there is genuinely no session.
+                  if (auth.isAuthenticated && auth.address) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setAccountOpen(true)}
+                        suppressHydrationWarning
+                        title={auth.email ?? auth.address}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
+                      >
+                        <ChainLogo chain="arc" size={16} />
+                        <span
+                          aria-hidden
+                          className="w-[6px] h-[6px] rounded-full"
+                          style={{ background: 'var(--lp-accent)' }}
+                        />
+                        <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">
+                          {auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
+                        </span>
+                      </button>
+                    );
+                  }
                   return (
                     <button
                       onClick={() => setOpen(true)}
@@ -187,6 +214,9 @@ export function ConnectWalletButton() {
         }}
       </ConnectButton.Custom>
       <LoginModal open={open} onClose={() => setOpen(false)} />
+      {/* Account modal for the session-without-wallet case above (manage / sign
+          out). The connected-wallet case uses RainbowKit's own account modal. */}
+      <CircleAccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
     </>
   );
 }

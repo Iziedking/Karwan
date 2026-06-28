@@ -6639,7 +6639,7 @@ export const en: MessagesShape = {
     heldSafe: 'Held safe on Arc · withdraw anytime',
     cells: {
       available: { label: 'Available', hint: 'Ready to spend' },
-      inEscrow: { label: 'In escrow', hint: 'Locked &amp; safe' },
+      inEscrow: { label: 'In escrow', hint: 'Locked and safe' },
       earned: { label: 'Earned', hint: 'Paid to you' },
     },
   },
@@ -7623,9 +7623,9 @@ export const en: MessagesShape = {
     },
     signInGate: {
       defaultTag: 'SIGN IN',
-      heroTitle: 'Sign in to enter',
+      heroTitle: 'Settle cross-border trade in minutes',
       pageTitle: 'Sign in to continue',
-      heroBody: 'Karwan identifies you by a wallet. Pick one via an EVM connector or have Circle provision one for you. The rest of the app unlocks.',
+      heroBody: 'USDC sits in milestone escrow on Arc and releases as the work lands. Agents run the auction, you approve the terms. Pick a wallet to begin.',
       pageBody: 'This page is keyed to your wallet. Sign in once and every surface picks you up.',
       button: 'Sign in',
     },
