@@ -140,6 +140,11 @@ function ProfilePageInner() {
   const heroTitle =
     (isBusiness ? profile?.smeProfile?.companyName?.trim() : '') ||
     (profile ? profile.displayName : t.hero.fallbackName);
+  // A length cap can't stop a long unbroken token (a 30-char handle is under
+  // the limit), so bound how the name RENDERS: trim an over-long value with an
+  // ellipsis so it can never dominate the hero. break-words handles the rest;
+  // the full value stays on the title tooltip.
+  const heroDisplay = heroTitle.length > 28 ? `${heroTitle.slice(0, 28).trimEnd()}…` : heroTitle;
   const bizSector = isBusiness ? profile?.smeProfile?.sector : undefined;
   const bizRegion = isBusiness ? profile?.smeProfile?.region?.trim() : undefined;
   // A business edits its structured company details (the TRADE CARD), not the
