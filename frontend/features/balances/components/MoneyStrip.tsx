@@ -23,7 +23,7 @@ const ACTIVE_STAGES: DealStage[] = [
 
 function money(n: number | null): string {
   if (n == null) return '—';
-  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function MoneyStrip() {
@@ -104,6 +104,11 @@ export function MoneyStrip() {
             />
             <p className="font-sans text-[clamp(1.2rem,4.5vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {money(c.value)}
+              {c.value != null && (
+                <span className="ms-1.5 mono text-[0.45em] font-bold uppercase tracking-[0.12em] align-baseline text-[var(--lp-text-muted)]">
+                  USDC
+                </span>
+              )}
             </p>
             <p
               className="mt-2 mono text-[10px] font-bold uppercase tracking-[0.16em]"
