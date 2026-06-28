@@ -222,22 +222,15 @@ function ProfilePageInner() {
             <ProfileTierCard address={address} />
           </div>
           <div className="fade-up fade-up-4 mt-8 lg:mt-0">
-            <div className="hidden lg:block">
-              <AgentStatusVignette
-                activated={activation.activated}
-                loading={activation.loading}
-                buyer={agents.buyer}
-                seller={agents.seller}
-                buyerName={activation.agents?.buyerName}
-                sellerName={activation.agents?.sellerName}
-              />
-            </div>
-            {/* Top up / Withdraw. The Arc money-movement utility, surfaced on the
-                profile now that it is no longer a nav item. Visible on every
-                viewport so mobile keeps the entry the navbar used to give. */}
+            {/* The hero stays focused on identity + reputation. Agent status and
+                its wallet addresses live in the ACTIVATION + AGENT DETAILS bands
+                below (and the eyebrow's live dot already signals activation), so
+                the old agent vignette here was redundant and crowded the top.
+                Top up / Withdraw stays: the Arc money-movement utility, surfaced
+                on the profile since it is no longer a nav item. */}
             <a
               href="/bridge"
-              className="group mt-0 lg:mt-4 block p-5 border border-white/15 hover:border-[var(--lp-accent)] transition-colors"
+              className="group block p-5 border border-white/15 hover:border-[var(--lp-accent)] transition-colors"
               style={{
                 borderTopLeftRadius: 16,
                 borderTopRightRadius: 16,
@@ -619,87 +612,3 @@ function AgentBlock({
   );
 }
 
-function AgentStatusVignette({
-  activated,
-  loading,
-  buyer,
-  seller,
-  buyerName,
-  sellerName,
-}: {
-  activated: boolean;
-  loading: boolean;
-  buyer?: string;
-  seller?: string;
-  buyerName?: string;
-  sellerName?: string;
-}) {
-  const t = useTranslations().profile.agentStatus;
-  return (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        background: 'var(--surface-1)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
-        <div className="flex items-center justify-between">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-            {t.eyebrow}
-          </span>
-          {activated ? (
-            <span
-              aria-hidden
-              data-instrument-blink
-              className="w-[7px] h-[7px]"
-              style={{
-                background: 'var(--lp-accent)',
-                animation: 'instrumentBlink 1.6s ease-in-out infinite',
-              }}
-            />
-          ) : (
-            <span aria-hidden className="w-[7px] h-[7px] rounded-full bg-white/30" />
-          )}
-        </div>
-        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
-          {loading ? (
-            t.checking
-          ) : (
-            <>
-              {t.walletsPrefix}{' '}
-              <span style={{ color: activated ? 'var(--lp-accent)' : 'rgba(255,255,255,0.5)' }}>
-                {activated ? t.walletsLive : t.walletsIdle}
-              </span>
-            </>
-          )}
-        </p>
-        <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
-          {activated ? t.activatedBody : t.inactiveBody}
-        </p>
-      </div>
-      <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
-        <div className="px-4 py-4 min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 truncate">
-            {buyerName || t.buyerFallback}
-          </p>
-          <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
-            {buyer ? shortAddress(buyer) : '-'}
-          </p>
-        </div>
-        <div className="px-4 py-4 min-w-0">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 truncate">
-            {sellerName || t.sellerFallback}
-          </p>
-          <p className="mt-1.5 mono text-[12px] tabular-nums text-white truncate">
-            {seller ? shortAddress(seller) : '-'}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
