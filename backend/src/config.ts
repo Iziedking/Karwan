@@ -373,14 +373,17 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: optionalString,
   TELEGRAM_BOT_USERNAME: optionalString,
 
-  // Reputation chain-mirror reconciler. On by default. It replays
-  // recordCompletion for DB-settled deals not yet on chain. On the v2.D
-  // contract recordCompletion is onlyEscrow, so deals settled outside the
-  // escrow path can never be recorded this way and every tick retries them,
-  // burning gas against real Arc. Set false on local/dev to stop those doomed
-  // retries; production keeps it on.
+  // Reputation chain-mirror reconciler. OFF by default. It replays the legacy
+  // recordCompletion(jobId, ...) directly from the buyer agent wallet for
+  // DB-settled deals the chain has not recorded. That path only works against a
+  // pre-v2.D reputation contract: from v2.D on, recordCompletion is onlyEscrow
+  // and rejects the agent wallet, so every tick re-fails the same jobIds, burns
+  // real Arc gas, and spams agent.error. The escrow records reputation
+  // atomically on settle now, so there is nothing for this to reconcile on the
+  // live contract. Enable it ONLY when KARWAN_REPUTATION_ADDR points at a legacy
+  // (non-onlyEscrow) deploy.
   REPUTATION_RECONCILER_ENABLED: z.preprocess(
-    (v) => v !== 'false' && v !== '0',
+    (v) => v === 'true' || v === '1',
     z.boolean(),
   ),
 
