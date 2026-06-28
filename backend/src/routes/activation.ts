@@ -18,6 +18,7 @@ import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf } from '../auth/session.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
+import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -382,10 +383,17 @@ activationRoutes.post('/activate', async (c) => {
     void registerAgentOwnerOnVault(record.sellerWalletId, record.sellerAddress, userAddress, 'seller');
     void registerAgentOwnerOnVault(record.buyerWalletId, record.buyerAddress, userAddress, 'buyer');
 
-    // Seed both agents from the identity wallet (the one funded at signup), not
-    // the faucet: a user may be buyer-only or seller-only, and the identity
-    // wallet is the single funding hub. Seller gets a small Arc gas float, buyer
-    // gets working USDC. Fire-and-forget, Circle users only. See seedAgentsFromIdentity.
+    // Seed both agents with a small USDC float from the operator wallet so the
+    // user lands ready to trade. This is the reliable funding path: the public
+    // faucet is rate-limited on testnet and absent on mainnet. Best-effort,
+    // idempotent (skips an already-funded agent), and never blocks activation.
+    void seedAgentFromOperator(record.buyerAddress);
+    void seedAgentFromOperator(record.sellerAddress);
+
+    // Legacy fallback: top up from the user's own identity wallet when it holds
+    // funds (e.g. a Circle user who already topped up). The operator seed above
+    // already covers the common case; this is harmless and no-ops on an empty
+    // identity. Fire-and-forget, Circle users only. See seedAgentsFromIdentity.
     void seedAgentsFromIdentity(userAddress, record);
 
     // Give the Base Sepolia bridge wallet native gas + USDC so a Circle user can
