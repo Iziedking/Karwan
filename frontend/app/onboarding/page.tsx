@@ -562,7 +562,6 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
 function GetReadyStep({ address, onDone }: { address: string; onDone: () => void }) {
   const [phase, setPhase] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [agentsOnline, setAgentsOnline] = useState(false);
-  const [funded, setFunded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function run() {
@@ -570,16 +569,12 @@ function GetReadyStep({ address, onDone }: { address: string; onDone: () => void
     setPhase('running');
     setError(null);
     try {
+      // Provisions the buyer + seller agents. The backend seeds them from the
+      // operator wallet, not a public faucet (the testnet faucet is rate-limited
+      // and there is no faucet on mainnet), so we never claim funding the user
+      // did not actually receive.
       await api.activate(address);
       setAgentsOnline(true);
-      // Faucet the identity hub and both agents. allSettled so one throttled
-      // drip can't fail the whole step; the user can re-run or fund later.
-      await Promise.allSettled([
-        api.faucet(address, 'identity'),
-        api.faucet(address, 'buyer'),
-        api.faucet(address, 'seller'),
-      ]);
-      setFunded(true);
       setPhase('done');
     } catch (err) {
       setError(prettifyError(err));
@@ -587,10 +582,7 @@ function GetReadyStep({ address, onDone }: { address: string; onDone: () => void
     }
   }
 
-  const checks = [
-    { label: 'Buyer and seller agents online', done: agentsOnline },
-    { label: 'Test USDC in your wallets', done: funded },
-  ];
+  const checks = [{ label: 'Buyer and seller agents online', done: agentsOnline }];
 
   return (
     <div className="fade-up max-w-2xl mx-auto">
@@ -608,7 +600,7 @@ function GetReadyStep({ address, onDone }: { address: string; onDone: () => void
       >
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           Your agents run the auction and hold escrow. One tap brings them online
-          and drops test USDC in your wallets, so you can post a deal right away.
+          so you can post your first deal.
         </p>
 
         <ul className="mt-8 space-y-3.5">
@@ -679,7 +671,7 @@ function GetReadyStep({ address, onDone }: { address: string; onDone: () => void
 
         {error && (
           <p className="mt-5 mono text-[12px] leading-snug text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
-            Could not finish setup. {error} You can do this anytime from your profile.
+            Setup could not finish. {error} You can activate later from your profile.
           </p>
         )}
       </div>
