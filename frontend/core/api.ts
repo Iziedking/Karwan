@@ -1196,6 +1196,31 @@ export const api = {
       `/api/admin/profiles/${address}/business`,
       { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ status }) },
     ),
+  // The on-chain verification queue + decision. Distinct from adminSetBusiness:
+  // review signs approve()/reject() on the registry via the reviewer wallet,
+  // whereas adminSetBusiness is a pure off-chain override for a stuck case.
+  adminBusinessPending: () =>
+    json<{
+      pending: Array<{
+        address: string;
+        docHash?: string;
+        docKind?: string;
+        label?: string;
+        submittedAt?: number;
+        submitTxHash?: string;
+        company: { companyName?: string; sector?: string; region?: string } | null;
+      }>;
+    }>('/api/admin/business/pending', { headers: adminHeaders() }),
+  adminReviewBusiness: (
+    applicant: string,
+    decision: 'approve' | 'reject',
+    reasonHash?: string,
+  ) =>
+    json<{ ok: true; decision: string; txHash: string }>('/api/admin/business/review', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ applicant, decision, ...(reasonHash ? { reasonHash } : {}) }),
+    }),
   adminWhoami: () =>
     json<{ role: 'admin' | 'support' | null }>('/api/admin/support/whoami', {
       headers: adminHeaders(),
