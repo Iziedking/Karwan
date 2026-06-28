@@ -68,7 +68,7 @@ function OnboardingInner() {
   const isConnected = auth.isAuthenticated;
   const [loginOpen, setLoginOpen] = useState(false);
   const [step, setStep] = useState<
-    'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'review'
+    'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady'
   >('language');
   const t = useTranslations();
   const [role, setRole] = useState<UserRole | null>(null);
@@ -256,9 +256,11 @@ function OnboardingInner() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('karwan:profile-saved'));
       }
-      // Business-choosers finish the personal account, then land on the
-      // register-business surface to anchor their doc and start verification.
-      router.push(accountType === 'business' ? '/profile?verify=business' : '/app');
+      // Profile saved. Hand off to the "get ready" step (activate agents + claim
+      // test USDC) so a new user arrives ready to trade instead of on an empty
+      // desk. That step routes onward to the app (or the business verify page).
+      setStep('getReady');
+      setSubmitting(false);
     } catch (err) {
       setError(prettifyError(err));
       setSubmitting(false);
@@ -266,7 +268,8 @@ function OnboardingInner() {
   }
 
   // Business skips the role step, so it has one fewer step than individual.
-  const totalSteps = accountType === 'business' ? 4 : 5;
+  // Both gain the closing "get ready" step (activate + claim USDC).
+  const totalSteps = accountType === 'business' ? 5 : 6;
   const stepN =
     step === 'language'
       ? 1
@@ -276,7 +279,11 @@ function OnboardingInner() {
           ? 3
           : step === 'role'
             ? 4
-            : totalSteps;
+            : step === 'profile'
+              ? accountType === 'business'
+                ? 4
+                : 5
+              : totalSteps;
 
   // Hold the body until the profile check resolves. Returning users with a
   // cached wallet would otherwise see the language step flash before the
@@ -335,6 +342,12 @@ function OnboardingInner() {
                       ? t.onboarding.businessProfileStep.headlineAccent
                       : t.onboarding.profileStep.headlineAccent}
                   </Accent>
+                  <Punc>.</Punc>
+                </>
+              )}
+              {step === 'getReady' && (
+                <>
+                  Almost <Accent>ready</Accent>
                   <Punc>.</Punc>
                 </>
               )}
@@ -448,6 +461,15 @@ function OnboardingInner() {
               onSubmit={submit}
             />
           )}
+
+          {step === 'getReady' && address && (
+            <GetReadyStep
+              address={address}
+              onDone={() =>
+                router.push(accountType === 'business' ? '/profile?verify=business' : '/app')
+              }
+            />
+          )}
         </div>
       </Band>
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
@@ -528,6 +550,138 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
         <p className="mt-6 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {t.fineprint}
         </p>
+      </div>
+    </div>
+  );
+}
+
+/// Closing onboarding step: bring the agents online and drop test USDC into the
+/// user's wallets in one tap, so they land in the app ready to post a deal
+/// rather than on an empty desk. Skippable. The checklist fills lime as each
+/// piece lands, so the motion carries the progress instead of status paragraphs.
+function GetReadyStep({ address, onDone }: { address: string; onDone: () => void }) {
+  const [phase, setPhase] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [agentsOnline, setAgentsOnline] = useState(false);
+  const [funded, setFunded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    if (phase === 'running') return;
+    setPhase('running');
+    setError(null);
+    try {
+      await api.activate(address);
+      setAgentsOnline(true);
+      // Faucet the identity hub and both agents. allSettled so one throttled
+      // drip can't fail the whole step; the user can re-run or fund later.
+      await Promise.allSettled([
+        api.faucet(address, 'identity'),
+        api.faucet(address, 'buyer'),
+        api.faucet(address, 'seller'),
+      ]);
+      setFunded(true);
+      setPhase('done');
+    } catch (err) {
+      setError(prettifyError(err));
+      setPhase('error');
+    }
+  }
+
+  const checks = [
+    { label: 'Buyer and seller agents online', done: agentsOnline },
+    { label: 'Test USDC in your wallets', done: funded },
+  ];
+
+  return (
+    <div className="fade-up max-w-2xl mx-auto">
+      <div
+        className="overflow-hidden p-8 md:p-10"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 22,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+        }}
+      >
+        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          Your agents run the auction and hold escrow. One tap brings them online
+          and drops test USDC in your wallets, so you can post a deal right away.
+        </p>
+
+        <ul className="mt-8 space-y-3.5">
+          {checks.map((c, i) => {
+            const active = phase === 'running' && !c.done && (i === 0 || checks[i - 1].done);
+            return (
+              <li key={c.label} className="flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="inline-flex items-center justify-center w-5 h-5 shrink-0 transition-colors duration-300"
+                  data-instrument-blink={active || undefined}
+                  style={{
+                    borderRadius: 6,
+                    background: c.done ? 'var(--lp-accent)' : 'transparent',
+                    border: c.done
+                      ? '1px solid var(--lp-accent)'
+                      : '1px solid var(--lp-border-light)',
+                    animation: active ? 'instrumentBlink 1.4s ease-in-out infinite' : undefined,
+                  }}
+                >
+                  {c.done && (
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M3 8.5 L6.5 12 L13 5"
+                        stroke="#0e0e0e"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'text-[14px] transition-colors duration-300',
+                    c.done ? 'text-[var(--lp-dark)] font-medium' : 'text-[var(--lp-text-muted)]',
+                  )}
+                >
+                  {c.label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-9 flex items-center gap-5">
+          {phase === 'done' ? (
+            <CTAPill onClick={onDone} tone="light">
+              Enter Karwan →
+            </CTAPill>
+          ) : (
+            <CTAPill onClick={run} disabled={phase === 'running'} tone="light">
+              {phase === 'running'
+                ? 'Setting up…'
+                : phase === 'error'
+                  ? 'Try again'
+                  : 'Set me up →'}
+            </CTAPill>
+          )}
+          <button
+            type="button"
+            onClick={onDone}
+            className="mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            Skip for now
+          </button>
+        </div>
+
+        {error && (
+          <p className="mt-5 mono text-[12px] leading-snug text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
+            Could not finish setup. {error} You can do this anytime from your profile.
+          </p>
+        )}
       </div>
     </div>
   );
