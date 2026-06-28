@@ -40,8 +40,11 @@ export function MoneyStrip() {
     queryKey: address ? qk.walletOverview(address) : ['wallet-overview', 'anon'],
     queryFn: () => api.walletOverview(address!),
     enabled: isAuthenticated && !!address,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    // Live cadence: refetch every 5s (silent background, paused when the tab is
+    // hidden) so the money tiles track top-ups, settlements, and the activation
+    // seed without a manual refresh. SSE still updates instantly on deal events.
+    staleTime: 5_000,
+    refetchInterval: 5_000,
   });
   const available = overviewQuery.data
     ? (() => {

@@ -86,3 +86,6 @@ SESSION_STATE.md
 presentation.md
 *.tsbuildinfo
 docs/sme-testkit/
+
+.vercel
+.env*.local
