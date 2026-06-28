@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
@@ -167,13 +168,8 @@ export function TopNav() {
             >
               {t.nav.stake}
             </NavLink>
-            <NavLink
-              href="/profile"
-              active={pathname.startsWith('/profile')}
-              title={t.nav.hints.profile}
-            >
-              {t.nav.profile}
-            </NavLink>
+            {/* Profile lives on the avatar (always top-right), so it is not
+                repeated here. One fewer nav item keeps the rail scannable. */}
           </nav>
         )}
 
@@ -346,13 +342,24 @@ function NavLink({
       href={href}
       title={title}
       className={cn(
-        'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors',
+        'relative px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors',
         active
-          ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-[0_2px_0_rgba(0,0,0,0.15)]'
+          ? 'text-[var(--color-surface)]'
           : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
       )}
     >
-      {children}
+      {/* Shared-layout pill: it SLIDES from the previously active item to this
+          one on navigation, so motion tells the user where they just moved
+          instead of the highlight snapping in place. */}
+      {active && (
+        <motion.span
+          layoutId="topnav-active"
+          aria-hidden
+          className="absolute inset-0 rounded-full bg-[var(--color-ink)] shadow-[0_2px_0_rgba(0,0,0,0.15)]"
+          transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+        />
+      )}
+      <span className="relative z-10">{children}</span>
     </Link>
   );
 }
@@ -380,15 +387,23 @@ function NavLinkSoon({
       href={href}
       title={title}
       className={cn(
-        'px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+        'relative px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
         active
-          ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
+          ? 'text-[var(--color-surface)]'
           : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
       )}
     >
-      <span className="whitespace-nowrap">{children}</span>
+      {active && (
+        <motion.span
+          layoutId="topnav-active"
+          aria-hidden
+          className="absolute inset-0 rounded-full bg-[var(--color-ink)] shadow-[0_2px_0_rgba(0,0,0,0.15)]"
+          transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+        />
+      )}
+      <span className="relative z-10 whitespace-nowrap">{children}</span>
       <span
-        className="mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px] whitespace-nowrap"
+        className="relative z-10 mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px] whitespace-nowrap"
         style={{
           background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
           color: 'var(--lp-accent)',

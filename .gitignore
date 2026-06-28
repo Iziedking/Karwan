@@ -4,6 +4,15 @@ node_modules/
 !.env.example
 .env.vps
 
+# Agent / review working files. Screenshots and scratch notes never get
+# committed. (Memory + browser screenshots already live outside the repo under
+# ~/.claude; this is a belt-and-suspenders guard for anything written in-repo.)
+# Scoped so it does not catch committed PNG-sibling brand assets.
+/screenshots/
+/.scratch/
+*.screenshot.png
+*.review.png
+
 # we use npm; ignore lockfiles from other package managers if a contributor
 # accidentally runs them
 pnpm-lock.yaml
