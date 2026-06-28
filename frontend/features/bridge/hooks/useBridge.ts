@@ -718,23 +718,15 @@ export function useBridges() {
       try {
         const r = await api.bridgeRecheck(id);
         if (r.status === 'minted') {
-          // Only flip to 'done' when we have a real on-chain mint tx hash.
-          // Without one we can't prove the USDC actually landed on Arc, so
-          // we keep the user in 'attesting' and let them recheck again.
-          // This prevents the "UI shows success but funds never arrive" bug
-          // where the backend's usedNonces shortcut or a stale DB row reports
-          // 'minted' without ever having relayed a real receiveMessage tx.
+          // Recheck only returns 'minted' after on-chain confirmation: either it
+          // just relayed receiveMessage (we get a hash) or isMessageAlreadyReceived
+          // proved the CCTP nonce was already consumed on Arc — i.e. the USDC
+          // landed, there just isn't a locally-originated tx hash to show. Both
+          // mean the funds are on Arc, so settle to 'done'. A missing hash only
+          // costs the explorer deep-link; it is not a failure. (Earlier this
+          // path showed a scary FAILED for a withdraw that had actually worked.)
           const txHash = (r.mintTxHash as `0x${string}` | undefined) ?? undefined;
-          if (txHash) {
-            patch(id, (b) => ({ ...b, phase: 'done', mintTxHash: txHash, error: undefined }));
-          } else {
-            patch(id, (b) => ({
-              ...b,
-              phase: 'error',
-              error:
-                'Backend reports minted but has no on-chain tx hash. Verify your USDC on Arc explorer before retrying.',
-            }));
-          }
+          patch(id, (b) => ({ ...b, phase: 'done', mintTxHash: txHash, error: undefined }));
         } else if (r.status === 'error') {
           if (typeof console !== 'undefined' && r.error) {
             // eslint-disable-next-line no-console
