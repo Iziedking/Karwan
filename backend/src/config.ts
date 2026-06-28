@@ -68,6 +68,19 @@ const envSchema = z.object({
     blankToUndefined,
     z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
   ),
+  /// Agent seed: a dedicated operator EOA private key that funds newly-activated
+  /// buyer + seller agents with a small USDC float (native Arc gas asset) so a
+  /// user lands ready to trade without the public faucet (rate-limited on
+  /// testnet, absent on mainnet). Same raw-key shape as USYC_OPERATOR_PRIVATE_KEY.
+  /// Unset = seeding is a no-op (agents activate empty). Fund this EOA with USDC
+  /// on Arc.
+  AGENT_SEED_PRIVATE_KEY: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+  ),
+  /// USDC seeded to EACH agent on activation (native Arc units). 0.5 covers gas
+  /// plus a first deal's working float.
+  AGENT_SEED_USDC: z.coerce.number().nonnegative().default(0.5),
   /// Liquid USDC (6dp units, e.g. 100) the vault keeps unwrapped to cover
   /// slashable reservations + soon-to-claim cooling positions. The cron wraps
   /// everything above this; tune it down to minimise yield drag.
