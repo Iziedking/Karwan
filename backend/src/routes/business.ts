@@ -52,16 +52,22 @@ const companySchema = z.object({
 });
 
 /// Soft profile fields a verified business may change without re-review. The
-/// legal companyName is deliberately excluded; changing it routes through a
-/// fresh registration.
+/// legal companyName is included but rate-limited (see NAME_EDIT_* below): a
+/// misentry can be fixed, but the verification-bound name can't be churned.
 const softUpdateSchema = z.object({
   address: addrSchema,
+  companyName: z.string().min(1).max(120).optional(),
   sector: sectorSchema.optional(),
   region: z.string().min(2).max(80).optional(),
   yearFounded: z.number().int().min(1800).max(2100).optional(),
   employeeBand: employeeBandSchema.optional(),
   websiteUrl: z.string().url().max(200).optional(),
 });
+
+/// Legal-name edits are capped: once every 30 days, 5 over the account lifetime.
+/// Enough to fix a misentry, tight enough to deny churn / impersonation games.
+const NAME_EDIT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+const NAME_EDIT_LIFETIME_MAX = 5;
 
 const registerBodySchema = z.object({
   address: addrSchema,
@@ -94,8 +100,13 @@ async function recordSubmission(
 ) {
   const existing = await getProfile(address);
   if (!existing) throw new Error('profile not found');
+  // For pilots / internal testing, verify on submit so the SME rail unlocks
+  // without the on-chain reviewer wallet being wired. Off in production.
+  const autoApprove = config.BUSINESS_AUTO_APPROVE;
+  const now = Date.now();
   await upsertProfile({
     ...existing,
+    ...(autoApprove ? { accountType: 'business' as const } : {}),
     smeProfile: {
       ...(existing.smeProfile ?? {}),
       companyName: company.companyName,
@@ -104,18 +115,20 @@ async function recordSubmission(
       yearFounded: company.yearFounded ?? existing.smeProfile?.yearFounded,
       employeeBand: company.employeeBand ?? existing.smeProfile?.employeeBand,
       websiteUrl: company.websiteUrl ?? existing.smeProfile?.websiteUrl,
+      ...(autoApprove ? { verifiedAt: now } : {}),
     },
     business: {
-      status: 'submitted',
+      status: autoApprove ? 'verified' : 'submitted',
       docHash: docHash.toLowerCase(),
       docKind,
       label,
       submitTxHash: submitTxHash?.toLowerCase(),
-      submittedAt: Date.now(),
+      submittedAt: now,
+      ...(autoApprove ? { reviewedAt: now, verifiedAt: now } : {}),
     },
   });
   bus.emitEvent({
-    type: 'business.registration.submitted',
+    type: autoApprove ? 'business.verified' : 'business.registration.submitted',
     actor: 'platform',
     payload: { address, docKind, txHash: submitTxHash },
   });
@@ -243,12 +256,45 @@ businessRoutes.post('/profile', async (c) => {
   const existing = await getProfile(body.address);
   if (!existing) return c.json({ error: 'profile not found' }, 404);
 
-  const { address: _addr, ...soft } = body;
-  const saved = await upsertProfile({
-    ...existing,
-    smeProfile: { ...(existing.smeProfile ?? {}), ...soft },
-  });
-  logger.info({ address: body.address, fields: Object.keys(soft) }, 'business: soft profile updated');
+  const { address: _addr, companyName, ...soft } = body;
+  const smeProfile = { ...(existing.smeProfile ?? {}), ...soft };
+  let nameEdits = existing.nameEdits;
+
+  // A legal-name change is the one sensitive field here. Apply it only when it
+  // actually differs, and gate it on the 30-day / 5-lifetime cap so a typo can
+  // be corrected without opening the door to name churn.
+  const trimmedName = companyName?.trim();
+  if (trimmedName && trimmedName !== (existing.smeProfile?.companyName ?? '')) {
+    const ledger = existing.nameEdits ?? { count: 0, lastAt: 0 };
+    if (ledger.count >= NAME_EDIT_LIFETIME_MAX) {
+      return c.json(
+        {
+          error: 'You have reached the limit of 5 name changes. Contact support if you need another.',
+          code: 'name_edit_capped',
+        },
+        429,
+      );
+    }
+    const since = Date.now() - ledger.lastAt;
+    if (ledger.lastAt && since < NAME_EDIT_COOLDOWN_MS) {
+      const days = Math.ceil((NAME_EDIT_COOLDOWN_MS - since) / 86_400_000);
+      return c.json(
+        {
+          error: `Your name can be changed once every 30 days. Try again in ${days} day${days === 1 ? '' : 's'}.`,
+          code: 'name_edit_cooldown',
+        },
+        429,
+      );
+    }
+    smeProfile.companyName = trimmedName;
+    nameEdits = { count: ledger.count + 1, lastAt: Date.now() };
+  }
+
+  const saved = await upsertProfile({ ...existing, smeProfile, nameEdits });
+  logger.info(
+    { address: body.address, fields: Object.keys(soft), nameChanged: !!nameEdits && nameEdits !== existing.nameEdits },
+    'business: soft profile updated',
+  );
   return c.json({ smeProfile: saved.smeProfile });
 });
 
