@@ -200,6 +200,10 @@ export function WalletsPanel({ address }: { address?: string }) {
 
   useEffect(() => {
     refresh();
+    // Live cadence: silent 5s refetch so the wallet balances track top-ups,
+    // settlements, and the activation seed without a manual reload.
+    const id = window.setInterval(refresh, 5_000);
+    return () => window.clearInterval(id);
   }, [refresh]);
 
   if (!address) return null;

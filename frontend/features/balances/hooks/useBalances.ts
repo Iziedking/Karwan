@@ -4,15 +4,16 @@ import { api, type BalanceRow } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 
 /// react-query backed balances hook. SSE-driven invalidation is handled
-/// centrally in QueryInvalidator; the 15s polling interval is the floor
-/// for stale-state detection between events.
+/// centrally in QueryInvalidator; this short interval keeps the displayed
+/// balance feeling live between events (silent background refetch, paused when
+/// the tab is hidden). 5s is the live cadence; 1s would hammer the Arc RPC.
 export function useBalances() {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: qk.balances.me(),
     queryFn: () => api.balances(),
-    staleTime: 15_000,
-    refetchInterval: 15_000,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
   });
 
   return {
