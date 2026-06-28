@@ -189,6 +189,31 @@ html[data-theme="dark"] {
     color-scheme: dark;
   }
 
+  /* Branded scrollbars: thin, Karwan lime thumb on a transparent track, in both
+     themes. Firefox reads scrollbar-width/color; WebKit/Blink read the pseudo-
+     elements. The `.no-scrollbar` utility still opts individual tracks out. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-deep);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* RTL (Arabic) layout is a v2 task. For now the document stays LTR even
      when the locale is Arabic; browsers still render Arabic text segments
      right-to-left via the unicode bidirectional algorithm, but the page
