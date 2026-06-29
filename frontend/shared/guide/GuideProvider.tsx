@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
+import { isNoTourRoute } from './routes';
 import Link from 'next/link';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
@@ -422,6 +424,7 @@ function prefersReducedMotion(): boolean {
 
 function GuideOverlay() {
   const { active, next, prev, close, dismissAll } = useGuide();
+  const pathname = usePathname();
   const step = active ? active.steps[active.index] : undefined;
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -464,7 +467,10 @@ function GuideOverlay() {
     return () => window.removeEventListener('keydown', onKey);
   }, [active, next, prev, close]);
 
-  if (!active || !step || typeof document === 'undefined') return null;
+  // Never paint over a setup flow (onboarding, invite, cashout) or a public
+  // page, even if a tour was started elsewhere and the user navigated in. The
+  // tour stays in state and resumes when they leave the flow.
+  if (!active || !step || isNoTourRoute(pathname) || typeof document === 'undefined') return null;
 
   const total = active.steps.length;
   const isLast = active.index === total - 1;
