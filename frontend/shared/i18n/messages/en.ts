@@ -5927,7 +5927,7 @@ export const en: MessagesShape = {
       bridge: {
         tag: 'BRIDGE WALLET',
         title: 'Bridge wallet',
-        purpose: 'Imports USDC from Base or Ethereum. It settles on that chain, so it holds ETH for gas, not Arc USDC.',
+        purpose: 'Your address on Base or Ethereum for bringing USDC onto Arc. Send USDC here and Karwan bridges it to your Arc balance. It lives on that chain, so it holds a little ETH for gas there, not Arc USDC.',
         gasSecondaryTemplate: '{amount} ETH gas',
       },
     },
