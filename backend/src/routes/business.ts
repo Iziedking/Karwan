@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { readSession } from '../auth/session.js';
 import { accountKindOf } from '../profile/accountType.js';
-import { getProfile, upsertProfile, listProfiles } from '../db/profiles.js';
+import { getProfile, upsertProfile, listProfiles, findProfileByName } from '../db/profiles.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -100,6 +100,12 @@ async function recordSubmission(
 ) {
   const existing = await getProfile(address);
   if (!existing) throw new Error('profile not found');
+  // Company names are unique across all accounts (person or business). Block a
+  // registration that would take a name another wallet already uses.
+  const nameOwner = await findProfileByName(company.companyName);
+  if (nameOwner && nameOwner.address !== address.toLowerCase()) {
+    throw new Error('That company name is taken. Pick a different name.');
+  }
   // For pilots / internal testing, verify on submit so the SME rail unlocks
   // without the on-chain reviewer wallet being wired. Off in production.
   const autoApprove = config.BUSINESS_AUTO_APPROVE;
@@ -284,6 +290,13 @@ businessRoutes.post('/profile', async (c) => {
           code: 'name_edit_cooldown',
         },
         429,
+      );
+    }
+    const nameOwner = await findProfileByName(trimmedName);
+    if (nameOwner && nameOwner.address !== existing.address) {
+      return c.json(
+        { error: 'That company name is taken. Pick a different name.', code: 'name_taken' },
+        409,
       );
     }
     smeProfile.companyName = trimmedName;
