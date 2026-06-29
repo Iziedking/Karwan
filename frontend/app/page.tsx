@@ -773,19 +773,16 @@ function Reveal({
 // visitor there is more below the hero. Fades out the moment they start
 // scrolling so it never lingers.
 function ScrollCue({ label }: { label: string }) {
-  const [scrolled, setScrolled] = useState(false);
   const reduce = useReducedMotion();
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // It is pinned to the hero, so it scrolls out of view with the hero on its
+  // own. No eager scroll-fade: the cue stays put while the hero is on screen
+  // (the old 60px fade made it vanish on the slightest scroll).
   return (
     <motion.div
       aria-hidden
       initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: scrolled ? 0 : 1, y: scrolled ? 6 : 0 }}
-      transition={{ duration: 0.45, ease: ease.out }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: ease.out, delay: 0.3 }}
       className="pointer-events-none flex flex-col items-center gap-2.5"
     >
       <span
