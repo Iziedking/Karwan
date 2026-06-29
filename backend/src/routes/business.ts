@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { readSession } from '../auth/session.js';
 import { accountKindOf } from '../profile/accountType.js';
 import { getProfile, upsertProfile, listProfiles, findProfileByName } from '../db/profiles.js';
+import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -138,6 +139,23 @@ async function recordSubmission(
     actor: 'platform',
     payload: { address, docKind, txHash: submitTxHash },
   });
+
+  // Ping the operator team on a new submission that awaits review, with a button
+  // straight to the admin queue. Auto-approve has nothing to review, so skip it.
+  // Best-effort: a Telegram failure never blocks the registration.
+  if (!autoApprove) {
+    const opChat = supportOperatorChatId();
+    if (opChat !== null) {
+      const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
+      const where = [company.sector, company.region].filter(Boolean).join(' · ');
+      void sendTelegramMessage(
+        opChat,
+        `*New business review*\n${company.companyName}${where ? `\n${where}` : ''}\n` +
+          `Applicant: \`${address.slice(0, 6)}…${address.slice(-4)}\`\nDocument: ${docKind}`,
+        base ? [{ text: 'Open admin review', url: `${base}/admin/business` }] : undefined,
+      );
+    }
+  }
   logger.info({ address, docKind }, 'business: registration submitted');
 }
 
