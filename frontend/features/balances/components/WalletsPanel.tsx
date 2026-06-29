@@ -346,7 +346,10 @@ export function WalletsPanel({ address }: { address?: string }) {
           </li>
         )}
 
-        {bridgeAddr && (
+        {/* Bridge wallet is an email/Circle-user concept: it is the source-chain
+            address they fund to import USDC onto Arc. Web3 users bridge from
+            their own connected wallet, so the card would only confuse them. */}
+        {isCircle && bridgeAddr && (
           <Row
             tag={wp.rows.bridge.tag}
             title={wp.rows.bridge.title}
