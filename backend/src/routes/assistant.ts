@@ -69,6 +69,52 @@ interface ProviderResult {
   detail?: string;
 }
 
+/// Read a Claude Messages reply, tolerating BOTH a single JSON body and an
+/// Anthropic SSE stream. Conduit returns an event stream ("event: message_start
+/// \ndata: {...}") even when stream:false is requested, which would choke
+/// res.json(); so detect the stream and collect its text deltas instead.
+async function parseClaudeReply(res: Response): Promise<string> {
+  const body = await res.text();
+  const streamed =
+    (res.headers.get('content-type') ?? '').includes('text/event-stream') ||
+    body.startsWith('event:') ||
+    body.startsWith('data:');
+  if (streamed) {
+    let out = '';
+    for (const line of body.split('\n')) {
+      const t = line.trim();
+      if (!t.startsWith('data:')) continue;
+      const payload = t.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        const evt = JSON.parse(payload) as {
+          type?: string;
+          delta?: { type?: string; text?: string };
+          content_block?: { type?: string; text?: string };
+        };
+        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          out += evt.delta.text ?? '';
+        } else if (evt.type === 'content_block_start' && evt.content_block?.type === 'text') {
+          out += evt.content_block.text ?? '';
+        }
+      } catch {
+        /* skip keepalives / non-JSON lines */
+      }
+    }
+    return out.trim();
+  }
+  try {
+    const data = JSON.parse(body) as { content?: Array<{ type: string; text?: string }> };
+    return (data.content ?? [])
+      .filter((b) => b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text)
+      .join('')
+      .trim();
+  } catch {
+    return '';
+  }
+}
+
 async function callProvider(
   p: Provider,
   messages: ChatMessage[],
@@ -83,6 +129,7 @@ async function callProvider(
       max_tokens: maxTokens,
       system: KARWAN_ASSISTANT_SYSTEM,
       messages,
+      stream: false,
     }),
     signal,
   });
@@ -90,12 +137,7 @@ async function callProvider(
     const detail = (await res.text().catch(() => '')).slice(0, 300);
     return { ok: false, status: res.status, detail };
   }
-  const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
-  const reply = (data.content ?? [])
-    .filter((b) => b.type === 'text' && typeof b.text === 'string')
-    .map((b) => b.text)
-    .join('')
-    .trim();
+  const reply = await parseClaudeReply(res);
   if (!reply) return { ok: false, detail: 'empty reply' };
   return { ok: true, reply };
 }
