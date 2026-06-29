@@ -89,3 +89,6 @@ docs/sme-testkit/
 
 .vercel
 .env*.local
+
+# Arc House community posts (drafts, banners, screenshots) — internal
+arc_house/

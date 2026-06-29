@@ -5,16 +5,22 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useGuide } from './GuideProvider';
 import { WELCOME_ID, WELCOME_STEPS } from './tours';
 
-/// Public / marketing routes where tours never run. The guide starts once the
-/// user is inside the app proper, not on the landing or info pages.
-function isPublicRoute(pathname: string | null): boolean {
+/// Routes where tours never run. Two kinds: public / marketing pages (landing,
+/// docs, info), and active setup flows where a popup would talk over the task
+/// the user is mid-way through (onboarding language/profile, invite claim,
+/// cashout). The guide starts once the user is inside the app proper and not
+/// in the middle of a flow, so the welcome lands on a real app page like home.
+function isNoTourRoute(pathname: string | null): boolean {
   if (!pathname) return true;
   if (pathname === '/') return true;
   return (
     pathname.startsWith('/docs') ||
     pathname.startsWith('/how-it-works') ||
     pathname.startsWith('/feedback') ||
-    pathname.startsWith('/terms')
+    pathname.startsWith('/terms') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/invite') ||
+    pathname.startsWith('/cashout')
   );
 }
 
@@ -34,7 +40,7 @@ export function GuideWelcome() {
     if (disabled || isSeen(WELCOME_ID)) return;
     // Wait until they leave the landing/marketing pages; re-checks on each
     // navigation because the layout (and this component) persist across routes.
-    if (isPublicRoute(pathname)) return;
+    if (isNoTourRoute(pathname)) return;
     fired.current = true;
     const t = setTimeout(() => startTour(WELCOME_ID, WELCOME_STEPS), 900);
     return () => clearTimeout(t);

@@ -43,6 +43,11 @@ export const HOME_STEPS: TourStep[] = [
     target: 'home-doors',
   },
   {
+    title: 'The network, live',
+    body: 'A 30-day pulse of the whole network and the totals beneath it: deals funded and settled, any disputes, plus volume, milestones released, reputation records, and yield. Every number reads straight from the contracts on Arc, so it is proof the rails are working, not a mockup.',
+    target: 'home-activity',
+  },
+  {
     title: 'Your book',
     body: 'Every deal you are part of, with its live stage. Tap any one to act on it: accept, deliver, release a milestone, or settle.',
     target: 'home-deals',
