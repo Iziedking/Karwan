@@ -3473,8 +3473,8 @@ export const ar: Messages = {
     refreshing: 'جاري التحديث',
     tabs: {
       you: 'أنت',
-      buyer: 'مشتري',
-      seller: 'بائع',
+      buyer: 'وكيل الشراء',
+      seller: 'وكيل البيع',
     },
     notConfigured: 'غير مهيّأ',
     updatedTemplate: 'حُدِّث {time}',
