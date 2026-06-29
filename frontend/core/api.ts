@@ -1234,6 +1234,26 @@ export const api = {
         sample?: string;
       }>;
     }>('/api/admin/assistant-health', { headers: adminHeaders() }),
+  adminHealth: () =>
+    json<{
+      checkedAt: number;
+      overall: 'healthy' | 'degraded';
+      modelGateway: {
+        primary: string;
+        providers: Array<{
+          name: string;
+          model: string;
+          ok: boolean;
+          status?: number;
+          detail?: string;
+          latencyMs: number;
+          sample?: string;
+        }>;
+      };
+      funds: Array<{ label: string; address: string; balanceUsdc: string | null; ok: boolean; detail?: string }>;
+      infrastructure: Array<{ label: string; ok: boolean; detail?: string }>;
+      features: Array<{ label: string; on: boolean }>;
+    }>('/api/admin/health', { headers: adminHeaders() }),
   adminAgentSeedStatus: (address: string) =>
     json<{
       address: string;
