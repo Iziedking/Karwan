@@ -46,6 +46,7 @@ import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
+import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
@@ -829,6 +830,10 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     if (!sellerAgents) {
       const provisioned = await provisionUserAgentWallets(deal.seller);
       sellerAgents = await saveAgentWallets({ userAddress: deal.seller, ...provisioned });
+      // Seed the freshly-provisioned agents with the operator gas float so they
+      // can act on this deal. Best-effort + idempotent, same as activation.
+      void seedAgentFromOperator(sellerAgents.buyerAddress);
+      void seedAgentFromOperator(sellerAgents.sellerAddress);
       bus.emitEvent({
         type: 'agent.activated',
         actor: 'platform',

@@ -32,6 +32,8 @@ import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress } from '../x402/externalClient.js';
+import { seedAgentFromOperator } from '../chain/agentSeed.js';
+import { privateKeyToAccount } from 'viem/accounts';
 
 export const adminRoutes = new Hono();
 
@@ -52,6 +54,61 @@ adminRoutes.get('/agent-wallets/integrity', async (c) => {
   } catch (err) {
     return c.json({ error: 'scan failed', detail: (err as Error).message }, 502);
   }
+});
+
+/// Agent gas seed: diagnose the operator-funded 0.5 USDC float for an address.
+/// Agents provisioned outside a fresh activate (invite claim, deal auto-provision)
+/// can exist unfunded; this shows whether the key is set, the operator wallet's
+/// balance, and each agent's current balance so a skip is explainable. Native
+/// USDC on Arc is 18 decimals.
+adminRoutes.get('/agent-seed/:address', async (c) => {
+  const address = c.req.param('address').toLowerCase();
+  try {
+    addrSchema.parse(address);
+  } catch {
+    return c.json({ error: 'invalid address' }, 400);
+  }
+  const wallets = await getAgentWallets(address);
+  const key = config.AGENT_SEED_PRIVATE_KEY;
+  let operator: { address: string; balanceUsdc: string } | null = null;
+  if (key) {
+    const acct = privateKeyToAccount(key as `0x${string}`);
+    const bal = await publicClient.getBalance({ address: acct.address });
+    operator = { address: acct.address, balanceUsdc: formatUnits(bal, 18) };
+  }
+  const balOf = async (addr?: string) =>
+    addr ? formatUnits(await publicClient.getBalance({ address: addr as `0x${string}` }), 18) : null;
+  return c.json({
+    address,
+    keyConfigured: !!key,
+    seedAmountUsdc: config.AGENT_SEED_USDC,
+    operator,
+    agents: wallets
+      ? {
+          buyer: { address: wallets.buyerAddress, balanceUsdc: await balOf(wallets.buyerAddress) },
+          seller: { address: wallets.sellerAddress, balanceUsdc: await balOf(wallets.sellerAddress) },
+        }
+      : null,
+  });
+});
+
+/// Seed (or top up) the buyer + seller agents for an address. Idempotent: skips
+/// any agent already holding the float. Use after funding the operator wallet to
+/// backfill accounts that activated unfunded (e.g. invite-claimed agents).
+adminRoutes.post('/agent-seed/:address', async (c) => {
+  const address = c.req.param('address').toLowerCase();
+  try {
+    addrSchema.parse(address);
+  } catch {
+    return c.json({ error: 'invalid address' }, 400);
+  }
+  const wallets = await getAgentWallets(address);
+  if (!wallets) return c.json({ error: 'no agent wallets for this address' }, 404);
+  const [buyer, seller] = await Promise.all([
+    seedAgentFromOperator(wallets.buyerAddress),
+    seedAgentFromOperator(wallets.sellerAddress),
+  ]);
+  return c.json({ address, buyer, seller });
 });
 
 /// Event log for the admin debug view. `?jobId=` traces a whole auction;

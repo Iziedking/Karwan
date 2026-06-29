@@ -328,7 +328,13 @@ activationRoutes.post('/activate', async (c) => {
   const existing = await getAgentWallets(userAddress);
   if (existing) {
     // Already activated: idempotent. Name changes go through /agent-names, not a
-    // repeat activate, so we don't disturb existing names here.
+    // repeat activate, so we don't disturb existing names here. Still re-attempt
+    // the operator seed: it is idempotent (skips an agent already holding the
+    // float), so a repeat activate tops up agents that were provisioned before
+    // the seed shipped, or while the operator wallet was empty. This is the
+    // backfill path for any account, person or business, that activated unfunded.
+    void seedAgentFromOperator(existing.buyerAddress);
+    void seedAgentFromOperator(existing.sellerAddress);
     return c.json({ activated: true, agents: agentsPayload(existing) });
   }
 
