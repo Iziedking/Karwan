@@ -5,6 +5,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import {
   getProfile,
   upsertProfile,
+  findProfileByName,
   findProfileByXHandle,
   setProfileEmail,
   deleteProfile,
@@ -114,6 +115,16 @@ profileRoutes.post('/', async (c) => {
   }
   if (body.buyer && body.buyer.milestonePcts.reduce((s, n) => s + n, 0) !== 100) {
     return c.json({ error: 'buyer milestonePcts must sum to 100' }, 400);
+  }
+
+  // Names are unique across all accounts, person or business. Block a save that
+  // would take a name another wallet already uses (case-insensitive, trimmed).
+  const nameOwner = await findProfileByName(body.displayName);
+  if (nameOwner && nameOwner.address !== body.address.toLowerCase()) {
+    return c.json(
+      { error: 'That name is taken. Pick a different display name.', code: 'name_taken' },
+      409,
+    );
   }
 
   // Extract canonical match keywords from the seller profile (skills+bio) so

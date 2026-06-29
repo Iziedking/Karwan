@@ -252,6 +252,23 @@ export async function findProfileByXUserId(id: string): Promise<UserProfile | nu
   return all.find((p) => p.xUserId === id) ?? null;
 }
 
+/// The profile that currently bears a display or company name (case-insensitive,
+/// trimmed), if any. Used to keep account names unique: no two accounts, person
+/// or business, can bear the same name. Matches across BOTH the person display
+/// name and the business company name, so a person and a company cannot collide.
+export async function findProfileByName(name: string): Promise<UserProfile | null> {
+  const n = name.trim().toLowerCase();
+  if (!n) return null;
+  const all = await listProfiles();
+  return (
+    all.find(
+      (p) =>
+        p.displayName?.trim().toLowerCase() === n ||
+        p.smeProfile?.companyName?.trim().toLowerCase() === n,
+    ) ?? null
+  );
+}
+
 /// Removes a user's off-chain profile. Used by account delete. On-chain
 /// reputation is permanent and lives elsewhere; this only clears the off-chain
 /// record (display name, role, X handle, settings).
