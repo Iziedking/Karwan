@@ -83,6 +83,26 @@ function inferDocKindFromFilename(name: string): DocumentKind {
   return 'other';
 }
 
+/// Parse a comma-separated milestone split ("30, 70") into validated
+/// percentages. Escrow releases the deal amount in these tranches as the work
+/// lands, so the parts must total 100. Allows 2 to 5 milestones, each a whole
+/// number from 1 to 99.
+function parseMilestoneSplit(text: string): { pcts: number[] | null; error: string | null } {
+  const parts = text
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map(Number);
+  if (parts.length < 2 || parts.length > 5) return { pcts: null, error: 'Use 2 to 5 milestones.' };
+  if (parts.some((n) => !Number.isInteger(n) || n < 1 || n > 99))
+    return { pcts: null, error: 'Each part is a whole number from 1 to 99.' };
+  const sum = parts.reduce((a, b) => a + b, 0);
+  if (sum !== 100) return { pcts: null, error: `Parts must total 100. Now ${sum}.` };
+  return { pcts: parts, error: null };
+}
+
+const SPLIT_PRESETS = ['50, 50', '30, 70', '40, 30, 30'] as const;
+
 export function PostJobForm() {
   const t = useTranslations().postJob;
   const router = useRouter();
@@ -119,6 +139,10 @@ export function PostJobForm() {
   // above price and gates bids on the seller's free stake covering the deal's
   // insurance reservation. For higher-value or one-shot deals.
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
+  // Custom milestone split. Off = the buyer profile default (50/50) stands.
+  // On = these tranches are carried into escrow when the agent finds a deal.
+  const [customSplit, setCustomSplit] = useState(false);
+  const [splitText, setSplitText] = useState('50, 50');
   // SME trade-finance state. Split into separate hooks per the Vercel
   // `rerender-split-combined-hooks` rule. Each picker mutates only its own
   // slice so a sector change never re-renders unrelated inputs.
@@ -191,6 +215,9 @@ export function PostJobForm() {
         deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
         trustedMatch,
+        // Only sent when the buyer opted into a custom split; otherwise the
+        // backend uses the buyer profile default. Guarded valid by `disabled`.
+        milestonePcts: customSplit ? parseMilestoneSplit(splitText).pcts ?? undefined : undefined,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
         incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
@@ -213,7 +240,9 @@ export function PostJobForm() {
     }
   }
 
-  const disabled = submitting || !brief.trim() || !budget || !deadlineValue;
+  const split = parseMilestoneSplit(splitText);
+  const disabled =
+    submitting || !brief.trim() || !budget || !deadlineValue || (customSplit && !split.pcts);
   const buttonLabel = submitting
     ? elapsed < 8
       ? t.submit.submittingShort
@@ -700,6 +729,113 @@ export function PostJobForm() {
           </p>
         </div>
       </label>
+
+      {/* CUSTOM MILESTONE SPLIT. Off by default = the buyer profile split
+          (50/50) stands. On = the buyer sets how escrow releases in tranches
+          as the work lands; carried into escrow when the agent finds a deal. */}
+      <div
+        className={cn(
+          'px-4 py-3 transition-colors',
+          customSplit
+            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
+            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+        )}
+        style={{
+          border: '1px solid',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={customSplit}
+            onChange={(e) => setCustomSplit(e.target.checked)}
+            disabled={submitting}
+            className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+            aria-describedby="milestone-split-help"
+          />
+          <div className="min-w-0">
+            <span
+              className="inline-flex items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.16em]"
+              style={{ color: customSplit ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+            >
+              [:CUSTOM MILESTONE SPLIT:]
+              <Hint>
+                Milestone split sets how your payment releases in stages as the work lands. 50, 50 pays
+                half at the first milestone and half on final delivery. The parts must add up to 100.
+              </Hint>
+            </span>
+            <p
+              id="milestone-split-help"
+              className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
+            >
+              Off, deals release 50 then 50. Tick to set your own stages, applied when a deal is found.
+            </p>
+          </div>
+        </label>
+
+        {customSplit && (
+          <div className="mt-3.5 sm:ms-7 space-y-2.5">
+            <div className="flex flex-wrap gap-2">
+              {SPLIT_PRESETS.map((preset) => {
+                const active = splitText.replace(/\s/g, '') === preset.replace(/\s/g, '');
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setSplitText(preset)}
+                    className={cn(
+                      'mono text-[11px] uppercase tracking-[0.12em] font-bold px-2.5 py-1.5 border transition-colors',
+                      active
+                        ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
+                        : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                    )}
+                    style={{
+                      borderTopLeftRadius: 6,
+                      borderTopRightRadius: 6,
+                      borderBottomLeftRadius: 6,
+                      borderBottomRightRadius: 2,
+                    }}
+                  >
+                    {preset}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={splitText}
+              disabled={submitting}
+              onChange={(e) => setSplitText(e.target.value)}
+              placeholder="50, 50"
+              aria-invalid={!split.pcts}
+              aria-label="Milestone split percentages, comma separated"
+              className="form-input"
+            />
+            {split.pcts ? (
+              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                {split.pcts
+                  .map(
+                    (p, i) =>
+                      `M${i + 1} ${p}%${
+                        typeof budget === 'number' && budget > 0
+                          ? ` (${((budget * p) / 100).toFixed(2)} USDC)`
+                          : ''
+                      }`,
+                  )
+                  .join('  ·  ')}
+              </p>
+            ) : (
+              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[#7a1f1a]">{split.error}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
           ("I sell..."). User can click submit again to post anyway. */}
