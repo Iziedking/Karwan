@@ -39,13 +39,33 @@ researchRoutes.post('/activate', async (c) => {
   }
 
   const feeAtomic = BigInt(Math.round(RESEARCH_ACTIVATION_USDC * 10 ** USDC_DECIMALS));
-  const balance = await readUsdcBalance(wallets.buyerAddress).catch(() => 0n);
-  if (balance < feeAtomic) {
+  // Pay from whichever agent wallet can cover it: the buyer agent first, then
+  // the seller agent. Either funds the same prepaid research credit. If neither
+  // holds enough, return a graceful insufficient-funds with the best balance
+  // seen so the user knows to top up an agent wallet.
+  const candidates: Array<{ walletId: string; address: string }> = [
+    { walletId: wallets.buyerWalletId, address: wallets.buyerAddress },
+  ];
+  if (wallets.sellerWalletId && wallets.sellerAddress) {
+    candidates.push({ walletId: wallets.sellerWalletId, address: wallets.sellerAddress });
+  }
+  let payer: { walletId: string; address: string } | null = null;
+  let bestBalance = 0n;
+  for (const cand of candidates) {
+    const bal = await readUsdcBalance(cand.address).catch(() => 0n);
+    if (bal > bestBalance) bestBalance = bal;
+    if (bal >= feeAtomic) {
+      payer = cand;
+      break;
+    }
+  }
+  if (!payer) {
     return c.json(
       {
         error: 'insufficient-balance',
         needUsdc: RESEARCH_ACTIVATION_USDC,
-        haveUsdc: Number(formatUnits(balance, USDC_DECIMALS)),
+        haveUsdc: Number(formatUnits(bestBalance, USDC_DECIMALS)),
+        message: 'Fund a buyer or seller agent wallet, then add research credit.',
       },
       402,
     );
@@ -54,7 +74,7 @@ researchRoutes.post('/activate', async (c) => {
   try {
     const tx = await executeContractCall(
       {
-        walletId: wallets.buyerWalletId,
+        walletId: payer.walletId,
         contractAddress: config.USDC_ADDR,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [config.KARWAN_TREASURY_ADDR, feeAtomic.toString()],
