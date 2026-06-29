@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 /// HeroFlow drives the landing hero animation; StatsTicker lives below the
@@ -104,6 +104,9 @@ export default function HomePage() {
             <HeroFlow />
           </div>
         </div>
+        <div className="absolute inset-x-0 bottom-[clamp(16px,3vw,30px)] flex justify-center">
+          <ScrollCue label="Scroll" />
+        </div>
       </Band>
 
       {/* ECOSYSTEM. light */}
@@ -116,50 +119,58 @@ export default function HomePage() {
 
       {/* DIRECT DEALS. light */}
       <Band tone="light">
-        <SectionTag>{lp.directDeals.tag}</SectionTag>
-        <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          {lp.directDeals.title}
-        </h2>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
-          {lp.directDeals.body}
-        </p>
-        <div className="mt-10 grid sm:grid-cols-2 gap-5">
-          <FeatureTile
-            glyph={<GlyphWallet />}
-            title={lp.directDeals.tile1Title}
-            body={lp.directDeals.tile1Body}
-          />
-          <FeatureTile
-            glyph={<GlyphTranches />}
-            title={lp.directDeals.tile2Title}
-            body={lp.directDeals.tile2Body}
-          />
-        </div>
+        <Reveal>
+          <SectionTag>{lp.directDeals.tag}</SectionTag>
+          <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
+            {lp.directDeals.title}
+          </h2>
+          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
+            {lp.directDeals.body}
+          </p>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <div className="mt-10 grid sm:grid-cols-2 gap-5">
+            <FeatureTile
+              glyph={<GlyphWallet />}
+              title={lp.directDeals.tile1Title}
+              body={lp.directDeals.tile1Body}
+            />
+            <FeatureTile
+              glyph={<GlyphTranches />}
+              title={lp.directDeals.tile2Title}
+              body={lp.directDeals.tile2Body}
+            />
+          </div>
+        </Reveal>
       </Band>
 
       {/* MANAGED DEALS. dark */}
       <Band tone="dark">
-        <SectionTag tone="dark">{lp.managedDeals.tag}</SectionTag>
-        <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-          {lp.managedDeals.title}
-        </h2>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-          {lp.managedDeals.body}
-        </p>
-        <div className="mt-10 grid sm:grid-cols-2 gap-5">
-          <FeatureTile
-            tone="dark"
-            glyph={<GlyphAuction />}
-            title={lp.managedDeals.tile1Title}
-            body={lp.managedDeals.tile1Body}
-          />
-          <FeatureTile
-            tone="dark"
-            glyph={<GlyphSettle />}
-            title={lp.managedDeals.tile2Title}
-            body={lp.managedDeals.tile2Body}
-          />
-        </div>
+        <Reveal>
+          <SectionTag tone="dark">{lp.managedDeals.tag}</SectionTag>
+          <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
+            {lp.managedDeals.title}
+          </h2>
+          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
+            {lp.managedDeals.body}
+          </p>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <div className="mt-10 grid sm:grid-cols-2 gap-5">
+            <FeatureTile
+              tone="dark"
+              glyph={<GlyphAuction />}
+              title={lp.managedDeals.tile1Title}
+              body={lp.managedDeals.tile1Body}
+            />
+            <FeatureTile
+              tone="dark"
+              glyph={<GlyphSettle />}
+              title={lp.managedDeals.tile2Title}
+              body={lp.managedDeals.tile2Body}
+            />
+          </div>
+        </Reveal>
       </Band>
 
       <HowItWorksSection copy={lp.howItWorks} />
@@ -170,7 +181,7 @@ export default function HomePage() {
 
       {/* FINAL CTA. dark */}
       <Band tone="dark" className="text-center">
-        <div className="mx-auto max-w-2xl space-y-6">
+        <Reveal className="mx-auto max-w-2xl space-y-6">
           <SectionTag tone="dark">
             <span className="sr-only">{lp.finalCta.srLabel}</span>{lp.finalCta.tag}
           </SectionTag>
@@ -186,7 +197,7 @@ export default function HomePage() {
               {lp.finalCta.ctaSecondary}
             </CTAPill>
           </div>
-        </div>
+        </Reveal>
       </Band>
     </div>
   );
@@ -201,10 +212,12 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
   ];
   return (
     <Band id="how-it-works" tone="light">
-      <SectionTag>{copy.tag}</SectionTag>
-      <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-        {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span> {copy.titleEnd}
-      </h2>
+      <Reveal>
+        <SectionTag>{copy.tag}</SectionTag>
+        <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
+          {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span> {copy.titleEnd}
+        </h2>
+      </Reveal>
       <ol className="mt-14 grid md:grid-cols-3 gap-0">
         {rails.map((r, i) => (
           <motion.li
@@ -257,7 +270,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
   ];
   return (
     <Band id="flow" tone="dark">
-      <div className="flex items-end justify-between gap-6 flex-wrap mb-12">
+      <Reveal className="flex items-end justify-between gap-6 flex-wrap mb-12">
         <div>
           <SectionTag tone="dark">{copy.tag}</SectionTag>
           <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
@@ -275,7 +288,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
           />
           {copy.liveLabel}
         </p>
-      </div>
+      </Reveal>
 
       <div
         className="relative overflow-hidden"
@@ -431,7 +444,7 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
   ];
   return (
     <Band tone="light">
-      <div className="flex items-end justify-between gap-6 flex-wrap mb-14">
+      <Reveal className="flex items-end justify-between gap-6 flex-wrap mb-14">
         <div>
           <SectionTag>{copy.tag}</SectionTag>
           <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
@@ -444,7 +457,7 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
         >
           {copy.footnote}
         </p>
-      </div>
+      </Reveal>
 
       <ul>
         {lanes.map((l, i) => (
@@ -523,10 +536,12 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
   ];
   return (
     <Band tone="dark">
-      <SectionTag tone="dark">{copy.tag}</SectionTag>
-      <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[20ch]">
-        {copy.title}
-      </h2>
+      <Reveal>
+        <SectionTag tone="dark">{copy.tag}</SectionTag>
+        <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[20ch]">
+          {copy.title}
+        </h2>
+      </Reveal>
       <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {cards.map((c, i) => (
           <motion.div
@@ -610,10 +625,12 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
   const [open, setOpen] = useState<string | null>('001');
   return (
     <Band id="get-started" tone="light">
-      <SectionTag>{copy.tag}</SectionTag>
-      <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-        {copy.title}
-      </h2>
+      <Reveal>
+        <SectionTag>{copy.tag}</SectionTag>
+        <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
+          {copy.title}
+        </h2>
+      </Reveal>
 
       <ul className="mt-14">
         {steps.map((s, i) => {
@@ -722,6 +739,75 @@ function Band({
         {children}
       </div>
     </section>
+  );
+}
+
+/* ---- motion helpers ---- */
+
+// Reveal-on-scroll wrapper. Text and section clusters rise and fade in as they
+// enter the viewport, once, so reading the page feels like it unfolds. Matches
+// the whileInView pattern already used by the list items below the fold.
+function Reveal({
+  children,
+  delay = 0,
+  className,
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: dur.slow, ease: ease.out, delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Scroll cue. A minimal mouse with a drifting wheel that tells a first-time
+// visitor there is more below the hero. Fades out the moment they start
+// scrolling so it never lingers.
+function ScrollCue({ label }: { label: string }) {
+  const [scrolled, setScrolled] = useState(false);
+  const reduce = useReducedMotion();
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <motion.div
+      aria-hidden
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: scrolled ? 0 : 1, y: scrolled ? 6 : 0 }}
+      transition={{ duration: 0.45, ease: ease.out }}
+      className="pointer-events-none flex flex-col items-center gap-2.5"
+    >
+      <span
+        className="relative inline-flex justify-center"
+        style={{
+          width: 26,
+          height: 40,
+          borderRadius: 13,
+          border: '1.5px solid rgba(255,255,255,0.32)',
+        }}
+      >
+        <motion.span
+          className="absolute top-[7px] block"
+          style={{ width: 3, height: 7, borderRadius: 2, background: 'var(--lp-accent)' }}
+          animate={reduce ? undefined : { y: [0, 8, 0], opacity: [1, 0.3, 1] }}
+          transition={reduce ? undefined : { duration: 1.7, ease: 'easeInOut', repeat: Infinity }}
+        />
+      </span>
+      <span className="mono text-[10px] uppercase tracking-[0.2em] text-[var(--lp-text-muted)]">
+        {label}
+      </span>
+    </motion.div>
   );
 }
 
