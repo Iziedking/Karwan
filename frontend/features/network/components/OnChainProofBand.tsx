@@ -100,6 +100,9 @@ export function OnChainProofBand() {
         )}
       </div>
 
+      {/* The 30-day activity readout: the chart and the totals beneath it,
+          anchored as one piece so the home tour can spotlight and explain it. */}
+      <div data-guide="home-activity">
       {/* Chart band. 30-day overlay of funded, settled, and any
           disputed/refunded blips so a quiet week reads honestly. */}
       <div className="mt-10">
@@ -190,6 +193,7 @@ export function OnChainProofBand() {
           decimals={2}
           loading={!stats}
         />
+      </div>
       </div>
 
       {/* Source contracts. Tap-friendly explorer links so a reader can verify
