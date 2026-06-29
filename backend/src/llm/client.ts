@@ -1,7 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
-import { config } from '../config.js';
+import { config, conduitApiKeys } from '../config.js';
 import { logger } from '../logger.js';
 
 const openrouter = createOpenRouter({
@@ -14,17 +14,17 @@ const openrouterModel = openrouter(config.LLM_MODEL);
 // key is set (local dev) so the chain skips it.
 const anthropic = config.ANTHROPIC_API_KEY ? createAnthropic({ apiKey: config.ANTHROPIC_API_KEY }) : null;
 
-// Conduit gateway: Anthropic-compatible at {base}/v1 with x-api-key auth, so the
-// AI SDK Anthropic provider drives it by pointing baseURL at Conduit. Primary
-// when CONDUIT_API_KEY is set; uses CONDUIT_MODEL (Sonnet). Null otherwise.
-const conduit = config.CONDUIT_API_KEY
-  ? createAnthropic({
-      apiKey: config.CONDUIT_API_KEY,
-      baseURL: `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1`,
-    })
-  : null;
-
 type LM = LanguageModelV3;
+
+// Conduit gateway: Anthropic-compatible at {base}/v1 with x-api-key auth, so the
+// AI SDK Anthropic provider drives it by pointing baseURL at Conduit. One model
+// per configured Conduit key (free-tier accounts), tried in order, so a rate
+// limit on one rolls to the next before the direct Anthropic fallback. Empty
+// when no Conduit key is set.
+const conduitBaseUrl = `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1`;
+const conduitModels: LM[] = conduitApiKeys().map((apiKey) =>
+  createAnthropic({ apiKey, baseURL: conduitBaseUrl })(config.CONDUIT_MODEL),
+);
 
 /// Wrap an ordered list of models so a call tries each in turn, dropping to the
 /// next on any error. Conduit is primary, the direct Anthropic key is the
@@ -79,7 +79,7 @@ export const llmModel = openrouterModel;
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
 /// Conduit (Sonnet) primary, direct Anthropic fallback, OpenRouter last.
 export const verifierModel = fallbackChain([
-  conduit?.(config.CONDUIT_MODEL) ?? null,
+  ...conduitModels,
   anthropic?.(config.VERIFIER_LLM_MODEL) ?? null,
   openrouterModel,
 ]);
@@ -89,7 +89,7 @@ export const verifierModel = fallbackChain([
 /// OpenRouter last, so a live negotiation never drops to deterministic just
 /// because one provider is down or out of credit.
 export const negotiationModel = fallbackChain([
-  conduit?.(config.CONDUIT_MODEL) ?? null,
+  ...conduitModels,
   anthropic?.(config.NEGOTIATION_LLM_MODEL) ?? null,
   openrouterModel,
 ]);
@@ -97,7 +97,7 @@ export const negotiationModel = fallbackChain([
 /// Paid market-research synthesis (per-deal market read + demand score over Exa
 /// excerpts). Conduit primary, Anthropic fallback, OpenRouter last.
 export const researchModel = fallbackChain([
-  conduit?.(config.CONDUIT_MODEL) ?? null,
+  ...conduitModels,
   anthropic?.(config.RESEARCH_LLM_MODEL) ?? null,
   openrouterModel,
 ]);

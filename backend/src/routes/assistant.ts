@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { config } from '../config.js';
+import { config, conduitApiKeys } from '../config.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 
@@ -31,22 +31,25 @@ type ChatMessage = { role: 'user' | 'assistant'; content: string };
 /// the fallback. Empty when nothing is configured (assistant disabled).
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
-  if (config.CONDUIT_API_KEY) {
-    // Conduit's Anthropic-compatible endpoint mirrors Anthropic exactly:
-    // POST {base}/v1/messages with x-api-key (the sk-cdt-... key) and
-    // anthropic-version, same request + response body. (Bearer auth is only the
-    // separate OpenAI-compatible /api/v1 route, which we do not use.)
+  // Conduit's Anthropic-compatible endpoint mirrors Anthropic exactly:
+  // POST {base}/v1/messages with x-api-key (the sk-cdt-... key) and
+  // anthropic-version, same request + response body. (Bearer auth is only the
+  // separate OpenAI-compatible /api/v1 route, which we do not use.) Each
+  // configured Conduit key is its own provider, tried in order, so a rate limit
+  // on one rolls to the next before Anthropic.
+  const conduitKeys = conduitApiKeys();
+  conduitKeys.forEach((key, i) => {
     list.push({
-      name: 'conduit',
+      name: conduitKeys.length > 1 ? `conduit-${i + 1}` : 'conduit',
       url: `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1/messages`,
       headers: {
         'content-type': 'application/json',
-        'x-api-key': config.CONDUIT_API_KEY,
+        'x-api-key': key,
         'anthropic-version': '2023-06-01',
       },
       model: config.CONDUIT_MODEL,
     });
-  }
+  });
   if (config.ANTHROPIC_API_KEY) {
     list.push({
       name: 'anthropic',
