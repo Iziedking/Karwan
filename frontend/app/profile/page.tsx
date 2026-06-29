@@ -524,7 +524,7 @@ function ProfilePageInner() {
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           {t.preferences.body}
         </p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center gap-3" data-guide="profile-preferences">
           {address && <ProfileEmailButton address={address} tone="light" />}
           <TelegramConnectButton address={address ?? undefined} tone="light" />
           <ConnectXButton tone="light" />

@@ -622,7 +622,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
       {/* PARTIES + FUNDING */}
       <Band tone="light" compact>
-        <div className="grid md:grid-cols-2 gap-5">
+        <div className="grid md:grid-cols-2 gap-5" data-guide="deal-money">
           <PageCard>
             <CardHead label={dd.parties.cardLabel} />
             <div className="p-5 md:p-6 space-y-4">

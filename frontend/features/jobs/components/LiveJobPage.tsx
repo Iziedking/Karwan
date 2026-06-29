@@ -164,7 +164,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
 
       {/* STAT TILES */}
       <Band tone="light" compact>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 fade-up">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 fade-up" data-guide="job-stats">
           <StatTile
             label={lj.stats.budget}
             value={formatUsdc(job.budgetUsdc, { withSuffix: false })}
@@ -194,7 +194,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             comes from the backend's brief store. Hidden when the store
             doesn't have it (eg flat-file wiped). */}
         {job.briefText && (
-          <div className="mt-8 fade-up fade-up-1">
+          <div className="mt-8 fade-up fade-up-1" data-guide="job-brief">
             <div
               className="relative flex items-stretch border bg-[var(--lp-card)]"
               style={{

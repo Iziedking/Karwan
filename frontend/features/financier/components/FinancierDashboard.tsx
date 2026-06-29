@@ -212,7 +212,7 @@ export function FinancierDashboard() {
           repayment record.
         </p>
         {/* TAB BAR */}
-        <div className="mt-7 flex gap-2 flex-wrap">
+        <div className="mt-7 flex gap-2 flex-wrap" data-guide="financier-tabs">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -240,7 +240,7 @@ export function FinancierDashboard() {
         </div>
         {/* FILTERS: only when on factor tab */}
         {tab === 'factor' ? (
-          <div className="mt-6 flex gap-3 flex-wrap items-center">
+          <div className="mt-6 flex gap-3 flex-wrap items-center" data-guide="financier-filters">
             <FilterSelect
               label="Sector"
               value={sectorFilter}
@@ -383,7 +383,7 @@ function InvoiceCard({
           : 'IMMEDIATE';
   return (
     <PageCard>
-      <div className="p-5 md:p-6 space-y-4">
+      <div className="p-5 md:p-6 space-y-4" data-guide="financier-deal">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -419,6 +419,7 @@ function InvoiceCard({
           <Link
             href={`/credit-passport/${deal.seller}`}
             target="_blank"
+            data-guide="financier-passport"
             className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             Seller passport ↗
@@ -426,6 +427,7 @@ function InvoiceCard({
           <button
             type="button"
             onClick={onOpenOffer}
+            data-guide="financier-offer"
             className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
             style={{
               borderTopLeftRadius: 6,
