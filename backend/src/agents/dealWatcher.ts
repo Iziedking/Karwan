@@ -193,18 +193,30 @@ async function tick() {
       // delay appeal and the buyer didn't respond within the window, the
       // agent auto-releases on the seller's behalf. Protects sellers from
       // indefinite buyer silence without surprising the buyer mid-review.
+      //
+      // N-milestone rule: only the FINAL milestone may auto-release this way.
+      // Intermediate milestones (2..N-1 on an N-part split) always need an
+      // explicit buyer click, so the delay appeal can only force the very last
+      // tranche once the buyer has released everything before it. On a two-part
+      // deal this is exactly the prior behaviour (release index 1 settles).
+      const totalMilestones = account.milestonePcts.length || 2;
+      const nextIsFinal = account.milestonesReleased + 1 >= totalMilestones;
       const responseDeadline =
         deal.delayAppealRaisedAt && deal.delayAppealRaisedAt > (deal.delayAppealRespondedAt ?? 0)
           ? deal.delayAppealRaisedAt + config.DEAL_DELAY_APPEAL_RESPONSE_MS
           : null;
       if (
         account.milestonesReleased >= 1 &&
+        nextIsFinal &&
         responseDeadline !== null &&
         now > responseDeadline
       ) {
         await releaseMilestone(deal.jobId, account.milestonesReleased, buyerWalletId);
-        await finalizeIfSettled(deal.jobId);
-        await patchDeal(deal.jobId, { autoReleasedAt: now, settledAt: Date.now() });
+        const settled = await finalizeIfSettled(deal.jobId);
+        await patchDeal(deal.jobId, {
+          autoReleasedAt: now,
+          ...(settled ? { settledAt: Date.now() } : {}),
+        });
         bus.emitEvent({
           type: 'deal.delay.auto_released',
           jobId: deal.jobId,

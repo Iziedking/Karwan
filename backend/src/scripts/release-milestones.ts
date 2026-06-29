@@ -8,14 +8,20 @@ async function main() {
   if (!jobId) throw new Error('JOB_ID env var required (0x… 32-byte hex)');
   if (!config.BUYER_AGENT_WALLET_ID) throw new Error('BUYER_AGENT_WALLET_ID required');
 
-  const totalMilestones = Number(process.env.MILESTONES ?? '2');
-  if (!Number.isInteger(totalMilestones) || totalMilestones < 1 || totalMilestones > 4) {
-    throw new Error(`MILESTONES must be 1..4, got ${totalMilestones}`);
-  }
-
   const account = await readEscrow(jobId);
   if (account.state !== 1) {
     throw new Error(`escrow state must be Funded(1), got ${account.state}`);
+  }
+
+  // The on-chain split is the source of truth for how many milestones exist.
+  // An optional MILESTONES override stays for legacy escrows whose getter
+  // doesn't return the array; it must not exceed the funded count.
+  const onChainTotal = account.milestonePcts.length;
+  const totalMilestones = process.env.MILESTONES
+    ? Number(process.env.MILESTONES)
+    : onChainTotal || 2;
+  if (!Number.isInteger(totalMilestones) || totalMilestones < 1 || totalMilestones > 5) {
+    throw new Error(`MILESTONES must be 1..5, got ${totalMilestones}`);
   }
 
   logger.info(

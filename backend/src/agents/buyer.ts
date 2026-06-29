@@ -2623,12 +2623,12 @@ async function persistApprovedMatch(
     const sellerWallets = await findAgentWalletByAgentAddress(proposal.sellerAgent);
     if (!buyerWallets || !sellerWallets) return;
     // Mirror the split the escrow was actually funded with (a stated per-brief
-    // split overrides the profile default), so the persisted deal's
-    // firstReleasePct matches the on-chain milestones.
+    // split overrides the profile default), so the persisted deal's milestones
+    // match the on-chain escrow. The full N-part array is persisted; firstReleasePct
+    // tracks milestonePcts[0] for back-compat readers.
     const milestonePcts = effectiveMilestonePcts(state);
     const firstReleasePct = milestonePcts[0];
     if (firstReleasePct == null) return;
-    if (milestonePcts.length !== 2) return;
 
     const now = Date.now();
     // Re-anchor the delivery deadline to ACCEPTANCE time, not brief-posting
@@ -2655,6 +2655,7 @@ async function persistApprovedMatch(
       sellerAgentAddress: sellerWallets.sellerAddress,
       dealAmountUsdc: proposal.agreedPriceUsdc,
       firstReleasePct,
+      milestonePcts,
       deadlineUnix: dealDeadlineUnix,
       terms: proposal.termsHash,
       acceptedAt: now,
@@ -2715,16 +2716,18 @@ export async function declineAgentMatch(
 const AGENT_FLOW_TRUSTED_BPS = 5000;
 
 /// The milestone split to fund this deal with. A buyer who stated a split in
-/// the request ("I pay 30% then 70%") overrides their profile default, but only
-/// when it's the two-part shape the managed flow funds and persists. Anything
-/// else (absent, malformed, or a 3-4 part split) falls back to the profile.
+/// the request ("I pay 40%, 30%, then 30%") overrides their profile default, as
+/// long as it's a valid N-part split: 2 to 5 integer parts, each 1-99, summing
+/// to 100. The on-chain escrow funds and releases any such split. Anything else
+/// (absent or malformed) falls back to the profile default.
 function effectiveMilestonePcts(state: JobState): number[] {
   const stated = state.context.milestonePcts;
   if (
     Array.isArray(stated) &&
-    stated.length === 2 &&
+    stated.length >= 2 &&
+    stated.length <= 5 &&
     stated.every((n) => Number.isInteger(n) && n >= 1 && n <= 99) &&
-    stated[0]! + stated[1]! === 100
+    stated.reduce((sum, n) => sum + n, 0) === 100
   ) {
     return stated;
   }

@@ -38,6 +38,7 @@ import {
   patchDeal,
   listDealsForAddress,
   listAllDeals,
+  dealMilestonePcts,
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
@@ -897,8 +898,9 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     }
 
     // Fund the escrow now: the buyer agent approves, then funds it naming the
-    // seller agent as the on-chain seller.
-    const milestonePcts = [deal.firstReleasePct, 100 - deal.firstReleasePct];
+    // seller agent as the on-chain seller. A managed deal may carry a stored
+    // N-part split; direct deals resolve to the two-part shape.
+    const milestonePcts = dealMilestonePcts(deal);
     const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
     const feeBps = await getEscrowFeeBps();
     const { fundedAmount } = computeFunding(dealAmountWei, feeBps);
@@ -2492,6 +2494,7 @@ async function enrich(deal: DirectDeal) {
       ...base,
       onChain: {
         state: account.state,
+        milestonePcts: account.milestonePcts,
         milestonesReleased: account.milestonesReleased,
         dealAmountWei: account.dealAmount.toString(),
         sellerNetWei: account.sellerNet.toString(),

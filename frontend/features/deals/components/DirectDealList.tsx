@@ -30,10 +30,13 @@ export function stageOf(deal: DirectDeal): DealStage {
   if (deal.cancelledAt || state === 5) return 'cancelled';
   if (deal.disputed || state === 4) return 'disputed';
   const released = deal.onChain?.milestonesReleased ?? 0;
+  // Total funded milestones. The escrow is the source of truth; when onChain is
+  // briefly absent on a fresh fetch, fall back to two (the direct-deal shape).
+  const total = deal.onChain?.milestonePcts?.length ?? 2;
   // Settled if any one of:
   //   - the backend record carries settledAt (manual or auto release path),
   //   - the chain says Settled,
-  //   - the released-milestone count is at the cap,
+  //   - every funded milestone has been released,
   //   - the auto-release path completed.
   // settledAt was added because backends sometimes ship onChain:null on a
   // transient chain-read failure, which used to let a settled deal fall
@@ -41,7 +44,7 @@ export function stageOf(deal: DirectDeal): DealStage {
   if (
     deal.settledAt ||
     state === 3 ||
-    released >= 2 ||
+    released >= total ||
     deal.autoReleasedAt
   ) {
     return 'settled';
