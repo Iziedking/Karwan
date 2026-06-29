@@ -3473,8 +3473,8 @@ export const hi: Messages = {
     refreshing: 'रिफ्रेश हो रहा',
     tabs: {
       you: 'आप',
-      buyer: 'क्रेता',
-      seller: 'विक्रेता',
+      buyer: 'खरीद एजेंट',
+      seller: 'बिक्री एजेंट',
     },
     notConfigured: 'कॉन्फ़िगर नहीं',
     updatedTemplate: 'अपडेट {time}',

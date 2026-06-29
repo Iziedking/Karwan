@@ -3473,8 +3473,8 @@ export const sw: Messages = {
     refreshing: 'Inaonyesha upya',
     tabs: {
       you: 'Wewe',
-      buyer: 'Mnunuzi',
-      seller: 'Muuzaji',
+      buyer: 'Wakala wa ununuzi',
+      seller: 'Wakala wa uuzaji',
     },
     notConfigured: 'haijasanidiwa',
     updatedTemplate: 'imesasishwa {time}',

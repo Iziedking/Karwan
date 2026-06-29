@@ -3473,8 +3473,8 @@ export const fr: Messages = {
     refreshing: 'Actualisation',
     tabs: {
       you: 'Vous',
-      buyer: 'Acheteur',
-      seller: 'Vendeur',
+      buyer: 'Agent acheteur',
+      seller: 'Agent vendeur',
     },
     notConfigured: 'non configuré',
     updatedTemplate: 'mis à jour {time}',
