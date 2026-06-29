@@ -32,12 +32,16 @@ type ChatMessage = { role: 'user' | 'assistant'; content: string };
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
   if (config.CONDUIT_API_KEY) {
+    // Conduit's Anthropic-compatible endpoint mirrors Anthropic exactly:
+    // POST {base}/v1/messages with x-api-key (the sk-cdt-... key) and
+    // anthropic-version, same request + response body. (Bearer auth is only the
+    // separate OpenAI-compatible /api/v1 route, which we do not use.)
     list.push({
       name: 'conduit',
       url: `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1/messages`,
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${config.CONDUIT_API_KEY}`,
+        'x-api-key': config.CONDUIT_API_KEY,
         'anthropic-version': '2023-06-01',
       },
       model: config.CONDUIT_MODEL,
