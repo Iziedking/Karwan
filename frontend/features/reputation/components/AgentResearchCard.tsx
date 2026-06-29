@@ -19,6 +19,7 @@ export function AgentResearchCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +35,20 @@ export function AgentResearchCard() {
   const price = state?.priceUsdc ?? 1.5;
   // Sub-cent per deal, so a credit covers a long run of deals. Rounded for copy.
   const dealsLeft = state ? Math.floor(state.creditUsdc / 0.007) : 0;
+
+  // Two-step charge. This moves real USDC immediately, and email users get no
+  // wallet popup to catch it, so the first click only arms a confirm; the second
+  // actually charges.
+  function onChargeClick() {
+    if (busy) return;
+    if (!confirming) {
+      setConfirming(true);
+      setError(null);
+      setNote(null);
+      return;
+    }
+    void activate();
+  }
 
   async function activate() {
     if (busy) return;
@@ -52,6 +67,7 @@ export function AgentResearchCard() {
       }
     } finally {
       setBusy(false);
+      setConfirming(false);
     }
   }
 
@@ -104,7 +120,7 @@ export function AgentResearchCard() {
       <div className="mt-5 flex items-center gap-3 flex-wrap">
         <button
           type="button"
-          onClick={activate}
+          onClick={onChargeClick}
           disabled={busy}
           className="mono text-[11px] uppercase tracking-[0.1em] font-bold px-4 py-2.5 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50 transition"
           style={{
@@ -114,12 +130,35 @@ export function AgentResearchCard() {
             borderBottomRightRadius: 3,
           }}
         >
-          {busy ? 'Confirming...' : state?.active ? `Add credit · ${price} USDC` : `Add research credit · ${price} USDC`}
+          {busy
+            ? 'Charging...'
+            : confirming
+              ? `Confirm · ${price} USDC`
+              : state?.active
+                ? `Add credit · ${price} USDC`
+                : `Add research credit · ${price} USDC`}
         </button>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          paid from your agent wallet (Arc)
-        </span>
+        {confirming && !busy ? (
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            Cancel
+          </button>
+        ) : (
+          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            paid from your agent wallet (Arc)
+          </span>
+        )}
       </div>
+
+      {confirming && !busy && (
+        <p className="mt-2 text-[12px] leading-snug text-[var(--lp-dark)]">
+          This charges {price} USDC from your agent wallet now. After that you are charged only a
+          fraction of a cent on deals you actually match.
+        </p>
+      )}
 
       {note && <p className="mt-3 text-[12px] leading-snug text-[#4f8a3f]">{note}</p>}
       {error && <p className="mt-3 text-[12px] leading-snug text-[var(--lp-critical)]">{error}</p>}
