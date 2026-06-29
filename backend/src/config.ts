@@ -374,7 +374,12 @@ const envSchema = z.object({
   // assistant prefers it (Claude Sonnet) and falls back to the direct
   // ANTHROPIC_API_KEY. Auth is a Bearer token (sk-cdt-...). Same /v1/messages
   // request + response shape as Anthropic, so one code path serves both.
+  // Up to three Conduit keys (free-tier accounts) are tried in order before
+  // Anthropic, so a rate limit on one rolls to the next. Any of these may also
+  // be a comma-separated list of keys. See conduitApiKeys() below.
   CONDUIT_API_KEY: optionalString,
+  CONDUIT_API_KEY_2: optionalString,
+  CONDUIT_API_KEY_3: optionalString,
   CONDUIT_BASE_URL: z.string().default('https://conduit.ozdoev.net'),
   CONDUIT_MODEL: z.string().default('claude-sonnet-4-6'),
 
@@ -533,3 +538,14 @@ export const config = {
   cctpRelayAddress,
 };
 export type Config = typeof config;
+
+/// All configured Conduit keys, in priority order, tried before Anthropic. Reads
+/// CONDUIT_API_KEY, _2, _3; each may itself be a comma-separated list. Trimmed,
+/// emptied, and de-duplicated.
+export function conduitApiKeys(): string[] {
+  const keys = [config.CONDUIT_API_KEY, config.CONDUIT_API_KEY_2, config.CONDUIT_API_KEY_3]
+    .flatMap((v) => (v ? v.split(',') : []))
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [...new Set(keys)];
+}
