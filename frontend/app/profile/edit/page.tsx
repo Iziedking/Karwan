@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { FormError } from '@/shared/components/FormError';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { api, ApiError, type UserRole } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -227,11 +228,7 @@ function ProfileEditInner() {
               {saving ? 'Saving…' : 'Save changes'}
             </CTAPill>
           </div>
-          {error && (
-            <p className="mono text-[12px] text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
-              {error}
-            </p>
-          )}
+          {error && <FormError>{error}</FormError>}
         </div>
       </Band>
     </FullBleed>
