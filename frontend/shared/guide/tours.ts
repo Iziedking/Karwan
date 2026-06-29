@@ -187,6 +187,16 @@ export const BRIDGE_STEPS: TourStep[] = [
 export const JOBS_TOUR_ID = 'jobs-v1';
 export const JOBS_STEPS: TourStep[] = [
   {
+    title: 'The deal at a glance',
+    body: 'Your budget, how many offers are in, the deadline, and the terms hash. The terms hash is the fingerprint of what you posted, written to Arc.',
+    target: 'job-stats',
+  },
+  {
+    title: 'The request you posted',
+    body: 'Your brief in your own words, with the keywords your assistant pulled from it to find matching sellers.',
+    target: 'job-brief',
+  },
+  {
     title: 'Where this request stands',
     body: 'The flow shows each stage from posted to funded: collecting offers, negotiating, then your approval. No money has moved yet.',
     target: 'job-flow',
@@ -210,6 +220,11 @@ export const JOBS_STEPS: TourStep[] = [
 /// Deal page tour (/deals/[id]).
 export const DEAL_TOUR_ID = 'deal-v1';
 export const DEAL_STEPS: TourStep[] = [
+  {
+    title: 'The money and who is in it',
+    body: 'Who you are dealing with, what you funded, what the seller nets after the platform fee, and how the payout splits between delivery and final release. It sits in escrow on Arc until each milestone is met.',
+    target: 'deal-money',
+  },
   {
     title: 'Where your deal stands',
     body: 'This tracker shows each stage from accepted to settled. Your money sits safely in escrow and is released as milestones are met.',
@@ -260,6 +275,11 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
       title: 'Build your reputation',
       body: 'Stake USDC to lift your tier. A higher tier gets you better deals, and the same stake accrues yield through tokenized US Treasuries.',
     },
+    {
+      target: 'profile-preferences',
+      title: 'How Karwan reaches you',
+      body: 'Connect email, Telegram, or X so your agent can ping you the moment a deal needs you. You only ever hear about your own deals.',
+    },
   ];
 }
 
@@ -306,11 +326,13 @@ export function buildMarketSteps(accountKind: 'person' | 'business'): TourStep[]
     return [
       {
         title: 'Your B2B market',
-        body: 'Open trade-finance deals you can fund or fulfil, and companies sourcing individual services, grouped into clear sections.',
+        body: 'Open trade-finance deals you can fund or fulfil, grouped into their own section.',
+        target: 'market-b2b',
       },
       {
-        title: 'Start from any card',
-        body: 'Open a deal to act on it. Your agents handle the matching and negotiation; you approve the terms.',
+        title: 'Companies hiring individuals',
+        body: 'Businesses sourcing individual services sit here. Open any card to act on it; your agents handle the matching and you approve the terms.',
+        target: 'market-hiring',
       },
     ];
   }
@@ -318,14 +340,17 @@ export function buildMarketSteps(accountKind: 'person' | 'business'): TourStep[]
     {
       title: 'The marketplace',
       body: 'Open requests and offers from people, in their own section. Browse for what you need and your assistant negotiates from there.',
+      target: 'market-p2p',
     },
     {
       title: 'Businesses hiring you',
       body: 'Companies sometimes need an individual for a job. Those sit in their own section, and you bid on them like any request.',
+      target: 'market-hiring',
     },
     {
       title: 'Business deals are view-only',
       body: 'You can see B2B trade activity for transparency, but acting on those needs a business account. Counterparties stay private.',
+      target: 'market-b2b',
     },
   ];
 }
@@ -352,15 +377,28 @@ export const FINANCIER_APPLY_STEPS: TourStep[] = [
 export const FINANCIER_DESK_TOUR_ID = 'financier-desk-v1';
 export const FINANCIER_DESK_STEPS: TourStep[] = [
   {
-    title: 'Your financier desk',
-    body: 'Two tabs: invoices open to factoring, and purchase orders open to funding. Filter by sector and region to find the trade you want.',
+    title: 'Two desks',
+    body: 'Switch between invoices open to factoring and purchase orders open to funding. Each lists the trade you can put capital behind.',
+    target: 'financier-tabs',
+  },
+  {
+    title: 'Filter to your lane',
+    body: 'Narrow by sector and region to find the deals you understand and want to back.',
+    target: 'financier-filters',
+  },
+  {
+    title: 'Read each deal',
+    body: 'Every card shows the face value, the seller reputation tier, and the settlement window, so you can size the risk before you commit.',
+    target: 'financier-deal',
   },
   {
     title: 'Make an offer',
     body: 'Set your discount or principal and post it. When the seller accepts, your advance goes out; repayment returns automatically when the deal settles.',
+    target: 'financier-offer',
   },
   {
     title: 'Every counterparty has a passport',
     body: 'Each card links to the seller’s on-chain credit passport: tier, settled-deal history, and repayment behaviour, so you underwrite with real signals.',
+    target: 'financier-passport',
   },
 ];

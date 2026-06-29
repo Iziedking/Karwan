@@ -242,7 +242,7 @@ export function ListingsBrowse() {
             {sections
               .filter((s) => s.cards.length > 0)
               .map((s) => (
-                <section key={s.key}>
+                <section key={s.key} data-guide={`market-${s.key}`}>
                   <div className="flex items-baseline justify-between gap-3 mb-4">
                     <h2 className="font-sans text-[17px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
                       {s.title}
