@@ -7276,8 +7276,8 @@ export const en: MessagesShape = {
     refreshing: 'Refreshing',
     tabs: {
       you: 'You',
-      buyer: 'Buyer',
-      seller: 'Seller',
+      buyer: 'Buy agent',
+      seller: 'Sell agent',
     },
     notConfigured: 'not configured',
     updatedTemplate: 'updated {time}',
