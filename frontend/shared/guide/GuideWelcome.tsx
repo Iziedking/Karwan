@@ -4,25 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useGuide } from './GuideProvider';
 import { WELCOME_ID, WELCOME_STEPS } from './tours';
-
-/// Routes where tours never run. Two kinds: public / marketing pages (landing,
-/// docs, info), and active setup flows where a popup would talk over the task
-/// the user is mid-way through (onboarding language/profile, invite claim,
-/// cashout). The guide starts once the user is inside the app proper and not
-/// in the middle of a flow, so the welcome lands on a real app page like home.
-function isNoTourRoute(pathname: string | null): boolean {
-  if (!pathname) return true;
-  if (pathname === '/') return true;
-  return (
-    pathname.startsWith('/docs') ||
-    pathname.startsWith('/how-it-works') ||
-    pathname.startsWith('/feedback') ||
-    pathname.startsWith('/terms') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/invite') ||
-    pathname.startsWith('/cashout')
-  );
-}
+import { isNoTourRoute } from './routes';
 
 /// Fires the first-run welcome tour once a signed-in user is on an app page
 /// (it speaks in the second person about "your" deals, so it waits for auth,
