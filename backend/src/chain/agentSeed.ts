@@ -7,6 +7,21 @@ import { logger } from '../logger.js';
 
 const USDC_DECIMALS = 6;
 
+/// All seeds come from one operator EOA. Two sends fired together (buyer +
+/// seller on activation, or the admin backfill's Promise.all) would otherwise
+/// grab the same nonce, so only one lands. Chain them: each send waits for the
+/// previous to be submitted, giving sequential nonces. Outcome-independent so
+/// one failure does not wedge the queue.
+let operatorChain: Promise<unknown> = Promise.resolve();
+function runOnOperator<T>(fn: () => Promise<T>): Promise<T> {
+  const result = operatorChain.then(fn, fn);
+  operatorChain = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
+}
+
 /// Seed a freshly-activated agent wallet with a small USDC float from the
 /// operator EOA, replacing the public faucet (rate-limited on testnet, absent
 /// on mainnet).
@@ -52,14 +67,16 @@ export async function seedAgentFromOperator(
     }
 
     const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
-    const txHash = await wallet.writeContract({
-      account,
-      chain: arcTestnet,
-      address: usdc,
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [to, value],
-    });
+    const txHash = await runOnOperator(() =>
+      wallet.writeContract({
+        account,
+        chain: arcTestnet,
+        address: usdc,
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [to, value],
+      }),
+    );
     logger.info({ to, amountUsdc: amount, txHash }, 'agent seeded from operator wallet');
     return { ok: true, txHash };
   } catch (err) {
