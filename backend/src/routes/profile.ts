@@ -117,14 +117,21 @@ profileRoutes.post('/', async (c) => {
     return c.json({ error: 'buyer milestonePcts must sum to 100' }, 400);
   }
 
-  // Names are unique across all accounts, person or business. Block a save that
-  // would take a name another wallet already uses (case-insensitive, trimmed).
-  const nameOwner = await findProfileByName(body.displayName);
-  if (nameOwner && nameOwner.address !== body.address.toLowerCase()) {
-    return c.json(
-      { error: 'That name is taken. Pick a different display name.', code: 'name_taken' },
-      409,
-    );
+  // Names are unique across all accounts, person or business, but only enforce
+  // it when the name is actually NEW or CHANGED for this user. Re-saving your
+  // own profile (for example switching seller to both) keeps your existing name
+  // and must never trip on it, even if a pre-existing duplicate exists from
+  // before this rule. Case-insensitive, trimmed.
+  const self = body.address.toLowerCase();
+  const currentName = (await getProfile(self))?.displayName?.trim().toLowerCase();
+  if (body.displayName.trim().toLowerCase() !== currentName) {
+    const nameOwner = await findProfileByName(body.displayName);
+    if (nameOwner && nameOwner.address !== self) {
+      return c.json(
+        { error: 'That name is taken. Pick a different display name.', code: 'name_taken' },
+        409,
+      );
+    }
   }
 
   // Extract canonical match keywords from the seller profile (skills+bio) so
