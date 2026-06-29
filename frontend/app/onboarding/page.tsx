@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { api, ApiError, type UserRole } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { FormError } from '@/shared/components/FormError';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
 import {
@@ -670,9 +671,9 @@ function GetReadyStep({ address, onDone }: { address: string; onDone: () => void
         </div>
 
         {error && (
-          <p className="mt-5 mono text-[12px] leading-snug text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
+          <FormError className="mt-5">
             Setup could not finish. {error} You can activate later from your profile.
-          </p>
+          </FormError>
         )}
       </div>
     </div>
@@ -1195,9 +1196,7 @@ function BusinessProfileStep(props: {
         </CTAPill>
       </div>
       {props.error && (
-        <p className="mono text-[12px] text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
-          {props.error}
-        </p>
+        <FormError>{props.error}</FormError>
       )}
     </div>
   );
@@ -1355,9 +1354,7 @@ function ProfileStep(props: {
         </CTAPill>
       </div>
       {props.error && (
-        <p className="mono text-[12px] text-[var(--lp-dark)] bg-[rgba(255,0,0,0.06)] border border-[rgba(255,0,0,0.2)] rounded-md p-3">
-          {props.error}
-        </p>
+        <FormError>{props.error}</FormError>
       )}
     </div>
   );
