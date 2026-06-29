@@ -251,6 +251,17 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const viewerIsBuyer = !!address && address.toLowerCase() === deal.buyer;
   const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
   const fee = feeBreakdown(Number(deal.dealAmountUsdc));
+  // Milestone split. The on-chain escrow is the source of truth once funded; a
+  // managed deal can carry 2 to 5 milestones. Direct deals (and the brief
+  // window before the escrow is read) resolve to the two-part shape implied by
+  // firstReleasePct. milestonesReleased drives all per-stage progress.
+  const milestonePcts =
+    deal.onChain?.milestonePcts && deal.onChain.milestonePcts.length >= 2
+      ? deal.onChain.milestonePcts
+      : deal.milestonePcts && deal.milestonePcts.length >= 2
+        ? deal.milestonePcts
+        : [deal.firstReleasePct, 100 - deal.firstReleasePct];
+  const milestonesReleased = deal.onChain?.milestonesReleased ?? 0;
 
   if (!isConnected) {
     return (
@@ -659,14 +670,22 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               <MoneyRow label={dd.funding.sellerReceives} value={fee.sellerNet} strong />
               <MoneyRow label={dd.funding.platformFee} value={fee.feeTotal} faint />
               <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-                <MoneyRow
-                  label={dd.funding.onDeliveryTemplate.replace('{pct}', String(deal.firstReleasePct))}
-                  value={(fee.sellerNet * deal.firstReleasePct) / 100}
-                />
-                <MoneyRow
-                  label={dd.funding.onVerificationTemplate.replace('{pct}', String(100 - deal.firstReleasePct))}
-                  value={(fee.sellerNet * (100 - deal.firstReleasePct)) / 100}
-                />
+                {milestonePcts.map((pct, i) => {
+                  const isFirst = i === 0;
+                  const isLast = i === milestonePcts.length - 1;
+                  const label = isFirst
+                    ? dd.funding.onDeliveryTemplate.replace('{pct}', String(pct))
+                    : isLast
+                      ? dd.funding.onVerificationTemplate.replace('{pct}', String(pct))
+                      : `Milestone ${i + 1} · ${pct}%`;
+                  return (
+                    <MoneyRow
+                      key={i}
+                      label={label}
+                      value={(fee.sellerNet * pct) / 100}
+                    />
+                  );
+                })}
               </div>
               {fundingSafetyLine(stage, viewerIsBuyer, dd.fundingSafety) && (
                 <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)]">
@@ -834,7 +853,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <div className="mt-8" data-guide="deal-flow">
           <PageCard>
             <ProgressTrack
-              deal={deal}
+              milestonePcts={milestonePcts}
+              milestonesReleased={milestonesReleased}
               stage={stage}
               rail={rail}
               copy={
@@ -894,6 +914,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               viewerIsBuyer={viewerIsBuyer}
               viewerIsSeller={viewerIsSeller}
               firstPct={deal.firstReleasePct}
+              milestonePcts={milestonePcts}
+              milestonesReleased={milestonesReleased}
               busy={busy}
               deal={deal}
               now={now}
@@ -1249,18 +1271,35 @@ function MoneyRow({
 }
 
 function ProgressTrack({
-  deal,
+  milestonePcts,
+  milestonesReleased,
   stage,
   rail,
   copy,
 }: {
-  deal: { firstReleasePct: number };
+  milestonePcts: number[];
+  milestonesReleased: number;
   stage: DealStage;
   rail: string;
   copy: Messages['directDealDetail']['progressTrack'];
 }) {
   const cancelled = stage === 'cancelled';
   const past = (...stages: DealStage[]) => !cancelled && !stages.includes(stage);
+  // One step per funded milestone. The first reuses the "on delivery" wording,
+  // the last the "on verification" wording; any milestone in between gets a
+  // neutral "Milestone N" label. A milestone is done once released past its
+  // index (or the whole deal has settled).
+  const lastIndex = milestonePcts.length - 1;
+  const releaseSteps = milestonePcts.map((pct, i) => ({
+    key: `release-${i}`,
+    label:
+      i === 0
+        ? copy.firstReleasedTemplate.replace('{pct}', String(pct))
+        : i === lastIndex
+          ? copy.finalReleasedTemplate.replace('{pct}', String(pct))
+          : `Milestone ${i + 1} · ${pct}% released`,
+    done: stage === 'settled' || milestonesReleased > i,
+  }));
   const steps = [
     { key: 'opened', label: copy.opened, done: true },
     {
@@ -1273,16 +1312,7 @@ function ProgressTrack({
       label: copy.delivered,
       done: past('awaiting-acceptance', 'awaiting-delivery'),
     },
-    {
-      key: 'first',
-      label: copy.firstReleasedTemplate.replace('{pct}', String(deal.firstReleasePct)),
-      done: stage === 'awaiting-final-release' || stage === 'settled',
-    },
-    {
-      key: 'final',
-      label: copy.finalReleasedTemplate.replace('{pct}', String(100 - deal.firstReleasePct)),
-      done: stage === 'settled',
-    },
+    ...releaseSteps,
   ];
   const firstPending = steps.findIndex((s) => !s.done);
   const terminal = stage === 'settled' || stage === 'disputed' || stage === 'cancelled';
@@ -1343,6 +1373,8 @@ function ActionPanel({
   viewerIsBuyer,
   viewerIsSeller,
   firstPct,
+  milestonePcts,
+  milestonesReleased,
   busy,
   deal,
   now,
@@ -1365,6 +1397,8 @@ function ActionPanel({
   viewerIsBuyer: boolean;
   viewerIsSeller: boolean;
   firstPct: number;
+  milestonePcts: number[];
+  milestonesReleased: number;
   busy: boolean;
   deal: DirectDeal;
   now: number;
@@ -1742,7 +1776,24 @@ function ActionPanel({
     );
   }
 
-  const rest = 100 - firstPct;
+  // The next milestone the buyer releases from this stage. On a two-part deal
+  // this is the final tranche (100 - firstPct), so the existing wording reads
+  // unchanged. On an N-part deal it is whichever milestone is up next, and the
+  // deal only settles when releasing the LAST one.
+  const total = milestonePcts.length;
+  const nextPct = milestonePcts[milestonesReleased] ?? 100 - firstPct;
+  const milestoneNo = milestonesReleased + 1;
+  const isFinalNext = milestonesReleased + 1 >= total;
+  const rest = nextPct;
+  const nextAmountUsdc = (Number(deal.dealAmountUsdc) * nextPct) / 100;
+  const milestoneReadout =
+    total > 2 ? (
+      <WindowNote tone="muted">
+        Milestone {milestoneNo} of {total}. Releasing {nextPct}% now,{' '}
+        {formatUsdc(nextAmountUsdc)} to the seller.
+        {isFinalNext ? ' This is the final milestone and settles the deal.' : ''}
+      </WindowNote>
+    ) : null;
   const delayGraceMs = deal.delayAppealGraceMs ?? 3_600_000;
   const delayResponseMs = deal.delayAppealResponseWindowMs ?? 300_000;
   const delayGraceEndsAt = deal.reviewWindowStartedAt
@@ -1765,6 +1816,7 @@ function ActionPanel({
             .replace('{firstPct}', String(firstPct))
             .replace('{rest}', String(rest))}
         </Body>
+        {milestoneReadout}
         {appealOpen && !responseExpired && (
           <DelayAppealResponder
             msLeft={responseMsLeft}
@@ -1803,6 +1855,7 @@ function ActionPanel({
           .replace('{firstPct}', String(firstPct))
           .replace('{rest}', String(rest))}
       </Body>
+      {milestoneReadout}
       {appealOpen && !responseExpired && (
         <WindowNote tone="warning">
           {copy.awaitingFinalRelease.sellerAppealOpenPrefix}{' '}

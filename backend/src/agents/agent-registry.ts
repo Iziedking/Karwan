@@ -24,8 +24,8 @@ const DEFAULT_CONFIDENCE_THRESHOLD = 0.7;
 function toBuyerProfile(agents: AgentWallets, profile: UserProfile): BuyerProfile | null {
   const b = profile.buyer;
   if (!b) return null;
-  // KarwanEscrow rejects milestonePcts that are not 1..4 long and summing to 100.
-  if (b.milestonePcts.length < 1 || b.milestonePcts.length > 4) return null;
+  // KarwanEscrow rejects milestonePcts that are not 1..5 long and summing to 100.
+  if (b.milestonePcts.length < 1 || b.milestonePcts.length > 5) return null;
   if (b.milestonePcts.reduce((a, c) => a + c, 0) !== 100) return null;
   return {
     walletId: agents.buyerWalletId,

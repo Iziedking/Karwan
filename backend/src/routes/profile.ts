@@ -60,7 +60,7 @@ const profileSchema = z.object({
       // profiles and types do not break; the engine ignores the stored value and
       // uses BID_COLLECTION_FLOOR_SECONDS. See todo.md (revisit the 45s floor).
       bidCollectionSeconds: z.number().int().min(5).max(600).optional().default(45),
-      milestonePcts: z.array(z.number().int().min(1).max(100)).min(1).max(4),
+      milestonePcts: z.array(z.number().int().min(1).max(100)).min(1).max(5),
     })
     .optional(),
 });

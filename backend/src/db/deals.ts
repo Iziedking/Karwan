@@ -21,7 +21,16 @@ export interface DirectDeal {
   sellerAgentWalletId?: string;
   sellerAgentAddress?: string;
   dealAmountUsdc: string;
+  /// First milestone percent (1-99). On a two-milestone deal this implies the
+  /// split [firstReleasePct, 100 - firstReleasePct]. Always kept in sync with
+  /// milestonePcts[0] when an N-part split is present so back-compat readers
+  /// (direct deals, older rows) stay correct.
   firstReleasePct: number;
+  /// Full milestone split funded on chain, 2 to 5 integer parts each 1-99
+  /// summing to 100. Present on managed (agent) deals that funded an N-part
+  /// split; absent on direct deals, which always fund the two-part shape
+  /// implied by firstReleasePct. Use dealMilestonePcts(deal) to resolve.
+  milestonePcts?: number[];
   /// Delivery deadline (unix seconds). Optional on direct deals so the buyer
   /// can leave it open-ended ("deliver when you can"). When unset, the seller
   /// has no time pressure and the buyer can't unilateral-cancel for late
@@ -263,6 +272,14 @@ export interface DirectDeal {
     calledAt: number;
     callerRole: 'buyer-agent' | 'seller-agent' | 'security-agent';
   }>;
+}
+
+/// Resolves a deal's milestone split. Managed deals carry the full N-part
+/// array; direct deals (and rows from before the array existed) resolve to the
+/// two-part shape implied by firstReleasePct. This is the single source the
+/// off-chain code uses whenever it needs the split to fund or display.
+export function dealMilestonePcts(deal: Pick<DirectDeal, 'firstReleasePct' | 'milestonePcts'>): number[] {
+  return deal.milestonePcts ?? [deal.firstReleasePct, 100 - deal.firstReleasePct];
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

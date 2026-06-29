@@ -326,6 +326,10 @@ export interface POFinancingLine {
 
 export interface DirectDealOnChain {
   state: number;
+  /// Milestone split as funded on chain (the source of truth for display).
+  /// 2 to 5 integer parts each 1-99 summing to 100. The UI reads this for the
+  /// total and per-stage amounts, paired with milestonesReleased for progress.
+  milestonePcts: number[];
   milestonesReleased: number;
   dealAmountWei: string;
   sellerNetWei: string;
@@ -338,7 +342,13 @@ export interface DirectDeal {
   buyer: string;
   seller: string;
   dealAmountUsdc: string;
+  /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
+  /// 100 - firstReleasePct]; kept in sync with milestonePcts[0] when present.
   firstReleasePct: number;
+  /// Full milestone split on managed (agent) deals that funded an N-part split.
+  /// Absent on direct deals. Prefer deal.onChain.milestonePcts for display once
+  /// the escrow is funded; this is the off-chain mirror.
+  milestonePcts?: number[];
   /// Optional delivery deadline (unix seconds). When unset, the deal is
   /// open-ended: seller has no time pressure and the buyer can't unilateral
   /// cancel; only mutual cancel or appeal.
