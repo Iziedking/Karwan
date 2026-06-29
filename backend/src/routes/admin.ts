@@ -34,6 +34,7 @@ import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress } from '../x402/externalClient.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { pingAssistantProviders } from './assistant.js';
+import { db, pgEnabled } from '../db/client.js';
 import { privateKeyToAccount } from 'viem/accounts';
 
 export const adminRoutes = new Hono();
@@ -120,6 +121,91 @@ adminRoutes.post('/agent-seed/:address', async (c) => {
 adminRoutes.get('/assistant-health', async (c) => {
   const providers = await pingAssistantProviders();
   return c.json({ configured: providers.length > 0, providers });
+});
+
+/// Backend health overview: one call for the diagnostics dashboard. Groups the
+/// model gateway (assistant providers), operator funds (the Arc wallets that pay
+/// for seeding + USYC ops), infrastructure (Arc RPC, database, Telegram), and
+/// the feature flags. `overall` is healthy only when a model answers and the RPC
+/// + database are up; Telegram is treated as optional.
+adminRoutes.get('/health', async (c) => {
+  const checkedAt = Date.now();
+
+  // Model gateway.
+  const providers = await pingAssistantProviders();
+  const primary = config.CONDUIT_API_KEY ? 'conduit' : config.ANTHROPIC_API_KEY ? 'anthropic' : 'none';
+
+  // Operator funds: the Arc wallets behind seeding + USYC ops. Only the ones
+  // with a key configured are shown. Native + ERC-20 USDC share one balance.
+  const fundDefs: Array<{ label: string; key?: string; minUsdc: number }> = [
+    { label: 'Agent seed operator', key: config.AGENT_SEED_PRIVATE_KEY, minUsdc: config.AGENT_SEED_USDC },
+    { label: 'USYC operator', key: config.USYC_OPERATOR_PRIVATE_KEY, minUsdc: 0 },
+  ];
+  const funds = await Promise.all(
+    fundDefs
+      .filter((f) => f.key)
+      .map(async (f) => {
+        try {
+          const acct = privateKeyToAccount(f.key as `0x${string}`);
+          const balanceUsdc = formatUnits(await readUsdcBalance(acct.address), 6);
+          const n = Number(balanceUsdc);
+          return { label: f.label, address: acct.address, balanceUsdc, ok: n > 0 && n >= f.minUsdc };
+        } catch (e) {
+          return { label: f.label, address: '', balanceUsdc: null, ok: false, detail: (e as Error).message };
+        }
+      }),
+  );
+
+  // Infrastructure.
+  const infrastructure: Array<{ label: string; ok: boolean; detail?: string }> = [];
+  try {
+    const t0 = Date.now();
+    const block = await publicClient.getBlockNumber();
+    infrastructure.push({ label: 'Arc RPC', ok: true, detail: `block ${block} (${Date.now() - t0}ms)` });
+  } catch (e) {
+    infrastructure.push({ label: 'Arc RPC', ok: false, detail: (e as Error).message });
+  }
+  if (pgEnabled) {
+    try {
+      const t0 = Date.now();
+      await db().execute('select 1');
+      infrastructure.push({ label: 'Database', ok: true, detail: `Postgres (${Date.now() - t0}ms)` });
+    } catch (e) {
+      infrastructure.push({ label: 'Database', ok: false, detail: (e as Error).message });
+    }
+  } else {
+    infrastructure.push({ label: 'Database', ok: true, detail: 'flat-file (no Postgres)' });
+  }
+  infrastructure.push({
+    label: 'Telegram bot',
+    ok: !!config.TELEGRAM_BOT_TOKEN,
+    detail: config.TELEGRAM_BOT_TOKEN ? 'configured' : 'not configured',
+  });
+
+  // Feature flags.
+  const features = [
+    { label: 'Agent gas seed', on: !!config.AGENT_SEED_PRIVATE_KEY },
+    { label: 'x402 paid signals', on: config.X402_PAID_SIGNALS_ENABLED },
+    { label: 'x402 external research', on: !!config.X402_BASE_PRIVATE_KEY },
+    { label: 'USYC treasury', on: !!config.KARWAN_TREASURY_ADDR },
+    { label: 'Reputation reconciler', on: config.REPUTATION_RECONCILER_ENABLED },
+    { label: 'Business auto-approve', on: config.BUSINESS_AUTO_APPROVE },
+  ];
+
+  const modelOk = providers.some((p) => p.ok);
+  const coreInfraOk = infrastructure
+    .filter((i) => i.label === 'Arc RPC' || i.label === 'Database')
+    .every((i) => i.ok);
+  const overall: 'healthy' | 'degraded' = modelOk && coreInfraOk ? 'healthy' : 'degraded';
+
+  return c.json({
+    checkedAt,
+    overall,
+    modelGateway: { primary, providers },
+    funds,
+    infrastructure,
+    features,
+  });
 });
 
 /// Event log for the admin debug view. `?jobId=` traces a whole auction;
