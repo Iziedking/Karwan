@@ -5,7 +5,7 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { getAgentWallets, listAllAgentWallets, agentWalletIntegrity } from '../db/agentWallets.js';
 import { listAllDeals } from '../db/deals.js';
-import { reputation } from '../chain/contracts.js';
+import { reputation, readUsdcBalance } from '../chain/contracts.js';
 import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
 import type { DirectDeal } from '../db/deals.js';
 import { releaseMilestone, finalizeIfSettled } from '../chain/settlement.js';
@@ -73,11 +73,11 @@ adminRoutes.get('/agent-seed/:address', async (c) => {
   let operator: { address: string; balanceUsdc: string } | null = null;
   if (key) {
     const acct = privateKeyToAccount(key as `0x${string}`);
-    const bal = await publicClient.getBalance({ address: acct.address });
-    operator = { address: acct.address, balanceUsdc: formatUnits(bal, 18) };
+    const bal = await readUsdcBalance(acct.address);
+    operator = { address: acct.address, balanceUsdc: formatUnits(bal, 6) };
   }
   const balOf = async (addr?: string) =>
-    addr ? formatUnits(await publicClient.getBalance({ address: addr as `0x${string}` }), 18) : null;
+    addr ? formatUnits(await readUsdcBalance(addr), 6) : null;
   return c.json({
     address,
     keyConfigured: !!key,
