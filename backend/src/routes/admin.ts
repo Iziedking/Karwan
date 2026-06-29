@@ -33,6 +33,7 @@ import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress } from '../x402/externalClient.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
+import { pingAssistantProviders } from './assistant.js';
 import { privateKeyToAccount } from 'viem/accounts';
 
 export const adminRoutes = new Hono();
@@ -109,6 +110,16 @@ adminRoutes.post('/agent-seed/:address', async (c) => {
     seedAgentFromOperator(wallets.sellerAddress),
   ]);
   return c.json({ address, buyer, seller });
+});
+
+/// Assistant health: ping each configured provider (Conduit primary, Anthropic
+/// fallback) with a trivial prompt and report the result, so the key + model can
+/// be confirmed without digging through logs. Per provider: a 401 means a bad
+/// key, 400/404 means the key can't reach that model, 429 is quota. ok:true with
+/// a sample means that provider works. configured:false means none are set.
+adminRoutes.get('/assistant-health', async (c) => {
+  const providers = await pingAssistantProviders();
+  return c.json({ configured: providers.length > 0, providers });
 });
 
 /// Event log for the admin debug view. `?jobId=` traces a whole auction;

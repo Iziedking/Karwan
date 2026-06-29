@@ -370,6 +370,13 @@ const envSchema = z.object({
   // low-cost model. Assistant is disabled gracefully if the key is absent.
   ANTHROPIC_API_KEY: optionalString,
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
+  // Conduit LLM gateway, Anthropic-compatible at its root. When set, the
+  // assistant prefers it (Claude Sonnet) and falls back to the direct
+  // ANTHROPIC_API_KEY. Auth is a Bearer token (sk-cdt-...). Same /v1/messages
+  // request + response shape as Anthropic, so one code path serves both.
+  CONDUIT_API_KEY: optionalString,
+  CONDUIT_BASE_URL: z.string().default('https://conduit.ozdoev.net'),
+  CONDUIT_MODEL: z.string().default('claude-sonnet-4-6'),
 
   // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to mint).
   CCTP_MESSAGE_TRANSMITTER_ADDR: z
