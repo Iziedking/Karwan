@@ -201,8 +201,18 @@ export function AssistantWidget() {
       setTurns([...next, { role: 'assistant', content: clean }]);
       if (needsHuman) setHumanSuggested(true);
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : t.error;
-      setError(msg || t.error);
+      // Map the backend's error codes to a human line instead of showing the
+      // raw "assistant-error" string. The human fallback is revealed below.
+      const code = e instanceof ApiError ? e.message : '';
+      setError(
+        code === 'assistant-timeout'
+          ? 'The assistant took too long. Try again, or talk to a human below.'
+          : code === 'assistant-unavailable'
+            ? 'The assistant is offline right now. You can talk to a human below.'
+            : code === 'assistant-error'
+              ? 'The assistant hit a snag. Try again, or talk to a human below.'
+              : t.error,
+      );
       // A failed assistant call leaves the user stuck; offer a human as a
       // fallback so they aren't stranded.
       setHumanSuggested(true);
