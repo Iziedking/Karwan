@@ -1221,6 +1221,36 @@ export const api = {
       headers: adminHeaders(),
       body: JSON.stringify({ applicant, decision, ...(reasonHash ? { reasonHash } : {}) }),
     }),
+  adminAssistantHealth: () =>
+    json<{
+      configured: boolean;
+      providers: Array<{
+        name: string;
+        model: string;
+        ok: boolean;
+        status?: number;
+        detail?: string;
+        latencyMs: number;
+        sample?: string;
+      }>;
+    }>('/api/admin/assistant-health', { headers: adminHeaders() }),
+  adminAgentSeedStatus: (address: string) =>
+    json<{
+      address: string;
+      keyConfigured: boolean;
+      seedAmountUsdc: number;
+      operator: { address: string; balanceUsdc: string } | null;
+      agents: {
+        buyer: { address: string; balanceUsdc: string | null };
+        seller: { address: string; balanceUsdc: string | null };
+      } | null;
+    }>(`/api/admin/agent-seed/${address}`, { headers: adminHeaders() }),
+  adminAgentSeedRun: (address: string) =>
+    json<{
+      address: string;
+      buyer: { ok: boolean; txHash?: string; reason?: string };
+      seller: { ok: boolean; txHash?: string; reason?: string };
+    }>(`/api/admin/agent-seed/${address}`, { method: 'POST', headers: adminHeaders() }),
   adminWhoami: () =>
     json<{ role: 'admin' | 'support' | null }>('/api/admin/support/whoami', {
       headers: adminHeaders(),
