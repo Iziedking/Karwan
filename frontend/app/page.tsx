@@ -35,6 +35,21 @@ export default function HomePage() {
     { id: 'get-started', label: lp.tabs.getStarted, hash: 'get-started' },
   ];
 
+  // Load top-down. The browser's default scroll restoration drops a refresh
+  // back at the last position (often the footer), which also makes the
+  // once-only scroll reveals fire out of order so scrolling up shows nothing.
+  // Take manual control, start at the top (unless deep-linking to a hash), and
+  // hand restoration back when leaving the page.
+  useEffect(() => {
+    const supported = 'scrollRestoration' in window.history;
+    const prev = supported ? window.history.scrollRestoration : undefined;
+    if (supported) window.history.scrollRestoration = 'manual';
+    if (!window.location.hash) window.scrollTo(0, 0);
+    return () => {
+      if (supported && prev) window.history.scrollRestoration = prev;
+    };
+  }, []);
+
   // Drive sticky tab active state from scroll position.
   useEffect(() => {
     const ids = tabs.map((t) => t.hash).filter(Boolean) as string[];
@@ -81,7 +96,12 @@ export default function HomePage() {
         }
       >
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div className="space-y-7">
+          <motion.div
+            className="space-y-7"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: dur.slow, ease: ease.out }}
+          >
             <SectionTag tone="dark">{lp.hero.tag}</SectionTag>
             <h1 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]">
               {lp.hero.titleLine1}<br />{lp.hero.titleLine2}{' '}
@@ -99,7 +119,7 @@ export default function HomePage() {
             <p className="mono text-[12px] text-[var(--lp-text-sub)]">
               {lp.hero.footnote}
             </p>
-          </div>
+          </motion.div>
           <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">
             <HeroFlow />
           </div>
