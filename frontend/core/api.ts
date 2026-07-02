@@ -1999,6 +1999,9 @@ export const api = {
     recipient: string;
     amountUsdc: number;
     walletKind: 'identity' | 'sellerAgent' | 'buyerAgent';
+    /// Minted once per submission; retries of the same submission reuse it so
+    /// the backend/Circle dedupe the transfer instead of paying twice.
+    requestId?: string;
   }) =>
     json<{ ok: true; txHash: string; explorerUrl: string }>(
       '/api/cashout/arc-withdraw',
@@ -2095,7 +2098,14 @@ export const api = {
     /// 'solanaDevnet'; EVM web3 burns predate this field and omit it.
     sourceChainKey?: string;
   }) =>
-    json<{ accepted: boolean; bridgeId: string }>('/api/bridge/relay', {
+    json<{
+      accepted: boolean;
+      bridgeId: string;
+      /// 'minted' when the bridge already settled: the relay refuses to
+      /// re-enter the pipeline and reports the terminal state instead.
+      status?: string;
+      mintTxHash?: string | null;
+    }>('/api/bridge/relay', {
       method: 'POST',
       body: JSON.stringify(input),
     }),

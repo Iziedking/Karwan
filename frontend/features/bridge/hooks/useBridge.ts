@@ -771,7 +771,7 @@ export function useBridges() {
         try {
           const key = cur.sourceChainKey;
           const domain = isAppKitOnlyChainKey(key) ? 5 : SOURCE_CHAINS[key].domain;
-          await api.bridgeRelay({
+          const r = await api.bridgeRelay({
             bridgeId: id,
             sourceDomain: domain,
             sourceTxHash: cur.burnTxHash,
@@ -779,6 +779,17 @@ export function useBridges() {
             mintRecipient: cur.mintRecipient,
             sourceChainKey: key,
           });
+          if (r.status === 'minted') {
+            // Backend refused to re-relay because it already settled. Settle
+            // the row directly; no SSE will come for a terminal record.
+            patch(id, (b) => ({
+              ...b,
+              phase: 'done',
+              mintTxHash: (r.mintTxHash ?? undefined) as `0x${string}` | undefined,
+              error: undefined,
+            }));
+            return;
+          }
           patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
         } catch (err) {
           const raw = errorToString(err).toLowerCase();

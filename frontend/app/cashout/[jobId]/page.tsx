@@ -333,6 +333,9 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           recipient: recipient.trim(),
           amountUsdc: amountNum,
           walletKind,
+          // One id per submission: a retry of this same click dedupes at
+          // Circle instead of transferring twice.
+          requestId: crypto.randomUUID(),
         });
         setResult({ txHash: r.txHash, explorerUrl: r.explorerUrl });
       } else if (dest === 'solanaDevnet') {
