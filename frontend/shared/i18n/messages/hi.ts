@@ -3629,6 +3629,7 @@ export const hi: Messages = {
       submitTemplate: '{dest} पर भेजें',
     },
     activityEyebrow: 'गतिविधि',
+    clearActivity: 'साफ़ करें',
     dismissButton: 'बंद',
     srToRecipient: '{address} को',
     phases: {

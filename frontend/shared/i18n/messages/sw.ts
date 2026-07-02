@@ -3629,6 +3629,7 @@ export const sw: Messages = {
       submitTemplate: 'Tuma kwa {dest}',
     },
     activityEyebrow: 'SHUGHULI',
+    clearActivity: 'Futa',
     dismissButton: 'Funga',
     srToRecipient: 'kwa {address}',
     phases: {

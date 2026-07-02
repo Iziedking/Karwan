@@ -3629,6 +3629,7 @@ export const ar: Messages = {
       submitTemplate: 'إرسال إلى {dest}',
     },
     activityEyebrow: 'النشاط',
+    clearActivity: 'مسح',
     dismissButton: 'إغلاق',
     srToRecipient: 'إلى {address}',
     phases: {

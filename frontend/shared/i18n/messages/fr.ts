@@ -3629,6 +3629,7 @@ export const fr: Messages = {
       submitTemplate: 'Envoyer vers {dest}',
     },
     activityEyebrow: 'ACTIVITÉ',
+    clearActivity: 'Effacer',
     dismissButton: 'Fermer',
     srToRecipient: 'à {address}',
     phases: {

@@ -4,6 +4,7 @@ import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useBridges, bridgeChainMeta, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
+import { useHiddenActivityBridgeIds } from './BridgeCard';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
@@ -69,8 +70,12 @@ export function BridgeOutCard() {
   const verifyCopy = msgs.bridgeCard.recipient.verify;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
-  const { bridges, startCircleOut, startWeb3Out, startArcSend, dismiss, isActive } = useBridges();
-  const outBridges = bridges.filter((b) => b.direction === 'out');
+  const { bridges, startCircleOut, startWeb3Out, startArcSend, isActive } = useBridges();
+  /// Activity is a temporary, per-device view: dismissing a row hides it from
+  /// this panel only (a localStorage set), it never deletes the record from the
+  /// shared store, so the permanent Transfer history keeps every transfer.
+  const hidden = useHiddenActivityBridgeIds(auth.address ?? null);
+  const outBridges = bridges.filter((b) => b.direction === 'out' && !hidden.set.has(b.id));
 
   const [destKey, setDestKey] = useState<DestKey>('arc');
   const [open, setOpen] = useState(false);
@@ -405,12 +410,23 @@ export function BridgeOutCard() {
 
         {outBridges.length > 0 && (
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{t.activityEyebrow}:]
-            </span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:{t.activityEyebrow}:]
+              </span>
+              {outBridges.some((b) => !isActive(b.phase)) && (
+                <button
+                  type="button"
+                  onClick={() => hidden.hideMany(outBridges.filter((b) => !isActive(b.phase)).map((b) => b.id))}
+                  className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                >
+                  {t.clearActivity}
+                </button>
+              )}
+            </div>
             <ul className="mt-3.5 space-y-2">
               {outBridges.map((b) => (
-                <OutRow key={b.id} bridge={b} onDismiss={() => dismiss(b.id)} active={isActive(b.phase)} />
+                <OutRow key={b.id} bridge={b} onDismiss={() => hidden.hide(b.id)} active={isActive(b.phase)} />
               ))}
             </ul>
           </div>

@@ -3419,6 +3419,7 @@ interface MessagesShape {
       submitTemplate: string;
     };
     activityEyebrow: string;
+    clearActivity: string;
     dismissButton: string;
     srToRecipient: string;
     phases: {
@@ -7442,6 +7443,7 @@ export const en: MessagesShape = {
       submitTemplate: 'Cash out to {dest}',
     },
     activityEyebrow: 'ACTIVITY',
+    clearActivity: 'Clear',
     dismissButton: 'Dismiss',
     srToRecipient: 'to {address}',
     phases: {

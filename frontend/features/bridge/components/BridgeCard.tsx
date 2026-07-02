@@ -70,7 +70,7 @@ function stepIndexFor(phase: BridgePhase): number {
 /// The previous implementation called useBridges().dismiss which removed
 /// records from the shared store, so clearing activity also cleared the
 /// bridge history (the bug the user reported).
-function useHiddenActivityBridgeIds(address: string | null): {
+export function useHiddenActivityBridgeIds(address: string | null): {
   set: Set<string>;
   hide: (id: string) => void;
   hideMany: (ids: string[]) => void;
