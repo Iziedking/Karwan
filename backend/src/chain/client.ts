@@ -1,4 +1,12 @@
-import { createPublicClient, defineChain, fallback, http, webSocket } from 'viem';
+import {
+  createPublicClient,
+  defineChain,
+  fallback,
+  http,
+  webSocket,
+  type Abi,
+  type Log,
+} from 'viem';
 import { config } from '../config.js';
 
 /// Build the ordered list of RPC URLs to try. Primary first, then any
@@ -86,6 +94,72 @@ export const publicClient = createPublicClient({
   chain: arcTestnet,
   transport: arcTransport,
 });
+
+/// How far back one poll may read. A stall longer than this (RPC outage,
+/// paused container) skips ahead rather than issuing a getLogs range the
+/// provider would reject; the startup backfill and the reconcilers own gap
+/// recovery.
+const WATCH_MAX_RANGE = 5_000n;
+
+/// Stateless contract-event watcher over getLogs. viem's watchContractEvent
+/// on an HTTP client uses eth_newFilter + eth_getFilterChanges whenever the
+/// RPC accepts filter creation, and filter STATE lives on one server — with
+/// our fallback() pool the next poll can land on a different server (or the
+/// server expires the filter), which strands the watcher in a permanent
+/// error loop that viem only self-heals from on one narrow error type. Every
+/// getLogs call here is self-contained, so pool rotation is harmless.
+export function watchEventsViaGetLogs(input: {
+  address: `0x${string}`;
+  abi: Abi;
+  eventName: string;
+  pollingInterval: number;
+  onLogs: (logs: Log[]) => void;
+  onError: (err: Error) => void;
+}): () => void {
+  let prev: bigint | null = null;
+  let inFlight = false;
+  let stopped = false;
+
+  const tick = async () => {
+    if (inFlight || stopped) return;
+    inFlight = true;
+    try {
+      const head = await publicClient.getBlockNumber();
+      if (prev === null) {
+        // First tick anchors the cursor: only events AFTER watch start are
+        // emitted, matching filter semantics (history is the backfill's job).
+        prev = head;
+        return;
+      }
+      if (head <= prev) return;
+      let from = prev + 1n;
+      if (head - from > WATCH_MAX_RANGE) {
+        from = head - WATCH_MAX_RANGE;
+      }
+      const logs = await publicClient.getContractEvents({
+        address: input.address,
+        abi: input.abi,
+        eventName: input.eventName,
+        fromBlock: from,
+        toBlock: head,
+      });
+      prev = head;
+      if (logs.length > 0) input.onLogs(logs as Log[]);
+    } catch (err) {
+      // Cursor stays put: the same range retries on the next tick.
+      input.onError(err as Error);
+    } finally {
+      inFlight = false;
+    }
+  };
+
+  void tick();
+  const timer = setInterval(() => void tick(), input.pollingInterval);
+  return () => {
+    stopped = true;
+    clearInterval(timer);
+  };
+}
 
 export const wsClient = createPublicClient({
   chain: arcTestnet,

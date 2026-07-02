@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
-import { publicClient } from '../chain/client.js';
+import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
 import { jobBoard, vault, getReservationBps } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -178,31 +178,29 @@ const WATCH_POLL_MS = 4_000;
 export function startSellerAgents() {
   logger.info({ jobBoard: jobBoard.address }, 'seller agent starting (multi-tenant)');
 
-  // HTTP polling, not a websocket subscription. Arc testnet's wss drops at boot
-  // and viem's ws watcher never recovered, silently killing every event the
-  // agents depend on. watchContractEvent over the HTTP client polls getLogs on
-  // an interval, so an RPC blip just delays a poll instead of taking the loop
-  // down. The reconciler below is the additional backstop.
-  const unwatchPosted = publicClient.watchContractEvent({
+  // Stateless getLogs polling, NOT websockets (Arc's wss drops at boot and
+  // viem's ws watcher never recovered) and NOT viem's filter-based polling
+  // either: eth_newFilter state lives on ONE server, and our fallback RPC
+  // pool rotates requests across servers, which strands the filter watcher
+  // in a permanent error loop. The reconciler below is the extra backstop.
+  const unwatchPosted = watchEventsViaGetLogs({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'JobPosted',
-    poll: true,
     pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
-      for (const log of logs) safe('JobPosted', () => handleJobPosted(log));
+      for (const log of logs) safe('JobPosted', () => handleJobPosted(log as never));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
 
-  const unwatchCounter = publicClient.watchContractEvent({
+  const unwatchCounter = watchEventsViaGetLogs({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'CounterOfferIssued',
-    poll: true,
     pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
-      for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(log));
+      for (const log of logs) safe('CounterOfferIssued', () => handleCounterOffer(log as never));
     },
     onError: (err) => logger.error({ err: err.message }, 'CounterOfferIssued watch error'),
   });

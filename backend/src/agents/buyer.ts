@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
-import { publicClient } from '../chain/client.js';
+import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
 import {
   jobBoard,
   escrow,
@@ -366,41 +366,40 @@ export function startBuyerAgents() {
     'buyer agent starting (multi-tenant)',
   );
 
-  // HTTP polling, not a websocket subscription: Arc testnet's wss drops at boot
-  // and viem's ws watcher never recovered, silently killing the buyer agent's
-  // view of bids and counters. Polling getLogs survives RPC blips.
-  const unwatchPosted = publicClient.watchContractEvent({
+  // Stateless getLogs polling, NOT websockets (Arc's wss drops at boot and
+  // viem's ws watcher never recovered) and NOT viem's filter-based polling
+  // either: eth_newFilter state lives on ONE server, and our fallback RPC
+  // pool rotates requests across servers, which strands the filter watcher
+  // in a permanent "filter not found"/unsupported-method error loop.
+  const unwatchPosted = watchEventsViaGetLogs({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'JobPosted',
-    poll: true,
     pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
-      for (const log of logs) safe('JobPosted', () => handleJobPosted(log));
+      for (const log of logs) safe('JobPosted', () => handleJobPosted(log as never));
     },
     onError: (err) => logger.error({ err: err.message }, 'JobPosted watch error'),
   });
 
-  const unwatchBid = publicClient.watchContractEvent({
+  const unwatchBid = watchEventsViaGetLogs({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'BidSubmitted',
-    poll: true,
     pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
-      for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(log));
+      for (const log of logs) safe('BidSubmitted', () => handleBidSubmitted(log as never));
     },
     onError: (err) => logger.error({ err: err.message }, 'BidSubmitted watch error'),
   });
 
-  const unwatchCounter = publicClient.watchContractEvent({
+  const unwatchCounter = watchEventsViaGetLogs({
     address: jobBoard.address,
     abi: jobBoardAbi,
     eventName: 'CounterResponse',
-    poll: true,
     pollingInterval: WATCH_POLL_MS,
     onLogs: (logs) => {
-      for (const log of logs) safe('CounterResponse', () => handleCounterResponse(log));
+      for (const log of logs) safe('CounterResponse', () => handleCounterResponse(log as never));
     },
     onError: (err) => logger.error({ err: err.message }, 'CounterResponse watch error'),
   });
