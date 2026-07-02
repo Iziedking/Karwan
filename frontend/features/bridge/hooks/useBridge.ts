@@ -1070,6 +1070,13 @@ export function useBridges() {
           const p = payload as { values?: { name?: string; state?: string } };
           const name = p.values?.name;
           const state = p.values?.state;
+          // Diagnostic: shows how far the bridge gets (approve/burn/mint) and
+          // whether the wallet was reached, since Solana signing can't be
+          // tested without a wallet. Safe to keep; it's debug-level.
+          if (typeof console !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.debug('[bridge.appkit]', input.sourceChainKey, name, state);
+          }
           if (name === 'approve') {
             patch(id, (b) => ({ ...b, phase: state === 'success' ? 'burning' : 'approving', updatedAt: Date.now() }));
           } else if (name === 'burn') {
@@ -1094,6 +1101,12 @@ export function useBridges() {
         sfx.success();
         recordAction('bridge');
       } catch (err) {
+        // Log the full error so a failed Solana/EVM bridge (which can't be
+        // tested here without a wallet) is diagnosable from the console.
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[bridge.appkit] failed', errorToString(err), err);
+        }
         const raw = errorToString(err).toLowerCase();
         const friendly =
           raw.includes('rejected') || raw.includes('denied') || raw.includes('user cancelled')

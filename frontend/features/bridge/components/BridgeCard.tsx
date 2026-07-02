@@ -422,6 +422,15 @@ export function BridgeCard({
   // funds a deposit address instead).
   const needsConnect = !appKitPath && !walletConnected && !depositMode;
 
+  // Pre-warm the App Kit chunks once a bridge is plausible (Solana selected or
+  // a wallet connected), so the dynamic import in startAppKitBridge is already
+  // cached and the click -> sign flow isn't delayed by a cold module load.
+  useEffect(() => {
+    if (!appKitPath && !walletConnected) return;
+    void import('@circle-fin/app-kit').catch(() => {});
+    void import(appKitPath ? '@circle-fin/adapter-solana-kit' : '@circle-fin/adapter-viem-v2').catch(() => {});
+  }, [appKitPath, walletConnected]);
+
   // Source-chain USDC balance shown on the amount field. The deposit path reads
   // the polled DCW balance; the connect-wallet path reads the connected
   // wallet's balance on the selected EVM source. Solana (App-Kit-only) has no
