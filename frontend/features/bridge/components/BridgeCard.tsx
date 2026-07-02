@@ -242,7 +242,6 @@ export function BridgeCard({
     bridges,
     start,
     startCircle,
-    startCircleAppKit,
     retry,
     recheck,
     dismiss,
@@ -450,17 +449,11 @@ export function BridgeCard({
   const sourceShortName = evmSource?.shortName ?? appKitSource?.shortName ?? '';
 
   // Button gates, split by path:
-  //   - canBridgeAppKit: Solana, amount + recipient set (backend signs).
   //   - canSwitch: connect-wallet path on the wrong EVM chain; switch first.
   //   - canBurn:   connect-wallet path on the right chain, amount + recipient set.
   //   - canBridgeCircle: deposit path, amount + recipient set (backend signs).
-  const canBridgeAppKit =
-    appKitPath &&
-    !!auth.address &&
-    typeof amount === 'number' &&
-    amount > 0 &&
-    !!mintRecipient &&
-    recipientReady;
+  // Solana (appKitPath) has no submit yet: the user connects their wallet in
+  // SolanaConnectCard, and the burn lands in the next slice.
   const canSwitch = walletPath && !!evmSource && onWrongChain && !isSwitching;
   const canBurn =
     walletPath &&
@@ -478,22 +471,12 @@ export function BridgeCard({
     amount > 0 &&
     !!mintRecipient &&
     recipientReady;
-  const canSubmit = canBridgeAppKit || canBridgeCircle || canSwitch || canBurn;
+  const canSubmit = canBridgeCircle || canSwitch || canBurn;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Solana (App-Kit-only): the backend signs from the user's Circle DCW, for
-    // every account type. SSE drives the row like any other bridge.
-    if (appKitPath && auth.address) {
-      if (!canBridgeAppKit) return;
-      startCircleAppKit({
-        sourceChainKey: sourceKey,
-        amountUsdc: amount as number,
-        mintRecipient: mintRecipient as `0x${string}`,
-        userAddress: auth.address,
-      });
-      return;
-    }
+    // Solana has no submit yet: the connect card handles it, the burn is next.
+    if (appKitPath) return;
     // Deposit path: the backend signs the EVM burn from the provisioned DCW.
     if (depositPath && auth.address) {
       if (!canBridgeCircle) return;
@@ -601,9 +584,6 @@ export function BridgeCard({
       <div className="px-6 pb-6">
         {appKitPath && (
           <SolanaConnectCard wallet={solana} copy={bc.solana} />
-        )}
-        {appKitPath && appKitSource && (
-          <AppKitFundBanner source={appKitSource} copy={bc.appKitFund} />
         )}
         {depositPath && (
           <CircleSourceFundBanner
@@ -868,6 +848,7 @@ export function BridgeCard({
         /// history modal (a separate surface in BridgeHistorySection.tsx)
         /// keeps showing every bridge the user ever made.
         onDismiss={hiddenIds.hide}
+        onDismissMany={hiddenIds.hideMany}
         isActive={isActive}
         copy={bc}
       />
@@ -1941,6 +1922,7 @@ function BridgeHistoryModal({
   onRetry,
   onRecheck,
   onDismiss,
+  onDismissMany,
   isActive,
   copy,
 }: {
@@ -1952,6 +1934,7 @@ function BridgeHistoryModal({
   onRetry: (id: string) => void;
   onRecheck: (id: string) => void;
   onDismiss: (id: string) => void;
+  onDismissMany: (ids: string[]) => void;
   isActive: (phase: BridgePhase) => boolean;
   copy: Messages['bridgeCard'];
 }) {
@@ -2011,7 +1994,11 @@ function BridgeHistoryModal({
               <button
                 type="button"
                 onClick={() => {
-                  for (const b of bridges) onDismiss(b.id);
+                  // Hide every currently-shown row in one write. Calling the
+                  // single-id hide in a loop only kept the last id (each call
+                  // read the same stale set), which is why Clear all appeared
+                  // to do nothing.
+                  onDismissMany(bridges.map((b) => b.id));
                   onClose();
                 }}
                 className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
