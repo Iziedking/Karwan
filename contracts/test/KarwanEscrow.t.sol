@@ -49,6 +49,7 @@ contract KarwanEscrowTest is Test {
     address buyer = makeAddr("buyer");
     address seller = makeAddr("seller");
     address treasury = makeAddr("treasury");
+    address arbiter = makeAddr("arbiter");
     bytes32 constant JOB_ID = keccak256("job-1");
 
     uint16 constant FEE_BPS = 150; // 1.5%
@@ -73,6 +74,8 @@ contract KarwanEscrowTest is Test {
         );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
+        // escrow owner is this test contract (deployer); wire the arbiter.
+        escrow.setArbiter(arbiter);
 
         usdc.mint(buyer, 1000e18);
         usdc.mint(seller, 1000e18);
@@ -112,12 +115,9 @@ contract KarwanEscrowTest is Test {
     function test_FundEscrow_LeavesStateAsFunded() public {
         vm.prank(buyer);
         escrow.fundEscrow(JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS);
-        // 10 fields in the auto-getter (milestonePcts dropped); state is last.
-        // Struct order in auto-getter (milestonePcts dropped):
-        // buyer, seller, dealAmount, sellerNet, feeTotal, released,
-        // feeReleased, reservedAmount, milestonesReleased, state, reservationBps.
-        // 11 fields total.
-        (, , , , , , , , , KarwanEscrow.EscrowState state, ) = escrow.escrows(JOB_ID);
+        // Read via getEscrow (full struct) so field-count changes to the
+        // auto-getter tuple don't break this assertion.
+        KarwanEscrow.EscrowState state = escrow.getEscrow(JOB_ID).state;
         assertEq(uint8(state), uint8(KarwanEscrow.EscrowState.Funded));
     }
 
@@ -143,15 +143,9 @@ contract KarwanEscrowTest is Test {
         // 50% of 500e18 = 250e18 reserved.
         assertEq(freeBefore - freeAfter, 250e18);
 
-        // Struct order: buyer, seller, dealAmount, sellerNet, feeTotal,
-        // released, feeReleased, reservedAmount, milestonePcts (DROPPED by
-        // Solidity's auto-getter since it's a dynamic array),
-        // milestonesReleased, state, reservationBps. So the destructured
-        // tuple is 11 fields and reservedAmount is the 8th.
-        (, , , , , , , uint256 reservedAmount, , KarwanEscrow.EscrowState state, ) =
-            escrow.escrows(JOB_ID);
-        assertEq(reservedAmount, 250e18);
-        assertEq(uint8(state), uint8(KarwanEscrow.EscrowState.Accepted));
+        KarwanEscrow.EscrowAccount memory acc = escrow.getEscrow(JOB_ID);
+        assertEq(acc.reservedAmount, 250e18);
+        assertEq(uint8(acc.state), uint8(KarwanEscrow.EscrowState.Accepted));
     }
 
     function test_AcceptEscrow_RevertsOnInsufficientStake() public {
@@ -220,24 +214,64 @@ contract KarwanEscrowTest is Test {
 
     /* ============================ DISPUTE =============================== */
 
-    function test_Dispute_FromAccepted_AllowsRefund_WithSlash() public {
+    /// H-1: a post-accept dispute can NO LONGER be refunded by the buyer.
+    /// The only resolution is the arbiter's resolve(). A full buyer win
+    /// (sellerBps=0) reproduces the old "buyer recovers funds + full slash"
+    /// outcome, but now it takes a neutral arbiter, not a buyer's unilateral
+    /// clawback.
+    function test_Dispute_FromAccepted_ResolvesViaArbiter() public {
         _fundAndAccept(500e18);
         vm.prank(seller);
         escrow.dispute(JOB_ID, "ipfs://reason");
 
-        uint256 buyerBefore = usdc.balanceOf(buyer);
+        // The buyer cannot refund a post-accept dispute anymore.
         vm.prank(buyer);
+        vm.expectRevert(KarwanEscrow.RefundAfterAccept.selector);
         escrow.refund(JOB_ID);
-        // Buyer recovers the escrow funds PLUS the 250e18 slash.
-        uint256 expectedRecovery = 503.75e18 + 250e18;
-        assertEq(usdc.balanceOf(buyer), buyerBefore + expectedRecovery);
 
-        // Reputation: seller failedCount++, buyer successCount++.
+        uint256 buyerBefore = usdc.balanceOf(buyer);
+        // Arbiter rules fully for the buyer: seller gets 0%.
+        vm.prank(arbiter);
+        escrow.resolve(JOB_ID, 0, "ruling-hash");
+
+        // Buyer recovers the escrow funds PLUS the full 250e18 slash.
+        assertEq(usdc.balanceOf(buyer), buyerBefore + 503.75e18 + 250e18);
+        assertEq(vault.activeStakeOf(seller), 400e18 - 250e18, "full slash on total loss");
+
+        // Reputation on sellerBps<=2000: seller Failed, buyer Success.
         (uint256 buyerSuccess, , uint256 buyerFailed) = rep.scores(buyer);
         (, , uint256 sellerFailed) = rep.scores(seller);
         assertEq(buyerSuccess, 1);
         assertEq(buyerFailed, 0);
         assertEq(sellerFailed, 1);
+    }
+
+    /// A proportional arbiter ruling splits funds AND the reservation by
+    /// fault. sellerBps=6000 -> seller keeps 60% of funds and 60% of stake;
+    /// the buyer gets 40% of funds back and 40% of the reserve as insurance.
+    function test_Resolve_SplitsFundsAndReservationProportionally() public {
+        _fundAndAccept(500e18);
+        vm.prank(buyer);
+        escrow.dispute(JOB_ID, "partial-delivery");
+
+        uint256 sellerUsdcBefore = usdc.balanceOf(seller);
+        uint256 buyerUsdcBefore = usdc.balanceOf(buyer);
+
+        vm.prank(arbiter);
+        escrow.resolve(JOB_ID, 6000, "split-60-40");
+
+        // Funds: sellerNet 496.25 * 60% = 297.75 to seller; fee 7.5 * 60% =
+        // 4.5 to treasury; buyer gets the 40% remainder = 198.5 + 3 = 201.5.
+        assertEq(usdc.balanceOf(seller) - sellerUsdcBefore, 297.75e18, "seller 60% of net");
+        assertEq(usdc.balanceOf(buyer) - buyerUsdcBefore, 201.5e18 + 100e18, "buyer 40% refund + 40% slash");
+        // Reservation 250: 40% (100) slashes to buyer, 60% (150) returns to
+        // the seller's free stake.
+        assertEq(vault.activeStakeOf(seller), 400e18 - 100e18, "seller keeps 60% of stake");
+        // Mid-range ruling records DisputeResolved for both.
+        (, uint256 buyerDisputed, ) = rep.scores(buyer);
+        (, uint256 sellerDisputed, ) = rep.scores(seller);
+        assertEq(buyerDisputed, 1);
+        assertEq(sellerDisputed, 1);
     }
 
     function test_Dispute_FromFunded_RefundsWithoutSlash() public {
@@ -358,22 +392,19 @@ contract KarwanEscrowTest is Test {
     /// This test asserts that the refund's state transition lands and
     /// the slash side-effect happens after, so a hypothetical slash
     /// failure cannot strand the buyer.
-    function test_AuditM2_RefundOrdersStateBeforeSlash() public {
+    /// Audit M-2 (CEI): resolve clears reservedAmount BEFORE the external
+    /// vault.slashTo call and wraps it in try/catch, so a slash side-effect
+    /// can never strand the settled deal.
+    function test_AuditM2_ResolveClearsReservedBeforeSlash() public {
         _fundAndAccept(500e18);
         vm.prank(seller);
         escrow.dispute(JOB_ID, "reason");
 
-        uint256 buyerBefore = usdc.balanceOf(buyer);
-        vm.prank(buyer);
-        escrow.refund(JOB_ID);
-
-        // Buyer is refunded regardless of slash outcome (happy path
-        // here, but the try/catch ensures the assertion holds even if
-        // slash had reverted).
-        assertGt(usdc.balanceOf(buyer), buyerBefore);
+        vm.prank(arbiter);
+        escrow.resolve(JOB_ID, 0, "ruling");
 
         KarwanEscrow.EscrowAccount memory e = escrow.getEscrow(JOB_ID);
-        assertEq(uint8(e.state), uint8(KarwanEscrow.EscrowState.Refunded));
+        assertEq(uint8(e.state), uint8(KarwanEscrow.EscrowState.Settled));
         assertEq(e.reservedAmount, 0, "reservedAmount cleared before slash side-effect");
     }
 
@@ -419,7 +450,10 @@ contract KarwanEscrowTest is Test {
     /// Casual deal disputed + refunded: no slash, no rep credit either way.
     /// Pre-accept disputes already worked this way; we assert the new
     /// post-accept casual path behaves the same.
-    function test_v2E_CasualDeal_Refund_NoSlashNoRep() public {
+    /// A casual (no-stake) post-accept dispute also resolves via the arbiter,
+    /// not a buyer refund. With no reservation there's nothing to slash; the
+    /// arbiter still splits the funds.
+    function test_v2E_CasualDeal_ResolvesWithoutSlash() public {
         address freshSeller = makeAddr("fresh-refund");
         bytes32 jobId = keccak256("casual-refund");
         vm.prank(buyer);
@@ -428,13 +462,17 @@ contract KarwanEscrowTest is Test {
         escrow.acceptEscrow(jobId);
         vm.prank(buyer);
         escrow.dispute(jobId, "casual-bail");
+
+        // Buyer can't refund a post-accept dispute (even casual).
         vm.prank(buyer);
+        vm.expectRevert(KarwanEscrow.RefundAfterAccept.selector);
         escrow.refund(jobId);
 
-        (uint256 buyerSuccess, , uint256 buyerFailed) = rep.scores(buyer);
-        (uint256 sellerSuccess, , uint256 sellerFailed) = rep.scores(freshSeller);
-        // No reservation existed, so no slash and no rep mark.
-        assertEq(buyerSuccess + buyerFailed + sellerSuccess + sellerFailed, 0);
+        uint256 stakeBefore = vault.activeStakeOf(freshSeller); // 0, no stake
+        vm.prank(arbiter);
+        escrow.resolve(jobId, 0, "casual-ruling");
+        // No reservation existed, so no slash happened.
+        assertEq(vault.activeStakeOf(freshSeller), stakeBefore);
     }
 
     /// Per-deal bps below MIN_TRUSTED_BPS (5000), but not zero, reverts.
@@ -491,22 +529,26 @@ contract KarwanEscrowTest is Test {
     /// partial release + dispute + refund, the event surfaces both the
     /// remaining refund amount AND what had already been released to the
     /// seller before the dispute. Indexers reconstruct partial state.
-    function test_v2E_EscrowRefunded_IncludesPriorReleased() public {
+    /// resolve after a partial release only splits the UNRELEASED remainder;
+    /// the already-paid first milestone stays with the seller.
+    function test_Resolve_AfterPartialRelease_SplitsRemainderOnly() public {
         _fundAndAccept(500e18);
         vm.prank(buyer);
-        escrow.releaseProgress(JOB_ID, 0); // first 50% out: sellerNet * 50% = 248.125e18
+        escrow.releaseProgress(JOB_ID, 0); // first 50% out: sellerNet*50% = 248.125
         vm.prank(seller);
         escrow.dispute(JOB_ID, "stalled-after-first");
 
-        // Expect EscrowRefunded with priorReleased reflecting the first
-        // milestone. sellerNet = 496.25e18, first release = 248.125e18.
-        // remaining = (sellerNet - released) + (feeTotal - feeReleased)
-        //           = (496.25 - 248.125) + (7.5 - 3.75)
-        //           = 248.125 + 3.75 = 251.875e18
-        vm.expectEmit(true, false, false, true);
-        emit KarwanEscrow.EscrowRefunded(JOB_ID, 251.875e18, 248.125e18);
-        vm.prank(buyer);
-        escrow.refund(JOB_ID);
+        uint256 sellerBefore = usdc.balanceOf(seller);
+        uint256 buyerBefore = usdc.balanceOf(buyer);
+        // Arbiter fully for the buyer on the remainder.
+        vm.prank(arbiter);
+        escrow.resolve(JOB_ID, 0, "remainder-to-buyer");
+
+        // remainingSellerNet = 496.25 - 248.125 = 248.125; remainingFee =
+        // 7.5 - 3.75 = 3.75. sellerBps=0 -> all remainder (251.875) to buyer,
+        // nothing more to the seller.
+        assertEq(usdc.balanceOf(seller), sellerBefore, "seller keeps only the first milestone");
+        assertEq(usdc.balanceOf(buyer) - buyerBefore, 251.875e18 + 250e18, "buyer: remainder + slash");
     }
 
     /// Reputation credits route through vault.resolveOwner so the on-chain

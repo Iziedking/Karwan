@@ -534,57 +534,74 @@ contract KarwanVault is ReentrancyGuard {
         emit Released(id, consumer, r.owner, r.amount);
     }
 
-    /// @notice Slash a reservation to its locked beneficiary. Pays USDC and
-    ///         FIFO-reduces the owner's Active position principals, swap-
-    ///         popping any position that hits zero. Only the creating consumer
-    ///         can slash. Cost is bounded by MAX_POSITIONS_PER_OWNER.
+    /// @notice Slash a reservation's FULL amount to its locked beneficiary.
+    ///         Only the creating consumer can slash.
     function slash(bytes32 id) external nonReentrant {
-        bytes32 k = _key(msg.sender, id);
+        _settleSlash(msg.sender, id, type(uint256).max);
+    }
+
+    /// @notice Slash `amount` of a reservation to its beneficiary and release
+    ///         the remainder back to the owner's free stake. Used by arbitrated
+    ///         dispute resolutions that split fault proportionally: `amount` is
+    ///         the buyer's insurance share, the rest returns to the seller.
+    ///         `amount` is clamped to the reservation size. Only the creating
+    ///         consumer can call it.
+    function slashTo(bytes32 id, uint256 amount) external nonReentrant {
+        _settleSlash(msg.sender, id, amount);
+    }
+
+    /// @dev Settle a reservation: transfer min(reservationAmount, cap) to the
+    ///      beneficiary by FIFO-reducing the owner's Active positions, and
+    ///      clear the WHOLE reservation (the unslashed remainder simply returns
+    ///      to free stake). Swap-pops any position reduced to zero; the walk is
+    ///      bounded by MAX_POSITIONS_PER_OWNER.
+    function _settleSlash(address consumer, bytes32 id, uint256 cap) private {
+        bytes32 k = _key(consumer, id);
         Reservation storage r = reservations[k];
         if (!r.active) revert NotReserved();
 
-        uint256 amount = r.amount;
+        uint256 reserved = r.amount;
         address owner = r.owner;
         address beneficiary = r.beneficiary;
+        uint256 slashAmount = cap < reserved ? cap : reserved;
+
         r.active = false;
-        reservedTotal[owner] -= amount;
-        totalReservedAll -= amount;
+        reservedTotal[owner] -= reserved;
+        totalReservedAll -= reserved;
 
-        // Walk the owner's live positions oldest-first, taking from Active
-        // ones until the amount is covered. Swap-and-pop closes any position
-        // reduced to zero. `i` advances only when we DON'T remove, so the
-        // element swapped into slot i is re-examined; the walk is bounded by
-        // the array length (<= MAX_POSITIONS_PER_OWNER) plus removals.
-        uint256[] storage ids = ownerPositionIds[owner];
-        uint256 remaining = amount;
-        uint256 i = 0;
-        while (i < ids.length && remaining > 0) {
-            uint256 pid = ids[i];
-            Position storage p = positions[pid];
-            if (p.state != PositionState.Active || p.principal == 0) {
-                i++;
-                continue;
+        if (slashAmount > 0) {
+            // Walk the owner's live positions oldest-first, taking from Active
+            // ones until slashAmount is covered. `i` advances only when we
+            // DON'T remove, so a swapped-in element is re-examined; the walk is
+            // bounded by the array length (<= MAX_POSITIONS_PER_OWNER).
+            uint256[] storage ids = ownerPositionIds[owner];
+            uint256 remaining = slashAmount;
+            uint256 i = 0;
+            while (i < ids.length && remaining > 0) {
+                uint256 pid = ids[i];
+                Position storage p = positions[pid];
+                if (p.state != PositionState.Active || p.principal == 0) {
+                    i++;
+                    continue;
+                }
+                uint256 take = remaining < p.principal ? remaining : p.principal;
+                p.principal -= take;
+                remaining -= take;
+                activePrincipalOf[owner] -= take;
+                if (p.principal == 0) {
+                    p.state = PositionState.Withdrawn;
+                    _removeFromOwnerArray(owner, pid);
+                    emit PositionSlashedClosed(pid, owner);
+                } else {
+                    i++;
+                }
             }
-            uint256 take = remaining < p.principal ? remaining : p.principal;
-            p.principal -= take;
-            remaining -= take;
-            activePrincipalOf[owner] -= take;
-            if (p.principal == 0) {
-                p.state = PositionState.Withdrawn;
-                _removeFromOwnerArray(owner, pid);
-                emit PositionSlashedClosed(pid, owner);
-                // do not advance i: the swapped-in element occupies slot i now
-            } else {
-                i++;
-            }
+            // Defence in depth: reserve gated on freeStakeOf, requestWithdraw
+            // refuses to cool below reservedTotal, so this should never trigger.
+            if (remaining > 0) revert InsufficientCoverage();
+            usdc.safeTransfer(beneficiary, slashAmount);
         }
-        // Defence in depth: reserve gated on freeStakeOf (bound by
-        // activePrincipalOf), and requestWithdraw refuses to cool below
-        // reservedTotal, so this should never trigger.
-        if (remaining > 0) revert InsufficientCoverage();
-
-        usdc.safeTransfer(beneficiary, amount);
-        emit Slashed(id, owner, beneficiary, amount);
+        emit Slashed(id, owner, beneficiary, slashAmount);
     }
 
     // ================================ Views ================================
