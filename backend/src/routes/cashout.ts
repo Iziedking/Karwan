@@ -13,7 +13,7 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { createBridge } from '../db/bridges.js';
 import { ARC_DOMAIN } from '../chain/cctpChains.js';
 import { readUsdcBalance, usdc as ARC_USDC } from '../chain/contracts.js';
-import { executeContractCall } from '../chain/txs.js';
+import { executeContractCall, deterministicIdempotencyKey } from '../chain/txs.js';
 import { readSession } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
@@ -37,7 +37,16 @@ const arcWithdrawSchema = z.object({
   amountUsdc: z.number().positive().max(1_000_000),
   /// Source wallet. Default sellerAgent because that's where escrow paid out.
   walletKind: walletKindSchema.default('sellerAgent'),
+  /// Client-minted id for this ONE submission (a UUID from the form). Retries
+  /// of the same submission reuse it, so Circle dedupes the transfer
+  /// server-side instead of paying twice.
+  requestId: z.string().min(8).max(128).optional(),
 });
+
+/// One in-flight balance-check-and-transfer per source wallet. The balance
+/// read and the transfer are not atomic, so without this two concurrent
+/// requests both see enough balance and both spend it.
+const cashoutInFlight = new Set<string>();
 
 /// Deal-free instant Arc send. Cashing out to a wallet that lives on Arc is a
 /// plain same-chain USDC transfer from the signed-in user's identity wallet,
@@ -165,70 +174,85 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
 
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
-  // Preflight against the live balance of the chosen wallet so we don't burn
-  // a Circle tx submission with insufficient funds.
-  let bal: bigint;
+  // Balance read + transfer are not atomic: serialize per source wallet so two
+  // concurrent withdraws can't both pass the check and both spend.
+  if (cashoutInFlight.has(source.walletId)) {
+    return c.json({ error: 'another withdraw from this wallet is in progress' }, 409);
+  }
+  cashoutInFlight.add(source.walletId);
   try {
-    bal = await readUsdcBalance(source.address);
-  } catch (err) {
-    return c.json(
-      {
-        error: 'could not read the source wallet Arc balance',
-        detail: (err as Error).message,
-      },
-      503,
-    );
-  }
-  if (bal < amountWei) {
-    return c.json(
-      {
-        error: 'insufficient balance',
-        detail: `The ${body.walletKind === 'identity' ? 'identity' : body.walletKind === 'buyerAgent' ? 'buyer' : 'deal'} wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to withdraw.`,
-        code: 'INSUFFICIENT_BALANCE',
-      },
-      409,
-    );
-  }
+    // Preflight against the live balance of the chosen wallet so we don't burn
+    // a Circle tx submission with insufficient funds.
+    let bal: bigint;
+    try {
+      bal = await readUsdcBalance(source.address);
+    } catch (err) {
+      return c.json(
+        {
+          error: 'could not read the source wallet Arc balance',
+          detail: (err as Error).message,
+        },
+        503,
+      );
+    }
+    if (bal < amountWei) {
+      return c.json(
+        {
+          error: 'insufficient balance',
+          detail: `The ${body.walletKind === 'identity' ? 'identity' : body.walletKind === 'buyerAgent' ? 'buyer' : 'deal'} wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to withdraw.`,
+          code: 'INSUFFICIENT_BALANCE',
+        },
+        409,
+      );
+    }
 
-  try {
-    const { txHash, explorerUrl } = await executeContractCall(
-      {
-        walletId: source.walletId,
-        contractAddress: ARC_USDC,
-        abiFunctionSignature: 'transfer(address,uint256)',
-        abiParameters: [body.recipient, amountWei.toString()],
-      },
-      `cashout-arc-${body.jobId.slice(0, 10)}`,
-    );
-    bus.emitEvent({
-      type: 'cashout.arc.completed',
-      jobId: body.jobId,
-      actor: 'seller',
-      payload: {
-        recipient: body.recipient,
-        amountUsdc: body.amountUsdc.toString(),
-        txHash,
-        walletKind: body.walletKind,
-      },
-    });
-    logger.info(
-      {
+    try {
+      const { txHash, explorerUrl } = await executeContractCall(
+        {
+          walletId: source.walletId,
+          contractAddress: ARC_USDC,
+          abiFunctionSignature: 'transfer(address,uint256)',
+          abiParameters: [body.recipient, amountWei.toString()],
+          // Same submission retried (network blip, double-submit that slipped
+          // past the client) dedupes at Circle instead of paying twice.
+          ...(body.requestId
+            ? { idempotencyKey: deterministicIdempotencyKey(`cashout-arc:${body.requestId}`) }
+            : {}),
+        },
+        `cashout-arc-${body.jobId.slice(0, 10)}`,
+      );
+      bus.emitEvent({
+        type: 'cashout.arc.completed',
         jobId: body.jobId,
-        recipient: body.recipient,
-        amount: body.amountUsdc,
-        walletKind: body.walletKind,
-        txHash,
-      },
-      'cashout Arc transfer ok',
-    );
-    return c.json({ ok: true, txHash, explorerUrl });
-  } catch (err) {
-    const message = (err as Error).message;
-    logger.warn(
-      { jobId: body.jobId, walletKind: body.walletKind, err: message },
-      'cashout Arc transfer failed',
-    );
-    return c.json({ error: 'withdraw failed', detail: message }, 502);
+        actor: 'seller',
+        payload: {
+          recipient: body.recipient,
+          amountUsdc: body.amountUsdc.toString(),
+          txHash,
+          walletKind: body.walletKind,
+        },
+      });
+      logger.info(
+        {
+          jobId: body.jobId,
+          recipient: body.recipient,
+          amount: body.amountUsdc,
+          walletKind: body.walletKind,
+          txHash,
+        },
+        'cashout Arc transfer ok',
+      );
+      return c.json({ ok: true, txHash, explorerUrl });
+    } catch (err) {
+      const message = (err as Error).message;
+      logger.warn(
+        { jobId: body.jobId, walletKind: body.walletKind, err: message },
+        'cashout Arc transfer failed',
+      );
+      return c.json({ error: 'withdraw failed', detail: message }, 502);
+    }
+  } finally {
+    cashoutInFlight.delete(source.walletId);
   }
 });
 
@@ -263,6 +287,12 @@ cashoutRoutes.post('/arc-send', async (c) => {
 
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
+  // Serialize per identity wallet: balance read + transfer are not atomic.
+  if (cashoutInFlight.has(user.circleIdentityWalletId)) {
+    return c.json({ error: 'another send from this wallet is in progress' }, 409);
+  }
+  cashoutInFlight.add(user.circleIdentityWalletId);
+  try {
   let bal: bigint;
   try {
     bal = await readUsdcBalance(user.address);
@@ -290,6 +320,11 @@ cashoutRoutes.post('/arc-send', async (c) => {
         contractAddress: ARC_USDC,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [body.recipient, amountWei.toString()],
+        // The client's bridge record id is stable across retries of this one
+        // send, so Circle dedupes a replay instead of transferring twice.
+        ...(body.bridgeId
+          ? { idempotencyKey: deterministicIdempotencyKey(`arc-send:${body.bridgeId}`) }
+          : {}),
       },
       `cashout-arc-send-${session.address.slice(0, 10)}`,
     );
@@ -337,6 +372,9 @@ cashoutRoutes.post('/arc-send', async (c) => {
       'cashout Arc instant send failed',
     );
     return c.json({ error: 'send failed', detail: message }, 502);
+  }
+  } finally {
+    cashoutInFlight.delete(user.circleIdentityWalletId);
   }
 });
 

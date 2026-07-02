@@ -1,6 +1,20 @@
+import { createHash } from 'node:crypto';
 import { circleWalletsClient } from '../circle/wallets.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+
+/// Deterministic UUID (v4 wire format) from a seed string. Circle's
+/// idempotencyKey must be a UUID, but the natural keys for our logical
+/// operations are strings (bridgeId, offer id, request id). Hashing the seed
+/// gives the same key on every retry of the same logical operation, which is
+/// exactly what makes Circle-side dedupe work.
+export function deterministicIdempotencyKey(seed: string): string {
+  const h = createHash('sha256').update(seed).digest();
+  h[6] = (h[6]! & 0x0f) | 0x40; // version 4
+  h[8] = (h[8]! & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = h.subarray(0, 16).toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
 
 export interface ContractCallInput {
   walletId: string;
