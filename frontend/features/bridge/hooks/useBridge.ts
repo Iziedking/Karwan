@@ -169,6 +169,9 @@ interface PhantomSolana {
   disconnect(): Promise<void>;
   signTransaction(tx: unknown): Promise<unknown>;
   signAllTransactions?(txs: unknown[]): Promise<unknown[]>;
+  /// Phantom's preferred path: signs and submits in one step, preserving any
+  /// partial signatures already on the transaction (our event keypair).
+  signAndSendTransaction?(tx: unknown): Promise<{ signature: string }>;
   signMessage?(message: Uint8Array): Promise<{ signature: Uint8Array }>;
 }
 
@@ -1062,64 +1065,66 @@ export function useBridges() {
       };
       setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
       try {
-        const { AppKit } = await import('@circle-fin/app-kit');
-        let adapter: unknown;
         if (isSolana) {
+          // Manual CCTP V2 burn, NOT App Kit. Circle's Solana adapter builds a
+          // sending-only signer from window.solana but signs the burn with
+          // partiallySignTransactionMessageWithSigners, which ignores sending
+          // signers, so the fee-payer signature is never attached (Solana error
+          // #5663012). Confirmed in both the installed and latest adapter; no
+          // provider shim can reach the failing path. So we build depositForBurn
+          // ourselves (see solanaCctp.ts), Phantom signs it directly (which
+          // works fine), and the existing backend relay mints on Arc, the same
+          // pipeline the EVM web3 bridges use. SSE animates the record from
+          // 'relaying' onward exactly like every other bridge.
           const phantom = (window as unknown as { solana?: PhantomSolana }).solana;
           if (!phantom) throw new Error('Connect your Solana wallet first');
-          // Two mismatches between Phantom and Circle's Solana adapter:
-          // 1. Shape: Phantom exposes `publicKey` / `connect() -> { publicKey }`,
-          //    the adapter wants `address` / `connect() -> { address }`. Raw
-          //    window.solana made it abort with "no connected address".
-          // 2. Signing format: the adapter hands the provider a base64 WIRE
-          //    transaction string (it assumes "most wallets accept base64"), but
-          //    Phantom's signTransaction only accepts a web3.js transaction
-          //    object. Passing the string through unmodified produced a tx with
-          //    no fee-payer signature ("Could not determine this transaction's
-          //    signature"). So deserialize the wire string into a
-          //    VersionedTransaction, let Phantom sign the object, and hand back
-          //    the signed object (the adapter reads .signatures[0] off it).
-          const { VersionedTransaction } = await import('@solana/web3.js');
-          const b64ToBytes = (b64: string): Uint8Array => {
-            const bin = atob(b64);
-            const out = new Uint8Array(bin.length);
-            for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-            return out;
-          };
-          const toTx = (input: unknown): unknown => {
-            if (typeof input === 'string') return VersionedTransaction.deserialize(b64ToBytes(input));
-            if (input instanceof Uint8Array) return VersionedTransaction.deserialize(input);
-            return input;
-          };
-          const solProvider = {
-            get isConnected() {
-              return !!phantom.isConnected;
-            },
-            get address() {
-              return phantom.publicKey ? phantom.publicKey.toString() : undefined;
-            },
-            connect: async () => {
-              const r = await phantom.connect();
-              return { address: r.publicKey.toString() };
-            },
-            disconnect: () => phantom.disconnect(),
-            signTransaction: (tx: unknown) => phantom.signTransaction(toTx(tx)),
-            signAllTransactions: (txs: unknown[]) =>
-              phantom.signAllTransactions
-                ? phantom.signAllTransactions(txs.map(toTx))
-                : Promise.all(txs.map((t) => phantom.signTransaction(toTx(t)))),
-            ...(phantom.signMessage
-              ? { signMessage: (m: Uint8Array) => phantom.signMessage!(m) }
-              : {}),
-          };
-          const { createSolanaKitAdapterFromProvider } = await import('@circle-fin/adapter-solana-kit');
-          adapter = await createSolanaKitAdapterFromProvider({ provider: solProvider as never });
-        } else {
-          const provider = input.getEvmProvider ? await input.getEvmProvider() : undefined;
-          if (!provider) throw new Error('Connect your wallet first');
-          const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
-          adapter = await createViemAdapterFromProvider({ provider: provider as never });
+          if (!phantom.publicKey) await phantom.connect();
+          const ownerStr = phantom.publicKey?.toString();
+          if (!ownerStr) throw new Error('Connect your Solana wallet first');
+          const [{ buildDepositForBurnTx, confirmBurn }, { PublicKey }] = await Promise.all([
+            import('../solanaCctp'),
+            import('@solana/web3.js'),
+          ]);
+          const build = await buildDepositForBurnTx({
+            owner: new PublicKey(ownerStr),
+            amountUsdc: input.amountUsdc,
+            mintRecipient: input.mintRecipient,
+          });
+          let signature: string;
+          if (phantom.signAndSendTransaction) {
+            const r = await phantom.signAndSendTransaction(build.transaction);
+            signature = r.signature;
+          } else {
+            const signed = (await phantom.signTransaction(build.transaction)) as {
+              serialize(): Uint8Array;
+            };
+            signature = await build.connection.sendRawTransaction(signed.serialize());
+          }
+          sfx.send();
+          // Solana signatures are base58, not 0x hex; the record field is typed
+          // for EVM hashes but only ever flows into explorer links, which the
+          // solanaDevnet chain meta formats correctly.
+          patch(id, (b) => ({ ...b, burnTxHash: signature as `0x${string}`, phase: 'burning' }));
+          await confirmBurn(build, signature);
+          patch(id, (b) => ({ ...b, phase: 'relaying' }));
+          await api.bridgeRelay({
+            bridgeId: id,
+            sourceDomain: 5,
+            sourceTxHash: signature,
+            amountUsdc: input.amountUsdc.toString(),
+            mintRecipient: input.mintRecipient,
+            sourceChainKey: 'solanaDevnet',
+          });
+          // Backend polls IRIS and submits receiveMessage on Arc; the shared
+          // SSE handlers drive attesting -> minting -> done from here.
+          patch(id, (b) => ({ ...b, phase: 'attesting' }));
+          return;
         }
+        const { AppKit } = await import('@circle-fin/app-kit');
+        const provider = input.getEvmProvider ? await input.getEvmProvider() : undefined;
+        if (!provider) throw new Error('Connect your wallet first');
+        const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
+        const adapter: unknown = await createViemAdapterFromProvider({ provider: provider as never });
         const kit = new AppKit();
         // Map the SDK's lifecycle events onto our phases. Names/shape are loose
         // across versions, so read defensively.

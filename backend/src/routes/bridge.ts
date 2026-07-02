@@ -74,7 +74,14 @@ const erc20BalanceOfAbi = [
 const USDC_DECIMALS = 6;
 
 // Every CCTP domain we relay mints from on Arc (any registered source chain).
-const SOURCE_DOMAINS = new Set(CCTP_CHAIN_KEYS.map((k) => CCTP_CHAINS[k].domain));
+// Solana Devnet burns relay through the same pipeline as EVM burns: IRIS looks
+// the attestation up by (domain, txHash) and the mint happens on Arc either
+// way. Its CCTP domain is 5; it has no entry in the EVM chain registry.
+const SOLANA_DOMAIN = 5;
+const SOURCE_DOMAINS = new Set([
+  ...CCTP_CHAIN_KEYS.map((k) => CCTP_CHAINS[k].domain),
+  SOLANA_DOMAIN,
+]);
 
 // CCTP V2 MessageTransmitter marks a nonce non-zero once its message has been
 // received, so the same burn cannot mint twice. We read this to keep relays
@@ -112,9 +119,19 @@ const relaySchema = z.object({
   sourceDomain: z.number().int().refine((d) => SOURCE_DOMAINS.has(d), {
     message: 'sourceDomain must be a supported CCTP source chain',
   }),
-  sourceTxHash: z.string().startsWith('0x'),
+  // EVM burns are 0x tx hashes; Solana burns are base58 signatures. IRIS
+  // accepts either as the transactionHash query param for its domain.
+  sourceTxHash: z
+    .string()
+    .regex(
+      /^(0x[0-9a-fA-F]{64}|[1-9A-HJ-NP-Za-km-z]{64,90})$/,
+      'expected a 0x tx hash or a base58 Solana signature',
+    ),
   amountUsdc: z.string(),
   mintRecipient: z.string().startsWith('0x'),
+  /// Optional chain key persisted so /list can render durable history rows
+  /// (records without one are skipped by the frontend merge).
+  sourceChainKey: z.string().min(1).optional(),
 });
 
 const inFlight = new Set<string>();
@@ -312,6 +329,7 @@ bridgeRoutes.post('/relay', async (c) => {
     sourceTxHash: body.sourceTxHash,
     amountUsdc: body.amountUsdc,
     mintRecipient: body.mintRecipient,
+    ...(body.sourceChainKey ? { sourceChainKey: body.sourceChainKey as never } : {}),
   });
 
   bus.emitEvent({

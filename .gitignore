@@ -92,3 +92,6 @@ docs/sme-testkit/
 
 # Arc House community posts (drafts, banners, screenshots) — internal
 arc_house/
+
+# private audit + redeploy planning
+audit/

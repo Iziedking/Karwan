@@ -2091,6 +2091,9 @@ export const api = {
     sourceTxHash: string;
     amountUsdc: string;
     mintRecipient: string;
+    /// Persisted for durable history rendering (/list). Solana burns pass
+    /// 'solanaDevnet'; EVM web3 burns predate this field and omit it.
+    sourceChainKey?: string;
   }) =>
     json<{ accepted: boolean; bridgeId: string }>('/api/bridge/relay', {
       method: 'POST',
