@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { readEscrow } from '../chain/contracts.js';
 import { releaseMilestone, finalizeIfSettled, ESCROW_ACCEPTED } from '../chain/settlement.js';
 import { findWalletIdForAgent } from '../agents/agent-registry.js';
+import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
+import { sessionAddress } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -33,6 +35,19 @@ milestonesRoutes.post('/release', async (c) => {
       { error: `escrow state must be Accepted(2), got ${account.state}. Releases run after the seller accepts the escrow.` },
       409,
     );
+  }
+
+  // Releasing a milestone pays the seller. Only the human who owns the on-chain
+  // buyer agent may trigger it. Resolve that owner from the funded escrow's
+  // buyer address and require a matching session, so this internal settlement
+  // route can't be driven by anyone who can reach the API.
+  const buyerAgents = await findAgentWalletByAgentAddress(account.buyer);
+  if (!buyerAgents) {
+    return c.json({ error: 'no agent wallet on record for this job buyer' }, 409);
+  }
+  const caller = sessionAddress(c);
+  if (!caller || caller !== buyerAgents.userAddress.toLowerCase()) {
+    return c.json({ error: 'only the buyer can release this deal', code: 'forbidden' }, 403);
   }
 
   // Managed deals settle through the buyer agent that funded the escrow.
