@@ -323,6 +323,17 @@ bridgeRoutes.post('/relay', async (c) => {
   // client could still POST a fresh burn for the same bridgeId, that would
   // overwrite the original sourceTxHash and orphan the user's first burn.
   const existing = await getBridge(body.bridgeId);
+  // Already settled: report it instead of re-entering the pipeline, so a
+  // recheck re-POST resolves immediately (createBridge also refuses to
+  // regress minted records, this is the friendly response for it).
+  if (existing?.status === 'minted') {
+    return c.json({
+      accepted: false,
+      status: 'minted',
+      bridgeId: body.bridgeId,
+      mintTxHash: existing.mintTxHash ?? null,
+    });
+  }
   if (existing && existing.sourceTxHash.toLowerCase() !== body.sourceTxHash.toLowerCase()) {
     return c.json(
       {

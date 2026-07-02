@@ -100,6 +100,15 @@ export async function getBridge(bridgeId: string): Promise<BridgeRelay | null> {
 export async function createBridge(
   input: Omit<BridgeRelay, 'status' | 'createdAt' | 'updatedAt'> & { status?: BridgeStatus },
 ): Promise<BridgeRelay> {
+  // A replayed create (retry, double-click, recheck re-POST) must never
+  // regress a bridge that already MINTED: resetting it to approving/relaying
+  // re-enters the pipeline, and on the Circle source path that can re-run
+  // approve + burn — a double spend. Terminal records win over any create.
+  // Non-terminal existing records (error, stuck relaying) may be overwritten:
+  // that is exactly how a recheck re-arms them.
+  const existing = await getBridge(input.bridgeId);
+  if (existing && existing.status === 'minted') return existing;
+
   const now = Date.now();
   const { status, ...rest } = input;
   const record: BridgeRelay = {
@@ -107,7 +116,9 @@ export async function createBridge(
     // Web3 bridges arrive already burned, so they default straight to
     // 'relaying'. Circle bridges pass 'approving' to enter the source pipeline.
     status: status ?? 'relaying',
-    createdAt: now,
+    // Preserve the original start time across a re-arm so history ordering
+    // and elapsed displays stay truthful.
+    createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
   if (pgEnabled) {
