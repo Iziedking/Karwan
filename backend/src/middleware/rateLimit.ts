@@ -5,11 +5,17 @@ interface Bucket {
   resetAt: number;
 }
 
-/// First hop of X-Forwarded-For is the real client when we sit behind Caddy /
-/// Cloudflare (both set it). Falls back to X-Real-IP, then a shared bucket.
+/// Clients can send their own X-Forwarded-For and proxies APPEND to it, so the
+/// first hop is attacker-controlled: trusting it made every limit spoofable
+/// with a fresh header per request. The trustworthy entry is the LAST one,
+/// appended by our own edge (Caddy). Falls back to X-Real-IP (Caddy sets it
+/// from the socket), then a shared bucket.
 function clientIp(c: Context): string {
   const xff = c.req.header('x-forwarded-for');
-  if (xff) return xff.split(',')[0]!.trim();
+  if (xff) {
+    const hops = xff.split(',');
+    return hops[hops.length - 1]!.trim();
+  }
   return c.req.header('x-real-ip') ?? 'unknown';
 }
 
