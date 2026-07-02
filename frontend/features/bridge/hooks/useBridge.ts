@@ -1067,12 +1067,30 @@ export function useBridges() {
         if (isSolana) {
           const phantom = (window as unknown as { solana?: PhantomSolana }).solana;
           if (!phantom) throw new Error('Connect your Solana wallet first');
-          // Phantom exposes `publicKey` and `connect() -> { publicKey }`, but the
-          // App Kit Solana adapter needs a provider shaped as { isConnected,
-          // address, connect() -> { address }, signTransaction, ... }. Passing the
-          // raw window.solana made the adapter read `provider.address` (undefined)
-          // and abort with "Wallet provider must have a connected address". This
-          // shim maps Phantom's shape onto what the adapter expects.
+          // Two mismatches between Phantom and Circle's Solana adapter:
+          // 1. Shape: Phantom exposes `publicKey` / `connect() -> { publicKey }`,
+          //    the adapter wants `address` / `connect() -> { address }`. Raw
+          //    window.solana made it abort with "no connected address".
+          // 2. Signing format: the adapter hands the provider a base64 WIRE
+          //    transaction string (it assumes "most wallets accept base64"), but
+          //    Phantom's signTransaction only accepts a web3.js transaction
+          //    object. Passing the string through unmodified produced a tx with
+          //    no fee-payer signature ("Could not determine this transaction's
+          //    signature"). So deserialize the wire string into a
+          //    VersionedTransaction, let Phantom sign the object, and hand back
+          //    the signed object (the adapter reads .signatures[0] off it).
+          const { VersionedTransaction } = await import('@solana/web3.js');
+          const b64ToBytes = (b64: string): Uint8Array => {
+            const bin = atob(b64);
+            const out = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+            return out;
+          };
+          const toTx = (input: unknown): unknown => {
+            if (typeof input === 'string') return VersionedTransaction.deserialize(b64ToBytes(input));
+            if (input instanceof Uint8Array) return VersionedTransaction.deserialize(input);
+            return input;
+          };
           const solProvider = {
             get isConnected() {
               return !!phantom.isConnected;
@@ -1085,10 +1103,11 @@ export function useBridges() {
               return { address: r.publicKey.toString() };
             },
             disconnect: () => phantom.disconnect(),
-            signTransaction: (tx: unknown) => phantom.signTransaction(tx),
-            ...(phantom.signAllTransactions
-              ? { signAllTransactions: (txs: unknown[]) => phantom.signAllTransactions!(txs) }
-              : {}),
+            signTransaction: (tx: unknown) => phantom.signTransaction(toTx(tx)),
+            signAllTransactions: (txs: unknown[]) =>
+              phantom.signAllTransactions
+                ? phantom.signAllTransactions(txs.map(toTx))
+                : Promise.all(txs.map((t) => phantom.signTransaction(toTx(t)))),
             ...(phantom.signMessage
               ? { signMessage: (m: Uint8Array) => phantom.signMessage!(m) }
               : {}),
