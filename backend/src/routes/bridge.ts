@@ -1636,7 +1636,7 @@ const bridgeOutSchema = z.object({
   /// wallet (the standard /bridge surface). The cashout page passes
   /// 'sellerAgent' with a `sourceJobId` so the deal's seller-agent wallet
   /// burns instead, that's where released escrow USDC actually lives.
-  sourceKind: z.enum(['identity', 'sellerAgent']).optional(),
+  sourceKind: z.enum(['identity', 'sellerAgent', 'buyerAgent']).optional(),
   sourceJobId: z.string().min(1).optional(),
 });
 
@@ -1657,22 +1657,14 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     return c.json({ error: 'You can only bridge out your own funds.', code: 'forbidden' }, 403);
   }
   const user = getUserByAddress(userAddress);
-  if (!user?.circleIdentityWalletId) {
-    return c.json(
-      {
-        error: 'bridge-out is for Circle accounts',
-        detail: 'Web3 wallets sign the Arc burn themselves; use the wallet bridge-out path.',
-      },
-      409,
-    );
-  }
 
-  // Decide which wallet on Arc will burn. Default is the identity wallet
-  // (the standard /bridge experience). Cashout pages pass 'sellerAgent' so
-  // released escrow USDC can be bridged out directly without an interstitial
-  // sweep.
-  let sourceWalletId = user.circleIdentityWalletId;
-  let sourceWalletAddress = userAddress;
+  // Decide which wallet on Arc will burn. The identity source is custodial only
+  // for Circle accounts (web3 users sign their own Arc burn on the wallet path).
+  // The seller and buyer agent wallets are Circle DCWs we sign for regardless of
+  // account kind, so a web3 seller can still bridge out released escrow USDC or
+  // sweep their buyer wallet from here without connecting anything.
+  let sourceWalletId: string;
+  let sourceWalletAddress: string;
   if (body.sourceKind === 'sellerAgent') {
     if (!body.sourceJobId) {
       return c.json(
@@ -1702,6 +1694,33 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     }
     sourceWalletId = deal.sellerAgentWalletId;
     sourceWalletAddress = deal.sellerAgentAddress.toLowerCase();
+  } else if (body.sourceKind === 'buyerAgent') {
+    const buyerWallets = await getAgentWallets(userAddress);
+    if (!buyerWallets?.buyerWalletId || !buyerWallets.buyerAddress) {
+      return c.json(
+        {
+          error: 'buyer agent wallet not available',
+          detail:
+            'You have not activated a buyer agent, so there is no buyer wallet to bridge from.',
+          code: 'NO_BUYER_WALLET',
+        },
+        409,
+      );
+    }
+    sourceWalletId = buyerWallets.buyerWalletId;
+    sourceWalletAddress = buyerWallets.buyerAddress.toLowerCase();
+  } else {
+    if (!user?.circleIdentityWalletId) {
+      return c.json(
+        {
+          error: 'bridge-out is for Circle accounts',
+          detail: 'Web3 wallets sign the Arc burn themselves; use the wallet bridge-out path.',
+        },
+        409,
+      );
+    }
+    sourceWalletId = user.circleIdentityWalletId;
+    sourceWalletAddress = userAddress;
   }
 
   const dest = CCTP_CHAINS[body.destChainKey];
@@ -1712,7 +1731,12 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   try {
     const bal = await readUsdcBalance(sourceWalletAddress);
     if (bal < amountWei) {
-      const which = body.sourceKind === 'sellerAgent' ? 'The deal wallet' : 'Your identity wallet';
+      const which =
+        body.sourceKind === 'sellerAgent'
+          ? 'The deal wallet'
+          : body.sourceKind === 'buyerAgent'
+            ? 'The buyer wallet'
+            : 'Your identity wallet';
       return c.json(
         {
           error: 'insufficient balance',

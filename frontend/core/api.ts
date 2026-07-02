@@ -1985,14 +1985,20 @@ export const api = {
         arcBalanceUsdc: string | null;
         available: boolean;
       };
+      buyerAgentWallet: {
+        address: string | null;
+        arcBalanceUsdc: string | null;
+        available: boolean;
+      };
     }>(`/api/cashout/${jobId}`),
-  /// Direct USDC.transfer on Arc from the chosen Karwan wallet (identity
-  /// or the deal's seller-agent). Use api.bridgeOut for non-Arc.
+  /// Direct USDC.transfer on Arc from the chosen Karwan wallet (identity, the
+  /// deal's seller-agent, or the user's buyer-agent). Use api.bridgeOut for
+  /// non-Arc.
   cashoutArc: (input: {
     jobId: string;
     recipient: string;
     amountUsdc: number;
-    walletKind: 'identity' | 'sellerAgent';
+    walletKind: 'identity' | 'sellerAgent' | 'buyerAgent';
   }) =>
     json<{ ok: true; txHash: string; explorerUrl: string }>(
       '/api/cashout/arc-withdraw',
@@ -2153,8 +2159,9 @@ export const api = {
     recipient: string;
     /// Source wallet on Arc that will burn. Defaults to 'identity' on the
     /// backend if absent. Cashout pages pass 'sellerAgent' + sourceJobId to
-    /// burn from the deal's seller-agent wallet (where released USDC lives).
-    sourceKind?: 'identity' | 'sellerAgent';
+    /// burn from the deal's seller-agent wallet (where released USDC lives), or
+    /// 'buyerAgent' to sweep the user's own buyer-agent wallet.
+    sourceKind?: 'identity' | 'sellerAgent' | 'buyerAgent';
     sourceJobId?: string;
   }) =>
     json<{ accepted: true; bridgeId: string; status: string; direction: 'out' }>(

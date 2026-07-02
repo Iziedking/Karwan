@@ -2,7 +2,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type BridgeChainKey, type AppKitBridgeChainKey } from '@/core/api';
+import { useBridges } from '@/features/bridge/hooks/useBridge';
+import { BridgeActivityStrip } from '@/features/bridge/components/BridgeActivityStrip';
+import { useHiddenActivityBridgeIds } from '@/features/bridge/components/BridgeCard';
+import type { CctpChainKey } from '@/features/bridge/config';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
   FullBleed,
@@ -21,7 +27,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 type DestKey = 'arc' | AppKitBridgeChainKey;
-type WalletKind = 'identity' | 'sellerAgent';
+type WalletKind = 'identity' | 'sellerAgent' | 'buyerAgent';
 type CashoutCopy = Messages['cashoutPage'];
 
 const DESTINATIONS: { key: DestKey; name: string; short: string }[] = [
@@ -59,6 +65,7 @@ interface CashoutInfo {
   accountKind: 'circle' | 'wallet';
   identityWallet: WalletSlice;
   sellerAgentWallet: WalletSlice;
+  buyerAgentWallet: WalletSlice;
 }
 
 export default function CashoutPage() {
@@ -221,42 +228,38 @@ function CashoutContent({
     );
   }
 
-  if (info.accountKind === 'wallet') return <WalletAccountState copy={copy} />;
-  return <CircleWithdrawForm info={info} copy={copy} />;
+  return <WithdrawForm info={info} copy={copy} />;
 }
 
-function WalletAccountState({ copy }: { copy: CashoutCopy }) {
-  return (
-    <PageCard className="p-6 sm:p-8">
-      <SectionTag>{copy.walletAccount.tag}</SectionTag>
-      <HeroHeadline size="md">
-        {copy.walletAccount.titleBefore} <Accent>{copy.walletAccount.titleAccent}</Accent>
-        <Punc>.</Punc>
-      </HeroHeadline>
-      <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        {copy.walletAccount.body}
-      </p>
-      <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
-        {copy.walletAccount.roadmap}
-      </p>
-      <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <ComingSoonTile label={copy.walletAccount.bridgeFromWallet} comingSoonLabel={copy.comingSoon.comingSoon} />
-        <ComingSoonTile label={copy.walletAccount.sendOnArc} comingSoonLabel={copy.comingSoon.comingSoon} />
-      </div>
-    </PageCard>
-  );
-}
+function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) {
+  const isWeb3Account = info.accountKind === 'wallet';
+  const bridge = useBridges();
+  const { address: connectedAddress, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+  const auth = useAuth();
+  const hidden = useHiddenActivityBridgeIds(auth.address ?? null);
 
-function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) {
   // The wallet picker defaults to the deal wallet because that's where the
-  // escrow released to. Sellers who already swept funds into identity can
-  // flip the switch.
+  // escrow released to. Sellers who already swept funds into identity, or who
+  // want to sweep their buyer wallet, can flip the switch.
   const sellerAgentAvail = info.sellerAgentWallet.available;
-  const identityAvail = info.identityWallet.available;
+  const buyerAgentAvail = info.buyerAgentWallet.available;
+  // Identity is a custodial source for email accounts; for web3 accounts it's
+  // the user's own connected wallet, which is always an option (they sign it).
+  const identityAvail = isWeb3Account || info.identityWallet.available;
   const defaultWallet: WalletKind = sellerAgentAvail ? 'sellerAgent' : 'identity';
   const [walletKind, setWalletKind] = useState<WalletKind>(defaultWallet);
 
-  const activeWallet = walletKind === 'identity' ? info.identityWallet : info.sellerAgentWallet;
+  // Web3 identity means the user's own EOA signs the withdraw, rather than a
+  // custodial Karwan wallet. Every other combination is custodial.
+  const isWeb3Identity = isWeb3Account && walletKind === 'identity';
+
+  const activeWallet =
+    walletKind === 'identity'
+      ? info.identityWallet
+      : walletKind === 'buyerAgent'
+        ? info.buyerAgentWallet
+        : info.sellerAgentWallet;
   const balanceNum = Number(activeWallet.arcBalanceUsdc ?? 0);
   const balance = Number.isFinite(balanceNum) ? balanceNum : 0;
 
@@ -268,14 +271,58 @@ function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCo
   const [bridgeResult, setBridgeResult] = useState<{ bridgeId: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Web3 own-wallet out isn't wired for Solana yet (no wagmi Solana connector),
+  // so a wallet user withdrawing from identity can't pick it.
+  const destBlockedForWeb3Identity = isWeb3Identity && dest === 'solanaDevnet';
+
   const amountNum = useMemo(() => Number(amount), [amount]);
   const amountValid = Number.isFinite(amountNum) && amountNum > 0 && amountNum <= balance;
   const recipientValid = isValidForChain(recipient, dest);
-  const canSubmit = amountValid && recipientValid && !submitting;
+  const canSubmit = amountValid && recipientValid && !submitting && !destBlockedForWeb3Identity;
+
+  // Web3 out records for the progress strip (own-wallet Arc sends + bridge-outs).
+  const web3OutRecords = useMemo(
+    () => bridge.bridges.filter((b) => b.direction === 'out'),
+    [bridge.bridges],
+  );
 
   async function onSubmit() {
     if (!canSubmit) return;
     setError(null);
+
+    // Web3 identity: the user's own wallet signs. Route through the bridge
+    // engine (self-signed Arc transfer, or Arc-burn bridge-out) and let the
+    // activity strip show progress, rather than the custodial result cards.
+    if (isWeb3Identity) {
+      if (!isConnected || !connectedAddress) {
+        openConnectModal?.();
+        return;
+      }
+      const recip = recipient.trim() as `0x${string}`;
+      if (dest === 'arc') {
+        await bridge.startWeb3ArcSend({
+          amountUsdc: amountNum,
+          recipient: recip,
+          userAddress: connectedAddress,
+        });
+      } else if (dest === 'solanaDevnet') {
+        setError(copy.errors.solanaRoadmap);
+        return;
+      } else {
+        await bridge.startWeb3Out({
+          destChainKey: dest as CctpChainKey,
+          amountUsdc: amountNum,
+          recipient: recip,
+          userAddress: connectedAddress,
+        });
+      }
+      setAmount('');
+      setRecipient('');
+      return;
+    }
+
+    // Custodial: Karwan signs from the identity, seller-agent, or buyer-agent
+    // wallet.
     setResult(null);
     setBridgeResult(null);
     setSubmitting(true);
@@ -386,7 +433,7 @@ function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCo
             ({copy.withdraw.whatIsThis})
           </span>
         </FieldLabel>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <WalletPickerTile
             kind="sellerAgent"
             active={walletKind === 'sellerAgent'}
@@ -400,18 +447,39 @@ function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCo
             onClick={() => setWalletKind('sellerAgent')}
           />
           <WalletPickerTile
+            kind="buyerAgent"
+            active={walletKind === 'buyerAgent'}
+            disabled={!buyerAgentAvail}
+            address={info.buyerAgentWallet.address}
+            balanceUsdc={info.buyerAgentWallet.arcBalanceUsdc}
+            label={copy.withdraw.buyerWalletLabel}
+            sub={copy.withdraw.buyerWalletSub}
+            activeLabel={copy.withdraw.active}
+            notProvisionedLabel={copy.withdraw.notProvisioned}
+            onClick={() => setWalletKind('buyerAgent')}
+          />
+          <WalletPickerTile
             kind="identity"
             active={walletKind === 'identity'}
             disabled={!identityAvail}
             address={info.identityWallet.address}
-            balanceUsdc={info.identityWallet.arcBalanceUsdc}
+            balanceUsdc={
+              // Web3 identity balance isn't a custodial read; the engine checks
+              // the live wallet balance on submit. Show the backend read if any.
+              info.identityWallet.arcBalanceUsdc
+            }
             label={copy.withdraw.identityWalletLabel}
-            sub={copy.withdraw.identityWalletSub}
+            sub={isWeb3Account ? copy.withdraw.identityWalletSubWeb3 : copy.withdraw.identityWalletSub}
             activeLabel={copy.withdraw.active}
             notProvisionedLabel={copy.withdraw.notProvisioned}
             onClick={() => setWalletKind('identity')}
           />
         </div>
+        {isWeb3Identity && (
+          <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            {isConnected ? copy.withdraw.web3IdentitySigns : copy.withdraw.web3IdentityConnect}
+          </p>
+        )}
       </div>
 
       <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -431,16 +499,19 @@ function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCo
         <div className="mt-2 flex flex-wrap gap-2">
           {DESTINATIONS.map((d) => {
             const active = dest === d.key;
+            // Own-wallet withdraws can't reach Solana yet (no wagmi connector).
+            const disabled = isWeb3Identity && d.key === 'solanaDevnet';
             return (
               <button
                 key={d.key}
                 type="button"
+                disabled={disabled}
                 onClick={() => {
                   setDest(d.key);
                   setRecipient('');
                   setError(null);
                 }}
-                className="mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors"
+                className="mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: active ? 'var(--lp-band-dark)' : 'var(--lp-card)',
                   color: active ? '#ffffff' : 'var(--lp-dark)',
@@ -552,15 +623,30 @@ function CircleWithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCo
 
       <div className="mt-7">
         <CTAPill onClick={onSubmit} disabled={!canSubmit}>
-          {submitting
-            ? dest === 'arc'
-              ? copy.withdraw.sendingOnArc
-              : copy.withdraw.bridgingOut
-            : dest === 'arc'
-              ? copy.withdraw.sendTo.replace('{chain}', destLabel(dest))
-              : copy.withdraw.bridgeTo.replace('{chain}', destLabel(dest))}
+          {isWeb3Identity && !isConnected
+            ? copy.withdraw.connectWallet
+            : submitting
+              ? dest === 'arc'
+                ? copy.withdraw.sendingOnArc
+                : copy.withdraw.bridgingOut
+              : dest === 'arc'
+                ? copy.withdraw.sendTo.replace('{chain}', destLabel(dest))
+                : copy.withdraw.bridgeTo.replace('{chain}', destLabel(dest))}
         </CTAPill>
       </div>
+
+      {/* Web3 own-wallet withdraws animate through the shared activity strip
+          (self-signed, no custodial polling). Custodial paths render their own
+          result/progress cards above instead. */}
+      {isWeb3Account && web3OutRecords.length > 0 && (
+        <div className="mt-6">
+          <BridgeActivityStrip
+            records={web3OutRecords}
+            hidden={hidden}
+            isActive={bridge.isActive}
+          />
+        </div>
+      )}
     </PageCard>
   );
 }

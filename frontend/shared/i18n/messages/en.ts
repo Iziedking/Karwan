@@ -2554,8 +2554,14 @@ interface MessagesShape {
       whatIsThis: string;
       dealWalletLabel: string;
       dealWalletSub: string;
+      buyerWalletLabel: string;
+      buyerWalletSub: string;
       identityWalletLabel: string;
       identityWalletSub: string;
+      identityWalletSubWeb3: string;
+      web3IdentitySigns: string;
+      web3IdentityConnect: string;
+      connectWallet: string;
       active: string;
       notProvisioned: string;
       sourceBalance: string;
@@ -6406,8 +6412,14 @@ export const en: MessagesShape = {
       whatIsThis: 'what is this?',
       dealWalletLabel: 'Deal wallet',
       dealWalletSub: 'Where the escrow released',
+      buyerWalletLabel: 'Buyer wallet',
+      buyerWalletSub: 'Your buyer agent',
       identityWalletLabel: 'Identity wallet',
       identityWalletSub: 'Your main address',
+      identityWalletSubWeb3: 'Your connected wallet',
+      web3IdentitySigns: 'You sign this withdraw in your own wallet.',
+      web3IdentityConnect: 'Connect your wallet to withdraw from it.',
+      connectWallet: 'Connect wallet',
       active: 'ACTIVE',
       notProvisioned: 'Not provisioned',
       sourceBalance: 'Source balance',

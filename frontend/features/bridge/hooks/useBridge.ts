@@ -1329,6 +1329,70 @@ export function useBridges() {
     [address, isConnected, walletClient, arcClient, chainId, switchChainAsync, patch],
   );
 
+  /// Web3 instant Arc-to-Arc send: the user's own wallet signs a plain USDC
+  /// transfer on Arc. No CCTP, settles in one tx. The web3 counterpart to the
+  /// custodial startArcSend, used when a wallet-account seller cashes their own
+  /// Arc balance out to another Arc address.
+  const startWeb3ArcSend = useCallback(
+    async (input: { amountUsdc: number; recipient: `0x${string}`; userAddress: string }) => {
+      if (!isConnected || !address || !walletClient || !arcClient) return;
+      const id = `arc-send-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'burning',
+        direction: 'out',
+        sourceChainKey: 'arc' as AnySourceChainKey,
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.recipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      try {
+        if (chainId !== ARC_TESTNET.chainId) {
+          await switchChainAsync({ chainId: ARC_TESTNET.chainId });
+        }
+        const amountWei = parseUnits(input.amountUsdc.toString(), USDC_DECIMALS);
+        const balance = (await arcClient.readContract({
+          address: ARC_TESTNET.usdc,
+          abi: usdcAbi,
+          functionName: 'balanceOf',
+          args: [address],
+        })) as bigint;
+        if (balance < amountWei) throw new Error('Not enough USDC on Arc');
+        const hash = await walletClient.writeContract({
+          address: ARC_TESTNET.usdc,
+          abi: usdcAbi,
+          functionName: 'transfer',
+          args: [input.recipient, amountWei],
+          chain: walletClient.chain,
+          account: address,
+        });
+        await arcClient.waitForTransactionReceipt({ hash });
+        // Same-chain transfer: the single tx is both the burn and the mint.
+        patch(id, (b) => ({
+          ...b,
+          phase: 'done',
+          mintTxHash: hash,
+          burnTxHash: hash,
+          error: undefined,
+        }));
+        sfx.success();
+      } catch (err) {
+        const raw = errorToString(err).toLowerCase();
+        const friendly =
+          raw.includes('not enough') || raw.includes('insufficient')
+            ? 'Your Arc balance is short. Lower the amount and try again.'
+            : raw.includes('rejected') || raw.includes('denied')
+              ? 'You declined the transaction in your wallet.'
+              : 'Send could not complete. Try again in a moment.';
+        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+      }
+    },
+    [address, isConnected, walletClient, arcClient, chainId, switchChainAsync, patch],
+  );
+
   return {
     bridges,
     start,
@@ -1336,6 +1400,7 @@ export function useBridges() {
     startCircleOut,
     startWeb3Out,
     startArcSend,
+    startWeb3ArcSend,
     startAppKitBridge,
     retry,
     recheck,

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { parseUnits, formatUnits } from 'viem';
 import { getDeal } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
+import { getAgentWallets } from '../db/agentWallets.js';
 import { createBridge } from '../db/bridges.js';
 import { ARC_DOMAIN } from '../chain/cctpChains.js';
 import { readUsdcBalance, usdc as ARC_USDC } from '../chain/contracts.js';
@@ -22,7 +23,12 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
-const walletKindSchema = z.enum(['identity', 'sellerAgent']);
+// Three custodial-or-connected sources the seller can pull from: the identity
+// wallet (login + staking), the per-deal seller agent wallet (escrow pays out
+// here, the default), and the buyer agent wallet the same user owns. Seller and
+// buyer agent wallets are always Circle DCWs we sign for; identity is a DCW for
+// email accounts and the user's own connected wallet for web3 accounts.
+const walletKindSchema = z.enum(['identity', 'sellerAgent', 'buyerAgent']);
 type WalletKind = z.infer<typeof walletKindSchema>;
 
 const arcWithdrawSchema = z.object({
@@ -53,19 +59,31 @@ interface ResolvedWallet {
   walletId: string;
 }
 
-/// Resolve the wallet ID and address for `kind`. Returns null for web3-only
-/// users (no Circle identity) or deals that predate per-user agent wallets.
-function resolveWallet(
+/// Resolve the wallet ID and address for `kind`. Returns null when the source
+/// isn't custodial for this user: a web3-only identity (no Circle DCW), a deal
+/// that predates per-user seller agent wallets, or a user who never activated a
+/// buyer agent.
+async function resolveWallet(
   kind: WalletKind,
   user: ReturnType<typeof getUserByAddress>,
   deal: NonNullable<Awaited<ReturnType<typeof getDeal>>>,
-): ResolvedWallet | null {
+): Promise<ResolvedWallet | null> {
   if (kind === 'identity') {
     if (!user?.circleIdentityWalletId) return null;
     return {
       kind,
       address: user.address,
       walletId: user.circleIdentityWalletId,
+    };
+  }
+  if (kind === 'buyerAgent') {
+    if (!user) return null;
+    const wallets = await getAgentWallets(user.address);
+    if (!wallets?.buyerWalletId || !wallets.buyerAddress) return null;
+    return {
+      kind,
+      address: wallets.buyerAddress,
+      walletId: wallets.buyerWalletId,
     };
   }
   if (!deal.sellerAgentWalletId || !deal.sellerAgentAddress) return null;
@@ -110,7 +128,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   }
 
   const user = getUserByAddress(session.address);
-  const source = resolveWallet(body.walletKind, user, deal);
+  const source = await resolveWallet(body.walletKind, user, deal);
   if (!source) {
     if (body.walletKind === 'identity') {
       return c.json(
@@ -119,6 +137,17 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
           detail:
             'Your USDC already landed in your connected wallet on Arc. Bridge it out from your wallet for now; in-product wallet withdraw is on the roadmap.',
           code: 'WALLET_ACCOUNT',
+        },
+        409,
+      );
+    }
+    if (body.walletKind === 'buyerAgent') {
+      return c.json(
+        {
+          error: 'buyer agent wallet not available',
+          detail:
+            'You have not activated a buyer agent, so there is no buyer wallet to withdraw from. Use the deal or identity wallet instead.',
+          code: 'NO_BUYER_WALLET',
         },
         409,
       );
@@ -154,7 +183,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
     return c.json(
       {
         error: 'insufficient balance',
-        detail: `The ${body.walletKind === 'identity' ? 'identity' : 'deal'} wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to withdraw.`,
+        detail: `The ${body.walletKind === 'identity' ? 'identity' : body.walletKind === 'buyerAgent' ? 'buyer' : 'deal'} wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC on Arc, less than the ${body.amountUsdc} you want to withdraw.`,
         code: 'INSUFFICIENT_BALANCE',
       },
       409,
@@ -341,9 +370,15 @@ cashoutRoutes.get('/:jobId', async (c) => {
     }
   }
 
-  const [identityBalance, sellerAgentBalance] = await Promise.all([
+  // The seller's own buyer agent wallet, if they ever activated one. Custodial
+  // like the deal wallet, so it's a valid third source to sweep from here.
+  const agentWallets = await getAgentWallets(session.address);
+  const buyerAgentAddress = agentWallets?.buyerAddress ?? null;
+
+  const [identityBalance, sellerAgentBalance, buyerAgentBalance] = await Promise.all([
     readArc(session.address),
     readArc(deal.sellerAgentAddress),
+    readArc(buyerAgentAddress ?? undefined),
   ]);
 
   return c.json({
@@ -354,6 +389,9 @@ cashoutRoutes.get('/:jobId', async (c) => {
     legacyEscrow: !!deal.legacyEscrow,
     accountKind,
     /// Identity wallet (the address the rest of Karwan shows for this user).
+    /// For web3 accounts `available` is false (no Circle DCW to sign): the
+    /// frontend still offers identity, but drives it through the user's own
+    /// connected wallet rather than a custodial withdraw.
     identityWallet: {
       address: session.address,
       arcBalanceUsdc: identityBalance,
@@ -365,6 +403,13 @@ cashoutRoutes.get('/:jobId', async (c) => {
       address: deal.sellerAgentAddress ?? null,
       arcBalanceUsdc: sellerAgentBalance,
       available: !!deal.sellerAgentAddress && !!deal.sellerAgentWalletId,
+    },
+    /// The user's own buyer agent wallet (custodial). Null/unavailable when
+    /// they never activated a buyer agent.
+    buyerAgentWallet: {
+      address: buyerAgentAddress,
+      arcBalanceUsdc: buyerAgentBalance,
+      available: !!agentWallets?.buyerAddress && !!agentWallets?.buyerWalletId,
     },
   });
 });
