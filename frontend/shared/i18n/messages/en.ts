@@ -1521,6 +1521,12 @@ interface MessagesShape {
     buyerAgentNotConfigured: string;
     inFlightTemplate: string;
     reassurance: string;
+    connect: {
+      cta: string;
+      hint: string;
+      useDeposit: string;
+      useWallet: string;
+    };
     eyebrow: {
       bridge: string;
       topUpAgent: string;
@@ -5341,6 +5347,12 @@ export const en: MessagesShape = {
     buyerAgentNotConfigured: 'Buyer agent not configured.',
     inFlightTemplate: '{n} IN FLIGHT',
     reassurance: 'Karwan covers the network fee. You only send USDC.',
+    connect: {
+      cta: 'Connect a wallet',
+      hint: 'Bring USDC from any wallet. One signature moves it to your Arc balance.',
+      useDeposit: 'Add money without a wallet',
+      useWallet: 'Use a wallet instead',
+    },
     eyebrow: {
       bridge: '[:ADD MONEY / CASH OUT:]',
       topUpAgent: '[:ADD MONEY:]',

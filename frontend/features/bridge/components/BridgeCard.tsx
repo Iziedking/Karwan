@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { formatUnits, isAddress } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
@@ -226,6 +227,7 @@ export function BridgeCard({
   const { isConnected, address: web3Address } = useAccount();
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
+  const { openConnectModal } = useConnectModal();
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
@@ -290,6 +292,11 @@ export function BridgeCard({
   /// somewhere other than their own wallet, so the default form is amount
   /// plus one button.
   const [recipientOpen, setRecipientOpen] = useState(false);
+  /// Funding path. Default is connect-wallet: bring USDC from any wallet and
+  /// one signature moves it to Arc, no deposit address to provision. Circle
+  /// users can opt into the deposit-address fallback, which is the only path
+  /// that provisions a per-chain DCW (and the one that used to hang on load).
+  const [depositMode, setDepositMode] = useState(false);
 
   /// The selected recipient address, resolved per kind. For Custom we feed
   /// the raw input through viem's checksum to keep the on-chain payload
@@ -341,7 +348,12 @@ export function BridgeCard({
     gasBalance: string | null;
   } | null>(null);
   useEffect(() => {
-    if (!isCircleUser || !auth.address) {
+    // Only provision + poll the source-chain DCW when the user has opted into
+    // the deposit-address path. This is the fix for the "provisioning…" hang:
+    // the default connect-wallet flow never touches bridgeWalletStatus, so a
+    // slow Circle wallet-creation call can't stall a user who never asked for
+    // a deposit address.
+    if (!isCircleUser || !auth.address || !depositMode) {
       setCircleWallet(null);
       return;
     }
@@ -377,7 +389,7 @@ export function BridgeCard({
       cancelled = true;
       clearInterval(id);
     };
-  }, [isCircleUser, auth.address, sourceKey]);
+  }, [isCircleUser, auth.address, sourceKey, depositMode]);
 
   // Resolve EVM source config when we're on a CCTP chain; null when the
   // selected source is App-Kit-only (Solana Devnet). The wagmi balance hook
@@ -391,19 +403,29 @@ export function BridgeCard({
     ? APP_KIT_SOURCES[sourceKey]
     : null;
 
-  // Source-chain USDC balance shown on the amount field. Circle users on an
-  // EVM source get the polled bridge-wallet balance; web3 users get a
-  // cross-chain read of their own wallet on the selected EVM source. Solana
-  // (App-Kit-only) currently has no balance read on the frontend.
+  // Funding path. The default is connect-wallet: any connected wallet signs the
+  // source-chain burn and the USDC lands on the user's Arc balance in one
+  // signature. depositPath is the Circle-only fallback that burns from a
+  // provisioned DCW the user funds by sending USDC to a deposit address.
+  const walletConnected = isConnected && !!web3Address;
+  const walletPath = walletConnected && !depositMode;
+  const depositPath = depositMode && isCircleUser;
+  // No path picked yet: prompt the user to connect a wallet.
+  const needsConnect = !walletConnected && !depositMode;
+
+  // Source-chain USDC balance shown on the amount field. The deposit path reads
+  // the polled DCW balance; the connect-wallet path reads the connected
+  // wallet's balance on the selected EVM source. Solana (App-Kit-only) has no
+  // frontend balance read.
   const web3SourceBal = useBalance({
     address: web3Address,
     token: evmSource?.usdc,
     chainId: evmSource?.chainId,
-    query: { enabled: !!evmSource && !isCircleUser && isConnected && !!web3Address },
+    query: { enabled: !!evmSource && walletConnected },
   });
   const sourceBalance: string | null = sourceIsAppKitOnly
     ? null
-    : isCircleUser
+    : depositPath
       ? circleWallet?.usdcBalance ?? null
       : web3SourceBal.data
         ? formatUnits(web3SourceBal.data.value, web3SourceBal.data.decimals)
@@ -416,22 +438,20 @@ export function BridgeCard({
   const onWrongChain =
     !!evmSource && isConnected && walletChainId !== evmSource.chainId;
 
-  // Web3 users have no Solana signer in this app, so App-Kit-only sources are
-  // Circle-only. Display label changes accordingly.
-  const web3CannotSign = sourceIsAppKitOnly && !isCircleUser;
+  // Solana (App-Kit-only) has no wagmi signer, so it only works on the Circle
+  // deposit path where the backend signs the burn.
+  const web3CannotSign = sourceIsAppKitOnly && !depositPath;
   const sourceShortName = evmSource?.shortName ?? appKitSource?.shortName ?? '';
 
-  // Split the button gate from "submit burn".
-  //   - canSwitch: web3 user on wrong EVM chain just needs an active wallet
-  //     to trigger the chain switch. Amount + recipient don't matter.
-  //   - canBurn:   web3 user on the correct EVM chain, with amount + recipient.
-  //   - canBridgeCircle: Circle user, amount + recipient (backend signs).
-  // Solana picked by a web3 user disables everything except a "switch to
-  // Circle" hint surfaced inside the button label.
-  const canSwitch = !!evmSource && isConnected && onWrongChain && !isSwitching;
+  // Button gates, split by path:
+  //   - canSwitch: connect-wallet path on the wrong EVM chain; the wallet just
+  //     needs to switch first. Amount + recipient don't matter yet.
+  //   - canBurn:   connect-wallet path on the right chain, amount + recipient set.
+  //   - canBridgeCircle: deposit path, amount + recipient set (backend signs).
+  const canSwitch = walletPath && !!evmSource && onWrongChain && !isSwitching;
   const canBurn =
+    walletPath &&
     !!evmSource &&
-    isConnected &&
     !onWrongChain &&
     typeof amount === 'number' &&
     amount > 0 &&
@@ -439,7 +459,7 @@ export function BridgeCard({
     recipientReady &&
     !isSwitching;
   const canBridgeCircle =
-    isCircleUser &&
+    depositPath &&
     !!auth.address &&
     typeof amount === 'number' &&
     amount > 0 &&
@@ -450,7 +470,8 @@ export function BridgeCard({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (isCircleUser && auth.address) {
+    // Deposit path: the backend signs the burn from the user's provisioned DCW.
+    if (depositPath && auth.address) {
       if (!canBridgeCircle) return;
       // Solana (and any future App-Kit-only source) routes through the
       // unified bridge endpoint; EVM Circle bridges keep the hand-rolled
@@ -470,6 +491,11 @@ export function BridgeCard({
         mintRecipient: mintRecipient as `0x${string}`,
         userAddress: auth.address,
       });
+      return;
+    }
+    // Connect-wallet path.
+    if (!walletConnected) {
+      openConnectModal?.();
       return;
     }
     if (web3CannotSign) {
@@ -566,18 +592,18 @@ export function BridgeCard({
       </div>
 
       <div className="px-6 pb-6">
-        {isCircleUser && !sourceIsAppKitOnly && (
+        {depositPath && !sourceIsAppKitOnly && (
           <CircleSourceFundBanner
             sourceChainKey={sourceKey as CctpChainKey}
             wallet={circleWallet}
             copy={bc.circleFund}
           />
         )}
-        {isCircleUser && sourceIsAppKitOnly && appKitSource && (
+        {depositPath && sourceIsAppKitOnly && appKitSource && (
           <AppKitFundBanner source={appKitSource} copy={bc.appKitFund} />
         )}
-        {!isCircleUser && isConnected && evmSource && (
-          <Web3FundHint source={evmSource} copy={bc.web3Fund} />
+        {walletPath && evmSource && (
+          <Web3FundHint source={evmSource} fundAddress={web3Address} copy={bc.web3Fund} />
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* SOURCE CHAIN DROPDOWN. Single button + absolute list, mirroring
@@ -590,7 +616,7 @@ export function BridgeCard({
             onChange={setSourceKey}
             open={sourcePickerOpen}
             setOpen={setSourcePickerOpen}
-            isCircleUser={isCircleUser}
+            isCircleUser={depositPath}
             eyebrow={bc.eyebrow.sourceChain}
             copy={bc.sourceChain}
           />
@@ -705,58 +731,90 @@ export function BridgeCard({
             </div>
           )}
 
-          {/* SUBMIT */}
-          <button
-            type="submit"
-            data-guide="bridge-submit"
-            disabled={!canSubmit}
-            className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-            style={{
-              background: 'var(--lp-accent)',
-              color: 'var(--lp-dark)',
-              borderTopLeftRadius: 14,
-              borderTopRightRadius: 14,
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 4,
-              boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
-            }}
-          >
-            {isCircleUser || isConnected ? (
-              <>
-                <span>
-                  {web3CannotSign
-                    ? bc.submit.solanaNeedsCircle
-                    : isCircleUser
-                      ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
-                      : isSwitching
-                        ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
-                        : onWrongChain
-                          ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
-                          : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
-                </span>
-                <span
-                  aria-hidden
-                  className="inline-flex transition-transform group-hover:translate-x-0.5"
-                >
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                    <path
-                      d="M3 8h10M9 4l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
-              </>
-            ) : (
-              bc.submit.connectWallet
-            )}
-          </button>
+          {/* PRIMARY ACTION. Connect a wallet first; once connected (or in the
+              Circle deposit fallback) the same slot submits the top-up. */}
+          {needsConnect ? (
+            <button
+              type="button"
+              data-guide="bridge-submit"
+              onClick={() => openConnectModal?.()}
+              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              style={{
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-dark)',
+                borderTopLeftRadius: 14,
+                borderTopRightRadius: 14,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 4,
+                boxShadow: '0 4px 0 rgba(0,0,0,0.22)',
+              }}
+            >
+              <span>{bc.connect.cta}</span>
+              <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </button>
+          ) : (
+            <button
+              type="submit"
+              data-guide="bridge-submit"
+              disabled={!canSubmit}
+              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              style={{
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-dark)',
+                borderTopLeftRadius: 14,
+                borderTopRightRadius: 14,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 4,
+                boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
+              }}
+            >
+              <span>
+                {web3CannotSign
+                  ? bc.submit.solanaNeedsCircle
+                  : depositPath
+                    ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
+                    : isSwitching
+                      ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
+                      : onWrongChain
+                        ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
+                        : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
+              </span>
+              <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </button>
+          )}
 
           <p className="text-[11px] leading-snug text-[var(--lp-text-muted)]">
-            {bc.reassurance}
+            {needsConnect ? bc.connect.hint : bc.reassurance}
           </p>
+
+          {/* Circle accounts can add money without a browser wallet through a
+              deposit address; the connected-wallet path is the default. */}
+          {isCircleUser &&
+            (depositMode ? (
+              <button
+                type="button"
+                onClick={() => setDepositMode(false)}
+                className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+              >
+                {bc.connect.useWallet}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDepositMode(true)}
+                className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors underline-offset-2 hover:underline"
+              >
+                {bc.connect.useDeposit}
+              </button>
+            ))}
         </form>
 
         {inBridges.length > 0 && (
@@ -1727,21 +1785,26 @@ function AppKitFundBanner({
 /// pool in-app: Circle's faucet drips it straight to the connected wallet.
 function Web3FundHint({
   source,
+  fundAddress,
   copy,
 }: {
   source: SourceChainConfig;
+  /// The connected wallet that signs the burn. For a Circle account using a
+  /// wallet to fund, this is NOT auth.address (the Circle identity), so the
+  /// faucet must target the connected wallet explicitly or the USDC lands in
+  /// the wrong place.
+  fundAddress?: string;
   copy: Messages['bridgeCard']['web3Fund'];
 }) {
-  const auth = useAuth();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   async function pullUsdc() {
-    if (!auth.address) return;
+    if (!fundAddress) return;
     setBusy(true);
     setNote(null);
     try {
-      await api.fundSource(auth.address, source.key);
+      await api.fundSource(fundAddress, source.key);
       setNote({
         kind: 'ok',
         text: copy.testUsdcSentTemplate.replace('{name}', source.name),
@@ -1786,7 +1849,7 @@ function Web3FundHint({
         <button
           type="button"
           onClick={pullUsdc}
-          disabled={busy || !auth.address}
+          disabled={busy || !fundAddress}
           className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1.5 px-2.5 py-1 border transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
           style={{
             borderColor: 'var(--lp-accent)',

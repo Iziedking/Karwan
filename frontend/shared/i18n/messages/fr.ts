@@ -1628,6 +1628,12 @@ export const fr: Messages = {
     buyerAgentNotConfigured: 'Agent acheteur non configuré.',
     inFlightTemplate: '{n} EN COURS',
     reassurance: 'Karwan prend en charge les frais de réseau. Vous n\'envoyez que de l\'USDC.',
+    connect: {
+      cta: 'Connecter un portefeuille',
+      hint: 'Apportez de l\'USDC depuis n\'importe quel portefeuille. Une signature le déplace vers votre solde Arc.',
+      useDeposit: 'Ajouter de l\'argent sans portefeuille',
+      useWallet: 'Utiliser un portefeuille',
+    },
     eyebrow: {
       bridge: '[:DÉPÔT / RETRAIT:]',
       topUpAgent: '[:RECHARGER AGENT:]',

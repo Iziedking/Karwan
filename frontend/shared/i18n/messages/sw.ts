@@ -1628,6 +1628,12 @@ export const sw: Messages = {
     buyerAgentNotConfigured: 'Wakala wa mnunuzi hajasanidiwa.',
     inFlightTemplate: '{n} INASAFIRI',
     reassurance: 'Karwan hulipa ada ya mtandao. Wewe hutuma USDC pekee.',
+    connect: {
+      cta: 'Unganisha pochi',
+      hint: 'Leta USDC kutoka pochi yoyote. Saini moja huihamishia kwenye salio lako la Arc.',
+      useDeposit: 'Weka pesa bila pochi',
+      useWallet: 'Tumia pochi badala yake',
+    },
     eyebrow: {
       bridge: '[:WEKA / TOA:]',
       topUpAgent: '[:JAZA WAKALA:]',

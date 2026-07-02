@@ -1628,6 +1628,12 @@ export const ar: Messages = {
     buyerAgentNotConfigured: 'لم يتم تكوين وكيل المشتري.',
     inFlightTemplate: '{n} قيد التنفيذ',
     reassurance: 'كروان يغطي رسوم الشبكة. أنت ترسل USDC فقط.',
+    connect: {
+      cta: 'اربط محفظة',
+      hint: 'أحضر USDC من أي محفظة. توقيع واحد ينقلها إلى رصيدك على Arc.',
+      useDeposit: 'أضف أموالاً بدون محفظة',
+      useWallet: 'استخدم محفظة بدلاً من ذلك',
+    },
     eyebrow: {
       bridge: '[:إيداع / سحب:]',
       topUpAgent: '[:تعبئة الوكيل:]',

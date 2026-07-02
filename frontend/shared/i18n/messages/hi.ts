@@ -1628,6 +1628,12 @@ export const hi: Messages = {
     buyerAgentNotConfigured: 'खरीदार एजेंट कॉन्फ़िगर नहीं है।',
     inFlightTemplate: '{n} चालू',
     reassurance: 'Karwan नेटवर्क शुल्क वहन करता है। आप केवल USDC भेजते हैं।',
+    connect: {
+      cta: 'वॉलेट कनेक्ट करें',
+      hint: 'किसी भी वॉलेट से USDC लाएं। एक सिग्नेचर इसे आपके Arc बैलेंस में भेज देता है।',
+      useDeposit: 'बिना वॉलेट के पैसे जोड़ें',
+      useWallet: 'इसके बजाय वॉलेट का उपयोग करें',
+    },
     eyebrow: {
       bridge: '[:टॉप-अप / निकासी:]',
       topUpAgent: '[:एजेंट टॉप अप:]',

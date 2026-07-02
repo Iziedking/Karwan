@@ -55,6 +55,15 @@ export function useSiwe(): {
         stateRef.current.state = 'idle';
         return;
       }
+      // A Circle-session user who connects an external wallet is using it as a
+      // signer (e.g. to fund a top-up from their own wallet), not switching
+      // accounts. Auto-SIWE would silently replace their Circle session with a
+      // web3 one and lose their identity context, so leave the session intact.
+      // A wallet user switching accounts still re-signs (method is 'web3').
+      if (me.user && me.user.method === 'circle') {
+        stateRef.current.state = 'idle';
+        return;
+      }
 
       const { message } = await api.siweNonce(target, chainId);
       const signature = await signMessageAsync({ message });
