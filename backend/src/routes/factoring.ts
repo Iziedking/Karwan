@@ -12,9 +12,11 @@ import {
   listOffersBySeller,
   listOpenOffers,
   patchFactoringOffer,
+  patchFactoringOfferIfStatus,
 } from '../db/factoring.js';
 import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
+import { deterministicIdempotencyKey } from '../chain/txs.js';
 import {
   verifyTransferAuthorization,
   submitTransferWithAuthorization,
@@ -477,9 +479,11 @@ factoringRoutes.post('/accept', async (c) => {
           seller,
           atomicUsdc(offer.offeredAdvanceUsdc),
           `factoring.advance(${offer.id})`,
-          // Offer id doubles as the idempotency key so a retried accept
-          // can't double-pay the advance.
-          offer.id,
+          // Namespaced idempotency key: a retried accept can't double-pay the
+          // advance, and the key can never collide with the REPAY leg's key
+          // (raw offer.id was used for both, which would make Circle dedupe
+          // the repayment against the advance and silently skip it).
+          deterministicIdempotencyKey(`factoring-advance:${offer.id}`),
         );
         advanceTxHash = r.txHash;
       }
@@ -495,13 +499,25 @@ factoringRoutes.post('/accept', async (c) => {
     }
 
     const now = Date.now();
-    const accepted = await patchFactoringOffer(offer.id, {
+    // Compare-and-set: the flip only lands while the offer is still
+    // 'offered', so a racing duplicate accept (multi-tab, replay, a second
+    // instance) can't record twice. The advance transfer above is idempotent
+    // (offer.id keys the Circle call; the EIP-3009 nonce is single-use on
+    // chain), so losing the guard after paying means the OTHER accept won
+    // with the same, single advance.
+    const accepted = await patchFactoringOfferIfStatus(offer.id, 'offered', {
       status: 'accepted',
       acceptedAt: now,
       setPayeeTxHash: body.setPayeeTxHash,
       advanceTxHash,
       repayAuthorization: body.repayAuthorization,
     });
+    if (!accepted) {
+      return c.json(
+        { error: 'offer is no longer open (accepted elsewhere or expired)' },
+        409,
+      );
+    }
     await patchDeal(offer.invoiceId, { factoringOfferId: offer.id });
 
     bus.emitEvent({

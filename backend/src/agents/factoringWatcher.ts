@@ -26,6 +26,7 @@ import {
   submitTransferWithAuthorization,
   transferFromCircleWallet,
 } from '../chain/usdc3009.js';
+import { deterministicIdempotencyKey } from '../chain/txs.js';
 import { bus } from '../events.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -58,9 +59,11 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
       offer.financier,
       repayAtomic,
       `factoring.repay(${offer.id})`,
-      // Offer id as the idempotency key: a retry after an ambiguous
-      // failure cannot double-charge the seller.
-      offer.id,
+      // Namespaced idempotency key: a retry after an ambiguous failure cannot
+      // double-charge the seller. Namespacing matters: the ADVANCE leg used
+      // raw offer.id too, and a shared key would make Circle dedupe this
+      // repayment against the advance and silently skip paying the financier.
+      deterministicIdempotencyKey(`factoring-repay:${offer.id}`),
     );
     txHash = r.txHash;
   }

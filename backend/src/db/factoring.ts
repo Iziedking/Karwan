@@ -123,6 +123,34 @@ export async function patchFactoringOffer(
   return next;
 }
 
+/// Compare-and-set patch: applies only while the offer is still in
+/// `expectedStatus`, enforced in the UPDATE's WHERE clause so two racing
+/// accepts (or an accept racing the expiry watcher) can never both win.
+/// Returns null when the guard lost, the caller treats that as a conflict.
+export async function patchFactoringOfferIfStatus(
+  id: string,
+  expectedStatus: FactoringOfferStatus,
+  patch: Partial<FactoringOffer>,
+): Promise<FactoringOffer | null> {
+  const existing = await getFactoringOffer(id);
+  if (!existing || existing.status !== expectedStatus) return null;
+  const next: FactoringOffer = { ...existing, ...patch, updatedAt: Date.now() };
+  if (pgEnabled) {
+    const rows = await db()
+      .update(factoringOffers)
+      .set({ status: next.status, data: next })
+      .where(and(eq(factoringOffers.id, id), eq(factoringOffers.status, expectedStatus)))
+      .returning({ id: factoringOffers.id });
+    return rows.length > 0 ? next : null;
+  }
+  // Flat-file fallback runs single-process, so the read-check above is the
+  // whole race window.
+  const store = loadFile();
+  store[id] = next;
+  saveFile(store);
+  return next;
+}
+
 /// All offers on a single invoice, newest first. Used by the seller to
 /// compare offers from competing financiers.
 export async function listOffersForInvoice(invoiceId: string): Promise<FactoringOffer[]> {
