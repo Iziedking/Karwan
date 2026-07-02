@@ -1634,6 +1634,16 @@ export const hi: Messages = {
       useDeposit: 'बिना वॉलेट के पैसे जोड़ें',
       useWallet: 'इसके बजाय वॉलेट का उपयोग करें',
     },
+    solana: {
+      eyebrow: 'SOLANA से भुगतान करें',
+      blurb: 'अपना Solana वॉलेट कनेक्ट करें और वहीं ट्रांसफ़र साइन करें। आपका USDC Arc पर आता है। कोई डिपॉज़िट पता नहीं।',
+      connect: 'Solana कनेक्ट करें',
+      connecting: 'कनेक्ट हो रहा है…',
+      install: 'Phantom इंस्टॉल करें',
+      connected: 'कनेक्टेड',
+      disconnect: 'डिस्कनेक्ट करें',
+      wiring: 'Solana ट्रांसफ़र जल्द आ रहे हैं',
+    },
     eyebrow: {
       bridge: '[:टॉप-अप / निकासी:]',
       topUpAgent: '[:एजेंट टॉप अप:]',

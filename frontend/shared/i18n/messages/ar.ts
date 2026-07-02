@@ -1634,6 +1634,16 @@ export const ar: Messages = {
       useDeposit: 'أضف أموالاً بدون محفظة',
       useWallet: 'استخدم محفظة بدلاً من ذلك',
     },
+    solana: {
+      eyebrow: 'ادفع عبر سولانا',
+      blurb: 'اربط محفظة سولانا ووقّع التحويل هناك. يصل USDC إلى Arc. بدون عنوان إيداع.',
+      connect: 'اربط سولانا',
+      connecting: 'جارٍ الربط…',
+      install: 'ثبّت Phantom',
+      connected: 'متصل',
+      disconnect: 'قطع الاتصال',
+      wiring: 'تحويلات سولانا قادمة قريبًا',
+    },
     eyebrow: {
       bridge: '[:إيداع / سحب:]',
       topUpAgent: '[:تعبئة الوكيل:]',

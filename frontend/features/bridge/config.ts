@@ -147,6 +147,15 @@ export const GAS_FAUCETS: Record<CctpChainKey, string> = {
 
 export const USDC_FAUCET = 'https://faucet.circle.com/';
 
+// Solana Devnet: the user connects their own wallet (Phantom) and signs the
+// CCTP burn there, so we read their SPL USDC balance directly over JSON-RPC.
+// USDC mint verified against Circle's contract-addresses page (2026-07-02).
+export const SOLANA_RPC_URL =
+  process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC ?? 'https://api.devnet.solana.com';
+export const SOLANA_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+export const SOLANA_EXPLORER_TX = (sig: string) =>
+  `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+
 export const ARC_TESTNET = {
   chainId: arcTestnet.id,
   domain: 26,

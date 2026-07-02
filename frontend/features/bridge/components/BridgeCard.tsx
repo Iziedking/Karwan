@@ -26,6 +26,8 @@ import {
   type BridgeRecord,
 } from '../hooks/useBridge';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { useSolanaWallet } from '../hooks/useSolanaWallet';
+import { SolanaConnectCard } from './SolanaConnectCard';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -228,6 +230,9 @@ export function BridgeCard({
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
+  /// Solana connect-wallet (non-custodial). Slice A surfaces connect + balance;
+  /// the burn is wired next. Isolated from wagmi so the two never collide.
+  const solana = useSolanaWallet();
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
@@ -594,6 +599,9 @@ export function BridgeCard({
       </div>
 
       <div className="px-6 pb-6">
+        {appKitPath && (
+          <SolanaConnectCard wallet={solana} copy={bc.solana} />
+        )}
         {appKitPath && appKitSource && (
           <AppKitFundBanner source={appKitSource} copy={bc.appKitFund} />
         )}

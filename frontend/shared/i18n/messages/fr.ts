@@ -1634,6 +1634,16 @@ export const fr: Messages = {
       useDeposit: 'Ajouter de l\'argent sans portefeuille',
       useWallet: 'Utiliser un portefeuille',
     },
+    solana: {
+      eyebrow: 'PAYER AVEC SOLANA',
+      blurb: 'Connectez votre portefeuille Solana et signez le transfert. Votre USDC arrive sur Arc. Pas d\'adresse de dépôt.',
+      connect: 'Connecter Solana',
+      connecting: 'Connexion…',
+      install: 'Installer Phantom',
+      connected: 'CONNECTÉ',
+      disconnect: 'Déconnecter',
+      wiring: 'Les transferts Solana arrivent bientôt',
+    },
     eyebrow: {
       bridge: '[:DÉPÔT / RETRAIT:]',
       topUpAgent: '[:RECHARGER AGENT:]',

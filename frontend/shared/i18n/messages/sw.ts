@@ -1634,6 +1634,16 @@ export const sw: Messages = {
       useDeposit: 'Weka pesa bila pochi',
       useWallet: 'Tumia pochi badala yake',
     },
+    solana: {
+      eyebrow: 'LIPA NA SOLANA',
+      blurb: 'Unganisha pochi yako ya Solana na utie saini uhamisho hapo. USDC yako huingia kwenye Arc. Hakuna anwani ya amana.',
+      connect: 'Unganisha Solana',
+      connecting: 'Inaunganisha…',
+      install: 'Sakinisha Phantom',
+      connected: 'IMEUNGANISHWA',
+      disconnect: 'Tenganisha',
+      wiring: 'Uhamisho wa Solana unakuja hivi karibuni',
+    },
     eyebrow: {
       bridge: '[:WEKA / TOA:]',
       topUpAgent: '[:JAZA WAKALA:]',

@@ -1527,6 +1527,16 @@ interface MessagesShape {
       useDeposit: string;
       useWallet: string;
     };
+    solana: {
+      eyebrow: string;
+      blurb: string;
+      connect: string;
+      connecting: string;
+      install: string;
+      connected: string;
+      disconnect: string;
+      wiring: string;
+    };
     eyebrow: {
       bridge: string;
       topUpAgent: string;
@@ -5354,6 +5364,16 @@ export const en: MessagesShape = {
       hint: 'Bring USDC from any wallet. One signature moves it to your Arc balance.',
       useDeposit: 'Add money without a wallet',
       useWallet: 'Use a wallet instead',
+    },
+    solana: {
+      eyebrow: 'PAY WITH SOLANA',
+      blurb: 'Connect your Solana wallet and sign the transfer there. Your USDC lands on Arc. No deposit address.',
+      connect: 'Connect Solana wallet',
+      connecting: 'Connecting…',
+      install: 'Install Phantom',
+      connected: 'CONNECTED',
+      disconnect: 'Disconnect',
+      wiring: 'Solana transfers ship next',
     },
     eyebrow: {
       bridge: '[:ADD MONEY / CASH OUT:]',
