@@ -9,11 +9,17 @@
 //   * resolve "who owns this passkey" on assertion verification
 //   * keep multiple passkeys per user (a phone and a laptop, say)
 //
-// Flat-file fallback mirrors the rest of the v0 stores; Postgres migration
-// is a later concern. The file lives under data/users.json.
+// Persistence model: Postgres is the durable home (accounts must survive a VM
+// rebuild), the in-memory store is the synchronous read path every call site
+// already uses, and data/users.json stays as a write-through backup that the
+// B2 snapshots pick up. Boot calls initUsersStore() to hydrate memory from
+// Postgres and one-time-import any file rows Postgres doesn't know yet.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { eq } from 'drizzle-orm';
+import { db, pgEnabled } from './client.js';
+import { users as usersTable } from './schema.js';
 import { logger } from '../logger.js';
 
 export interface PasskeyCredential {
@@ -97,6 +103,70 @@ function persist(): void {
   }
 }
 
+/// Fire-and-forget Postgres upsert for one user. The synchronous call sites
+/// can't await; a failed write logs loudly and the file backup still has the
+/// row, so nothing is lost silently.
+function pgUpsert(user: KarwanUser): void {
+  if (!pgEnabled) return;
+  void db()
+    .insert(usersTable)
+    .values({ email: user.email, address: user.address, data: user })
+    .onConflictDoUpdate({
+      target: usersTable.email,
+      set: { address: user.address, data: user },
+    })
+    .catch((err: Error) => {
+      logger.error({ err: err.message, email: user.email }, 'users pg upsert FAILED');
+    });
+}
+
+function pgDelete(email: string): void {
+  if (!pgEnabled) return;
+  void db()
+    .delete(usersTable)
+    .where(eq(usersTable.email, email))
+    .catch((err: Error) => {
+      logger.error({ err: err.message, email }, 'users pg delete FAILED');
+    });
+}
+
+/// Boot-time hydration. Postgres rows win over file rows (they are newer or
+/// equal); file rows Postgres doesn't know are imported once, which migrates
+/// an existing users.json without a manual step. Falls back to the file store
+/// untouched when Postgres is disabled or unreachable.
+export async function initUsersStore(): Promise<void> {
+  load();
+  if (!pgEnabled) return;
+  try {
+    const rows = await db().select().from(usersTable);
+    const pgEmails = new Set<string>();
+    for (const row of rows) {
+      const user = row.data;
+      pgEmails.add(user.email);
+      store.byEmail[user.email] = user;
+      store.byAddress[user.address.toLowerCase()] = user.email;
+    }
+    // One-time import: anything on disk that Postgres doesn't have yet.
+    let imported = 0;
+    for (const user of Object.values(store.byEmail)) {
+      if (!pgEmails.has(user.email)) {
+        pgUpsert(user);
+        imported += 1;
+      }
+    }
+    persist();
+    logger.info(
+      { pgRows: rows.length, imported },
+      'users store hydrated from postgres',
+    );
+  } catch (err) {
+    logger.error(
+      { err: (err as Error).message },
+      'users pg hydration failed; serving the file store',
+    );
+  }
+}
+
 function normEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -148,6 +218,7 @@ export function createUser(input: {
   store.byEmail[email] = user;
   store.byAddress[user.address] = email;
   persist();
+  pgUpsert(user);
   return user;
 }
 
@@ -169,6 +240,7 @@ export function deleteUser(address: string): boolean {
   delete store.byEmail[email];
   delete store.byAddress[addr];
   persist();
+  pgDelete(email);
   return true;
 }
 
@@ -180,6 +252,7 @@ export function appendCredential(email: string, credential: PasskeyCredential): 
   user.credentials.push(credential);
   user.updatedAt = Date.now();
   persist();
+  pgUpsert(user);
   return user;
 }
 
@@ -191,6 +264,7 @@ export function bumpCounter(credentialId: string, newCounter: number): void {
       cred.counter = newCounter;
       user.updatedAt = Date.now();
       persist();
+      pgUpsert(user);
       return;
     }
   }

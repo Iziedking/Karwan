@@ -1,4 +1,5 @@
-import { pgTable, text, jsonb, bigint, index, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, jsonb, bigint, index, uniqueIndex, primaryKey } from 'drizzle-orm/pg-core';
+import type { KarwanUser } from './users.js';
 import type { UserProfile } from './profiles.js';
 import type { DirectDeal } from './deals.js';
 import type { AgentWallets } from './agentWallets.js';
@@ -186,5 +187,36 @@ export const documentAnchors = pgTable(
   (t) => ({
     invoiceIdx: index('document_anchors_invoice_idx').on(t.invoiceId),
     anchoredAtIdx: index('document_anchors_anchored_at_idx').on(t.anchoredAt),
+  }),
+);
+
+// Email-auth accounts (identity wallet + passkey credential set). The
+// authoritative store since the users.json flat file did not survive VM
+// rebuilds; the address column is unique so one wallet can never map to two
+// emails.
+export const users = pgTable(
+  'users',
+  {
+    email: text('email').primaryKey(),
+    address: text('address').notNull(),
+    data: jsonb('data').$type<KarwanUser>().notNull(),
+  },
+  (t) => ({
+    addressIdx: uniqueIndex('users_address_idx').on(t.address),
+  }),
+);
+
+/// Short-lived auth state (WebAuthn challenges, OTP hashes, SIWE nonces,
+/// Telegram link tokens), namespaced in the key. Durable so a deploy doesn't
+/// void a sign-in that's mid-flight. Expired rows sweep at boot.
+export const ephemeralState = pgTable(
+  'ephemeral_state',
+  {
+    key: text('key').primaryKey(),
+    data: jsonb('data').notNull(),
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    expiresIdx: index('ephemeral_state_expires_idx').on(t.expiresAt),
   }),
 );

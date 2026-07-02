@@ -68,6 +68,8 @@ import { startTelegramNotifier } from './telegram/notifier.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
+import { initUsersStore } from './db/users.js';
+import { initEphemeralStores } from './db/ephemeral.js';
 
 const app = new Hono();
 
@@ -321,6 +323,13 @@ async function boot() {
   } else {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
+  // Accounts hydrate from Postgres (and one-time-import users.json) BEFORE
+  // anything can serve auth requests: a login check against a half-loaded
+  // store would read as "no such user".
+  await initUsersStore();
+  // In-flight auth state (OTP codes, WebAuthn challenges, SIWE nonces,
+  // Telegram link tokens) survives the restart the same way.
+  await initEphemeralStores();
   bootAgents();
   // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
   try {
