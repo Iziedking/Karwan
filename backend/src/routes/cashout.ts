@@ -30,6 +30,15 @@ const arcWithdrawSchema = z.object({
   walletKind: walletKindSchema.default('sellerAgent'),
 });
 
+/// Deal-free instant Arc send. Cashing out to a wallet that lives on Arc is a
+/// plain same-chain USDC transfer from the signed-in user's identity wallet,
+/// not a CCTP burn/mint. Keyed on the session only, so there is no
+/// caller-supplied source address to spoof.
+const arcSendSchema = z.object({
+  recipient: addrSchema,
+  amountUsdc: z.number().positive().max(1_000_000),
+});
+
 export const cashoutRoutes = new Hono();
 
 interface ResolvedWallet {
@@ -185,6 +194,82 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
       'cashout Arc transfer failed',
     );
     return c.json({ error: 'withdraw failed', detail: message }, 502);
+  }
+});
+
+/// Instant same-chain Arc send. Moves USDC from the signed-in user's Karwan
+/// identity wallet to any Arc address in a single `transfer` call. Arc has
+/// sub-second finality and USDC-as-gas, so this settles synchronously with no
+/// attestation wait, unlike the cross-chain /api/bridge/circle-bridge-out path.
+cashoutRoutes.post('/arc-send', async (c) => {
+  let body;
+  try {
+    body = arcSendSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'sign in to cash out' }, 401);
+
+  const user = getUserByAddress(session.address);
+  if (!user?.circleIdentityWalletId) {
+    // Web3-only users have no Karwan-custodied wallet to send from; their USDC
+    // already sits in their own Arc wallet, which they send from directly.
+    return c.json(
+      {
+        error: 'wallet-account send is not available',
+        detail:
+          'This instant send moves USDC from your Karwan wallet. Send from your own connected wallet on Arc instead.',
+        code: 'WALLET_ACCOUNT',
+      },
+      409,
+    );
+  }
+
+  const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+
+  let bal: bigint;
+  try {
+    bal = await readUsdcBalance(user.address);
+  } catch (err) {
+    return c.json(
+      { error: 'could not read your Arc balance', detail: (err as Error).message },
+      503,
+    );
+  }
+  if (bal < amountWei) {
+    return c.json(
+      {
+        error: 'insufficient balance',
+        detail: `Your Arc wallet holds ${formatUnits(bal, USDC_DECIMALS)} USDC, less than the ${body.amountUsdc} you want to send.`,
+        code: 'INSUFFICIENT_BALANCE',
+      },
+      409,
+    );
+  }
+
+  try {
+    const { txHash, explorerUrl } = await executeContractCall(
+      {
+        walletId: user.circleIdentityWalletId,
+        contractAddress: ARC_USDC,
+        abiFunctionSignature: 'transfer(address,uint256)',
+        abiParameters: [body.recipient, amountWei.toString()],
+      },
+      `cashout-arc-send-${session.address.slice(0, 10)}`,
+    );
+    logger.info(
+      { from: session.address, recipient: body.recipient, amount: body.amountUsdc, txHash },
+      'cashout Arc instant send ok',
+    );
+    return c.json({ ok: true, txHash, explorerUrl });
+  } catch (err) {
+    const message = (err as Error).message;
+    logger.warn(
+      { from: session.address, recipient: body.recipient, err: message },
+      'cashout Arc instant send failed',
+    );
+    return c.json({ error: 'send failed', detail: message }, 502);
   }
 });
 

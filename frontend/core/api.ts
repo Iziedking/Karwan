@@ -1998,6 +1998,13 @@ export const api = {
       '/api/cashout/arc-withdraw',
       { method: 'POST', body: JSON.stringify(input) },
     ),
+  /// Instant same-chain Arc send: USDC.transfer from the signed-in user's
+  /// Karwan identity wallet to any Arc address. No CCTP, settles in one step.
+  cashoutArcSend: (input: { recipient: string; amountUsdc: number }) =>
+    json<{ ok: true; txHash: string; explorerUrl: string }>(
+      '/api/cashout/arc-send',
+      { method: 'POST', body: JSON.stringify(input) },
+    ),
   stillReviewing: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/still-reviewing`,
