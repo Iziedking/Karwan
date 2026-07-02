@@ -1649,25 +1649,21 @@ function Web3FundHint({
   fundAddress?: string;
   copy: Messages['bridgeCard']['web3Fund'];
 }) {
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-
-  async function pullUsdc() {
-    if (!fundAddress) return;
-    setBusy(true);
-    setNote(null);
-    try {
-      await api.fundSource(fundAddress, source.key);
-      setNote({
-        kind: 'ok',
-        text: copy.testUsdcSentTemplate.replace('{name}', source.name),
-      });
-    } catch (err) {
-      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
-      setNote({ kind: 'err', text: detail ?? (err as Error).message });
-    } finally {
-      setBusy(false);
+  // Copy the connected wallet address, then open the faucet in a new tab so the
+  // user pastes it there. Same pattern as the profile wallet faucets and the
+  // Solana connect card, applied to every source chain.
+  const [copied, setCopied] = useState<'usdc' | 'gas' | null>(null);
+  async function copyAndOpen(url: string, key: 'usdc' | 'gas') {
+    if (fundAddress) {
+      try {
+        await navigator.clipboard.writeText(fundAddress);
+        setCopied(key);
+        setTimeout(() => setCopied((c) => (c === key ? null : c)), 1400);
+      } catch {
+        /* clipboard can fail in unfocused tabs; still open the faucet */
+      }
     }
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -1696,14 +1692,28 @@ function Web3FundHint({
           .replace('{nativeSymbol}', source.nativeSymbol)}
       </p>
       <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-        <FaucetLink href={GAS_FAUCETS[source.key]}>
-          {copy.claimGasTemplate.replace('{native}', source.nativeSymbol)}
-        </FaucetLink>
         <button
           type="button"
-          onClick={pullUsdc}
-          disabled={busy || !fundAddress}
-          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1.5 px-2.5 py-1 border transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+          onClick={() => void copyAndOpen(USDC_FAUCET, 'usdc')}
+          disabled={!fundAddress}
+          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+          style={{
+            background: 'var(--lp-accent)',
+            color: 'var(--lp-band-dark)',
+            borderTopLeftRadius: 6,
+            borderTopRightRadius: 6,
+            borderBottomLeftRadius: 6,
+            borderBottomRightRadius: 2,
+          }}
+        >
+          {copied === 'usdc' ? copy.copied : copy.getTestUsdc}
+          <ExternalIcon />
+        </button>
+        <button
+          type="button"
+          onClick={() => void copyAndOpen(GAS_FAUCETS[source.key], 'gas')}
+          disabled={!fundAddress}
+          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
           style={{
             borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -1714,42 +1724,14 @@ function Web3FundHint({
             borderBottomRightRadius: 2,
           }}
         >
-          {busy ? copy.requesting : copy.getTestUsdc}
+          {copied === 'gas' ? copy.copied : copy.claimGasTemplate.replace('{native}', source.nativeSymbol)}
+          <ExternalIcon />
         </button>
       </div>
-      {note && (
-        <p
-          className="mt-2 text-[11px] leading-snug"
-          style={{ color: note.kind === 'err' ? TONE_HEX.warning : 'var(--lp-text-sub)' }}
-        >
-          {note.text}
-        </p>
-      )}
     </div>
   );
 }
 
-function FaucetLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2 py-1"
-      style={{
-        background: 'var(--lp-accent)',
-        color: 'var(--lp-band-dark)',
-        borderTopLeftRadius: 6,
-        borderTopRightRadius: 6,
-        borderBottomLeftRadius: 6,
-        borderBottomRightRadius: 2,
-      }}
-    >
-      {children}
-      <ExternalIcon />
-    </a>
-  );
-}
 
 function ExternalIcon() {
   return (

@@ -1643,6 +1643,9 @@ export const sw: Messages = {
       connected: 'IMEUNGANISHWA',
       disconnect: 'Tenganisha',
       wiring: 'Uhamisho wa Solana unakuja hivi karibuni',
+      getUsdc: 'Pata USDC',
+      getGas: 'Pata SOL',
+      copied: 'Imenakiliwa',
     },
     eyebrow: {
       bridge: '[:WEKA / TOA:]',
@@ -1773,6 +1776,7 @@ export const sw: Messages = {
       getTestUsdc: 'Pata USDC ya jaribio',
       requesting: 'Inaomba',
       testUsdcSentTemplate: 'USDC ya jaribio imetumwa kwenye mkoba wako kwenye {name}. Inafika ndani ya dakika moja hivi, kisha daraja.',
+      copied: 'Imenakiliwa',
     },
   },
   stakeCard: {

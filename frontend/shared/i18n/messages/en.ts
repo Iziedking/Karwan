@@ -1536,6 +1536,9 @@ interface MessagesShape {
       connected: string;
       disconnect: string;
       wiring: string;
+      getUsdc: string;
+      getGas: string;
+      copied: string;
     };
     eyebrow: {
       bridge: string;
@@ -1666,6 +1669,7 @@ interface MessagesShape {
       getTestUsdc: string;
       requesting: string;
       testUsdcSentTemplate: string;
+      copied: string;
     };
   };
   stakeCard: {
@@ -5374,6 +5378,9 @@ export const en: MessagesShape = {
       connected: 'CONNECTED',
       disconnect: 'Disconnect',
       wiring: 'Solana transfers ship next',
+      getUsdc: 'Get USDC',
+      getGas: 'Get SOL gas',
+      copied: 'Copied',
     },
     eyebrow: {
       bridge: '[:ADD MONEY / CASH OUT:]',
@@ -5504,6 +5511,7 @@ export const en: MessagesShape = {
       getTestUsdc: 'Get test USDC',
       requesting: 'Requesting',
       testUsdcSentTemplate: 'Test USDC sent to your wallet on {name}. Lands in about a minute, then bridge.',
+      copied: 'Copied',
     },
   },
   stakeCard: {

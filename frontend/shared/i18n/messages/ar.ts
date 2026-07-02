@@ -1643,6 +1643,9 @@ export const ar: Messages = {
       connected: 'متصل',
       disconnect: 'قطع الاتصال',
       wiring: 'تحويلات سولانا قادمة قريبًا',
+      getUsdc: 'احصل على USDC',
+      getGas: 'احصل على SOL',
+      copied: 'تم النسخ',
     },
     eyebrow: {
       bridge: '[:إيداع / سحب:]',
@@ -1773,6 +1776,7 @@ export const ar: Messages = {
       getTestUsdc: 'احصل على USDC تجريبي',
       requesting: 'جارٍ الطلب',
       testUsdcSentTemplate: 'تم إرسال USDC تجريبي إلى محفظتك على {name}. يصل في غضون دقيقة تقريبًا، ثم اجسر.',
+      copied: 'تم النسخ',
     },
   },
   stakeCard: {

@@ -153,6 +153,8 @@ export const USDC_FAUCET = 'https://faucet.circle.com/';
 export const SOLANA_RPC_URL =
   process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC ?? 'https://api.devnet.solana.com';
 export const SOLANA_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+// Public Solana devnet SOL faucet (blockhash/tx fees on Solana).
+export const SOLANA_GAS_FAUCET = 'https://faucet.solana.com/';
 export const SOLANA_EXPLORER_TX = (sig: string) =>
   `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
 

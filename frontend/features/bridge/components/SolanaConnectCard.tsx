@@ -1,6 +1,8 @@
 'use client';
+import { useState } from 'react';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
+import { USDC_FAUCET, SOLANA_GAS_FAUCET } from '../config';
 import type { Messages } from '@/shared/i18n/messages/en';
 import type { SolanaWallet } from '../hooks/useSolanaWallet';
 
@@ -24,6 +26,22 @@ export function SolanaConnectCard({
   wallet: SolanaWallet;
   copy: Messages['bridgeCard']['solana'];
 }) {
+  // Faucet helpers copy the connected Solana address, then open the faucet in a
+  // new tab so the user pastes it there (mirrors the profile wallet faucets).
+  const [copied, setCopied] = useState<'usdc' | 'gas' | null>(null);
+  async function copyAndOpen(url: string, key: 'usdc' | 'gas') {
+    if (wallet.address) {
+      try {
+        await navigator.clipboard.writeText(wallet.address);
+        setCopied(key);
+        setTimeout(() => setCopied((c) => (c === key ? null : c)), 1400);
+      } catch {
+        /* clipboard can fail in unfocused tabs; still open the faucet */
+      }
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   return (
     <div className="relative mb-4 overflow-hidden px-4 py-3 ps-5" style={PANEL}>
       <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: 'var(--lp-accent)' }} />
@@ -92,11 +110,46 @@ export function SolanaConnectCard({
               </p>
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-end">
+          {/* Faucets: copy the connected address and open the faucet page, so
+              the user pastes it there to claim devnet USDC (Circle) or SOL gas. */}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => void copyAndOpen(USDC_FAUCET, 'usdc')}
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
+              style={{
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-band-dark)',
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {copied === 'usdc' ? copy.copied : copy.getUsdc}
+              <ExternalIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyAndOpen(SOLANA_GAS_FAUCET, 'gas')}
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border transition-colors"
+              style={{
+                borderColor: 'var(--lp-accent)',
+                color: 'var(--lp-band-dark)',
+                background: 'rgba(175, 201, 91, 0.18)',
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {copied === 'gas' ? copy.copied : copy.getGas}
+              <ExternalIcon />
+            </button>
             <button
               type="button"
               onClick={() => void wallet.disconnect()}
-              className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+              className="ms-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
             >
               {copy.disconnect}
             </button>
@@ -104,5 +157,13 @@ export function SolanaConnectCard({
         </div>
       )}
     </div>
+  );
+}
+
+function ExternalIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M5.5 4.5h6v6M11 5l-6.5 6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
   );
 }

@@ -1643,6 +1643,9 @@ export const hi: Messages = {
       connected: 'कनेक्टेड',
       disconnect: 'डिस्कनेक्ट करें',
       wiring: 'Solana ट्रांसफ़र जल्द आ रहे हैं',
+      getUsdc: 'USDC पाएं',
+      getGas: 'SOL गैस पाएं',
+      copied: 'कॉपी किया गया',
     },
     eyebrow: {
       bridge: '[:टॉप-अप / निकासी:]',
@@ -1773,6 +1776,7 @@ export const hi: Messages = {
       getTestUsdc: 'टेस्ट USDC प्राप्त करें',
       requesting: 'अनुरोध',
       testUsdcSentTemplate: '{name} पर आपके वॉलेट में टेस्ट USDC भेजा गया। लगभग एक मिनट में पहुँचेगा, फिर ब्रिज करें।',
+      copied: 'कॉपी किया गया',
     },
   },
   stakeCard: {

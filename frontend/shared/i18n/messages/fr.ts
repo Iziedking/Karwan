@@ -1643,6 +1643,9 @@ export const fr: Messages = {
       connected: 'CONNECTÉ',
       disconnect: 'Déconnecter',
       wiring: 'Les transferts Solana arrivent bientôt',
+      getUsdc: 'Obtenir USDC',
+      getGas: 'Obtenir du SOL',
+      copied: 'Copié',
     },
     eyebrow: {
       bridge: '[:DÉPÔT / RETRAIT:]',
@@ -1773,6 +1776,7 @@ export const fr: Messages = {
       getTestUsdc: 'Obtenir USDC de test',
       requesting: 'Demande',
       testUsdcSentTemplate: 'USDC de test envoyé à votre portefeuille sur {name}. Arrive en environ une minute, puis pontez.',
+      copied: 'Copié',
     },
   },
   stakeCard: {
