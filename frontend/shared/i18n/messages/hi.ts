@@ -1701,6 +1701,9 @@ export const hi: Messages = {
       stale: 'पुराना',
       burnLabelTemplate: 'बर्न · {chain}',
       mintLabel: 'मिंट · ARC',
+      mintLabelOutTemplate: 'मिंट · {chain}',
+      routeFromTemplate: '{chain} से',
+      routeToTemplate: '{chain} को',
       stuckNote: 'यह ब्रिज सामान्य 10 से 19 मिनट से कहीं अधिक प्रतीक्षा कर रहा है। रिले संभवतः बाधित हुई, या मिंट पहले ही पूरी हो चुकी और यह कार्ड इवेंट चूक गया। बंद करने से केवल कार्ड हटता है। चेन पर बर्न और कोई भी मिंट अप्रभावित रहती है।',
       recheckOnChain: 'चेन पर पुनः जाँचें',
       retryFromStart: 'शुरू से पुनः प्रयास करें',
@@ -1733,6 +1736,7 @@ export const hi: Messages = {
         circleAttestation: 'Circle सत्यापन',
         attestationHint: '~10-19 मिनट',
         mintArc: 'मिंट · Arc',
+        mintToTemplate: 'मिंट · {chain}',
       },
       error: {
         errorBadge: 'त्रुटि',

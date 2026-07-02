@@ -839,6 +839,31 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   if (record.status === 'minted') {
     return c.json({ status: 'minted', mintTxHash: record.mintTxHash ?? null });
   }
+  // Out-bridges (Arc -> chain) mint on the DESTINATION via the per-user bridge
+  // DCW, not on Arc via the relay wallet. Re-arm the out relay instead of
+  // running the inbound mint path below (which would try to receiveMessage on
+  // Arc with a message destined elsewhere).
+  if (record.direction === 'out') {
+    if (!record.sourceTxHash || !record.destChainKey || !record.bridgeWalletId) {
+      return c.json(
+        {
+          error: 'out-bridge record is missing relay context',
+          detail: 'No burn hash, destination chain, or destination wallet on this record.',
+        },
+        409,
+      );
+    }
+    await patchBridge(bridgeId, { status: 'relaying', error: undefined });
+    startOutRelay({
+      bridgeId,
+      destChainKey: record.destChainKey,
+      sourceTxHash: record.sourceTxHash,
+      amountUsdc: record.amountUsdc,
+      recipient: record.mintRecipient,
+      destWalletId: record.bridgeWalletId,
+    });
+    return c.json({ status: 'relaying', detail: 'destination mint relay resumed' });
+  }
   if (inFlight.has(bridgeId)) {
     return c.json({ status: 'relaying', detail: 'a relay is already in progress' }, 409);
   }

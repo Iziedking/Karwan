@@ -1701,6 +1701,9 @@ export const sw: Messages = {
       stale: 'CHAKAVU',
       burnLabelTemplate: 'CHOMA · {chain}',
       mintLabel: 'TENGENEZA · ARC',
+      mintLabelOutTemplate: 'TENGENEZA · {chain}',
+      routeFromTemplate: 'kutoka {chain}',
+      routeToTemplate: 'kwenda {chain}',
       stuckNote: 'Daraja hili limesubiri muda mrefu zaidi ya kawaida ya dakika 10 hadi 19. Pengine relay ilikatika, au utengenezaji tayari ulifika na kadi hii ilikosa tukio. Kufunga kunafuta kadi tu. Choma kwenye mnyororo na utengenezaji wowote havikatishwi.',
       recheckOnChain: 'Kagua tena kwenye mnyororo',
       retryFromStart: 'Jaribu tena kutoka mwanzo',
@@ -1733,6 +1736,7 @@ export const sw: Messages = {
         circleAttestation: 'Uthibitisho wa Circle',
         attestationHint: '~10-19 DAKIKA',
         mintArc: 'Tengeneza · Arc',
+        mintToTemplate: 'Tengeneza · {chain}',
       },
       error: {
         errorBadge: 'HITILAFU',

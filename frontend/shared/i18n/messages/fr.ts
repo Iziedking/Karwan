@@ -1701,6 +1701,9 @@ export const fr: Messages = {
       stale: 'OBSOLÈTE',
       burnLabelTemplate: 'BRÛLER · {chain}',
       mintLabel: 'FRAPPER · ARC',
+      mintLabelOutTemplate: 'FRAPPER · {chain}',
+      routeFromTemplate: 'depuis {chain}',
+      routeToTemplate: 'vers {chain}',
       stuckNote: 'Cette passerelle attend bien plus longtemps que les 10 à 19 minutes habituelles. Le relais a probablement été interrompu, ou la frappe a déjà eu lieu et cette carte a manqué l\'événement. La fermeture n\'efface que la carte. La brûlure sur la chaîne et la frappe ne sont pas affectées.',
       recheckOnChain: 'Revérifier sur la chaîne',
       retryFromStart: 'Réessayer depuis le début',
@@ -1733,6 +1736,7 @@ export const fr: Messages = {
         circleAttestation: 'Attestation Circle',
         attestationHint: '~10-19 MIN',
         mintArc: 'Frapper · Arc',
+        mintToTemplate: 'Frapper · {chain}',
       },
       error: {
         errorBadge: 'ERREUR',

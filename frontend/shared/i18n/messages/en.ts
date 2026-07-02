@@ -1594,6 +1594,9 @@ interface MessagesShape {
       stale: string;
       burnLabelTemplate: string;
       mintLabel: string;
+      mintLabelOutTemplate: string;
+      routeFromTemplate: string;
+      routeToTemplate: string;
       stuckNote: string;
       recheckOnChain: string;
       retryFromStart: string;
@@ -1626,6 +1629,7 @@ interface MessagesShape {
         circleAttestation: string;
         attestationHint: string;
         mintArc: string;
+        mintToTemplate: string;
       };
       error: {
         errorBadge: string;
@@ -5432,6 +5436,9 @@ export const en: MessagesShape = {
       stale: 'STALE',
       burnLabelTemplate: 'SENT · {chain}',
       mintLabel: 'ADDED · ARC',
+      mintLabelOutTemplate: 'ADDED · {chain}',
+      routeFromTemplate: 'from {chain}',
+      routeToTemplate: 'to {chain}',
       stuckNote: 'This bridge has been waiting far longer than the usual 10 to 19 minutes. The relay was likely interrupted, or the mint already landed and this card missed the event. Dismissing it only clears the card. The burn on chain and any mint are unaffected.',
       recheckOnChain: 'Recheck on chain',
       retryFromStart: 'Retry from start',
@@ -5464,6 +5471,7 @@ export const en: MessagesShape = {
         circleAttestation: 'Confirming',
         attestationHint: '~10-19 MIN',
         mintArc: 'Add to Arc',
+        mintToTemplate: 'Add to {chain}',
       },
       error: {
         errorBadge: 'ERROR',

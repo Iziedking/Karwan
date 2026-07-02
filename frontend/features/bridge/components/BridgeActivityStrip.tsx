@@ -133,7 +133,10 @@ export function BridgeActivityStrip({
   );
   if (visible.length === 0) return null;
 
-  const clearableIds = visible.filter((b) => !isActive(b.phase)).map((b) => b.id);
+  // Everything is clearable: the strip is a temporary view and hiding a row is
+  // display-only. An in-flight transfer keeps progressing on chain/backend and
+  // stays in the permanent Transfer history and /activity either way.
+  const clearableIds = visible.map((b) => b.id);
 
   return (
     <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
@@ -208,16 +211,14 @@ export function BridgeActivityStrip({
                   </p>
                   {b.error && <p className="mt-1 text-[11px] leading-snug text-[#b03d3a]">{b.error}</p>}
                 </div>
-                {!active && (
-                  <button
-                    type="button"
-                    onClick={() => hidden.hide(b.id)}
-                    aria-label="Dismiss"
-                    className="shrink-0 text-[16px] leading-none text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors px-1"
-                  >
-                    ×
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => hidden.hide(b.id)}
+                  aria-label="Dismiss"
+                  className="shrink-0 text-[16px] leading-none text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors px-1"
+                >
+                  ×
+                </button>
               </div>
             </li>
           );

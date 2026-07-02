@@ -1701,6 +1701,9 @@ export const ar: Messages = {
       stale: 'قديم',
       burnLabelTemplate: 'حرق · {chain}',
       mintLabel: 'سك · ARC',
+      mintLabelOutTemplate: 'سك · {chain}',
+      routeFromTemplate: 'من {chain}',
+      routeToTemplate: 'إلى {chain}',
       stuckNote: 'انتظر هذا الجسر مدة أطول بكثير من المعتاد الذي يتراوح بين 10 و19 دقيقة. على الأرجح انقطع المرحل، أو وصل السك بالفعل وأخطأ هذا الكرت الحدث. إغلاق الكرت يمسح العرض فقط. الحرق على السلسلة وأي عملية سك لا تتأثر.',
       recheckOnChain: 'إعادة الفحص على السلسلة',
       retryFromStart: 'إعادة المحاولة من البداية',
@@ -1733,6 +1736,7 @@ export const ar: Messages = {
         circleAttestation: 'تصديق Circle',
         attestationHint: '~10-19 دقيقة',
         mintArc: 'سك · Arc',
+        mintToTemplate: 'سك · {chain}',
       },
       error: {
         errorBadge: 'خطأ',

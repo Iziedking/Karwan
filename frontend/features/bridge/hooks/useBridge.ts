@@ -753,6 +753,53 @@ export function useBridges() {
   const recheck = useCallback(
     async (id: string) => {
       patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
+      // Client-signed App Kit inbound bridges only get a backend record when
+      // they COMPLETE (via /record), so a stuck one has nothing for /recheck to
+      // find (the old dead end: "Bridge record not found"). Hand the burn to
+      // /relay instead: it registers the bridge and our backend takes over the
+      // mint itself (poll IRIS -> receiveMessage on Arc). If Circle's forwarder
+      // already minted, the relay detects the consumed nonce and just settles
+      // the record. Idempotent on resubmit.
+      const cur = bridgesRef.current.find((b) => b.id === id);
+      if (
+        cur &&
+        cur.direction !== 'out' &&
+        cur.id.includes('-appkit-') &&
+        cur.burnTxHash &&
+        (cur.sourceChainKey as string) !== 'arc'
+      ) {
+        try {
+          const key = cur.sourceChainKey;
+          const domain = isAppKitOnlyChainKey(key) ? 5 : SOURCE_CHAINS[key].domain;
+          await api.bridgeRelay({
+            bridgeId: id,
+            sourceDomain: domain,
+            sourceTxHash: cur.burnTxHash,
+            amountUsdc: cur.amountUsdc,
+            mintRecipient: cur.mintRecipient,
+            sourceChainKey: key,
+          });
+          patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
+        } catch (err) {
+          const raw = errorToString(err).toLowerCase();
+          if (typeof console !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.warn('[bridge.recheck.relay]', errorToString(err));
+          }
+          // 409 "already in progress / already exists" means the backend is
+          // (or was) on it; keep the live indicator rather than erroring.
+          if (err instanceof ApiError && err.status === 409) {
+            patch(id, (b) => ({ ...b, phase: 'attesting', error: undefined }));
+            return;
+          }
+          patch(id, (b) => ({
+            ...b,
+            phase: 'error',
+            error: `Recheck failed. ${raw.slice(0, 140) || 'Try again in a moment.'}`,
+          }));
+        }
+        return;
+      }
       try {
         const r = await api.bridgeRecheck(id);
         if (r.status === 'minted') {

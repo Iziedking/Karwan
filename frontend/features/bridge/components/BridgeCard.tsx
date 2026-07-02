@@ -855,6 +855,10 @@ export function BridgeRow({
   // APP_KIT_SOURCES). Use the uniform meta lookup so this row renders for
   // either source without per-chain branching.
   const meta = bridgeChainMeta(bridge.sourceChainKey);
+  // Out-bridges (Arc -> chain) carry the DESTINATION in sourceChainKey and burn
+  // on Arc. Rendering them source-oriented mislabelled an Arc->Ethereum cash-out
+  // as "from Ethereum" with an "Add to Arc" ladder and the wrong explorer links.
+  const isOut = bridge.direction === 'out';
   const tone = phaseTone(bridge.phase);
   const idx = stepIndexFor(bridge.phase);
   // Instant Arc sends are terminal one-shot transfers, not CCTP bridges: no
@@ -909,7 +913,10 @@ export function BridgeRow({
             </span>
           </div>
           <div className="mt-1.5 text-[11px] text-[var(--lp-text-sub)] tabular-nums truncate">
-            from {meta.shortName}
+            {(isOut ? copy.routeToTemplate : copy.routeFromTemplate).replace(
+              '{chain}',
+              meta.shortName,
+            )}
             <span className="mx-1.5 text-[var(--lp-text-muted)]">·</span>
             <span className="mono text-[var(--lp-text-muted)]">
               {elapsed(bridge.startedAt, copy.elapsed)}
@@ -971,13 +978,20 @@ export function BridgeRow({
             <div className="space-y-1.5">
               {bridge.burnTxHash && (
                 <a
-                  href={meta.explorerTx(bridge.burnTxHash)}
+                  href={
+                    isOut
+                      ? ARC_EXPLORER_TX(bridge.burnTxHash)
+                      : meta.explorerTx(bridge.burnTxHash)
+                  }
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    {copy.burnLabelTemplate.replace('{chain}', meta.shortName.toUpperCase())}
+                    {copy.burnLabelTemplate.replace(
+                      '{chain}',
+                      (isOut ? 'Arc' : meta.shortName).toUpperCase(),
+                    )}
                   </span>
                   <span className="mono inline-flex items-center gap-1 tabular-nums">
                     {shortHash(bridge.burnTxHash)}
@@ -987,13 +1001,19 @@ export function BridgeRow({
               )}
               {bridge.mintTxHash && (
                 <a
-                  href={ARC_EXPLORER_TX(bridge.mintTxHash)}
+                  href={
+                    isOut
+                      ? meta.explorerTx(bridge.mintTxHash)
+                      : ARC_EXPLORER_TX(bridge.mintTxHash)
+                  }
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-baseline justify-between gap-3 text-[11px] hover:text-[var(--lp-dark)] text-[var(--lp-text-sub)] py-0.5 transition-colors"
                 >
                   <span className="mono uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    {copy.mintLabel}
+                    {isOut
+                      ? copy.mintLabelOutTemplate.replace('{chain}', meta.shortName.toUpperCase())
+                      : copy.mintLabel}
                   </span>
                   <span className="mono inline-flex items-center gap-1 tabular-nums">
                     {shortHash(bridge.mintTxHash)}
@@ -1124,11 +1144,23 @@ function BridgeSteps({
   const meta = bridgeChainMeta(bridge.sourceChainKey);
   const idx = stepIndexFor(bridge.phase);
   const errored = bridge.phase === 'error';
+  // Out-bridges prepare + send on ARC and land on the destination chain. The
+  // "~10-19 MIN" hint is an Ethereum-source finality estimate; Arc burns
+  // normally attest in seconds, so out records show no estimate.
+  const isOut = bridge.direction === 'out';
+  const prepChain = isOut ? 'Arc' : meta.shortName;
   const steps: Array<{ key: BridgePhase; label: string; hint?: string }> = [
-    { key: 'approving', label: copy.approveTemplate.replace('{chain}', meta.shortName) },
-    { key: 'burning', label: copy.burnTemplate.replace('{chain}', meta.shortName) },
-    { key: 'attesting', label: copy.circleAttestation, hint: copy.attestationHint },
-    { key: 'minting', label: copy.mintArc },
+    { key: 'approving', label: copy.approveTemplate.replace('{chain}', prepChain) },
+    { key: 'burning', label: copy.burnTemplate.replace('{chain}', prepChain) },
+    {
+      key: 'attesting',
+      label: copy.circleAttestation,
+      ...(isOut ? {} : { hint: copy.attestationHint }),
+    },
+    {
+      key: 'minting',
+      label: isOut ? copy.mintToTemplate.replace('{chain}', meta.shortName) : copy.mintArc,
+    },
   ];
 
   return (
