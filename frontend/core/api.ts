@@ -2253,6 +2253,21 @@ export const api = {
         updatedAt: number;
       }>;
     }>(`/api/bridge/list?address=${address}`),
+  /// Record a bridge that completed client-side via the App Kit Forwarding
+  /// Service, so it lands in durable history + the main /activity feed. The
+  /// backend keys it to the signed-in user; no funds move.
+  bridgeRecord: (input: {
+    bridgeId: string;
+    sourceChainKey: string;
+    amountUsdc: number;
+    mintRecipient: string;
+    burnTxHash?: string;
+    mintTxHash?: string;
+  }) =>
+    json<{ ok: boolean; alreadyRecorded?: boolean }>('/api/bridge/record', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
   /// Richer than bridgeCircleSourceAddress: returns the source-chain DCW
   /// address plus its live USDC and native-gas balances so the bridge card can
   /// show a funded/empty state. usdcBalance/gasBalance are null when the

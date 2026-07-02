@@ -1136,6 +1136,21 @@ export function useBridges() {
           mintTxHash: mintHash ?? b.mintTxHash,
           error: undefined,
         }));
+        // Record it server-side so it shows in the main /activity feed and
+        // survives a device/localStorage clear. Best-effort: the on-chain funds
+        // and the local record are unaffected if this fails.
+        api
+          .bridgeRecord({
+            bridgeId: id,
+            sourceChainKey: input.sourceChainKey,
+            amountUsdc: input.amountUsdc,
+            mintRecipient: input.mintRecipient,
+            ...(burnHash ? { burnTxHash: burnHash } : {}),
+            ...(mintHash ? { mintTxHash: mintHash } : {}),
+          })
+          .catch(() => {
+            /* history/activity is best-effort; ignore */
+          });
         sfx.success();
         recordAction('bridge');
       } catch (err) {

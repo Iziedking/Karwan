@@ -14,7 +14,7 @@ import {
 } from '../db/bridges.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
-import { isSessionSelf } from '../auth/session.js';
+import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import {
   APP_KIT_SOURCE_CHAINS,
@@ -168,8 +168,13 @@ bridgeRoutes.get('/list', async (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const wallets = await getAgentWallets(address.toLowerCase());
-  const bridgeAddrs = Object.values(wallets?.bridgeWallets ?? {}).map((w) => w.address);
-  if (bridgeAddrs.length === 0) return c.json({ bridges: [] });
+  // Include the user's own address: App Kit forwarder bridges are recorded with
+  // bridgeWalletAddress = the signed-in user (they have no Circle source DCW),
+  // so this is how those show up in history alongside the DCW-sourced bridges.
+  const bridgeAddrs = [
+    address.toLowerCase(),
+    ...Object.values(wallets?.bridgeWallets ?? {}).map((w) => w.address),
+  ];
   const records = await listBridgesForWallets(bridgeAddrs);
   return c.json({
     bridges: records.map((b) => ({
@@ -189,6 +194,75 @@ bridgeRoutes.get('/list', async (c) => {
       updatedAt: b.updatedAt,
     })),
   });
+});
+
+/// Record a bridge that already completed CLIENT-SIDE via Circle's App Kit
+/// Forwarding Service. The user signs the source burn in their own wallet and
+/// the forwarder mints on Arc, so the backend never sees the flow. This
+/// endpoint persists a 'minted' record (durable history) and emits
+/// bridge.minted so it shows in the main /activity feed under Top Up /
+/// Withdraw. Idempotent by bridgeId. No funds move here; it is a ledger write.
+const recordSchema = z.object({
+  bridgeId: z.string().min(1),
+  sourceChainKey: z.string().min(1),
+  amountUsdc: z.union([z.number(), z.string()]),
+  mintRecipient: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'expected a 0x address'),
+  burnTxHash: z.string().optional(),
+  mintTxHash: z.string().optional(),
+});
+
+bridgeRoutes.post('/record', async (c) => {
+  let body;
+  try {
+    body = recordSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const owner = sessionAddress(c);
+  if (!owner) return c.json({ error: 'sign in first' }, 401);
+
+  // Idempotent: a resubmit (retry, double-click, reload) must not double-record.
+  const existing = await getBridge(body.bridgeId);
+  if (existing) return c.json({ ok: true, alreadyRecorded: true });
+
+  const key = body.sourceChainKey;
+  // Solana's CCTP domain is 5; EVM domains come from the registry.
+  const sourceDomain = key === 'solanaDevnet' ? 5 : isCctpChainKey(key) ? CCTP_CHAINS[key].domain : 0;
+  const amountUsdc = String(body.amountUsdc);
+
+  await createBridge({
+    bridgeId: body.bridgeId,
+    sourceDomain,
+    sourceTxHash: body.burnTxHash ?? '',
+    amountUsdc,
+    mintRecipient: body.mintRecipient,
+    status: 'minted',
+    direction: 'in',
+    appKit: true,
+    // Bind to the signed-in user so a broadened /list can surface it later.
+    bridgeWalletAddress: owner.toLowerCase(),
+    sourceChainKey: key as never,
+    ...(body.mintTxHash ? { mintTxHash: body.mintTxHash } : {}),
+  });
+
+  // Mirrors markBridgeMinted's emit so /activity renders it the same way.
+  bus.emitEvent({
+    type: 'bridge.minted',
+    actor: 'buyer',
+    payload: {
+      bridgeId: body.bridgeId,
+      amountUsdc,
+      mintRecipient: body.mintRecipient,
+      sourceTxHash: body.burnTxHash ?? '',
+      ...(body.mintTxHash ? { txHash: body.mintTxHash } : { alreadyMinted: true }),
+    },
+  });
+
+  logger.info(
+    { owner, bridgeId: body.bridgeId, sourceChainKey: key, amountUsdc },
+    'recorded app kit forwarder bridge',
+  );
+  return c.json({ ok: true });
 });
 
 bridgeRoutes.post('/relay', async (c) => {
