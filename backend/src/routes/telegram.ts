@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { getTelegramLink, removeTelegramLink } from '../db/telegramLinks.js';
 import { generateLinkToken, telegramEnabled, telegramUsername } from '../telegram/bot.js';
+import { isSessionSelf } from '../auth/session.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -37,6 +38,12 @@ telegramRoutes.post('/link/start', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  // Only the signed-in owner of this address can pair a Telegram chat to it.
+  // Unauthenticated, anyone could route a victim's deal alerts to their own
+  // chat by pairing first.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'sign in as this address to link Telegram' }, 403);
+  }
   const { token, deepLink } = generateLinkToken(body.address);
   return c.json({ token, deepLink, botUsername: telegramUsername() });
 });
@@ -47,6 +54,11 @@ telegramRoutes.post('/link/remove', async (c) => {
     body = z.object({ address: addrSchema }).parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Same gate: without it, anyone could silently unlink a victim's
+  // notifications right before an attack window.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'sign in as this address to unlink Telegram' }, 403);
   }
   await removeTelegramLink(body.address);
   return c.json({ ok: true });
