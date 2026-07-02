@@ -324,6 +324,16 @@ export interface EscrowAccount {
   /// match, that pct of dealAmount must be reserved against the seller's
   /// free stake. Zero on legacy (pre-v2.E) deals since the field didn't exist.
   reservationBps: number;
+  /// v2b per-deal clock. undefined against the v2.E ABI (the fields don't
+  /// exist on that getEscrow return, so viem never decodes them) and only
+  /// populated once abis/escrow.ts is swapped to the v2b shape at cutover.
+  /// Consumers must guard on config.ESCROW_V2B_ENABLED before relying on them.
+  /// deliveryDeadline / reviewWindow / reclaimGrace / disputedAt are unix
+  /// seconds (uint64 on chain); deliveryDeadline 0 = open-ended deal.
+  deliveryDeadline?: bigint;
+  reviewWindow?: bigint;
+  reclaimGrace?: bigint;
+  disputedAt?: bigint;
 }
 
 // feeBps and reservationBps are immutable on the escrow contract; cache safe.
@@ -429,6 +439,11 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     milestonesReleased: number;
     state: number;
     reservationBps: number;
+    // v2b-only; absent (undefined) when reading a v2.E getEscrow return.
+    deliveryDeadline?: bigint;
+    reviewWindow?: bigint;
+    reclaimGrace?: bigint;
+    disputedAt?: bigint;
   };
   const value: EscrowAccount = {
     buyer: raw.buyer,
@@ -443,6 +458,10 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     milestonesReleased: raw.milestonesReleased,
     state: raw.state,
     reservationBps: raw.reservationBps ?? 0,
+    deliveryDeadline: raw.deliveryDeadline,
+    reviewWindow: raw.reviewWindow,
+    reclaimGrace: raw.reclaimGrace,
+    disputedAt: raw.disputedAt,
   };
   escrowCache.set(key, { value, expiresAt: now + READ_ESCROW_TTL_MS });
   return value;

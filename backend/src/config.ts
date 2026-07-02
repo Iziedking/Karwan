@@ -412,6 +412,18 @@ const envSchema = z.object({
     z.boolean(),
   ),
 
+  // Escrow v2b settlement lifecycle. OFF by default so the backend keeps its
+  // v2.E behaviour (dispute+refund auto-reclaim, refund-based cancel, 5-arg
+  // fundEscrow with no on-chain clock). Flip to true ONLY after the v2b escrow
+  // is deployed and KARWAN_ESCROW_ADDR points at it, in lockstep with swapping
+  // abis/escrow.ts to the v2b shape. When on: fundEscrow threads the per-deal
+  // clock, auto-reclaim uses reclaimAfterDeadline, and post-accept cancels run
+  // the mutual-cancel handshake instead of the (now pre-accept-only) refund.
+  ESCROW_V2B_ENABLED: z.preprocess(
+    (v) => v === 'true' || v === '1',
+    z.boolean(),
+  ),
+
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),

@@ -6,6 +6,7 @@ import {
   finalizeIfSettled,
   disputeEscrow,
   refundEscrow,
+  reclaimAfterDeadline,
   recordReputation,
   ESCROW_ACCEPTED,
   OUTCOME_FAILED,
@@ -123,12 +124,22 @@ async function tick() {
         if (now > deal.deadlineUnix * 1000 + config.DEAL_DEADLINE_RECLAIM_GRACE_MS) {
           const reason =
             'auto-reclaim: seller did not deliver by the deadline and the grace window passed';
-          // Mirror the manual cancel route: dispute then refund through the
-          // inner-revert guard so a stuck on-chain state throws before the
-          // off-chain cancelled write, never marking a deal refunded while the
-          // buyer's USDC is still escrowed.
-          await disputeEscrow(deal.jobId, buyerWalletId, reason);
-          const refundTxHash = await refundEscrow(deal.jobId, buyerWalletId);
+          let refundTxHash: string;
+          if (config.ESCROW_V2B_ENABLED) {
+            // v2b: a single reclaimAfterDeadline settles it. It only lands if the
+            // on-chain deadline + grace has actually passed (threaded at fund
+            // time from the same deadlineUnix + reclaim grace) and records the
+            // Failed outcome on chain atomically, so no separate dispute, refund,
+            // or recordReputation call is needed. The inner-revert guard inside
+            // the wrapper throws before the off-chain write if it didn't land.
+            refundTxHash = await reclaimAfterDeadline(deal.jobId, buyerWalletId);
+          } else {
+            // v2.E: dispute then refund through the inner-revert guard so a
+            // stuck on-chain state throws before the off-chain cancelled write,
+            // never marking a deal refunded while the buyer's USDC is escrowed.
+            await disputeEscrow(deal.jobId, buyerWalletId, reason);
+            refundTxHash = await refundEscrow(deal.jobId, buyerWalletId);
+          }
           await patchDeal(deal.jobId, {
             cancelledAt: Date.now(),
             cancelKind: 'unilateral',
@@ -147,7 +158,11 @@ async function tick() {
               auto: true,
             },
           });
-          await recordReputation(deal.jobId, buyerWalletId, OUTCOME_FAILED);
+          // v2b records Failed on chain inside reclaimAfterDeadline; only the
+          // v2.E path needs the explicit off-chain-signed reputation write.
+          if (!config.ESCROW_V2B_ENABLED) {
+            await recordReputation(deal.jobId, buyerWalletId, OUTCOME_FAILED);
+          }
           logger.info(
             { jobId: deal.jobId },
             'reclaim grace window passed, auto-reclaimed escrow to the buyer',

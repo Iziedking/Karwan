@@ -5,10 +5,13 @@ import {
   invalidateEscrowCache,
   ESCROW_STATE,
 } from './contracts.js';
-import { executeContractCall } from './txs.js';
+import { executeContractCall, type ContractCallInput } from './txs.js';
+import { config } from '../config.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /// KarwanReputation.Outcome enum: None=0, Success=1, DisputeResolved=2, Failed=3.
 export const OUTCOME_SUCCESS = 1;
@@ -193,6 +196,161 @@ export async function refundEscrow(jobId: string, buyerAgentWalletId: string): P
     `refund(${jobId})`,
   );
   await assertEscrowState(jobId, ESCROW_STATE.Refunded, 'refund', result.txHash);
+  return result.txHash;
+}
+
+/// Build the fundEscrow contract call, threading the per-deal clock on v2b.
+///
+/// v2.E (flag off): the 5-arg fundEscrow, no on-chain timing.
+/// v2b (flag on): the 6-arg overload carrying Timing{deliveryDeadline,
+///   reviewWindow, reclaimGrace}. deliveryDeadline is the deal's delivery
+///   deadline (absolute unix seconds; 0 = open-ended, no timeout reclaim).
+///   reviewWindow and reclaimGrace come from the same config the off-chain
+///   watcher uses, so the on-chain reclaim clock matches the off-chain one.
+///   Circle encodes the struct param as a nested array [deadline, window, grace].
+export function buildFundEscrowCall(
+  walletId: string,
+  escrowAddress: string,
+  jobId: string,
+  sellerAddress: string,
+  dealAmountWei: bigint,
+  milestonePcts: number[],
+  reservationBps: number,
+  deadlineUnix: number | null | undefined,
+): ContractCallInput {
+  const base = {
+    walletId,
+    contractAddress: escrowAddress,
+    abiParameters: [
+      jobId,
+      sellerAddress,
+      dealAmountWei.toString(),
+      milestonePcts,
+      reservationBps,
+    ] as unknown[],
+  };
+  if (!config.ESCROW_V2B_ENABLED) {
+    return { ...base, abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16)' };
+  }
+  const reviewWindowSecs = Math.floor(config.DEAL_REVIEW_WINDOW_MS / 1000);
+  const reclaimGraceSecs = Math.floor(config.DEAL_DEADLINE_RECLAIM_GRACE_MS / 1000);
+  const deadline = deadlineUnix && deadlineUnix > 0 ? Math.floor(deadlineUnix) : 0;
+  return {
+    ...base,
+    abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16,(uint64,uint64,uint64))',
+    abiParameters: [
+      ...base.abiParameters,
+      [deadline.toString(), reviewWindowSecs.toString(), reclaimGraceSecs.toString()],
+    ],
+  };
+}
+
+// ============================ v2b lifecycle ============================
+// These wrappers call KarwanEscrow v2b functions that don't exist on the
+// v2.E contract. They are inert until config.ESCROW_V2B_ENABLED is on and
+// KARWAN_ESCROW_ADDR points at a v2b deploy; every caller gates on that flag.
+// Like the v2.E wrappers they pass a Circle SCA (DCW) agent wallet and verify
+// the post-state after the COMPLETE to defend against the ERC-4337
+// inner-revert (see the assertEscrowState comment above).
+
+/// The buyer's trustless timeout exit (v2b). Callable from Accepted when the
+/// consented delivery deadline + grace has passed with nothing pending review.
+/// Refunds the buyer and slashes the reservation proportionally to the
+/// undelivered fraction, recording Failed on chain. Replaces the v2.E
+/// dispute+refund auto-reclaim, which reverts post-accept on v2b.
+/// payee address(0) pays the stored buyer wallet (the signing agent).
+export async function reclaimAfterDeadline(
+  jobId: string,
+  buyerAgentWalletId: string,
+): Promise<string> {
+  if (!buyerAgentWalletId) throw new Error('reclaimAfterDeadline requires a buyer agent wallet id');
+  const result = await executeContractCall(
+    {
+      walletId: buyerAgentWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'reclaimAfterDeadline(bytes32,address)',
+      abiParameters: [jobId, ZERO_ADDRESS],
+    },
+    `reclaimAfterDeadline(${jobId})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Refunded, 'reclaimAfterDeadline', result.txHash);
+  return result.txHash;
+}
+
+/// Buyer-only deadline extension (v2b). Mirrors the off-chain extension-approve
+/// flow so the on-chain clock tracks the agreed new deadline. newDeadline is
+/// absolute unix seconds.
+export async function extendDeadlineOnChain(
+  jobId: string,
+  buyerAgentWalletId: string,
+  newDeadlineUnix: number,
+): Promise<string> {
+  if (!buyerAgentWalletId) throw new Error('extendDeadline requires a buyer agent wallet id');
+  const result = await executeContractCall(
+    {
+      walletId: buyerAgentWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'extendDeadline(bytes32,uint64)',
+      abiParameters: [jobId, Math.floor(newDeadlineUnix).toString()],
+    },
+    `extendDeadline(${jobId})`,
+  );
+  return result.txHash;
+}
+
+/// Either party lapses a stale dispute back to Accepted after the dispute
+/// timeout (v2b), so a dead arbiter can't trap funds. The frozen time extends
+/// the delivery deadline on chain. Verifies the return to Accepted.
+export async function lapseDispute(jobId: string, walletId: string): Promise<string> {
+  if (!walletId) throw new Error('lapseDispute requires a signer wallet id');
+  const result = await executeContractCall(
+    {
+      walletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'lapseDispute(bytes32)',
+      abiParameters: [jobId],
+    },
+    `lapseDispute(${jobId})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Accepted, 'lapseDispute', result.txHash);
+  return result.txHash;
+}
+
+/// Drive the two-tx mutual-cancel handshake (v2b) to settle a post-accept deal
+/// by consent, replacing the v2.E post-accept refund. The backend controls
+/// both agent wallets, so it proposes with one side and accepts with the other
+/// in a single operation. sellerBps splits the unreleased funds (0 = full
+/// buyer refund). Works from Accepted or Disputed. Payees default to the stored
+/// wallets. Verifies the escrow reached Settled.
+export async function mutualCancelOnChain(
+  jobId: string,
+  proposerWalletId: string,
+  acceptorWalletId: string,
+  sellerBps: number,
+): Promise<string> {
+  if (!proposerWalletId || !acceptorWalletId) {
+    throw new Error('mutualCancel requires both agent wallet ids');
+  }
+  const bps = Math.round(sellerBps).toString();
+  await executeContractCall(
+    {
+      walletId: proposerWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'proposeCancel(bytes32,uint16,address)',
+      abiParameters: [jobId, bps, ZERO_ADDRESS],
+    },
+    `proposeCancel(${jobId}, ${bps})`,
+  );
+  const result = await executeContractCall(
+    {
+      walletId: acceptorWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'acceptCancel(bytes32,uint16,address)',
+      abiParameters: [jobId, bps, ZERO_ADDRESS],
+    },
+    `acceptCancel(${jobId}, ${bps})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Settled, 'acceptCancel', result.txHash);
   return result.txHash;
 }
 

@@ -23,6 +23,10 @@ import {
   acceptEscrow as acceptEscrowOnChain,
   disputeEscrow,
   refundEscrow,
+  reclaimAfterDeadline,
+  extendDeadlineOnChain,
+  mutualCancelOnChain,
+  buildFundEscrowCall,
   releaseFromDispute as releaseFromDisputeOnChain,
   recordReputation,
   ESCROW_FUNDED,
@@ -956,18 +960,16 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       ? Math.round((deal.requireStakePct ?? 50) * 100)
       : 0;
     const fundResult = await executeContractCall(
-      {
-        walletId: deal.buyerAgentWalletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16)',
-        abiParameters: [
-          jobId,
-          sellerAgents.sellerAddress,
-          dealAmountWei.toString(),
-          milestonePcts,
-          reservationBps,
-        ],
-      },
+      buildFundEscrowCall(
+        deal.buyerAgentWalletId,
+        escrow.address,
+        jobId,
+        sellerAgents.sellerAddress,
+        dealAmountWei,
+        milestonePcts,
+        reservationBps,
+        deal.deadlineUnix,
+      ),
       `fundEscrow(direct ${jobId})`,
     );
 
@@ -1761,6 +1763,21 @@ dealsRoutes.post('/direct/:jobId/extension/respond', async (c) => {
 
   if (body.decision === 'approved') {
     const newDeadline = deal.deadlineUnix + req.additionalSeconds;
+    // v2b: push the new deadline on chain first so the on-chain reclaim clock
+    // tracks the agreed extension. Buyer-only on chain, signed by the buyer
+    // agent. Do this BEFORE the off-chain patch so a chain revert (e.g. the
+    // deal was funded open-ended) doesn't leave the two clocks disagreeing.
+    if (config.ESCROW_V2B_ENABLED && deal.buyerAgentWalletId) {
+      try {
+        await extendDeadlineOnChain(jobId, deal.buyerAgentWalletId, newDeadline);
+      } catch (err) {
+        logger.error({ jobId, err: (err as Error).message }, 'on-chain extendDeadline failed');
+        return c.json(
+          { error: 'could not extend the deadline on chain', code: 'extend-failed' },
+          502,
+        );
+      }
+    }
     patch.deadlineUnix = newDeadline;
     historyEntry.newDeadlineUnix = newDeadline;
   }
@@ -2115,14 +2132,30 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   inFlight.add(jobId);
   try {
     const reason = 'buyer cancel: seller did not deliver by deadline';
-    /// Two SCA calls in sequence. Both go through the inner-revert guard in
-    /// settlement.ts, so either a stuck Disputed state (dispute reverted) or
-    /// a stuck Disputed-but-not-Refunded state (refund reverted) throws here
-    /// before any off-chain `cancelledAt` write. Without this, a refund inner
-    /// revert would mark the deal cancelled in DB while the buyer's USDC is
-    /// still escrowed on chain.
-    await disputeEscrow(jobId, deal.buyerAgentWalletId, reason);
-    const refundTxHash = await refundEscrow(jobId, deal.buyerAgentWalletId);
+    let refundTxHash: string;
+    if (config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED) {
+      // v2b post-accept: the same trustless reclaim the watcher uses. It
+      // enforces deadline + grace and the "nothing pending review" rule on
+      // chain, and records Failed atomically. Pre-check the grace so the buyer
+      // gets a clean 409 instead of an on-chain DeadlineNotPassed revert; the
+      // on-chain grace matches DEAL_DEADLINE_RECLAIM_GRACE_MS threaded at fund.
+      if (Date.now() < deal.deadlineUnix * 1000 + config.DEAL_DEADLINE_RECLAIM_GRACE_MS) {
+        inFlight.delete(jobId);
+        return c.json(
+          { error: 'the reclaim grace window has not passed yet', code: 'GRACE_OPEN' },
+          409,
+        );
+      }
+      refundTxHash = await reclaimAfterDeadline(jobId, deal.buyerAgentWalletId);
+    } else {
+      /// Pre-accept (Funded) on any version, or the v2.E accepted path: two SCA
+      /// calls in sequence. Both go through the inner-revert guard in
+      /// settlement.ts, so a stuck Disputed or Disputed-but-not-Refunded state
+      /// throws here before any off-chain `cancelledAt` write, never marking a
+      /// deal cancelled in DB while the buyer's USDC is still escrowed.
+      await disputeEscrow(jobId, deal.buyerAgentWalletId, reason);
+      refundTxHash = await refundEscrow(jobId, deal.buyerAgentWalletId);
+    }
     await patchDeal(jobId, {
       cancelledAt: Date.now(),
       cancelKind: 'unilateral',
@@ -2140,8 +2173,12 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
         txHash: refundTxHash,
       },
     });
-    // The seller never delivered by the deadline: record a failure against them.
-    await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
+    // The seller never delivered by the deadline: record a failure against
+    // them. v2b's reclaimAfterDeadline already recorded Failed on chain, so
+    // only the pre-accept / v2.E path needs the explicit off-chain write.
+    if (!(config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED)) {
+      await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
+    }
     return c.json({ accepted: true, jobId, txHash: refundTxHash }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
@@ -2315,28 +2352,47 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     // through dispute() first so refund() can run, unless the seller already
     // appealed (Disputed state), in which case skip dispute() to avoid
     // InvalidState.
-    if (account.state !== ESCROW_DISPUTED) {
-      if (isReleaseFromDispute) {
-        return c.json(
-          { error: 'release-from-dispute requires the escrow to be in Disputed state' },
-          409,
-        );
-      }
-      /// Inner-revert guarded; throws if escrow didn't actually move to Disputed.
-      await disputeEscrow(jobId, deal.buyerAgentWalletId, chainReason);
+    if (account.state !== ESCROW_DISPUTED && isReleaseFromDispute) {
+      return c.json(
+        { error: 'release-from-dispute requires the escrow to be in Disputed state' },
+        409,
+      );
     }
 
     /// 'release-from-dispute' → releaseFromDispute(jobId); seller is paid in
     /// full and the chain records DisputeResolved (when reservation existed).
-    /// Everything else → refund(jobId); buyer is refunded and the chain
-    /// records Failed against the seller (when reservation existed).
-    /// Both contract paths are buyer-only, so the buyer agent must sign.
-    /// Both wrappers verify the expected post-state (Settled / Refunded)
-    /// before returning, so the off-chain patchDeal below only runs when
-    /// the chain actually moved.
-    const finalTxHash = isReleaseFromDispute
-      ? await releaseFromDisputeOnChain(jobId, deal.buyerAgentWalletId)
-      : await refundEscrow(jobId, deal.buyerAgentWalletId);
+    /// Everything else → the buyer is made whole and the seller concedes.
+    ///
+    /// v2b: post-accept refund is gone (it was the H-1 clawback), so a
+    /// consented non-release exit runs the mutual-cancel handshake with
+    /// sellerBps=0 (full buyer refund, reservation released no-fault). Both
+    /// off-chain parties have already agreed via the propose/accept flow, so
+    /// the backend drives both on-chain legs. Works from Accepted or Disputed,
+    /// so no pre-dispute step is needed.
+    ///
+    /// v2.E: drive the escrow to Disputed (if not already) then refund(jobId).
+    /// Every wrapper verifies its expected post-state before returning, so the
+    /// off-chain patchDeal below only runs when the chain actually moved.
+    let finalTxHash: string;
+    if (isReleaseFromDispute) {
+      finalTxHash = await releaseFromDisputeOnChain(jobId, deal.buyerAgentWalletId);
+    } else if (config.ESCROW_V2B_ENABLED) {
+      if (!deal.sellerAgentWalletId) {
+        return c.json({ error: 'this deal has no seller agent wallet on record' }, 409);
+      }
+      finalTxHash = await mutualCancelOnChain(
+        jobId,
+        deal.buyerAgentWalletId,
+        deal.sellerAgentWalletId,
+        0,
+      );
+    } else {
+      if (account.state !== ESCROW_DISPUTED) {
+        /// Inner-revert guarded; throws if escrow didn't actually move to Disputed.
+        await disputeEscrow(jobId, deal.buyerAgentWalletId, chainReason);
+      }
+      finalTxHash = await refundEscrow(jobId, deal.buyerAgentWalletId);
+    }
 
     /// Identify the loser for the off-chain reputation signal. On a refund
     /// the seller concedes; on a release the buyer concedes. Pre-dispute

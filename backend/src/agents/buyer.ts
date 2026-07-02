@@ -12,7 +12,7 @@ import {
   invalidateEscrowCache,
   readUsdcBalance,
 } from '../chain/contracts.js';
-import { ESCROW_FUNDED } from '../chain/settlement.js';
+import { ESCROW_FUNDED, buildFundEscrowCall } from '../chain/settlement.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { negotiationModel } from '../llm/client.js';
@@ -2778,18 +2778,16 @@ async function fundEscrow(
   let fundResult;
   try {
     fundResult = await executeContractCall(
-      {
-        walletId: buyer.walletId,
-        contractAddress: escrow.address,
-        abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16)',
-        abiParameters: [
-          state.jobId,
-          seller,
-          priceWei.toString(),
-          milestonePcts,
-          reservationBps,
-        ],
-      },
+      buildFundEscrowCall(
+        buyer.walletId,
+        escrow.address,
+        state.jobId,
+        seller,
+        priceWei,
+        milestonePcts,
+        reservationBps,
+        state.context.deadlineUnix,
+      ),
       `fundEscrow(${state.jobId})`,
     );
   } catch (err) {
