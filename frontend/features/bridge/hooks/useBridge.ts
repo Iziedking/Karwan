@@ -588,10 +588,10 @@ export function useBridges() {
 
   const runFlow = useCallback(
     async (record: BridgeRecord) => {
-      // runFlow is the web3 wagmi-signed path. App-Kit-only sources (Solana
-      // Devnet today) never enter this, startCircleAppKit handles them
-      // entirely on the backend. The guard prevents a future caller from
-      // dropping an App Kit record into the EVM signer path silently.
+      // runFlow is the legacy web3 wagmi-signed CCTP path, kept as a fallback
+      // now that the default bridge-in goes through startAppKitBridge. App-Kit
+      // sources never enter this; the guards below keep a stray caller from
+      // dropping a non-EVM record into the EVM signer path.
       if ((record.sourceChainKey as string) === 'arc') {
         // Instant Arc sends never enter the CCTP signer path. Guard so a stray
         // retry can't dereference SOURCE_CHAINS['arc'] (undefined).
@@ -969,60 +969,6 @@ export function useBridges() {
     [patch],
   );
 
-  /// App Kit bridge-IN. The frontend never signs from the source chain;
-  /// Circle's App Kit SDK runs on the backend, with the Forwarding Service
-  /// broadcasting the Arc mint. Used for Solana (no wagmi signer exists) and
-  /// can be flipped on for the EVM chains too via the BRIDGE_USE_APP_KIT env
-  /// flag, but the existing hand-rolled CCTP path is the default for EVM.
-  const startCircleAppKit = useCallback(
-    async (input: {
-      sourceChainKey: AnySourceChainKey;
-      amountUsdc: number;
-      mintRecipient: `0x${string}`;
-      userAddress: string;
-    }) => {
-      const id = `${input.sourceChainKey}-appkit-${input.userAddress}-${Date.now()}`;
-      const now = Date.now();
-      const record: BridgeRecord = {
-        id,
-        phase: 'approving',
-        sourceChainKey: input.sourceChainKey,
-        amountUsdc: input.amountUsdc.toString(),
-        mintRecipient: input.mintRecipient,
-        startedAt: now,
-        updatedAt: now,
-      };
-      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
-      try {
-        await api.bridgeCircleAppKit({
-          bridgeId: id,
-          address: input.userAddress,
-          sourceChainKey: input.sourceChainKey,
-          amountUsdc: input.amountUsdc,
-          mintRecipient: input.mintRecipient,
-        });
-        // Backend has queued the kit.bridge() call. SSE drives the row from
-        // here (approve -> burn -> attest -> mint). The App Kit path emits
-        // the same bus event types as the hand-rolled path, so no special
-        // handling is needed downstream.
-        patch(id, (b) => ({ ...b, phase: 'approving', error: undefined }));
-      } catch (err) {
-        if (typeof console !== 'undefined') {
-          // eslint-disable-next-line no-console
-          console.warn('[bridge.startCircleAppKit]', errorToString(err));
-        }
-        const raw = errorToString(err).toLowerCase();
-        const friendly = raw.includes('failed to fetch')
-          ? 'Could not reach the bridge service. Check your connection and try again.'
-          : raw.includes('insufficient')
-            ? 'Source-chain wallet is short on funds. Top it up and try again.'
-            : `App Kit bridge could not start. ${errorToString(err).slice(0, 140)}`;
-        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
-      }
-    },
-    [patch],
-  );
-
   /// Circle bridge-OUT (Arc -> chain). Backend burns from the identity DCW on
   /// Arc and relays the mint on the destination chain (gas sponsored via Gas
   /// Station). Records the bridge locally; the same SSE handlers animate it
@@ -1320,7 +1266,6 @@ export function useBridges() {
     bridges,
     start,
     startCircle,
-    startCircleAppKit,
     startCircleOut,
     startWeb3Out,
     startArcSend,
