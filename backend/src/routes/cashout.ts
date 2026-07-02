@@ -3,11 +3,14 @@
 // that the escrow pays out to. The cashout page picks one of these as the
 // source; both are Circle DCWs we already control. Cross-chain withdraws
 // go through /api/bridge/circle-bridge-out.
+import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { parseUnits, formatUnits } from 'viem';
 import { getDeal } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
+import { createBridge } from '../db/bridges.js';
+import { ARC_DOMAIN } from '../chain/cctpChains.js';
 import { readUsdcBalance, usdc as ARC_USDC } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { readSession } from '../auth/session.js';
@@ -37,6 +40,9 @@ const arcWithdrawSchema = z.object({
 const arcSendSchema = z.object({
   recipient: addrSchema,
   amountUsdc: z.number().positive().max(1_000_000),
+  /// The client's local record id, so the recorded bridge shares it and the
+  /// frontend doesn't render a duplicate row when it merges /bridge/list.
+  bridgeId: z.string().min(1).optional(),
 });
 
 export const cashoutRoutes = new Hono();
@@ -262,6 +268,38 @@ cashoutRoutes.post('/arc-send', async (c) => {
       { from: session.address, recipient: body.recipient, amount: body.amountUsdc, txHash },
       'cashout Arc instant send ok',
     );
+    // Record it (best-effort) so this instant cash-out shows in durable history
+    // and the main /activity feed, like the CCTP and App Kit bridges. A same-
+    // chain Arc send has a single tx, so burn == mint == the transfer hash.
+    try {
+      const bridgeId = body.bridgeId ?? `arc-send-${session.address}-${randomUUID()}`;
+      const amountUsdc = String(body.amountUsdc);
+      await createBridge({
+        bridgeId,
+        sourceDomain: ARC_DOMAIN,
+        sourceTxHash: txHash,
+        amountUsdc,
+        mintRecipient: body.recipient,
+        status: 'minted',
+        direction: 'out',
+        mintTxHash: txHash,
+        bridgeWalletAddress: session.address.toLowerCase(),
+        sourceChainKey: 'arc' as never,
+      });
+      bus.emitEvent({
+        type: 'bridge.minted',
+        actor: 'buyer',
+        payload: {
+          bridgeId,
+          amountUsdc,
+          mintRecipient: body.recipient,
+          sourceTxHash: txHash,
+          txHash,
+        },
+      });
+    } catch (recErr) {
+      logger.warn({ err: (recErr as Error).message }, 'arc-send record failed (send still succeeded)');
+    }
     return c.json({ ok: true, txHash, explorerUrl });
   } catch (err) {
     const message = (err as Error).message;

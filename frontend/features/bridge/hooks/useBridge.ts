@@ -1196,6 +1196,7 @@ export function useBridges() {
         const r = await api.cashoutArcSend({
           recipient: input.recipient,
           amountUsdc: input.amountUsdc,
+          bridgeId: id,
         });
         patch(id, (b) => ({
           ...b,

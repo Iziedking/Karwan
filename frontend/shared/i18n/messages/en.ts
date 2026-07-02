@@ -1535,7 +1535,6 @@ interface MessagesShape {
       install: string;
       connected: string;
       disconnect: string;
-      wiring: string;
       getUsdc: string;
       getGas: string;
       copied: string;
@@ -1651,16 +1650,6 @@ interface MessagesShape {
       requesting: string;
       testUsdcRequested: string;
       circleFaucet: string;
-    };
-    appKitFund: {
-      eyebrowTemplate: string;
-      descriptionTemplate: string;
-      addressLabelTemplate: string;
-      provisioning: string;
-      copy: string;
-      copied: string;
-      claimGasTemplate: string;
-      getTestUsdc: string;
     };
     web3Fund: {
       eyebrowTemplate: string;
@@ -5377,7 +5366,6 @@ export const en: MessagesShape = {
       install: 'Install Phantom',
       connected: 'CONNECTED',
       disconnect: 'Disconnect',
-      wiring: 'Solana transfers ship next',
       getUsdc: 'Get USDC',
       getGas: 'Get SOL gas',
       copied: 'Copied',
@@ -5493,16 +5481,6 @@ export const en: MessagesShape = {
       requesting: 'Requesting',
       testUsdcRequested: 'Test USDC requested. It lands here in about a minute.',
       circleFaucet: 'Circle faucet',
-    },
-    appKitFund: {
-      eyebrowTemplate: '[:FUND {chain} TO BRIDGE:]',
-      descriptionTemplate: '{name} bridges through Circle App Kit. Karwan signs the burn from your dedicated {shortName} wallet, so you fund that address with USDC once and {nativeSymbol} for blockhash fees. Auto-drip is unreliable on devnet, so claim from the public faucets directly.',
-      addressLabelTemplate: 'Your {chain} Circle address',
-      provisioning: 'provisioning…',
-      copy: 'COPY',
-      copied: 'COPIED',
-      claimGasTemplate: 'Claim {native} gas',
-      getTestUsdc: 'Get test USDC',
     },
     web3Fund: {
       eyebrowTemplate: '[:FUND {chain} TO BRIDGE:]',

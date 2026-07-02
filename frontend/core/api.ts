@@ -2000,7 +2000,7 @@ export const api = {
     ),
   /// Instant same-chain Arc send: USDC.transfer from the signed-in user's
   /// Karwan identity wallet to any Arc address. No CCTP, settles in one step.
-  cashoutArcSend: (input: { recipient: string; amountUsdc: number }) =>
+  cashoutArcSend: (input: { recipient: string; amountUsdc: number; bridgeId?: string }) =>
     json<{ ok: true; txHash: string; explorerUrl: string }>(
       '/api/cashout/arc-send',
       { method: 'POST', body: JSON.stringify(input) },
