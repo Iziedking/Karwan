@@ -61,14 +61,22 @@ export function useAddressKind(
           chain: arcTestnet,
           transport: http(),
         });
-        const code = await client.getCode({ address: checksummed });
+        // Race the read against a timeout so a slow/rate-limited Arc RPC can't
+        // leave the pill stuck on "checking" forever (which also blocks the
+        // submit button). Fail open to `eoa` on timeout, same as an error.
+        const code = (await Promise.race([
+          client.getCode({ address: checksummed }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('address check timed out')), 6000),
+          ),
+        ])) as `0x${string}` | undefined;
         if (cancelled) return;
         const hasCode = !!code && code !== '0x';
         setKind(hasCode ? 'contract' : 'eoa');
       } catch {
         if (cancelled) return;
-        /// Default to `eoa` on RPC failure rather than block the user. The
-        /// warning text on Custom still names the risk; the hook just can't
+        /// Default to `eoa` on RPC failure/timeout rather than block the user.
+        /// The warning text on Custom still names the risk; the hook just can't
         /// add proof one way or the other.
         setKind('eoa');
       }

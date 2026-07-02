@@ -1066,38 +1066,76 @@ export function useBridges() {
         const kit = new AppKit();
         // Map the SDK's lifecycle events onto our phases. Names/shape are loose
         // across versions, so read defensively.
+        // Each step carries a txHash + explorerUrl (approve / burn /
+        // fetchAttestation / mint). Capture them onto the record as they land
+        // so the history row shows the source burn and the Arc mint with
+        // explorer links, the same way ArcRun surfaces them.
         kit.on('*', (payload: unknown) => {
-          const p = payload as { values?: { name?: string; state?: string } };
+          const p = payload as {
+            values?: { name?: string; state?: string; txHash?: string };
+          };
           const name = p.values?.name;
           const state = p.values?.state;
-          // Diagnostic: shows how far the bridge gets (approve/burn/mint) and
-          // whether the wallet was reached, since Solana signing can't be
-          // tested without a wallet. Safe to keep; it's debug-level.
+          const txHash = p.values?.txHash as `0x${string}` | undefined;
           if (typeof console !== 'undefined') {
             // eslint-disable-next-line no-console
-            console.debug('[bridge.appkit]', input.sourceChainKey, name, state);
+            console.debug('[bridge.appkit]', input.sourceChainKey, name, state, txHash);
           }
           if (name === 'approve') {
             patch(id, (b) => ({ ...b, phase: state === 'success' ? 'burning' : 'approving', updatedAt: Date.now() }));
           } else if (name === 'burn') {
-            patch(id, (b) => ({ ...b, phase: state === 'success' ? 'attesting' : 'burning', updatedAt: Date.now() }));
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' ? 'attesting' : 'burning',
+              burnTxHash: txHash ?? b.burnTxHash,
+              updatedAt: Date.now(),
+            }));
+          } else if (name === 'fetchAttestation') {
+            patch(id, (b) => ({ ...b, phase: 'attesting', updatedAt: Date.now() }));
           } else if (name === 'mint') {
-            patch(id, (b) => ({ ...b, phase: state === 'success' ? 'done' : 'minting', updatedAt: Date.now() }));
+            // The forwarder reports the mint as 'forwarded' (it submits the tx),
+            // so treat that as done too.
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' || state === 'forwarded' ? 'done' : 'minting',
+              mintTxHash: txHash ?? b.mintTxHash,
+              updatedAt: Date.now(),
+            }));
           }
         });
         const result = (await kit.bridge({
           from: { adapter, chain: APPKIT_CHAIN[input.sourceChainKey] },
           to: { recipientAddress: input.mintRecipient, chain: APPKIT_ARC_CHAIN, useForwarder: true },
           amount: input.amountUsdc.toString(),
-        } as never)) as { state?: string };
+        } as never)) as {
+          state?: string;
+          steps?: Array<{ name?: string; state?: string; txHash?: string }>;
+        };
+        const burnHash = result?.steps?.find((s) => s.name === 'burn')?.txHash as
+          | `0x${string}`
+          | undefined;
+        const mintHash = result?.steps?.find((s) => s.name === 'mint')?.txHash as
+          | `0x${string}`
+          | undefined;
         if (result?.state === 'error') {
-          patch(id, (b) => ({ ...b, phase: 'error', error: 'Transfer failed. Try again.' }));
+          patch(id, (b) => ({
+            ...b,
+            phase: 'error',
+            error: 'Transfer failed. Try again.',
+            burnTxHash: burnHash ?? b.burnTxHash,
+          }));
           return;
         }
-        // Forwarder mode returns no local mint tx hash (the forwarder submits
-        // the mint), so settle to done without one, like a recheck that proves
-        // the mint landed without a locally-originated hash.
-        patch(id, (b) => ({ ...b, phase: 'done', error: undefined }));
+        // Settle to done with whatever hashes the result carried. In forwarder
+        // mode the mint hash may be absent (the forwarder submitted it); the
+        // burn hash still gives a source-chain explorer link.
+        patch(id, (b) => ({
+          ...b,
+          phase: 'done',
+          burnTxHash: burnHash ?? b.burnTxHash,
+          mintTxHash: mintHash ?? b.mintTxHash,
+          error: undefined,
+        }));
         sfx.success();
         recordAction('bridge');
       } catch (err) {

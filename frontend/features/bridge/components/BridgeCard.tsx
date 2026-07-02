@@ -489,11 +489,10 @@ export function BridgeCard({
     recipientReady;
   const canSubmit = canBridgeSolana || canBridgeCircle || canSwitch || canBurn;
 
-  // Most recent Solana bridge (newest-first list), so the card can show its
-  // live status/error inline rather than only in the history modal.
-  const latestSolanaBridge = inBridges.find(
-    (b) => (b.sourceChainKey as string) === 'solanaDevnet',
-  );
+  // Most recent App Kit bridge (Solana or EVM; ids carry '-appkit-'),
+  // newest-first, so the card can show its live status + explorer links inline
+  // rather than only in the history modal.
+  const latestAppKitBridge = inBridges.find((b) => b.id.includes('-appkit-'));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -817,23 +816,58 @@ export function BridgeCard({
             {needsConnect ? bc.connect.hint : bc.reassurance}
           </p>
 
-          {/* Live status for the most recent Solana bridge, surfaced on the card
-              (not just the history modal) so a failed sign or route error is
-              visible immediately. The error string carries the real cause. */}
-          {appKitPath && latestSolanaBridge && (
-            <p
-              className="text-[11px] leading-snug"
-              style={{
-                color: latestSolanaBridge.phase === 'error' ? '#b03d3a' : 'var(--lp-text-sub)',
-              }}
-            >
-              {latestSolanaBridge.phase === 'error'
-                ? latestSolanaBridge.error
-                : latestSolanaBridge.phase === 'done'
-                  ? 'Added to your Arc balance.'
-                  : 'Working… approve the transfer in your wallet.'}
-            </p>
-          )}
+          {/* Live status + explorer links for the most recent App Kit bridge,
+              surfaced on the card (not just the history modal) so the user sees
+              progress and can click through to the tx immediately. */}
+          {latestAppKitBridge &&
+            (isActive(latestAppKitBridge.phase) ||
+              latestAppKitBridge.phase === 'done' ||
+              latestAppKitBridge.phase === 'error') && (
+              <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px]">
+                <span
+                  className="mono uppercase tracking-[0.12em] font-bold"
+                  style={{
+                    color:
+                      latestAppKitBridge.phase === 'error'
+                        ? '#b03d3a'
+                        : latestAppKitBridge.phase === 'done'
+                          ? '#0a7553'
+                          : 'var(--lp-text-sub)',
+                  }}
+                >
+                  {phaseLabel(
+                    latestAppKitBridge.phase,
+                    bc.row.phase,
+                    bridgeChainMeta(latestAppKitBridge.sourceChainKey).shortName,
+                  )}
+                </span>
+                {latestAppKitBridge.phase === 'error' && latestAppKitBridge.error && (
+                  <span className="text-[#b03d3a]">{latestAppKitBridge.error}</span>
+                )}
+                {latestAppKitBridge.mintTxHash && (
+                  <a
+                    href={ARC_EXPLORER_TX(latestAppKitBridge.mintTxHash)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline"
+                  >
+                    {shortHash(latestAppKitBridge.mintTxHash)} ↗
+                  </a>
+                )}
+                {latestAppKitBridge.burnTxHash && !latestAppKitBridge.mintTxHash && (
+                  <a
+                    href={bridgeChainMeta(latestAppKitBridge.sourceChainKey).explorerTx(
+                      latestAppKitBridge.burnTxHash,
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline"
+                  >
+                    {shortHash(latestAppKitBridge.burnTxHash)} ↗
+                  </a>
+                )}
+              </div>
+            )}
 
           {/* Circle accounts can add money without a browser wallet through a
               deposit address; the connected-wallet path is the default. Hidden
