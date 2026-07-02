@@ -1071,6 +1071,92 @@ export function useBridges() {
     [patch],
   );
 
+  /// Solana -> Arc, non-custodial. The user signs the Solana CCTP burn in their
+  /// own wallet (Phantom) via the App Kit Solana adapter, and Circle's
+  /// Forwarding Service fetches the attestation and submits the Arc mint, so no
+  /// destination signer and no backend relay are needed. Works for both Circle
+  /// and web3 accounts because the mint recipient is just an Arc address. App
+  /// Kit is imported dynamically to keep the Solana libraries out of the main
+  /// bundle until a Solana bridge actually runs.
+  const startSolanaBridge = useCallback(
+    async (input: { amountUsdc: number; mintRecipient: `0x${string}` }) => {
+      const id = `solanaDevnet-appkit-${input.mintRecipient}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'burning',
+        direction: 'in',
+        sourceChainKey: 'solanaDevnet',
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.mintRecipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      try {
+        const provider = (window as unknown as { solana?: unknown }).solana;
+        if (!provider) throw new Error('Connect your Solana wallet first');
+        const [{ AppKit }, { createSolanaKitAdapterFromProvider }] = await Promise.all([
+          import('@circle-fin/app-kit'),
+          import('@circle-fin/adapter-solana-kit'),
+        ]);
+        const adapter = await createSolanaKitAdapterFromProvider({
+          provider: provider as never,
+        });
+        const kit = new AppKit();
+        // Map the SDK's lifecycle events onto our phases. Names/shape are loose
+        // across versions, so read defensively.
+        kit.on('*', (payload: unknown) => {
+          const p = payload as { values?: { name?: string; state?: string } };
+          const name = p.values?.name;
+          const state = p.values?.state;
+          if (name === 'burn') {
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' ? 'attesting' : 'burning',
+              updatedAt: Date.now(),
+            }));
+          } else if (name === 'mint') {
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' ? 'done' : 'minting',
+              updatedAt: Date.now(),
+            }));
+          }
+        });
+        const result = (await kit.bridge({
+          from: { adapter, chain: 'Solana_Devnet' },
+          to: { recipientAddress: input.mintRecipient, chain: 'Arc_Testnet', useForwarder: true },
+          amount: input.amountUsdc.toString(),
+        } as never)) as { state?: string };
+        if (result?.state === 'error') {
+          patch(id, (b) => ({
+            ...b,
+            phase: 'error',
+            error: 'Solana transfer failed. Try again.',
+          }));
+          return;
+        }
+        // Forwarder mode returns no local mint tx hash (the forwarder submits
+        // the mint), so settle to done without one, like a recheck that proves
+        // the mint landed without a locally-originated hash.
+        patch(id, (b) => ({ ...b, phase: 'done', error: undefined }));
+        sfx.success();
+        recordAction('bridge');
+      } catch (err) {
+        const raw = errorToString(err).toLowerCase();
+        const friendly =
+          raw.includes('rejected') || raw.includes('denied') || raw.includes('user cancelled')
+            ? 'Cancelled in your Solana wallet'
+            : raw.includes('insufficient') || raw.includes('not enough')
+              ? 'Not enough USDC on Solana for this transfer.'
+              : `Solana transfer could not complete. ${errorToString(err).slice(0, 140)}`;
+        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+      }
+    },
+    [patch, recordAction],
+  );
+
   /// Instant Arc-to-Arc send (cash out to an Arc wallet). One backend transfer,
   /// no CCTP, settles synchronously. Stored as an 'out' record with the
   /// synthetic 'arc' key so it shows up in the activity list and history modal
@@ -1234,6 +1320,7 @@ export function useBridges() {
     startCircleOut,
     startWeb3Out,
     startArcSend,
+    startSolanaBridge,
     retry,
     recheck,
     dismiss,

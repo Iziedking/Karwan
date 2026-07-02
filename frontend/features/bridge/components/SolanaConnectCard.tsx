@@ -92,10 +92,7 @@ export function SolanaConnectCard({
               </p>
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--lp-band-dark)' }}>
-              {copy.wiring}
-            </span>
+          <div className="mt-2 flex items-center justify-end">
             <button
               type="button"
               onClick={() => void wallet.disconnect()}

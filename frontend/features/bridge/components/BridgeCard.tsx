@@ -242,6 +242,7 @@ export function BridgeCard({
     bridges,
     start,
     startCircle,
+    startSolanaBridge,
     retry,
     recheck,
     dismiss,
@@ -449,11 +450,18 @@ export function BridgeCard({
   const sourceShortName = evmSource?.shortName ?? appKitSource?.shortName ?? '';
 
   // Button gates, split by path:
+  //   - canBridgeSolana: Solana wallet connected, amount + recipient set. The
+  //     user signs the burn in their wallet; the forwarder mints on Arc.
   //   - canSwitch: connect-wallet path on the wrong EVM chain; switch first.
   //   - canBurn:   connect-wallet path on the right chain, amount + recipient set.
   //   - canBridgeCircle: deposit path, amount + recipient set (backend signs).
-  // Solana (appKitPath) has no submit yet: the user connects their wallet in
-  // SolanaConnectCard, and the burn lands in the next slice.
+  const canBridgeSolana =
+    appKitPath &&
+    !!solana.address &&
+    typeof amount === 'number' &&
+    amount > 0 &&
+    !!mintRecipient &&
+    recipientReady;
   const canSwitch = walletPath && !!evmSource && onWrongChain && !isSwitching;
   const canBurn =
     walletPath &&
@@ -471,12 +479,17 @@ export function BridgeCard({
     amount > 0 &&
     !!mintRecipient &&
     recipientReady;
-  const canSubmit = canBridgeCircle || canSwitch || canBurn;
+  const canSubmit = canBridgeSolana || canBridgeCircle || canSwitch || canBurn;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Solana has no submit yet: the connect card handles it, the burn is next.
-    if (appKitPath) return;
+    // Solana: the user signs the burn in their wallet; the forwarder mints on
+    // Arc. Recipient is the user's own Arc address (mintRecipient).
+    if (appKitPath) {
+      if (!canBridgeSolana || !mintRecipient) return;
+      startSolanaBridge({ amountUsdc: amount as number, mintRecipient });
+      return;
+    }
     // Deposit path: the backend signs the EVM burn from the provisioned DCW.
     if (depositPath && auth.address) {
       if (!canBridgeCircle) return;
