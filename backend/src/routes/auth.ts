@@ -123,7 +123,11 @@ function otpEmailHtml(code: string): string {
 async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult> {
   const client = resendClient();
   if (!client) {
-    logger.info({ email, code }, '[OTP] code (no RESEND_API_KEY, log-only)');
+    // Dev convenience only. In production a login code in the log stream is a
+    // credential leak (log aggregation, shell history, backup archives), so
+    // the code is never printed there; without a provider it simply does not
+    // deliver.
+    if (isDev()) logger.info({ email, code }, '[OTP] code (no RESEND_API_KEY, log-only)');
     return { delivered: false };
   }
   try {
@@ -167,7 +171,7 @@ async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult>
         { err: error.message, errName: error.name, email, from: config.RESEND_FROM },
         'resend rejected send',
       );
-      logger.info({ email, code }, '[OTP] code (resend rejected, log fallback)');
+      if (isDev()) logger.info({ email, code }, '[OTP] code (resend rejected, log fallback)');
       return { delivered: false, reason: error.message };
     }
     logger.info({ email, id: data?.id }, 'OTP code emailed via resend');
@@ -175,7 +179,7 @@ async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult>
   } catch (err) {
     const message = (err as Error).message ?? 'unknown';
     logger.warn({ err: message, email }, 'resend threw');
-    logger.info({ email, code }, '[OTP] code (resend threw, log fallback)');
+    if (isDev()) logger.info({ email, code }, '[OTP] code (resend threw, log fallback)');
     return { delivered: false, reason: message };
   }
 }

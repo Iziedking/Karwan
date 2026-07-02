@@ -24,10 +24,19 @@ export interface SessionPayload {
   exp: number;
 }
 
+// The placeholder shipped in .env.example. A production deploy that kept it
+// would make every session cookie forgeable by anyone who has read the repo.
+const EXAMPLE_SECRET = 'dev-secret-change-me-please-32-chars-min';
+
 function secret(): string {
   if (!config.SESSION_SECRET) {
     throw new Error(
       'SESSION_SECRET is not set — required to sign session cookies. Add to .env.',
+    );
+  }
+  if (process.env.NODE_ENV === 'production' && config.SESSION_SECRET === EXAMPLE_SECRET) {
+    throw new Error(
+      'SESSION_SECRET still equals the .env.example placeholder — refusing to sign sessions in production. Set a unique random value.',
     );
   }
   return config.SESSION_SECRET;
