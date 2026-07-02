@@ -126,6 +126,38 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS document_anchors_invoice_idx ON document_anchors (invoice_id);
     CREATE INDEX IF NOT EXISTS document_anchors_anchored_at_idx ON document_anchors (anchored_at);
+    CREATE TABLE IF NOT EXISTS event_history (
+      type TEXT NOT NULL,
+      job_id TEXT NOT NULL,
+      ts BIGINT NOT NULL,
+      data JSONB NOT NULL,
+      PRIMARY KEY (type, job_id, ts)
+    );
+    CREATE INDEX IF NOT EXISTS event_history_ts_idx ON event_history (ts);
+    CREATE INDEX IF NOT EXISTS event_history_job_ts_idx ON event_history (job_id, ts);
   `);
+
+  // Money-path invariants the schema comments promise but nothing enforced:
+  // at most one accepted-or-later factoring offer per invoice, and at most
+  // one live PO financing line per invoice (a reclaimed line unwound, so a
+  // fresh financing may follow it). Partial unique indexes make the database
+  // the referee even if application guards race. Run separately from the DDL
+  // above: if legacy duplicate rows already violate an invariant, boot must
+  // not loop — log loudly and keep the app up while the data gets repaired.
+  try {
+    await _db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS factoring_offers_one_accepted_per_invoice
+        ON factoring_offers (invoice_id)
+        WHERE status IN ('accepted', 'settled', 'defaulted');
+      CREATE UNIQUE INDEX IF NOT EXISTS po_financing_one_live_line_per_invoice
+        ON po_financing_lines (invoice_id)
+        WHERE state <> 'reclaimed';
+    `);
+  } catch (err) {
+    logger.error(
+      { err: (err as Error).message },
+      'unique money-path indexes could not be created — duplicate rows likely exist; repair the data, these invariants are NOT enforced until this succeeds',
+    );
+  }
   logger.info('postgres schema ensured');
 }
