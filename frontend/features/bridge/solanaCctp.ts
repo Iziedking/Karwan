@@ -15,6 +15,7 @@
 // DepositForBurnParams, and the PDA seed encodings (the remote-domain seed is
 // the DECIMAL STRING of the domain, not bytes).
 import {
+  ComputeBudgetProgram,
   Connection,
   Keypair,
   PublicKey,
@@ -163,6 +164,13 @@ export async function buildDepositForBurnTx(input: {
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   const transaction = new Transaction({ feePayer: owner, blockhash, lastValidBlockHeight });
+  // Priority fee + explicit CU limit: devnet drops zero-fee transactions under
+  // load, which eats into the ~60-90s blockhash validity window the user is
+  // already spending inside the Phantom popup. Costs ~0.00005 SOL.
+  transaction.add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: 500_000 }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
+  );
   transaction.add(instruction);
   // The MessageSent event account must co-sign; Phantom then adds the owner's
   // fee-payer signature on top of this partial signature.
@@ -171,13 +179,53 @@ export async function buildDepositForBurnTx(input: {
   return { transaction, eventKeypair, connection, blockhash, lastValidBlockHeight };
 }
 
-/// Wait until the burn signature is confirmed (or the blockhash expires).
+/// Thrown when the blockhash expired without the transaction landing. An
+/// expired blockhash can never be included later, so this is DEFINITIVE: no
+/// funds moved and a fresh attempt is safe.
+export class BurnExpiredError extends Error {
+  constructor() {
+    super(
+      'The approval window closed before the transaction landed, so nothing was sent. Your USDC is untouched. Try again and approve the wallet popup within about a minute.',
+    );
+    this.name = 'BurnExpiredError';
+  }
+}
+
+/// Wait until the burn signature is confirmed. On an expiry report, poll the
+/// signature status a few more times before giving up: confirmTransaction's
+/// expiry check compares against the RPC's current block height, which can run
+/// ahead of a transaction that actually landed (false expiry). Only after the
+/// extra polls still show nothing do we declare the definitive not-landed case.
 export async function confirmBurn(build: SolanaBurnBuild, signature: string): Promise<void> {
-  const res = await build.connection.confirmTransaction(
-    { signature, blockhash: build.blockhash, lastValidBlockHeight: build.lastValidBlockHeight },
-    'confirmed',
-  );
-  if (res.value.err) {
-    throw new Error(`Solana burn failed on chain: ${JSON.stringify(res.value.err)}`);
+  try {
+    const res = await build.connection.confirmTransaction(
+      { signature, blockhash: build.blockhash, lastValidBlockHeight: build.lastValidBlockHeight },
+      'confirmed',
+    );
+    if (res.value.err) {
+      throw new Error(`Solana burn failed on chain: ${JSON.stringify(res.value.err)}`);
+    }
+    return;
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('failed on chain')) throw err;
+    // Expiry (or websocket flake): verify against the ledger before failing.
+    for (let i = 0; i < 6; i++) {
+      const st = await build.connection
+        .getSignatureStatuses([signature], { searchTransactionHistory: true })
+        .catch(() => null);
+      const s = st?.value?.[0];
+      if (s) {
+        if (s.err) throw new Error(`Solana burn failed on chain: ${JSON.stringify(s.err)}`);
+        if (
+          s.confirmationStatus === 'confirmed' ||
+          s.confirmationStatus === 'finalized' ||
+          (s.confirmations ?? 0) > 0
+        ) {
+          return; // landed after all
+        }
+      }
+      await new Promise((r) => setTimeout(r, 2_500));
+    }
+    throw new BurnExpiredError();
   }
 }

@@ -1101,20 +1101,41 @@ export function useBridges() {
             signature = await build.connection.sendRawTransaction(signed.serialize());
           }
           sfx.send();
+          patch(id, (b) => ({ ...b, phase: 'burning' }));
+          // Do NOT record burnTxHash until the burn is CONFIRMED on chain. An
+          // expired blockhash can never land, so a definitively-expired attempt
+          // must leave the record hash-free: retry() then re-runs the whole
+          // flow (fresh blockhash + popup) instead of diverting to a backend
+          // recheck that has no bridge record to find. confirmBurn only throws
+          // "expired" after re-verifying the ledger, so there is no landed-but-
+          // unrecorded window to double-burn from.
+          await confirmBurn(build, signature);
           // Solana signatures are base58, not 0x hex; the record field is typed
           // for EVM hashes but only ever flows into explorer links, which the
           // solanaDevnet chain meta formats correctly.
-          patch(id, (b) => ({ ...b, burnTxHash: signature as `0x${string}`, phase: 'burning' }));
-          await confirmBurn(build, signature);
-          patch(id, (b) => ({ ...b, phase: 'relaying' }));
-          await api.bridgeRelay({
-            bridgeId: id,
-            sourceDomain: 5,
-            sourceTxHash: signature,
-            amountUsdc: input.amountUsdc.toString(),
-            mintRecipient: input.mintRecipient,
-            sourceChainKey: 'solanaDevnet',
-          });
+          patch(id, (b) => ({ ...b, burnTxHash: signature as `0x${string}`, phase: 'relaying' }));
+          // The burn is on chain; the only remaining step is telling our own
+          // backend to relay it. Retry the POST a few times so a transient
+          // network blip can't orphan a landed burn.
+          let relayErr: unknown = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              await api.bridgeRelay({
+                bridgeId: id,
+                sourceDomain: 5,
+                sourceTxHash: signature,
+                amountUsdc: input.amountUsdc.toString(),
+                mintRecipient: input.mintRecipient,
+                sourceChainKey: 'solanaDevnet',
+              });
+              relayErr = null;
+              break;
+            } catch (err) {
+              relayErr = err;
+              await new Promise((r) => setTimeout(r, 2_000 * (attempt + 1)));
+            }
+          }
+          if (relayErr) throw relayErr;
           // Backend polls IRIS and submits receiveMessage on Arc; the shared
           // SSE handlers drive attesting -> minting -> done from here.
           patch(id, (b) => ({ ...b, phase: 'attesting' }));
@@ -1250,11 +1271,16 @@ export function useBridges() {
         }
         const raw = errorToString(err).toLowerCase();
         const friendly =
-          raw.includes('rejected') || raw.includes('denied') || raw.includes('user cancelled')
-            ? 'Cancelled in your wallet'
-            : raw.includes('insufficient') || raw.includes('not enough')
-              ? 'Not enough USDC for this transfer.'
-              : `Transfer could not complete. ${errorToString(err).slice(0, 140)}`;
+          // BurnExpiredError carries a complete, user-facing explanation
+          // (definitively not landed, funds untouched, approve faster); show it
+          // whole rather than truncating it through the generic prefix.
+          err instanceof Error && err.name === 'BurnExpiredError'
+            ? err.message
+            : raw.includes('rejected') || raw.includes('denied') || raw.includes('user cancelled')
+              ? 'Cancelled in your wallet'
+              : raw.includes('insufficient') || raw.includes('not enough')
+                ? 'Not enough USDC for this transfer.'
+                : `Transfer could not complete. ${errorToString(err).slice(0, 140)}`;
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
