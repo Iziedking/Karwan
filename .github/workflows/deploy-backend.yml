@@ -5,9 +5,11 @@ name: Deploy backend
 #   - Manual via Actions → "Deploy backend" → Run workflow.
 #
 # Strategy: the VPS already has docker compose + a Caddyfile + .env in
-# ~/karwan/. This workflow only pulls the new image and rolls the service;
-# it doesn't sync source code or run npm at all. The image baked by
-# publish-backend-image.yml is the artifact.
+# ~/karwan/. This workflow pulls the latest karwan-api image, syncs the
+# docker-compose.yml so infrastructure changes (new volumes, env vars,
+# health checks) ride CI/CD, then rolls the service. The image baked by
+# publish-backend-image.yml is the artifact; source code is never npm-built
+# on the VPS.
 on:
   workflow_run:
     workflows: ['Publish backend image']
@@ -31,6 +33,28 @@ jobs:
       name: production
       url: https://api.karwan.site
     steps:
+      # Need the repo on the runner so the next step can scp docker-compose.yml.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Sync the compose file before rolling the service. Without this, an
+      # infrastructure change in git (new bind mount, env passthrough, port,
+      # healthcheck) silently never reaches the VPS — only the image does —
+      # and the new container starts against the old compose contract. The
+      # crontab-into-backup mount change was the first time this gap bit us.
+      # `target` matches the SSH user's home so the path resolves the same
+      # way the docker compose CLI expects (`cd ~/karwan && docker compose ...`).
+      - name: Sync docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: 'docker-compose.yml'
+          target: '~/karwan/'
+          overwrite: true
+
       - name: SSH deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -42,15 +66,29 @@ jobs:
           #   1. Logs the docker daemon into GHCR using a personal access token
           #      stored in the VPS_GHCR_TOKEN secret. This token needs
           #      read:packages scope only.
-          #   2. Pulls the latest karwan-api image.
-          #   3. Rolls the service via docker compose up -d. Caddy stays up.
-          #   4. Prunes dangling images to keep the VPS disk tidy.
-          #   5. Health-checks the local /health endpoint and FAILS the
+          #   2. Pre-touches host-side bind-mount targets that some volumes
+          #      expect to exist as files (not directories). Without this,
+          #      a fresh VPS rebuild + first deploy creates them as dirs
+          #      and the container can't read them as files. Idempotent.
+          #   3. Pulls the latest karwan-api image.
+          #   4. Rolls the service via docker compose up -d. Caddy stays up.
+          #   5. Prunes dangling images to keep the VPS disk tidy.
+          #   6. Health-checks the local /health endpoint and FAILS the
           #      deploy if the new container doesn't respond. The previous
           #      container keeps serving until you push a fixed image.
           script: |
             set -euo pipefail
             cd ~/karwan
+            echo ":: ensure bind-mount file targets exist"
+            touch host-crontab.txt
+            echo ":: bind-mount ownership for the non-root container"
+            # The image runs as node (uid 1000); files the old root container
+            # wrote under data/ would otherwise be unwritable. .env stays
+            # owned by the shell user; group read is all the container needs.
+            sudo chown -R 1000:1000 data || chown -R 1000:1000 data || true
+            chmod 644 host-crontab.txt
+            sudo chgrp 1000 .env 2>/dev/null || chgrp 1000 .env 2>/dev/null || true
+            chmod 640 .env || true
             echo ":: ghcr login"
             echo "${{ secrets.VPS_GHCR_TOKEN }}" | docker login ghcr.io \
               -u ${{ secrets.VPS_GHCR_USER }} --password-stdin

@@ -70,7 +70,13 @@ COPY scripts backend/scripts
 # Flat-file data dir (mounted from the host in docker-compose). The fallback
 # stores survive container restarts when Postgres isn't configured. With
 # DATABASE_URL set, this stays mostly empty.
-RUN mkdir -p backend/data
+RUN mkdir -p backend/data && chown -R node:node /app
+
+# Drop root: a compromised dependency in this container should not get uid 0.
+# The bind-mounted host dirs must be owned by uid 1000 (the deploy workflow
+# chowns ~/karwan/data before rolling the service); image-internal paths are
+# chowned above.
+USER node
 
 # wget ships in node:20-alpine. Used by HEALTHCHECK + Caddy probes.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

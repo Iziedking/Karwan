@@ -40,5 +40,9 @@ RUN npm --prefix frontend run build
 ENV NODE_ENV=production
 EXPOSE 3000
 
+# Local-testing image, but no reason to serve as root even here.
+RUN chown -R node:node /app
+USER node
+
 WORKDIR /app/frontend
 CMD ["npm", "start"]
