@@ -373,7 +373,9 @@ export function BridgeCard({
         });
     };
     load();
-    const id = setInterval(load, 15_000);
+    // Poll every 5s so a fresh faucet claim to the deposit wallet reflects
+    // without a page refresh.
+    const id = setInterval(load, 5_000);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -424,7 +426,9 @@ export function BridgeCard({
     address: web3Address,
     token: evmSource?.usdc,
     chainId: evmSource?.chainId,
-    query: { enabled: !!evmSource && walletConnected },
+    // Refetch every 5s so a fresh source-chain faucet claim shows up without a
+    // page refresh.
+    query: { enabled: !!evmSource && walletConnected, refetchInterval: 5_000 },
   });
   const sourceBalance: string | null = appKitPath
     ? solana.usdcBalance

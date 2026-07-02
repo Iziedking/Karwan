@@ -135,7 +135,8 @@ export function useSolanaWallet(): SolanaWallet {
       });
     };
     load();
-    const id = setInterval(load, 15_000);
+    // Poll every 5s so a fresh faucet claim shows up without a page refresh.
+    const id = setInterval(load, 5_000);
     return () => {
       cancelled = true;
       clearInterval(id);

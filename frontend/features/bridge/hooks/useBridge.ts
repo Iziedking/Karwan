@@ -160,6 +160,18 @@ export interface StartBridgeInput {
   mintRecipient: `0x${string}`;
 }
 
+/// Minimal shape of an injected Phantom-compatible Solana provider (window.solana).
+/// Used to shim it onto the App Kit adapter's `SolanaKitWalletProvider` interface.
+interface PhantomSolana {
+  isConnected?: boolean;
+  publicKey?: { toString(): string } | null;
+  connect(opts?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: { toString(): string } }>;
+  disconnect(): Promise<void>;
+  signTransaction(tx: unknown): Promise<unknown>;
+  signAllTransactions?(txs: unknown[]): Promise<unknown[]>;
+  signMessage?(message: Uint8Array): Promise<{ signature: Uint8Array }>;
+}
+
 /// Uniform metadata lookup for any source chain (EVM or App-Kit-only). Use
 /// from row rendering and SSE handlers so we never have to branch on Solana
 /// vs EVM at the call site.
@@ -1053,10 +1065,36 @@ export function useBridges() {
         const { AppKit } = await import('@circle-fin/app-kit');
         let adapter: unknown;
         if (isSolana) {
-          const provider = (window as unknown as { solana?: unknown }).solana;
-          if (!provider) throw new Error('Connect your Solana wallet first');
+          const phantom = (window as unknown as { solana?: PhantomSolana }).solana;
+          if (!phantom) throw new Error('Connect your Solana wallet first');
+          // Phantom exposes `publicKey` and `connect() -> { publicKey }`, but the
+          // App Kit Solana adapter needs a provider shaped as { isConnected,
+          // address, connect() -> { address }, signTransaction, ... }. Passing the
+          // raw window.solana made the adapter read `provider.address` (undefined)
+          // and abort with "Wallet provider must have a connected address". This
+          // shim maps Phantom's shape onto what the adapter expects.
+          const solProvider = {
+            get isConnected() {
+              return !!phantom.isConnected;
+            },
+            get address() {
+              return phantom.publicKey ? phantom.publicKey.toString() : undefined;
+            },
+            connect: async () => {
+              const r = await phantom.connect();
+              return { address: r.publicKey.toString() };
+            },
+            disconnect: () => phantom.disconnect(),
+            signTransaction: (tx: unknown) => phantom.signTransaction(tx),
+            ...(phantom.signAllTransactions
+              ? { signAllTransactions: (txs: unknown[]) => phantom.signAllTransactions!(txs) }
+              : {}),
+            ...(phantom.signMessage
+              ? { signMessage: (m: Uint8Array) => phantom.signMessage!(m) }
+              : {}),
+          };
           const { createSolanaKitAdapterFromProvider } = await import('@circle-fin/adapter-solana-kit');
-          adapter = await createSolanaKitAdapterFromProvider({ provider: provider as never });
+          adapter = await createSolanaKitAdapterFromProvider({ provider: solProvider as never });
         } else {
           const provider = input.getEvmProvider ? await input.getEvmProvider() : undefined;
           if (!provider) throw new Error('Connect your wallet first');

@@ -167,7 +167,10 @@ export const APPKIT_CHAIN: Record<AnySourceChainKey, string> = {
   optimismSepolia: 'Optimism_Sepolia',
   arbitrumSepolia: 'Arbitrum_Sepolia',
   baseSepolia: 'Base_Sepolia',
-  polygonAmoy: 'Polygon_Amoy',
+  // The SDK's BridgeChain enum names this 'Polygon_Amoy_Testnet' (not
+  // 'Polygon_Amoy' like the others). Using the short form made kit.bridge
+  // reject it as an unsupported chain.
+  polygonAmoy: 'Polygon_Amoy_Testnet',
   solanaDevnet: 'Solana_Devnet',
 };
 export const APPKIT_ARC_CHAIN = 'Arc_Testnet';
