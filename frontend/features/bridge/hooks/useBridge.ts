@@ -13,6 +13,8 @@ import {
   ARC_TESTNET,
   SOURCE_CHAINS,
   APP_KIT_SOURCES,
+  APPKIT_CHAIN,
+  APPKIT_ARC_CHAIN,
   isAppKitOnlyChainKey,
   addressToBytes32,
   FINALITY_THRESHOLD_FAST,
@@ -1071,22 +1073,30 @@ export function useBridges() {
     [patch],
   );
 
-  /// Solana -> Arc, non-custodial. The user signs the Solana CCTP burn in their
-  /// own wallet (Phantom) via the App Kit Solana adapter, and Circle's
-  /// Forwarding Service fetches the attestation and submits the Arc mint, so no
-  /// destination signer and no backend relay are needed. Works for both Circle
-  /// and web3 accounts because the mint recipient is just an Arc address. App
-  /// Kit is imported dynamically to keep the Solana libraries out of the main
-  /// bundle until a Solana bridge actually runs.
-  const startSolanaBridge = useCallback(
-    async (input: { amountUsdc: number; mintRecipient: `0x${string}` }) => {
-      const id = `solanaDevnet-appkit-${input.mintRecipient}-${Date.now()}`;
+  /// Bridge IN via App Kit + Circle's Forwarding Service, for ANY source chain
+  /// (EVM or Solana). The user signs the source-chain burn in their own wallet
+  /// (viem adapter for EVM, Solana adapter for Solana); the forwarder fetches
+  /// the attestation and submits the Arc mint, so there is no destination
+  /// signer and no backend relay. Works for both Circle and web3 accounts
+  /// because the mint recipient is just an Arc address. App Kit is imported
+  /// dynamically so the SDK stays out of the main bundle until a bridge runs.
+  const startAppKitBridge = useCallback(
+    async (input: {
+      sourceChainKey: AnySourceChainKey;
+      amountUsdc: number;
+      mintRecipient: `0x${string}`;
+      /// EVM only: returns the connected wallet's EIP-1193 provider for the
+      /// viem adapter. Solana reads window.solana directly.
+      getEvmProvider?: () => Promise<unknown>;
+    }) => {
+      const isSolana = isAppKitOnlyChainKey(input.sourceChainKey);
+      const id = `${input.sourceChainKey}-appkit-${input.mintRecipient}-${Date.now()}`;
       const now = Date.now();
       const record: BridgeRecord = {
         id,
-        phase: 'burning',
+        phase: isSolana ? 'burning' : 'approving',
         direction: 'in',
-        sourceChainKey: 'solanaDevnet',
+        sourceChainKey: input.sourceChainKey,
         amountUsdc: input.amountUsdc.toString(),
         mintRecipient: input.mintRecipient,
         startedAt: now,
@@ -1094,15 +1104,19 @@ export function useBridges() {
       };
       setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
       try {
-        const provider = (window as unknown as { solana?: unknown }).solana;
-        if (!provider) throw new Error('Connect your Solana wallet first');
-        const [{ AppKit }, { createSolanaKitAdapterFromProvider }] = await Promise.all([
-          import('@circle-fin/app-kit'),
-          import('@circle-fin/adapter-solana-kit'),
-        ]);
-        const adapter = await createSolanaKitAdapterFromProvider({
-          provider: provider as never,
-        });
+        const { AppKit } = await import('@circle-fin/app-kit');
+        let adapter: unknown;
+        if (isSolana) {
+          const provider = (window as unknown as { solana?: unknown }).solana;
+          if (!provider) throw new Error('Connect your Solana wallet first');
+          const { createSolanaKitAdapterFromProvider } = await import('@circle-fin/adapter-solana-kit');
+          adapter = await createSolanaKitAdapterFromProvider({ provider: provider as never });
+        } else {
+          const provider = input.getEvmProvider ? await input.getEvmProvider() : undefined;
+          if (!provider) throw new Error('Connect your wallet first');
+          const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
+          adapter = await createViemAdapterFromProvider({ provider: provider as never });
+        }
         const kit = new AppKit();
         // Map the SDK's lifecycle events onto our phases. Names/shape are loose
         // across versions, so read defensively.
@@ -1110,31 +1124,21 @@ export function useBridges() {
           const p = payload as { values?: { name?: string; state?: string } };
           const name = p.values?.name;
           const state = p.values?.state;
-          if (name === 'burn') {
-            patch(id, (b) => ({
-              ...b,
-              phase: state === 'success' ? 'attesting' : 'burning',
-              updatedAt: Date.now(),
-            }));
+          if (name === 'approve') {
+            patch(id, (b) => ({ ...b, phase: state === 'success' ? 'burning' : 'approving', updatedAt: Date.now() }));
+          } else if (name === 'burn') {
+            patch(id, (b) => ({ ...b, phase: state === 'success' ? 'attesting' : 'burning', updatedAt: Date.now() }));
           } else if (name === 'mint') {
-            patch(id, (b) => ({
-              ...b,
-              phase: state === 'success' ? 'done' : 'minting',
-              updatedAt: Date.now(),
-            }));
+            patch(id, (b) => ({ ...b, phase: state === 'success' ? 'done' : 'minting', updatedAt: Date.now() }));
           }
         });
         const result = (await kit.bridge({
-          from: { adapter, chain: 'Solana_Devnet' },
-          to: { recipientAddress: input.mintRecipient, chain: 'Arc_Testnet', useForwarder: true },
+          from: { adapter, chain: APPKIT_CHAIN[input.sourceChainKey] },
+          to: { recipientAddress: input.mintRecipient, chain: APPKIT_ARC_CHAIN, useForwarder: true },
           amount: input.amountUsdc.toString(),
         } as never)) as { state?: string };
         if (result?.state === 'error') {
-          patch(id, (b) => ({
-            ...b,
-            phase: 'error',
-            error: 'Solana transfer failed. Try again.',
-          }));
+          patch(id, (b) => ({ ...b, phase: 'error', error: 'Transfer failed. Try again.' }));
           return;
         }
         // Forwarder mode returns no local mint tx hash (the forwarder submits
@@ -1147,10 +1151,10 @@ export function useBridges() {
         const raw = errorToString(err).toLowerCase();
         const friendly =
           raw.includes('rejected') || raw.includes('denied') || raw.includes('user cancelled')
-            ? 'Cancelled in your Solana wallet'
+            ? 'Cancelled in your wallet'
             : raw.includes('insufficient') || raw.includes('not enough')
-              ? 'Not enough USDC on Solana for this transfer.'
-              : `Solana transfer could not complete. ${errorToString(err).slice(0, 140)}`;
+              ? 'Not enough USDC for this transfer.'
+              : `Transfer could not complete. ${errorToString(err).slice(0, 140)}`;
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
@@ -1320,7 +1324,7 @@ export function useBridges() {
     startCircleOut,
     startWeb3Out,
     startArcSend,
-    startSolanaBridge,
+    startAppKitBridge,
     retry,
     recheck,
     dismiss,

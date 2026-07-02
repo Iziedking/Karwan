@@ -226,7 +226,7 @@ export function BridgeCard({
   tour?: boolean;
 }) {
   const bc = useTranslations().bridgeCard;
-  const { isConnected, address: web3Address } = useAccount();
+  const { isConnected, address: web3Address, connector } = useAccount();
   const walletChainId = useChainId();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
@@ -240,9 +240,8 @@ export function BridgeCard({
   const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
   const {
     bridges,
-    start,
     startCircle,
-    startSolanaBridge,
+    startAppKitBridge,
     retry,
     recheck,
     dismiss,
@@ -487,7 +486,7 @@ export function BridgeCard({
     // Arc. Recipient is the user's own Arc address (mintRecipient).
     if (appKitPath) {
       if (!canBridgeSolana || !mintRecipient) return;
-      startSolanaBridge({ amountUsdc: amount as number, mintRecipient });
+      startAppKitBridge({ sourceChainKey: sourceKey, amountUsdc: amount as number, mintRecipient });
       return;
     }
     // Deposit path: the backend signs the EVM burn from the provisioned DCW.
@@ -516,10 +515,15 @@ export function BridgeCard({
       return;
     }
     if (!canBurn || !mintRecipient) return;
-    start({
-      sourceChainKey: sourceKey as CctpChainKey,
+    // EVM connect-wallet now routes through App Kit + the Forwarding Service,
+    // same as Solana: the wallet signs the burn (it is already on the source
+    // chain after the switch step above) and the forwarder mints on Arc.
+    startAppKitBridge({
+      sourceChainKey: sourceKey,
       amountUsdc: amount as number,
       mintRecipient,
+      getEvmProvider: () =>
+        connector?.getProvider() ?? Promise.reject(new Error('Wallet provider unavailable')),
     });
   }
 

@@ -156,6 +156,20 @@ export const SOLANA_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 export const SOLANA_EXPLORER_TX = (sig: string) =>
   `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
 
+// App Kit chain identifiers per source key. Verified against the installed
+// @circle-fin SDK type definitions (2026-07-02), not guessed. Used by the
+// kit.bridge + Forwarding Service path so every source chain routes the same
+// way: the user signs the source burn, Circle's forwarder mints on Arc.
+export const APPKIT_CHAIN: Record<AnySourceChainKey, string> = {
+  sepolia: 'Ethereum_Sepolia',
+  optimismSepolia: 'Optimism_Sepolia',
+  arbitrumSepolia: 'Arbitrum_Sepolia',
+  baseSepolia: 'Base_Sepolia',
+  polygonAmoy: 'Polygon_Amoy',
+  solanaDevnet: 'Solana_Devnet',
+};
+export const APPKIT_ARC_CHAIN = 'Arc_Testnet';
+
 export const ARC_TESTNET = {
   chainId: arcTestnet.id,
   domain: 26,

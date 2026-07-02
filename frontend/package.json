@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@circle-fin/adapter-solana-kit": "^1.4.10",
+    "@circle-fin/adapter-viem-v2": "^1.11.1",
     "@circle-fin/app-kit": "^1.8.1",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@simplewebauthn/browser": "^13.3.0",
