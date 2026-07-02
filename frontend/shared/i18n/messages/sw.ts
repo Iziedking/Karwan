@@ -1627,6 +1627,7 @@ export const sw: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Wakala wa mnunuzi hajasanidiwa.',
     inFlightTemplate: '{n} INASAFIRI',
+    reassurance: 'Karwan hulipa ada ya mtandao. Wewe hutuma USDC pekee.',
     eyebrow: {
       bridge: '[:WEKA / TOA:]',
       topUpAgent: '[:JAZA WAKALA:]',
@@ -1660,6 +1661,8 @@ export const sw: Messages = {
     },
     recipient: {
       eyebrowChoose: '[:CHAGUA MPOKEAJI:]',
+      selfSummary: 'Huingia kwenye pochi yako ya Arc',
+      sendElsewhere: 'Tuma mahali pengine',
       identityLabel: 'Pochi yako',
       identityHint: 'Utambulisho',
       buyerLabel: 'Wakala wa mnunuzi',
@@ -3604,6 +3607,7 @@ export const sw: Messages = {
       title: 'Toa kutoka Arc',
       subtitle: 'CCTP V2 · gesi imefadhiliwa',
     },
+    reassurance: 'Karwan hulipa ada ya mtandao. Pesa yako huingia kwenye mtandao unaochagua.',
     web3Fallback: 'Kupeleka nje kutoka pochi ya web3 unahitaji kutia saini burn ya Arc mwenyewe, hii inakuja hivi karibuni. Tumia akaunti ya Karwan ya barua pepe kupeleka nje sasa.',
     form: {
       destinationEyebrow: 'MAHALI PA KWENDA',

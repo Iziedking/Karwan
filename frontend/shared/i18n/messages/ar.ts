@@ -1627,6 +1627,7 @@ export const ar: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'لم يتم تكوين وكيل المشتري.',
     inFlightTemplate: '{n} قيد التنفيذ',
+    reassurance: 'كروان يغطي رسوم الشبكة. أنت ترسل USDC فقط.',
     eyebrow: {
       bridge: '[:إيداع / سحب:]',
       topUpAgent: '[:تعبئة الوكيل:]',
@@ -1660,6 +1661,8 @@ export const ar: Messages = {
     },
     recipient: {
       eyebrowChoose: '[:اختر المستلم:]',
+      selfSummary: 'يصل إلى محفظتك على Arc',
+      sendElsewhere: 'إرسال إلى مكان آخر',
       identityLabel: 'محفظتك',
       identityHint: 'الهوية',
       buyerLabel: 'وكيل المشتري',
@@ -3604,6 +3607,7 @@ export const ar: Messages = {
       title: 'السحب من Arc',
       subtitle: 'CCTP V2 · الغاز مدفوع',
     },
+    reassurance: 'كروان يغطي رسوم الشبكة. تصل أموالك إلى السلسلة التي تختارها.',
     web3Fallback: 'الإرسال من محفظة web3 يتطلّب أن توقّع حرق Arc بنفسك، وهي ميزة قادمة قريبًا. استخدم حساب Karwan بالبريد للإرسال الآن.',
     form: {
       destinationEyebrow: 'الوجهة',

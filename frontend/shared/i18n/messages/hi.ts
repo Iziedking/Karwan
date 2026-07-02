@@ -1627,6 +1627,7 @@ export const hi: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'खरीदार एजेंट कॉन्फ़िगर नहीं है।',
     inFlightTemplate: '{n} चालू',
+    reassurance: 'Karwan नेटवर्क शुल्क वहन करता है। आप केवल USDC भेजते हैं।',
     eyebrow: {
       bridge: '[:टॉप-अप / निकासी:]',
       topUpAgent: '[:एजेंट टॉप अप:]',
@@ -1660,6 +1661,8 @@ export const hi: Messages = {
     },
     recipient: {
       eyebrowChoose: '[:प्राप्तकर्ता चुनें:]',
+      selfSummary: 'आपके Arc वॉलेट में आता है',
+      sendElsewhere: 'कहीं और भेजें',
       identityLabel: 'आपका वॉलेट',
       identityHint: 'पहचान',
       buyerLabel: 'बायर एजेंट',
@@ -3604,6 +3607,7 @@ export const hi: Messages = {
       title: 'Arc से निकासी',
       subtitle: 'CCTP V2 · गैस प्रायोजित',
     },
+    reassurance: 'Karwan नेटवर्क शुल्क वहन करता है। आपका पैसा आपकी चुनी हुई चेन पर आता है।',
     web3Fallback: 'web3 वॉलेट से बाहर भेजने में Arc burn आप खुद साइन करेंगे, यह जल्द आ रहा है। अभी बाहर भेजने के लिए Karwan ईमेल खाते का उपयोग करें।',
     form: {
       destinationEyebrow: 'गंतव्य',

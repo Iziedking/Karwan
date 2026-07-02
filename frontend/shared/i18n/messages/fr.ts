@@ -1627,6 +1627,7 @@ export const fr: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Agent acheteur non configuré.',
     inFlightTemplate: '{n} EN COURS',
+    reassurance: 'Karwan prend en charge les frais de réseau. Vous n\'envoyez que de l\'USDC.',
     eyebrow: {
       bridge: '[:DÉPÔT / RETRAIT:]',
       topUpAgent: '[:RECHARGER AGENT:]',
@@ -1660,6 +1661,8 @@ export const fr: Messages = {
     },
     recipient: {
       eyebrowChoose: '[:CHOISIR LE DESTINATAIRE:]',
+      selfSummary: 'Arrive dans votre portefeuille Arc',
+      sendElsewhere: 'Envoyer ailleurs',
       identityLabel: 'Votre portefeuille',
       identityHint: 'Identité',
       buyerLabel: 'Agent acheteur',
@@ -3604,6 +3607,7 @@ export const fr: Messages = {
       title: 'Retrait depuis Arc',
       subtitle: 'CCTP V2 · gas sponsorisé',
     },
+    reassurance: 'Karwan prend en charge les frais de réseau. Votre argent arrive sur la chaîne que vous choisissez.',
     web3Fallback: 'Sortir depuis un wallet web3 signe le burn Arc vous-même, c’est en cours. Utilisez un compte Karwan email pour sortir maintenant.',
     form: {
       destinationEyebrow: 'DESTINATION',

@@ -322,6 +322,10 @@ export function BridgeOutCard() {
                 </svg>
               </span>
             </button>
+
+            <p className="text-[11px] leading-snug text-[var(--lp-text-muted)]">
+              {t.reassurance}
+            </p>
           </form>
 
         {outBridges.length > 0 && (

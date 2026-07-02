@@ -281,18 +281,15 @@ export function BridgeCard({
   /// Custom paste guarded by an Arc Testnet bytecode check so a contract
   /// address doesn't get a silent burn.
   type RecipientKind = 'identity' | 'buyer' | 'seller' | 'custom';
-  const defaultKind: RecipientKind = buyerAgent ? 'buyer' : 'identity';
-  const [recipientKind, setRecipientKind] = useState<RecipientKind>(defaultKind);
+  /// Default to the user's own Arc wallet so the common "top up my balance"
+  /// path needs no decisions. Sending to an agent or a pasted address is a
+  /// deliberate choice made through the "Send somewhere else" disclosure.
+  const [recipientKind, setRecipientKind] = useState<RecipientKind>('identity');
   const [customAddress, setCustomAddress] = useState('');
-  /// If the user lands on the page before the agents resolve, snap into the
-  /// buyer agent selection once it does, matches the prior default while
-  /// keeping the picker honest if the user has already chosen otherwise.
-  useEffect(() => {
-    if (recipientKind === 'identity' && buyerAgent && !customAddress) {
-      setRecipientKind('buyer');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buyerAgent]);
+  /// The full recipient picker stays collapsed until the user asks to send
+  /// somewhere other than their own wallet, so the default form is amount
+  /// plus one button.
+  const [recipientOpen, setRecipientOpen] = useState(false);
 
   /// The selected recipient address, resolved per kind. For Custom we feed
   /// the raw input through viem's checksum to keep the on-chain payload
@@ -653,21 +650,60 @@ export function BridgeCard({
             `}</style>
           </div>
 
-          {/* MINTS TO: picker + optional Custom paste */}
-          <RecipientPicker
-            kind={recipientKind}
-            setKind={setRecipientKind}
-            identityAddress={identityAddress}
-            buyerAgent={buyerAgent}
-            sellerAgent={sellerAgent}
-            customAddress={customAddress}
-            setCustomAddress={setCustomAddress}
-            customKind={customKind.kind}
-            resolved={mintRecipient}
-            copy={bc.recipient}
-            mintsToEyebrow={bc.eyebrow.mintsTo}
-            arcLabel={bc.arcTestnet}
-          />
+          {/* DESTINATION. The default flow lands the money in the user's own
+              Arc wallet, shown as a calm one-line summary. Agents and a
+              custom address live behind the "Send somewhere else" disclosure
+              so the common path stays a single decision. */}
+          {recipientOpen ? (
+            <RecipientPicker
+              kind={recipientKind}
+              setKind={setRecipientKind}
+              identityAddress={identityAddress}
+              buyerAgent={buyerAgent}
+              sellerAgent={sellerAgent}
+              customAddress={customAddress}
+              setCustomAddress={setCustomAddress}
+              customKind={customKind.kind}
+              resolved={mintRecipient}
+              copy={bc.recipient}
+              mintsToEyebrow={bc.eyebrow.mintsTo}
+              arcLabel={bc.arcTestnet}
+            />
+          ) : (
+            <div
+              className="px-4 py-3 flex items-center gap-3"
+              style={{
+                background: 'var(--lp-light)',
+                border: '1px dashed rgba(0,0,0,0.18)',
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
+            >
+              {mintRecipient && <WalletAvatar address={mintRecipient} size={24} />}
+              <div className="flex-1 min-w-0">
+                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                  {bc.eyebrow.mintsTo}
+                </span>
+                <p className="mt-0.5 text-[13px] font-semibold leading-tight text-[var(--lp-dark)]">
+                  {bc.recipient.selfSummary}
+                </p>
+                {mintRecipient && (
+                  <p className="mt-0.5 mono text-[10px] tabular-nums text-[var(--lp-text-muted)] truncate">
+                    {shortAddress(mintRecipient)}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setRecipientOpen(true)}
+                className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+              >
+                {bc.recipient.sendElsewhere}
+              </button>
+            </div>
+          )}
 
           {/* SUBMIT */}
           <button
@@ -717,6 +753,10 @@ export function BridgeCard({
               bc.submit.connectWallet
             )}
           </button>
+
+          <p className="text-[11px] leading-snug text-[var(--lp-text-muted)]">
+            {bc.reassurance}
+          </p>
         </form>
 
         {inBridges.length > 0 && (

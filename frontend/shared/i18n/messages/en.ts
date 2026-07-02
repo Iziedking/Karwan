@@ -1520,6 +1520,7 @@ interface MessagesShape {
     arcTestnet: string;
     buyerAgentNotConfigured: string;
     inFlightTemplate: string;
+    reassurance: string;
     eyebrow: {
       bridge: string;
       topUpAgent: string;
@@ -1553,6 +1554,8 @@ interface MessagesShape {
     };
     recipient: {
       eyebrowChoose: string;
+      selfSummary: string;
+      sendElsewhere: string;
       identityLabel: string;
       identityHint: string;
       buyerLabel: string;
@@ -3394,6 +3397,7 @@ interface MessagesShape {
       title: string;
       subtitle: string;
     };
+    reassurance: string;
     web3Fallback: string;
     form: {
       destinationEyebrow: string;
@@ -5336,6 +5340,7 @@ export const en: MessagesShape = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Buyer agent not configured.',
     inFlightTemplate: '{n} IN FLIGHT',
+    reassurance: 'Karwan covers the network fee. You only send USDC.',
     eyebrow: {
       bridge: '[:ADD MONEY / CASH OUT:]',
       topUpAgent: '[:ADD MONEY:]',
@@ -5369,6 +5374,8 @@ export const en: MessagesShape = {
     },
     recipient: {
       eyebrowChoose: '[:CHOOSE RECIPIENT:]',
+      selfSummary: 'Lands in your Arc wallet',
+      sendElsewhere: 'Send somewhere else',
       identityLabel: 'Your wallet',
       identityHint: 'Identity',
       buyerLabel: 'Buyer agent',
@@ -7402,10 +7409,11 @@ export const en: MessagesShape = {
   },
   bridgeOut: {
     header: {
-      eyebrow: 'SEND OUT',
-      title: 'Withdraw from Arc',
-      subtitle: 'CCTP V2 · gas sponsored',
+      eyebrow: 'CASH OUT',
+      title: 'Cash out',
+      subtitle: 'Powered by Circle · fee covered',
     },
+    reassurance: 'Karwan covers the network fee. Your money lands on the chain you choose.',
     web3Fallback: 'Bridging out from a web3 wallet signs the Arc burn yourself, which is coming soon. Use a Karwan email account to send out now.',
     form: {
       destinationEyebrow: 'DESTINATION',
@@ -7417,18 +7425,18 @@ export const en: MessagesShape = {
       landsAtPrefix: 'LANDS AT ·',
       recipientPlaceholder: '0x your address on the destination chain',
       addressInvalid: '• [:ERR:] not a valid address',
-      submitTemplate: 'Send to {dest}',
+      submitTemplate: 'Cash out to {dest}',
     },
     activityEyebrow: 'ACTIVITY',
     dismissButton: 'Dismiss',
     srToRecipient: 'to {address}',
     phases: {
-      burning: 'Burning on Arc',
-      waitingAttestation: 'Waiting for attestation',
-      mintingTemplate: 'Minting on {dest}',
-      done: 'Sent',
+      burning: 'Sending',
+      waitingAttestation: 'Confirming',
+      mintingTemplate: 'Arriving at {dest}',
+      done: 'Cashed out',
       error: 'Failed',
-      submitting: 'Submitting',
+      submitting: 'Preparing',
     },
   },
   onChainProof: {
