@@ -2,8 +2,10 @@
 #
 # Files on the VPS:
 #   ~/karwan/
-#     ├── docker-compose.yml   (this file)
-#     ├── .env                 (filled from .env.example; NEVER commit real values)
+#     ├── docker-compose.yml   (this file; the deploy workflow syncs it from git)
+#     ├── .env                 (filled from .env.example; NEVER commit real values.
+#     │                         Must include POSTGRES_PASSWORD + DATABASE_URL
+#     │                         pointing at the postgres service below)
 #     ├── Caddyfile            (see commands below; auto-managed certs)
 #     └── data/                (host-side mount for the backend's flat-file fallback)
 #
@@ -17,8 +19,38 @@
 #
 # DNS: point api.karwan.site at the VPS IP. Caddy negotiates TLS automatically
 # via Let's Encrypt the first time the domain resolves.
+#
+# NOTE: this file is the source of truth. The deploy workflow scp's it over
+# ~/karwan/docker-compose.yml on every backend deploy, so VPS-side edits that
+# aren't mirrored here WILL be overwritten (the postgres service below was
+# born as exactly such an edit during the 2026-07-01 DigitalOcean migration
+# and is now reconciled).
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: karwan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: karwan
+      POSTGRES_DB: karwan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      # Named volume: survives compose down / image rolls. B2 nightly dumps
+      # (pg_dump via the in-container backup script) are the restore path.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U karwan -d karwan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
   karwan-api:
     # Two ways to source the image:
     #   1. Build locally on the VPS from the repo:
@@ -34,6 +66,9 @@ services:
       # Belt-and-braces: production mode + bind on the container's port.
       NODE_ENV: production
       PORT: 8787
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       # Persist the flat-file fallback store across container rebuilds.
       # When DATABASE_URL is set, most of these files stay empty; the dir is
@@ -88,5 +123,6 @@ services:
         max-file: "5"
 
 volumes:
+  pgdata:
   caddy_data:
   caddy_config:
