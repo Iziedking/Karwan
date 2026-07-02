@@ -2454,11 +2454,9 @@ export const fr: Messages = {
         settle: { tag: 'RÈGLEMENT', label: 'Les jalons se libèrent' },
       },
       kpis: {
-        avgSettleLabel: 'RÈGLEMENT MOY.',
-        avgSettleUnit: 'MIN',
-        inFlightLabel: 'USDC EN VOL',
-        inFlightUnit: 'M',
-        uptimeLabel: 'DISPONIBILITÉ',
+        dealsLabel: 'DEALS SUR LE RAIL',
+        settledLabel: 'RÉGLÉS',
+        volumeLabel: 'VOLUME RÉGLÉ',
       },
     },
     tradeLanes: {
@@ -2466,7 +2464,7 @@ export const fr: Messages = {
       titleStart: 'Les corridors, par',
       titleAccent: 'volume',
       titleEnd: '.',
-      footnote: 'Volume on-chain sur 24 heures, en direct. Chaque couloir règle sur Arc.',
+      footnote: 'Couloirs représentatifs, chiffres illustratifs. Chaque couloir règle sur Arc.',
       laneIdPrefix: 'COULOIR',
       toAria: 'vers',
       avgPrefix: 'MOY.',
@@ -2478,8 +2476,8 @@ export const fr: Messages = {
       },
     },
     earlyTrades: {
-      tag: 'PREMIERS DEALS',
-      title: 'Ce qui atterrit sur le rail.',
+      tag: 'FLUX TYPES',
+      title: 'À quoi ressemble un deal sur le rail.',
       cards: {
         buyerLagos: { role: 'ACHETEUR', city: 'LAGOS', title: 'Facture logistique Dubaï réglée en 4 minutes', unit: 'USDC', sub: 'payée en 3 jalons' },
         sellerNairobi: { role: 'VENDEUR', city: 'NAIROBI', title: "L'agent a enchéri sur 14 demandes pendant mon sommeil, 3 gagnées", unit: 'GAGNÉS', sub: 'zéro intervention manuelle' },

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { api } from '@/core/api';
 import type { Messages } from '@/shared/i18n/messages/en';
 /// HeroFlow drives the landing hero animation; StatsTicker lives below the
 /// fold. Dynamically imported so the motion-heavy bundles do not block first
@@ -275,7 +276,39 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
 }
 
 // Flow. deal end to end. Six stage chips on a hairline track + three KPIs
+/// Compact "1.2M" / "412K" formatting for the KPI band. Returns value + unit
+/// separately because KpiBlock renders them in different type sizes.
+function compactUsdc(volume: number): { value: string; unit: string } {
+  if (volume >= 1_000_000) return { value: (volume / 1_000_000).toFixed(2), unit: 'M USDC' };
+  if (volume >= 1_000) return { value: (volume / 1_000).toFixed(1), unit: 'K USDC' };
+  return { value: String(Math.round(volume)), unit: 'USDC' };
+}
+
 function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
+  // Real platform numbers, not marketing copy: the same aggregate endpoint
+  // the app itself uses. '—' until the fetch lands; a failed fetch just keeps
+  // the placeholders (the landing must render without the API).
+  const [stats, setStats] = useState<{
+    settled: number;
+    total: number;
+    volumeUsdc: number;
+  } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api
+      .dealsStats()
+      .then((r) => {
+        if (alive) setStats({ settled: r.settled, total: r.total, volumeUsdc: r.volumeUsdc });
+      })
+      .catch(() => {
+        /* placeholders stay */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const volume = stats ? compactUsdc(stats.volumeUsdc) : null;
+
   const steps: Array<{
     tag: string;
     label: string;
@@ -366,9 +399,21 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
             className="mt-12 pt-8 grid md:grid-cols-3 gap-8"
             style={{ borderTop: '1px solid var(--lp-border-subtle)' }}
           >
-            <KpiBlock label={copy.kpis.avgSettleLabel} value="3.2" unit={copy.kpis.avgSettleUnit} />
-            <KpiBlock label={copy.kpis.inFlightLabel} value="1.42" unit={copy.kpis.inFlightUnit} />
-            <KpiBlock label={copy.kpis.uptimeLabel} value="99.98" unit="%" live />
+            <KpiBlock
+              label={copy.kpis.dealsLabel}
+              value={stats ? String(stats.total) : '—'}
+              unit=""
+            />
+            <KpiBlock
+              label={copy.kpis.settledLabel}
+              value={stats ? String(stats.settled) : '—'}
+              unit=""
+            />
+            <KpiBlock
+              label={copy.kpis.volumeLabel}
+              value={volume ? volume.value : '—'}
+              unit={volume ? volume.unit : ''}
+            />
           </div>
         </div>
       </div>

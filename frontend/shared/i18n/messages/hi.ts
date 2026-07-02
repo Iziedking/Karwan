@@ -2454,11 +2454,9 @@ export const hi: Messages = {
         settle: { tag: 'सेटल', label: 'माइलस्टोन रिलीज़' },
       },
       kpis: {
-        avgSettleLabel: 'औसत सेटल',
-        avgSettleUnit: 'मिन',
-        inFlightLabel: 'USDC गति में',
-        inFlightUnit: 'मि',
-        uptimeLabel: 'अपटाइम',
+        dealsLabel: 'रेल पर सौदे',
+        settledLabel: 'सेटल हुए',
+        volumeLabel: 'सेटल वॉल्यूम',
       },
     },
     tradeLanes: {
@@ -2466,7 +2464,7 @@ export const hi: Messages = {
       titleStart: 'कॉरिडोर,',
       titleAccent: 'वॉल्यूम',
       titleEnd: ' के हिसाब से.',
-      footnote: '24 घंटे का लाइव ऑन-चेन वॉल्यूम. हर लेन Arc पर सेटल होती है.',
+      footnote: 'प्रतिनिधि कॉरिडोर, उदाहरण के आंकड़े. हर लेन Arc पर सेटल होती है.',
       laneIdPrefix: 'लेन',
       toAria: 'तक',
       avgPrefix: 'औसत',
@@ -2478,8 +2476,8 @@ export const hi: Messages = {
       },
     },
     earlyTrades: {
-      tag: 'शुरुआती सौदे',
-      title: 'रेल पर क्या आ रहा है.',
+      tag: 'नमूना फ्लो',
+      title: 'रेल पर एक सौदा कैसा दिखता है.',
       cards: {
         buyerLagos: { role: 'खरीदार', city: 'लागोस', title: 'दुबई का लॉजिस्टिक्स इनवॉइस 4 मिनट में सेटल किया', unit: 'USDC', sub: '3 माइलस्टोन में चुकाया' },
         sellerNairobi: { role: 'विक्रेता', city: 'नैरोबी', title: 'मेरी नींद में एजेंट ने 14 रिक्वेस्ट पर बोली लगाई, 3 जीते', unit: 'जीते', sub: 'कोई मैन्युअल काम नहीं' },

@@ -2345,11 +2345,9 @@ interface MessagesShape {
         settle: { tag: string; label: string };
       };
       kpis: {
-        avgSettleLabel: string;
-        avgSettleUnit: string;
-        inFlightLabel: string;
-        inFlightUnit: string;
-        uptimeLabel: string;
+        dealsLabel: string;
+        settledLabel: string;
+        volumeLabel: string;
       };
     };
     tradeLanes: {
@@ -6189,11 +6187,9 @@ export const en: MessagesShape = {
         settle: { tag: 'SETTLE', label: 'Milestones release' },
       },
       kpis: {
-        avgSettleLabel: 'AVG SETTLE',
-        avgSettleUnit: 'MIN',
-        inFlightLabel: 'USDC IN FLIGHT',
-        inFlightUnit: 'M',
-        uptimeLabel: 'UPTIME',
+        dealsLabel: 'DEALS ON THE RAIL',
+        settledLabel: 'SETTLED',
+        volumeLabel: 'SETTLED VOLUME',
       },
     },
     tradeLanes: {
@@ -6201,7 +6197,7 @@ export const en: MessagesShape = {
       titleStart: 'The corridors, by',
       titleAccent: 'volume',
       titleEnd: '.',
-      footnote: 'Live 24-hour on-chain volume. Every lane settles on Arc.',
+      footnote: 'Representative corridors, illustrative figures. Every lane settles on Arc.',
       laneIdPrefix: 'LANE',
       toAria: 'to',
       avgPrefix: 'AVG',
@@ -6222,8 +6218,8 @@ export const en: MessagesShape = {
       },
     },
     earlyTrades: {
-      tag: 'EARLY TRADES',
-      title: "What's landing on the rail.",
+      tag: 'SAMPLE FLOWS',
+      title: 'What a deal looks like on the rail.',
       cards: {
         buyerLagos: { role: 'BUYER', city: 'LAGOS', title: 'Settled a Dubai logistics invoice in 4 minutes', unit: 'USDC', sub: 'paid in 3 milestones' },
         sellerNairobi: { role: 'SELLER', city: 'NAIROBI', title: 'Agent bid 14 requests while I slept, won 3', unit: 'WON', sub: 'zero manual touches' },

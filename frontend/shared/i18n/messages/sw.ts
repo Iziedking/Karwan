@@ -2454,11 +2454,9 @@ export const sw: Messages = {
         settle: { tag: 'MALIZA', label: 'Hatua zinatolewa' },
       },
       kpis: {
-        avgSettleLabel: 'WASTANI WA MALIPO',
-        avgSettleUnit: 'DK',
-        inFlightLabel: 'USDC NJIANI',
-        inFlightUnit: 'M',
-        uptimeLabel: 'MUDA HAI',
+        dealsLabel: 'DILI KWENYE RELI',
+        settledLabel: 'ZILIZOMALIZIKA',
+        volumeLabel: 'KIASI KILICHOMALIZIKA',
       },
     },
     tradeLanes: {
@@ -2466,7 +2464,7 @@ export const sw: Messages = {
       titleStart: 'Njia, kwa',
       titleAccent: 'kiasi',
       titleEnd: '.',
-      footnote: 'Kiasi cha on-chain cha saa 24, kwa wakati halisi. Kila njia humalizika kwenye Arc.',
+      footnote: 'Njia za mfano, takwimu za kielelezo. Kila njia humalizika kwenye Arc.',
       laneIdPrefix: 'NJIA',
       toAria: 'hadi',
       avgPrefix: 'WASTANI',
@@ -2478,8 +2476,8 @@ export const sw: Messages = {
       },
     },
     earlyTrades: {
-      tag: 'BIASHARA ZA AWALI',
-      title: 'Kinachoshuka kwenye reli.',
+      tag: 'MIFANO YA MTIRIRIKO',
+      title: 'Dili inavyoonekana kwenye reli.',
       cards: {
         buyerLagos: { role: 'MNUNUZI', city: 'LAGOS', title: 'Nilimaliza ankara ya usafirishaji ya Dubai ndani ya dakika 4', unit: 'USDC', sub: 'imelipwa kwa hatua 3' },
         sellerNairobi: { role: 'MUUZAJI', city: 'NAIROBI', title: 'Wakala aliweka zabuni kwenye maombi 14 nilipolala, alishinda 3', unit: 'ZILIZOSHINDWA', sub: 'bila mguso wa mkono' },

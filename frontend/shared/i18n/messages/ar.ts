@@ -2454,11 +2454,9 @@ export const ar: Messages = {
         settle: { tag: 'تسوية', label: 'تحرير المراحل' },
       },
       kpis: {
-        avgSettleLabel: 'متوسط التسوية',
-        avgSettleUnit: 'دقيقة',
-        inFlightLabel: 'USDC قيد التحويل',
-        inFlightUnit: 'م',
-        uptimeLabel: 'وقت التشغيل',
+        dealsLabel: 'صفقات على القضبان',
+        settledLabel: 'مُسوّاة',
+        volumeLabel: 'حجم التسوية',
       },
     },
     tradeLanes: {
@@ -2466,7 +2464,7 @@ export const ar: Messages = {
       titleStart: 'الممرات، حسب',
       titleAccent: 'الحجم',
       titleEnd: '.',
-      footnote: 'حجم مباشر خلال 24 ساعة على السلسلة. كل مسار يُسوَّى على Arc.',
+      footnote: 'مسارات تمثيلية بأرقام توضيحية. كل مسار يُسوَّى على Arc.',
       laneIdPrefix: 'مسار',
       toAria: 'إلى',
       avgPrefix: 'متوسط',
@@ -2478,8 +2476,8 @@ export const ar: Messages = {
       },
     },
     earlyTrades: {
-      tag: 'صفقات مبكرة',
-      title: 'ما الذي يهبط على القضبان.',
+      tag: 'تدفقات نموذجية',
+      title: 'كيف تبدو الصفقة على القضبان.',
       cards: {
         buyerLagos: { role: 'مشترٍ', city: 'لاغوس', title: 'سوَّى فاتورة لوجستيات في دبي خلال 4 دقائق', unit: 'USDC', sub: 'مدفوعة على 3 مراحل' },
         sellerNairobi: { role: 'بائع', city: 'نيروبي', title: 'العميل قدّم عروضاً على 14 طلباً وأنا نائم، وفاز بـ 3', unit: 'فاز', sub: 'بلا تدخّل يدوي' },
