@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config, conduitApiKeys } from '../config.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 
 /// In-app support assistant. A thin proxy to a Claude model, grounded in the
 /// Karwan knowledge base. It answers questions about the product and hands users
@@ -201,7 +202,14 @@ const bodySchema = z.object({
     .max(40),
 });
 
-assistantRoutes.post('/chat', async (c) => {
+// The assistant serves signed-out visitors too, so it stays session-free, but
+// every call is a paid LLM request: without a limit, anonymous volume drives
+// the Claude bill directly. 20 messages per 10 minutes per IP is generous for
+// a human conversation and ruinous for a script.
+assistantRoutes.post(
+  '/chat',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'assistant-chat' }),
+  async (c) => {
   const provs = assistantProviders();
   if (provs.length === 0) {
     return c.json({ error: 'assistant-unavailable' }, 503);

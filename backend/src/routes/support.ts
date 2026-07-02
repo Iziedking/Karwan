@@ -1,8 +1,10 @@
+import { timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { viewerAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { config } from '../config.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import {
   appendUserMessage,
   closeConversation,
@@ -44,7 +46,13 @@ const messageSchema = z.object({ text: z.string().min(1).max(4000) });
 /// when no operator channel is configured.
 supportRoutes.get('/status', (c) => c.json({ enabled: supportHandoffEnabled() }));
 
-supportRoutes.post('/start', async (c) => {
+// Each /start fires an operator Telegram message plus a team email, so an
+// unlimited anonymous endpoint is a spam cannon aimed at ourselves. Three
+// fresh tickets per half hour per IP covers any real user.
+supportRoutes.post(
+  '/start',
+  rateLimit({ windowMs: 30 * 60 * 1000, max: 3, name: 'support-start' }),
+  async (c) => {
   if (!supportHandoffEnabled()) return c.json({ error: 'support-unavailable' }, 503);
   let body;
   try {
@@ -69,8 +77,14 @@ supportRoutes.post('/start', async (c) => {
   return c.json({ conversationId: convo.id, at: convo.updatedAt });
 });
 
-supportRoutes.post('/:id/message', async (c) => {
-  const id = c.req.param('id');
+supportRoutes.post(
+  '/:id/message',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 30, name: 'support-message' }),
+  async (c) => {
+  // With the rate-limit middleware in the chain, Hono no longer infers the
+  // param type from the path literal; coalesce so the store lookup stays a
+  // plain string (an empty id simply resolves to not-open).
+  const id = c.req.param('id') ?? '';
   let body;
   try {
     body = messageSchema.parse(await c.req.json());
@@ -115,8 +129,22 @@ function parseEmailAddress(raw: string): string {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr) ? addr : '';
 }
 
+/// Constant-time secret check. A plain !== leaks equality timing, and the
+/// secret should ride a header (URLs land in access logs and proxy history);
+/// the path variant stays accepted until the email provider webhook is
+/// repointed, then it can be dropped.
+function inboundSecretOk(supplied: string | undefined): boolean {
+  const expected = config.INBOUND_EMAIL_SECRET;
+  if (!expected || !supplied) return false;
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
 supportRoutes.post('/inbound/:secret', async (c) => {
-  if (!config.INBOUND_EMAIL_SECRET || c.req.param('secret') !== config.INBOUND_EMAIL_SECRET) {
+  const supplied = c.req.header('x-inbound-secret') ?? c.req.param('secret');
+  if (!inboundSecretOk(supplied)) {
     return c.json({ error: 'not found' }, 404);
   }
   let payload: Record<string, unknown>;
