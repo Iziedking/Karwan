@@ -441,8 +441,8 @@ export function BridgeCard({
     chainId: evmSource?.chainId,
     query: { enabled: !!evmSource && walletConnected },
   });
-  const sourceBalance: string | null = sourceIsAppKitOnly
-    ? null
+  const sourceBalance: string | null = appKitPath
+    ? solana.usdcBalance
     : depositPath
       ? circleWallet?.usdcBalance ?? null
       : web3SourceBal.data
@@ -488,6 +488,12 @@ export function BridgeCard({
     !!mintRecipient &&
     recipientReady;
   const canSubmit = canBridgeSolana || canBridgeCircle || canSwitch || canBurn;
+
+  // Most recent Solana bridge (newest-first list), so the card can show its
+  // live status/error inline rather than only in the history modal.
+  const latestSolanaBridge = inBridges.find(
+    (b) => (b.sourceChainKey as string) === 'solanaDevnet',
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -810,6 +816,24 @@ export function BridgeCard({
           <p className="text-[11px] leading-snug text-[var(--lp-text-muted)]">
             {needsConnect ? bc.connect.hint : bc.reassurance}
           </p>
+
+          {/* Live status for the most recent Solana bridge, surfaced on the card
+              (not just the history modal) so a failed sign or route error is
+              visible immediately. The error string carries the real cause. */}
+          {appKitPath && latestSolanaBridge && (
+            <p
+              className="text-[11px] leading-snug"
+              style={{
+                color: latestSolanaBridge.phase === 'error' ? '#b03d3a' : 'var(--lp-text-sub)',
+              }}
+            >
+              {latestSolanaBridge.phase === 'error'
+                ? latestSolanaBridge.error
+                : latestSolanaBridge.phase === 'done'
+                  ? 'Added to your Arc balance.'
+                  : 'Working… approve the transfer in your wallet.'}
+            </p>
+          )}
 
           {/* Circle accounts can add money without a browser wallet through a
               deposit address; the connected-wallet path is the default. Hidden
