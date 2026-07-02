@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
-import { useBridges, bridgeChainMeta, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
+import { useBridges } from '../hooks/useBridge';
 import { useHiddenActivityBridgeIds } from './BridgeCard';
+import { BridgeActivityStrip } from './BridgeActivityStrip';
 import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
-import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 
@@ -29,36 +30,6 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 type DestKey = CctpChainKey | 'arc';
 const DEST_KEYS: DestKey[] = ['arc', ...SOURCE_CHAIN_KEYS];
 
-
-function outPhaseLabel(
-  phase: BridgePhase,
-  dest: string,
-  phases: Messages['bridgeOut']['phases'],
-): string {
-  switch (phase) {
-    case 'approving':
-    case 'burning':
-      return phases.burning;
-    case 'relaying':
-    case 'attesting':
-      return phases.waitingAttestation;
-    case 'minting':
-      return phases.mintingTemplate.replace('{dest}', dest);
-    case 'done':
-      return phases.done;
-    case 'error':
-      return phases.error;
-    default:
-      return phases.submitting;
-  }
-}
-
-function phaseTone(phase: BridgePhase): 'live' | 'positive' | 'critical' {
-  if (phase === 'done') return 'positive';
-  if (phase === 'error') return 'critical';
-  return 'live';
-}
-
 /// Bridge OUT (Arc -> chain). Sends the user's Arc USDC to another chain via
 /// CCTP: backend burns from the identity DCW on Arc, relays the mint on the
 /// destination (gas sponsored). Circle accounts only for now; web3 users sign
@@ -75,7 +46,8 @@ export function BridgeOutCard() {
   /// this panel only (a localStorage set), it never deletes the record from the
   /// shared store, so the permanent Transfer history keeps every transfer.
   const hidden = useHiddenActivityBridgeIds(auth.address ?? null);
-  const outBridges = bridges.filter((b) => b.direction === 'out' && !hidden.set.has(b.id));
+  // All outbound records; the activity strip does the recency + hidden filter.
+  const outBridges = bridges.filter((b) => b.direction === 'out');
 
   const [destKey, setDestKey] = useState<DestKey>('arc');
   const [open, setOpen] = useState(false);
@@ -408,29 +380,10 @@ export function BridgeOutCard() {
             </p>
           </form>
 
-        {outBridges.length > 0 && (
-          <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
-            <div className="flex items-center justify-between gap-3">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:{t.activityEyebrow}:]
-              </span>
-              {outBridges.some((b) => !isActive(b.phase)) && (
-                <button
-                  type="button"
-                  onClick={() => hidden.hideMany(outBridges.filter((b) => !isActive(b.phase)).map((b) => b.id))}
-                  className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-                >
-                  {t.clearActivity}
-                </button>
-              )}
-            </div>
-            <ul className="mt-3.5 space-y-2">
-              {outBridges.map((b) => (
-                <OutRow key={b.id} bridge={b} onDismiss={() => hidden.hide(b.id)} active={isActive(b.phase)} />
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Temporary activity strip: in-flight + recently completed cash-outs,
+            each with a tx link. Auto-clears finished rows; permanent record is
+            in the page's Transfer history modal and the /activity feed. */}
+        <BridgeActivityStrip records={outBridges} hidden={hidden} isActive={isActive} />
       </div>
     </div>
   );
@@ -484,84 +437,5 @@ function RecipientVerifyPill({
       />
       {label}
     </div>
-  );
-}
-
-function OutRow({
-  bridge,
-  onDismiss,
-  active,
-}: {
-  bridge: BridgeRecord;
-  onDismiss: () => void;
-  active: boolean;
-}) {
-  const t = useTranslations().bridgeOut;
-  // OUT records always land on a CCTP EVM destination today (Solana is
-  // bridge-IN-only on the App Kit path), so this index is safe. The meta
-  // lookup tolerates a future widening without forcing a rewrite here.
-  const dest = bridgeChainMeta(bridge.sourceChainKey);
-  const tone = phaseTone(bridge.phase);
-  const rail =
-    tone === 'positive' ? '#0a7553' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';
-  return (
-    <li
-      className="relative overflow-hidden p-3 ps-4"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
-      }}
-    >
-      <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: rail }} />
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5">
-          <ChainLogo chain="arc" size={20} />
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden className="text-[var(--lp-text-muted)]">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <ChainLogo chain={bridge.sourceChainKey} size={20} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-sans text-[16px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(bridge.amountUsdc, { withSuffix: false })}
-            </span>
-            <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
-              USDC
-            </span>
-          </div>
-          <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] leading-none" style={{ color: rail }}>
-            {outPhaseLabel(bridge.phase, dest.shortName, t.phases)}
-            {bridge.mintTxHash && (
-              <a
-                href={dest.explorerTx(bridge.mintTxHash)}
-                target="_blank"
-                rel="noreferrer"
-                className="ms-2 underline-offset-2 hover:underline text-[var(--lp-text-muted)]"
-              >
-                {shortHash(bridge.mintTxHash)}
-              </a>
-            )}
-          </p>
-          {bridge.error && (
-            <p className="mt-1 text-[11px] leading-snug text-[#b03d3a]">{bridge.error}</p>
-          )}
-        </div>
-        {!active && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors shrink-0"
-          >
-            {t.dismissButton}
-          </button>
-        )}
-      </div>
-      <span className="sr-only">{t.srToRecipient.replace('{address}', shortAddress(bridge.mintRecipient))}</span>
-    </li>
   );
 }

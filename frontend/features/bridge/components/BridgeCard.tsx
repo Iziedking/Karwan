@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { formatUnits, isAddress } from 'viem';
@@ -28,6 +27,7 @@ import {
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { useSolanaWallet } from '../hooks/useSolanaWallet';
 import { SolanaConnectCard } from './SolanaConnectCard';
+import { BridgeActivityStrip } from './BridgeActivityStrip';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -238,16 +238,7 @@ export function BridgeCard({
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
   const buyerAgent = agents?.buyer ? (agents.buyer as `0x${string}`) : undefined;
   const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
-  const {
-    bridges,
-    startCircle,
-    startAppKitBridge,
-    retry,
-    recheck,
-    dismiss,
-    clearCompleted,
-    isActive,
-  } = useBridges();
+  const { bridges, startCircle, startAppKitBridge, isActive } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
@@ -268,12 +259,6 @@ export function BridgeCard({
   /// new user who expected the first tile to be selected.
   const [sourceKey, setSourceKey] = useState<AnySourceChainKey>('sepolia');
   const [amount, setAmount] = useState<number | ''>('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  /// Bridge activity used to render as an always-on list under the form,
-  /// which pushed the card height as in-flight bridges accumulated. Behind
-  /// a button + portal modal now: the form stays clean, and the same
-  /// retry/recheck/dismiss controls live inside the modal.
-  const [historyOpen, setHistoryOpen] = useState(false);
   /// Source-chain dropdown, previously a 6-tile grid that took too much
   /// vertical space and felt cluttered next to the slim BRIDGE FROM ARC
   /// destination dropdown. Mirrors that pattern: a single button shows the
@@ -489,10 +474,6 @@ export function BridgeCard({
     recipientReady;
   const canSubmit = canBridgeSolana || canBridgeCircle || canSwitch || canBurn;
 
-  // Most recent App Kit bridge (Solana or EVM; ids carry '-appkit-'),
-  // newest-first, so the card can show its live status + explorer links inline
-  // rather than only in the history modal.
-  const latestAppKitBridge = inBridges.find((b) => b.id.includes('-appkit-'));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -816,59 +797,6 @@ export function BridgeCard({
             {needsConnect ? bc.connect.hint : bc.reassurance}
           </p>
 
-          {/* Live status + explorer links for the most recent App Kit bridge,
-              surfaced on the card (not just the history modal) so the user sees
-              progress and can click through to the tx immediately. */}
-          {latestAppKitBridge &&
-            (isActive(latestAppKitBridge.phase) ||
-              latestAppKitBridge.phase === 'done' ||
-              latestAppKitBridge.phase === 'error') && (
-              <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px]">
-                <span
-                  className="mono uppercase tracking-[0.12em] font-bold"
-                  style={{
-                    color:
-                      latestAppKitBridge.phase === 'error'
-                        ? '#b03d3a'
-                        : latestAppKitBridge.phase === 'done'
-                          ? '#0a7553'
-                          : 'var(--lp-text-sub)',
-                  }}
-                >
-                  {phaseLabel(
-                    latestAppKitBridge.phase,
-                    bc.row.phase,
-                    bridgeChainMeta(latestAppKitBridge.sourceChainKey).shortName,
-                  )}
-                </span>
-                {latestAppKitBridge.phase === 'error' && latestAppKitBridge.error && (
-                  <span className="text-[#b03d3a]">{latestAppKitBridge.error}</span>
-                )}
-                {latestAppKitBridge.mintTxHash && (
-                  <a
-                    href={ARC_EXPLORER_TX(latestAppKitBridge.mintTxHash)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline"
-                  >
-                    {shortHash(latestAppKitBridge.mintTxHash)} ↗
-                  </a>
-                )}
-                {latestAppKitBridge.burnTxHash && !latestAppKitBridge.mintTxHash && (
-                  <a
-                    href={bridgeChainMeta(latestAppKitBridge.sourceChainKey).explorerTx(
-                      latestAppKitBridge.burnTxHash,
-                    )}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline"
-                  >
-                    {shortHash(latestAppKitBridge.burnTxHash)} ↗
-                  </a>
-                )}
-              </div>
-            )}
-
           {/* Circle accounts can add money without a browser wallet through a
               deposit address; the connected-wallet path is the default. Hidden
               for Solana, which is always a deposit-address flow. */}
@@ -892,50 +820,12 @@ export function BridgeCard({
             ))}
         </form>
 
-        {inBridges.length > 0 && (
-          <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {bc.eyebrow.activity}
-            </span>
-            <button
-              type="button"
-              onClick={() => setHistoryOpen(true)}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-3 py-1.5 border border-black/15 inline-flex items-center gap-2"
-              style={{
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
-              }}
-            >
-              <span>
-                {inBridges.length}{' '}
-                {inBridges.length === 1
-                  ? bc.activity.bridgeSingular
-                  : bc.activity.bridgePlural}
-              </span>
-              <span aria-hidden>›</span>
-            </button>
-          </div>
-        )}
+        {/* Temporary activity strip: in-flight + recently completed transfers,
+            each with a tx link. It auto-clears finished rows after a few
+            minutes, or the user dismisses them. The permanent record lives in
+            the page's Transfer history modal and the /activity feed. */}
+        <BridgeActivityStrip records={inBridgesAll} hidden={hiddenIds} isActive={isActive} />
       </div>
-      <BridgeHistoryModal
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        bridges={inBridges}
-        expandedId={expandedId}
-        onToggle={(id) => setExpandedId(expandedId === id ? null : id)}
-        onRetry={retry}
-        onRecheck={recheck}
-        /// Activity-modal dismiss writes to the localStorage-backed
-        /// hidden-ID set, NOT the shared useBridges store. The bridge
-        /// history modal (a separate surface in BridgeHistorySection.tsx)
-        /// keeps showing every bridge the user ever made.
-        onDismiss={hiddenIds.hide}
-        onDismissMany={hiddenIds.hideMany}
-        isActive={isActive}
-        copy={bc}
-      />
     </div>
   );
 }
@@ -1810,137 +1700,6 @@ function ExternalIcon() {
         strokeLinecap="round"
       />
     </svg>
-  );
-}
-
-/// Portal-based history overlay. The bridge card form stays calm; this modal
-/// is where every in-flight, settled, and failed bridge lives. Same
-/// retry/recheck/dismiss controls as the old inline list, pending rows
-/// keep their actions but cannot be dismissed (Dismiss is gated on
-/// !isActive inside BridgeRow already, so the modal just renders the rows
-/// and the existing UI law plays out).
-function BridgeHistoryModal({
-  open,
-  onClose,
-  bridges,
-  expandedId,
-  onToggle,
-  onRetry,
-  onRecheck,
-  onDismiss,
-  onDismissMany,
-  isActive,
-  copy,
-}: {
-  open: boolean;
-  onClose: () => void;
-  bridges: BridgeRecord[];
-  expandedId: string | null;
-  onToggle: (id: string) => void;
-  onRetry: (id: string) => void;
-  onRecheck: (id: string) => void;
-  onDismiss: (id: string) => void;
-  onDismissMany: (ids: string[]) => void;
-  isActive: (phase: BridgePhase) => boolean;
-  copy: Messages['bridgeCard'];
-}) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    /// Lock body scroll while the modal is open so users on long bridge
-    /// histories don't accidentally scroll the page underneath.
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open, onClose]);
-
-  if (!open || !mounted) return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={copy.eyebrow.activity}
-    >
-      <div
-        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
-        onClick={onClose}
-      />
-      <div
-        className="relative w-full sm:max-w-[640px] max-h-[88vh] overflow-hidden flex flex-col"
-        style={{
-          background: 'var(--lp-card)',
-          color: 'var(--lp-dark)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
-          border: '1px solid var(--lp-border-light)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--lp-border-light)]">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {copy.eyebrow.activity}
-          </span>
-          <div className="flex items-center gap-3">
-            {/* Activity modal Clear-all. Iterates onDismiss which the
-                parent has wired to the localStorage hidden-IDs set, NOT
-                the shared useBridges store. Bridge history modal keeps
-                showing everything. */}
-            {bridges.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  // Hide every currently-shown row in one write. Calling the
-                  // single-id hide in a loop only kept the last id (each call
-                  // read the same stale set), which is why Clear all appeared
-                  // to do nothing.
-                  onDismissMany(bridges.map((b) => b.id));
-                  onClose();
-                }}
-                className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-              >
-                Clear all
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-[18px] leading-none text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors px-1"
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-        <div className="overflow-y-auto px-5 py-4">
-          <ul className="space-y-2">
-            {bridges.map((b) => (
-              <BridgeRow
-                key={b.id}
-                bridge={b}
-                expanded={expandedId === b.id}
-                onToggle={() => onToggle(b.id)}
-                onRetry={() => onRetry(b.id)}
-                onRecheck={() => onRecheck(b.id)}
-                onDismiss={() => onDismiss(b.id)}
-                copy={copy.row}
-              />
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>,
-    document.body,
   );
 }
 
