@@ -533,7 +533,10 @@ contract KarwanEscrowTest is Test {
         address sellerAgent = makeAddr("seller-agent");
         bytes32 jobId = keccak256("agent-flow");
 
-        // Agent registers itself as owned by `seller`.
+        // Agent registers itself as owned by `seller`. C-1 fix: the seller
+        // (identity) must approve the agent first.
+        vm.prank(seller);
+        vault.approveAgent(sellerAgent);
         vm.prank(sellerAgent);
         vault.registerOwner(seller);
 

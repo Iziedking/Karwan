@@ -17,7 +17,7 @@ interface IUSYCTeller {
     function redeem(uint256 shares, address receiver, address owner) external returns (uint256 assets);
 }
 
-/// @title KarwanVault
+/// @title KarwanVault (v2)
 /// @notice USDC staking + deal-insurance vault. Combines two roles:
 ///         1. Reputation stake signal: Active position principal feeds the
 ///            stake factor in docs/reputation-model.md §3.
@@ -25,31 +25,45 @@ interface IUSYCTeller {
 ///            configured fraction of deal value gets reserved against the
 ///            seller's Active positions. On a clean settlement the
 ///            reservation releases back to free; on a buyer-side dispute
-///            win the reserved USDC slashes to the buyer as deliverable
-///            insurance.
+///            win the reserved USDC slashes to the reservation's beneficiary
+///            as deliverable insurance.
+///
+/// @dev ===================== v2 audit fixes ==============================
+///      C-1 (critical): registerOwner now requires the owner's on-chain
+///        consent (approveAgent), so an agent can no longer bind itself to
+///        a victim and slash the victim's stake.
+///      H-2: withdrawForYield enforces a coverage floor (liquid USDC must
+///        stay >= totalReservedAll + totalCoolingAll), so the operator can
+///        never drain the insurance/claim backing.
+///      H-3: MAX_POSITIONS_PER_OWNER caps the per-owner array, slash walks a
+///        bounded set with swap-and-pop of closed positions, and
+///        activePrincipalOf is an O(1) aggregate, so slash can't be griefed
+///        into out-of-gas.
+///      Future-proofing: reservations are keyed per (consumer, id) and carry
+///        their beneficiary, and any address the operator authorizes via
+///        setConsumer can reserve/release/slash its own namespaced keys.
+///        This is the hook the factoring stake module rides on with no
+///        further vault redeploy.
 ///
 /// @dev Reservations are bookkeeping-only until slash. Reserved principal is
 ///      still held by the vault and still pays out to the seller on success.
 ///      A position's principal changes only on slash; a fully-slashed
-///      position transitions to Withdrawn so the iteration cost stays bounded.
+///      position transitions to Withdrawn, is swap-popped out of the owner's
+///      array, so the iteration cost stays bounded.
 ///
-/// @dev Cool-down: 3 days. Down from v1's 7-day window after public testnet
-///      feedback that a week is too long for honest mistakes.
-///
-/// @dev Yield routing: the vault can optionally route idle USDC through a
-///      Teller adapter (real Hashnote USYC, wired once entitlement lands) to
-///      earn yield on the held principal.
-///      Teller management is on a separate `operator` role distinct from
-///      `escrow`, so the operator can rotate or unwire the Teller post-
-///      deployment without ever touching the deal-flow surface.
+/// @dev Cool-down: 3 days.
 ///
 /// @dev Access roles:
 ///        deployer : set at construction, owns the one-shot setEscrow,
 ///                    self-zeros after binding. Cannot rotate.
-///        escrow   : bound via setEscrow. Sole caller of reserve / release /
-///                    slash. Immutable after binding.
+///        escrow   : bound via setEscrow. The primary deal-flow consumer.
+///                    Immutable after binding. Auto-authorized as a consumer.
+///        consumer : escrow, plus any address the operator authorizes via
+///                    setConsumer. Callers of reserve / release / slash on
+///                    their own namespaced keys.
 ///        operator : set at construction (defaults to deployer), owns
-///                    setTeller / wrap / unwrap. Rotatable via
+///                    setTeller / wrap / unwrap / withdrawForYield /
+///                    setConsumer / adminRelease. Rotatable via
 ///                    transferOperator so a multi-sig can take over before
 ///                    mainnet.
 contract KarwanVault is ReentrancyGuard {
@@ -65,8 +79,7 @@ contract KarwanVault is ReentrancyGuard {
     struct Position {
         address owner;
         /// USDC-denominated principal. Reduced only by slash; goes to 0 on
-        /// full slash + transitions to Withdrawn so subsequent iterations
-        /// skip it.
+        /// full slash + transitions to Withdrawn.
         uint256 principal;
         uint64 depositedAt;
         uint64 cooldownStartedAt;
@@ -74,12 +87,14 @@ contract KarwanVault is ReentrancyGuard {
         PositionState state;
     }
 
-    /// Per-deal reservation. A seller can hold many concurrent reservations
-    /// (one per Accepted deal); reservedTotal sums them so freeStakeOf is
-    /// constant-time on the reservation side.
+    /// Per-key reservation. Keyed internally by keccak256(consumer, id) so two
+    /// consumers can never collide on the same id, and only the creating
+    /// consumer can release/slash it. `beneficiary` is locked at reserve time,
+    /// so a consumer can never redirect a slash to an arbitrary address later.
     struct Reservation {
-        address seller;
+        address owner;
         uint256 amount;
+        address beneficiary;
         bool active;
     }
 
@@ -87,78 +102,102 @@ contract KarwanVault is ReentrancyGuard {
     uint256 public nextPositionId = 1;
     mapping(uint256 => Position) public positions;
 
-    /// Per-owner positionId index. Pushed in deposit. Walked by activeStakeOf
-    /// and slash so cost scales with positions-per-owner, not global
-    /// nextPositionId. Fixes the audit's H-2 / M-1 gas DoS.
+    /// Per-owner positionId index. Push on deposit, swap-pop on close. Only
+    /// Active + Cooling positions live here (Withdrawn ones are removed), so
+    /// the slash walk and the position cap are bounded by live positions.
     mapping(address => uint256[]) public ownerPositionIds;
+    /// positionId -> its index inside ownerPositionIds[owner], for O(1)
+    /// swap-and-pop removal.
+    mapping(uint256 => uint256) private positionArrayIndex;
+
+    /// O(1) aggregate of an owner's Active position principals. Replaces the
+    /// per-call loop in activeStakeOf. Maintained on deposit / cool / cancel /
+    /// slash. freeStakeOf is now constant-time on both sides.
+    mapping(address => uint256) public activePrincipalOf;
 
     /// Escrow contract permitted to call reserve / release / slash. Set once
-    /// via setEscrow. Immutable after binding.
+    /// via setEscrow. Immutable after binding. Auto-authorized as a consumer.
     address public escrow;
     /// One-shot bootstrap key. Owns setEscrow, then self-zeros so even the
     /// deployer cannot rotate the escrow after binding.
     address public deployer;
-    /// Operator role for Teller management (setTeller / wrap / unwrap).
-    /// Distinct from escrow so the user can rotate or unwire the Teller
-    /// post-deployment without touching the deal-flow surface. Defaults to
-    /// the deployer; rotatable via transferOperator.
+    /// Operator role for Teller management + consumer authorization. Distinct
+    /// from escrow so the user can rotate keys / wire consumers without
+    /// touching the deal-flow surface. Defaults to the deployer; rotatable via
+    /// transferOperator.
     address public operator;
 
-    /// Per-jobId reservation. Removed by release (active=false, USDC stays)
-    /// or by slash (active=false, USDC transferred to beneficiary, position
-    /// principals reduced).
+    /// Authorized reservation consumers beyond the primary escrow (e.g. the
+    /// factoring stake module). Managed by the operator via setConsumer.
+    mapping(address => bool) public authorizedConsumers;
+
+    /// Per-internal-key reservation (key = keccak256(consumer, id)).
     mapping(bytes32 => Reservation) public reservations;
-    /// Sum of active reservation amounts per owner. Decremented on release
-    /// and slash, incremented on reserve.
+    /// Sum of active reservation amounts per owner. Gates freeStakeOf.
     mapping(address => uint256) public reservedTotal;
+
+    /// Global coverage aggregates (H-2). Liquid USDC must always be able to
+    /// honour every active reservation (slash pays cash) and every cooling
+    /// position (claim pays cash). withdrawForYield may only remove the
+    /// surplus above these.
+    uint256 public totalReservedAll;
+    uint256 public totalCoolingAll;
 
     /// Optional yield adapter. When set, idle USDC can be wrapped to USYC
     /// via wrap() and held inside the vault for yield. Unset = plain USDC.
     address public teller;
     IERC20 public usyc;
 
-    /// USDC pulled out by the operator for OFF-CHAIN yield routing. The
-    /// entitlement-agnostic path. When the USYC Entitlements contract refuses
-    /// to permit the vault address itself but does permit a separate EOA (the
-    /// operator's wallet), the operator drives subscription off-chain: pulls
-    /// USDC via withdrawForYield, subscribes via Teller from the entitled EOA,
-    /// holds USYC there, redeems back, and returns USDC via depositFromYield.
-    /// This counter tracks the outstanding amount so totalReserves stays
-    /// honest while USDC is in flight.
+    /// USDC pulled out by the operator for OFF-CHAIN yield routing. Tracks the
+    /// outstanding amount so totalReserves stays honest while USDC is in
+    /// flight.
     uint256 public outForYield;
 
-    /// Agent → identity wallet binding. Users stake from their identity
-    /// wallet; the seller agent (msg.sender of acceptEscrow) registers its
-    /// owner once via registerOwner so reserve/release/slash resolve to
-    /// the right address. Unmapped addresses pass through unchanged.
+    /// Agent -> identity wallet binding. Users stake from their identity
+    /// wallet; the seller agent registers its owner via registerOwner so
+    /// reserve/release/slash resolve to the right address. Unmapped addresses
+    /// pass through unchanged.
     mapping(address => address) public agentOwner;
 
-    /// 3-day cool-down. The reputation engine reads this view dynamically,
-    /// so the frontend's copy stays accurate even if a future redeploy
-    /// changes it.
+    /// C-1 fix: an owner must approve an agent BEFORE that agent can bind
+    /// itself via registerOwner. approvedAgent[owner][agent].
+    mapping(address => mapping(address => bool)) public approvedAgent;
+
+    /// 3-day cool-down. Read dynamically by the reputation engine.
     uint32 public constant COOLDOWN_DAYS = 3;
 
-    /// 1 USDC minimum per position. Stops dust gaming the stake signal.
+    /// 1 USDC minimum per position. Kept low on purpose: the live vault holds
+    /// real 1 / 6 / 10 USDC stakes, so a higher floor would lock out honest
+    /// small stakers. The dust-griefing DoS (H-3) is defused structurally by
+    /// MAX_POSITIONS_PER_OWNER + the bounded slash walk, not by the floor.
     uint256 public constant MIN_PRINCIPAL = 1e6;
+
+    /// Max concurrent live (Active + Cooling) positions per owner (H-3). The
+    /// live vault's heaviest staker holds 13; 64 leaves generous headroom
+    /// while capping the slash walk at a cheap, bounded length.
+    uint256 public constant MAX_POSITIONS_PER_OWNER = 64;
 
     event Deposited(uint256 indexed positionId, address indexed owner, uint256 principal);
     event WithdrawalRequested(uint256 indexed positionId, address indexed owner, uint64 claimableAt);
     event WithdrawalCancelled(uint256 indexed positionId, address indexed owner);
     event Claimed(uint256 indexed positionId, address indexed owner, uint256 principal);
 
-    event Reserved(bytes32 indexed jobId, address indexed seller, uint256 amount);
-    event Released(bytes32 indexed jobId, address indexed seller, uint256 amount);
-    event Slashed(bytes32 indexed jobId, address indexed seller, address indexed beneficiary, uint256 amount);
+    event Reserved(bytes32 indexed id, address indexed consumer, address indexed owner, uint256 amount, address beneficiary);
+    event Released(bytes32 indexed id, address indexed consumer, address indexed owner, uint256 amount);
+    event Slashed(bytes32 indexed id, address indexed owner, address indexed beneficiary, uint256 amount);
     event PositionSlashedClosed(uint256 indexed positionId, address indexed owner);
 
     event EscrowSet(address indexed escrow);
+    event ConsumerSet(address indexed consumer, bool authorized);
     event OperatorTransferred(address indexed previousOperator, address indexed newOperator);
     event TellerSet(address indexed teller, address indexed usyc);
     event Wrapped(uint256 usdcAmount, uint256 shares);
     event Unwrapped(uint256 shares, uint256 usdcAmount);
     event YieldWithdrawn(address indexed operator, uint256 amount, uint256 outForYieldAfter);
     event YieldDeposited(address indexed operator, uint256 amount, uint256 outForYieldAfter, uint256 surplus);
-    event AgentOwnerRegistered(address indexed agent, address indexed owner);
+    event AgentApproved(address indexed owner, address indexed agent);
+    event AgentBound(address indexed agent, address indexed owner);
+    event AgentUnbound(address indexed owner, address indexed agent);
 
     error InvalidPrincipal();
     error NotOwner();
@@ -168,7 +207,7 @@ contract KarwanVault is ReentrancyGuard {
     error NotDeployer();
     error NotOperator();
     error EscrowAlreadySet();
-    error NotEscrow();
+    error NotConsumer();
     error ZeroAddress();
     error ReservationLocked();
     error AlreadyReserved();
@@ -178,8 +217,9 @@ contract KarwanVault is ReentrancyGuard {
     error TellerNotSet();
     error TellerStillHoldsUsyc();
     error AgentOwnerAlreadySet();
+    error AgentNotApproved();
     error InsufficientLiquidUsdc();
-    error YieldDepositExceedsOutstanding();
+    error TooManyPositions();
 
     constructor(address _usdc) {
         if (_usdc == address(0)) revert ZeroAddress();
@@ -189,26 +229,34 @@ contract KarwanVault is ReentrancyGuard {
         emit OperatorTransferred(address(0), msg.sender);
     }
 
-    // Operator admin
+    // ============================ Operator admin ============================
 
-    /// @notice Bind the escrow that's allowed to call reserve / release /
-    ///         slash. One-shot. Reverts on a second call so the linkage is
-    ///         effectively immutable after deployment.
+    /// @notice Bind the primary escrow consumer. One-shot; immutable after.
     function setEscrow(address _escrow) external {
         if (msg.sender != deployer) revert NotDeployer();
         if (escrow != address(0)) revert EscrowAlreadySet();
         if (_escrow == address(0)) revert ZeroAddress();
         escrow = _escrow;
-        // Clear the deployer slot so even the deployer cannot rotate the
-        // escrow after binding. The separate `operator` role lives on for
-        // Teller management.
         deployer = address(0);
         emit EscrowSet(_escrow);
     }
 
-    /// @notice Rotate the operator (Teller management) role. Used by the
-    ///         deployer to hand off admin to a multi-sig before mainnet
-    ///         exposure, or by an existing multi-sig to rotate keys.
+    /// @notice Authorize (or de-authorize) an additional reservation consumer,
+    ///         e.g. the factoring stake module. Operator-only. The primary
+    ///         escrow is always authorized and is not managed here.
+    function setConsumer(address consumer, bool ok) external {
+        if (msg.sender != operator) revert NotOperator();
+        if (consumer == address(0)) revert ZeroAddress();
+        authorizedConsumers[consumer] = ok;
+        emit ConsumerSet(consumer, ok);
+    }
+
+    /// @notice True if `caller` may reserve/release/slash.
+    function _isConsumer(address caller) internal view returns (bool) {
+        return caller == escrow || authorizedConsumers[caller];
+    }
+
+    /// @notice Rotate the operator role.
     function transferOperator(address newOperator) external {
         if (msg.sender != operator) revert NotOperator();
         if (newOperator == address(0)) revert ZeroAddress();
@@ -217,31 +265,17 @@ contract KarwanVault is ReentrancyGuard {
         emit OperatorTransferred(previous, newOperator);
     }
 
-    /// @notice Wire (or unwire) the Teller adapter that earns yield on
-    ///         idle reserves. Both args set to address(0) unwires; both
-    ///         non-zero wires (or replaces). The operator must unwind all
-    ///         current USYC holdings before switching. The contract
-    ///         enforces this by refusing the swap while usyc.balanceOf > 0.
-    ///         Stale USDC approve on the old Teller is reset to 0 here
-    ///         before the new pair binds (L-2 defence-in-depth).
+    /// @notice Wire (or unwire) the Teller adapter. Both null unwires; both
+    ///         non-null wires/replaces. Refuses to swap while holding USYC.
     function setTeller(address _teller, address _usyc) external {
         if (msg.sender != operator) revert NotOperator();
 
-        // Refuse to swap while we still hold USYC. Forces the operator to
-        // unwrap first, leaving a clean state where every wei is back in
-        // USDC. Without this, a swap could orphan USYC tied to the old
-        // Teller (no way to redeem without that Teller still wired).
         if (address(usyc) != address(0) && usyc.balanceOf(address(this)) > 0) {
             revert TellerStillHoldsUsyc();
         }
-
-        // L-2: reset the previous Teller's USDC approval before rebinding,
-        // so a deprecated/compromised Teller can't drain residual approve.
         if (teller != address(0)) {
             usdc.forceApprove(teller, 0);
         }
-
-        // Both null → unwire.
         if (_teller == address(0) && _usyc == address(0)) {
             teller = address(0);
             usyc = IERC20(address(0));
@@ -254,24 +288,16 @@ contract KarwanVault is ReentrancyGuard {
         emit TellerSet(_teller, _usyc);
     }
 
-    /// @notice Convert `usdcAmount` of idle USDC reserves into USYC for
-    ///         yield. Operator-only. Reverts if Teller is unset.
+    /// @notice Convert idle USDC into USYC for yield. Operator-only.
     function wrap(uint256 usdcAmount) external nonReentrant {
         if (msg.sender != operator) revert NotOperator();
         if (teller == address(0)) revert TellerNotSet();
-        // forceApprove resets allowance to zero first so weird tokens that
-        // reject non-zero→non-zero approvals still work, and so the prior
-        // wrap's residual cannot accidentally over-spend on a future call.
         usdc.forceApprove(teller, usdcAmount);
         uint256 shares = IUSYCTeller(teller).deposit(usdcAmount, address(this));
         emit Wrapped(usdcAmount, shares);
     }
 
-    /// @notice Redeem `shares` of USYC back to USDC. Operator-only.
-    ///         ERC-4626 semantics permit `redeem` when msg.sender == owner
-    ///         without explicit approval, but custom Teller implementations
-    ///         may demand it anyway. `forceApprove` covers both cases at
-    ///         negligible cost (audit L-1 defence-in-depth).
+    /// @notice Redeem USYC back to USDC. Operator-only.
     function unwrap(uint256 shares) external nonReentrant {
         if (msg.sender != operator) revert NotOperator();
         if (teller == address(0)) revert TellerNotSet();
@@ -280,41 +306,28 @@ contract KarwanVault is ReentrancyGuard {
         emit Unwrapped(shares, usdcOut);
     }
 
-    /// @notice Pull `amount` USDC out for OFF-CHAIN yield routing. Used when
-    ///         the USYC Entitlements contract permits only the operator EOA
-    ///         (not the vault address) to hold USYC. The operator subscribes
-    ///         off-chain and returns USDC via depositFromYield. Tracks
-    ///         outForYield so totalReserves stays consistent while USDC is
-    ///         in flight.
+    /// @notice Pull `amount` USDC out for OFF-CHAIN yield routing.
     ///
-    ///         Liquidity guard: only the USDC ABOVE current reservedTotal
-    ///         (summed across all sellers) is eligible to leave. The
-    ///         vault must always hold enough USDC to honour every active
-    ///         reservation in cash, since slash() needs to transfer USDC
-    ///         out without rehydrating from yield first. Operator must
-    ///         depositFromYield before any deal slashes if outForYield is
-    ///         high enough to threaten coverage.
+    /// @dev H-2 fix: the vault must always hold enough liquid USDC to honour
+    ///      every active reservation (slash pays cash) and every cooling
+    ///      position (claim pays cash). Only the surplus above
+    ///      totalReservedAll + totalCoolingAll may leave. The docstring's old
+    ///      promise ("only funds above reserved can leave") is now enforced by
+    ///      code, not just documented.
     function withdrawForYield(uint256 amount) external nonReentrant {
         if (msg.sender != operator) revert NotOperator();
         if (amount == 0) revert InvalidPrincipal();
         uint256 bal = usdc.balanceOf(address(this));
-        // Defence in depth: never drain the vault below what reservations
-        // could legitimately demand. _totalReservedSum is O(positions), we
-        // hold the loop tight by reading reservedTotal off the sender state.
-        // Use the simpler check: balance must cover outflow.
-        if (bal < amount) revert InsufficientLiquidUsdc();
+        uint256 floor = totalReservedAll + totalCoolingAll;
+        if (bal < amount || bal - amount < floor) revert InsufficientLiquidUsdc();
         outForYield += amount;
         usdc.safeTransfer(operator, amount);
         emit YieldWithdrawn(operator, amount, outForYield);
     }
 
-    /// @notice Return USDC from off-chain yield routing. Caller approves the
-    ///         vault for `amount` USDC; we pull it in. `amount` can exceed
-    ///         outForYield, the surplus is yield (treated as protocol
-    ///         income and stays in the vault). It cannot be less than the
-    ///         intended decrement, the operator submits the full repaid
-    ///         amount, the vault clears outForYield down to zero and treats
-    ///         the rest as surplus appreciation.
+    /// @notice Return USDC from off-chain yield routing. Surplus over
+    ///         outForYield is treated as protocol income and stays in the
+    ///         vault.
     function depositFromYield(uint256 amount) external nonReentrant {
         if (msg.sender != operator) revert NotOperator();
         if (amount == 0) revert InvalidPrincipal();
@@ -329,14 +342,16 @@ contract KarwanVault is ReentrancyGuard {
         emit YieldDeposited(operator, amount, outForYield, surplus);
     }
 
-    // Staking
+    // =============================== Staking ================================
 
     /// @notice Open a new staking position. Caller must have approved this
-    ///         contract for `amount` USDC. A user may hold many positions
-    ///         in parallel, each tracks its own depositedAt so older
-    ///         positions earn more tenure weight in the reputation formula.
+    ///         contract for `amount` USDC.
     function deposit(uint256 amount) external nonReentrant returns (uint256 positionId) {
         if (amount < MIN_PRINCIPAL) revert InvalidPrincipal();
+        // H-3: bound the per-owner live-position set. Only Active + Cooling
+        // positions remain in the array (Withdrawn ones are swap-popped), so
+        // this caps concurrent live positions, not lifetime deposits.
+        if (ownerPositionIds[msg.sender].length >= MAX_POSITIONS_PER_OWNER) revert TooManyPositions();
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         positionId = nextPositionId++;
@@ -348,25 +363,29 @@ contract KarwanVault is ReentrancyGuard {
             claimableAt: 0,
             state: PositionState.Active
         });
-        // Per-owner index push so future iterations (activeStakeOf, slash)
-        // walk only this owner's positions. Push-order is deposit-order,
-        // i.e. oldest first.
+        positionArrayIndex[positionId] = ownerPositionIds[msg.sender].length;
         ownerPositionIds[msg.sender].push(positionId);
+        activePrincipalOf[msg.sender] += amount;
 
         emit Deposited(positionId, msg.sender, amount);
     }
 
     /// @notice Start the 3-day cool-down. Reverts if cooling this position
     ///         would leave the caller's remaining Active stake unable to
-    ///         cover their open reservations. Closes the
-    ///         "stake-then-cool-mid-deal" rug.
+    ///         cover their open reservations.
     function requestWithdraw(uint256 positionId) external {
         Position storage p = positions[positionId];
         if (p.state != PositionState.Active) revert NotActive();
         if (msg.sender != p.owner) revert NotOwner();
 
-        uint256 remainingActive = activeStakeOf(msg.sender) - p.principal;
+        uint256 remainingActive = activePrincipalOf[msg.sender] - p.principal;
         if (remainingActive < reservedTotal[msg.sender]) revert ReservationLocked();
+
+        // Active -> Cooling: leave the array (still a live position, still
+        // counts toward the cap), move the principal from the active aggregate
+        // to the cooling coverage aggregate.
+        activePrincipalOf[msg.sender] -= p.principal;
+        totalCoolingAll += p.principal;
 
         p.cooldownStartedAt = uint64(block.timestamp);
         p.claimableAt = uint64(block.timestamp) + uint64(COOLDOWN_DAYS) * 1 days;
@@ -375,11 +394,14 @@ contract KarwanVault is ReentrancyGuard {
     }
 
     /// @notice Cancel an in-flight withdrawal. Position returns to Active.
-    ///         Tenure (depositedAt) is unchanged.
     function cancelWithdraw(uint256 positionId) external {
         Position storage p = positions[positionId];
         if (p.state != PositionState.Cooling) revert NotCooling();
         if (msg.sender != p.owner) revert NotOwner();
+
+        // Cooling -> Active: reverse the aggregate move.
+        totalCoolingAll -= p.principal;
+        activePrincipalOf[msg.sender] += p.principal;
 
         p.cooldownStartedAt = 0;
         p.claimableAt = 0;
@@ -387,9 +409,7 @@ contract KarwanVault is ReentrancyGuard {
         emit WithdrawalCancelled(positionId, p.owner);
     }
 
-    /// @notice Claim a position whose cool-down has elapsed. Uses
-    ///         safeTransfer so weird-token return values can't silently
-    ///         leave funds stuck.
+    /// @notice Claim a position whose cool-down has elapsed.
     function claim(uint256 positionId) external nonReentrant {
         Position storage p = positions[positionId];
         if (p.state != PositionState.Cooling) revert NotCooling();
@@ -397,132 +417,177 @@ contract KarwanVault is ReentrancyGuard {
         if (block.timestamp < p.claimableAt) revert StillCooling();
 
         uint256 amount = p.principal;
+        address owner = p.owner;
         p.state = PositionState.Withdrawn;
-        usdc.safeTransfer(p.owner, amount);
-        emit Claimed(positionId, p.owner, amount);
+        totalCoolingAll -= amount;
+        _removeFromOwnerArray(owner, positionId);
+        usdc.safeTransfer(owner, amount);
+        emit Claimed(positionId, owner, amount);
     }
 
-    // Insurance
+    /// @dev O(1) swap-and-pop removal of a closed position from its owner's
+    ///      live-position array. The last element takes the vacated slot and
+    ///      its index mapping is updated.
+    function _removeFromOwnerArray(address owner, uint256 positionId) private {
+        uint256[] storage ids = ownerPositionIds[owner];
+        uint256 idx = positionArrayIndex[positionId];
+        uint256 lastIdx = ids.length - 1;
+        if (idx != lastIdx) {
+            uint256 lastId = ids[lastIdx];
+            ids[idx] = lastId;
+            positionArrayIndex[lastId] = idx;
+        }
+        ids.pop();
+        delete positionArrayIndex[positionId];
+    }
 
-    /// @notice Agent self-registers its owning identity wallet. Stake lives
-    ///         on the identity wallet (that's where users deposit from), so
-    ///         reserve/release/slash need to resolve agents to their owners.
-    ///         msg.sender is the agent; the agent's signature on this tx
-    ///         attests to the binding. Idempotent on the same owner; reverts
-    ///         on a different owner so an agent can't be re-pointed.
+    // ============================== Insurance ==============================
+
+    /// @notice Owner (identity wallet) approves `agent` to bind itself. C-1:
+    ///         registerOwner is inert until this is called by the real owner.
+    function approveAgent(address agent) external {
+        if (agent == address(0)) revert ZeroAddress();
+        approvedAgent[msg.sender][agent] = true;
+        emit AgentApproved(msg.sender, agent);
+    }
+
+    /// @notice Owner revokes an agent: clears the approval and, if the agent
+    ///         is currently bound to this owner, clears the binding too.
+    ///         Reservations already booked against the owner stay put (nothing
+    ///         new can be booked through a revoked agent). Rebinding requires a
+    ///         fresh approveAgent.
+    function revokeAgent(address agent) external {
+        approvedAgent[msg.sender][agent] = false;
+        if (agentOwner[agent] == msg.sender) {
+            agentOwner[agent] = address(0);
+            emit AgentUnbound(msg.sender, agent);
+        }
+    }
+
+    /// @notice Agent binds itself to `owner`. Requires the owner's prior
+    ///         approveAgent (C-1). Idempotent on the same owner; reverts on a
+    ///         different owner so an agent can't be silently re-pointed.
     function registerOwner(address owner) external {
         if (owner == address(0)) revert ZeroAddress();
+        if (!approvedAgent[owner][msg.sender]) revert AgentNotApproved();
         address current = agentOwner[msg.sender];
         if (current != address(0) && current != owner) revert AgentOwnerAlreadySet();
         agentOwner[msg.sender] = owner;
-        emit AgentOwnerRegistered(msg.sender, owner);
+        emit AgentBound(msg.sender, owner);
     }
 
-    /// @notice Resolves an address to its stake-owning identity. Mapped
-    ///         agents return their owner; unmapped addresses pass through.
+    /// @notice Resolve an address to its stake-owning identity.
     function _resolveOwner(address addr) internal view returns (address) {
         address mapped = agentOwner[addr];
         return mapped == address(0) ? addr : mapped;
     }
 
-    /// @notice Reserve `amount` of the seller's stake against a specific
-    ///         deal. Called by KarwanEscrow at acceptEscrow time. The
-    ///         `seller` parameter is the agent address from the escrow
-    ///         record; reservation stores the resolved owner so downstream
-    ///         release/slash work against the identity wallet.
-    function reserve(bytes32 jobId, address seller, uint256 amount) external {
-        if (msg.sender != escrow) revert NotEscrow();
-        if (reservations[jobId].active) revert AlreadyReserved();
-        if (seller == address(0)) revert ZeroAddress();
+    /// @dev Internal key namespacing so two consumers can't collide on the
+    ///      same id, and only the creating consumer can act on it.
+    function _key(address consumer, bytes32 id) internal pure returns (bytes32) {
+        return keccak256(abi.encode(consumer, id));
+    }
+
+    /// @notice Reserve `amount` of `ownerOrAgent`'s free stake against `id`,
+    ///         payable to `beneficiary` on slash. Consumer-only. `id` is
+    ///         namespaced to msg.sender internally.
+    function reserve(bytes32 id, address ownerOrAgent, uint256 amount, address beneficiary) external {
+        if (!_isConsumer(msg.sender)) revert NotConsumer();
+        if (ownerOrAgent == address(0) || beneficiary == address(0)) revert ZeroAddress();
         if (amount == 0) revert InvalidPrincipal();
 
-        address owner = _resolveOwner(seller);
+        bytes32 k = _key(msg.sender, id);
+        if (reservations[k].active) revert AlreadyReserved();
+
+        address owner = _resolveOwner(ownerOrAgent);
         if (freeStakeOf(owner) < amount) revert InsufficientFreeStake();
 
-        reservations[jobId] = Reservation({seller: owner, amount: amount, active: true});
+        reservations[k] = Reservation({owner: owner, amount: amount, beneficiary: beneficiary, active: true});
         reservedTotal[owner] += amount;
-        emit Reserved(jobId, owner, amount);
+        totalReservedAll += amount;
+        emit Reserved(id, msg.sender, owner, amount, beneficiary);
     }
 
-    /// @notice Release a reservation. Idempotent, a second call on the
-    ///         same jobId is a no-op so settle paths can't strand a deal.
-    function release(bytes32 jobId) external {
-        if (msg.sender != escrow) revert NotEscrow();
-        Reservation storage r = reservations[jobId];
+    /// @notice Release a reservation. Idempotent no-op if inactive. Only the
+    ///         consumer that created it can release it.
+    function release(bytes32 id) external {
+        bytes32 k = _key(msg.sender, id);
+        Reservation storage r = reservations[k];
         if (!r.active) return;
         r.active = false;
-        reservedTotal[r.seller] -= r.amount;
-        emit Released(jobId, r.seller, r.amount);
+        reservedTotal[r.owner] -= r.amount;
+        totalReservedAll -= r.amount;
+        emit Released(id, msg.sender, r.owner, r.amount);
     }
 
-    /// @notice Operator escape hatch for stranded reservations (audit M-1).
-    ///         If `KarwanEscrow.refund` ever experiences a `vault.slash`
-    ///         revert, the escrow clears its side and emits `SlashFailed`
-    ///         but the vault's reservation remains active because the inner
-    ///         revert undid the vault's own state changes. That permanently
-    ///         locks the seller's stake against no real deal. This hatch
-    ///         lets the operator unstick that reservation manually after
-    ///         confirming the off-chain state (escrow Refunded, buyer
-    ///         refunded, vault still reserved).
-    ///
-    ///         Operator-only. Idempotent (no-op on already-inactive). Emits
-    ///         the standard Released event so indexers don't need a special
-    ///         case.
-    function adminRelease(bytes32 jobId) external {
+    /// @notice Operator escape hatch for a stranded reservation (a consumer
+    ///         that cleared its own side but left the vault reservation active
+    ///         after a slash inner-revert). Operator-only. Idempotent.
+    function adminRelease(address consumer, bytes32 id) external {
         if (msg.sender != operator) revert NotOperator();
-        Reservation storage r = reservations[jobId];
+        bytes32 k = _key(consumer, id);
+        Reservation storage r = reservations[k];
         if (!r.active) return;
         r.active = false;
-        reservedTotal[r.seller] -= r.amount;
-        emit Released(jobId, r.seller, r.amount);
+        reservedTotal[r.owner] -= r.amount;
+        totalReservedAll -= r.amount;
+        emit Released(id, consumer, r.owner, r.amount);
     }
 
-    /// @notice Slash the reservation to the beneficiary. Pays out USDC
-    ///         and FIFO-reduces the seller's Active position principals.
-    ///         A position that hits zero principal transitions to
-    ///         Withdrawn so future iterations skip it. Cost is O(seller's
-    ///         positions), not O(global nextPositionId).
-    function slash(bytes32 jobId, address beneficiary) external nonReentrant {
-        if (msg.sender != escrow) revert NotEscrow();
-        if (beneficiary == address(0)) revert ZeroAddress();
-        Reservation storage r = reservations[jobId];
+    /// @notice Slash a reservation to its locked beneficiary. Pays USDC and
+    ///         FIFO-reduces the owner's Active position principals, swap-
+    ///         popping any position that hits zero. Only the creating consumer
+    ///         can slash. Cost is bounded by MAX_POSITIONS_PER_OWNER.
+    function slash(bytes32 id) external nonReentrant {
+        bytes32 k = _key(msg.sender, id);
+        Reservation storage r = reservations[k];
         if (!r.active) revert NotReserved();
 
         uint256 amount = r.amount;
-        address seller = r.seller;
+        address owner = r.owner;
+        address beneficiary = r.beneficiary;
         r.active = false;
-        reservedTotal[seller] -= amount;
+        reservedTotal[owner] -= amount;
+        totalReservedAll -= amount;
 
-        // Walk this seller's positions oldest-first via the per-owner index.
-        // ownerPositionIds push-order IS deposit-order, so the array is
-        // naturally FIFO. O(seller's positions), bounded.
-        uint256[] storage ids = ownerPositionIds[seller];
+        // Walk the owner's live positions oldest-first, taking from Active
+        // ones until the amount is covered. Swap-and-pop closes any position
+        // reduced to zero. `i` advances only when we DON'T remove, so the
+        // element swapped into slot i is re-examined; the walk is bounded by
+        // the array length (<= MAX_POSITIONS_PER_OWNER) plus removals.
+        uint256[] storage ids = ownerPositionIds[owner];
         uint256 remaining = amount;
-        uint256 len = ids.length;
-        for (uint256 i = 0; i < len && remaining > 0; i++) {
-            Position storage p = positions[ids[i]];
-            if (p.state != PositionState.Active) continue;
-            if (p.principal == 0) continue;
+        uint256 i = 0;
+        while (i < ids.length && remaining > 0) {
+            uint256 pid = ids[i];
+            Position storage p = positions[pid];
+            if (p.state != PositionState.Active || p.principal == 0) {
+                i++;
+                continue;
+            }
             uint256 take = remaining < p.principal ? remaining : p.principal;
             p.principal -= take;
             remaining -= take;
-            // L-5: a fully-slashed position becomes Withdrawn so it can't
-            // accumulate iteration cost forever. It's an empty slot now.
+            activePrincipalOf[owner] -= take;
             if (p.principal == 0) {
                 p.state = PositionState.Withdrawn;
-                emit PositionSlashedClosed(ids[i], seller);
+                _removeFromOwnerArray(owner, pid);
+                emit PositionSlashedClosed(pid, owner);
+                // do not advance i: the swapped-in element occupies slot i now
+            } else {
+                i++;
             }
         }
-        // Defence in depth, should never trigger because reserve gated on
-        // freeStakeOf which is bound by activeStakeOf, and requestWithdraw
-        // refuses to cool below reservedTotal.
+        // Defence in depth: reserve gated on freeStakeOf (bound by
+        // activePrincipalOf), and requestWithdraw refuses to cool below
+        // reservedTotal, so this should never trigger.
         if (remaining > 0) revert InsufficientCoverage();
 
         usdc.safeTransfer(beneficiary, amount);
-        emit Slashed(jobId, seller, beneficiary, amount);
+        emit Slashed(id, owner, beneficiary, amount);
     }
 
-    // Views
+    // ================================ Views ================================
 
     function isActive(uint256 positionId) external view returns (bool) {
         return positions[positionId].state == PositionState.Active;
@@ -541,73 +606,38 @@ contract KarwanVault is ReentrancyGuard {
         return block.timestamp - p.depositedAt;
     }
 
-    /// @notice Sum of an owner's Active position principals. O(owner's
-    ///         positions). Used by reserve to check free stake. Resolves
-    ///         agent addresses to their owner so reads work on either.
-    function activeStakeOf(address owner) public view returns (uint256 total) {
-        address resolved = _resolveOwner(owner);
-        uint256[] storage ids = ownerPositionIds[resolved];
-        uint256 len = ids.length;
-        for (uint256 i = 0; i < len; i++) {
-            Position memory p = positions[ids[i]];
-            if (p.state == PositionState.Active) {
-                total += p.principal;
-            }
-        }
+    /// @notice Sum of an owner's Active position principals. O(1): reads the
+    ///         maintained aggregate. Resolves agents to their owner.
+    function activeStakeOf(address owner) public view returns (uint256) {
+        return activePrincipalOf[_resolveOwner(owner)];
     }
 
-    /// @notice Active stake minus current reservations. Resolves agent
-    ///         addresses to their owner so reads work on either.
+    /// @notice Active stake minus current reservations. Resolves agents.
     function freeStakeOf(address owner) public view returns (uint256) {
         address resolved = _resolveOwner(owner);
-        uint256 active = activeStakeOf(resolved);
+        uint256 active = activePrincipalOf[resolved];
         uint256 reserved = reservedTotal[resolved];
         return active > reserved ? active - reserved : 0;
     }
 
-    /// @notice Length of an owner's positionId array. Useful off-chain for
-    ///         clients that want to enumerate without scanning storage
-    ///         pages.
+    /// @notice Count of an owner's live (Active + Cooling) positions.
     function positionCountOf(address owner) external view returns (uint256) {
         return ownerPositionIds[owner].length;
     }
 
     /// @notice Resolve an address to the identity wallet that owns its stake.
-    ///         Agent addresses mapped via registerOwner return their owner;
-    ///         unmapped addresses pass through. Used by KarwanEscrow before
-    ///         calling KarwanReputation.recordCompletion so scores live on
-    ///         identity wallets, not agent wallets. The escrow already trusts
-    ///         this contract; exposing the resolution avoids duplicating the
-    ///         agent-owner mapping inside reputation.
     function resolveOwner(address addr) external view returns (address) {
         return _resolveOwner(addr);
     }
 
-    /// @notice Total USDC-equivalent reserves: liquid USDC held + USYC
-    ///         marked to oracle (if a Teller is wired) + USDC currently out
-    ///         with the operator for off-chain yield. 6 decimals.
-    ///
-    /// @dev The USYC marking is best-effort: when teller is unset OR
-    ///      usyc.balanceOf is zero, the USYC term is skipped, so this view
-    ///      never reverts on a missing oracle. Callers reading this off
-    ///      chain accept the "snapshot" semantics inherent to mark-to-oracle.
+    /// @notice Total USDC-equivalent reserves: liquid USDC held + USYC (at par
+    ///         on chain) + USDC currently out for off-chain yield. 6 decimals.
     function totalReserves() external view returns (uint256) {
         uint256 usdcHeld = usdc.balanceOf(address(this));
         uint256 result = usdcHeld + outForYield;
         if (teller != address(0) && address(usyc) != address(0)) {
             uint256 usycHeld = usyc.balanceOf(address(this));
             if (usycHeld > 0) {
-                // The USYC oracle exposes latestAnswer() returning an
-                // 8-decimal price (1e8 = $1.00). The vault doesn't store an
-                // oracle address separately; the Teller and the price source
-                // are the same address in practice, or the operator points
-                // the off-chain widget at the real oracle directly. To keep
-                // this
-                // view side-effect-free we approximate USYC value at par
-                // (1:1 USDC) on chain; the widget reads the real oracle off
-                // chain and surfaces the marked value. This is a conscious
-                // accuracy-vs-gas trade for the on-chain view; the off-chain
-                // mark is always authoritative.
                 result += usycHeld;
             }
         }

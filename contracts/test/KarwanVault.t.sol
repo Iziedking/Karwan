@@ -157,7 +157,7 @@ contract KarwanVaultTest is Test {
         assertEq(vault.freeStakeOf(alice), 100 * ONE_USDC);
 
         vm.prank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
 
         assertEq(vault.activeStakeOf(alice), 100 * ONE_USDC, "active stake unchanged");
         assertEq(vault.reservedTotal(alice), 30 * ONE_USDC);
@@ -167,30 +167,30 @@ contract KarwanVaultTest is Test {
     function test_Reserve_OnlyEscrow() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(makeAddr("eve"));
-        vm.expectRevert(KarwanVault.NotEscrow.selector);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
+        vm.expectRevert(KarwanVault.NotConsumer.selector);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
     }
 
     function test_Reserve_RevertsOnInsufficientFree() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(escrow);
         vm.expectRevert(KarwanVault.InsufficientFreeStake.selector);
-        vault.reserve(keccak256("job1"), alice, 200 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 200 * ONE_USDC, buyer);
     }
 
     function test_Reserve_RevertsOnDuplicate() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
         vm.expectRevert(KarwanVault.AlreadyReserved.selector);
-        vault.reserve(keccak256("job1"), alice, 10 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 10 * ONE_USDC, buyer);
         vm.stopPrank();
     }
 
     function test_Release_ReturnsToFree() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
         vault.release(keccak256("job1"));
         vm.stopPrank();
         assertEq(vault.reservedTotal(alice), 0);
@@ -200,7 +200,7 @@ contract KarwanVaultTest is Test {
     function test_Release_IsIdempotent() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
         vault.release(keccak256("job1"));
         // Second release is a no-op, not a revert.
         vault.release(keccak256("job1"));
@@ -211,8 +211,8 @@ contract KarwanVaultTest is Test {
         uint256 id = _deposit(alice, 100 * ONE_USDC);
 
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
-        vault.slash(keccak256("job1"), buyer);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
+        vault.slash(keccak256("job1"));
         vm.stopPrank();
 
         assertEq(usdc.balanceOf(buyer), 30 * ONE_USDC, "buyer received slash");
@@ -229,8 +229,8 @@ contract KarwanVaultTest is Test {
         uint256 second = _deposit(alice, 60 * ONE_USDC);
 
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job1"), alice, 50 * ONE_USDC);
-        vault.slash(keccak256("job1"), buyer);
+        vault.reserve(keccak256("job1"), alice, 50 * ONE_USDC, buyer);
+        vault.slash(keccak256("job1"));
         vm.stopPrank();
 
         // 50 USDC came out of the older position first (40), then 10 from the newer.
@@ -240,20 +240,27 @@ contract KarwanVaultTest is Test {
         assertEq(secondPrincipal, 50 * ONE_USDC);
     }
 
-    function test_Slash_OnlyEscrow() public {
+    /// v2: reservations are namespaced by keccak256(consumer, id), so a
+    /// non-creating caller can't reach escrow's reservation at all — its own
+    /// namespaced key is empty, so slash reverts NotReserved. This is the
+    /// access control for release/slash (and it lets a de-authorized consumer
+    /// still wind down its own existing reservations).
+    function test_Slash_OnlyCreatingConsumerCanReach() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
         vm.prank(makeAddr("eve"));
-        vm.expectRevert(KarwanVault.NotEscrow.selector);
-        vault.slash(keccak256("job1"), buyer);
+        vm.expectRevert(KarwanVault.NotReserved.selector);
+        vault.slash(keccak256("job1"));
+        // Escrow's reservation is untouched.
+        assertEq(vault.reservedTotal(alice), 30 * ONE_USDC);
     }
 
     function test_RequestWithdraw_BlockedIfWouldLeaveReservationUncovered() public {
         // Alice has 100 staked, 60 reserved. Active free = 40.
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(escrow);
-        vault.reserve(keccak256("job1"), alice, 60 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 60 * ONE_USDC, buyer);
 
         // Trying to cool the only position would leave 0 active, but 60 reserved.
         vm.prank(alice);
@@ -267,7 +274,7 @@ contract KarwanVaultTest is Test {
         uint256 first = _deposit(alice, 100 * ONE_USDC);
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(escrow);
-        vault.reserve(keccak256("job1"), alice, 60 * ONE_USDC);
+        vault.reserve(keccak256("job1"), alice, 60 * ONE_USDC, buyer);
 
         vm.prank(alice);
         vault.requestWithdraw(first);
@@ -294,8 +301,8 @@ contract KarwanVaultTest is Test {
 
     function test_Reserve_RevertsBeforeEscrowBound() public {
         KarwanVault fresh = new KarwanVault(address(usdc));
-        vm.expectRevert(KarwanVault.NotEscrow.selector);
-        fresh.reserve(keccak256("job1"), alice, 10 * ONE_USDC);
+        vm.expectRevert(KarwanVault.NotConsumer.selector);
+        fresh.reserve(keccak256("job1"), alice, 10 * ONE_USDC, buyer);
     }
 
     /* ====================== AUDIT FIX REGRESSIONS ======================= */
@@ -354,8 +361,8 @@ contract KarwanVaultTest is Test {
 
         // Reserve and slash on alice — bob and carol must be untouched.
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job-alice"), alice, 30 * ONE_USDC);
-        vault.slash(keccak256("job-alice"), buyer);
+        vault.reserve(keccak256("job-alice"), alice, 30 * ONE_USDC, buyer);
+        vault.slash(keccak256("job-alice"));
         vm.stopPrank();
 
         assertEq(vault.activeStakeOf(bob), 50 * ONE_USDC);
@@ -372,8 +379,8 @@ contract KarwanVaultTest is Test {
         _deposit(alice, 70 * ONE_USDC);
 
         vm.startPrank(escrow);
-        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC);
-        vault.slash(keccak256("job1"), buyer);
+        vault.reserve(keccak256("job1"), alice, 30 * ONE_USDC, buyer);
+        vault.slash(keccak256("job1"));
         vm.stopPrank();
 
         // The first (oldest) position took the full 30 USDC and is now
@@ -400,32 +407,34 @@ contract KarwanVaultTest is Test {
     function test_AuditM1_AdminReleaseUnsticksReservation() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(escrow);
-        vault.reserve(keccak256("stranded"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("stranded"), alice, 30 * ONE_USDC, buyer);
         assertEq(vault.reservedTotal(alice), 30 * ONE_USDC);
 
-        // Operator unsticks it.
-        vault.adminRelease(keccak256("stranded"));
+        // Operator unsticks it. v2: adminRelease targets the creating
+        // consumer + id (reservations are namespaced by consumer internally).
+        vault.adminRelease(escrow, keccak256("stranded"));
         assertEq(vault.reservedTotal(alice), 0);
-        // Reservation marked inactive.
-        (, , bool active) = vault.reservations(keccak256("stranded"));
+        // Reservation marked inactive. Read via the internal namespaced key.
+        bytes32 k = keccak256(abi.encode(escrow, keccak256("stranded")));
+        (, , , bool active) = vault.reservations(k);
         assertFalse(active);
     }
 
     function test_AuditM1_AdminRelease_OnlyOperator() public {
         _deposit(alice, 100 * ONE_USDC);
         vm.prank(escrow);
-        vault.reserve(keccak256("stranded"), alice, 30 * ONE_USDC);
+        vault.reserve(keccak256("stranded"), alice, 30 * ONE_USDC, buyer);
 
         vm.prank(makeAddr("eve"));
         vm.expectRevert(KarwanVault.NotOperator.selector);
-        vault.adminRelease(keccak256("stranded"));
+        vault.adminRelease(escrow, keccak256("stranded"));
     }
 
     function test_AuditM1_AdminRelease_IdempotentOnInactive() public {
         // Calling adminRelease on a jobId that was never reserved is a
         // no-op rather than a revert — matches release() semantics so
         // operators can call it speculatively without risk.
-        vault.adminRelease(keccak256("never-reserved"));
+        vault.adminRelease(escrow, keccak256("never-reserved"));
     }
 
     /* ====================== v2.E resolveOwner view ===================== */
@@ -438,6 +447,9 @@ contract KarwanVaultTest is Test {
     function test_v2E_ResolveOwner_ReturnsRegisteredIdentity() public {
         address agent = makeAddr("agent");
         address identity = makeAddr("identity");
+        // C-1 fix: the identity must approve the agent before it can bind.
+        vm.prank(identity);
+        vault.approveAgent(agent);
         vm.prank(agent);
         vault.registerOwner(identity);
         assertEq(vault.resolveOwner(agent), identity);

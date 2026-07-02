@@ -38,26 +38,21 @@ contract MockUSDC is IERC20 {
     }
 }
 
-/// @title H-2 + H-3 attack replays (KarwanVault, pre-v2)
-/// @notice Two HIGH findings, each proven against v1 so Vault v2 has a red
-///         baseline. Both tests are expected to PASS on the current contract:
-///         they demonstrate the vulnerability, not the fix.
-///
-///         H-2: withdrawForYield can send out USDC that reservations depend on,
-///              because it only checks the raw balance, not balance minus
-///              reserved. A drained vault then makes slash revert, silently
-///              killing the insurance backstop.
-///         H-3: MIN_PRINCIPAL is 1 USDC, so a seller fragments stake into
-///              thousands of dust positions; slash walks them linearly and
-///              runs out of gas, so the buyer's insurance slash never lands.
+/// @title H-2 + H-3 are CLOSED in v2
+/// @notice v1 versions of these tests proved the exploits live (git history).
+///         Here they assert the fixes:
+///         H-2: withdrawForYield can no longer drain USDC that reservations or
+///              cooling positions depend on.
+///         H-3: dust-position griefing of slash is impossible because the
+///              per-owner position count is capped and the slash walk is
+///              bounded.
 contract KarwanVaultH2H3AttackTest is Test {
     KarwanVault vault;
     MockUSDC usdc;
 
     address staker = makeAddr("staker");
     address escrow = makeAddr("escrow");
-    address operator; // the vault owner/operator is the deployer (this test)
-    address buyer = makeAddr("buyer"); // slash beneficiary (insured party)
+    address buyer = makeAddr("buyer");
 
     uint256 constant ONE_USDC = 1e6;
 
@@ -65,8 +60,8 @@ contract KarwanVaultH2H3AttackTest is Test {
         usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         vault.setEscrow(escrow);
-        operator = address(this); // deployer is operator in the current design
-        usdc.mint(staker, 2_000 * ONE_USDC);
+        // operator is the deployer (this test contract).
+        usdc.mint(staker, 5_000 * ONE_USDC);
     }
 
     function _depositAs(address who, uint256 amount) internal returns (uint256) {
@@ -79,91 +74,109 @@ contract KarwanVaultH2H3AttackTest is Test {
 
     /* ------------------------------------------------------------------ H-2 */
 
-    /// PROOF: the operator can withdraw funds that are reserved as insurance,
-    /// after which the slash that should pay the buyer reverts. Expected PASS
-    /// on v1. Vault v2's coverage check makes the withdraw revert instead.
-    function test_H2_YieldWithdrawDrainsReservedInsurance() public {
-        // Staker posts 100 USDC of insurance stake.
+    /// The operator can no longer withdraw USDC that backs a reservation: the
+    /// coverage floor makes withdrawForYield revert. The insurance stays whole.
+    function test_H2_YieldWithdrawCannotDrainReserved() public {
         _depositAs(staker, 100 * ONE_USDC);
-
-        // A deal reserves the full 100 against the staker.
         bytes32 jobId = keccak256("insured-deal");
         vm.prank(escrow);
-        vault.reserve(jobId, staker, 100 * ONE_USDC);
-        assertEq(vault.reservedTotal(staker), 100 * ONE_USDC, "reserved");
+        vault.reserve(jobId, staker, 100 * ONE_USDC, buyer);
 
-        // BUG: the operator withdraws the reserved USDC for "yield". The
-        // docstring promises only funds above reservedTotal can leave; the
-        // code only checks the raw balance, so this succeeds and drains the
-        // insurance backing.
+        // Attempt to pull the reserved USDC out for yield -> reverts.
+        vm.expectRevert(KarwanVault.InsufficientLiquidUsdc.selector);
         vault.withdrawForYield(100 * ONE_USDC);
-        assertEq(usdc.balanceOf(address(vault)), 0, "vault drained below reserved");
 
-        // CONSEQUENCE: the buyer's insurance slash now reverts. The backstop
-        // is silently dead; on-chain the escrow's try/catch swallows this and
-        // the buyer is left uninsured.
+        // The insurance is intact: the slash still pays the buyer.
         vm.prank(escrow);
-        vm.expectRevert(); // MockUSDC "INSUFFICIENT" on the payout transfer
-        vault.slash(jobId, buyer);
+        vault.slash(jobId);
+        assertEq(usdc.balanceOf(buyer), 100 * ONE_USDC, "buyer insured");
+    }
+
+    /// Only the genuine surplus above the coverage floor can leave. With 100
+    /// staked and 60 reserved, at most 40 is withdrawable for yield.
+    function test_H2_OnlySurplusAboveCoverageLeaves() public {
+        _depositAs(staker, 100 * ONE_USDC);
+        vm.prank(escrow);
+        vault.reserve(keccak256("d"), staker, 60 * ONE_USDC, buyer);
+
+        // 41 is over the surplus (100 - 60 = 40) -> reverts.
+        vm.expectRevert(KarwanVault.InsufficientLiquidUsdc.selector);
+        vault.withdrawForYield(41 * ONE_USDC);
+
+        // 40 is exactly the surplus -> succeeds, and the reservation is still
+        // fully covered by the remaining balance.
+        vault.withdrawForYield(40 * ONE_USDC);
+        assertEq(usdc.balanceOf(address(vault)), 60 * ONE_USDC, "reserved coverage remains");
+    }
+
+    /// Cooling principal is also protected: a position in its cooldown window
+    /// must stay claimable, so its USDC can't be routed to yield.
+    function test_H2_CoolingIsAlsoCovered() public {
+        uint256 id = _depositAs(staker, 100 * ONE_USDC);
+        vm.prank(staker);
+        vault.requestWithdraw(id); // now cooling; 100 must stay liquid to claim
+
+        vm.expectRevert(KarwanVault.InsufficientLiquidUsdc.selector);
+        vault.withdrawForYield(1 * ONE_USDC);
     }
 
     /* ------------------------------------------------------------------ H-3 */
 
-    /// PROOF: MIN_PRINCIPAL permits dust, and slash cost scales with position
-    /// count without bound, so a griefing seller can push slash past any gas
-    /// stipend. Expected PASS on v1. Vault v2 caps positions + tracks an O(1)
-    /// aggregate so slash stays bounded.
-    function test_H3_SlashGriefedByDustPositions() public {
-        // MIN_PRINCIPAL is 1 USDC: dust staking is allowed.
-        assertEq(vault.MIN_PRINCIPAL(), 1 * ONE_USDC, "dust minimum");
-
-        // The seller fragments stake into many 1-USDC positions. 600 is well
-        // within what an attacker would open; the point is it is unbounded.
-        uint256 n = 600;
+    /// The dust attack can't even be set up: deposits revert once an owner
+    /// holds MAX_POSITIONS_PER_OWNER live positions.
+    function test_H3_PositionCountIsCapped() public {
+        uint256 cap = vault.MAX_POSITIONS_PER_OWNER();
         vm.startPrank(staker);
-        usdc.approve(address(vault), n * ONE_USDC);
-        for (uint256 i = 0; i < n; i++) {
+        usdc.approve(address(vault), (cap + 1) * ONE_USDC);
+        for (uint256 i = 0; i < cap; i++) {
             vault.deposit(1 * ONE_USDC);
         }
+        // The (cap+1)th deposit reverts.
+        vm.expectRevert(KarwanVault.TooManyPositions.selector);
+        vault.deposit(1 * ONE_USDC);
         vm.stopPrank();
-
-        // A deal reserves the whole fragmented stake.
-        bytes32 jobId = keccak256("griefed-deal");
-        vm.prank(escrow);
-        vault.reserve(jobId, staker, n * ONE_USDC);
-
-        // slash must walk every dust position to cover the reservation. Under
-        // a bounded gas stipend (what escrow.refund realistically forwards to
-        // a try/catch call), it runs out of gas and reverts, so the insurance
-        // never pays. 800k gas is generous for a single insurance payout yet
-        // nowhere near enough to walk 600 positions.
-        vm.prank(escrow);
-        (bool ok,) = address(vault).call{gas: 800_000}(
-            abi.encodeWithSelector(vault.slash.selector, jobId, buyer)
-        );
-        assertFalse(ok, "slash griefed: ran out of gas walking dust positions");
     }
 
-    /// CONTROL: the same slash with a handful of positions succeeds, proving
-    /// the H-3 failure is the position count, not the mechanism.
-    function test_H3_Control_SmallPositionCountSucceeds() public {
-        uint256 n = 5;
+    /// slash at the maximum position count is bounded and lands well within a
+    /// realistic gas stipend — the v1 griefing (600 positions -> OOG) is gone
+    /// because 600 positions can never be created (previous test).
+    function test_H3_SlashAtMaxPositionsIsBounded() public {
+        uint256 cap = vault.MAX_POSITIONS_PER_OWNER();
         vm.startPrank(staker);
-        usdc.approve(address(vault), n * ONE_USDC);
-        for (uint256 i = 0; i < n; i++) {
+        usdc.approve(address(vault), cap * ONE_USDC);
+        for (uint256 i = 0; i < cap; i++) {
             vault.deposit(1 * ONE_USDC);
         }
         vm.stopPrank();
 
-        bytes32 jobId = keccak256("normal-deal");
+        bytes32 jobId = keccak256("full-slash");
         vm.prank(escrow);
-        vault.reserve(jobId, staker, n * ONE_USDC);
+        vault.reserve(jobId, staker, cap * ONE_USDC, buyer);
 
+        // The full slash walks every one of the cap positions; even so it lands
+        // inside a generous-but-bounded stipend. (v1 OOG'd here at 600.)
         vm.prank(escrow);
-        (bool ok,) = address(vault).call{gas: 800_000}(
-            abi.encodeWithSelector(vault.slash.selector, jobId, buyer)
+        (bool ok,) = address(vault).call{gas: 3_000_000}(
+            abi.encodeWithSelector(vault.slash.selector, jobId)
         );
-        assertTrue(ok, "slash lands fine at low position count");
-        assertEq(usdc.balanceOf(buyer), n * ONE_USDC, "buyer insured");
+        assertTrue(ok, "slash bounded at the position cap");
+        assertEq(usdc.balanceOf(buyer), cap * ONE_USDC, "buyer fully insured");
+    }
+
+    /// Swap-and-pop keeps the array tight: claiming a position removes it, so
+    /// closed positions never accumulate iteration cost.
+    function test_H3_ClaimRemovesPositionFromArray() public {
+        uint256 a = _depositAs(staker, 10 * ONE_USDC);
+        _depositAs(staker, 10 * ONE_USDC);
+        assertEq(vault.positionCountOf(staker), 2);
+
+        vm.prank(staker);
+        vault.requestWithdraw(a);
+        vm.warp(block.timestamp + 4 days);
+        vm.prank(staker);
+        vault.claim(a);
+
+        // The claimed position left the live array.
+        assertEq(vault.positionCountOf(staker), 1, "closed position swap-popped");
     }
 }

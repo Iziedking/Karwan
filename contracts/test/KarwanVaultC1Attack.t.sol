@@ -38,28 +38,21 @@ contract MockUSDC is IERC20 {
     }
 }
 
-/// @title C-1: registerOwner stake-theft attack replay
-/// @notice The audit's single CRITICAL. `KarwanVault.registerOwner` lets any
-///         agent bind itself to ANY owner with no consent from that owner.
-///         Because reserve/slash resolve the agent to that owner, an attacker
-///         binds a throwaway agent to a victim, funds an escrow with the agent
-///         as seller, then disputes+refunds to slash the victim's staked USDC
-///         to themselves.
-///
-///         This test is written against v1 (pre-fix) and PROVES the theft: it
-///         is expected to PASS on the current contract. Vault v2's consented
-///         binding makes step 1 (registerOwner without approval) revert, at
-///         which point `test_C1_TheftReplay_stealsVictimStake` can no longer
-///         reach the theft — flip it to expect the revert and add
-///         `test_C1_RegisterOwner_RevertsWithoutApproval` (plan §8).
+/// @title C-1: registerOwner stake-theft is CLOSED in v2
+/// @notice The audit's single CRITICAL. In v1 an agent could bind itself to
+///         ANY owner with no consent, then reserve+slash the victim's stake to
+///         the attacker. v2 requires the owner's on-chain approveAgent before
+///         a binding can happen, so the attack dies at step 1. These tests
+///         assert the fix; git history holds the v1 version that proved the
+///         live exploit.
 contract KarwanVaultC1AttackTest is Test {
     KarwanVault vault;
     MockUSDC usdc;
 
-    address victim = makeAddr("victim"); // an honest staker with free stake
-    address escrow = makeAddr("escrow"); // the escrow the vault trusts
-    address attacker = makeAddr("attacker"); // the beneficiary of the slash
-    address attackerAgent = makeAddr("attackerAgent"); // throwaway agent wallet
+    address victim = makeAddr("victim");
+    address escrow = makeAddr("escrow");
+    address attacker = makeAddr("attacker");
+    address attackerAgent = makeAddr("attackerAgent");
 
     uint256 constant ONE_USDC = 1e6;
 
@@ -67,7 +60,6 @@ contract KarwanVaultC1AttackTest is Test {
         usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         vault.setEscrow(escrow);
-        // The victim stakes real USDC. This is the money the attacker steals.
         usdc.mint(victim, 1_000 * ONE_USDC);
         vm.startPrank(victim);
         usdc.approve(address(vault), 100 * ONE_USDC);
@@ -75,37 +67,75 @@ contract KarwanVaultC1AttackTest is Test {
         vm.stopPrank();
     }
 
-    /// PROOF the vulnerability is live on v1. Expected to PASS today.
-    function test_C1_TheftReplay_stealsVictimStake() public {
-        bytes32 jobId = keccak256("attack-job");
-        uint256 stealAmount = 100 * ONE_USDC;
-
-        // Sanity: the victim's stake and the attacker's empty wallet before.
-        assertEq(vault.freeStakeOf(victim), stealAmount, "victim starts with free stake");
-        assertEq(usdc.balanceOf(attacker), 0, "attacker starts empty");
-
-        // STEP 1 -- the consent bug. The attacker's agent binds itself to the
-        // victim. The victim never approved this and cannot reject it.
+    /// The whole attack now cannot even start: step 1 reverts because the
+    /// victim never approved the attacker's agent.
+    function test_C1_TheftReplay_revertsAtBinding() public {
         vm.prank(attackerAgent);
+        vm.expectRevert(KarwanVault.AgentNotApproved.selector);
         vault.registerOwner(victim);
-        assertEq(vault.agentOwner(attackerAgent), victim, "agent bound to victim without consent");
 
-        // STEP 2 -- escrow reserves the "seller" (the attacker's agent) which
-        // resolves to the victim, booking the reservation against the victim's
-        // stake. In production the attacker triggers this by funding an escrow
-        // with attackerAgent as seller and reservationBps = 10000.
+        // No binding happened, so nothing resolves the attacker's agent to the
+        // victim; the victim's stake is untouched and unreachable.
+        assertEq(vault.agentOwner(attackerAgent), address(0), "no binding");
+        assertEq(vault.freeStakeOf(victim), 100 * ONE_USDC, "victim stake safe");
+    }
+
+    /// Direct proof of the gate: registerOwner reverts without a prior
+    /// approveAgent from the named owner (plan §8).
+    function test_C1_RegisterOwner_RevertsWithoutApproval() public {
+        vm.prank(attackerAgent);
+        vm.expectRevert(KarwanVault.AgentNotApproved.selector);
+        vault.registerOwner(victim);
+    }
+
+    /// The legitimate path still works: an owner approves THEIR OWN agent,
+    /// then the agent binds and stake resolves correctly.
+    function test_C1_ConsentedBinding_Works() public {
+        address honestAgent = makeAddr("honestAgent");
+        vm.prank(victim);
+        vault.approveAgent(honestAgent);
+        vm.prank(honestAgent);
+        vault.registerOwner(victim);
+        assertEq(vault.resolveOwner(honestAgent), victim, "consented binding resolves");
+    }
+
+    /// A cross-owner reserve is impossible: even if the attacker's agent is
+    /// bound to the attacker's OWN identity, it can never resolve to (or book
+    /// against) the victim. Belt-and-braces around the consent fix.
+    function test_C1_CrossOwnerReserve_CannotTouchVictim() public {
+        // Attacker legitimately binds their agent to their own (empty) identity.
+        vm.prank(attacker);
+        vault.approveAgent(attackerAgent);
+        vm.prank(attackerAgent);
+        vault.registerOwner(attacker);
+
+        // Escrow reserves against the attacker's agent -> resolves to the
+        // attacker, who has ZERO stake, so it reverts. It can never reach the
+        // victim's stake.
         vm.prank(escrow);
-        vault.reserve(jobId, attackerAgent, stealAmount);
-        assertEq(vault.reservedTotal(victim), stealAmount, "victim's stake reserved");
+        vm.expectRevert(KarwanVault.InsufficientFreeStake.selector);
+        vault.reserve(keccak256("attack-job"), attackerAgent, 100 * ONE_USDC, attacker);
 
-        // STEP 3 -- the dispute/refund path slashes the reservation to the
-        // attacker. Escrow.refund calls vault.slash(jobId, buyer); here the
-        // attacker is the funding buyer, so the beneficiary is the attacker.
-        vm.prank(escrow);
-        vault.slash(jobId, attacker);
+        assertEq(vault.freeStakeOf(victim), 100 * ONE_USDC, "victim stake untouched");
+    }
 
-        // THEFT CONFIRMED: the victim's staked USDC is now the attacker's.
-        assertEq(usdc.balanceOf(attacker), stealAmount, "attacker received the victim's stake");
-        assertEq(vault.freeStakeOf(victim), 0, "victim's stake was drained");
+    /// Revoke clears the binding so a compromised/rotated agent stops
+    /// resolving to the owner (and a rebind needs fresh approval).
+    function test_C1_RevokeAgent_ClearsBinding() public {
+        address agent = makeAddr("agent");
+        vm.prank(victim);
+        vault.approveAgent(agent);
+        vm.prank(agent);
+        vault.registerOwner(victim);
+        assertEq(vault.resolveOwner(agent), victim);
+
+        vm.prank(victim);
+        vault.revokeAgent(agent);
+        assertEq(vault.resolveOwner(agent), agent, "binding cleared");
+
+        // Rebinding needs a fresh approval.
+        vm.prank(agent);
+        vm.expectRevert(KarwanVault.AgentNotApproved.selector);
+        vault.registerOwner(victim);
     }
 }

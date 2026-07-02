@@ -10,9 +10,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 ///         escrow translate agent addresses to identity wallets before
 ///         crediting reputation.
 interface IKarwanVault {
-    function reserve(bytes32 jobId, address seller, uint256 amount) external;
+    function reserve(bytes32 jobId, address seller, uint256 amount, address beneficiary) external;
     function release(bytes32 jobId) external;
-    function slash(bytes32 jobId, address beneficiary) external;
+    function slash(bytes32 jobId) external;
     function freeStakeOf(address owner) external view returns (uint256);
     function resolveOwner(address addr) external view returns (address);
 }
@@ -285,7 +285,9 @@ contract KarwanEscrow is ReentrancyGuard {
             // Surface the actionable error to the seller before bouncing
             // into the vault. The vault rechecks (defence in depth).
             if (vault.freeStakeOf(msg.sender) < reserveAmount) revert InsufficientStake();
-            vault.reserve(jobId, msg.sender, reserveAmount);
+            // Vault v2: the slash beneficiary (the buyer) is locked in at
+            // reserve time, so slash below carries no beneficiary arg.
+            vault.reserve(jobId, msg.sender, reserveAmount, e.buyer);
             e.reservedAmount = reserveAmount;
         }
         // Casual deals: reservedAmount stays 0. The release / dispute paths
@@ -438,7 +440,8 @@ contract KarwanEscrow is ReentrancyGuard {
         if (e.reservedAmount > 0) {
             address seller = e.seller;
             e.reservedAmount = 0; // clear BEFORE the external call (CEI)
-            try vault.slash(jobId, e.buyer) {
+            // Vault v2: beneficiary (buyer) was locked at reserve time.
+            try vault.slash(jobId) {
                 _recordReputation(
                     jobId, e.buyer, seller, IKarwanReputation.Outcome.Failed
                 );
