@@ -336,9 +336,20 @@ export function BridgeOutCard() {
                 borderBottomRightRadius: 3,
               }}
             >
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:{t.form.landsAtPrefix} {destShort.toUpperCase()}:]
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                  [:{t.form.landsAtPrefix} {destShort.toUpperCase()}:]
+                </span>
+                {auth.address && (
+                  <button
+                    type="button"
+                    onClick={() => setRecipient(auth.address as string)}
+                    className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline-offset-2 hover:underline transition-colors"
+                  >
+                    {t.form.yourWallet}
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={recipient}

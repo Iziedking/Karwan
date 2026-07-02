@@ -1160,10 +1160,19 @@ export function useBridges() {
             }));
           }
         });
+        // CCTP V2 Fast Transfer. Without a maxFee > 0 the burn falls back to
+        // waiting for full source-chain finality (10-19 min from Ethereum),
+        // which is what made bridges feel stuck. maxFee is a CAP/bid, not the
+        // charged amount: Circle deducts the real fast fee (a few bps) up to
+        // this ceiling, so a generous cap just makes fast fulfilment likely
+        // while the actual cost stays tiny. Cap at 1% of the amount (floor 0.01)
+        // so even a worst-case deduction is bounded.
+        const maxFee = Math.max(0.01, input.amountUsdc * 0.01).toFixed(6);
         const result = (await kit.bridge({
           from: { adapter, chain: APPKIT_CHAIN[input.sourceChainKey] },
           to: { recipientAddress: input.mintRecipient, chain: APPKIT_ARC_CHAIN, useForwarder: true },
           amount: input.amountUsdc.toString(),
+          config: { transferSpeed: 'FAST', maxFee },
         } as never)) as {
           state?: string;
           error?: unknown;
@@ -1450,6 +1459,22 @@ export function useBridges() {
           burnTxHash: hash,
           error: undefined,
         }));
+        // Record server-side so this self-signed cash-out shows in /activity and
+        // durable history (there's no backend relay to persist it otherwise).
+        // Best-effort: the on-chain send already landed.
+        api
+          .bridgeRecord({
+            bridgeId: id,
+            sourceChainKey: 'arc',
+            amountUsdc: input.amountUsdc,
+            mintRecipient: input.recipient,
+            burnTxHash: hash,
+            mintTxHash: hash,
+            direction: 'out',
+          })
+          .catch(() => {
+            /* history/activity is best-effort */
+          });
         sfx.success();
       } catch (err) {
         const raw = errorToString(err).toLowerCase();

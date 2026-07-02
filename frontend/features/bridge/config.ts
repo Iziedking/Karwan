@@ -184,8 +184,12 @@ export const ARC_TESTNET = {
   explorerTx: (h: string) => `https://testnet.arcscan.app/tx/${h}`,
 };
 
-// Default fast finality threshold for CCTP V2. 2000 = "fast" (~13s on testnets).
-export const FINALITY_THRESHOLD_FAST = 2000;
+// CCTP V2 minFinalityThreshold for Fast Transfer. Per Circle: 1000 = fast (soft
+// finality, needs maxFee > 0 to actually settle fast), 2000 = standard/max
+// security (waits for full source-chain finality). Must match the backend
+// constant (backend/src/chain/cctpChains.ts). Previously 2000 here, which
+// mislabelled the slow path as "fast".
+export const FINALITY_THRESHOLD_FAST = 1000;
 
 // CCTP V2 message format pads the recipient to bytes32.
 export function addressToBytes32(address: `0x${string}`): `0x${string}` {

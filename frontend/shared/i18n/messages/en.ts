@@ -3424,6 +3424,7 @@ interface MessagesShape {
       faucetSuccess: string;
       landsAtPrefix: string;
       recipientPlaceholder: string;
+      yourWallet: string;
       addressInvalid: string;
       submitTemplate: string;
     };
@@ -7457,6 +7458,7 @@ export const en: MessagesShape = {
       faucetSuccess: 'Faucet requested. About 20 USDC lands on your Arc wallet in a minute.',
       landsAtPrefix: 'LANDS AT ·',
       recipientPlaceholder: '0x your address on the destination chain',
+      yourWallet: 'Your wallet',
       addressInvalid: '• [:ERR:] not a valid address',
       submitTemplate: 'Cash out to {dest}',
     },

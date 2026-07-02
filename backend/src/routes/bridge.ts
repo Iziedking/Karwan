@@ -209,6 +209,10 @@ const recordSchema = z.object({
   mintRecipient: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'expected a 0x address'),
   burnTxHash: z.string().optional(),
   mintTxHash: z.string().optional(),
+  /// 'in' (chain -> Arc, the default App Kit forwarder case) or 'out' (Arc ->
+  /// elsewhere, e.g. a web3 self-signed Arc-to-Arc cash-out that has no backend
+  /// relay to persist it otherwise).
+  direction: z.enum(['in', 'out']).optional(),
 });
 
 bridgeRoutes.post('/record', async (c) => {
@@ -237,7 +241,7 @@ bridgeRoutes.post('/record', async (c) => {
     amountUsdc,
     mintRecipient: body.mintRecipient,
     status: 'minted',
-    direction: 'in',
+    direction: body.direction ?? 'in',
     appKit: true,
     // Bind to the signed-in user so a broadened /list can surface it later.
     bridgeWalletAddress: owner.toLowerCase(),

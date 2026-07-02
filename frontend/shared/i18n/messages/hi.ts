@@ -3634,6 +3634,7 @@ export const hi: Messages = {
       faucetSuccess: 'फॉसेट का अनुरोध हुआ। ~20 USDC आपके Arc वॉलेट पर एक मिनट में आ जाएगा।',
       landsAtPrefix: 'पहुँचेगा ·',
       recipientPlaceholder: '0x गंतव्य चेन पर आपका पता',
+      yourWallet: 'आपका वॉलेट',
       addressInvalid: '• [:त्रुटि:] पता मान्य नहीं',
       submitTemplate: '{dest} पर भेजें',
     },

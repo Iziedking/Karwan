@@ -3634,6 +3634,7 @@ export const fr: Messages = {
       faucetSuccess: 'Faucet demandé. Environ 20 USDC arrivent sur votre wallet Arc dans une minute.',
       landsAtPrefix: 'ARRIVE SUR ·',
       recipientPlaceholder: '0x votre adresse sur la chaîne de destination',
+      yourWallet: 'Votre portefeuille',
       addressInvalid: '• [:ERR:] adresse invalide',
       submitTemplate: 'Envoyer vers {dest}',
     },

@@ -3634,6 +3634,7 @@ export const ar: Messages = {
       faucetSuccess: 'تم طلب الصنبور. ستصل ~20 USDC إلى محفظتك على Arc خلال دقيقة.',
       landsAtPrefix: 'يصل إلى ·',
       recipientPlaceholder: '0x عنوانك على سلسلة الوجهة',
+      yourWallet: 'محفظتك',
       addressInvalid: '• [:خطأ:] العنوان غير صالح',
       submitTemplate: 'إرسال إلى {dest}',
     },

@@ -2270,6 +2270,7 @@ export const api = {
     mintRecipient: string;
     burnTxHash?: string;
     mintTxHash?: string;
+    direction?: 'in' | 'out';
   }) =>
     json<{ ok: boolean; alreadyRecorded?: boolean }>('/api/bridge/record', {
       method: 'POST',

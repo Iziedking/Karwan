@@ -3634,6 +3634,7 @@ export const sw: Messages = {
       faucetSuccess: 'Faucet imeombwa. Karibu USDC 20 zitafika kwenye pochi yako ya Arc ndani ya dakika moja.',
       landsAtPrefix: 'ITAFIKIA ·',
       recipientPlaceholder: '0x anwani yako kwenye mnyororo wa kufika',
+      yourWallet: 'Wallet yako',
       addressInvalid: '• [:HITILAFU:] anwani si halali',
       submitTemplate: 'Tuma kwa {dest}',
     },
