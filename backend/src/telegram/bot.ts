@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { config } from '../config.js';
+import { durableEphemeralMap } from '../db/ephemeral.js';
 import { logger } from '../logger.js';
 import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/telegramLinks.js';
 import { bus, type KarwanEvent } from '../events.js';
@@ -24,12 +25,14 @@ interface PendingLink {
   token: string;
   address: string;
   createdAt: number;
+  /// Required by the durable ephemeral store (createdAt + TOKEN_TTL_MS).
+  expiresAt: number;
 }
 
 const TOKEN_TTL_MS = 10 * 60 * 1000;
 const POLL_TIMEOUT_S = 25;
 
-const pending = new Map<string, PendingLink>();
+const pending = durableEphemeralMap<PendingLink>('tg-link');
 let lastUpdateId = 0;
 let stopped = false;
 
@@ -47,7 +50,13 @@ export function telegramUsername(): string | null {
 export function generateLinkToken(address: string): { token: string; deepLink: string | null } {
   pruneExpired();
   const token = randomBytes(12).toString('hex');
-  pending.set(token, { token, address: address.toLowerCase(), createdAt: Date.now() });
+  const now = Date.now();
+  pending.set(token, {
+    token,
+    address: address.toLowerCase(),
+    createdAt: now,
+    expiresAt: now + TOKEN_TTL_MS,
+  });
   const username = config.TELEGRAM_BOT_USERNAME;
   const deepLink = username ? `https://t.me/${username}?start=${token}` : null;
   return { token, deepLink };
@@ -400,8 +409,8 @@ export async function relaySupportUserMessage(convo: SupportConversation, text: 
 
 function pruneExpired() {
   const now = Date.now();
-  for (const [k, v] of pending) {
-    if (now - v.createdAt > TOKEN_TTL_MS) pending.delete(k);
+  for (const [k, v] of pending.entries()) {
+    if (v.expiresAt < now) pending.delete(k);
   }
 }
 

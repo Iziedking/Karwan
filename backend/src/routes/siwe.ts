@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { randomBytes } from 'node:crypto';
 import { getAddress, isAddress } from 'viem';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { durableEphemeralMap } from '../db/ephemeral.js';
 import { setSessionCookie } from '../auth/session.js';
 import { publicClient } from '../chain/client.js';
 import { logger } from '../logger.js';
@@ -17,7 +18,7 @@ interface PendingNonce {
   expiresAt: number;
 }
 
-const pending = new Map<string, PendingNonce>();
+const pending = durableEphemeralMap<PendingNonce>('siwe');
 
 function purgeStale() {
   const now = Date.now();

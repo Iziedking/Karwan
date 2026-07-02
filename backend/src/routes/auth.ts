@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { durableEphemeralMap } from '../db/ephemeral.js';
 import { resendClient } from '../emails/resend.js';
 import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID } from '../emails/brand.js';
 import {
@@ -46,7 +47,7 @@ interface PendingChallenge {
   kind: 'register' | 'login';
   expiresAt: number;
 }
-const pending = new Map<string, PendingChallenge>();
+const pending = durableEphemeralMap<PendingChallenge>('webauthn');
 const PENDING_TTL_MS = 5 * 60 * 1000;
 
 // Email OTP fallback for devices without a WebAuthn authenticator. Hashed
@@ -61,7 +62,7 @@ interface PendingOtp {
   expiresAt: number;
   attempts: number;
 }
-const otps = new Map<string, PendingOtp>();
+const otps = durableEphemeralMap<PendingOtp>('otp');
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 
