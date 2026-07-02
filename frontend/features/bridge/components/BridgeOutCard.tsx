@@ -41,7 +41,8 @@ export function BridgeOutCard() {
   const verifyCopy = msgs.bridgeCard.recipient.verify;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
-  const { bridges, startCircleOut, startWeb3Out, startArcSend, isActive } = useBridges();
+  const { bridges, startCircleOut, startWeb3Out, startArcSend, startWeb3ArcSend, isActive } =
+    useBridges();
   /// Activity is a temporary, per-device view: dismissing a row hides it from
   /// this panel only (a localStorage set), it never deletes the record from the
   /// shared store, so the permanent Transfer history keeps every transfer.
@@ -125,9 +126,13 @@ export function BridgeOutCard() {
     e.preventDefault();
     if (!canSubmit || !auth.address) return;
     const trimmed = recipient.trim() as `0x${string}`;
-    // Arc destination is a same-chain send, not a bridge.
+    // Arc destination is a same-chain send, not a bridge. Circle accounts move
+    // it custodially from their DCW; web3 users sign the transfer from their own
+    // Arc wallet (the custodial path rejects them, since they have no DCW).
     if (destKey === 'arc') {
-      startArcSend({ amountUsdc: amount as number, recipient: trimmed, userAddress: auth.address });
+      const arcArgs = { amountUsdc: amount as number, recipient: trimmed, userAddress: auth.address };
+      if (isCircle) startArcSend(arcArgs);
+      else startWeb3ArcSend(arcArgs);
       setAmount('');
       return;
     }

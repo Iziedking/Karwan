@@ -1147,7 +1147,9 @@ export function useBridges() {
           amount: input.amountUsdc.toString(),
         } as never)) as {
           state?: string;
-          steps?: Array<{ name?: string; state?: string; txHash?: string }>;
+          error?: unknown;
+          message?: string;
+          steps?: Array<{ name?: string; state?: string; txHash?: string; error?: unknown; message?: string }>;
         };
         const burnHash = result?.steps?.find((s) => s.name === 'burn')?.txHash as
           | `0x${string}`
@@ -1156,10 +1158,23 @@ export function useBridges() {
           | `0x${string}`
           | undefined;
         if (result?.state === 'error') {
+          // Surface the real failure reason instead of a generic line, and log
+          // the full result: Solana can't be exercised here without a wallet, so
+          // the console detail is how a live failure gets diagnosed.
+          if (typeof console !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.warn('[bridge.appkit] result error', input.sourceChainKey, result);
+          }
+          const failedStep = result.steps?.find(
+            (s) => s.state === 'error' || s.state === 'failed',
+          );
+          const detail = errorToString(
+            result.error ?? result.message ?? failedStep?.error ?? failedStep?.message ?? '',
+          ).trim();
           patch(id, (b) => ({
             ...b,
             phase: 'error',
-            error: 'Transfer failed. Try again.',
+            error: detail ? `Transfer failed. ${detail.slice(0, 160)}` : 'Transfer failed. Try again.',
             burnTxHash: burnHash ?? b.burnTxHash,
           }));
           return;
