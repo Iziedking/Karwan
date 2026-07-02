@@ -712,6 +712,12 @@ dealsRoutes.get('/direct', async (c) => {
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  // A deal list is private to its party (amounts, counterparties, escrow
+  // state). The query param names whose list to read; the session must BE
+  // that party, matching the detail route's gate.
+  if (!isSessionSelf(c, parsed.data)) {
+    return c.json({ error: 'sign in as this address to read these deals' }, 403);
+  }
 
   const deals = await listDealsForAddress(parsed.data);
   const enriched = await Promise.all(deals.map((d) => enrich(d)));

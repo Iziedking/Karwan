@@ -302,7 +302,15 @@ factoringRoutes.post('/offer', async (c) => {
 factoringRoutes.get('/offers/:invoiceId', async (c) => {
   const parsed = hashSchema.safeParse(c.req.param('invoiceId'));
   if (!parsed.success) return c.json({ error: 'invalid invoiceId' }, 400);
-  const offers = await listOffersForInvoice(parsed.data);
+  // Offers carry pricing terms between two named parties. Scope the read to
+  // the session's own side: the invoice's seller sees every offer made to
+  // them, a financier sees only their own. Anonymous callers see nothing.
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  const me = session.address.toLowerCase();
+  const offers = (await listOffersForInvoice(parsed.data)).filter(
+    (o) => o.seller.toLowerCase() === me || o.financier.toLowerCase() === me,
+  );
   return c.json({ offers });
 });
 
@@ -320,8 +328,11 @@ factoringRoutes.get('/mine', async (c) => {
 });
 
 /// GET /api/factoring/open: every open offer on the platform. Internal
-/// helper for the expiry watcher and operator dashboards.
+/// helper for the expiry watcher and operator dashboards. Session-gated:
+/// the full offer book (every financier's terms against every invoice) is
+/// not a public dataset.
 factoringRoutes.get('/open', async (c) => {
+  if (!readSession(c)) return c.json({ error: 'not authenticated' }, 401);
   const offers = await listOpenOffers();
   return c.json({ offers });
 });

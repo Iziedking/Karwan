@@ -99,6 +99,12 @@ listingsRoutes.get('/mine', (c) => {
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  // Rows here keep the agent-private steering fields (negotiation floor),
+  // so the query param alone is not enough: a buyer could read any seller's
+  // bottom line by naming them. The session must BE the seller.
+  if (!isSessionSelf(c, parsed.data)) {
+    return c.json({ error: 'sign in as this address to read your listings' }, 403);
+  }
   return c.json({ listings: listListingsForSeller(parsed.data) });
 });
 

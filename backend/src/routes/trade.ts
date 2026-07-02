@@ -111,7 +111,11 @@ tradeRoutes.post('/anchor', async (c) => {
 });
 
 /// GET /api/trade/anchors/:invoiceId: list all anchors for an invoice.
+/// Session-gated: anonymous enumeration of anchored trade documents is the
+/// exact dataset the x402 surface SELLS (/api/x402/document-anchors), so the
+/// free read is for signed-in platform users only.
 tradeRoutes.get('/anchors/:invoiceId', async (c) => {
+  if (!readSession(c)) return c.json({ error: 'not authenticated' }, 401);
   const parsed = invoiceIdSchema.safeParse(c.req.param('invoiceId'));
   if (!parsed.success) return c.json({ error: 'invalid invoiceId' }, 400);
   const anchors = await listAnchorsForInvoice(parsed.data);
