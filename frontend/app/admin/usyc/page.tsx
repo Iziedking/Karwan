@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
-const ADMIN_TOKEN_KEY = 'karwan-admin-token';
 
 type UsycResp = {
   configured: boolean;
@@ -37,18 +36,12 @@ const usd = (n: number) =>
 const short = (a?: string | null) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '-');
 
 export default function AdminUsycPage() {
+  // In-memory only, exactly as the copy below promises ("held in this tab
+  // only"). The old sessionStorage cache outlived that promise and sat one
+  // XSS away from exfiltration.
   const [token, setToken] = useState('');
   const [draft, setDraft] = useState('');
-  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    const cached = sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? '';
-    setToken(cached);
-    setDraft(cached);
-    setLoaded(true);
-  }, []);
-
-  if (!loaded) return null;
   if (!token) {
     return (
       <main className="min-h-screen bg-zinc-950 text-zinc-100 px-6 py-20">
@@ -60,7 +53,6 @@ export default function AdminUsycPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              sessionStorage.setItem(ADMIN_TOKEN_KEY, draft);
               setToken(draft);
             }}
             className="mt-6 flex flex-col gap-3"
@@ -90,7 +82,6 @@ export default function AdminUsycPage() {
     <Console
       token={token}
       onLock={() => {
-        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
         setToken('');
         setDraft('');
       }}

@@ -481,8 +481,13 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
     if (m[1] !== undefined && m[2] !== undefined) {
       const label = m[1];
       const href = m[2];
-      parts.push(
-        href.startsWith('/') ? (
+      // Assistant replies are LLM output: only in-app paths and https render
+      // as links. A prompt-injected javascript:/data: URI, or a
+      // protocol-relative //host, falls through to plain text.
+      const isInternal = href.startsWith('/') && !href.startsWith('//');
+      const isHttps = href.startsWith('https://');
+      if (isInternal) {
+        parts.push(
           <Link
             key={`k${key}`}
             href={href}
@@ -490,8 +495,10 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
             className="font-semibold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
           >
             {label}
-          </Link>
-        ) : (
+          </Link>,
+        );
+      } else if (isHttps) {
+        parts.push(
           <a
             key={`k${key}`}
             href={href}
@@ -500,9 +507,11 @@ function renderInline(line: string, onNavigate: () => void): React.ReactNode[] {
             className="font-semibold underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
           >
             {label}
-          </a>
-        ),
-      );
+          </a>,
+        );
+      } else {
+        parts.push(label);
+      }
     } else if (m[3] !== undefined) {
       parts.push(
         <strong key={`k${key}`} className="font-bold text-[var(--lp-dark)]">

@@ -87,7 +87,12 @@ export default function InvitePage() {
     setStage('claiming');
     try {
       const r = await api.claimDealInvite(token);
-      router.replace(r.redirectTo);
+      // Open-redirect guard: only follow in-app paths. A compromised or
+      // spoofed API response must not be able to bounce the user to another
+      // origin (// is protocol-relative, so it is external too).
+      const to =
+        r.redirectTo.startsWith('/') && !r.redirectTo.startsWith('//') ? r.redirectTo : '/app';
+      router.replace(to);
     } catch (err) {
       const msg =
         err instanceof ApiError && err.detail

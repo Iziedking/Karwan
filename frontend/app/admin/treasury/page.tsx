@@ -11,8 +11,6 @@ import {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
 
-const ADMIN_TOKEN_KEY = 'karwan-admin-token';
-
 type TreasuryView = {
   address: string | null;
   label: string;
@@ -90,29 +88,21 @@ function short(addr: string | null | undefined): string {
 }
 
 export default function AdminTreasuryPage() {
+  // The admin token lives in component state ONLY, for this tab's lifetime.
+  // It used to be cached in sessionStorage, which contradicted core/api.ts's
+  // in-memory-only model and left the token one XSS away from exfiltration.
+  // Re-entering it per visit is the intended cost.
   const [token, setToken] = useState<string>('');
-  const [tokenLoaded, setTokenLoaded] = useState(false);
   const [tokenDraft, setTokenDraft] = useState('');
 
-  useEffect(() => {
-    const cached = sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? '';
-    setToken(cached);
-    setTokenDraft(cached);
-    setTokenLoaded(true);
-  }, []);
-
   const saveToken = useCallback(() => {
-    sessionStorage.setItem(ADMIN_TOKEN_KEY, tokenDraft);
     setToken(tokenDraft);
   }, [tokenDraft]);
 
   const clearToken = useCallback(() => {
-    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
     setToken('');
     setTokenDraft('');
   }, []);
-
-  if (!tokenLoaded) return null;
 
   if (!token) {
     return (
