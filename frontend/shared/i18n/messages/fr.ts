@@ -1650,6 +1650,7 @@ export const fr: Messages = {
     },
     amount: {
       balanceMaxTemplate: 'Solde {amount} · MAX',
+      balanceTemplate: 'Solde {amount}',
       maxTitle: 'Utiliser tout le solde',
     },
     submit: {

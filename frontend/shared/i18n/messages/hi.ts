@@ -1650,6 +1650,7 @@ export const hi: Messages = {
     },
     amount: {
       balanceMaxTemplate: 'बैलेंस {amount} · MAX',
+      balanceTemplate: 'बैलेंस {amount}',
       maxTitle: 'पूरा बैलेंस उपयोग करें',
     },
     submit: {

@@ -1650,6 +1650,7 @@ export const sw: Messages = {
     },
     amount: {
       balanceMaxTemplate: 'Salio {amount} · MAX',
+      balanceTemplate: 'Salio {amount}',
       maxTitle: 'Tumia salio kamili',
     },
     submit: {

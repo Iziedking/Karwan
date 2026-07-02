@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useBridges, bridgeChainMeta, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
-import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, ARC_TESTNET, type CctpChainKey } from '../config';
+import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -27,17 +28,6 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 type DestKey = CctpChainKey | 'arc';
 const DEST_KEYS: DestKey[] = ['arc', ...SOURCE_CHAIN_KEYS];
 
-/// An instant Arc-to-Arc send. These never enter the CCTP bridge engine (no
-/// burn, no attestation), so they live as local component state rather than a
-/// BridgeRecord, mirroring the backend's one-shot /api/cashout/arc-send.
-interface ArcSend {
-  id: string;
-  amountUsdc: string;
-  recipient: string;
-  status: 'sending' | 'done' | 'error';
-  txHash?: string;
-  error?: string;
-}
 
 function outPhaseLabel(
   phase: BridgePhase,
@@ -73,20 +63,47 @@ function phaseTone(phase: BridgePhase): 'live' | 'positive' | 'critical' {
 /// destination (gas sponsored). Circle accounts only for now; web3 users sign
 /// the Arc burn themselves, which is a follow-up.
 export function BridgeOutCard() {
-  const t = useTranslations().bridgeOut;
+  const msgs = useTranslations();
+  const t = msgs.bridgeOut;
+  const amountCopy = msgs.bridgeCard.amount;
+  const verifyCopy = msgs.bridgeCard.recipient.verify;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
-  const { bridges, startCircleOut, startWeb3Out, dismiss, isActive } = useBridges();
+  const { bridges, startCircleOut, startWeb3Out, startArcSend, dismiss, isActive } = useBridges();
   const outBridges = bridges.filter((b) => b.direction === 'out');
 
-  const [destKey, setDestKey] = useState<DestKey>('baseSepolia');
+  const [destKey, setDestKey] = useState<DestKey>('arc');
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | ''>('');
   const [recipient, setRecipient] = useState<string>(auth.address ?? '');
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetNote, setFaucetNote] = useState<string | null>(null);
-  /// Instant Arc sends, newest first. Kept out of the CCTP engine on purpose.
-  const [arcSends, setArcSends] = useState<ArcSend[]>([]);
+  /// The user's spendable Arc USDC (the identity wallet cash out draws from).
+  /// Polled so a fresh top-up shows without a manual refresh.
+  const [arcBalance, setArcBalance] = useState<string | null>(null);
+  useEffect(() => {
+    if (!auth.address) {
+      setArcBalance(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      api
+        .walletOverview(auth.address as string)
+        .then((r) => {
+          if (!cancelled) setArcBalance(r.identity.usdcBalance ?? '0');
+        })
+        .catch(() => {
+          /* keep the prior value; the field shows 0 until the first read */
+        });
+    };
+    load();
+    const id = setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [auth.address]);
 
   // Bridge-out spends the identity wallet's Arc USDC, so let the user top it up
   // here in one tap instead of hopping to the Wallets panel.
@@ -109,35 +126,22 @@ export function BridgeOutCard() {
   const destName = isArcDest ? 'Arc' : SOURCE_CHAINS[destKey].name;
   const destShort = isArcDest ? 'Arc' : SOURCE_CHAINS[destKey].shortName;
   const recipientValid = ADDRESS_RE.test(recipient.trim());
+  /// Guard the recipient against contract addresses and typos. The on-chain
+  /// code check runs on Arc, so it only applies to the Arc destination (an
+  /// address can be an EOA on Arc but a contract elsewhere); other chains fall
+  /// back to a format check. The user's own address is trusted (no round-trip).
+  const recipientCheck = useAddressKind(recipient, {
+    enabled: isArcDest && recipientValid,
+    trustedAddresses: [auth.address],
+  });
+  const recipientBlocked =
+    isArcDest && (recipientCheck.kind === 'contract' || recipientCheck.kind === 'checking');
   const canSubmit =
     !!auth.address &&
     typeof amount === 'number' &&
     amount > 0 &&
-    recipientValid;
-
-  /// Instant Arc-to-Arc send. One backend call, settles synchronously, so the
-  /// UI shows a single "Cashed out" row with no bridge phases.
-  async function runArcSend(amountUsdc: number, recipient: string) {
-    const id = `arc-send-${Date.now()}`;
-    setArcSends((l) => [
-      { id, amountUsdc: String(amountUsdc), recipient, status: 'sending' },
-      ...l,
-    ]);
-    try {
-      const r = await api.cashoutArcSend({ recipient, amountUsdc });
-      setArcSends((l) =>
-        l.map((s) => (s.id === id ? { ...s, status: 'done', txHash: r.txHash } : s)),
-      );
-    } catch (err) {
-      const detail =
-        err instanceof ApiError && typeof err.detail === 'string'
-          ? err.detail
-          : (err as Error).message;
-      setArcSends((l) =>
-        l.map((s) => (s.id === id ? { ...s, status: 'error', error: detail } : s)),
-      );
-    }
-  }
+    recipientValid &&
+    !recipientBlocked;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -145,7 +149,7 @@ export function BridgeOutCard() {
     const trimmed = recipient.trim() as `0x${string}`;
     // Arc destination is a same-chain send, not a bridge.
     if (destKey === 'arc') {
-      runArcSend(amount as number, trimmed);
+      startArcSend({ amountUsdc: amount as number, recipient: trimmed, userAddress: auth.address });
       setAmount('');
       return;
     }
@@ -216,7 +220,7 @@ export function BridgeOutCard() {
               </button>
               {open && (
                 <ul
-                  className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up"
+                  className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up max-h-[300px] overflow-y-auto"
                   style={{
                     background: 'var(--lp-card)',
                     border: '1px solid var(--lp-border-light)',
@@ -270,9 +274,23 @@ export function BridgeOutCard() {
                 <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   [:{t.form.amountEyebrow}:]
                 </span>
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {t.form.fromArcCaption}
-                </span>
+                {arcBalance != null && Number(arcBalance) > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(Number(arcBalance))}
+                    className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    title={amountCopy.maxTitle}
+                  >
+                    {amountCopy.balanceMaxTemplate.replace('{amount}', formatUsdc(arcBalance, { withSuffix: false }))}
+                  </button>
+                ) : (
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                    {amountCopy.balanceTemplate.replace(
+                      '{amount}',
+                      arcBalance != null ? formatUsdc(arcBalance, { withSuffix: false }) : '0',
+                    )}
+                  </span>
+                )}
               </div>
               <div className="px-4 pb-3 flex items-baseline gap-3">
                 <input
@@ -351,6 +369,11 @@ export function BridgeOutCard() {
                   {t.form.addressInvalid}
                 </p>
               )}
+              {isArcDest && recipientValid && recipientCheck.kind !== 'idle' && (
+                <div className="mt-2">
+                  <RecipientVerifyPill kind={recipientCheck.kind} copy={verifyCopy} />
+                </div>
+              )}
             </div>
 
             <button
@@ -380,19 +403,12 @@ export function BridgeOutCard() {
             </p>
           </form>
 
-        {(outBridges.length > 0 || arcSends.length > 0) && (
+        {outBridges.length > 0 && (
           <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               [:{t.activityEyebrow}:]
             </span>
             <ul className="mt-3.5 space-y-2">
-              {arcSends.map((s) => (
-                <ArcSendRow
-                  key={s.id}
-                  send={s}
-                  onDismiss={() => setArcSends((l) => l.filter((x) => x.id !== s.id))}
-                />
-              ))}
               {outBridges.map((b) => (
                 <OutRow key={b.id} bridge={b} onDismiss={() => dismiss(b.id)} active={isActive(b.phase)} />
               ))}
@@ -404,73 +420,54 @@ export function BridgeOutCard() {
   );
 }
 
-/// Row for an instant Arc-to-Arc send. No phases to walk through: it is either
-/// sending, cashed out, or failed. Mirrors OutRow's visual language but with an
-/// Arc-to-Arc glyph and no CCTP phase steps.
-function ArcSendRow({ send, onDismiss }: { send: ArcSend; onDismiss: () => void }) {
-  const t = useTranslations().bridgeOut;
-  const tone: 'live' | 'positive' | 'critical' =
-    send.status === 'done' ? 'positive' : send.status === 'error' ? 'critical' : 'live';
-  const rail = tone === 'positive' ? '#0a7553' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';
+/// Inline EOA/contract check for the pasted recipient, mirroring the Add money
+/// recipient guard. Reuses the shared bridgeCard verify strings.
+function RecipientVerifyPill({
+  kind,
+  copy,
+}: {
+  kind: 'idle' | 'invalid' | 'checking' | 'eoa' | 'contract';
+  copy: Messages['bridgeCard']['recipient']['verify'];
+}) {
+  if (kind === 'idle') return null;
+  const tone =
+    kind === 'eoa'
+      ? { bg: 'rgba(10, 117, 83, 0.10)', text: '#0a7553', border: 'rgba(10, 117, 83, 0.30)' }
+      : kind === 'contract' || kind === 'invalid'
+        ? { bg: 'rgba(176, 61, 58, 0.10)', text: '#b03d3a', border: 'rgba(176, 61, 58, 0.30)' }
+        : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };
   const label =
-    send.status === 'done' ? t.phases.done : send.status === 'error' ? t.phases.error : t.phases.burning;
+    kind === 'checking'
+      ? copy.checking
+      : kind === 'eoa'
+        ? copy.verifiedEoa
+        : kind === 'contract'
+          ? copy.contractDanger
+          : copy.invalid;
   return (
-    <li
-      className="relative overflow-hidden p-3 ps-4"
+    <div
+      className="inline-flex items-center gap-2 px-3 py-2 text-[11.5px] mono"
       style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
+        background: tone.bg,
+        color: tone.text,
+        border: `1px solid ${tone.border}`,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 2,
       }}
     >
-      <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: rail }} />
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5">
-          <ChainLogo chain="arc" size={20} />
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden className="text-[var(--lp-text-muted)]">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <ChainLogo chain="arc" size={20} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-sans text-[16px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(send.amountUsdc, { withSuffix: false })}
-            </span>
-            <span className="text-[10px] mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
-              USDC
-            </span>
-          </div>
-          <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] leading-none" style={{ color: rail }}>
-            {label}
-            {send.txHash && (
-              <a
-                href={ARC_TESTNET.explorerTx(send.txHash)}
-                target="_blank"
-                rel="noreferrer"
-                className="ms-2 underline-offset-2 hover:underline text-[var(--lp-text-muted)]"
-              >
-                {shortHash(send.txHash)}
-              </a>
-            )}
-          </p>
-          {send.error && <p className="mt-1 text-[11px] leading-snug text-[#b03d3a]">{send.error}</p>}
-        </div>
-        {send.status !== 'sending' && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors shrink-0"
-          >
-            {t.dismissButton}
-          </button>
-        )}
-      </div>
-      <span className="sr-only">{t.srToRecipient.replace('{address}', shortAddress(send.recipient))}</span>
-    </li>
+      <span
+        aria-hidden
+        className={
+          kind === 'checking'
+            ? 'inline-block w-[6px] h-[6px] rounded-full animate-pulse motion-reduce:animate-none'
+            : 'inline-block w-[6px] h-[6px]'
+        }
+        style={{ background: tone.text, borderRadius: kind === 'checking' ? 999 : 1 }}
+      />
+      {label}
+    </div>
   );
 }
 

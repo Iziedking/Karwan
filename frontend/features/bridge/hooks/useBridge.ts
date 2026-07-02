@@ -167,6 +167,17 @@ export function bridgeChainMeta(key: AnySourceChainKey): {
   nativeSymbol: string;
   explorerTx: (h: string) => string;
 } {
+  // Instant Arc-to-Arc sends (cash out to an Arc wallet) carry the synthetic
+  // 'arc' key so they share the bridge store, activity list, and history modal
+  // with real bridges. They never enter the CCTP flow.
+  if ((key as string) === 'arc') {
+    return {
+      name: 'Arc',
+      shortName: 'Arc',
+      nativeSymbol: 'USDC',
+      explorerTx: (h: string) => ARC_TESTNET.explorerTx(h),
+    };
+  }
   if (isAppKitOnlyChainKey(key)) {
     const c = APP_KIT_SOURCES[key];
     return {
@@ -579,6 +590,16 @@ export function useBridges() {
       // Devnet today) never enter this, startCircleAppKit handles them
       // entirely on the backend. The guard prevents a future caller from
       // dropping an App Kit record into the EVM signer path silently.
+      if ((record.sourceChainKey as string) === 'arc') {
+        // Instant Arc sends never enter the CCTP signer path. Guard so a stray
+        // retry can't dereference SOURCE_CHAINS['arc'] (undefined).
+        patch(record.id, (b) => ({
+          ...b,
+          phase: 'error',
+          error: 'This is an instant Arc send. Start a new one to retry.',
+        }));
+        return;
+      }
       if (isAppKitOnlyChainKey(record.sourceChainKey)) {
         patch(record.id, (b) => ({
           ...b,
@@ -822,6 +843,10 @@ export function useBridges() {
     async (id: string) => {
       const cur = bridgesRef.current.find((b) => b.id === id);
       if (!cur) return;
+      // Instant Arc sends are terminal. There is nothing to re-drive, and
+      // re-sending could double-spend, so retry is a no-op: dismiss and start
+      // a fresh one instead.
+      if ((cur.sourceChainKey as string) === 'arc') return;
       // If the burn already committed on the source chain, NEVER re-fire the
       // entire flow, that would double-burn the user's USDC. Divert to the
       // backend recheck which re-queries IRIS for the existing burn's
@@ -1046,6 +1071,48 @@ export function useBridges() {
     [patch],
   );
 
+  /// Instant Arc-to-Arc send (cash out to an Arc wallet). One backend transfer,
+  /// no CCTP, settles synchronously. Stored as an 'out' record with the
+  /// synthetic 'arc' key so it shows up in the activity list and history modal
+  /// alongside real bridges.
+  const startArcSend = useCallback(
+    async (input: { amountUsdc: number; recipient: `0x${string}`; userAddress: string }) => {
+      const id = `arc-send-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      const record: BridgeRecord = {
+        id,
+        phase: 'burning',
+        direction: 'out',
+        sourceChainKey: 'arc' as AnySourceChainKey,
+        amountUsdc: input.amountUsdc.toString(),
+        mintRecipient: input.recipient,
+        startedAt: now,
+        updatedAt: now,
+      };
+      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      try {
+        const r = await api.cashoutArcSend({
+          recipient: input.recipient,
+          amountUsdc: input.amountUsdc,
+        });
+        patch(id, (b) => ({
+          ...b,
+          phase: 'done',
+          mintTxHash: (r.txHash ?? undefined) as `0x${string}` | undefined,
+          error: undefined,
+        }));
+        sfx.success();
+      } catch (err) {
+        const detail =
+          err instanceof ApiError && typeof err.detail === 'string'
+            ? err.detail
+            : errorToString(err);
+        patch(id, (b) => ({ ...b, phase: 'error', error: detail }));
+      }
+    },
+    [patch],
+  );
+
   /// Web3 bridge-out: the user's own wallet signs the Arc burn, then the backend
   /// relays the destination mint. Mirrors the inbound runFlow (approve +
   /// depositForBurn + receipt) but Arc -> destination, using the backend quote so
@@ -1166,6 +1233,7 @@ export function useBridges() {
     startCircleAppKit,
     startCircleOut,
     startWeb3Out,
+    startArcSend,
     retry,
     recheck,
     dismiss,

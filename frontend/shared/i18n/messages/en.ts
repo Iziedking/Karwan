@@ -1543,6 +1543,7 @@ interface MessagesShape {
     };
     amount: {
       balanceMaxTemplate: string;
+      balanceTemplate: string;
       maxTitle: string;
     };
     submit: {
@@ -5369,6 +5370,7 @@ export const en: MessagesShape = {
     },
     amount: {
       balanceMaxTemplate: 'Balance {amount} · MAX',
+      balanceTemplate: 'Balance {amount}',
       maxTitle: 'Use full balance',
     },
     submit: {

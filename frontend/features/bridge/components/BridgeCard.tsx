@@ -403,15 +403,20 @@ export function BridgeCard({
     ? APP_KIT_SOURCES[sourceKey]
     : null;
 
-  // Funding path. The default is connect-wallet: any connected wallet signs the
-  // source-chain burn and the USDC lands on the user's Arc balance in one
-  // signature. depositPath is the Circle-only fallback that burns from a
-  // provisioned DCW the user funds by sending USDC to a deposit address.
+  // Funding path.
+  //   - appKitPath: Solana (App-Kit-only). No wagmi Solana signer exists, so
+  //     the backend always signs it from a Circle DCW the user funds by
+  //     sending USDC to a deposit address. Available to every account type.
+  //   - walletPath (default for EVM): any connected wallet signs the burn and
+  //     the USDC lands on Arc in one signature.
+  //   - depositPath: Circle-only EVM fallback that burns from a provisioned DCW.
+  const appKitPath = sourceIsAppKitOnly;
   const walletConnected = isConnected && !!web3Address;
-  const walletPath = walletConnected && !depositMode;
-  const depositPath = depositMode && isCircleUser;
-  // No path picked yet: prompt the user to connect a wallet.
-  const needsConnect = !walletConnected && !depositMode;
+  const walletPath = !appKitPath && walletConnected && !depositMode;
+  const depositPath = !appKitPath && depositMode && isCircleUser;
+  // No path picked yet: prompt the user to connect a wallet (EVM only; Solana
+  // funds a deposit address instead).
+  const needsConnect = !appKitPath && !walletConnected && !depositMode;
 
   // Source-chain USDC balance shown on the amount field. The deposit path reads
   // the polled DCW balance; the connect-wallet path reads the connected
@@ -431,23 +436,26 @@ export function BridgeCard({
         ? formatUnits(web3SourceBal.data.value, web3SourceBal.data.decimals)
         : null;
   // The wagmi wallet may be on Arc (the user just funded an agent there) or on
-  // any other chain. The bridge flow will switch it automatically, but the CTA
+  // any other chain. The bridge flow switches it automatically, but the CTA
   // label tells the user that's about to happen so the wallet pop-up isn't a
-  // surprise. App-Kit-only sources (Solana) have no EVM chainId; web3 users
-  // can't bridge from them at all so we don't surface a "wrong chain" prompt.
+  // surprise.
   const onWrongChain =
     !!evmSource && isConnected && walletChainId !== evmSource.chainId;
 
-  // Solana (App-Kit-only) has no wagmi signer, so it only works on the Circle
-  // deposit path where the backend signs the burn.
-  const web3CannotSign = sourceIsAppKitOnly && !depositPath;
   const sourceShortName = evmSource?.shortName ?? appKitSource?.shortName ?? '';
 
   // Button gates, split by path:
-  //   - canSwitch: connect-wallet path on the wrong EVM chain; the wallet just
-  //     needs to switch first. Amount + recipient don't matter yet.
+  //   - canBridgeAppKit: Solana, amount + recipient set (backend signs).
+  //   - canSwitch: connect-wallet path on the wrong EVM chain; switch first.
   //   - canBurn:   connect-wallet path on the right chain, amount + recipient set.
   //   - canBridgeCircle: deposit path, amount + recipient set (backend signs).
+  const canBridgeAppKit =
+    appKitPath &&
+    !!auth.address &&
+    typeof amount === 'number' &&
+    amount > 0 &&
+    !!mintRecipient &&
+    recipientReady;
   const canSwitch = walletPath && !!evmSource && onWrongChain && !isSwitching;
   const canBurn =
     walletPath &&
@@ -465,28 +473,27 @@ export function BridgeCard({
     amount > 0 &&
     !!mintRecipient &&
     recipientReady;
-  const canSubmit =
-    !web3CannotSign && (canBridgeCircle || canSwitch || canBurn);
+  const canSubmit = canBridgeAppKit || canBridgeCircle || canSwitch || canBurn;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Deposit path: the backend signs the burn from the user's provisioned DCW.
+    // Solana (App-Kit-only): the backend signs from the user's Circle DCW, for
+    // every account type. SSE drives the row like any other bridge.
+    if (appKitPath && auth.address) {
+      if (!canBridgeAppKit) return;
+      startCircleAppKit({
+        sourceChainKey: sourceKey,
+        amountUsdc: amount as number,
+        mintRecipient: mintRecipient as `0x${string}`,
+        userAddress: auth.address,
+      });
+      return;
+    }
+    // Deposit path: the backend signs the EVM burn from the provisioned DCW.
     if (depositPath && auth.address) {
       if (!canBridgeCircle) return;
-      // Solana (and any future App-Kit-only source) routes through the
-      // unified bridge endpoint; EVM Circle bridges keep the hand-rolled
-      // pipeline for now. SSE drives both rows identically downstream.
-      if (sourceIsAppKitOnly) {
-        startCircleAppKit({
-          sourceChainKey: sourceKey,
-          amountUsdc: amount as number,
-          mintRecipient: mintRecipient as `0x${string}`,
-          userAddress: auth.address,
-        });
-        return;
-      }
       startCircle({
-        sourceChainKey: sourceKey,
+        sourceChainKey: sourceKey as CctpChainKey,
         amountUsdc: amount as number,
         mintRecipient: mintRecipient as `0x${string}`,
         userAddress: auth.address,
@@ -496,11 +503,6 @@ export function BridgeCard({
     // Connect-wallet path.
     if (!walletConnected) {
       openConnectModal?.();
-      return;
-    }
-    if (web3CannotSign) {
-      // Defensive. The submit button is disabled, but a stray Enter shouldn't
-      // fire a no-op flow.
       return;
     }
     if (onWrongChain && evmSource) {
@@ -592,15 +594,15 @@ export function BridgeCard({
       </div>
 
       <div className="px-6 pb-6">
-        {depositPath && !sourceIsAppKitOnly && (
+        {appKitPath && appKitSource && (
+          <AppKitFundBanner source={appKitSource} copy={bc.appKitFund} />
+        )}
+        {depositPath && (
           <CircleSourceFundBanner
             sourceChainKey={sourceKey as CctpChainKey}
             wallet={circleWallet}
             copy={bc.circleFund}
           />
-        )}
-        {depositPath && sourceIsAppKitOnly && appKitSource && (
-          <AppKitFundBanner source={appKitSource} copy={bc.appKitFund} />
         )}
         {walletPath && evmSource && (
           <Web3FundHint source={evmSource} fundAddress={web3Address} copy={bc.web3Fund} />
@@ -616,7 +618,6 @@ export function BridgeCard({
             onChange={setSourceKey}
             open={sourcePickerOpen}
             setOpen={setSourcePickerOpen}
-            isCircleUser={depositPath}
             eyebrow={bc.eyebrow.sourceChain}
             copy={bc.sourceChain}
           />
@@ -649,7 +650,10 @@ export function BridgeCard({
                 </button>
               ) : (
                 <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  USDC
+                  {bc.amount.balanceTemplate.replace(
+                    '{amount}',
+                    sourceBalance != null ? formatUsdc(sourceBalance, { withSuffix: false }) : '0',
+                  )}
                 </span>
               )}
             </div>
@@ -773,15 +777,13 @@ export function BridgeCard({
               }}
             >
               <span>
-                {web3CannotSign
-                  ? bc.submit.solanaNeedsCircle
-                  : depositPath
-                    ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
-                    : isSwitching
-                      ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
-                      : onWrongChain
-                        ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
-                        : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
+                {appKitPath || depositPath
+                  ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
+                  : isSwitching
+                    ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
+                    : onWrongChain
+                      ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
+                      : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
               </span>
               <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -796,8 +798,9 @@ export function BridgeCard({
           </p>
 
           {/* Circle accounts can add money without a browser wallet through a
-              deposit address; the connected-wallet path is the default. */}
-          {isCircleUser &&
+              deposit address; the connected-wallet path is the default. Hidden
+              for Solana, which is always a deposit-address flow. */}
+          {isCircleUser && !appKitPath &&
             (depositMode ? (
               <button
                 type="button"
@@ -887,7 +890,11 @@ export function BridgeRow({
   const meta = bridgeChainMeta(bridge.sourceChainKey);
   const tone = phaseTone(bridge.phase);
   const idx = stepIndexFor(bridge.phase);
+  // Instant Arc sends are terminal one-shot transfers, not CCTP bridges: no
+  // recheck/retry (nothing to re-drive on chain), and no step ladder.
+  const isArc = (bridge.sourceChainKey as string) === 'arc';
   const isStuck =
+    !isArc &&
     (bridge.phase === 'attesting' || bridge.phase === 'minting') &&
     Date.now() - bridge.startedAt > STUCK_AFTER_MS;
 
@@ -989,7 +996,7 @@ export function BridgeRow({
 
       {expanded && (
         <div className="border-t border-[var(--lp-border-light)] px-3 py-3 space-y-3">
-          <BridgeSteps bridge={bridge} copy={copy.steps} />
+          {!isArc && <BridgeSteps bridge={bridge} copy={copy.steps} />}
 
           {bridge.error && <ErrorBanner message={bridge.error} copy={copy.error} />}
 
@@ -1037,7 +1044,7 @@ export function BridgeRow({
           )}
 
           <div className="flex items-center gap-2 pt-0.5">
-            {(isStuck || bridge.phase === 'error') && (
+            {(isStuck || bridge.phase === 'error') && !isArc && (
               <button
                 type="button"
                 onClick={onRecheck}
@@ -1054,7 +1061,7 @@ export function BridgeRow({
                 {copy.recheckOnChain}
               </button>
             )}
-            {bridge.phase === 'error' && (
+            {bridge.phase === 'error' && !isArc && (
               <button
                 type="button"
                 onClick={onRetry}
@@ -2266,7 +2273,6 @@ function SourceChainDropdown({
   onChange,
   open,
   setOpen,
-  isCircleUser,
   eyebrow,
   copy,
 }: {
@@ -2274,7 +2280,6 @@ function SourceChainDropdown({
   onChange: (next: AnySourceChainKey) => void;
   open: boolean;
   setOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
-  isCircleUser: boolean;
   eyebrow: string;
   copy: Messages['bridgeCard']['sourceChain'];
 }) {
@@ -2298,6 +2303,9 @@ function SourceChainDropdown({
         disabled: false,
       }),
     );
+    // Solana routes through the backend Circle App Kit signer, so it's usable by
+    // every account type (the backend provisions a Solana deposit address the
+    // user funds). No longer gated to Circle-only.
     const appKit = APP_KIT_SOURCE_KEYS.map((k): Option => {
       const c = APP_KIT_SOURCES[k];
       return {
@@ -2305,13 +2313,11 @@ function SourceChainDropdown({
         name: c.shortName,
         meta: copy.devnetAppKit,
         iconKey: 'solana',
-        disabled: !isCircleUser,
-        disabledTag: copy.circleOnlyTag,
-        disabledTitle: copy.solanaCircleOnlyTitle,
+        disabled: false,
       };
     });
     return [...cctp, ...appKit];
-  }, [isCircleUser, copy]);
+  }, [copy]);
 
   const active = options.find((o) => o.key === value) ?? options[0];
 
@@ -2381,7 +2387,7 @@ function SourceChainDropdown({
           />
           <ul
             role="listbox"
-            className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up"
+            className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up max-h-[300px] overflow-y-auto"
             style={{
               background: 'var(--lp-card)',
               border: '1px solid var(--lp-border-light)',

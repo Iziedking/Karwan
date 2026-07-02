@@ -1650,6 +1650,7 @@ export const ar: Messages = {
     },
     amount: {
       balanceMaxTemplate: 'الرصيد {amount} · الحد الأقصى',
+      balanceTemplate: 'الرصيد {amount}',
       maxTitle: 'استخدام كامل الرصيد',
     },
     submit: {

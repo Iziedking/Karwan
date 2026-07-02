@@ -1,12 +1,11 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { api, ApiError } from '@/core/api';
+import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
-type BridgeStatus = Awaited<ReturnType<typeof api.bridgeWalletStatus>>;
 type WalletsCopy = Messages['walletsPanel'];
 
 const CARD = {
@@ -180,8 +179,6 @@ export function WalletsPanel({ address }: { address?: string }) {
   const { method } = useAuth();
   const isCircle = method === 'circle';
   const [data, setData] = useState<Overview | null>(null);
-  const [bridge, setBridge] = useState<BridgeStatus | null>(null);
-  const [refueling, setRefueling] = useState(false);
   const [faucetBusy, setFaucetBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   // The address most recently copied, so the matching row can flash a Copied
@@ -195,7 +192,6 @@ export function WalletsPanel({ address }: { address?: string }) {
   const refresh = useCallback(() => {
     if (!address) return;
     api.walletOverview(address).then(setData).catch(() => {});
-    api.bridgeWalletStatus(address, 'baseSepolia').then(setBridge).catch(() => setBridge(null));
   }, [address]);
 
   useEffect(() => {
@@ -220,7 +216,6 @@ export function WalletsPanel({ address }: { address?: string }) {
   if (!address) return null;
 
   const agents = data?.agents ?? null;
-  const bridgeAddr = bridge?.bridgeWalletAddress ?? data?.bridgeWallets?.['BASE-SEPOLIA']?.address;
 
   const runFaucet = async (target: 'identity' | 'buyer' | 'seller') => {
     const addr =
@@ -242,22 +237,6 @@ export function WalletsPanel({ address }: { address?: string }) {
     }
     window.open('https://faucet.circle.com', '_blank', 'noopener,noreferrer');
     setFaucetBusy(null);
-  };
-
-  const topUpGas = async (chain: 'baseSepolia' | 'sepolia') => {
-    setRefueling(true);
-    setNote(null);
-    try {
-      await api.dripBridgeGas(address, chain);
-      const label = chain === 'sepolia' ? wp.chains.ethereumSepolia : wp.chains.baseSepolia;
-      setNote(wp.notes.gasRequestedTemplate.replace('{chain}', label));
-      if (chain === 'baseSepolia') setTimeout(refresh, 8000);
-    } catch (err) {
-      const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : null;
-      setNote(detail ?? (err as Error).message);
-    } finally {
-      setRefueling(false);
-    }
   };
 
   return (
@@ -346,57 +325,9 @@ export function WalletsPanel({ address }: { address?: string }) {
           </li>
         )}
 
-        {/* Bridge wallet is an email/Circle-user concept: it is the source-chain
-            address they fund to import USDC onto Arc. Web3 users bridge from
-            their own connected wallet, so the card would only confuse them. */}
-        {isCircle && bridgeAddr && (
-          <Row
-            tag={wp.rows.bridge.tag}
-            title={wp.rows.bridge.title}
-            purpose={wp.rows.bridge.purpose}
-            address={bridgeAddr}
-            primary={`${fmt(bridge?.usdcBalance)} USDC`}
-            copiedAddr={copiedAddr}
-            onCopied={markCopied}
-            copiedLabel={wp.copyAddress.copied}
-            secondary={wp.rows.bridge.gasSecondaryTemplate.replace('{amount}', fmt(bridge?.gasBalance))}
-            action={
-              <div className="flex flex-col items-stretch gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => topUpGas('baseSepolia')}
-                  disabled={refueling}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-                  style={{
-                    borderTopLeftRadius: 9,
-                    borderTopRightRadius: 9,
-                    borderBottomLeftRadius: 9,
-                    borderBottomRightRadius: 3,
-                    boxShadow: '0 3px 0 rgba(0,0,0,0.2)',
-                  }}
-                >
-                  {refueling ? wp.bridgeActions.requesting : wp.bridgeActions.topUpBase}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => topUpGas('sepolia')}
-                  disabled={refueling}
-                  className="inline-flex items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50"
-                  style={{
-                    borderColor: 'var(--lp-border-light)',
-                    color: 'var(--lp-text-sub)',
-                    borderTopLeftRadius: 9,
-                    borderTopRightRadius: 9,
-                    borderBottomLeftRadius: 9,
-                    borderBottomRightRadius: 3,
-                  }}
-                >
-                  {wp.bridgeActions.ethereumGas}
-                </button>
-              </div>
-            }
-          />
-        )}
+        {/* The old Bridge wallet card was removed: Circle users now add money by
+            connecting a wallet (one signature), so a separate source-chain
+            deposit address here only confused people. */}
       </ul>
 
       {note && (
