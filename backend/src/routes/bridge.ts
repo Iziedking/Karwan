@@ -184,6 +184,11 @@ export const bridgeRoutes = new Hono();
 bridgeRoutes.get('/list', async (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
+  // Transfer history is private financial data (amounts, counterparty
+  // addresses, timing); only the signed-in owner may read their own.
+  if (!isSessionSelf(c, address)) {
+    return c.json({ error: 'sign in as this address to read bridge history' }, 403);
+  }
   const wallets = await getAgentWallets(address.toLowerCase());
   // Include the user's own address: App Kit forwarder bridges are recorded with
   // bridgeWalletAddress = the signed-in user (they have no Circle source DCW),
@@ -292,6 +297,14 @@ bridgeRoutes.post('/relay', async (c) => {
       { error: 'CCTP_RELAY_WALLET_ID not configured (legacy alias: BUYER_AGENT_WALLET_ID)' },
       500,
     );
+  }
+  // Any signed-in session may relay: the CCTP message fixes the mint
+  // recipient, so a relay can only deliver the burn's own funds. The gate
+  // stops anonymous callers from burning relay-wallet gas and spamming
+  // bridge records. Every legitimate caller (web3 EVM flow, Solana flow,
+  // recheck) runs with a session cookie.
+  if (!sessionAddress(c)) {
+    return c.json({ error: 'sign in to relay a bridge' }, 401);
   }
 
   let body;
@@ -1931,6 +1944,11 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
+  // The relay burns destination gas from the named user's bridge DCW and
+  // writes bridge records against them; only that signed-in user may start it.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only relay your own bridge-out.', code: 'forbidden' }, 403);
+  }
 
   // Don't clobber an existing bridge's burn hash (stale tab / double submit).
   const existing = await getBridge(body.bridgeId);
