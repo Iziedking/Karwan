@@ -707,6 +707,13 @@ export const escrowV2Abi = [
   },
   {
     "type": "function",
+    "name": "lockYieldWiring",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "markDelivered",
     "inputs": [
       {
@@ -771,6 +778,19 @@ export const escrowV2Abi = [
         "name": "",
         "type": "uint64",
         "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "maxYieldBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
       }
     ],
     "stateMutability": "view"
@@ -1123,6 +1143,19 @@ export const escrowV2Abi = [
   },
   {
     "type": "function",
+    "name": "setMaxYieldBps",
+    "inputs": [
+      {
+        "name": "bps",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setReviewBounds",
     "inputs": [
       {
@@ -1278,6 +1311,19 @@ export const escrowV2Abi = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "yieldWiringLocked",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -1918,6 +1964,19 @@ export const escrowV2Abi = [
   },
   {
     "type": "event",
+    "name": "MaxYieldBpsSet",
+    "inputs": [
+      {
+        "name": "bps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "MilestoneClaimed",
     "inputs": [
       {
@@ -2150,6 +2209,12 @@ export const escrowV2Abi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "YieldWiringLocked",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AlreadyFunded",
     "inputs": []
@@ -2281,6 +2346,11 @@ export const escrowV2Abi = [
   },
   {
     "type": "error",
+    "name": "InvalidYieldBps",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NoCancelProposal",
     "inputs": []
   },
@@ -2367,12 +2437,22 @@ export const escrowV2Abi = [
   },
   {
     "type": "error",
+    "name": "SweepCapExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "TooManyReleases",
     "inputs": []
   },
   {
     "type": "error",
     "name": "YieldShortfall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "YieldWiringLockedErr",
     "inputs": []
   },
   {

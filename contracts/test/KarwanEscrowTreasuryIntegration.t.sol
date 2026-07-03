@@ -135,6 +135,7 @@ contract KarwanEscrowTreasuryIntegrationTest is Test {
         treasury.setEscrow(address(escrow));
         escrow.setYieldBackstop(address(treasury));
         escrow.setYieldOperator(keeper);
+        escrow.setMaxYieldBps(10000);
 
         usdc.mint(buyer, FUNDED);
         vm.prank(buyer);

@@ -101,13 +101,17 @@ contract KarwanGuardianTest is Test {
         vm.expectRevert(Guardable.Frozen.selector);
         escrow.releaseProgress(JOB, 0);
 
-        // Guardian clears it; the claim then goes through.
+        // Guardian clears it. N-2: the hold pushed the claim deadline out by the
+        // hold budget (default 7d), so the seller can't claim the instant the
+        // hold lifts — a flagged delivery faces the extra review window. Warp
+        // past the extended deadline, then the claim goes through.
         vm.prank(guardian);
         escrow.releaseHold(JOB);
         assertFalse(escrow.isHeld(JOB));
+        vm.warp(block.timestamp + 7 days + 1);
         vm.prank(seller);
         escrow.claimMilestone(JOB, 0);
-        assertEq(usdc.balanceOf(seller), SELLER_NET / 2, "paid after hold cleared");
+        assertEq(usdc.balanceOf(seller), SELLER_NET / 2, "paid after hold cleared + extended window");
     }
 
     /// The buyer's protective exit (reclaim) is NEVER frozen by a hold: a hold

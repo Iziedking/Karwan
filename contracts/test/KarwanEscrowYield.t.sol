@@ -108,6 +108,7 @@ contract KarwanEscrowYieldTest is Test {
         // Enable yield routing.
         escrow.setYieldBackstop(address(backstop));
         escrow.setYieldOperator(keeper);
+        escrow.setMaxYieldBps(10000); // full sweep allowed for the mechanic tests
 
         usdc.mint(buyer, 1000e18);
         vm.prank(buyer);

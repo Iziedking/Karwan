@@ -82,6 +82,18 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         return owner;
     }
 
+    /// @dev Audit N-3: a hold freezes claimRepayment, but markDefaulted was not
+    ///      hold-gated, so a held borrower could be defaulted + slashed for time
+    ///      they were blocked from repaying (MIN_REPAYMENT_WINDOW == maxHoldSecs).
+    ///      Extend the repayment deadline by the hold budget so the frozen time
+    ///      doesn't count against the borrower.
+    function _afterHold(bytes32 id, uint64 holdSecs) internal override {
+        POLine storage l = lines[id];
+        if (l.state == POState.Released && l.repaymentTimeoutAt != 0) {
+            l.repaymentTimeoutAt += holdSecs;
+        }
+    }
+
     // Types
 
     enum POState {

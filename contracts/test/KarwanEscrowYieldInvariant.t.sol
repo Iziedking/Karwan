@@ -172,6 +172,7 @@ contract KarwanEscrowYieldInvariantTest is Test {
         backstop.setEscrow(address(escrow));
         escrow.setYieldBackstop(address(backstop));
         escrow.setYieldOperator(keeper);
+        escrow.setMaxYieldBps(10000);
 
         usdc.mint(buyer, 1_000_000e18);
         vm.prank(buyer);

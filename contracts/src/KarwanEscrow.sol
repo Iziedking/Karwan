@@ -111,6 +111,18 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         return owner;
     }
 
+    /// @dev Audit N-2: a hold on an in-review milestone pushes the SELLER's
+    ///      claim deadline out by the hold budget, so a flagged delivery can't
+    ///      become claimable the instant the hold auto-expires. Only the claim
+    ///      clock moves — the buyer's own reclaim/refund path is never delayed
+    ///      by a hold (a hold protects the buyer, it can't trap their money).
+    function _afterHold(bytes32 id, uint64 holdSecs) internal override {
+        EscrowAccount storage e = escrows[id];
+        if (e.deliveredAt != 0 && e.claimDeadline != 0) {
+            e.claimDeadline += holdSecs;
+        }
+    }
+
     enum EscrowState {
         None,
         Funded,
@@ -284,6 +296,16 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     address public yieldBackstop;
     /// @notice Keeper allowed to sweep idle USDC to the backstop. Owner-set.
     address public yieldOperator;
+    /// @notice Audit N-1: once locked, the yield wiring (backstop, operator,
+    ///         coverage floor, cap) is frozen forever, so a compromised owner
+    ///         key can't repoint the backstop to a drain address. One-way.
+    bool public yieldWiringLocked;
+    /// @notice Audit N-1: hard cap on how much of the total liability may sit at
+    ///         the backstop (bps of escrowedTotal), so even a mis-set coverage
+    ///         floor can't move the whole balance out. Owner-set within the 100%
+    ///         ceiling; combined with returnEscrowLiquidity, principal stays
+    ///         recoverable. Default 80%.
+    uint16 public maxYieldBps = 8000;
 
     /// @dev Internal, not public: the struct is now large enough that the
     ///      auto-generated getter hits stack-too-deep under the non-viaIR
@@ -349,6 +371,8 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event YieldBackstopSet(address indexed backstop);
     event YieldOperatorSet(address indexed operator);
     event CoverageFloorSet(uint256 floor);
+    event YieldWiringLocked();
+    event MaxYieldBpsSet(uint16 bps);
 
     error AlreadyFunded();
     error NotBuyer();
@@ -388,6 +412,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     error BackstopNotSet();
     error FloorBreach();
     error YieldShortfall();
+    error YieldWiringLockedErr();
+    error SweepCapExceeded();
+    error InvalidYieldBps();
 
     constructor(
         address _usdc,
@@ -523,12 +550,14 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///         Refuses to unwire while USDC is still parked at the Treasury so
     ///         the pull-back path can never be orphaned.
     function setYieldBackstop(address backstop) external onlyOwner {
+        if (yieldWiringLocked) revert YieldWiringLockedErr();
         if (backstop == address(0) && atTreasury > 0) revert YieldShortfall();
         yieldBackstop = backstop;
         emit YieldBackstopSet(backstop);
     }
 
     function setYieldOperator(address op) external onlyOwner {
+        if (yieldWiringLocked) revert YieldWiringLockedErr();
         yieldOperator = op;
         emit YieldOperatorSet(op);
     }
@@ -537,8 +566,27 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///         is the exact-USDC accounting + payout-time pull-back, so no hard
     ///         minimum is needed.
     function setCoverageFloor(uint256 floor) external onlyOwner {
+        if (yieldWiringLocked) revert YieldWiringLockedErr();
         coverageFloor = floor;
         emit CoverageFloorSet(floor);
+    }
+
+    /// @notice Audit N-1: cap how much of the total liability may sit at the
+    ///         backstop. Owner-set within 100%; locked once the wiring is.
+    function setMaxYieldBps(uint16 bps) external onlyOwner {
+        if (yieldWiringLocked) revert YieldWiringLockedErr();
+        if (bps > BPS_DENOMINATOR) revert InvalidYieldBps();
+        maxYieldBps = bps;
+        emit MaxYieldBpsSet(bps);
+    }
+
+    /// @notice Audit N-1: freeze the yield wiring forever. After this, the
+    ///         backstop, operator, coverage floor and cap can't change, so a
+    ///         compromised owner key can't repoint the backstop to drain the
+    ///         escrow. One-way; call once the Treasury backstop is trusted.
+    function lockYieldWiring() external onlyOwner {
+        yieldWiringLocked = true;
+        emit YieldWiringLocked();
     }
 
     /// @notice Sweep idle USDC into the Treasury for yield. Keeper-only. Moves
@@ -552,6 +600,12 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (amount == 0) revert InvalidAmount();
         uint256 bal = usdc.balanceOf(address(this));
         if (bal < amount || bal - amount < coverageFloor) revert FloorBreach();
+        // Audit N-1: even with a mis-set coverage floor, never park more than
+        // maxYieldBps of the outstanding liability at the backstop, so the whole
+        // balance can't be swept out in one move.
+        if (atTreasury + amount > (escrowedTotal * maxYieldBps) / BPS_DENOMINATOR) {
+            revert SweepCapExceeded();
+        }
         atTreasury += amount;
         // Pull model: approve and let the backstop draw, so it books the float
         // atomically. Reset the allowance after in case the pull took less.

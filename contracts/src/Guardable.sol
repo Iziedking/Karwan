@@ -87,7 +87,15 @@ abstract contract Guardable {
         h.active = true;
         uint64 remaining = maxHoldSecs - h.usedSecs;
         emit Held(id, reasonHash, uint64(block.timestamp) + remaining);
+        // Let the inheriting contract push its own deadline out by the hold
+        // budget, so a frozen party isn't punished for time they were blocked.
+        _afterHold(id, maxHoldSecs);
     }
+
+    /// @dev Hook: fires after a hold is placed. `holdSecs` is the max hold
+    ///      duration (the budget). Override to extend a deal/line deadline so a
+    ///      hold can't make a party miss a window it was frozen out of.
+    function _afterHold(bytes32 id, uint64 holdSecs) internal virtual {}
 
     /// @notice Lift the hold on `id` early. Guardian-only. Settles the time
     ///         used so the budget reflects it.
