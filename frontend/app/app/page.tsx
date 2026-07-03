@@ -412,7 +412,7 @@ export default function AppHome() {
             />
           </div>
           <div className="fade-up fade-up-4">
-            <BigStatTile label={t.liveNetwork.stats.chain} value="5042002" hint={t.liveNetwork.stats.arcTestnet} />
+            <BigStatTile label={t.liveNetwork.stats.chain} value="Arc" hint={t.liveNetwork.stats.arcTestnet} />
           </div>
         </div>
       </Band>
