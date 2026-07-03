@@ -36,6 +36,7 @@ import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { categoryPriceSnapshot } from '../db/priceObservations.js';
 import { shouldDenyPaidCall } from '../security/sa-stub.js';
 import { recordSpend } from '../security/spendGuard.js';
+import { saveActiveBids, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
@@ -85,6 +86,52 @@ const PROFILE_MAX_DECREASE_PCT = 15;
 const activeBids = new Map<string, ActiveBid>();
 const handledEvents = new Set<string>();
 
+// --- ActiveBid durability (survive a restart mid-negotiation) ---------------
+// Debounced whole-map snapshot of the NON-finalized bids. Called at each state
+// transition (submit + counter round); the debounce coalesces the burst and the
+// 2s flush reads the final state, so it captures a bid's post-mutation form and
+// naturally drops it once it finalizes. See db/activeBids.ts.
+let activeBidsPersistTimer: ReturnType<typeof setTimeout> | null = null;
+
+function liveActiveBids(): Record<string, ActiveBid> {
+  const out: Record<string, ActiveBid> = {};
+  for (const [k, v] of activeBids) {
+    if (!v.finalized) out[k] = v; // only in-flight negotiations are worth resuming
+  }
+  return out;
+}
+
+function scheduleActiveBidsPersist(): void {
+  if (activeBidsPersistTimer) return;
+  activeBidsPersistTimer = setTimeout(() => {
+    activeBidsPersistTimer = null;
+    void saveActiveBids(liveActiveBids());
+  }, 2_000);
+}
+
+/// Synchronous flush for the shutdown hook (index.ts stopFns). The process exits
+/// immediately after, so this sync write is the last durable copy.
+export function flushActiveBidsSync(): void {
+  saveActiveBidsSync(liveActiveBids());
+}
+
+/// Restore in-flight bids on boot so a deploy mid-auction resumes instead of
+/// stalling. No-op once the map holds anything (never clobbers live state).
+export async function hydrateActiveBids(): Promise<void> {
+  if (activeBids.size > 0) return;
+  try {
+    const stored = await loadActiveBids();
+    let n = 0;
+    for (const [k, v] of Object.entries(stored)) {
+      activeBids.set(k, v as ActiveBid);
+      n += 1;
+    }
+    if (n > 0) logger.info({ count: n }, 'active bids hydrated from snapshot');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'active bids hydrate failed (non-fatal)');
+  }
+}
+
 /// Submit a bid on an open buyer brief on behalf of a seller listing. Bypasses
 /// the seller agent's LLM bid decision because the listing IS the decision.
 /// The seller has pre-committed to this price and tolerance. From here the bid
@@ -133,6 +180,7 @@ export async function submitListingBid(
       listingAskingPriceUsdc: listing.askingPriceUsdc,
       listingFloorUsdc: listing.floorUsdc,
     });
+    scheduleActiveBidsPersist();
 
     bus.emitEvent({
       type: 'bid.submitted',
@@ -822,6 +870,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
     responding: false,
     humanReview,
   });
+  scheduleActiveBidsPersist();
 
   logger.info({ jobId: job.jobId, seller: seller.address, ...txResult }, 'bid submitted');
   bus.emitEvent({
@@ -995,6 +1044,9 @@ async function handleCounterOffer(log: Log) {
     await runCounterEvaluation(seller, active, args);
   } finally {
     active.responding = false;
+    // Persist the post-round state (counterRounds, lastBidPrice, or finalized)
+    // so a restart resumes this negotiation where it left off.
+    scheduleActiveBidsPersist();
   }
 }
 

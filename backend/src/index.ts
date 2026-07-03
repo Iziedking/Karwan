@@ -53,7 +53,7 @@ import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
 } from './agents/buyer.js';
-import { startSellerAgents } from './agents/seller.js';
+import { startSellerAgents, hydrateActiveBids, flushActiveBidsSync } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
@@ -335,6 +335,9 @@ async function boot() {
   // instead of rebuilding from zero. Non-fatal; agents fall back to the global
   // ring when a category is thin.
   await initPriceObservationsStore();
+  // In-flight seller bids restore BEFORE agents start, so a deploy mid-auction
+  // resumes negotiations instead of stalling on a lost activeBids map.
+  await hydrateActiveBids();
   bootAgents();
   // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
   try {
@@ -437,6 +440,13 @@ if ('timeout' in httpServer) httpServer.timeout = FIFTEEN_MINUTES_MS;
 for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   process.on(sig, () => {
     appLogger.info({ sig }, 'shutting down');
+    // Last durable copy of in-flight bids before the process exits (the debounced
+    // async flush may not have fired for the most recent round).
+    try {
+      flushActiveBidsSync();
+    } catch {
+      /* best-effort */
+    }
     stopFns.forEach((fn) => fn());
     process.exit(0);
   });
