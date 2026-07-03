@@ -7218,8 +7218,8 @@ export const en: MessagesShape = {
     eyebrow: 'TERMS',
     headlineLead: 'What you sign up',
     headlineAccent: 'for',
-    intro: 'The product is testnet today. The terms cover the shape of the work, the risks of stablecoin settlement, and what we do with your data. Read once, signed once.',
-    preamble: 'These terms cover everything you do on Karwan. By signing in, posting a request, opening a deal, or staking, you agree to them. If you don\'t agree, please don\'t use the platform.',
+    intro: 'Karwan is currently in testnet. These terms set out how the service works, the risks of stablecoin settlement, and how your data is handled. Please read them in full before you accept.',
+    preamble: 'These terms govern your use of Karwan. By signing in, posting a request, opening a deal, or staking, you agree to be bound by them. If you do not agree to these terms, please do not use the platform.',
     s1: {
       title: '1. What Karwan offers',
       lead: 'Karwan is a settlement layer for cross-border SME work. The core pieces:',
@@ -7230,7 +7230,7 @@ export const en: MessagesShape = {
         agent: { label: 'Agent assistance.', body: 'Optional buyer and seller agents help you find counterparties, score offers, and negotiate within the limits you set. The agent never spends without your explicit approval.' },
         bridging: { label: 'Bridging.', body: 'USDC from supported source chains can be moved to Arc via Circle\'s Cross-Chain Transfer Protocol.' },
       },
-      tail: 'Some of this is still rolling out. Anything labelled "v2", "coming soon", or shown behind a beta flag is not guaranteed to ship on a fixed date.',
+      tail: 'Some of this is still rolling out. Features labelled "coming soon" or shown behind a beta flag are not guaranteed to ship on a fixed date.',
     },
     s2: {
       title: '2. What you are responsible for',
@@ -7238,7 +7238,7 @@ export const en: MessagesShape = {
       bullets: {
         keys: { label: 'Your keys and sign-in.', body: 'Whether that\'s a passkey, an email login, or a connected wallet. Karwan never holds the keys that move your funds.' },
         review: { label: 'Reviewing what you receive.', body: 'Look at the deliverable before you release the final milestone. Once released, the funds are with the seller.' },
-        deadlines: { label: 'The deadlines you set.', body: 'If you give the seller two days, you can\'t claim breach on day one. If you don\'t set a deadline, the deal stays open until one of you closes it.' },
+        deadlines: { label: 'The deadlines you set.', body: 'If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.' },
         offPlatform: { label: 'Off-platform delivery is at your own risk.', body: 'If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.' },
         disputes: { label: 'Disputes follow the rules in the reputation doc.', body: 'There is no human arbitration today. The contract logic and the recorded outcomes are the source of truth.' },
       },
@@ -7248,9 +7248,9 @@ export const en: MessagesShape = {
       lead: 'Reputation is computed from actual on-chain settlement history. The summary:',
       bullets: {
         success: 'Successful deals raise your score and can move you to a higher tier.',
-        disputes: 'Disputes you lose lower your score. Disputes you win don\'t.',
-        malicious: 'A confirmed malicious delivery (security-tagged) drops your tier sharply.',
-        staking: 'Staking shows commitment and contributes to a higher tier. It also acts as deal insurance starting in the v2.D contract.',
+        disputes: 'Disputes you lose reduce your score; disputes you win do not.',
+        malicious: 'A confirmed malicious delivery (security-tagged) reduces your tier sharply.',
+        staking: 'Staking demonstrates commitment and contributes to a higher tier. It also acts as deal insurance, enforced by the current escrow contract.',
       },
       tail: 'The full formula lives in the reputation model doc. The agent reads the tier and applies tier-aware behaviour: ELITE gets priority and skips the auction in some flows; NEW pays a premium for first deals. The agent never overrides the limits you\'ve set.',
     },
@@ -7258,12 +7258,12 @@ export const en: MessagesShape = {
       title: '4. Risk you carry',
       lead: 'Crypto and stablecoin work has real risks. The ones that apply here:',
       bullets: {
-        depeg: { label: 'USDC depeg or freeze.', body: 'USDC is issued by Circle. If Circle\'s banking partners hit trouble, or if a sanctioned address mixes in, USDC can lose its peg or be frozen. Karwan cannot reverse this.' },
+        depeg: { label: 'USDC depeg or freeze.', body: 'USDC is issued by Circle. If Circle\'s banking partners come under stress, or a sanctioned address is involved, USDC can lose its peg or be frozen. Karwan cannot reverse this.' },
         contract: { label: 'Smart-contract risk.', body: 'The escrow, vault, and reputation contracts on Arc were audited internally and are still considered testnet-quality. A bug, an exploit, or a misuse could result in lost funds.' },
         outage: { label: 'Network outages.', body: 'Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.' },
-        fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency, that\'s between you and your exchange.' },
+        fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency, that transaction is solely between you and your exchange.' },
         regulatory: { label: 'Geographic and regulatory compliance is yours.', body: 'Karwan does not check whether USDC payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.' },
-        testnet: { label: 'Karwan is testnet right now.', body: 'You are not paid in real money. None of the deals on testnet have legal weight. We use testnet as a sandbox until the v2.D bundle plus an external audit clears the way to mainnet.' },
+        testnet: { label: 'Karwan is on testnet today.', body: 'You are not paid in real money, and no deal on testnet carries legal weight. Testnet serves as a sandbox; a move to mainnet follows the standard hardening pass and an external audit.' },
       },
     },
     s5: {
@@ -7290,7 +7290,7 @@ export const en: MessagesShape = {
         lawful: 'You can lawfully enter contracts in your jurisdiction.',
         address: 'The address you signed in with is yours, or you have authority to act for the entity that owns it.',
       },
-      changes: 'These terms can change. When a material change ships, the version number on this page bumps and the product asks you to accept the new version before you can post a request, open a deal, or stake. If you do not accept, you can still read your existing deals and reclaim escrow on the previous terms; you just cannot open new work.',
+      changes: 'These terms may change. When a material change ships, the version number on this page is updated and the product asks you to accept the new version before you can post a request, open a deal, or stake. If you do not accept, you can still read your existing deals and reclaim escrow under the previous terms, but you cannot open new work.',
       organisation: 'If you are using the product through an organisation, you confirm that you have authority to bind that organisation to these terms.',
     },
     s7: { title: '7. Contact', body: 'The fastest channel is the in-product feedback link. For matters that need a paper trail, email the address listed on karwan.site under "Contact".' },
@@ -7656,8 +7656,8 @@ export const en: MessagesShape = {
   terms: {
     modal: {
       aria: 'Karwan terms and conditions',
-      eyebrow: 'ONE-TIME GATE',
-      title: 'Read this once. Then start.',
+      eyebrow: 'TERMS AND CONDITIONS',
+      title: 'Please review and accept to continue.',
       openInTab: 'Open in tab',
       scrollPrompt: 'Scroll to the end to accept',
       canAccept: 'You can accept now',

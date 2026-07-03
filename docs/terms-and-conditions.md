@@ -1,8 +1,8 @@
 # Karwan terms and conditions
 
-Last updated: 2026-05-29. Version: 1.
+Last updated: 2026-07-03. Version: 1.
 
-These terms cover everything you do on Karwan. By signing in, posting a request, opening a deal, or staking, you agree to them. If you don't agree, please don't use the platform.
+These terms govern your use of Karwan. By signing in, posting a request, opening a deal, or staking, you agree to be bound by them. If you do not agree to these terms, please do not use the platform.
 
 ## 1. What Karwan offers
 
@@ -22,7 +22,7 @@ You take care of:
 
 - **Your keys and sign-in.** Whether that's a passkey, an email login, or a connected wallet. Karwan never holds the keys that move your funds.
 - **Reviewing what you receive.** Look at the deliverable before you release the final milestone. Once released, the funds are with the seller.
-- **The deadlines you set.** If you give the seller two days, you can't claim breach on day one. If you don't set a deadline, the deal stays open until one of you closes it.
+- **The deadlines you set.** If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.
 - **Off-platform delivery is at your own risk.** If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.
 - **Disputes follow the rules in the reputation doc.** There is no human arbitration today. The contract logic and the recorded outcomes are the source of truth.
 
@@ -31,7 +31,7 @@ You take care of:
 Reputation is computed from actual on-chain settlement history. The summary:
 
 - Successful deals raise your score and can move you to a higher tier.
-- Disputes you lose lower your score. Disputes you win don't.
+- Disputes you lose reduce your score; disputes you win do not.
 - A confirmed malicious delivery (security-tagged) drops your tier sharply.
 - Staking shows commitment and contributes to a higher tier. It also acts as deal insurance enforced by the current escrow contract.
 
@@ -41,10 +41,10 @@ The full formula lives in `docs/reputation-model.md`. The agent reads the tier a
 
 Crypto and stablecoin work has real risks. The ones that apply here:
 
-- **USDC depeg or freeze.** USDC is issued by Circle. If Circle's banking partners hit trouble, or if a sanctioned address mixes in, USDC can lose its peg or be frozen. Karwan cannot reverse this.
+- **USDC depeg or freeze.** USDC is issued by Circle. If Circle's banking partners come under stress, or a sanctioned address is involved, USDC can lose its peg or be frozen. Karwan cannot reverse this.
 - **Smart-contract risk.** The escrow, vault, and reputation contracts on Arc were audited internally and are still considered testnet-quality. A bug, an exploit, or a misuse could result in lost funds.
 - **Network outages.** Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.
-- **No fiat conversion guarantee.** If you sell USDC for local currency, that's between you and your exchange.
+- **No fiat conversion guarantee.** If you sell USDC for local currency, that transaction is solely between you and your exchange.
 - **Geographic and regulatory compliance is yours.** Karwan does not check whether USDC payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.
 - **Karwan is testnet right now.** You are not paid in real money. None of the deals on testnet have legal weight. Testnet is a sandbox; mainnet rolls out after the standard hardening pass.
 

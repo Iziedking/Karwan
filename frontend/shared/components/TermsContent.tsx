@@ -8,7 +8,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// `docs/terms-and-conditions.md`; bumping the `TERMS_CURRENT_VERSION` env on
 /// the backend AND editing the version here together is what triggers a
 /// re-prompt across the product.
-export const TERMS_LAST_UPDATED = '2026-05-29';
+export const TERMS_LAST_UPDATED = '2026-07-03';
 
 /// Bump this in lockstep with the backend's TERMS_CURRENT_VERSION when the
 /// visible text changes materially. The modal records whatever the backend
