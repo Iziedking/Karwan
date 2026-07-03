@@ -293,6 +293,13 @@ const OUTCOME_HUE: Record<string, string> = {
   failed: '#b03d3a',
 };
 
+/// Only link a payment tx when it looks like a real 32-byte hash. The internal
+/// Arc x402 settlement rides Circle Gateway batching, so the receipt sometimes
+/// carries a batch reference or nothing; in that case show the amount, no link.
+function isTxHash(h?: string): boolean {
+  return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
+}
+
 /// The counterparty's real, DB-private work record. Granular per-deal proof a
 /// buyer paid the internal pull to see, never the aggregate on the public
 /// passport. Anonymized server-side: no past-counterparty, no exact terms.
@@ -336,6 +343,32 @@ function WorkRecordSection({
         [:{wr.eyebrow}:]
       </span>
       <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{wr.subtitle}</p>
+
+      {state.kind === 'done' && state.data.payment && (
+        <div
+          className="mt-3 flex items-center justify-between gap-3 px-3 py-2"
+          style={{
+            background: 'var(--lp-light)',
+            border: '1px solid var(--lp-border-light)',
+            borderRadius: 8,
+          }}
+        >
+          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            agent paid ${state.data.payment.amountUsd.toFixed(2)} on Arc for this read
+          </span>
+          {isTxHash(state.data.payment.txHash) && (
+            <a
+              href={`https://testnet.arcscan.app/tx/${state.data.payment.txHash}`}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] underline underline-offset-2"
+              style={{ color: 'var(--lp-accent)' }}
+            >
+              view ↗
+            </a>
+          )}
+        </div>
+      )}
 
       {state.kind === 'loading' && (
         <p className="mt-3 mono text-[11px] text-[var(--lp-text-muted)]">{wr.loading}</p>

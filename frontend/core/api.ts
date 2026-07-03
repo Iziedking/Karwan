@@ -688,6 +688,10 @@ export interface CounterpartyReport {
     };
     asBuyer: { funded: number; cleanRate: number | null };
   };
+  /// The internal x402 receipt: what the buyer agent paid on Arc to pull this
+  /// record. Null when there was no paid pull. `txHash` may be absent (Circle
+  /// Gateway batching), in which case the UI shows the amount without a link.
+  payment?: { amountUsd: number; txHash?: string } | null;
 }
 
 export interface NearMissApproval {

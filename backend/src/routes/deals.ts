@@ -57,7 +57,7 @@ import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
-import { bus } from '../events.js';
+import { bus, recentEventsByType } from '../events.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { isSessionSelf, viewerAddress, readSession } from '../auth/session.js';
@@ -788,8 +788,31 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
     return c.json({ locked: true, subject });
   }
   const record = await buildWorkRecord(subject);
-  return c.json({ locked: false, subject, record });
+  // Internal x402 receipt: the buyer agent's paid credit-passport pull on Arc
+  // that unlocked this record. Surfaced so the internal paid call has visible
+  // proof of its own, not just the external Base research payment. The Arc
+  // settlement rides Circle Gateway batching, so txHash may be a batch
+  // reference or empty; the UI only links it when it looks like a real hash.
+  const payment = await paidPullReceipt(jobId);
+  return c.json({ locked: false, subject, record, payment });
 });
+
+/// The buyer agent's internal x402 credit-passport payment for a deal: the
+/// agent.paid event on the Arc rail. Returns the amount + tx so the counterparty
+/// report can show the receipt. Null when there was no paid pull (unactivated
+/// buyer, capped, or a cache hit).
+async function paidPullReceipt(
+  jobId: string,
+): Promise<{ amountUsd: number; txHash?: string } | null> {
+  const events = await recentEventsByType(['agent.paid'], 20, jobId);
+  const arcPull = events.find(
+    (e) => e.payload?.rail === 'arc' && e.payload?.kind === 'reputation',
+  );
+  if (!arcPull) return null;
+  const amountUsd = Number(arcPull.payload?.amountUsd);
+  const txHash = typeof arcPull.payload?.txHash === 'string' ? arcPull.payload.txHash : undefined;
+  return { amountUsd: Number.isFinite(amountUsd) ? amountUsd : 0, txHash };
+}
 
 /// Seller accepts the deal terms. This lazily provisions the seller's agent
 /// wallets if they have not activated, then the buyer agent funds the escrow
