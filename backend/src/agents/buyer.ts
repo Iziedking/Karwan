@@ -2703,7 +2703,13 @@ async function persistApprovedMatch(
       firstReleasePct,
       milestonePcts,
       deadlineUnix: dealDeadlineUnix,
-      terms: proposal.termsHash,
+      // The human request text, NOT the on-chain termsHash. `terms` is what the
+      // deal page renders as "the agreement" AND what the security agent reads as
+      // the requirement to check the delivery against. Persisting the hash here
+      // made the security agent report "the buyer requested a hexadecimal string"
+      // and showed a hash as the agreement. Fall back to the hash only if the
+      // brief is somehow gone.
+      terms: brief?.briefText?.trim() || proposal.termsHash,
       acceptedAt: now,
       fundTxHash,
       origin: 'agent',
