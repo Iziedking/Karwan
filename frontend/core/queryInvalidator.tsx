@@ -15,33 +15,56 @@ import { qk } from './queryKeys';
 /// invalidating `qk.deals.all()` re-runs both the list and any open item
 /// queries. We invalidate; react-query handles whether anything is mounted
 /// and whether the data is genuinely stale.
+/// Every backend event that mutates a direct/managed deal's state. Kept as a
+/// Set (mirrors the backend event union in events.ts) so a new event type is a
+/// one-line add, not another `||`. Missing entries here are silent stale-state
+/// bugs: a user parked on the deal page sees old data until they navigate away.
+const DEAL_EVENTS = new Set<string>([
+  'deal.direct.created',
+  'deal.direct.edited',
+  'deal.accepted',
+  'deal.delivered',
+  'deal.delivery.flagged',
+  'deal.delivery.cleared',
+  'deal.matched',
+  'deal.match.approved',
+  'deal.match.declined',
+  'deal.match.raised',
+  'deal.review.started',
+  'deal.review.heartbeat',
+  'deal.acceptance.expired',
+  'deal.deadline.passed',
+  'deal.delay.appealed',
+  'deal.delay.responded',
+  'deal.delay.auto_released',
+  'deal.extension.requested',
+  'deal.extension.approved',
+  'deal.extension.declined',
+  'deal.fund.insufficient',
+  'deal.invite.claimed',
+  'deal.disputed',
+  'deal.cancelled',
+  'deal.cancel.proposed',
+  'deal.cancel.declined',
+  'escrow.approved',
+  'escrow.funded',
+  'escrow.accepted',
+  'escrow.milestone.released',
+  'escrow.released_from_dispute',
+  'escrow.settled',
+  // v2b security agent
+  'security.hold',
+  'security.hold.cleared',
+  'security.attested',
+]);
+
 function routes(event: ChainEvent): readonly (readonly string[])[] {
   const t = event.type;
 
   // Deal lifecycle. Anything that mutates a deal invalidates the per-user
   // list AND the item; sibling Money / balances / reputation surfaces also
   // depend on settled-vs-active classification.
-  if (
-    t === 'deal.direct.created' ||
-    t === 'deal.accepted' ||
-    t === 'deal.delivered' ||
-    t === 'deal.delivery.flagged' ||
-    t === 'deal.delivery.cleared' ||
-    t === 'deal.matched' ||
-    t === 'deal.match.approved' ||
-    t === 'deal.match.declined' ||
-    t === 'deal.review.started' ||
-    t === 'deal.review.heartbeat' ||
-    t === 'deal.auto_released' ||
-    t === 'deal.disputed' ||
-    t === 'deal.cancelled' ||
-    t === 'deal.cancel.proposed' ||
-    t === 'deal.cancel.declined' ||
-    t === 'escrow.approved' ||
-    t === 'escrow.funded' ||
-    t === 'escrow.milestone.released' ||
-    t === 'escrow.settled'
-  ) {
+  if (DEAL_EVENTS.has(t)) {
     // Deal lifecycle SSE doesn't carry the affected address — invalidate
     // every per-wallet money view by its top-level prefix and let
     // react-query refetch only the keys with mounted observers.

@@ -860,6 +860,10 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   const bridgeId = c.req.param('bridgeId');
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
+  // Auth: only the recipient (owner) may re-trigger their bridge.
+  if (!isSessionSelf(c, record.mintRecipient)) {
+    return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
+  }
   if (record.status === 'minted') {
     return c.json({ status: 'minted', mintTxHash: record.mintTxHash ?? null });
   }
@@ -1464,6 +1468,11 @@ bridgeRoutes.get('/:bridgeId', async (c) => {
   }
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
+  // Auth: a bridge record is private to its recipient (the owner). Without
+  // this, anyone could read another user's bridge status + tx hashes by id.
+  if (!isSessionSelf(c, record.mintRecipient)) {
+    return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
+  }
   return c.json({
     bridgeId: record.bridgeId,
     direction: record.direction ?? 'in',
@@ -1485,6 +1494,10 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   const bridgeId = c.req.param('bridgeId');
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
+  // Auth: only the recipient (owner) may resume their bridge.
+  if (!isSessionSelf(c, record.mintRecipient)) {
+    return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
+  }
   if (record.status === 'minted') {
     return c.json({ status: 'minted', mintTxHash: record.mintTxHash ?? null });
   }
@@ -1565,6 +1578,12 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
     return c.json({ error: 'invalid query', detail: parsed.error.message }, 400);
   }
   const userAddress = parsed.data.address.toLowerCase();
+  // Auth: a caller may only query/provision their OWN bridge wallet. Without
+  // this, an attacker could enumerate addresses and lazily provision Circle
+  // bridge wallets for others (and read the resulting addresses).
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
   const user = getUserByAddress(userAddress);
   if (!user) {
     return c.json({ error: 'no Circle account for this address' }, 404);
@@ -1658,6 +1677,10 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
   }
 
   const userAddress = address.toLowerCase();
+  // Auth: only the owner may read their bridge source address.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
   const user = getUserByAddress(userAddress);
   if (!user) {
     return c.json({ error: 'not a Circle user' }, 409);
