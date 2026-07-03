@@ -381,6 +381,7 @@ adminRoutes.post('/deals/:jobId/resolve', async (c) => {
       settledAt: Date.now(),
       cancelKind: 'resolved',
       cancelReason: body.rulingReason,
+      resolvedSellerBps: body.sellerBps,
       disputeLoser: body.sellerBps >= 5000 ? 'buyer' : 'seller',
     });
     logger.info({ jobId, sellerBps: body.sellerBps, txHash }, 'admin/arbiter resolved dispute');

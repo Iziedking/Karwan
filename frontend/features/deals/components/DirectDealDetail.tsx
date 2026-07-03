@@ -1445,16 +1445,39 @@ function ActionPanel({
 }) {
   if (stage === 'settled') {
     const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
+    const resolved = deal.cancelKind === 'resolved';
+    // v2b arbiter ruling: show the split and who it favoured. English inline
+    // (the ruling reason is free-text anyway); the rest of the panel is i18n.
+    const sellerBps = deal.resolvedSellerBps ?? 0;
+    const sellerPct = Math.round(sellerBps / 100);
     return (
       <div className="space-y-4">
-        <Body>
-          {releasedFromDispute
-            ? copy.settled.releasedFromDispute
-            : deal.autoReleasedAt
-              ? copy.settled.autoReleased
-              : copy.settled.normal}
-        </Body>
-        {viewerIsSeller && (
+        {resolved ? (
+          <div className="space-y-2.5">
+            <Body>
+              Karwan&rsquo;s arbiter resolved this dispute and split the escrow:{' '}
+              <span className="font-semibold text-white/85">{sellerPct}% to the seller</span>,{' '}
+              {100 - sellerPct}% back to the buyer. The staked reservation was settled to match.
+            </Body>
+            {deal.cancelReason && (
+              <div>
+                <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">[:ruling:]</p>
+                <p className="text-[13px] leading-relaxed text-white/75 px-3 py-2.5 border border-white/[0.08] rounded-[4px]">
+                  &ldquo;{deal.cancelReason}&rdquo;
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Body>
+            {releasedFromDispute
+              ? copy.settled.releasedFromDispute
+              : deal.autoReleasedAt
+                ? copy.settled.autoReleased
+                : copy.settled.normal}
+          </Body>
+        )}
+        {viewerIsSeller && (!resolved || sellerBps > 0) && (
           <Link href={`/cashout/${deal.jobId}`}>
             <CTAPill>{copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc))}</CTAPill>
           </Link>
@@ -1708,7 +1731,11 @@ function ActionPanel({
   const windowMs = deal.reviewWindowMs ?? REVIEW_WINDOW_MS;
 
   if (stage === 'awaiting-first-release') {
-    const endsAt = deal.deliveredAt ? deal.deliveredAt + windowMs : null;
+    // R4: prefer the on-chain claim deadline (v2b) so the claim button never
+    // reverts on the contract's ReviewWindowOpen from clock drift; fall back to
+    // the off-chain window on v1 / pre-cutover.
+    const onChainClaimMs = deal.onChain?.claimDeadlineMs ?? null;
+    const endsAt = onChainClaimMs ?? (deal.deliveredAt ? deal.deliveredAt + windowMs : null);
     const msLeft = endsAt ? endsAt - now : 0;
     // A flagged delivery link freezes the release: the backend pauses the
     // auto-release and rejects a manual release. Reflect that here instead of

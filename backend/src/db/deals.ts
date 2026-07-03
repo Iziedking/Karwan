@@ -116,6 +116,9 @@ export interface DirectDeal {
   /// Free-text reason captured at cancellation. Optional for unilateral and
   /// pre-accept (we synthesize a default); required for mutual / platform-attributed.
   cancelReason?: string;
+  /// v2b arbiter ruling: seller share in basis points (0-10000). Set alongside
+  /// cancelKind 'resolved' so the UI can show who the split favoured.
+  resolvedSellerBps?: number;
   /// Set when a Disputed-state proposal was accepted. Identifies which party
   /// conceded the dispute so the off-chain reputation signal can apply the
   /// loss. 'seller' on refund-from-dispute, 'buyer' on release-from-dispute.

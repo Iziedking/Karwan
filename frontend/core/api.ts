@@ -335,6 +335,11 @@ export interface DirectDealOnChain {
   sellerNetWei: string;
   feeTotalWei: string;
   releasedWei: string;
+  /// v2b on-chain review clock in ms (null on v2.E / pre-cutover). The seller
+  /// claim button gates on claimDeadlineMs so a click never reverts on the
+  /// contract's ReviewWindowOpen from off-chain clock drift.
+  deliveredAtMs?: number | null;
+  claimDeadlineMs?: number | null;
 }
 
 export interface DirectDeal {
@@ -380,8 +385,14 @@ export interface DirectDeal {
     | 'refund-from-dispute'
     | 'release-from-dispute'
     | 'unilateral'
-    | 'pre-accept';
+    | 'pre-accept'
+    /// v2b: the security-council arbiter split a post-accept dispute via
+    /// resolve(). settledAt is set; the deal reads "resolved by arbiter".
+    | 'resolved';
   cancelReason?: string;
+  /// v2b arbiter split, seller share in basis points (0-10000). Set on a
+  /// 'resolved' cancelKind so the UI can show who the ruling favoured.
+  resolvedSellerBps?: number;
   /// When set, the loser of a Disputed-state resolution. 'seller' is set on a
   /// refund acceptance (seller conceded); 'buyer' is set on a release
   /// acceptance (buyer conceded). Drives the off-chain reputation penalty.

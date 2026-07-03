@@ -25,6 +25,7 @@ import {
   markDeliveredOnChain,
   guardianHold,
   guardianReleaseHold,
+  guardianAttestDelivery,
   disputeEscrow,
   refundEscrow,
   reclaimAfterDeadline,
@@ -1389,6 +1390,13 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     const proofHash = keccak256(toBytes(body.deliveryProof ?? `delivered:${jobId}`));
     try {
       await markDeliveredOnChain(jobId, proofHash, deal.sellerAgentWalletId);
+      // R3: a clean scan is an agent-verified good delivery. Attest pass=true
+      // so the review window collapses toward attestedWindowSecs and the seller
+      // settles sooner — the on-chain half of the agent-verified-delivery story.
+      // Best-effort; the guardian wrapper is inert without the guardian wallet.
+      if (verificationStatus === 'clean' || verificationStatus === undefined) {
+        void guardianAttestDelivery(jobId, account.milestonesReleased, true, proofHash);
+      }
     } catch (err) {
       logger.error(
         { jobId, err: (err as Error).message },
@@ -2465,7 +2473,12 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     let finalTxHash: string;
     if (isReleaseFromDispute) {
       finalTxHash = await releaseFromDisputeOnChain(jobId, deal.buyerAgentWalletId);
-    } else if (config.ESCROW_V2B_ENABLED) {
+    } else if (config.ESCROW_V2B_ENABLED && account.state !== ESCROW_FUNDED) {
+      // v2b Accepted/Disputed: consented mutual cancel (sellerBps=0). The
+      // handshake requires wasAccepted, so a FUNDED (never-accepted) deal must
+      // NOT come here — it falls through to the refund path below (R6). refund
+      // is still allowed pre-accept on v2b, so a never-accepted deal settles
+      // there cleanly.
       if (!deal.sellerAgentWalletId) {
         return c.json({ error: 'this deal has no seller agent wallet on record' }, 409);
       }
@@ -2476,6 +2489,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
         0,
       );
     } else {
+      // v2.E, OR v2b pre-accept (FUNDED): dispute (if needed) then refund.
       if (account.state !== ESCROW_DISPUTED) {
         /// Inner-revert guarded; throws if escrow didn't actually move to Disputed.
         await disputeEscrow(jobId, deal.buyerAgentWalletId, chainReason);
@@ -2651,6 +2665,12 @@ async function enrich(deal: DirectDeal) {
         sellerNetWei: account.sellerNet.toString(),
         feeTotalWei: account.feeTotal.toString(),
         releasedWei: account.released.toString(),
+        // v2b on-chain clock (null on the v2.E ABI / pre-cutover). Milliseconds
+        // so the UI compares against Date.now() directly. R4: the seller claim
+        // button gates on THIS, not the off-chain window, so a click at the
+        // off-chain expiry can't revert on ReviewWindowOpen.
+        deliveredAtMs: account.deliveredAt ? Number(account.deliveredAt) * 1000 : null,
+        claimDeadlineMs: account.claimDeadline ? Number(account.claimDeadline) * 1000 : null,
       },
     };
   } catch {
