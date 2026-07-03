@@ -206,6 +206,24 @@ export const users = pgTable(
   }),
 );
 
+/// Category-bucketed price history of real deals. One row per deal (jobId PK),
+/// tagged with a normalized keyword bucket + coarse size band, so the agents can
+/// read a per-CATEGORY settlement median instead of one global cross-category
+/// average. Durable so category medians survive a restart. See db/priceObservations.ts.
+export const priceObservations = pgTable(
+  'price_observations',
+  {
+    jobId: text('job_id').primaryKey(),
+    bucket: text('bucket').notNull(),
+    priceMicros: bigint('price_micros', { mode: 'number' }).notNull(),
+    sizeBand: text('size_band').notNull(),
+    ts: bigint('ts', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    bucketTsIdx: index('price_observations_bucket_ts_idx').on(t.bucket, t.ts),
+  }),
+);
+
 /// Short-lived auth state (WebAuthn challenges, OTP hashes, SIWE nonces,
 /// Telegram link tokens), namespaced in the key. Durable so a deploy doesn't
 /// void a sign-in that's mid-flight. Expired rows sweep at boot.

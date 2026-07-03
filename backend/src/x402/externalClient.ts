@@ -1,4 +1,6 @@
 import { privateKeyToAccount } from 'viem/accounts';
+import { createPublicClient, http, erc20Abi } from 'viem';
+import { base } from 'viem/chains';
 import { x402Client, x402HTTPClient } from '@x402/core/client';
 import { registerExactEvmScheme } from '@x402/evm/exact/client';
 import { generateObject } from 'ai';
@@ -7,6 +9,18 @@ import { researchModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+
+/// Base mainnet USDC (Circle, verified: developers.circle.com/stablecoins/
+/// usdc-contract-addresses). The external x402 payer holds this and nothing
+/// else — it signs EIP-3009 authorizations; the facilitator pays gas.
+const BASE_USDC_ADDR = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
+/// Rough per-call cost of an external paid read (Exa web search over x402).
+/// Used to translate the payer's balance into "how many more reads can it fund"
+/// for the admin health probe. Deliberately conservative.
+const EXTERNAL_CALL_COST_USD = 0.01;
+/// Warn when the payer can fund fewer than this many more reads. Below it, the
+/// whole live-market-intelligence layer is about to silently go dark.
+const PAYER_MIN_CALLS = 20;
 
 /// Off-platform x402: the agent pays EXTERNAL services on Base mainnet for
 /// data the platform doesn't have. These sellers use the standard x402
@@ -42,6 +56,73 @@ function ensureClient(): x402HTTPClient {
 export function externalPayerAddress(): string {
   if (!payerAddress && config.X402_BASE_PRIVATE_KEY) ensureClient();
   return payerAddress;
+}
+
+export interface X402PayerHealth {
+  /// Whether the external x402 rail is configured at all (payer key present).
+  configured: boolean;
+  payer: string;
+  /// Base-mainnet USDC balance of the payer, formatted (undefined if unread).
+  balanceUsdc?: string;
+  /// How many more paid reads that balance can fund (floored).
+  callsRemaining?: number;
+  /// ok = configured AND balance covers at least PAYER_MIN_CALLS more reads.
+  ok: boolean;
+  detail: string;
+}
+
+function makeBaseClient() {
+  return createPublicClient({ chain: base, transport: http(config.BASE_RPC_URL) });
+}
+let basePublicClient: ReturnType<typeof makeBaseClient> | null = null;
+function ensureBaseClient() {
+  if (!basePublicClient) basePublicClient = makeBaseClient();
+  return basePublicClient;
+}
+
+/// Live health of the external x402 payer. Surfaced on the admin diagnostics
+/// dashboard so an operator sees the market-intelligence rail going dark BEFORE
+/// the payer runs dry and every market read silently no-ops. Reads Base-mainnet
+/// USDC via a public RPC (settlement never touches this client). Best-effort:
+/// an RPC hiccup reports unknown balance, never throws.
+export async function x402PayerHealth(): Promise<X402PayerHealth> {
+  if (!config.X402_BASE_PRIVATE_KEY) {
+    return {
+      configured: false,
+      payer: '',
+      ok: false,
+      detail: 'X402_BASE_PRIVATE_KEY unset — paid market research disabled',
+    };
+  }
+  const payer = externalPayerAddress();
+  try {
+    const raw = await ensureBaseClient().readContract({
+      address: BASE_USDC_ADDR,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [payer as `0x${string}`],
+    });
+    const balNum = Number(raw) / 1e6;
+    const callsRemaining = Math.floor(balNum / EXTERNAL_CALL_COST_USD);
+    const ok = callsRemaining >= PAYER_MIN_CALLS;
+    return {
+      configured: true,
+      payer,
+      balanceUsdc: balNum.toFixed(4),
+      callsRemaining,
+      ok,
+      detail: ok
+        ? `~${callsRemaining} reads funded`
+        : `LOW: ~${callsRemaining} reads left (below ${PAYER_MIN_CALLS}) — top up the Base payer`,
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      payer,
+      ok: false,
+      detail: `balance read failed: ${(err as Error).message}`,
+    };
+  }
 }
 
 export interface ExternalPayResult<T> {
@@ -198,6 +279,15 @@ const researchInFlight = new Map<string, Promise<MarketRead>>();
 export function getCachedMarketPrice(keywords: string[]): number | undefined {
   const hit = researchCache.get(keywordKey(keywords));
   if (hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS) return hit.fairPriceUsdc;
+  return undefined;
+}
+
+/// The full cached market read for a keyword set within the TTL, else undefined.
+/// Lets the seller counter surface the read's summary + confidence (the seller
+/// keeps no per-job marketRead the way the buyer does), without paying again.
+export function getCachedMarketRead(keywords: string[]): MarketRead | undefined {
+  const hit = researchCache.get(keywordKey(keywords));
+  if (hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS) return hit;
   return undefined;
 }
 

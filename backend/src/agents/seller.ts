@@ -33,12 +33,13 @@ import {
 } from './strategy.js';
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
+import { categoryPriceSnapshot } from '../db/priceObservations.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
-import { researchMarket, getCachedMarketPrice } from '../x402/externalClient.js';
+import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
 import { config } from '../config.js';
@@ -362,7 +363,7 @@ async function maybeSellerResearch(
     // per-agent activation. The platform fronts the call and the cost is settled
     // on the matched pair at match (buyer.ts persistApprovedMatch), not here.
     const read = await researchMarket(keywords);
-    setResearchHeat(keywords, read.demand);
+    setResearchHeat(keywords, read);
     if (!read.cached) {
       bus.emitEvent({
         type: 'agent.paid',
@@ -707,10 +708,24 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // already warm (often the buyer's research on the same order); the fresh read
   // lands during the window and tunes the counter rounds. Mirrors the buyer's
   // non-blocking `void maybeResearchMarket`.
-  void maybeSellerResearch(seller, dealKeywords, job.jobId);
-  // Symmetric counterparty pull (non-blocking, same latency reason): the seller
-  // vets the buyer it is about to negotiate with. Lands in the cache for the
-  // counter round; the opening price does not wait on it.
+  // When RESEARCH_AWAIT_ENABLED, block the opening bid on the research read up
+  // to an 8s deadline so the opening prices on the FRESH read (getCachedMarketPrice
+  // + heat below both reflect it) instead of whatever happened to be warm. On
+  // timeout we proceed exactly as the non-blocking path did — the read still
+  // lands during the collection window and tunes the counter rounds. This is the
+  // opening-bid half of review #3 (opening prices before research arrives).
+  let researchAwaited = false;
+  if (config.RESEARCH_AWAIT_ENABLED && dealKeywords.length > 0) {
+    researchAwaited = await settledWithin(
+      maybeSellerResearch(seller, dealKeywords, job.jobId),
+      RESEARCH_AWAIT_DEADLINE_MS,
+    );
+  } else {
+    void maybeSellerResearch(seller, dealKeywords, job.jobId);
+  }
+  // Symmetric counterparty pull (always non-blocking): the seller vets the buyer
+  // it is about to negotiate with. It feeds the counter round, not the opening
+  // price, so awaiting it would add latency for no opening-bid benefit.
   void maybeSellerCounterpartyPull(seller, job.buyer, job.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
   const opening = sellerOpeningBid(
@@ -804,6 +819,10 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       txHash: txResult.txHash,
       buyerTier,
       humanReview,
+      // Whether the opening priced on an awaited (fresh) research read vs a
+      // best-effort warm cache. Lets the audit trail (and the eval harness) tell
+      // a research-grounded opening from one that raced the read.
+      researchAwaited,
     },
   });
 }
@@ -819,6 +838,23 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
 /// never what the buyer ultimately pays.
 const HEADROOM_BASE_PCT = 5;
 const HEADROOM_DEMAND_SPAN_PCT = 45;
+
+/// Max time the opening bid will block on the research read when
+/// RESEARCH_AWAIT_ENABLED. Chosen to stay well inside the buyer's bid-collection
+/// floor so an awaited bid still lands in the auction; on timeout we proceed on
+/// the warm cache exactly as the non-blocking path did.
+const RESEARCH_AWAIT_DEADLINE_MS = 8_000;
+
+/// Await a promise but give up after `ms`. Returns true if it settled (resolved
+/// OR rejected — maybeSellerResearch swallows its own errors and resolves void)
+/// within the deadline, false on timeout. "Settled in time" is the signal that
+/// the read landed and the cache is warm for the opening bid.
+async function settledWithin(p: Promise<unknown>, ms: number): Promise<boolean> {
+  return Promise.race([
+    p.then(() => true, () => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
+  ]);
+}
 
 /// Per-seller opening bid, demand-driven, with bounded jitter so it doesn't
 /// fall into a fixed pattern.
@@ -997,6 +1033,7 @@ async function runCounterEvaluation(
   // the floor toward market (clamped to 2x budget and the seller's own max);
   // below the budget it stays at the profile/budget floor.
   const counterMarket = getCachedMarketPrice(dealKeywords);
+  const counterRead = getCachedMarketRead(dealKeywords);
   const budgetForClamp = Number.isFinite(briefBudget) ? briefBudget : 0;
   const marketFloor =
     counterMarket && counterMarket > 0 && budgetForClamp > 0
@@ -1043,9 +1080,18 @@ async function runCounterEvaluation(
             maxRounds: MAX_COUNTER_ROUNDS,
             counterpartyTier: buyerTier,
             suggestedCounterPrice: suggestedCounter,
-            marketMedianPrice: priceHistorySnapshot()?.median,
-            marketSampleCount: priceHistorySnapshot()?.sampleCount,
+            // Per-category settlement median (this deal's skills), falling back
+            // to the global ring when the category is thin.
+            marketMedianPrice: (categoryPriceSnapshot(dealKeywords) ?? priceHistorySnapshot())?.median,
+            marketSampleCount: (categoryPriceSnapshot(dealKeywords) ?? priceHistorySnapshot())?.sampleCount,
             marketHeat: heat,
+            ...(counterRead
+              ? {
+                  fairPriceUsdc: counterRead.fairPriceUsdc,
+                  priceConfidence: counterRead.priceConfidence,
+                  researchSummary: counterRead.summary?.slice(0, 300),
+                }
+              : {}),
             trustedMatch: active.jobContext.trustedMatch === true,
             ...(buyerPassport &&
             (buyerPassport.successCount != null || buyerPassport.disputedCount != null)

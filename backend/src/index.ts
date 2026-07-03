@@ -69,6 +69,7 @@ import { startEmailNotifier } from './emails/dealNotifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
 import { ensureSchema, pgEnabled } from './db/client.js';
 import { initUsersStore } from './db/users.js';
+import { initPriceObservationsStore } from './db/priceObservations.js';
 import { initEphemeralStores } from './db/ephemeral.js';
 
 const app = new Hono();
@@ -330,6 +331,10 @@ async function boot() {
   // In-flight auth state (OTP codes, WebAuthn challenges, SIWE nonces,
   // Telegram link tokens) survives the restart the same way.
   await initEphemeralStores();
+  // Category price history hydrates so per-skill medians survive a restart
+  // instead of rebuilding from zero. Non-fatal; agents fall back to the global
+  // ring when a category is thin.
+  await initPriceObservationsStore();
   bootAgents();
   // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
   try {

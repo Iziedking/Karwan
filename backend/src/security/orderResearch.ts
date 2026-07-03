@@ -27,7 +27,7 @@ export async function securityResearchOrder(
   if (cleaned.length === 0) return;
   try {
     const read = await researchMarket(cleaned);
-    setResearchHeat(cleaned, read.demand);
+    setResearchHeat(cleaned, read);
     if (!read.cached) {
       bus.emitEvent({
         type: 'agent.paid',

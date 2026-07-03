@@ -141,6 +141,14 @@ export async function ensureSchema(): Promise<void> {
       data JSONB NOT NULL
     );
     CREATE UNIQUE INDEX IF NOT EXISTS users_address_idx ON users (address);
+    CREATE TABLE IF NOT EXISTS price_observations (
+      job_id TEXT PRIMARY KEY,
+      bucket TEXT NOT NULL,
+      price_micros BIGINT NOT NULL,
+      size_band TEXT NOT NULL,
+      ts BIGINT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS price_observations_bucket_ts_idx ON price_observations (bucket, ts);
     CREATE TABLE IF NOT EXISTS ephemeral_state (
       key TEXT PRIMARY KEY,
       data JSONB NOT NULL,

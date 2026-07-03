@@ -81,7 +81,12 @@ import { researchMarket, type MarketRead } from '../x402/externalClient.js';
 import { chargeResearch, getResearchState } from '../x402/researchAccount.js';
 import { securityResearchOrder } from '../security/orderResearch.js';
 import { upsertMarketAdvisory } from '../db/marketAdvisory.js';
-import { setResearchHeat, demandToHeat, classifyVsMarket, type MarketVerdict } from './marketDemand.js';
+import {
+  recordDealPrice,
+  categoryPriceSnapshot,
+  categoryPriceAnomaly,
+} from '../db/priceObservations.js';
+import { setResearchHeat, researchHeatFromRead, classifyVsMarket, type MarketVerdict } from './marketDemand.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -690,7 +695,11 @@ async function handleBidSubmitted(log: Log) {
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
   const priceMultiple = briefBudget > 0 ? Number(priceUsdc) / briefBudget : 1;
-  const anomaly = priceAnomalyScore(Number(priceUsdc));
+  // Prefer a per-category anomaly (this bid vs recent deals in the same skill
+  // bucket); fall back to the global cross-category ring when the bucket is thin.
+  const anomaly =
+    categoryPriceAnomaly(Number(priceUsdc), state.context.keywords ?? []) ??
+    priceAnomalyScore(Number(priceUsdc));
 
   // Relationship memory: prior clean deals this buyer has closed with this
   // seller. Resolved once here so the ranking nudge stays a synchronous read.
@@ -750,6 +759,17 @@ async function handleBidSubmitted(log: Log) {
             volumeUsdc: paidSignal.lifetimeVolumeUsdc,
             completionRate: paidSignal.completionRate,
           },
+        }
+      : {}),
+    // Route the paid market read into the ranking. Present only once research
+    // has landed (it fires non-blocking at collection open); later bids in the
+    // window score with it, matching the existing timing. review #4.
+    ...(state.marketRead
+      ? {
+          fairPriceUsdc: state.marketRead.fairPriceUsdc,
+          priceConfidence: state.marketRead.priceConfidence,
+          researchSummary: state.marketRead.summary?.slice(0, 300),
+          marketHeatContinuous: researchHeatFromRead(state.marketRead),
         }
       : {}),
   };
@@ -976,7 +996,7 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
     // per-agent activation gate, no charge at trigger time.
     const read = await researchMarket(keywords);
     state.marketRead = read;
-    setResearchHeat(keywords, read.demand);
+    setResearchHeat(keywords, read);
 
     // One-time budget-vs-market verdict. fairPriceUsdc is only present when the
     // research was grounded, so unknown/rough prices simply yield 'unknown' and
@@ -1847,12 +1867,21 @@ async function handleCounterResponse(log: Log) {
             maxRounds: buyer.maxCounterRounds,
             counterpartyTier: sellerTier,
             suggestedCounterPrice: suggestedCounter,
-            marketMedianPrice: priceHistorySnapshot()?.median,
-            marketSampleCount: priceHistorySnapshot()?.sampleCount,
+            // Per-category settlement median (this brief's skills), falling back
+            // to the global ring when the category is thin.
+            marketMedianPrice: (categoryPriceSnapshot(state.context.keywords ?? []) ?? priceHistorySnapshot())?.median,
+            marketSampleCount: (categoryPriceSnapshot(state.context.keywords ?? []) ?? priceHistorySnapshot())?.sampleCount,
             // Live demand from the agent's paid research tilts the concession
             // WITHIN the buyer's cap (hot: pay nearer the cap; soft: hold near
             // budget). The cap above is hard; out-of-cap still routes to human.
-            marketHeat: state.marketRead ? demandToHeat(state.marketRead.demand) : undefined,
+            marketHeat: state.marketRead ? researchHeatFromRead(state.marketRead) : undefined,
+            ...(state.marketRead
+              ? {
+                  fairPriceUsdc: state.marketRead.fairPriceUsdc,
+                  priceConfidence: state.marketRead.priceConfidence,
+                  researchSummary: state.marketRead.summary?.slice(0, 300),
+                }
+              : {}),
             trustedMatch: state.context.trustedMatch === true,
             priorCleanDeals,
           },
@@ -2666,6 +2695,15 @@ async function persistApprovedMatch(
       { jobId: proposal.jobId, buyer: proposal.buyerUser, seller: proposal.sellerUser },
       'approved match persisted as deal row',
     );
+
+    // Feed the matched price into the category price history, so future deals in
+    // the same skill bucket negotiate against a real, current median. Best-effort.
+    recordDealPrice({
+      jobId: proposal.jobId,
+      keywords: brief?.keywords ?? proposal.marketRead?.keywords ?? [],
+      priceUsdc: Number(proposal.agreedPriceUsdc),
+      ts: now,
+    });
 
     // Settle the research cost on the MATCHED pair only. The SecurityAgent
     // fronted the call at post for the whole auction; here we draw it down from

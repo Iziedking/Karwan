@@ -1,9 +1,5 @@
-import { generateObject } from 'ai';
-import { z } from 'zod';
 import { resolveAllSellerProfiles } from './agent-registry.js';
 import { listAllBriefs } from '../db/briefs.js';
-import { researchModel } from '../llm/client.js';
-import { withLlmRetry } from './llm-utils.js';
 import { logger } from '../logger.js';
 
 /// Market-demand signal for the negotiation agents.
@@ -102,72 +98,59 @@ export function skillDemand(keywords: string[]): SkillDemand {
   };
 }
 
-// Off-platform demand estimate, cached per skill set. The LLM scores how hot a
-// skill is in the wider freelance/services market right now, grounding the agent
-// in more than just on-platform supply. It reuses the existing LLM (no new key)
-// and is NON-BLOCKING: a cache miss returns null this call and refreshes in the
-// background, so the per-bid path never waits on the model. Swap or augment with
-// a hard-data provider (Google Trends / freelance-rate API) behind its own key
-// inside refreshExternalHeat when you want real-time numbers.
+// Off-platform demand heat, keyed per skill set. Populated ONLY by a REAL paid
+// market read (setResearchHeat, from the x402 Exa research) — never by an
+// ungrounded model guess. The prior version asked the LLM to "estimate current
+// global freelance market demand" with zero grounding and blended that fiction
+// into every negotiation (audit/AGENTIC_WORKFLOW_REVIEW.md #2); that is gone. A
+// cache miss now means "no paid read for these keywords yet", and the composite
+// falls back to the on-platform signal alone. Values expire after the TTL so a
+// stale read stops tilting negotiation.
 const heatCache = new Map<string, { heat: number; ts: number }>();
 const HEAT_TTL_MS = 6 * 60 * 60 * 1000; // 6h
-const heatInflight = new Set<string>();
 
-const heatSchema = z.object({
-  heat: z.number().min(0).max(1),
-  note: z.string().max(200).optional(),
-});
-
-async function externalMarketHeat(keywords: string[]): Promise<number | null> {
+function externalMarketHeat(keywords: string[]): number | null {
   const kw = normKeywords(keywords);
   if (kw.length === 0) return null;
   const key = [...kw].sort().join('|');
   const cached = heatCache.get(key);
   if (cached && Date.now() - cached.ts < HEAT_TTL_MS) return cached.heat;
-  if (!heatInflight.has(key)) {
-    heatInflight.add(key);
-    void refreshExternalHeat(key, kw).finally(() => heatInflight.delete(key));
-  }
-  return null; // first look uses the internal signal; later bids blend the cached estimate
+  return null; // no paid read for these keywords -> on-platform signal only
 }
 
-async function refreshExternalHeat(key: string, kw: string[]): Promise<void> {
-  try {
-    const res = await withLlmRetry(`marketHeat(${key})`, () =>
-      generateObject({
-        model: researchModel,
-        schema: heatSchema,
-        prompt: [
-          'Estimate current global freelance/services market demand for these skills.',
-          `Skills: ${kw.join(', ')}`,
-          'Return heat as 0..1: 1 = very hot / scarce / high demand right now, 0.5 = average,',
-          '0 = cold / oversupplied. Base it on current tech and freelance market trends.',
-          'Add one short note on why.',
-        ].join('\n'),
-      }),
-    );
-    heatCache.set(key, { heat: clamp(res.object.heat, 0, 1), ts: Date.now() });
-  } catch (err) {
-    logger.warn({ err: (err as Error).message, key }, 'external market heat estimate failed');
-  }
+/// A minimal view of a paid market read — the fields heat derives from. Kept
+/// structural (not the full MarketRead) so this module has no dependency on the
+/// x402 client.
+export interface ResearchHeatInput {
+  demand: 'hot' | 'steady' | 'soft';
+  priceConfidence?: 'grounded' | 'rough' | 'none';
+  sources?: { title: string; url: string }[];
 }
 
-/// Map a paid-research demand verdict to a 0..1 heat. hot = sellers have
-/// leverage (hold near the ceiling), soft = oversupply (price down).
-export function demandToHeat(demand: 'hot' | 'steady' | 'soft'): number {
-  return demand === 'hot' ? 0.85 : demand === 'soft' ? 0.2 : 0.5;
+/// Continuous 0..1 heat derived from a REAL paid market read. The demand label
+/// sets the direction (hot pushes up, soft pushes down); the strength of that
+/// push is the read's EVIDENCE — a low-confidence or thin-sourced read is pulled
+/// back toward neutral (0.5) so it never anchors negotiation as hard as a
+/// well-sourced grounded read. This replaces the old 3-constant quantizer
+/// (hot=0.85 / steady=0.5 / soft=0.2), which gave a 1-source 'rough' read the
+/// exact same weight as a 4-source 'grounded' one (review #5).
+export function researchHeatFromRead(read: ResearchHeatInput): number {
+  const direction = read.demand === 'hot' ? 0.8 : read.demand === 'soft' ? 0.25 : 0.5;
+  const confidenceWeight =
+    read.priceConfidence === 'grounded' ? 1 : read.priceConfidence === 'rough' ? 0.6 : 0.4;
+  const sourceWeight = clamp((read.sources?.length ?? 0) / 4, 0.25, 1);
+  const strength = confidenceWeight * sourceWeight; // 0..1 evidence weight
+  return clamp(0.5 + (direction - 0.5) * strength, 0, 1);
 }
 
-/// Override the external-heat cache with a REAL market read (from the paid x402
-/// research). Once an active account's agent researches a keyword set, every
-/// agent negotiating those keywords reads this heat for the TTL instead of the
-/// LLM estimate, so the finding tunes negotiation. Keyword-scoped, never tied
-/// to a counterparty.
-export function setResearchHeat(keywords: string[], demand: 'hot' | 'steady' | 'soft'): void {
+/// Write a REAL market read's evidence-weighted heat into the shared cache. Once
+/// an order is researched, every agent negotiating those keywords reads this
+/// heat for the TTL. Keyword-scoped, never tied to a counterparty.
+export function setResearchHeat(keywords: string[], read: ResearchHeatInput): void {
   const kw = normKeywords(keywords);
   if (kw.length === 0) return;
   const key = [...kw].sort().join('|');
-  heatCache.set(key, { heat: demandToHeat(demand), ts: Date.now() });
+  heatCache.set(key, { heat: researchHeatFromRead(read), ts: Date.now() });
 }
 
 /// How far the buyer's budget must sit above the grounded market price before
@@ -207,7 +190,7 @@ export async function marketHeat(keywords: string[], selfAddress?: string): Prom
   const supply = await internalScarcityHeat(keywords, selfAddress);
   const demand = internalDemandHeat(keywords);
   const onPlatform = clamp(0.5 * supply + 0.5 * demand, 0, 1);
-  const external = await externalMarketHeat(keywords);
+  const external = externalMarketHeat(keywords);
   if (external == null) return onPlatform;
   return clamp(0.5 * onPlatform + 0.5 * external, 0, 1);
 }

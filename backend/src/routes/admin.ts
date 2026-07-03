@@ -31,7 +31,7 @@ import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { researchMarket, externalPayerAddress } from '../x402/externalClient.js';
+import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { pingAssistantProviders } from './assistant.js';
 import { db, pgEnabled } from '../db/client.js';
@@ -141,7 +141,13 @@ adminRoutes.get('/health', async (c) => {
     { label: 'Agent seed operator', key: config.AGENT_SEED_PRIVATE_KEY, minUsdc: config.AGENT_SEED_USDC },
     { label: 'USYC operator', key: config.USYC_OPERATOR_PRIVATE_KEY, minUsdc: 0 },
   ];
-  const funds = await Promise.all(
+  const funds: Array<{
+    label: string;
+    address: string;
+    balanceUsdc: string | null;
+    ok: boolean;
+    detail?: string;
+  }> = await Promise.all(
     fundDefs
       .filter((f) => f.key)
       .map(async (f) => {
@@ -155,6 +161,20 @@ adminRoutes.get('/health', async (c) => {
         }
       }),
   );
+
+  // The external x402 payer (Base mainnet) funds every live market read. When
+  // it runs dry the whole market-intelligence layer silently no-ops, so surface
+  // its balance here — configured shows only when the rail is wired at all.
+  const payerHealth = await x402PayerHealth();
+  if (payerHealth.configured) {
+    funds.push({
+      label: 'x402 market-read payer (Base)',
+      address: payerHealth.payer,
+      balanceUsdc: payerHealth.balanceUsdc ?? null,
+      ok: payerHealth.ok,
+      detail: payerHealth.detail,
+    });
+  }
 
   // Infrastructure.
   const infrastructure: Array<{ label: string; ok: boolean; detail?: string }> = [];

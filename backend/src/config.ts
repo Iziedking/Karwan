@@ -110,6 +110,11 @@ const envSchema = z.object({
     blankToUndefined,
     z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
   ),
+  /// Base mainnet RPC, used ONLY to read the x402 external payer's USDC balance
+  /// for the admin health probe (x402PayerHealth). Settlement never touches this
+  /// — the facilitator submits on chain — so a public endpoint is fine. Defaults
+  /// to Base's public RPC when unset.
+  BASE_RPC_URL: z.preprocess(blankToUndefined, z.string().url().default('https://mainnet.base.org')),
   /// Bypass the 24h per-address cache on external screens / market lookups.
   /// Off by default (caching avoids re-spending on a counterparty whose
   /// sanctions status doesn't move bid to bid). Set 'true' for a live demo so
@@ -433,6 +438,40 @@ const envSchema = z.object({
     z.boolean(),
   ),
 
+  // --- Agentic-workflow rollout flags (audit/AGENTIC_WORKFLOW_REVIEW.md) ---
+  // Each gates one behavior change in the "live market intelligence reaches the
+  // decision" work and DEFAULTS OFF, so the agent path is byte-for-byte its
+  // current self until the flag is flipped. Flip per-behavior after the eval
+  // harness confirms the flags-on scoring is an improvement, never a regression.
+
+  // The seller agent AWAITS its market research (bounded by an 8s deadline)
+  // before pricing the opening bid, instead of firing it non-blocking. On
+  // timeout it proceeds exactly as today (prices on whatever is already warm).
+  // Off = current non-blocking behavior; the opening bid never waits.
+  RESEARCH_AWAIT_ENABLED: z.preprocess(
+    (v) => v === 'true' || v === '1',
+    z.boolean(),
+  ),
+  // The security agent evaluates a proposed match (deterministic checks + an
+  // optional paid counterparty overview) and may hold it for human review
+  // BEFORE the deal is persisted. Off = matches persist with no gate (today).
+  SECURITY_MATCH_GATE_ENABLED: z.preprocess(
+    (v) => v === 'true' || v === '1',
+    z.boolean(),
+  ),
+  // The daily trend scout nudges sellers when a trending category overlaps
+  // their history. Off = no trend nudges emitted (today).
+  TREND_NUDGES_ENABLED: z.preprocess(
+    (v) => v === 'true' || v === '1',
+    z.boolean(),
+  ),
+  // The user-triggered market scout endpoint (/api/research/scout) is live.
+  // Off = the route responds 404/disabled (today).
+  SCOUT_ENABLED: z.preprocess(
+    (v) => v === 'true' || v === '1',
+    z.boolean(),
+  ),
+
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
@@ -546,6 +585,21 @@ if (
   // Deprecation notice once at boot. Operator-visible in container logs.
   console.warn(
     '[config] BUYER_AGENT_WALLET_ID is deprecated. Rename to CCTP_RELAY_WALLET_ID (and BUYER_AGENT_ADDRESS to CCTP_RELAY_ADDRESS). The old keys will keep working for one release.',
+  );
+}
+
+// The external x402 rail (Base) funds every paid market read. When its payer
+// key is unset, maybeResearchMarket / maybeSellerResearch silently no-op, so
+// the agents negotiate blind on on-platform signals alone — the exact "live
+// intelligence never reaches the decision" gap the agentic-workflow work
+// closes. Make that state LOUD at boot instead of a silent degradation. The
+// payer-EOA-balance-too-low half of the check is async (needs an on-chain read)
+// and is surfaced by the admin health probe (x402PayerHealth), not here.
+if (parsed.data.X402_PAID_SIGNALS_ENABLED && !parsed.data.X402_BASE_PRIVATE_KEY) {
+  console.error(
+    '[config] X402_BASE_PRIVATE_KEY is unset while X402_PAID_SIGNALS_ENABLED is on: ' +
+      'paid market research is DISABLED and agents will price on on-platform signals only. ' +
+      'Set the Base payer EOA key to restore live market reads.',
   );
 }
 

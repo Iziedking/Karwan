@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
+    "eval:agentic": "tsx --env-file=../.env src/scripts/eval-agentic.ts",
     "abis:sync": "tsx --env-file=../.env src/scripts/sync-abis.ts",
     "entity-secret:register": "tsx --env-file=../.env src/scripts/register-entity-secret.ts",
     "wallets:create": "tsx --env-file=../.env src/scripts/create-wallets.ts",

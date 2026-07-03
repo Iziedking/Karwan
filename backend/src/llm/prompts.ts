@@ -70,6 +70,20 @@ export interface BidContext {
     volumeUsdc?: number;
     completionRate?: number | null;
   };
+  /// Live market intelligence from the buyer agent's paid research read, routed
+  /// into the ranking so the LLM prices this bid against the MARKET, not only
+  /// the buyer's budget (audit/AGENTIC_WORKFLOW_REVIEW.md #4 — the bid-ranking
+  /// prompt had zero market fields). Present once the read has landed; absent =
+  /// rank on on-platform signals as before.
+  ///
+  /// The grounded fair price for this kind of work in USDC. Only set when the
+  /// read was confident (priceConfidence 'grounded'); the LLM treats it as the
+  /// pricing ANCHOR. `researchSummary` is a one-line market note (<=300 chars).
+  /// `marketHeatContinuous` is the 0..1 demand heat for the skill.
+  fairPriceUsdc?: number;
+  priceConfidence?: 'grounded' | 'rough' | 'none';
+  researchSummary?: string;
+  marketHeatContinuous?: number;
 }
 
 const DAY_SECONDS = 86_400;
@@ -175,6 +189,19 @@ export function buildBidRankingPrompt(
         `${bid.paidEvidence.volumeUsdc ? `, ~${Math.round(bid.paidEvidence.volumeUsdc)} USDC lifetime volume` : ''}. ` +
         `Real delivered history. Weight it above the bare reputation score; a high completion rate over real volume is the strongest reliability signal you have.`
       : '',
+    // Live market intelligence (paid research). The anchor rule: a GROUNDED fair
+    // price overrides budget-relative reasoning ("is this bid fair vs the market",
+    // not just "vs what the buyer offered"); a low-confidence price is advisory.
+    bid.fairPriceUsdc != null && bid.priceConfidence === 'grounded'
+      ? `- Market read (your agent PAID for this, grounded in live sources): fair price for this work ≈ ${bid.fairPriceUsdc} USDC. Treat this as the ANCHOR: a bid materially above it is overpriced even if it sits under the buyer's budget, and a bid at or below it is a genuinely good deal. ${bid.researchSummary ? `Context: ${bid.researchSummary}` : ''}`.trim()
+      : bid.fairPriceUsdc != null
+        ? `- Market read (advisory, LOW confidence): rough fair price ≈ ${bid.fairPriceUsdc} USDC — weigh lightly, the evidence is thin. ${bid.researchSummary ? `Context: ${bid.researchSummary}` : ''}`.trim()
+        : bid.researchSummary
+          ? `- Market read (no grounded price): ${bid.researchSummary}`
+          : '',
+    bid.marketHeatContinuous != null
+      ? `- Market demand for this skill: ${Math.round(bid.marketHeatContinuous * 100)}/100 (higher = scarcer/hotter). High demand makes an above-budget price more reasonable; low demand argues for holding near budget.`
+      : '',
     '',
     'Pattern guide (use this to read the signals together, not just the price):',
     '- "windfall": bid price well above budget + established/strong/elite rep → score high; this is a real buyer paying generously.',
@@ -233,6 +260,13 @@ export interface NegotiationContext {
   /// 0..1 market demand for the skill (agents/marketDemand.ts). High demand lets
   /// the seller hold firmer and signals the buyer to expect to pay nearer the cap.
   marketHeat?: number;
+  /// Grounded fair price (USDC) from the paid market read, set only when the
+  /// read was confident. The agent anchors its counter to it — converging toward
+  /// it rather than grinding to its own hard cap/floor. `priceConfidence` guards
+  /// against acting on a guess; `researchSummary` is a one-line note (<=300).
+  fairPriceUsdc?: number;
+  priceConfidence?: 'grounded' | 'rough' | 'none';
+  researchSummary?: string;
   /// Buyer opted into Trusted Match on the brief. Reputation buys restraint:
   /// neither side grinds for the last few percent on a high-trust deal; both
   /// converge toward market median faster.
@@ -302,6 +336,14 @@ export function buildCounterEvaluationPrompt(
         ctx.marketMedianPrice != null
           ? `- Recent settlement median for this skill: ${ctx.marketMedianPrice} USDC (n=${ctx.marketSampleCount ?? '?'}).`
           : '',
+        // Grounded fair price = the anchor. Converge toward it instead of
+        // grinding to the hard cap/floor; a price beyond it needs justifying.
+        ctx.fairPriceUsdc != null && ctx.priceConfidence === 'grounded'
+          ? `- Grounded market fair price: ${ctx.fairPriceUsdc} USDC (your agent PAID for this read). ANCHOR to it — aim to settle near it rather than at your extreme. Going beyond it needs a real reason (strong reputation, urgency, scarcity).`
+          : ctx.fairPriceUsdc != null
+            ? `- Rough market fair price: ~${ctx.fairPriceUsdc} USDC (low confidence — weigh lightly).`
+            : '',
+        ctx.researchSummary ? `- Market context: ${ctx.researchSummary}` : '',
         ctx.marketHeat != null
           ? `- Market demand for this skill: ${
               ctx.marketHeat >= 0.66 ? 'HIGH' : ctx.marketHeat >= 0.4 ? 'MODERATE' : 'LOW'
