@@ -42,6 +42,11 @@ import {
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
+/// v2b escrow live: unlocks the seller "Claim now" safety net (force the payout
+/// after the buyer's review window elapses). Off = current v1 behaviour (the
+/// backend rejects the claim), so we hide the button.
+const V2B_LIVE = process.env.NEXT_PUBLIC_ESCROW_V2B_ENABLED === 'true';
+
 // SME trade-finance vocab. Hoisted to module scope so the maps and arrays
 // allocate once per load, not per render. The goods milestone vocabulary
 // renders only when deal.tradeType === 'goods'; mixed + service flows keep
@@ -359,6 +364,24 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       const r = await api.releaseDirectDeal(jobId, address);
       if (r.settled) sfx.success();
       else sfx.send();
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onClaim() {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.claimDirectDeal(jobId, address);
+      sfx.success();
       refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
@@ -924,6 +947,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onAccept={requestAccept}
               onMarkDelivered={onMarkDelivered}
               onRelease={onRelease}
+              onClaim={onClaim}
               onStillReviewing={onStillReviewing}
               onAppeal={onAppeal}
               onCancel={onCancel}
@@ -1383,6 +1407,7 @@ function ActionPanel({
   onAccept,
   onMarkDelivered,
   onRelease,
+  onClaim,
   onStillReviewing,
   onAppeal,
   onCancel,
@@ -1407,6 +1432,7 @@ function ActionPanel({
   onAccept: () => void;
   onMarkDelivered: () => void;
   onRelease: () => void;
+  onClaim: () => void;
   onStillReviewing: () => void;
   onAppeal: () => void;
   onCancel: () => void;
@@ -1768,9 +1794,19 @@ function ActionPanel({
           </WindowNote>
         )}
         {expired && (
-          <WindowNote tone="muted">
-            {copy.awaitingFirstRelease.sellerExpiredTemplate.replace('{firstPct}', String(firstPct))}
-          </WindowNote>
+          <div className="space-y-2.5">
+            <WindowNote tone="muted">
+              {copy.awaitingFirstRelease.sellerExpiredTemplate.replace('{firstPct}', String(firstPct))}
+            </WindowNote>
+            {/* v2b: the buyer's window elapsed with no release or dispute, so the
+                seller can force the payout themselves — the on-chain safety net
+                for a vanished buyer. The contract re-checks the window + hold. */}
+            {V2B_LIVE && !held && (
+              <CTAPill onClick={onClaim} disabled={busy}>
+                {busy ? 'Claiming…' : `Claim ${firstPct}% now`}
+              </CTAPill>
+            )}
+          </div>
         )}
       </div>
     );
