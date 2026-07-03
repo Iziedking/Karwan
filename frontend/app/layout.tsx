@@ -11,6 +11,7 @@ import { NotificationToasts } from '@/features/notifications/components/Notifica
 import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { TermsModal } from '@/shared/components/TermsModal';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
+import { ScrollReset } from '@/shared/components/ScrollReset';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 // Geist, Geist Mono, and Instrument Serif are self-hosted (woff2 in ./fonts)
@@ -139,6 +140,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
+          <ScrollReset />
           {/* No overflow clip here on purpose: full-bleed sections use the
               scrollbar-aware `.w-bleed` width so they don't over-shoot at normal
               zoom, and leaving overflow visible lets the page show a real
