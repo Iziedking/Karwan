@@ -38,6 +38,9 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     ///         wallet while owner sits cold.
     address public operator;
 
+    /// @notice Owner incident switch: freezes bulkCredit only (never claims).
+    bool public creditsPaused;
+
     /// @notice Per-address USDC claimable balance. Accrues via bulkCredit,
     ///         drains via claim / claimTo.
     mapping(address => uint256) public claimable;
@@ -62,6 +65,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     event YieldClaimed(address indexed staker, address indexed to, uint256 amount);
 
     event OperatorRotated(address indexed previous, address indexed next);
+    event CreditsPausedSet(bool paused);
     event OwnershipTransferStarted(address indexed previous, address indexed next);
     event OwnerTransferred(address indexed previous, address indexed next);
 
@@ -73,6 +77,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     // Errors
 
     error NotOwner();
+    error NotPendingOwner();
     error NotOperator();
     error ZeroAddress();
     error ZeroAmount();
@@ -80,6 +85,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     error EmptyBatch();
     error NothingToClaim();
     error InsufficientExcess();
+    error CreditsPaused();
 
     // Constructor
 
@@ -126,6 +132,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         onlyOperator
         nonReentrant
     {
+        if (creditsPaused) revert CreditsPaused();
         uint256 n = stakers.length;
         if (n == 0) revert EmptyBatch();
         if (n != amounts.length) revert LengthMismatch();
@@ -233,10 +240,20 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     }
 
     function acceptOwnership() external {
-        if (msg.sender != pendingOwner) revert NotOwner();
+        if (msg.sender != pendingOwner) revert NotPendingOwner();
         address previous = owner;
         owner = pendingOwner;
         pendingOwner = address(0);
         emit OwnerTransferred(previous, owner);
+    }
+
+    /// @notice Freeze/unfreeze bulkCredit only. Owner-only incident switch: if
+    ///         the operator key is suspected compromised, crediting can be
+    ///         paused while the team responds. Claims are DELIBERATELY never
+    ///         pausable — a staker can always withdraw what was already credited
+    ///         to them, so this can't become a soft rug on user funds.
+    function setCreditsPaused(bool paused) external onlyOwner {
+        creditsPaused = paused;
+        emit CreditsPausedSet(paused);
     }
 }

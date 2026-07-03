@@ -55,6 +55,9 @@ contract KarwanBusinessRegistry {
     event BusinessRejected(
         address indexed applicant, address indexed reviewer, bytes32 reasonHash, uint64 ts
     );
+    event BusinessRevoked(
+        address indexed applicant, address indexed reviewer, bytes32 reasonHash, uint64 ts
+    );
 
     // Errors
 
@@ -65,6 +68,7 @@ contract KarwanBusinessRegistry {
     error EmptyHash();
     error NotSubmitted();
     error AlreadyVerified();
+    error NotVerified();
 
     // Constructor
 
@@ -145,6 +149,23 @@ contract KarwanBusinessRegistry {
         reg.reviewedBy = msg.sender;
         reg.reasonHash = reasonHash;
         emit BusinessRejected(applicant, msg.sender, reasonHash, uint64(block.timestamp));
+    }
+
+    /// @notice Revoke a VERIFIED business. Reviewer-only. Moves Verified ->
+    ///         Rejected so a business that later turns fraudulent, loses its
+    ///         license, or was approved in error can be pulled out of the
+    ///         finance lane (which gates on isVerified) WITHOUT a redeploy. The
+    ///         applicant may resubmit afterwards. reasonHash is the sha256 of
+    ///         the human-readable reason, kept off chain.
+    function revoke(address applicant, bytes32 reasonHash) external {
+        if (msg.sender != reviewer) revert NotReviewer();
+        Registration storage reg = _registrations[applicant];
+        if (reg.status != STATUS_VERIFIED) revert NotVerified();
+        reg.status = STATUS_REJECTED;
+        reg.reviewedAt = uint64(block.timestamp);
+        reg.reviewedBy = msg.sender;
+        reg.reasonHash = reasonHash;
+        emit BusinessRevoked(applicant, msg.sender, reasonHash, uint64(block.timestamp));
     }
 
     // Views

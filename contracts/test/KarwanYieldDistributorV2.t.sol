@@ -34,7 +34,7 @@ contract KarwanYieldDistributorV2Test is Test {
         assertEq(dist.pendingOwner(), eve);
 
         vm.prank(makeAddr("stranger"));
-        vm.expectRevert(KarwanYieldDistributor.NotOwner.selector);
+        vm.expectRevert(KarwanYieldDistributor.NotPendingOwner.selector);
         dist.acceptOwnership();
 
         vm.prank(eve);

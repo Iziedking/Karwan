@@ -100,15 +100,14 @@ contract KarwanInvoiceRegistry {
     event PoDAccepted(
         bytes32 indexed invoiceId, bytes32 podHash, address indexed attester, uint64 ts
     );
+    event PoDReset(bytes32 indexed invoiceId);
 
     event AttesterAdded(address indexed attester);
     event AttesterRemoved(address indexed attester);
 
     // Errors
 
-    error EscrowAlreadySet();
     error EscrowNotSet();
-    error NotDeployer();
     error NotOwner();
     error NotPendingOwner();
     error ZeroAddress();
@@ -118,6 +117,7 @@ contract KarwanInvoiceRegistry {
     error NotParty();
     error PoDLocked();
     error PoDAlreadyAccepted();
+    error PoDNotAccepted();
     error NotPayee();
     error NotPodAuthorised();
     error EmptyHash();
@@ -260,15 +260,42 @@ contract KarwanInvoiceRegistry {
         if (podHash == bytes32(0)) revert EmptyHash();
         if (podAccepted[invoiceId]) revert PoDAlreadyAccepted();
 
+        // The invoice must exist (deal funded) on BOTH paths. Without this, an
+        // approved attester could pre-accept a PoD on an unfunded jobId, and
+        // when that jobId later funds it would already be latched accepted,
+        // locking setPayee and enabling release. Validate existence first.
+        (address dealBuyer, ) = IKarwanEscrow(escrow).partiesOf(invoiceId);
+        if (dealBuyer == address(0)) revert InvalidInvoiceId();
         // Caller must be the buyer of the deal OR an approved attester.
-        if (!approvedAttester[msg.sender]) {
-            address buyer = _buyerOf(invoiceId);
-            if (msg.sender != buyer) revert NotPodAuthorised();
-        }
+        if (!approvedAttester[msg.sender] && msg.sender != dealBuyer) revert NotPodAuthorised();
 
         podAccepted[invoiceId] = true;
         podHashOf[invoiceId] = podHash;
         emit PoDAccepted(invoiceId, podHash, msg.sender, uint64(block.timestamp));
+    }
+
+    /// @notice Owner emergency: clear a PoD acceptance so a mistaken or rogue
+    ///         attest can be undone (unlocks setPayee). Owner is a multisig on
+    ///         mainnet. Use only before settlement — the PO-financing release
+    ///         path already state-guards against a double release.
+    function resetPoD(bytes32 invoiceId) external {
+        if (msg.sender != owner) revert NotOwner();
+        if (!podAccepted[invoiceId]) revert PoDNotAccepted();
+        podAccepted[invoiceId] = false;
+        podHashOf[invoiceId] = bytes32(0);
+        emit PoDReset(invoiceId);
+    }
+
+    /// @notice Owner emergency payee reset (the header's promised lever).
+    ///         Clears the override back to the default (the deal's seller,
+    ///         resolved via resolvePayee). Pre-PoD only, so it can't rewrite a
+    ///         settlement target after delivery is confirmed.
+    function resetPayee(bytes32 invoiceId) external {
+        if (msg.sender != owner) revert NotOwner();
+        if (podAccepted[invoiceId]) revert PoDLocked();
+        address prev = payeeOf[invoiceId];
+        payeeOf[invoiceId] = address(0);
+        emit PayeeChanged(invoiceId, prev, address(0));
     }
 
     // Views
@@ -313,12 +340,6 @@ contract KarwanInvoiceRegistry {
         (address b, address s) = IKarwanEscrow(escrow).partiesOf(invoiceId);
         if (b == address(0)) revert InvalidInvoiceId();
         if (who != b && who != s) revert NotParty();
-    }
-
-    function _buyerOf(bytes32 invoiceId) internal view returns (address) {
-        (address b, ) = IKarwanEscrow(escrow).partiesOf(invoiceId);
-        if (b == address(0)) revert InvalidInvoiceId();
-        return b;
     }
 
     function _sellerOf(bytes32 invoiceId) internal view returns (address) {
