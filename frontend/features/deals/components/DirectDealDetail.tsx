@@ -2582,7 +2582,7 @@ function ProposeCancelModal({
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               [:{disputed ? copy.kindEyebrowResolution : copy.kindEyebrowKind}:]
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {KIND_OPTIONS.map((opt) => {
                 const active = kind === opt.key;
                 return (
