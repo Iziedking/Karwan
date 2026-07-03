@@ -26,8 +26,8 @@ import {KarwanVault} from "../src/KarwanVault.sol";
 contract Deploy is Script {
     function run() external {
         address usdc = vm.envOr("USDC_ADDR", address(0x3600000000000000000000000000000000000000));
-        // Platform fee in basis points (150 = 1.5%), split evenly buyer/seller.
-        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(150)));
+        // Platform fee in basis points (200 = 2%, adjustable post-deploy via setFeeBps), split evenly buyer/seller.
+        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(200)));
         // Insurance reservation in basis points (5000 = 50% of deal value).
         // Captured in env so the operator can dial without editing the script.
         uint16 reservationBps = uint16(vm.envOr("KARWAN_RESERVATION_BPS", uint256(5000)));

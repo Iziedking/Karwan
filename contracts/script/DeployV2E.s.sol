@@ -40,7 +40,7 @@ contract DeployV2E is Script {
             "USDC_ADDR",
             address(0x3600000000000000000000000000000000000000)
         );
-        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(150)));
+        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(200)));
         uint16 maxReservationBps =
             uint16(vm.envOr("KARWAN_MAX_RESERVATION_BPS", uint256(10000)));
 

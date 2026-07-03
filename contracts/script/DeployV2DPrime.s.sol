@@ -25,7 +25,7 @@ import {KarwanVault} from "../src/KarwanVault.sol";
 contract DeployV2DPrime is Script {
     function run() external {
         address usdc = vm.envOr("USDC_ADDR", address(0x3600000000000000000000000000000000000000));
-        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(150)));
+        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(200)));
         uint16 reservationBps = uint16(vm.envOr("KARWAN_RESERVATION_BPS", uint256(5000)));
         address treasury = vm.envOr("KARWAN_TREASURY_ADDR", msg.sender);
 

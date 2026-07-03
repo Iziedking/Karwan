@@ -193,8 +193,15 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     uint16 public constant MIN_TRUSTED_BPS = 5000;
 
     IERC20 public immutable usdc;
-    /// @notice Platform fee in basis points applied to the deal amount.
-    uint16 public immutable feeBps;
+    /// @notice Platform fee in basis points applied to the deal amount. v2:
+    ///         owner-settable so the base fee can adjust as the ecosystem grows
+    ///         (default set to 2% at deploy). Each deal SNAPSHOTS its fee at
+    ///         fund time (feeTotal/sellerNet are computed then and stored), so a
+    ///         later change only affects deals funded afterward. Bounded by
+    ///         MAX_FEE_BPS so it can never be raised to a confiscatory level.
+    uint16 public feeBps;
+    /// @notice Hard ceiling on the adjustable base fee (10%). Immutable.
+    uint16 public constant MAX_FEE_BPS = 1000;
     /// @notice Address that collects the platform fee. In v2.E this is the
     ///         KarwanTreasury contract address, not an EOA, fees route to a
     ///         contract that can sweep idle balance into USYC for yield.
@@ -324,6 +331,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event ReviewWindowSet(uint64 secs);
     event AttestedWindowSet(uint64 secs);
     event DeliveryAttested(bytes32 indexed jobId, uint8 milestoneIndex, bool pass, bytes32 evidenceHash);
+    event FeeBpsSet(uint16 bps);
     event ReviewBoundsSet(uint64 minSecs, uint64 maxSecs);
     event DisputeTimeoutSet(uint64 secs);
     event DeadlineHorizonSet(uint64 secs);
@@ -393,7 +401,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (_treasury == address(0)) revert InvalidTreasury();
         if (_vault == address(0)) revert InvalidVault();
         if (_reputation == address(0)) revert InvalidReputation();
-        if (_feeBps > 1000) revert FeeTooHigh();
+        if (_feeBps > MAX_FEE_BPS) revert FeeTooHigh();
         if (_maxReservationBps > BPS_DENOMINATOR) revert ReservationTooHigh();
         if (_maxReservationBps < MIN_TRUSTED_BPS) revert ReservationTooHigh();
         usdc = IERC20(_usdc);
@@ -465,6 +473,14 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (secs == 0 || secs > HARD_MAX_HORIZON) revert InvalidWindow();
         maxDeadlineHorizon = secs;
         emit DeadlineHorizonSet(secs);
+    }
+
+    /// @notice Adjust the base platform fee for FUTURE deals. Existing deals
+    ///         keep the fee they snapshotted at fund. Bounded by MAX_FEE_BPS.
+    function setFeeBps(uint16 bps) external onlyOwner {
+        if (bps > MAX_FEE_BPS) revert FeeTooHigh();
+        feeBps = bps;
+        emit FeeBpsSet(bps);
     }
 
     function setAttestedWindow(uint64 secs) external onlyOwner {

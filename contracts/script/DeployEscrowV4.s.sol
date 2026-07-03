@@ -58,7 +58,7 @@ import {KarwanVault} from "../src/KarwanVault.sol";
 ///   KARWAN_TREASURY_USYC_ADDR    the whitelisted Treasury V4 address. Required.
 ///                              (The slot name stayed V3 even though the
 ///                              contract is V4. Same address in the env.)
-///   KARWAN_FEE_BPS             defaults to 150 (1.5%)
+///   KARWAN_FEE_BPS             defaults to 200 (2%)
 ///   KARWAN_MAX_RESERVATION_BPS defaults to 10000 (100% cap on per-deal
 ///                              insurance reservation)
 contract DeployEscrowV4 is Script {
@@ -72,7 +72,7 @@ contract DeployEscrowV4 is Script {
         // Renamed from KARWAN_TREASURY_V3_ADDR on 2026-06-06 so the key name
         // tracks what the contract does rather than which generation it was.
         address treasury = vm.envAddress("KARWAN_TREASURY_USYC_ADDR");
-        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(150)));
+        uint16 feeBps = uint16(vm.envOr("KARWAN_FEE_BPS", uint256(200)));
         uint16 maxReservationBps =
             uint16(vm.envOr("KARWAN_MAX_RESERVATION_BPS", uint256(10000)));
 

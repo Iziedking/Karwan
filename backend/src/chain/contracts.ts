@@ -336,15 +336,20 @@ export interface EscrowAccount {
   disputedAt?: bigint;
 }
 
-// feeBps and reservationBps are immutable on the escrow contract; cache safe.
-let _feeBpsCache: number | null = null;
+// maxReservationBps is immutable; cache forever. feeBps became OWNER-SETTABLE in
+// v2 (adjustable base fee), so it gets a short TTL instead of a permanent cache
+// — a fee change must reflect in funding math within the window, and each deal
+// snapshots its fee on chain at fund time regardless.
 let _reservationBpsCache: number | null = null;
+const FEE_BPS_TTL_MS = 60_000;
+let _feeBpsCache: { value: number; expiresAt: number } | null = null;
 
 export async function getEscrowFeeBps(): Promise<number> {
-  if (_feeBpsCache === null) {
-    _feeBpsCache = Number(await escrow.read.feeBps());
-  }
-  return _feeBpsCache;
+  const now = Date.now();
+  if (_feeBpsCache && _feeBpsCache.expiresAt > now) return _feeBpsCache.value;
+  const value = Number(await escrow.read.feeBps());
+  _feeBpsCache = { value, expiresAt: now + FEE_BPS_TTL_MS };
+  return value;
 }
 
 /// Hard ceiling on per-deal reservationBps (v2.E+). Replaces the v2.D
