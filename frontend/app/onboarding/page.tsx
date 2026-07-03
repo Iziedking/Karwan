@@ -1,7 +1,6 @@
 'use client';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { api, ApiError, type UserRole } from '@/core/api';
@@ -147,6 +146,14 @@ function OnboardingInner() {
       setStep(accountType === 'business' ? 'profile' : 'role');
     }
   }, [isConnected, step, accountType]);
+
+  // Each step is its own screen, so start it at the top. Without this, a user
+  // who scrolled to the bottom of the tall profile form to submit lands on the
+  // short "get ready" step still scrolled down, seeing the footer and having to
+  // scroll up to find the activate button.
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo(0, 0);
+  }, [step]);
 
   // True from when we know there's an address until we either finish the
   // profile check (no profile → reveal the form) or fire a redirect (profile
@@ -393,7 +400,10 @@ function OnboardingInner() {
           )}
 
           {step === 'connect' && (
-            <ConnectStep onLogin={() => setLoginOpen(true)} />
+            <ConnectStep
+              onLogin={() => setLoginOpen(true)}
+              onBack={() => setStep('accountType')}
+            />
           )}
 
           {step === 'role' && (
@@ -402,6 +412,13 @@ function OnboardingInner() {
               role={role}
               onSelect={setRole}
               onContinue={() => setStep('profile')}
+              onBack={() => {
+                // Edit-mode users arrived straight on this step from /profile,
+                // so send them back there; first-run users step back to the
+                // account-type picker (connect auto-advances, so skip it).
+                if (editMode) router.push('/profile');
+                else setStep('accountType');
+              }}
             />
           )}
 
@@ -469,6 +486,7 @@ function OnboardingInner() {
               onDone={() =>
                 router.push(accountType === 'business' ? '/profile?verify=business' : '/app')
               }
+              onBack={() => setStep('profile')}
             />
           )}
         </div>
@@ -513,8 +531,9 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
   );
 }
 
-function ConnectStep({ onLogin }: { onLogin: () => void }) {
+function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => void }) {
   const t = useTranslations().onboarding.connectStep;
+  const back = useTranslations().onboarding.roleStep.backArrow;
   return (
     <div className="fade-up">
       <div
@@ -552,6 +571,18 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
           {t.fineprint}
         </p>
       </div>
+      <div className="mt-6">
+        <button
+          type="button"
+          onClick={onBack}
+          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+        >
+          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
+            ←
+          </span>
+          {back}
+        </button>
+      </div>
     </div>
   );
 }
@@ -560,7 +591,16 @@ function ConnectStep({ onLogin }: { onLogin: () => void }) {
 /// user's wallets in one tap, so they land in the app ready to post a deal
 /// rather than on an empty desk. Skippable. The checklist fills lime as each
 /// piece lands, so the motion carries the progress instead of status paragraphs.
-function GetReadyStep({ address, onDone }: { address: string; onDone: () => void }) {
+function GetReadyStep({
+  address,
+  onDone,
+  onBack,
+}: {
+  address: string;
+  onDone: () => void;
+  onBack: () => void;
+}) {
+  const back = useTranslations().onboarding.roleStep.backArrow;
   const [phase, setPhase] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [agentsOnline, setAgentsOnline] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -676,6 +716,20 @@ function GetReadyStep({ address, onDone }: { address: string; onDone: () => void
           </FormError>
         )}
       </div>
+      {phase !== 'running' && phase !== 'done' && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={onBack}
+            className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
+              ←
+            </span>
+            {back}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -856,11 +910,13 @@ function RoleStep({
   role,
   onSelect,
   onContinue,
+  onBack,
 }: {
   address: string | undefined;
   role: UserRole | null;
   onSelect: (r: UserRole) => void;
   onContinue: () => void;
+  onBack: () => void;
 }) {
   const t = useTranslations().onboarding.roleStep;
   return (
@@ -918,15 +974,16 @@ function RoleStep({
       </div>
 
       <div className="flex justify-between items-center pt-4">
-        <Link
-          href="/"
+        <button
+          type="button"
+          onClick={onBack}
           className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
           </span>
           {t.backArrow}
-        </Link>
+        </button>
         <CTAPill onClick={onContinue} disabled={!role} tone="light">
           {t.continueArrow}
         </CTAPill>
