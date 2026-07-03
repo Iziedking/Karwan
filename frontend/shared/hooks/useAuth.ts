@@ -32,9 +32,13 @@ interface Session {
 /// useAuth.signOut() after authLogout lands.
 export const AUTH_CHANGED_EVENT = 'karwan:auth-changed';
 
-export function emitAuthChanged() {
+/// Broadcast an auth change to every useAuth() instance. Pass `{ signedOut:
+/// true }` on sign-out so all instances clear synchronously in one frame (no
+/// flicker of mixed authed/unauthed chrome); omit it on sign-in so instances
+/// refresh and pull the new session.
+export function emitAuthChanged(opts?: { signedOut?: boolean }) {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, { detail: opts }));
 }
 
 /// Single source of truth for "is the user signed in and who are they?".
@@ -104,7 +108,7 @@ export function useAuth(): AuthState & {
     api.authLogout().catch(() => {
       /* clear-local-state already done; backend cookie will expire on its own */
     });
-    emitAuthChanged();
+    emitAuthChanged({ signedOut: true });
   }, [session, wagmiStatus]);
 
   // Sync this instance's circle slice whenever ANY other useAuth() in the app
@@ -113,8 +117,18 @@ export function useAuth(): AuthState & {
   // pages, etc. keep showing stale "signed in" UI until the user reloads.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onChange = () => {
-      refresh();
+    const onChange = (e: Event) => {
+      // Sign-out clears every instance in the same frame; sign-in refreshes to
+      // pull the new session. Clearing synchronously (instead of each instance
+      // doing its own async authMe round-trip) is what removes the sign-out
+      // flicker where some chrome was still "signed in" for a beat.
+      const signedOut = (e as CustomEvent<{ signedOut?: boolean } | undefined>).detail?.signedOut;
+      if (signedOut) {
+        setSession(null);
+        setLoaded(true);
+      } else {
+        refresh();
+      }
     };
     window.addEventListener(AUTH_CHANGED_EVENT, onChange);
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, onChange);
@@ -143,8 +157,8 @@ export function useAuth(): AuthState & {
         /* ignore */
       }
     }
-    // Broadcast so every other useAuth instance picks up the change.
-    emitAuthChanged();
+    // Broadcast so every other useAuth instance clears in the same frame.
+    emitAuthChanged({ signedOut: true });
   }, [wagmiConnected, disconnectAsync]);
 
   const address = session?.address ?? null;
