@@ -318,13 +318,18 @@ const readSchema = z.object({
 export async function researchMarket(
   keywords: string[],
   context?: string,
+  opts?: { bypassCache?: boolean },
 ): Promise<MarketRead> {
   const cleaned = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))].slice(0, 8);
   if (cleaned.length === 0) throw new Error('no keywords to research');
   const key = keywordKey(cleaned);
 
+  // The user-triggered scout wants a fresh read, so it skips the 6h cache. It
+  // still shares an in-flight paid call for the same keywords (below) so two
+  // concurrent scouts can't double-pay, and it refreshes the cache the agents
+  // read from — a scout warms the negotiation layer for free.
   const hit = researchCache.get(key);
-  if (hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS) {
+  if (!opts?.bypassCache && hit && Date.now() - hit.researchedAt < RESEARCH_CACHE_TTL_MS) {
     return { ...hit, cached: true };
   }
 

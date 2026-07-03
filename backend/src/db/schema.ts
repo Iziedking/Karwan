@@ -243,6 +243,23 @@ export const trendSnapshots = pgTable(
   }),
 );
 
+/// User-triggered market scout reads (routes/research.ts POST /scout). Each row
+/// is one paid market read a user requested for their own keywords, kept so the
+/// UI can show recent scouts and prefill a future request from the latest one.
+/// The full MarketRead lives in the JSONB `data` column.
+export const scoutReads = pgTable(
+  'scout_reads',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull(),
+    ts: bigint('ts', { mode: 'number' }).notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    ownerTsIdx: index('scout_reads_owner_ts_idx').on(t.owner, t.ts),
+  }),
+);
+
 /// Short-lived auth state (WebAuthn challenges, OTP hashes, SIWE nonces,
 /// Telegram link tokens), namespaced in the key. Durable so a deploy doesn't
 /// void a sign-in that's mid-flight. Expired rows sweep at boot.

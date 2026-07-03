@@ -11,7 +11,12 @@ import {
   RESEARCH_ACTIVATION_USDC,
   activateResearch,
   getResearchState,
+  chargeResearch,
 } from '../x402/researchAccount.js';
+import { researchMarket } from '../x402/externalClient.js';
+import { extractKeywords } from '../llm/keywords.js';
+import { saveScoutRead, recentScoutReads } from '../db/scoutReads.js';
+import { randomUUID } from 'node:crypto';
 
 /// "Agent research" activation. The user pays a one-time fee in USDC on Arc
 /// from their agent wallet; it becomes a prepaid credit the agent draws down as
@@ -98,4 +103,115 @@ researchRoutes.post('/activate', async (c) => {
     logger.error({ owner, err: (err as Error).message }, 'research activation failed');
     return c.json({ error: 'activation failed', detail: (err as Error).message }, 502);
   }
+});
+
+/// User-triggered market scout (audit/AGENTIC_WORKFLOW_REVIEW.md item 10). The
+/// user submits a topic or keywords, their prepaid research credit funds a fresh
+/// off-platform read (cache bypassed), and the result renders as a MarketRead
+/// card they can carry into a request. Same paid rail the agents use, exposed
+/// directly to the user. Soft-capped to keep one account from draining the rail.
+const SCOUT_RATE_LIMIT = 5;
+const SCOUT_WINDOW_MS = 60 * 60 * 1000;
+const scoutHits = new Map<string, number[]>();
+
+function scoutHitCount(owner: string, now: number): number {
+  const hits = (scoutHits.get(owner) ?? []).filter((t) => now - t < SCOUT_WINDOW_MS);
+  scoutHits.set(owner, hits);
+  return hits.length;
+}
+
+function recordScoutHit(owner: string, now: number): void {
+  const hits = scoutHits.get(owner) ?? [];
+  hits.push(now);
+  scoutHits.set(owner, hits);
+}
+
+researchRoutes.post('/scout', async (c) => {
+  if (!config.SCOUT_ENABLED) return c.json({ error: 'scout not enabled' }, 404);
+  const owner = viewerAddress(c);
+  if (!owner) return c.json({ error: 'sign in first' }, 401);
+  if (!config.X402_PAID_SIGNALS_ENABLED || !config.X402_BASE_PRIVATE_KEY) {
+    return c.json({ error: 'market research is not configured' }, 503);
+  }
+
+  const now = Date.now();
+  const key = owner.toLowerCase();
+  if (scoutHitCount(key, now) >= SCOUT_RATE_LIMIT) {
+    return c.json(
+      { error: 'rate-limited', message: 'Up to 5 market scouts an hour. Try again shortly.' },
+      429,
+    );
+  }
+
+  const body = (await c.req.json().catch(() => ({}))) as { keywords?: unknown; query?: unknown };
+  const rawKeywords = Array.isArray(body.keywords) ? body.keywords : [];
+  let keywords = rawKeywords
+    .map((k) => (typeof k === 'string' ? k.trim() : ''))
+    .filter(Boolean)
+    .slice(0, 8);
+  const query = typeof body.query === 'string' ? body.query.trim().slice(0, 400) : '';
+  if (keywords.length === 0 && query) keywords = await extractKeywords(query, 'scout');
+  if (keywords.length === 0) {
+    return c.json({ error: 'give a topic or keywords to scout' }, 400);
+  }
+
+  // The scout draws the user's prepaid research credit, so it requires an active
+  // account. Same 402 shape the activation route uses so the UI can prompt.
+  const state = await getResearchState(owner);
+  if (!state.active) {
+    return c.json(
+      {
+        error: 'no-research-credit',
+        priceUsdc: RESEARCH_ACTIVATION_USDC,
+        message: 'Activate agent research first to scout the market.',
+      },
+      402,
+    );
+  }
+
+  recordScoutHit(key, now);
+  let read;
+  try {
+    read = await researchMarket(keywords, query || undefined, { bypassCache: true });
+  } catch (err) {
+    logger.warn({ owner, err: (err as Error).message }, 'market scout failed');
+    return c.json({ error: 'scout failed', detail: (err as Error).message }, 502);
+  }
+
+  // Bill the user's credit only on a fresh paid call. A shared in-flight read
+  // returns cached: it was already billed to whoever triggered it, so re-billing
+  // here would double-charge for one payment.
+  if (!read.cached && read.paidUsd > 0) {
+    await chargeResearch(owner, read.paidUsd);
+    bus.emitEvent({
+      type: 'agent.paid',
+      actor: 'platform',
+      payload: {
+        rail: 'base',
+        kind: 'research',
+        agent: 'scout',
+        scope: 'market-scout',
+        user: key,
+        amountUsd: read.paidUsd,
+        txHash: read.txHash,
+        payer: read.payer,
+        demand: read.demand,
+        keywords,
+      },
+    });
+  }
+
+  await saveScoutRead({ id: randomUUID(), owner, ts: now, read });
+  const after = await getResearchState(owner);
+  return c.json({ read, creditUsdc: after.creditUsdc });
+});
+
+/// Recent scouts for the signed-in user, newest first. Powers the scout history
+/// and the "use in a request" prefill.
+researchRoutes.get('/scout/recent', async (c) => {
+  const owner = viewerAddress(c);
+  if (!owner) return c.json({ scouts: [] });
+  const limit = Math.min(20, Math.max(1, Number(c.req.query('limit') ?? 8) || 8));
+  const scouts = await recentScoutReads(owner, limit);
+  return c.json({ scouts });
 });

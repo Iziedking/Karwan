@@ -6,6 +6,8 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
+import { MarketScout } from '@/features/research/components/MarketScout';
+import { SCOUT_ENABLED } from '@/features/profile/config';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -144,6 +146,7 @@ function BuyerPageInner() {
           </div>
           <div className="space-y-4">
             <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
+            {SCOUT_ENABLED && <MarketScout />}
           </div>
         </div>
       </Band>

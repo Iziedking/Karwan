@@ -156,6 +156,13 @@ export async function ensureSchema(): Promise<void> {
       PRIMARY KEY (keyword, ts)
     );
     CREATE INDEX IF NOT EXISTS trend_snapshots_ts_idx ON trend_snapshots (ts);
+    CREATE TABLE IF NOT EXISTS scout_reads (
+      id TEXT PRIMARY KEY,
+      owner TEXT NOT NULL,
+      ts BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS scout_reads_owner_ts_idx ON scout_reads (owner, ts);
     CREATE TABLE IF NOT EXISTS ephemeral_state (
       key TEXT PRIMARY KEY,
       data JSONB NOT NULL,

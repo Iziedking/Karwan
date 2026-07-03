@@ -78,3 +78,9 @@ export const KARWAN_PO_FINANCING_ADDRESS =
 // NEXT_PUBLIC_SME_TRADES_ENABLED=1 to surface the rail for pilots and
 // internal testing. P2P deal flow is unaffected either way.
 export const SME_TRADES_ENABLED = process.env.NEXT_PUBLIC_SME_TRADES_ENABLED === '1';
+
+// Market scout launch gate. The user-triggered paid market read
+// (POST /api/research/scout) surfaces a "Scout the market" panel on the buyer
+// surface. Off by default; set NEXT_PUBLIC_SCOUT_ENABLED=1 to surface it. The
+// backend SCOUT_ENABLED flag gates the route itself, so both must be on.
+export const SCOUT_ENABLED = process.env.NEXT_PUBLIC_SCOUT_ENABLED === '1';

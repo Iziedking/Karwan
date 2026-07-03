@@ -998,6 +998,31 @@ export interface AdminProfileRow {
   createdAt: number;
 }
 
+/// A paid market read as the backend returns it (x402 externalClient MarketRead).
+/// `paidUsd` maps to the MarketReadCard's `amountUsd` when rendering.
+export interface ApiMarketRead {
+  keywords: string[];
+  summary: string;
+  demand: 'hot' | 'steady' | 'soft';
+  priceNote: string;
+  fairPriceUsdc?: number;
+  priceConfidence?: 'grounded' | 'rough' | 'none';
+  highlights: string[];
+  sources: { title: string; url: string }[];
+  paidUsd: number;
+  payer?: string;
+  txHash?: string;
+  researchedAt: number;
+  cached: boolean;
+}
+
+export interface ScoutReadEntry {
+  id: string;
+  owner: string;
+  ts: number;
+  read: ApiMarketRead;
+}
+
 export const api = {
   baseUrl: BASE,
   eventsUrl: () => `${BASE}/api/events`,
@@ -2581,6 +2606,16 @@ export const api = {
       withCaller('/api/research/activate'),
       { method: 'POST' },
     ),
+  // Market scout: the user pays their research credit for a fresh market read on
+  // their own keywords. Errors (402 no-credit, 429 rate-limit) surface as thrown
+  // ApiError the caller inspects.
+  scoutMarket: (input: { query?: string; keywords?: string[] }) =>
+    json<{ read: ApiMarketRead; creditUsdc: number }>(withCaller('/api/research/scout'), {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  recentScouts: (limit = 8) =>
+    json<{ scouts: ScoutReadEntry[] }>(withCaller(`/api/research/scout/recent?limit=${limit}`)),
 
   // Financier application (SME rail). Anyone who meets the bar (tenure on
   // Karwan, a stake, reputation >= COLD) can self-serve apply to fund factoring
