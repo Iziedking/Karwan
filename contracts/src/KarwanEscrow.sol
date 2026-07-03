@@ -18,6 +18,19 @@ interface IKarwanVault {
     function resolveOwner(address addr) external view returns (address);
 }
 
+/// @notice Treasury-side hook for escrow idle-yield routing. The escrow sweeps
+///         idle USDC into the Treasury (which wraps it to USYC for yield the
+///         Treasury owns) and pulls exactly that USDC back on demand for a
+///         payout. The escrow never holds USYC and needs no Circle whitelist;
+///         the Treasury, holding the NAV upside, absorbs any shortfall.
+interface IEscrowYieldBackstop {
+    /// Escrow-only on the Treasury side. MUST deliver exactly `amount` USDC to
+    /// msg.sender (the escrow), unwrapping USYC if needed. Reverts if it cannot
+    /// cover it, so the escrow's payout reverts rather than paying short: funds
+    /// are delayed, never lost.
+    function returnEscrowLiquidity(uint256 amount) external;
+}
+
 /// @notice KarwanReputation subset.
 interface IKarwanReputation {
     enum Outcome {
@@ -112,9 +125,39 @@ contract KarwanEscrow is ReentrancyGuard {
         bool wasAccepted;
         uint64 deliveredAt;
         uint64 claimDeadline;
+        /// v2b per-deal clock, proposed by the buyer at fund time and consented
+        /// by the seller at acceptEscrow. deliveryDeadline: when the next
+        /// undelivered milestone is late (0 = open-ended deal, no timeout
+        /// reclaim). reviewWindow / reclaimGrace are snapshotted at fund so a
+        /// 4-minute demo window and a 90-day shipment deadline are equally
+        /// valid, the counterparty agreed to that clock before money locked.
+        /// disputedAt powers the dispute lapse and the clock-pause rule.
+        uint64 deliveryDeadline;
+        uint64 reviewWindow;
+        uint64 reclaimGrace;
+        uint64 disputedAt;
     }
 
-    uint8 internal constant MAX_MILESTONES = 4;
+    /// @notice Per-deal clock passed to fundEscrow. reviewWindow 0 = use the
+    ///         protocol default at fund time.
+    struct Timing {
+        uint64 deliveryDeadline;
+        uint64 reviewWindow;
+        uint64 reclaimGrace;
+    }
+
+    /// @notice Two-step mutual-cancel handshake (same consent pattern as the
+    ///         vault's approveAgent): one side proposes a split plus a payee
+    ///         for its own side, the other side accepts with its own payee.
+    struct CancelProposal {
+        address proposer;
+        uint16 sellerBps;
+        bool proposerIsBuyer;
+        address proposerPayee;
+        bool active;
+    }
+
+    uint8 internal constant MAX_MILESTONES = 5;
     uint8 internal constant PCT_TOTAL = 100;
     uint16 internal constant BPS_DENOMINATOR = 10000;
     /// @notice Minimum reservation when Trusted Match is on. Anything below
@@ -149,14 +192,59 @@ contract KarwanEscrow is ReentrancyGuard {
     ///         unset so a mis-deploy can't strand disputes silently.
     address public arbiter;
 
-    /// @notice Buyer review window after a seller marks a milestone delivered.
-    ///         The buyer must release or dispute within it; afterward the
-    ///         seller can claim. Owner-settable within [MIN,MAX] bounds so it
-    ///         can't be griefed to 0 (instant seller claim) or infinity
-    ///         (permanent lock). Snapshotted per milestone at markDelivered.
+    /// @notice Default buyer review window used when a deal doesn't set one.
+    ///         The buyer must release or dispute within the window after a
+    ///         markDelivered; afterward the seller can claim.
     uint64 public reviewWindowSecs = 5 days;
-    uint64 public constant MIN_REVIEW_WINDOW = 1 days;
-    uint64 public constant MAX_REVIEW_WINDOW = 30 days;
+    /// @notice Per-network guardrails on per-deal review windows, owner-set
+    ///         inside immutable hard caps: permissive on testnet so a full
+    ///         lifecycle can demo in minutes, industry-grade minimums on
+    ///         mainnet. Same bytecode either way; per-deal values are
+    ///         consented by the seller at accept regardless.
+    uint64 public minReviewWindow = 60;
+    uint64 public maxReviewWindow = 180 days;
+    uint64 public constant HARD_MIN_REVIEW = 60;
+    uint64 public constant HARD_MAX_REVIEW = 365 days;
+    /// @notice How long a dispute may sit unresolved before either party can
+    ///         lapse it back to Accepted. The arbiter SLA is a protocol
+    ///         property, not a deal property: a dispute can delay settlement
+    ///         but never trap it behind a dead arbiter key.
+    uint64 public disputeTimeoutSecs = 14 days;
+    uint64 public constant MIN_DISPUTE_TIMEOUT = 1 hours;
+    uint64 public constant MAX_DISPUTE_TIMEOUT = 90 days;
+    /// @notice Fund-time cap on how far out a delivery deadline may sit.
+    uint64 public maxDeadlineHorizon = 730 days;
+    uint64 public constant HARD_MAX_HORIZON = 1095 days;
+
+    /// @notice Pending mutual-cancel handshakes by jobId.
+    mapping(bytes32 => CancelProposal) public cancelProposals;
+
+    // ============================ Idle yield ============================
+    // Escrowed USDC earns USYC yield by being swept into the Treasury, which
+    // owns the yield. The escrow's books stay pure USDC: it always pulls back
+    // exactly what it swept, so principal is guaranteed regardless of NAV.
+
+    /// @notice Total unreleased USDC the escrow still owes across all deals
+    ///         (principal + unreleased fee). The liability every exit must be
+    ///         able to honour. Incremented by the funded amount on fund,
+    ///         decremented by each payout leg. Invariant, always true:
+    ///         usdc.balanceOf(this) + atTreasury >= escrowedTotal.
+    uint256 public escrowedTotal;
+    /// @notice USDC currently parked in the Treasury for yield, recoverable 1:1
+    ///         via the backstop. Grows on sweepIdle, shrinks when a payout
+    ///         pulls liquidity back.
+    uint256 public atTreasury;
+    /// @notice Liquid USDC the operator must leave in the escrow; sweepIdle can
+    ///         only move the surplus above it. A tuning buffer to avoid frequent
+    ///         pull-backs, not the safety mechanism (that is the exact-USDC
+    ///         accounting + the payout-time pull-back). Owner-settable.
+    uint256 public coverageFloor;
+    /// @notice Treasury that holds swept USDC and honours pull-backs. Zero
+    ///         disables yield routing entirely (the escrow ships yield-inert;
+    ///         sweepIdle reverts and no payout ever calls the backstop).
+    address public yieldBackstop;
+    /// @notice Keeper allowed to sweep idle USDC to the backstop. Owner-set.
+    address public yieldOperator;
 
     /// @dev Internal, not public: the struct is now large enough that the
     ///      auto-generated getter hits stack-too-deep under the non-viaIR
@@ -202,6 +290,23 @@ contract KarwanEscrow is ReentrancyGuard {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event ArbiterSet(address indexed arbiter);
     event ReviewWindowSet(uint64 secs);
+    event ReviewBoundsSet(uint64 minSecs, uint64 maxSecs);
+    event DisputeTimeoutSet(uint64 secs);
+    event DeadlineHorizonSet(uint64 secs);
+    /// @notice Separate from EscrowFunded so the funded-event signature (and
+    ///         the indexers parsing it) stays stable across v2b.
+    event DealTiming(bytes32 indexed jobId, uint64 deliveryDeadline, uint64 reviewWindow, uint64 reclaimGrace);
+    event DeadlineReclaimed(bytes32 indexed jobId, uint256 amount, uint256 priorReleased, address indexed to);
+    event DeadlineExtended(bytes32 indexed jobId, uint64 newDeadline);
+    event DisputeLapsed(bytes32 indexed jobId, uint64 frozenSecs);
+    event CancelProposed(bytes32 indexed jobId, address indexed proposer, bool proposerIsBuyer, uint16 sellerBps);
+    event CancelWithdrawn(bytes32 indexed jobId);
+    event MutualCancelled(bytes32 indexed jobId, uint16 sellerBps, uint256 sellerCut, uint256 buyerCut);
+    event IdleSwept(uint256 amount, uint256 atTreasuryAfter);
+    event LiquidityPulled(uint256 amount, uint256 atTreasuryAfter);
+    event YieldBackstopSet(address indexed backstop);
+    event YieldOperatorSet(address indexed operator);
+    event CoverageFloorSet(uint256 floor);
 
     error AlreadyFunded();
     error NotBuyer();
@@ -229,6 +334,18 @@ contract KarwanEscrow is ReentrancyGuard {
     error InvalidWindow();
     error InvalidBps();
     error RefundAfterAccept();
+    error InvalidTiming();
+    error NoDeadline();
+    error DeliveryPending();
+    error DeadlineNotPassed();
+    error DisputeStillFresh();
+    error NoCancelProposal();
+    error CancelMismatch();
+    error InvalidPayee();
+    error NotYieldOperator();
+    error BackstopNotSet();
+    error FloorBreach();
+    error YieldShortfall();
 
     constructor(
         address _usdc,
@@ -284,14 +401,93 @@ contract KarwanEscrow is ReentrancyGuard {
         emit ArbiterSet(_arbiter);
     }
 
-    /// @notice Set the buyer review window, clamped to sane bounds so it can
-    ///         be neither griefed to an instant seller claim nor an infinite
-    ///         lock. Applies to milestones marked delivered AFTER this call;
-    ///         in-flight windows keep their snapshotted deadline.
+    /// @notice Set the DEFAULT review window (used when a deal passes 0).
+    ///         Applies to deals funded AFTER this call; funded deals keep
+    ///         their snapshotted window.
     function setReviewWindow(uint64 secs) external onlyOwner {
-        if (secs < MIN_REVIEW_WINDOW || secs > MAX_REVIEW_WINDOW) revert InvalidWindow();
+        if (secs < minReviewWindow || secs > maxReviewWindow) revert InvalidWindow();
         reviewWindowSecs = secs;
         emit ReviewWindowSet(secs);
+    }
+
+    /// @notice Set the per-network review-window guardrails. Hard caps keep
+    ///         the owner from griefing either direction, and the default must
+    ///         stay inside the new bounds.
+    function setReviewBounds(uint64 minSecs, uint64 maxSecs) external onlyOwner {
+        if (minSecs < HARD_MIN_REVIEW || maxSecs > HARD_MAX_REVIEW || minSecs >= maxSecs) revert InvalidWindow();
+        if (reviewWindowSecs < minSecs || reviewWindowSecs > maxSecs) revert InvalidWindow();
+        minReviewWindow = minSecs;
+        maxReviewWindow = maxSecs;
+        emit ReviewBoundsSet(minSecs, maxSecs);
+    }
+
+    function setDisputeTimeout(uint64 secs) external onlyOwner {
+        if (secs < MIN_DISPUTE_TIMEOUT || secs > MAX_DISPUTE_TIMEOUT) revert InvalidWindow();
+        disputeTimeoutSecs = secs;
+        emit DisputeTimeoutSet(secs);
+    }
+
+    function setDeadlineHorizon(uint64 secs) external onlyOwner {
+        if (secs == 0 || secs > HARD_MAX_HORIZON) revert InvalidWindow();
+        maxDeadlineHorizon = secs;
+        emit DeadlineHorizonSet(secs);
+    }
+
+    // ============================ Idle yield ============================
+
+    /// @notice Wire (or unwire) the Treasury backstop. Zero disables routing.
+    ///         Refuses to unwire while USDC is still parked at the Treasury so
+    ///         the pull-back path can never be orphaned.
+    function setYieldBackstop(address backstop) external onlyOwner {
+        if (backstop == address(0) && atTreasury > 0) revert YieldShortfall();
+        yieldBackstop = backstop;
+        emit YieldBackstopSet(backstop);
+    }
+
+    function setYieldOperator(address op) external onlyOwner {
+        yieldOperator = op;
+        emit YieldOperatorSet(op);
+    }
+
+    /// @notice Liquid buffer sweepIdle must leave behind. Tuning only; safety
+    ///         is the exact-USDC accounting + payout-time pull-back, so no hard
+    ///         minimum is needed.
+    function setCoverageFloor(uint256 floor) external onlyOwner {
+        coverageFloor = floor;
+        emit CoverageFloorSet(floor);
+    }
+
+    /// @notice Sweep idle USDC into the Treasury for yield. Keeper-only. Moves
+    ///         only the surplus above coverageFloor, so short-lived float and
+    ///         the buffer stay liquid. The swept USDC is recoverable 1:1 via
+    ///         the backstop; escrowedTotal is untouched (the liability is
+    ///         unchanged, the USDC just moved custody).
+    function sweepIdle(uint256 amount) external nonReentrant {
+        if (msg.sender != yieldOperator) revert NotYieldOperator();
+        if (yieldBackstop == address(0)) revert BackstopNotSet();
+        if (amount == 0) revert InvalidAmount();
+        uint256 bal = usdc.balanceOf(address(this));
+        if (bal < amount || bal - amount < coverageFloor) revert FloorBreach();
+        atTreasury += amount;
+        usdc.safeTransfer(yieldBackstop, amount);
+        emit IdleSwept(amount, atTreasury);
+    }
+
+    /// @dev Guarantees the escrow holds at least `need` liquid USDC before a
+    ///      payout, pulling the gap back from the Treasury. With yield disabled
+    ///      (nothing swept) balance always covers `need` and this is a no-op.
+    ///      A backstop that can't cover the gap reverts, so the payout reverts
+    ///      whole (funds delayed, never paid short). CEI: atTreasury is
+    ///      decremented before the external call.
+    function _ensureLiquid(uint256 need) internal {
+        uint256 bal = usdc.balanceOf(address(this));
+        if (bal >= need) return;
+        uint256 gap = need - bal;
+        if (gap > atTreasury) revert YieldShortfall();
+        atTreasury -= gap;
+        IEscrowYieldBackstop(yieldBackstop).returnEscrowLiquidity(gap);
+        if (usdc.balanceOf(address(this)) < need) revert YieldShortfall();
+        emit LiquidityPulled(gap, atTreasury);
     }
 
     /// @notice Explicit struct getter. The auto-generated public-mapping
@@ -317,9 +513,44 @@ contract KarwanEscrow is ReentrancyGuard {
         uint8[] calldata milestonePcts,
         uint16 _reservationBps
     ) external nonReentrant {
+        _fundEscrow(jobId, seller, dealAmount, milestonePcts, _reservationBps, Timing(0, 0, 0));
+    }
+
+    /// @notice Timing-aware variant. The buyer proposes the deal's clock; the
+    ///         seller reads it via getEscrow and consents by accepting.
+    function fundEscrow(
+        bytes32 jobId,
+        address seller,
+        uint256 dealAmount,
+        uint8[] calldata milestonePcts,
+        uint16 _reservationBps,
+        Timing calldata timing
+    ) external nonReentrant {
+        _fundEscrow(jobId, seller, dealAmount, milestonePcts, _reservationBps, timing);
+    }
+
+    function _fundEscrow(
+        bytes32 jobId,
+        address seller,
+        uint256 dealAmount,
+        uint8[] calldata milestonePcts,
+        uint16 _reservationBps,
+        Timing memory timing
+    ) internal {
         if (escrows[jobId].state != EscrowState.None) revert AlreadyFunded();
         if (seller == address(0) || seller == msg.sender) revert InvalidSeller();
+        // Identity-level self-deal guard: a user's buyer agent funding their
+        // own seller agent resolves to the same identity in the vault.
+        if (vault.resolveOwner(seller) == vault.resolveOwner(msg.sender)) revert InvalidSeller();
         if (dealAmount == 0) revert InvalidAmount();
+
+        uint64 window = timing.reviewWindow == 0 ? reviewWindowSecs : timing.reviewWindow;
+        if (window < minReviewWindow || window > maxReviewWindow) revert InvalidTiming();
+        if (timing.deliveryDeadline != 0) {
+            if (timing.deliveryDeadline <= block.timestamp) revert InvalidTiming();
+            if (timing.deliveryDeadline > block.timestamp + maxDeadlineHorizon) revert InvalidTiming();
+        }
+        if (timing.reclaimGrace > HARD_MAX_REVIEW) revert InvalidTiming();
         // Per-deal bps validation: 0 OR within [MIN_TRUSTED_BPS, max].
         // Below 5000 (except 0) means a meaningless gate.
         if (_reservationBps != 0) {
@@ -360,15 +591,23 @@ contract KarwanEscrow is ReentrancyGuard {
                 reservationBps: _reservationBps,
                 wasAccepted: false,
                 deliveredAt: 0,
-                claimDeadline: 0
+                claimDeadline: 0,
+                deliveryDeadline: timing.deliveryDeadline,
+                reviewWindow: window,
+                reclaimGrace: timing.reclaimGrace,
+                disputedAt: 0
             });
         }
 
         usdc.safeTransferFrom(msg.sender, address(this), fundedAmount);
+        // Track the new liability. Every payout leg decrements this; it returns
+        // to 0 when the deal fully settles or refunds.
+        escrowedTotal += fundedAmount;
 
         emit EscrowFunded(
             jobId, msg.sender, seller, dealAmount, fundedAmount, feeTotal, milestonePcts, _reservationBps
         );
+        emit DealTiming(jobId, timing.deliveryDeadline, window, timing.reclaimGrace);
     }
 
     /// @notice Seller-only acceptance. On trusted-match deals, triggers the
@@ -377,7 +616,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function acceptEscrow(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Funded) revert InvalidState();
-        if (msg.sender != e.seller) revert NotSeller();
+        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
 
         if (e.reservationBps > 0) {
             uint256 reserveAmount = (e.dealAmount * e.reservationBps) / BPS_DENOMINATOR;
@@ -400,6 +639,27 @@ contract KarwanEscrow is ReentrancyGuard {
         emit EscrowAccepted(jobId, msg.sender, e.reservedAmount);
     }
 
+    // ========================= Identity standing ==========================
+
+    /// @dev v2b: a party's registered identity wallet (bound in the vault via
+    ///      the consented approveAgent/registerOwner handshake) can drive the
+    ///      deal alongside the stored agent wallet. If the platform's signer
+    ///      dies, the human with their own key keeps every lifecycle lever.
+    function _isParty(address stored, address caller) internal view returns (bool) {
+        if (caller == stored) return true;
+        return vault.resolveOwner(caller) == vault.resolveOwner(stored);
+    }
+
+    /// @dev Payee choice for the remedy paths: the stored party wallet or its
+    ///      vault-registered identity, nothing else. Both are consented
+    ///      addresses of the same human, so there is no redirect vector.
+    ///      address(0) means "the stored wallet".
+    function _validPayee(address stored, address requested) internal view returns (address) {
+        if (requested == address(0) || requested == stored) return stored;
+        if (requested == vault.resolveOwner(stored)) return requested;
+        revert InvalidPayee();
+    }
+
     // ============================ H-1 lifecycle ============================
 
     /// @notice Seller marks the current milestone delivered, opening the buyer
@@ -408,9 +668,9 @@ contract KarwanEscrow is ReentrancyGuard {
     function markDelivered(bytes32 jobId, bytes32 proofHash) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (msg.sender != e.seller) revert NotSeller();
+        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
         e.deliveredAt = uint64(block.timestamp);
-        e.claimDeadline = uint64(block.timestamp) + reviewWindowSecs;
+        e.claimDeadline = uint64(block.timestamp) + e.reviewWindow;
         emit Delivered(jobId, e.milestonesReleased, proofHash, e.claimDeadline);
     }
 
@@ -419,16 +679,28 @@ contract KarwanEscrow is ReentrancyGuard {
     ///         and fee math as a buyer release. Closes the "buyer vanished ->
     ///         funds stuck" liveness hole.
     function claimMilestone(bytes32 jobId, uint8 milestoneIndex) external nonReentrant {
+        _claimMilestone(jobId, milestoneIndex, address(0));
+    }
+
+    /// @notice Claim variant with an explicit payee for the platform-death
+    ///         remedy: the payout may go to the stored seller wallet or its
+    ///         vault-registered identity, nothing else.
+    function claimMilestone(bytes32 jobId, uint8 milestoneIndex, address payee) external nonReentrant {
+        _claimMilestone(jobId, milestoneIndex, payee);
+    }
+
+    function _claimMilestone(bytes32 jobId, uint8 milestoneIndex, address payee) internal {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (msg.sender != e.seller) revert NotSeller();
+        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
         if (e.deliveredAt == 0) revert NotDelivered();
         if (block.timestamp < e.claimDeadline) revert ReviewWindowOpen();
 
-        uint256 sellerCut = _payMilestone(jobId, e, milestoneIndex);
-        emit MilestoneClaimed(jobId, milestoneIndex, sellerCut, e.seller);
+        address to = _validPayee(e.seller, payee);
+        uint256 sellerCut = _payMilestone(jobId, e, milestoneIndex, to);
+        emit MilestoneClaimed(jobId, milestoneIndex, sellerCut, to);
         if (e.state == EscrowState.Settled) {
             _finalizeSuccess(jobId, e);
         }
@@ -439,7 +711,7 @@ contract KarwanEscrow is ReentrancyGuard {
     ///      seller + treasury cuts, resets the delivery window for the next
     ///      milestone, and flips to Settled on the final milestone. Returns
     ///      the seller cut for the caller's event.
-    function _payMilestone(bytes32 jobId, EscrowAccount storage e, uint8 milestoneIndex)
+    function _payMilestone(bytes32 jobId, EscrowAccount storage e, uint8 milestoneIndex, address sellerTo)
         internal
         returns (uint256 sellerCut)
     {
@@ -465,8 +737,11 @@ contract KarwanEscrow is ReentrancyGuard {
             e.state = EscrowState.Settled;
         }
 
+        uint256 out = sellerCut + feeCut;
+        _ensureLiquid(out);
+        escrowedTotal -= out;
         if (sellerCut > 0) {
-            usdc.safeTransfer(e.seller, sellerCut);
+            usdc.safeTransfer(sellerTo, sellerCut);
         }
         if (feeCut > 0) {
             usdc.safeTransfer(treasury, feeCut);
@@ -479,11 +754,11 @@ contract KarwanEscrow is ReentrancyGuard {
     function releaseProgress(bytes32 jobId, uint8 milestoneIndex) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (msg.sender != e.buyer) revert NotBuyer();
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
 
-        uint256 sellerCut = _payMilestone(jobId, e, milestoneIndex);
+        uint256 sellerCut = _payMilestone(jobId, e, milestoneIndex, e.seller);
         emit ProgressReleased(jobId, milestoneIndex, sellerCut, e.seller);
 
         if (e.state == EscrowState.Settled) {
@@ -496,7 +771,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function releaseFinal(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (msg.sender != e.buyer) revert NotBuyer();
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
 
         uint256 sellerRemaining = e.sellerNet - e.released;
         uint256 feeRemaining = e.feeTotal - e.feeReleased;
@@ -505,6 +780,9 @@ contract KarwanEscrow is ReentrancyGuard {
         e.milestonesReleased = uint8(e.milestonePcts.length);
         e.state = EscrowState.Settled;
 
+        uint256 out = sellerRemaining + feeRemaining;
+        _ensureLiquid(out);
+        escrowedTotal -= out;
         if (sellerRemaining > 0) {
             usdc.safeTransfer(e.seller, sellerRemaining);
         }
@@ -521,8 +799,9 @@ contract KarwanEscrow is ReentrancyGuard {
     function dispute(bytes32 jobId, string calldata reasonHash) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Funded && e.state != EscrowState.Accepted) revert InvalidState();
-        if (msg.sender != e.buyer && msg.sender != e.seller) revert NotParty();
+        if (!_isParty(e.buyer, msg.sender) && !_isParty(e.seller, msg.sender)) revert NotParty();
         e.state = EscrowState.Disputed;
+        e.disputedAt = uint64(block.timestamp);
         emit EscrowDisputed(jobId, reasonHash);
     }
 
@@ -532,7 +811,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function releaseFromDispute(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
-        if (msg.sender != e.buyer) revert NotBuyer();
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
 
         uint256 sellerRemaining = e.sellerNet - e.released;
         uint256 feeRemaining = e.feeTotal - e.feeReleased;
@@ -541,6 +820,9 @@ contract KarwanEscrow is ReentrancyGuard {
         e.milestonesReleased = uint8(e.milestonePcts.length);
         e.state = EscrowState.Settled;
 
+        uint256 out = sellerRemaining + feeRemaining;
+        _ensureLiquid(out);
+        escrowedTotal -= out;
         if (sellerRemaining > 0) {
             usdc.safeTransfer(e.seller, sellerRemaining);
         }
@@ -576,7 +858,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function refund(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
-        if (msg.sender != e.buyer) revert NotBuyer();
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
         if (e.wasAccepted) revert RefundAfterAccept();
 
         // Pre-accept => nothing released yet and no reservation exists, so this
@@ -585,10 +867,157 @@ contract KarwanEscrow is ReentrancyGuard {
         e.released = e.sellerNet;
         e.feeReleased = e.feeTotal;
         e.state = EscrowState.Refunded;
+        _ensureLiquid(remaining);
+        escrowedTotal -= remaining;
         if (remaining > 0) {
             usdc.safeTransfer(e.buyer, remaining);
         }
         emit EscrowRefunded(jobId, remaining, 0);
+    }
+
+    // ============================ v2b lifecycle ============================
+
+    /// @notice The buyer's trustless timeout exit, mirror-image of the
+    ///         seller's claimMilestone: when the consented delivery deadline
+    ///         plus grace passes with nothing pending review, the buyer
+    ///         reclaims the unreleased funds. The reservation slashes
+    ///         proportionally to the UNDELIVERED fraction of the deal, so a
+    ///         seller who delivered 3 of 4 milestones and went late on the
+    ///         last loses a quarter of the reserve, not all of it.
+    function reclaimAfterDeadline(bytes32 jobId, address payee) external nonReentrant {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Accepted) revert InvalidState();
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (e.deliveryDeadline == 0) revert NoDeadline();
+        if (e.deliveredAt != 0) revert DeliveryPending();
+        if (block.timestamp <= uint256(e.deliveryDeadline) + e.reclaimGrace) revert DeadlineNotPassed();
+
+        address to = _validPayee(e.buyer, payee);
+        uint256 remainingSellerNet = e.sellerNet - e.released;
+        uint256 remaining = remainingSellerNet + (e.feeTotal - e.feeReleased);
+        uint256 priorReleased = e.released;
+        e.released = e.sellerNet;
+        e.feeReleased = e.feeTotal;
+        e.state = EscrowState.Refunded;
+        _ensureLiquid(remaining);
+        escrowedTotal -= remaining;
+        if (remaining > 0) {
+            usdc.safeTransfer(to, remaining);
+        }
+        emit DeadlineReclaimed(jobId, remaining, priorReleased, to);
+
+        if (e.reservedAmount > 0) {
+            uint256 slashShare = (e.reservedAmount * remainingSellerNet) / e.sellerNet;
+            address seller = e.seller;
+            e.reservedAmount = 0;
+            try vault.slashTo(jobId, slashShare) {
+            } catch Error(string memory reason) {
+                emit SlashFailed(jobId, seller, reason);
+            } catch (bytes memory) {
+                emit SlashFailed(jobId, seller, "low-level revert");
+            }
+        }
+        // A blown deadline is on-chain-provable lateness, so it records
+        // Failed even on casual (no-stake) deals.
+        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Failed);
+    }
+
+    /// @notice Buyer-only deadline extension. Extensions favour the seller,
+    ///         so buyer consent is the only gate; mirrors the off-chain
+    ///         extension-approve flow.
+    function extendDeadline(bytes32 jobId, uint64 newDeadline) external {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Accepted) revert InvalidState();
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (e.deliveryDeadline == 0) revert NoDeadline();
+        if (newDeadline <= e.deliveryDeadline) revert InvalidTiming();
+        if (newDeadline > block.timestamp + maxDeadlineHorizon) revert InvalidTiming();
+        e.deliveryDeadline = newDeadline;
+        emit DeadlineExtended(jobId, newDeadline);
+    }
+
+    /// @notice After the dispute timeout with no arbiter ruling, either party
+    ///         lapses the dispute back to Accepted. Clock-pause rule: the
+    ///         delivery deadline extends by the frozen time, so a freeze
+    ///         delays settlement but never changes who wins. Review clocks
+    ///         reset; a pending delivery must be re-marked. A dispute can
+    ///         therefore delay but never trap: a dead arbiter degrades to the
+    ///         normal timed paths, not a freeze.
+    function lapseDispute(bytes32 jobId) external {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Disputed) revert InvalidState();
+        if (!e.wasAccepted) revert InvalidState();
+        if (!_isParty(e.buyer, msg.sender) && !_isParty(e.seller, msg.sender)) revert NotParty();
+        if (block.timestamp < uint256(e.disputedAt) + disputeTimeoutSecs) revert DisputeStillFresh();
+
+        uint64 frozen = uint64(block.timestamp) - e.disputedAt;
+        if (e.deliveryDeadline != 0) {
+            e.deliveryDeadline += frozen;
+        }
+        e.disputedAt = 0;
+        e.deliveredAt = 0;
+        e.claimDeadline = 0;
+        e.state = EscrowState.Accepted;
+        emit DisputeLapsed(jobId, frozen);
+    }
+
+    /// @notice Propose a mutual cancel: sellerBps of the unreleased funds to
+    ///         the seller, the rest back to the buyer. Either side proposes,
+    ///         the other accepts (two-tx consent). Available from Accepted or
+    ///         Disputed, so the parties can settle a dispute themselves
+    ///         without the arbiter.
+    function proposeCancel(bytes32 jobId, uint16 sellerBps, address payee) external {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Accepted && e.state != EscrowState.Disputed) revert InvalidState();
+        if (!e.wasAccepted) revert InvalidState();
+        if (sellerBps > BPS_DENOMINATOR) revert InvalidBps();
+        bool isBuyerSide = _isParty(e.buyer, msg.sender);
+        if (!isBuyerSide && !_isParty(e.seller, msg.sender)) revert NotParty();
+        address own = isBuyerSide ? e.buyer : e.seller;
+        cancelProposals[jobId] = CancelProposal({
+            proposer: msg.sender,
+            sellerBps: sellerBps,
+            proposerIsBuyer: isBuyerSide,
+            proposerPayee: _validPayee(own, payee),
+            active: true
+        });
+        emit CancelProposed(jobId, msg.sender, isBuyerSide, sellerBps);
+    }
+
+    function withdrawCancel(bytes32 jobId) external {
+        CancelProposal storage p = cancelProposals[jobId];
+        if (!p.active || p.proposer != msg.sender) revert NoCancelProposal();
+        delete cancelProposals[jobId];
+        emit CancelWithdrawn(jobId);
+    }
+
+    /// @notice Counterparty accepts the proposed split. sellerBps must match
+    ///         the proposal so a re-proposal can't front-run the acceptance.
+    ///         Consented no-fault exit: the reservation releases in full and
+    ///         no on-chain reputation outcome is recorded either way.
+    function acceptCancel(bytes32 jobId, uint16 sellerBps, address payee) external nonReentrant {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Accepted && e.state != EscrowState.Disputed) revert InvalidState();
+        CancelProposal memory p = cancelProposals[jobId];
+        if (!p.active) revert NoCancelProposal();
+        if (p.sellerBps != sellerBps) revert CancelMismatch();
+        if (p.proposerIsBuyer) {
+            if (!_isParty(e.seller, msg.sender)) revert NotParty();
+        } else {
+            if (!_isParty(e.buyer, msg.sender)) revert NotParty();
+        }
+        address acceptorPayee = _validPayee(p.proposerIsBuyer ? e.seller : e.buyer, payee);
+        address sellerTo = p.proposerIsBuyer ? acceptorPayee : p.proposerPayee;
+        address buyerTo = p.proposerIsBuyer ? p.proposerPayee : acceptorPayee;
+        delete cancelProposals[jobId];
+
+        (uint256 sellerCut, uint256 buyerCut) = _splitRemaining(jobId, e, sellerBps, sellerTo, buyerTo);
+
+        if (e.reservedAmount > 0) {
+            e.reservedAmount = 0;
+            vault.release(jobId);
+        }
+        emit MutualCancelled(jobId, sellerBps, sellerCut, buyerCut);
     }
 
     /// @notice Arbiter resolves a POST-ACCEPT dispute. Splits the unreleased
@@ -597,8 +1026,7 @@ contract KarwanEscrow is ReentrancyGuard {
     ///         share ((10000-sellerBps) of the reserve) slashes to the buyer,
     ///         the rest returns to the seller's free stake. Reputation:
     ///         sellerBps >= 8000 -> Success, <= 2000 -> Failed, else
-    ///         DisputeResolved. This is the ONLY post-accept exit besides a
-    ///         buyer release or a seller claim; nobody has unilateral clawback.
+    ///         DisputeResolved.
     function resolve(bytes32 jobId, uint16 sellerBps, bytes32 rulingHash) external nonReentrant {
         if (arbiter == address(0)) revert ArbiterNotSet();
         if (msg.sender != arbiter) revert NotArbiter();
@@ -608,27 +1036,7 @@ contract KarwanEscrow is ReentrancyGuard {
         // Pre-accept disputes cancel via refund, not the arbiter.
         if (!e.wasAccepted) revert InvalidState();
 
-        uint256 remainingSellerNet = e.sellerNet - e.released;
-        uint256 remainingFee = e.feeTotal - e.feeReleased;
-        uint256 sellerCut = (remainingSellerNet * sellerBps) / BPS_DENOMINATOR;
-        uint256 feeCut = (remainingFee * sellerBps) / BPS_DENOMINATOR;
-        uint256 buyerCut = (remainingSellerNet - sellerCut) + (remainingFee - feeCut);
-
-        e.released = e.sellerNet;
-        e.feeReleased = e.feeTotal;
-        e.milestonesReleased = uint8(e.milestonePcts.length);
-        e.state = EscrowState.Settled;
-
-        if (sellerCut > 0) {
-            usdc.safeTransfer(e.seller, sellerCut);
-        }
-        if (feeCut > 0) {
-            usdc.safeTransfer(treasury, feeCut);
-            emit FeeCollected(jobId, e.milestonesReleased, feeCut, treasury);
-        }
-        if (buyerCut > 0) {
-            usdc.safeTransfer(e.buyer, buyerCut);
-        }
+        (uint256 sellerCut, uint256 buyerCut) = _splitRemaining(jobId, e, sellerBps, e.seller, e.buyer);
         emit DisputeResolved(jobId, sellerBps, sellerCut, buyerCut, rulingHash);
 
         // Settle the reservation proportionally. slashTo pays the buyer's fault
@@ -655,6 +1063,43 @@ contract KarwanEscrow is ReentrancyGuard {
     }
 
     // Internals
+
+    /// @dev Shared terminal split used by the arbiter's resolve and the
+    ///      mutual-cancel handshake: sellerBps of the unreleased seller net
+    ///      and fee go to the seller side / treasury, the rest returns to the
+    ///      buyer side. Flips the account to Settled.
+    function _splitRemaining(
+        bytes32 jobId,
+        EscrowAccount storage e,
+        uint16 sellerBps,
+        address sellerTo,
+        address buyerTo
+    ) private returns (uint256 sellerCut, uint256 buyerCut) {
+        uint256 remainingSellerNet = e.sellerNet - e.released;
+        uint256 remainingFee = e.feeTotal - e.feeReleased;
+        sellerCut = (remainingSellerNet * sellerBps) / BPS_DENOMINATOR;
+        uint256 feeCut = (remainingFee * sellerBps) / BPS_DENOMINATOR;
+        buyerCut = (remainingSellerNet - sellerCut) + (remainingFee - feeCut);
+
+        e.released = e.sellerNet;
+        e.feeReleased = e.feeTotal;
+        e.milestonesReleased = uint8(e.milestonePcts.length);
+        e.state = EscrowState.Settled;
+
+        uint256 out = remainingSellerNet + remainingFee;
+        _ensureLiquid(out);
+        escrowedTotal -= out;
+        if (sellerCut > 0) {
+            usdc.safeTransfer(sellerTo, sellerCut);
+        }
+        if (feeCut > 0) {
+            usdc.safeTransfer(treasury, feeCut);
+            emit FeeCollected(jobId, e.milestonesReleased, feeCut, treasury);
+        }
+        if (buyerCut > 0) {
+            usdc.safeTransfer(buyerTo, buyerCut);
+        }
+    }
 
     function _finalizeSuccess(bytes32 jobId, EscrowAccount storage e) internal {
         emit EscrowSettled(jobId, e.released, e.feeReleased);
