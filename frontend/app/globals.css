@@ -291,6 +291,22 @@ html[data-theme="dark"] {
 .fade-up-4 { animation-delay: 0.22s; }
 .slide-in { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
+/* Scroll-reveal for below-fold sections (shared Band). Unlike .fade-up, which
+   fires on MOUNT (so a below-fold reveal is spent before the reader arrives),
+   this only animates once the section scrolls into view. The hidden state
+   (.reveal-armed) is added by JS ONLY to sections that start fully below the
+   fold, so nothing already on screen flashes, and there is no SSR flash of
+   invisible content: the server renders the plain .reveal-section. */
+.reveal-section {
+  transition: opacity 0.56s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.56s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-section.reveal-armed { opacity: 0; transform: translateY(24px); }
+.reveal-section.reveal-armed.reveal-in { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-section.reveal-armed { opacity: 1; transform: none; transition: none; }
+}
+
 /* Full-bleed band width. Replaces `w-screen` (100vw), which over-shoots the
    content area by the vertical scrollbar width and forces a spurious ~15px
    horizontal scrollbar at normal zoom. Subtracting the live scrollbar width

@@ -245,7 +245,7 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
             key={r.n}
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
+            viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: dur.slow, ease: ease.out, delay: i * 0.08 }}
             className="relative pt-6 px-6 first:ps-0 last:pe-0"
             style={{ borderTop: '1px solid var(--lp-border-light)' }}
@@ -358,7 +358,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                 key={s.tag}
                 initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.4 }}
+                viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: dur.base, ease: ease.out, delay: i * 0.07 }}
                 className="relative px-4 py-6"
                 style={{
@@ -613,7 +613,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
             key={c.tag}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
+            viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: dur.base, ease: ease.out, delay: i * 0.06 }}
             whileHover={{ y: -2 }}
             className="group relative flex flex-col p-7 aspect-[4/5]"
@@ -797,7 +797,7 @@ function Band({
       <div
         className={cn(
           'relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)]',
-          compact ? 'py-[clamp(36px,5vw,64px)]' : 'py-[clamp(64px,9vw,140px)]',
+          compact ? 'py-[clamp(28px,4vw,48px)]' : 'py-[clamp(40px,6vw,88px)]',
           className,
         )}
       >
@@ -825,7 +825,7 @@ function Reveal({
     <motion.div
       initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
+      viewport={{ once: true, amount: 0.15 }}
       transition={{ duration: dur.slow, ease: ease.out, delay }}
       className={className}
     >

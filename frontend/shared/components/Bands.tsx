@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { Reveal } from './Reveal';
 
 /// Phantom-grade landing primitives for the in-app routes. Full-bleed band
 /// sections, uppercase extrabold display headlines with lime-accent punctuation,
@@ -35,14 +36,14 @@ export function Band({
       )}
     >
       {overlay}
-      <div
+      <Reveal
         className={cn(
           'relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)]',
-          compact ? 'py-[clamp(36px,5vw,64px)]' : 'py-[clamp(64px,9vw,140px)]',
+          compact ? 'py-[clamp(28px,4vw,48px)]' : 'py-[clamp(40px,6vw,88px)]',
         )}
       >
         {children}
-      </div>
+      </Reveal>
     </section>
   );
 }
