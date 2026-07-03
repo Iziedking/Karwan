@@ -71,9 +71,9 @@ function BuyerPageInner() {
 
   return (
     <FullBleed>
-      {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+      {/* HERO. compact title row so the new-deal form sits near the fold. */}
+      <Band tone="dark" compact overlay={<GridOverlay />}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8 items-center">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
@@ -81,7 +81,7 @@ function BuyerPageInner() {
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
-              <HeroHeadline>
+              <HeroHeadline size="sm">
                 {bh.hero.headlineLine1}
                 <Punc>.</Punc>
                 <br />

@@ -23,17 +23,17 @@ export default function P2PHubPage() {
     <AuthGuard gateTag={p.eyebrow} gateBody={p.lede}>
       <AccountGate kind="person">
       <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
+        <Band tone="dark" compact overlay={<GridOverlay />}>
           <div className="fade-up">
             <SectionTag tone="dark">{p.eyebrow}</SectionTag>
           </div>
           <div className="fade-up fade-up-1">
-            <HeroHeadline>
+            <HeroHeadline size="sm">
               {p.title}
               <Punc>.</Punc>
             </HeroHeadline>
           </div>
-          <p className="fade-up fade-up-2 mt-5 max-w-[52ch] text-[15px] leading-relaxed text-white/55">
+          <p className="fade-up fade-up-2 mt-4 max-w-[52ch] text-[15px] leading-relaxed text-white/55">
             {p.lede}
           </p>
         </Band>
@@ -103,7 +103,7 @@ function DeskCard({
       </div>
       <span
         aria-hidden
-        className="mt-6 inline-flex items-center mono text-[18px] opacity-70 transition-transform duration-200 group-hover:translate-x-1"
+        className="mt-6 inline-flex items-center justify-center w-10 h-10 rounded-full border border-current text-[16px] opacity-50 transition-[transform,opacity] duration-200 group-hover:translate-x-1 group-hover:opacity-90"
       >
         →
       </span>

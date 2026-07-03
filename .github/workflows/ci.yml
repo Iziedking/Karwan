@@ -57,29 +57,3 @@ jobs:
           NEXT_PUBLIC_BASE_SEPOLIA_RPC: ''
           NEXT_PUBLIC_SEPOLIA_RPC: ''
         run: npm --prefix frontend run build
-
-  contracts:
-    name: Foundry tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # The contracts workspace is independent of npm; this job only runs when
-    # files under contracts/ changed on the PR head. Saves Foundry install time
-    # on every typo-fix commit elsewhere in the repo.
-    if: contains(github.event.pull_request.changed_files, 'contracts/') || github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: stable
-
-      - name: forge build
-        working-directory: contracts
-        run: forge build --sizes
-
-      - name: forge test
-        working-directory: contracts
-        run: forge test -vv

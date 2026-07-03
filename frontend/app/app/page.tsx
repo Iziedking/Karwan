@@ -156,7 +156,12 @@ export default function AppHome() {
     }
   }, [isConnected, fetchState, profile, router]);
 
-  if (!statusChecked || authLoading) {
+  // Hold only for auth to resolve (prevents the signed-out hero flash). The
+  // status probe is a backend liveness check that nothing here renders from, so
+  // it must NOT gate the page: blocking on it being pending is what stalled the
+  // hero behind a slow /api/status while the static footer painted instantly.
+  // Offline is still caught below, but only once the probe has actually settled.
+  if (authLoading) {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
@@ -170,7 +175,7 @@ export default function AppHome() {
     );
   }
 
-  if (!status) {
+  if (statusChecked && !status) {
     return (
       <FullBleed>
         <Band tone="light">

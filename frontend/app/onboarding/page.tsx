@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoginModal } from '@/shared/components/LoginModal';
@@ -19,6 +19,8 @@ import {
   CTAPill,
 } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
+
+type OnbStep = 'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady';
 
 // Next.js 15 requires useSearchParams() to live inside a Suspense boundary
 // when the page is statically prerendered. Wrapping the inner component
@@ -67,9 +69,7 @@ function OnboardingInner() {
   const address = auth.address ?? undefined;
   const isConnected = auth.isAuthenticated;
   const [loginOpen, setLoginOpen] = useState(false);
-  const [step, setStep] = useState<
-    'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady'
-  >('language');
+  const [step, setStep] = useState<OnbStep>('language');
   const t = useTranslations();
   const [role, setRole] = useState<UserRole | null>(null);
   // Personal vs business is an intent picked right after language. Business is
@@ -154,6 +154,57 @@ function OnboardingInner() {
   useEffect(() => {
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
   }, [step]);
+
+  // Browser Back walks the wizard steps instead of leaving straight to the
+  // landing page. A trap history entry captures each Back; we step backward and
+  // re-arm the trap, until the first step, where we release the listener and let
+  // the browser navigate away normally. Refs keep the popstate handler reading
+  // the current step + account type without re-arming on every change. Edit mode
+  // opts out: it has its own back routing to /profile.
+  const stepRef = useRef(step);
+  const acctRef = useRef(accountType);
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+  useEffect(() => {
+    acctRef.current = accountType;
+  }, [accountType]);
+  useEffect(() => {
+    if (editMode || typeof window === 'undefined') return;
+    const prevOf = (s: OnbStep): OnbStep | null => {
+      switch (s) {
+        case 'language':
+          return null;
+        case 'accountType':
+          return 'language';
+        case 'connect':
+          return 'accountType';
+        case 'role':
+          // connect auto-advances when a wallet is connected, so skip it.
+          return 'accountType';
+        case 'profile':
+          return acctRef.current === 'business' ? 'accountType' : 'role';
+        case 'getReady':
+          return 'profile';
+        default:
+          return null;
+      }
+    };
+    window.history.pushState({ ...window.history.state }, '');
+    const onPop = () => {
+      const prev = prevOf(stepRef.current);
+      if (prev) {
+        setStep(prev);
+        window.history.pushState({ ...window.history.state }, '');
+      } else {
+        window.removeEventListener('popstate', onPop);
+        window.history.back();
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode]);
 
   // True from when we know there's an address until we either finish the
   // profile check (no profile → reveal the form) or fire a redirect (profile

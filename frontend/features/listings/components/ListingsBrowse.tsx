@@ -47,6 +47,7 @@ interface Card {
 
 export function ListingsBrowse() {
   const lb = useTranslations().listingsBrowse;
+  const homeHero = useTranslations().appHome.hero;
   const { address, isAuthenticated, isLoading } = useAuth();
   /// The market is sectioned by rail (see buckets below). A business sees the
   /// B2B view; an individual sees the P2P view plus a read-only B2B strip. Keyed
@@ -183,14 +184,14 @@ export function ListingsBrowse() {
         id={onBusinessTrack ? MARKET_BIZ_TOUR_ID : MARKET_TOUR_ID}
         steps={buildMarketSteps(onBusinessTrack ? 'business' : 'person')}
       />
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band tone="dark" compact overlay={<GridOverlay />}>
         <div className="fade-up">
           <SectionTag tone="dark" dot="live">
             {lb.heroTag}
           </SectionTag>
         </div>
-        <div className="fade-up fade-up-1 mt-5">
-          <HeroHeadline>
+        <div className="fade-up fade-up-1 mt-4">
+          <HeroHeadline size="sm">
             {lb.heroHeadlinePart1}{' '}
             <br className="hidden md:inline" />
             {lb.heroHeadlinePart2Prefix}
@@ -198,7 +199,7 @@ export function ListingsBrowse() {
             <Punc>.</Punc>
           </HeroHeadline>
         </div>
-        <p className="fade-up fade-up-2 mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
+        <p className="fade-up fade-up-2 mt-4 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[52ch]">
           {lb.heroBody}
         </p>
       </Band>
@@ -227,13 +228,27 @@ export function ListingsBrowse() {
         )}
         {empty && (
           <PageCard>
-            <div className="px-6 py-12 text-center space-y-2">
+            <div className="px-6 py-12 text-center space-y-3">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 {lb.emptyAllTag}
               </p>
               <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
                 {lb.emptyAllBody}
               </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1">
+                <Link
+                  href="/buyer"
+                  className="mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+                >
+                  {homeHero.postRequestCta}
+                </Link>
+                <Link
+                  href="/seller"
+                  className="mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+                >
+                  {homeHero.postOfferCta}
+                </Link>
+              </div>
             </div>
           </PageCard>
         )}

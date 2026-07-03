@@ -75,9 +75,9 @@ function SellerPageInner() {
 
   return (
     <FullBleed>
-      {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+      {/* HERO. compact title row so the desk work sits near the fold. */}
+      <Band tone="dark" compact overlay={<GridOverlay />}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8 items-center">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
@@ -85,7 +85,7 @@ function SellerPageInner() {
               </SectionTag>
             </div>
             <div className="fade-up fade-up-1">
-              <HeroHeadline>
+              <HeroHeadline size="sm">
                 {sh.hero.headlineLine1}
                 <br />
                 {sh.hero.headlineLine2Prefix} <Accent>{sh.hero.headlineAccent}</Accent>

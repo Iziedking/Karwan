@@ -22,6 +22,29 @@ import {
   serializeAuthorization,
 } from '@/features/factoring/usdcAuthorization';
 
+/// Actionable empty state for a funding lane (SKILL §5.3 bracket-message
+/// pattern): what the lane is, why it is empty, and one way to act. Replaces the
+/// bare grey sentence the review flagged, so an empty desk still orients a
+/// first-time financier rather than dead-ending them.
+function DeskEmpty({ tag, body }: { tag: string; body: string }) {
+  return (
+    <div className="py-4">
+      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        [:{tag}:]
+      </span>
+      <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+        {body}
+      </p>
+      <Link
+        href="/market"
+        className="mt-4 inline-flex items-center gap-1.5 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+      >
+        Browse live trade <span aria-hidden>→</span>
+      </Link>
+    </div>
+  );
+}
+
 /// Turn a thrown signing/submit error into one short human line. A wallet
 /// rejection is the common case and should read calmly, never dump the raw
 /// viem string (with its "Version: viem@x" tag) into the modal.
@@ -351,10 +374,10 @@ function FactorInvoicesTab({
   }
   if (!available || available.length === 0) {
     return (
-      <p className="text-[14px] text-[var(--lp-text-muted)] leading-relaxed">
-        No factoring opportunities open right now. Check back as new
-        deals get accepted.
-      </p>
+      <DeskEmpty
+        tag="NO OPEN FACTORING"
+        body="Nothing to fund right now. Invoices appear here the moment a seller raises one on an accepted deal."
+      />
     );
   }
   return (
@@ -804,10 +827,10 @@ function FundPOsTab({
   }
   if (!available || available.length === 0) {
     return (
-      <p className="text-[14px] text-[var(--lp-text-muted)] leading-relaxed">
-        No PO financing opportunities open right now. Check back as sellers
-        draw lines on accepted POs.
-      </p>
+      <DeskEmpty
+        tag="NO OPEN PO LINES"
+        body="Nothing to fund right now. Lines appear here as sellers draw against accepted purchase orders."
+      />
     );
   }
   return (

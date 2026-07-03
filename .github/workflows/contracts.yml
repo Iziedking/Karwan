@@ -1,0 +1,45 @@
+name: Contracts
+
+# Foundry build + tests for the Solidity workspace. Split out of ci.yml and
+# path-filtered so it only runs when contracts/ actually changes. A backend or
+# frontend push no longer triggers (and fails) this job. The `forge build
+# --sizes` gate stays: it flags any contract over the EIP-170 24 KB runtime
+# limit, which is load-bearing before a mainnet deploy.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/contracts.yml'
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/contracts.yml'
+
+concurrency:
+  group: contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Foundry tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: forge build
+        working-directory: contracts
+        run: forge build --sizes
+
+      - name: forge test
+        working-directory: contracts
+        run: forge test -vv
