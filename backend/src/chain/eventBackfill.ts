@@ -5,6 +5,7 @@ import { bus, type KarwanEvent, type KarwanEventType } from '../events.js';
 import { logger } from '../logger.js';
 import { jobBoardAbi } from './abis/jobBoard.js';
 import { escrowAbi } from './abis/escrow.js';
+import { escrowV2Abi } from './abis/escrowV2.js';
 import { reputationAbi } from './abis/reputation.js';
 import {
   legacyEscrowAddress,
@@ -86,6 +87,15 @@ const EVENT_SPECS: EventSpec[] = [
   { key: 'EscrowDisputed', abi: escrowAbi, name: 'EscrowDisputed' },
   { key: 'EscrowRefunded', abi: escrowAbi, name: 'EscrowRefunded' },
   { key: 'CompletionRecorded', abi: reputationAbi, name: 'CompletionRecorded' },
+  // v2b lifecycle events (only present on the v2 escrow; scans return empty
+  // against the v1 contract, so this is safe pre- and post-cutover). R1: keeps
+  // the timeline recoverable after a data wipe once v2b is live.
+  { key: 'Delivered', abi: escrowV2Abi, name: 'Delivered' },
+  { key: 'MilestoneClaimed', abi: escrowV2Abi, name: 'MilestoneClaimed' },
+  { key: 'DisputeResolved', abi: escrowV2Abi, name: 'DisputeResolved' },
+  { key: 'MutualCancelled', abi: escrowV2Abi, name: 'MutualCancelled' },
+  { key: 'Held', abi: escrowV2Abi, name: 'Held' },
+  { key: 'DeliveryAttested', abi: escrowV2Abi, name: 'DeliveryAttested' },
 ];
 
 function resolveEvent(spec: EventSpec): AbiEvent | null {
@@ -361,6 +371,89 @@ function mapRepCompletion(row: LogRow): MappedEvent | null {
   };
 }
 
+// v2b lifecycle mappers.
+function mapDelivered(row: LogRow): MappedEvent | null {
+  const jobId = asString(row.args.jobId);
+  if (!jobId) return null;
+  return {
+    type: 'deal.delivered',
+    jobId,
+    actor: 'seller',
+    payload: {
+      milestoneIndex: Number(asBigint(row.args.milestoneIndex)),
+      claimDeadlineMs: Number(asBigint(row.args.claimDeadline)) * 1000,
+      txHash: row.transactionHash ?? undefined,
+    },
+  };
+}
+
+function mapMilestoneClaimed(row: LogRow): MappedEvent | null {
+  const jobId = asString(row.args.jobId);
+  if (!jobId) return null;
+  return {
+    type: 'escrow.milestone.released',
+    jobId,
+    actor: 'seller',
+    payload: {
+      milestoneIndex: Number(asBigint(row.args.milestoneIndex)),
+      amountUsdc: formatUnits(asBigint(row.args.amount), USDC_DECIMALS),
+      byClaim: true,
+      txHash: row.transactionHash ?? undefined,
+    },
+  };
+}
+
+function mapDisputeResolved(row: LogRow): MappedEvent | null {
+  const jobId = asString(row.args.jobId);
+  if (!jobId) return null;
+  return {
+    type: 'escrow.resolved',
+    jobId,
+    actor: 'platform',
+    payload: {
+      sellerBps: Number(asBigint(row.args.sellerBps)),
+      txHash: row.transactionHash ?? undefined,
+    },
+  };
+}
+
+function mapMutualCancelled(row: LogRow): MappedEvent | null {
+  const jobId = asString(row.args.jobId);
+  if (!jobId) return null;
+  return {
+    type: 'deal.cancelled',
+    jobId,
+    actor: 'platform',
+    payload: {
+      kind: 'mutual',
+      sellerBps: Number(asBigint(row.args.sellerBps)),
+      txHash: row.transactionHash ?? undefined,
+    },
+  };
+}
+
+function mapHeld(row: LogRow): MappedEvent | null {
+  const jobId = asString(row.args.id);
+  if (!jobId) return null;
+  return {
+    type: 'security.hold',
+    jobId,
+    actor: 'platform',
+    payload: { txHash: row.transactionHash ?? undefined },
+  };
+}
+
+function mapDeliveryAttested(row: LogRow): MappedEvent | null {
+  const jobId = asString(row.args.jobId);
+  if (!jobId) return null;
+  return {
+    type: 'security.attested',
+    jobId,
+    actor: 'platform',
+    payload: { pass: Boolean(row.args.pass), txHash: row.transactionHash ?? undefined },
+  };
+}
+
 interface ScanGroup {
   rows: LogRow[];
   map: (row: LogRow) => MappedEvent | null;
@@ -436,6 +529,12 @@ export async function backfillBusFromChain(
   const evEscrowDisputed = resolveEvent(EVENT_SPECS[6]!);
   const evEscrowRefunded = resolveEvent(EVENT_SPECS[7]!);
   const evRepCompletion = resolveEvent(EVENT_SPECS[8]!);
+  const evDelivered = resolveEvent(EVENT_SPECS[9]!);
+  const evMilestoneClaimed = resolveEvent(EVENT_SPECS[10]!);
+  const evDisputeResolved = resolveEvent(EVENT_SPECS[11]!);
+  const evMutualCancelled = resolveEvent(EVENT_SPECS[12]!);
+  const evHeld = resolveEvent(EVENT_SPECS[13]!);
+  const evDeliveryAttested = resolveEvent(EVENT_SPECS[14]!);
 
   async function scanIf(
     addr: `0x${string}` | null,
@@ -479,6 +578,12 @@ export async function backfillBusFromChain(
     escrowDisputed,
     escrowRefunded,
     repCompletion,
+    delivered,
+    milestoneClaimed,
+    disputeResolved,
+    mutualCancelled,
+    held,
+    deliveryAttested,
   ] = await Promise.all([
     scanIf(jobBoardAddr, evJobPosted),
     scanIf(jobBoardAddr, evBidSubmitted),
@@ -489,6 +594,13 @@ export async function backfillBusFromChain(
     scanEscrowsFor(evEscrowDisputed),
     scanEscrowsFor(evEscrowRefunded),
     scanIf(repAddr, evRepCompletion),
+    // v2b events live only on the CURRENT escrow (not legacy generations).
+    scanIf(escrowAddr, evDelivered),
+    scanIf(escrowAddr, evMilestoneClaimed),
+    scanIf(escrowAddr, evDisputeResolved),
+    scanIf(escrowAddr, evMutualCancelled),
+    scanIf(escrowAddr, evHeld),
+    scanIf(escrowAddr, evDeliveryAttested),
   ]);
 
   const groups: ScanGroup[] = [
@@ -501,6 +613,12 @@ export async function backfillBusFromChain(
     { rows: escrowDisputed, map: mapEscrowDisputed },
     { rows: escrowRefunded, map: mapEscrowRefunded },
     { rows: repCompletion, map: mapRepCompletion },
+    { rows: delivered, map: mapDelivered },
+    { rows: milestoneClaimed, map: mapMilestoneClaimed },
+    { rows: disputeResolved, map: mapDisputeResolved },
+    { rows: mutualCancelled, map: mapMutualCancelled },
+    { rows: held, map: mapHeld },
+    { rows: deliveryAttested, map: mapDeliveryAttested },
   ];
 
   const totalRows = groups.reduce((n, g) => n + g.rows.length, 0);
