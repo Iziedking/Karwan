@@ -36,8 +36,16 @@ const PROMPT_PREFIX = [
   '     the same thing. A "Backend Engineer" profile expands to "api", "rest api",',
   '     "web service". An "API service" request expands to "backend", "developer",',
   '     "engineer", "software".',
+  '  4. Any BRAND, PRODUCT, WEBSITE, or app name, kept as a literal tag (e.g.',
+  '     "outlier ai", "amazon", "netflix", "chatgpt"). When the request is to BUY',
+  '     or GET an ACCOUNT, subscription, or access to a named product, tag it as a',
+  '     product purchase ("account", "subscription", "access", plus the product',
+  '     name). Do NOT swap the brand for the industry it operates in: an',
+  '     "outlier.ai account" is a request to buy an account for that product, NOT a',
+  '     request for "anomaly detection", "data analysis", or "machine learning" work.',
   '',
-  'Stay grounded in the input. Do not invent unrelated industries.',
+  'Stay grounded in the input. Do not invent unrelated industries, and NEVER',
+  'reinterpret a named brand or product as a generic field of work.',
   'Lowercase, no punctuation, 1-3 words each, 6-12 tags total.',
 ].join('\n');
 
