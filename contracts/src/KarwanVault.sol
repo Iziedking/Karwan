@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Guardable} from "./Guardable.sol";
 
 /// @notice Hashnote USYC Teller (subset). The vault wires the real Teller in
 ///         via setTeller once Circle approves the vault address.
@@ -66,7 +67,11 @@ interface IUSYCTeller {
 ///                    setConsumer / adminRelease. Rotatable via
 ///                    transferOperator so a multi-sig can take over before
 ///                    mainnet.
-contract KarwanVault is ReentrancyGuard {
+contract KarwanVault is ReentrancyGuard, Guardable {
+    function _guardianAdmin() internal view override returns (address) {
+        return operator;
+    }
+
     using SafeERC20 for IERC20;
 
     enum PositionState {
@@ -409,11 +414,14 @@ contract KarwanVault is ReentrancyGuard {
         emit WithdrawalCancelled(positionId, p.owner);
     }
 
-    /// @notice Claim a position whose cool-down has elapsed.
+    /// @notice Claim a position whose cool-down has elapsed. Guardable: a
+    ///         flagged staker's withdrawal can be frozen while investigated for
+    ///         gaming (auto-expires; the guardian can delay, never confiscate).
     function claim(uint256 positionId) external nonReentrant {
         Position storage p = positions[positionId];
         if (p.state != PositionState.Cooling) revert NotCooling();
         if (msg.sender != p.owner) revert NotOwner();
+        _requireNotHeld(bytes32(uint256(uint160(p.owner))));
         if (block.timestamp < p.claimableAt) revert StillCooling();
 
         uint256 amount = p.principal;

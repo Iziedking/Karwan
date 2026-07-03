@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Guardable} from "./Guardable.sol";
 
 /// @notice KarwanVault subset used for insurance reservations + identity
 ///         resolution. resolveOwner is the v2.E addition that lets the
@@ -103,8 +104,12 @@ interface IKarwanReputation {
 ///         sentinel; refund with reservedAmount=0 simply skips slash and
 ///         records nothing (no rep credit either way, buyer just got their
 ///         money back, no on-chain story to tell).
-contract KarwanEscrow is ReentrancyGuard {
+contract KarwanEscrow is ReentrancyGuard, Guardable {
     using SafeERC20 for IERC20;
+
+    function _guardianAdmin() internal view override returns (address) {
+        return owner;
+    }
 
     enum EscrowState {
         None,
@@ -233,6 +238,12 @@ contract KarwanEscrow is ReentrancyGuard {
     uint64 public disputeTimeoutSecs = 14 days;
     uint64 public constant MIN_DISPUTE_TIMEOUT = 1 hours;
     uint64 public constant MAX_DISPUTE_TIMEOUT = 90 days;
+
+    /// @notice Review window a milestone collapses to on a PASSING guardian
+    ///         delivery attestation (agent-verified good delivery lets the
+    ///         seller claim sooner). Owner-settable, bounded by the review
+    ///         guardrails. Default 24h.
+    uint64 public attestedWindowSecs = 1 days;
     /// @notice Fund-time cap on how far out a delivery deadline may sit.
     uint64 public maxDeadlineHorizon = 730 days;
     uint64 public constant HARD_MAX_HORIZON = 1095 days;
@@ -311,6 +322,8 @@ contract KarwanEscrow is ReentrancyGuard {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event ArbiterSet(address indexed arbiter);
     event ReviewWindowSet(uint64 secs);
+    event AttestedWindowSet(uint64 secs);
+    event DeliveryAttested(bytes32 indexed jobId, uint8 milestoneIndex, bool pass, bytes32 evidenceHash);
     event ReviewBoundsSet(uint64 minSecs, uint64 maxSecs);
     event DisputeTimeoutSet(uint64 secs);
     event DeadlineHorizonSet(uint64 secs);
@@ -452,6 +465,40 @@ contract KarwanEscrow is ReentrancyGuard {
         if (secs == 0 || secs > HARD_MAX_HORIZON) revert InvalidWindow();
         maxDeadlineHorizon = secs;
         emit DeadlineHorizonSet(secs);
+    }
+
+    function setAttestedWindow(uint64 secs) external onlyOwner {
+        if (secs < minReviewWindow || secs > maxReviewWindow) revert InvalidWindow();
+        attestedWindowSecs = secs;
+        emit AttestedWindowSet(secs);
+    }
+
+    // ============================ Security agent ===========================
+
+    /// @notice The guardian (security agent) attests a marked delivery. This is
+    ///         the verification requirement at the contract level: the agent can
+    ///         speed up or freeze settlement, but never move money.
+    ///         pass=true  -> agent-verified good delivery: the review window
+    ///                       collapses toward attestedWindowSecs so the seller
+    ///                       claims sooner (only ever shortens, never extends).
+    ///         pass=false -> suspicious delivery: an automatic hold freezes the
+    ///                       seller-paying paths until the agent clears it or the
+    ///                       hold budget auto-expires.
+    function attestDelivery(bytes32 jobId, uint8 milestoneIndex, bool pass, bytes32 evidenceHash)
+        external
+        onlyGuardian
+    {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Accepted) revert InvalidState();
+        if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
+        if (e.deliveredAt == 0) revert NotDelivered();
+        if (pass) {
+            uint64 shortened = e.deliveredAt + attestedWindowSecs;
+            if (shortened < e.claimDeadline) e.claimDeadline = shortened;
+        } else {
+            _applyHold(jobId, evidenceHash);
+        }
+        emit DeliveryAttested(jobId, milestoneIndex, pass, evidenceHash);
     }
 
     // ============================ Idle yield ============================
@@ -731,6 +778,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function _claimMilestone(bytes32 jobId, uint8 milestoneIndex, address payee) internal {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
+        _requireNotHeld(jobId);
         if (!_isParty(e.seller, msg.sender)) revert NotSeller();
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
@@ -793,6 +841,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function releaseProgress(bytes32 jobId, uint8 milestoneIndex) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
+        _requireNotHeld(jobId);
         if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
@@ -810,6 +859,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function releaseFinal(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
+        _requireNotHeld(jobId);
         if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
 
         uint256 sellerRemaining = e.sellerNet - e.released;
@@ -850,6 +900,7 @@ contract KarwanEscrow is ReentrancyGuard {
     function releaseFromDispute(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
+        _requireNotHeld(jobId);
         if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
 
         uint256 sellerRemaining = e.sellerNet - e.released;

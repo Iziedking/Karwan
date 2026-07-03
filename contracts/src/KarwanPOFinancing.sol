@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Guardable} from "./Guardable.sol";
 
 /// @notice KarwanEscrow subset used for seller lookup at fund time. v2 reads
 ///         the decoupled sellerOf() view so adding escrow struct fields never
@@ -70,8 +71,16 @@ interface IKarwanVault {
 ///             repaymentTimeoutAt. State -> Defaulted. No funds move on
 ///             chain; off-chain recourse (dispute, stake slash via v2.D,
 ///             reputation hit, future SecurityAgent tagging) follows.
-contract KarwanPOFinancing is ReentrancyGuard {
+contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     using SafeERC20 for IERC20;
+
+    /// @notice Guardian admin (sets the guardian + hold cap). The deployer;
+    ///         a multisig on mainnet. PO financing is otherwise permissionless.
+    address public owner;
+
+    function _guardianAdmin() internal view override returns (address) {
+        return owner;
+    }
 
     // Types
 
@@ -174,6 +183,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
         registry = IKarwanInvoiceRegistry(_registry);
         escrow = IKarwanEscrow(_escrow);
         vault = IKarwanVault(_vault);
+        owner = msg.sender;
     }
 
     // Fund
@@ -252,6 +262,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
     function releaseToSeller(bytes32 invoiceId) external nonReentrant {
         POLine storage l = lines[invoiceId];
         if (l.state != POState.Funded) revert InvalidState();
+        _requireNotHeld(invoiceId);
         if (!registry.isPoDAccepted(invoiceId)) revert PoDNotAccepted();
 
         uint64 nowTs = uint64(block.timestamp);
@@ -275,6 +286,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
     function claimRepayment(bytes32 invoiceId) external nonReentrant {
         POLine storage l = lines[invoiceId];
         if (l.state != POState.Released) revert InvalidState();
+        _requireNotHeld(invoiceId);
         if (msg.sender != l.financier && msg.sender != l.seller) revert NotParty();
 
         l.state = POState.Settled;

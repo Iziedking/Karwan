@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Guardable} from "./Guardable.sol";
 
 /// @notice USYC Teller (ERC-4626-shaped). Verified against the canonical
 ///         Circle docs (developers.circle.com/tokenized/usyc/subscribe-and-redeem).
@@ -53,8 +54,17 @@ interface IPriceOracle {
 ///                    withdraw/deposit pair. Automation wallet or operator EOA.
 ///           escrow : the wired KarwanEscrow; the only caller of the escrow
 ///                    float hooks.
-contract KarwanTreasury is ReentrancyGuard {
+contract KarwanTreasury is ReentrancyGuard, Guardable {
     using SafeERC20 for IERC20;
+
+    /// @dev Single circuit-breaker key: a guardian hold on it freezes all fund
+    ///      outflows (payout, keeper withdrawal) if a key is suspected
+    ///      compromised. Escrow float return is never gated.
+    bytes32 private constant GLOBAL = keccak256("KARWAN_TREASURY_GLOBAL");
+
+    function _guardianAdmin() internal view override returns (address) {
+        return owner;
+    }
 
     IERC20 public immutable usdc;
 
@@ -293,6 +303,7 @@ contract KarwanTreasury is ReentrancyGuard {
     ///         entitled, contract not). Guards: never dips below the escrow
     ///         float, and respects the rolling keeper cap. Keeper-only.
     function withdrawForYield(uint256 amount) external onlyKeeper nonReentrant {
+        _requireNotHeld(GLOBAL);
         if (amount == 0) revert ZeroAmount();
         uint256 bal = usdc.balanceOf(address(this));
         // Keep the instant pull-back buffer liquid. Backing is preserved (the
@@ -367,6 +378,7 @@ contract KarwanTreasury is ReentrancyGuard {
     }
 
     function _payout(address to, uint256 amount) internal {
+        _requireNotHeld(GLOBAL);
         if (to == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
         uint256 bal = usdc.balanceOf(address(this));
