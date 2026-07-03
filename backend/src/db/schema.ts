@@ -224,6 +224,25 @@ export const priceObservations = pgTable(
   }),
 );
 
+/// Per-keyword demand snapshots for the trend scout (agents/trendScout.ts). One
+/// row per (keyword, run): how many recent open requests mentioned that keyword
+/// at snapshot time. The daily scout diffs the live count against a ~day-old
+/// snapshot to find rising demand, then nudges sellers whose profile keywords
+/// overlap. Durable so the baseline survives a restart — an in-memory prior would
+/// reset on every deploy and read every keyword as a fresh riser.
+export const trendSnapshots = pgTable(
+  'trend_snapshots',
+  {
+    keyword: text('keyword').notNull(),
+    ts: bigint('ts', { mode: 'number' }).notNull(),
+    count: bigint('count', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.keyword, t.ts] }),
+    tsIdx: index('trend_snapshots_ts_idx').on(t.ts),
+  }),
+);
+
 /// Short-lived auth state (WebAuthn challenges, OTP hashes, SIWE nonces,
 /// Telegram link tokens), namespaced in the key. Durable so a deploy doesn't
 /// void a sign-in that's mid-flight. Expired rows sweep at boot.

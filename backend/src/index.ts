@@ -57,6 +57,7 @@ import { startSellerAgents, hydrateActiveBids, flushActiveBidsSync } from './age
 import { startDealWatcher } from './agents/dealWatcher.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
+import { startTrendScout } from './agents/trendScout.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
 import { startVaultScanWatcher } from './chain/vaultScanCache.js';
@@ -279,6 +280,15 @@ function bootAgents() {
       { err: (err as Error).message },
       'reputation reconciler not started',
     );
+  }
+  try {
+    if (config.TREND_NUDGES_ENABLED) {
+      stopFns.push(startTrendScout());
+    } else {
+      appLogger.info('trend scout disabled via TREND_NUDGES_ENABLED');
+    }
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'trend scout not started');
   }
   try {
     stopFns.push(startBalanceWatcher());

@@ -64,6 +64,9 @@ export type KarwanEventType =
   | 'deal.fund.insufficient'
   | 'listing.posted'
   | 'listing.match.proactive'
+  /// Daily trend scout: a keyword the seller serves is rising in demand. A
+  /// personal nudge (not on the public feed), routed to the seller by userAddress.
+  | 'trend.match'
   | 'listing.matched'
   | 'listing.cancelled'
   | 'listing.expired'

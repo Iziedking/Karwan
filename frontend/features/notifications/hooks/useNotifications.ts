@@ -113,6 +113,8 @@ const NOTIFY_TYPES = new Set([
   ...DIRECT_TYPES,
   ...WALLET_TYPES,
   ...MONEY_DIRECT_TYPES,
+  // Trend nudge: no jobId, routed to the seller-user like the wallet events.
+  'trend.match',
 ]);
 
 // High-signal events that should also trigger a toast. Cooldown finishing is
@@ -146,6 +148,7 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.match.raised': 'buyer', // seller raised; the buyer now approves or declines
   'job.expired': 'buyer',
   'listing.matched': 'seller',
+  'trend.match': 'seller', // rising-demand nudge, addressed to the matching seller
   'agent.declined': 'buyer',
   // Direct flow.
   'deal.direct.created': 'seller', // buyer just created it; the seller must act
@@ -177,6 +180,8 @@ function hrefForType(type: string, jobId: string): string {
   // Send them to their own dashboard, where the bid and any resulting match
   // surface. Once a proposal exists, deal.matched routes them to /jobs/[id].
   if (type === 'listing.matched') return '/seller';
+  // Trend nudge points the seller at the live requests driving the rising demand.
+  if (type === 'trend.match') return '/market';
   if (WALLET_TYPES.has(type)) return '/profile';
   if (type.startsWith('vault.')) return '/stake';
   if (type.startsWith('agent.')) return '/profile';
@@ -296,6 +301,12 @@ function summaryFor(
       return askingPriceUsdc
         ? `Karwan matched your offer to a request at ${askingPriceUsdc} USDC.`
         : 'Karwan matched your offer to an open request.';
+    case 'trend.match': {
+      const keyword = (payload?.keyword as string | undefined) ?? '';
+      return keyword
+        ? `Requests for ${keyword} are up this week. Your offer matches.`
+        : 'A skill you offer is in rising demand this week.';
+    }
     case 'agent.declined':
       return reason ? `Agent ended negotiation: ${reason}` : 'Agent ended the negotiation.';
     case 'negotiation.near-miss': {
@@ -568,6 +579,22 @@ export function useNotifications() {
           });
           continue;
         }
+        // Trend nudge: no jobId, addressed to the seller-user in the payload.
+        if (e.type === 'trend.match') {
+          const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+          if (seller !== me) continue;
+          const id = `trend.match-${e.ts}`;
+          fresh.push({
+            id,
+            jobId: '',
+            type: e.type,
+            summary: summaryFor(e.type, e.payload, null),
+            ts: e.ts,
+            read: readIdsRef.current.has(id),
+            href: hrefForType(e.type, ''),
+          });
+          continue;
+        }
         if (!e.jobId) continue;
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
@@ -685,6 +712,41 @@ export function useNotifications() {
         const tx = (e.payload?.txHash as string | undefined) ?? '';
         const positionId = (e.payload?.positionId as string | undefined) ?? '';
         const id = `${e.type}-${tx || positionId || e.ts}`;
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = {
+          id,
+          jobId: '',
+          type: e.type,
+          summary: summaryFor(e.type, e.payload, null),
+          ts: e.ts,
+          read: readIdsRef.current.has(id),
+          href: hrefForType(e.type, ''),
+          toast: TOAST_TYPES.has(e.type),
+        };
+        setNotifications((list) => {
+          if (list.some((n) => n.id === id)) return list;
+          return [next, ...list].slice(0, MAX_STORED);
+        });
+        if (initialHydrateRef.current) {
+          try {
+            sfx.send();
+          } catch {
+            /* ignore */
+          }
+          if (next.toast) {
+            toastListeners.forEach((fn) => fn(next));
+          }
+        }
+        return;
+      }
+
+      // Trend nudge: no jobId, addressed to the seller-user. Same shape as the
+      // wallet/money branches above.
+      if (e.type === 'trend.match') {
+        const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+        if (seller !== me) return;
+        const id = `trend.match-${e.ts}`;
         if (seenNotificationIdsRef.current.has(id)) return;
         seenNotificationIdsRef.current.add(id);
         const next: AppNotification = {

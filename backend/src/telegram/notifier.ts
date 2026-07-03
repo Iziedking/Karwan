@@ -27,6 +27,11 @@ function stakeUrl(): string | null {
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/stake`;
 }
 
+function marketUrl(): string | null {
+  if (!config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/market`;
+}
+
 function profileUrl(): string | null {
   if (!config.FRONTEND_BASE_URL) return null;
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/profile`;
@@ -86,6 +91,7 @@ const RELEVANT = new Set([
   'factoring.offered',
   'listing.matched',
   'listing.match.proactive',
+  'trend.match',
   'chat.message',
   'bridge.minted',
   'bridge.error',
@@ -190,6 +196,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const buyer = (e.payload?.buyerUser as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'self' }] : [];
   }
+  // Trend nudge: addressed to the one seller whose keywords match a riser.
+  if (e.type === 'trend.match') {
+    const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
+    return seller ? [{ address: seller, role: 'self' }] : [];
+  }
   if (e.type === 'chat.message') {
     const jobId = e.jobId;
     if (!jobId) return [];
@@ -249,6 +260,14 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       return withLink(
         `*Your agent spotted an offer that fits your past activity*${titleSnip}${price ? ` at ${price} USDC` : ''}. Tap to open a deal from this offer.`,
         link,
+      );
+    }
+    case 'trend.match': {
+      const keyword = (e.payload?.keyword as string | undefined) ?? '';
+      const kw = keyword ? `*${keyword}*` : 'a skill you offer';
+      return withLink(
+        `Requests for ${kw} are up this week on Karwan. Your offer matches. Tap to see what buyers are asking for.`,
+        marketUrl(),
       );
     }
     case 'deal.matched': {
