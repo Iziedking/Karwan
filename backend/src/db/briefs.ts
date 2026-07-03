@@ -117,6 +117,19 @@ export function patchBrief(jobId: string, patch: Partial<Brief>): Brief | null {
   return next;
 }
 
+/// Remove a single brief. Used when a job's on-chain postJob reverted inside a
+/// successful handleOps wrapper: the brief was persisted in anticipation of the
+/// post, but no job exists on chain, so the anticipatory brief must not linger
+/// as a ghost market entry that no agent will ever bid on.
+export function deleteBrief(jobId: string): boolean {
+  load();
+  const key = jobId.toLowerCase();
+  if (!store.has(key)) return false;
+  store.delete(key);
+  persist();
+  return true;
+}
+
 /// Read all stored briefs. Used by aggregators (reputation spam detector,
 /// marketplace surface). The in-memory store is small (one entry per posted
 /// brief), so a full scan is cheap.

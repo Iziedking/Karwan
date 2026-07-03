@@ -8,7 +8,7 @@ import {
   type Address,
 } from 'viem';
 import { z } from 'zod';
-import { jobBoard } from '../chain/contracts.js';
+import { jobBoard, readJobExistsOnChain } from '../chain/contracts.js';
 import { publicClient, arcTestnet } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import {
@@ -33,7 +33,7 @@ import { getOutOfReach } from '../db/outOfReach.js';
 import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearMiss.js';
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
-import { createBrief, patchBrief, getBrief } from '../db/briefs.js';
+import { createBrief, patchBrief, getBrief, deleteBrief } from '../db/briefs.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
@@ -354,6 +354,27 @@ jobsRoutes.post('/', async (c) => {
       },
       `postJob(${jobId})`,
     );
+    // Circle reports COMPLETE when the outer handleOps lands, even if the inner
+    // postJob reverted (jobId collision, past deadline, zero budget). Without a
+    // real event, the buyer agent never tracks the job, so the deal page 404s
+    // forever and the buyer is stranded on a job that was never created. Confirm
+    // the job exists on-chain before returning success; on a revert, drop the
+    // anticipatory brief and surface a retry. See erc4337-inner-revert notes.
+    const posted = await readJobExistsOnChain(jobId);
+    if (!posted) {
+      deleteBrief(jobId);
+      logger.error(
+        { jobId, txHash: result.txHash },
+        'postJob handleOps completed but the job is absent on-chain: inner call reverted',
+      );
+      return c.json(
+        {
+          error: 'postJob reverted',
+          detail: 'The request did not post on chain. Please try again.',
+        },
+        502,
+      );
+    }
     return c.json({ jobId, deadlineUnix, ...result });
   } catch (err) {
     logger.error({ err: (err as Error).message }, 'postJob failed');

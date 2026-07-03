@@ -514,6 +514,29 @@ const erc20BalanceAbi = [
   },
 ] as const;
 
+/// Confirms a job actually landed on-chain. Circle's ERC-4337 bundler reports
+/// the tx COMPLETE when the outer handleOps succeeds, even if the inner postJob
+/// reverted (jobId already exists, past deadline, zero budget) — leaving no
+/// JobPosted event and a job that is never tracked. The posting route reads this
+/// right after the tx so it can surface a retry instead of redirecting the buyer
+/// to a job that was never created. State None (0) means the post reverted. A
+/// transient RPC read failure is retried a couple of times before giving up, so
+/// a flaky read doesn't masquerade as a revert. See erc4337-inner-revert notes.
+export async function readJobExistsOnChain(jobId: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      // jobs() returns a tuple [buyer, budget, deadline, termsHash, state, ...];
+      // state is the 5th element (index 4). JobState.None == 0 means no job.
+      const job = await jobBoard.read.jobs([jobId as `0x${string}`]);
+      const state = Number((job as readonly unknown[])[4]);
+      return state !== 0;
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  return false;
+}
+
 /// Reads an address's USDC balance on Arc. Used to preflight escrow
 /// funding so a Circle SCA's inner transferFrom doesn't silently revert
 /// inside a successful handleOps wrapper.
