@@ -1,63 +1,12 @@
 ﻿'use client';
 import { api, type ChainEvent } from '@/core/api';
 
-// All named SSE event types the backend may emit. Adding a new type means
-// adding it here AND on the consumer side; the bus only forwards types it
-// listens for. Keep this list in sync with backend's KarwanEventType union.
-const SSE_TYPES = [
-  'open',
-  'job.posted',
-  'job.tracked',
-  'job.expired',
-  'bid.scored',
-  'bid.submitted',
-  'counter.issued',
-  'counter.received',
-  'counter.evaluated',
-  'counter.response.submitted',
-  'bid.accepted',
-  'escrow.approved',
-  'escrow.funded',
-  'escrow.milestone.released',
-  'escrow.settled',
-  'bridge.burned',
-  'bridge.attested',
-  'bridge.minted',
-  'bridge.error',
-  'reputation.recorded',
-  'deal.direct.created',
-  'deal.accepted',
-  'deal.delivered',
-  'deal.delivery.flagged',
-  'deal.delivery.cleared',
-  'deal.matched',
-  'deal.match.declined',
-  'deal.match.approved',
-  'deal.review.started',
-  'deal.review.heartbeat',
-  'deal.auto_released',
-  'deal.disputed',
-  'deal.cancelled',
-  'deal.cancel.proposed',
-  'deal.cancel.declined',
-  'deal.fund.insufficient',
-  'listing.posted',
-  'listing.matched',
-  'chat.message',
-  'telegram.linked',
-  'agent.activated',
-  'agent.withdrawal',
-  'agent.skipped',
-  'agent.declined',
-  'agent.error',
-  'agent.paid',
-  'negotiation.market-advisory',
-  'negotiation.reopened',
-  'negotiation.near-miss',
-  'negotiation.near-miss.skipped',
-  'negotiation.near-miss.declined',
-  'negotiation.out-of-reach',
-];
+// Every data event rides ONE fixed SSE name (see backend routes/events.ts); the
+// real event type lives inside the JSON payload (`.type`). Listening to a single
+// name means the client can never drift out of sync with the backend's event
+// union the way the old per-type whitelist did (it silently dropped newer types
+// like market.scanned and deal.deadline.passed from the live feed).
+const SSE_DATA_EVENT = 'karwan';
 
 type Handler = (event: ChainEvent) => void;
 export type LiveStatus = 'connecting' | 'live' | 'offline';
@@ -114,13 +63,13 @@ function ensureSource() {
   source.addEventListener('open', onOpen);
   source.onopen = onOpen;
   source.onerror = onError;
-  for (const t of SSE_TYPES) source.addEventListener(t, onMessage);
+  source.addEventListener(SSE_DATA_EVENT, onMessage);
 }
 
 function teardownSource() {
   if (!source) return;
   if (openHandler) {
-    for (const t of SSE_TYPES) source.removeEventListener(t, openHandler);
+    source.removeEventListener(SSE_DATA_EVENT, openHandler);
   }
   if (onOpen) source.removeEventListener('open', onOpen);
   source.close();

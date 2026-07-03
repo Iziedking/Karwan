@@ -112,11 +112,16 @@ eventsRoutes.get('/', (c) => {
         while (queue.length > 0) {
           const e = queue.shift()!;
           id += 1;
-          // Keep the SSE event name as the real type so the client's per-type
-          // listeners fire; only the data is projected (full or pulse).
+          // All data events ride ONE fixed SSE name; the real type is inside the
+          // JSON payload (`.type`), and the client dispatches on that. Sending
+          // per-type named events required the client to pre-register a listener
+          // for every type, and that hand-maintained list drifted out of sync
+          // with the backend union, so newer types (market.scanned, deadline
+          // passed, tier-up, ...) were silently dropped from the live feed and
+          // only appeared on a manual refresh.
           await stream.writeSSE({
             id: String(id),
-            event: e.type,
+            event: 'karwan',
             data: JSON.stringify(projectFor(e, caller, callerJobs)),
           });
         }
