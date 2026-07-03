@@ -75,9 +75,17 @@ contract KarwanJobBoard {
     error BidExpired();
     error InvalidCounter();
 
-    function postJob(bytes32 jobId, uint256 budget, uint64 deadline, string calldata termsHash)
+    /// @notice Post a job. Audit L-1: the jobId is DERIVED as
+    ///         keccak256(msg.sender, salt), namespacing it to the poster so no
+    ///         other caller can squat or front-run a chosen id. The ABI
+    ///         selector is unchanged (salt is bytes32 like the old jobId), so
+    ///         the only coordinated change is that callers pass a salt and read
+    ///         the derived jobId back from the return / the JobPosted event.
+    function postJob(bytes32 salt, uint256 budget, uint64 deadline, string calldata termsHash)
         external
+        returns (bytes32 jobId)
     {
+        jobId = keccak256(abi.encode(msg.sender, salt));
         if (jobs[jobId].state != JobState.None) revert JobAlreadyExists();
         // forge-lint: disable-next-line(block-timestamp)
         if (budget == 0 || deadline <= block.timestamp) revert InvalidJob();
@@ -92,6 +100,11 @@ contract KarwanJobBoard {
             acceptedDeadline: 0
         });
         emit JobPosted(jobId, msg.sender, budget, deadline, termsHash);
+    }
+
+    /// @notice Off-chain helper: the jobId a given poster + salt will produce.
+    function deriveJobId(address poster, bytes32 salt) external pure returns (bytes32) {
+        return keccak256(abi.encode(poster, salt));
     }
 
     function submitBid(bytes32 jobId, uint256 price, uint64 deadline) external {

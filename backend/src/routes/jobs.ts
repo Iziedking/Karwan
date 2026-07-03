@@ -1,5 +1,12 @@
 import { Hono } from 'hono';
-import { formatUnits, keccak256, parseUnits, toBytes, type Address } from 'viem';
+import {
+  encodeAbiParameters,
+  formatUnits,
+  keccak256,
+  parseUnits,
+  toBytes,
+  type Address,
+} from 'viem';
 import { z } from 'zod';
 import { jobBoard } from '../chain/contracts.js';
 import { publicClient, arcTestnet } from '../chain/client.js';
@@ -284,7 +291,19 @@ jobsRoutes.post('/', async (c) => {
     logger.warn({ err: (err as Error).message }, 'balance precheck skipped');
   }
 
-  const jobId = keccak256(toBytes(`${body.brief}|${Date.now()}|${Math.random()}`));
+  // Audit L-1: the JobBoard now DERIVES jobId = keccak256(msg.sender, salt),
+  // namespaced to the poster so it can't be squatted. We generate the salt and
+  // derive the same jobId off-chain (msg.sender == the buyer agent that signs
+  // postJob = buyerProfile.address) so the brief we persist below is keyed by
+  // the id the contract will emit. The postJob ABI selector is unchanged; the
+  // first bytes32 param is now the salt.
+  const salt = keccak256(toBytes(`${body.brief}|${Date.now()}|${Math.random()}`));
+  const jobId = keccak256(
+    encodeAbiParameters(
+      [{ type: 'address' }, { type: 'bytes32' }],
+      [buyerProfile.address as Address, salt],
+    ),
+  );
   const budgetWei = parseUnits(body.budgetUsdc.toString(), USDC_DECIMALS);
   // Prefer the explicit seconds shape when both arrive; otherwise convert days.
   const deadlineSeconds = body.deadlineSeconds ?? (body.deadlineDays ?? 1) * 86_400;
@@ -330,7 +349,8 @@ jobsRoutes.post('/', async (c) => {
         walletId: buyerProfile.walletId,
         contractAddress: jobBoard.address,
         abiFunctionSignature: 'postJob(bytes32,uint256,uint64,string)',
-        abiParameters: [jobId, budgetWei.toString(), deadlineUnix.toString(), termsHash],
+        // First param is the SALT now; the contract derives + emits jobId.
+        abiParameters: [salt, budgetWei.toString(), deadlineUnix.toString(), termsHash],
       },
       `postJob(${jobId})`,
     );

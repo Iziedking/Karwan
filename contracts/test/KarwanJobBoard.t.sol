@@ -9,56 +9,75 @@ contract KarwanJobBoardTest is Test {
     address buyer = makeAddr("buyer");
     address sellerA = makeAddr("sellerA");
     address sellerB = makeAddr("sellerB");
-    bytes32 constant JOB_ID = keccak256("job-1");
+    // v2 (L-1): postJob takes a SALT; the jobId is derived keccak256(poster,salt).
+    bytes32 constant SALT = keccak256("job-1");
+    bytes32 jobId;
 
     function setUp() public {
         board = new KarwanJobBoard();
+        jobId = keccak256(abi.encode(buyer, SALT));
     }
 
-    function test_PostJob_EmitsAndStores() public {
+    function _post() internal {
+        vm.prank(buyer);
+        board.postJob(SALT, 500e18, uint64(block.timestamp + 7 days), "hash");
+    }
+
+    function test_PostJob_DerivesNamespacedId_EmitsAndStores() public {
         vm.prank(buyer);
         vm.expectEmit(true, true, false, true);
-        emit KarwanJobBoard.JobPosted(JOB_ID, buyer, 500e18, uint64(block.timestamp + 7 days), "hash");
-        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        emit KarwanJobBoard.JobPosted(jobId, buyer, 500e18, uint64(block.timestamp + 7 days), "hash");
+        bytes32 returned = board.postJob(SALT, 500e18, uint64(block.timestamp + 7 days), "hash");
+        assertEq(returned, jobId, "returns the derived id");
+        assertEq(board.deriveJobId(buyer, SALT), jobId, "helper matches");
+    }
+
+    /// L-1: the same salt from a DIFFERENT poster yields a different jobId, so
+    /// one buyer can never squat or collide with another's job.
+    function test_PostJob_SaltIsNamespacedPerPoster() public {
+        _post(); // buyer posts with SALT
+        // sellerB (a different address) posting the SAME salt lands a distinct
+        // jobId and does not collide.
+        vm.prank(sellerB);
+        bytes32 other = board.postJob(SALT, 100e18, uint64(block.timestamp + 7 days), "hash");
+        assertTrue(other != jobId, "same salt, different poster -> different id");
+        assertEq(other, keccak256(abi.encode(sellerB, SALT)));
     }
 
     function test_PostJob_RevertsOnDuplicate() public {
-        vm.startPrank(buyer);
-        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        _post();
+        vm.prank(buyer);
         vm.expectRevert(KarwanJobBoard.JobAlreadyExists.selector);
-        board.postJob(JOB_ID, 600e18, uint64(block.timestamp + 7 days), "hash");
-        vm.stopPrank();
+        board.postJob(SALT, 600e18, uint64(block.timestamp + 7 days), "hash");
     }
 
     function test_SubmitBid_Works() public {
-        vm.prank(buyer);
-        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        _post();
         vm.prank(sellerA);
-        board.submitBid(JOB_ID, 450e18, uint64(block.timestamp + 5 days));
-        (address s, uint256 p,, bool exists) = board.bids(JOB_ID, sellerA);
+        board.submitBid(jobId, 450e18, uint64(block.timestamp + 5 days));
+        (address s, uint256 p,, bool exists) = board.bids(jobId, sellerA);
         assertEq(s, sellerA);
         assertEq(p, 450e18);
         assertTrue(exists);
     }
 
     function test_CounterAndAccept_FullNegotiation() public {
-        vm.prank(buyer);
-        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        _post();
 
         vm.prank(sellerA);
-        board.submitBid(JOB_ID, 480e18, uint64(block.timestamp + 5 days));
+        board.submitBid(jobId, 480e18, uint64(block.timestamp + 5 days));
 
         vm.prank(buyer);
-        board.counterOffer(JOB_ID, sellerA, 420e18, uint64(block.timestamp + 5 days));
+        board.counterOffer(jobId, sellerA, 420e18, uint64(block.timestamp + 5 days));
 
         vm.prank(sellerA);
-        board.respondToCounter(JOB_ID, true, 0, 0);
+        board.respondToCounter(jobId, true, 0, 0);
 
         vm.prank(buyer);
-        board.acceptBid(JOB_ID, sellerA);
+        board.acceptBid(jobId, sellerA);
 
         (,,,, KarwanJobBoard.JobState state, address acceptedSeller, uint256 acceptedPrice,) =
-            board.jobs(JOB_ID);
+            board.jobs(jobId);
         assertEq(uint256(state), uint256(KarwanJobBoard.JobState.Accepted));
         assertEq(acceptedSeller, sellerA);
         assertEq(acceptedPrice, 420e18);
@@ -66,27 +85,25 @@ contract KarwanJobBoardTest is Test {
 
     // Audit L-2: a counter with a past (or zero) deadline is rejected at source.
     function test_CounterOffer_RejectsPastDeadline() public {
-        vm.prank(buyer);
-        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        _post();
         vm.prank(sellerA);
-        board.submitBid(JOB_ID, 480e18, uint64(block.timestamp + 5 days));
+        board.submitBid(jobId, 480e18, uint64(block.timestamp + 5 days));
 
         vm.warp(block.timestamp + 1 days);
         vm.prank(buyer);
         vm.expectRevert(KarwanJobBoard.InvalidCounter.selector);
-        board.counterOffer(JOB_ID, sellerA, 420e18, uint64(block.timestamp - 1));
+        board.counterOffer(jobId, sellerA, 420e18, uint64(block.timestamp - 1));
     }
 
     function test_RespondToCounter_RejectsPastReCounter() public {
-        vm.prank(buyer);
-        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        _post();
         vm.prank(sellerA);
-        board.submitBid(JOB_ID, 480e18, uint64(block.timestamp + 5 days));
+        board.submitBid(jobId, 480e18, uint64(block.timestamp + 5 days));
         vm.prank(buyer);
-        board.counterOffer(JOB_ID, sellerA, 420e18, uint64(block.timestamp + 5 days));
+        board.counterOffer(jobId, sellerA, 420e18, uint64(block.timestamp + 5 days));
 
         vm.prank(sellerA);
         vm.expectRevert(KarwanJobBoard.InvalidCounter.selector);
-        board.respondToCounter(JOB_ID, false, 430e18, uint64(block.timestamp - 1));
+        board.respondToCounter(jobId, false, 430e18, uint64(block.timestamp - 1));
     }
 }
