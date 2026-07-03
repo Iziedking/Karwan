@@ -2,9 +2,19 @@ import { listExpirableJobs, expireJob } from './buyer.js';
 import { reRaiseNearMissFromPassed } from './nearMiss.js';
 import { getOutOfReach } from '../db/outOfReach.js';
 import { getPendingNearMiss } from '../db/nearMiss.js';
+import { deleteMatchProposal } from '../db/matchProposals.js';
 import { logger } from '../logger.js';
 
 const TICK_MS = 30_000;
+
+/// A match proposal is human-gated, so the watcher does NOT expire a job the
+/// instant its deadline passes while a proposal awaits the buyer's approval. But
+/// a proposal that sits unresolved past the deadline must not linger forever: a
+/// buyer who never approves or declines was otherwise stuck on a dead auction
+/// with no way to close it (funded escrow uses the /deals cancel path instead and
+/// is excluded upstream). Once a proposal is this far past the deadline, retire
+/// it so the job reaches a terminal state. Override via env.
+const MATCH_STALE_GRACE_MS = Number(process.env.MATCH_STALE_GRACE_MS) || 24 * 60 * 60 * 1000;
 
 /// How long before a request's deadline to give a final "last call". When the
 /// buyer passed the best real price and nothing cheaper turned up, the agent
@@ -42,7 +52,28 @@ async function tick(): Promise<void> {
   const now = Date.now();
   const candidates = await listExpirableJobs();
   for (const job of candidates) {
-    if (job.hasMatchProposal) continue;
+    if (job.hasMatchProposal) {
+      // Leave a pending proposal alone until it is well past the deadline, then
+      // retire it (expire the job + drop the stale proposal) so the buyer isn't
+      // stuck on a dead auction with no way to close it.
+      if (now > job.deadlineUnix * 1000 + MATCH_STALE_GRACE_MS) {
+        try {
+          if (expireJob(job.jobId)) {
+            await deleteMatchProposal(job.jobId);
+            logger.info(
+              { jobId: job.jobId, deadlineUnix: job.deadlineUnix },
+              'retired a stale match proposal that sat past the deadline',
+            );
+          }
+        } catch (err) {
+          logger.warn(
+            { jobId: job.jobId, err: (err as Error).message },
+            'stale match proposal retirement threw',
+          );
+        }
+      }
+      continue;
+    }
     if (now <= job.deadlineUnix * 1000) {
       // Not expired yet. Give a deadline last-call if it's out of reach.
       maybeLastCall(job.jobId, job.deadlineUnix, now);

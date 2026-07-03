@@ -237,6 +237,21 @@ export async function deleteMatchProposalsInvolvingAddress(
   return removed;
 }
 
+/// Remove a single job's match proposal. Used when a proposal reaches a terminal
+/// state off the normal approve/decline path, e.g. the expiry watcher retiring a
+/// stale proposal that sat past the deadline with no funded escrow.
+export async function deleteMatchProposal(jobId: string): Promise<void> {
+  if (pgEnabled) {
+    await db().delete(matchProposalsTable).where(eq(matchProposalsTable.jobId, jobId));
+    return;
+  }
+  const store = loadFile();
+  if (store[jobId]) {
+    delete store[jobId];
+    saveFile(store);
+  }
+}
+
 // --- flat-file fallback ---
 
 function ensureFile() {
