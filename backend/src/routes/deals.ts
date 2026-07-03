@@ -22,6 +22,7 @@ import {
   finalizeIfSettled,
   acceptEscrow as acceptEscrowOnChain,
   claimMilestone as claimMilestoneOnChain,
+  markDeliveredOnChain,
   guardianHold,
   guardianReleaseHold,
   disputeEscrow,
@@ -1376,6 +1377,25 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
   const isRedelivery = deal.delivered === true;
+
+  // v2b: mark the delivery ON CHAIN so the review window opens (deliveredAt),
+  // which is what the seller claim path and the reclaim DeliveryPending guard
+  // depend on. Best-effort: the buyer can still release without it, so a
+  // failure logs and the off-chain record still updates (the seller re-marks
+  // to retry). If the delivery is flagged, guardianHold (fired in the scan
+  // above / below) freezes the seller-paying paths regardless. Skips goods
+  // deals with no proof and pre-flag holds handled by the guardian.
+  if (config.ESCROW_V2B_ENABLED && deal.sellerAgentWalletId) {
+    const proofHash = keccak256(toBytes(body.deliveryProof ?? `delivered:${jobId}`));
+    try {
+      await markDeliveredOnChain(jobId, proofHash, deal.sellerAgentWalletId);
+    } catch (err) {
+      logger.error(
+        { jobId, err: (err as Error).message },
+        'on-chain markDelivered failed (non-fatal; buyer can still release, seller can re-mark)',
+      );
+    }
+  }
 
   await patchDeal(jobId, {
     delivered: true,

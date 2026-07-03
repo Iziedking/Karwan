@@ -109,7 +109,10 @@ export interface DirectDeal {
     | 'refund-from-dispute'
     | 'release-from-dispute'
     | 'unilateral'
-    | 'pre-accept';
+    | 'pre-accept'
+    /// v2b arbiter ruling: the security council split the disputed funds via
+    /// resolve(). settledAt is set (not cancelledAt); the deal reads "resolved".
+    | 'resolved';
   /// Free-text reason captured at cancellation. Optional for unilateral and
   /// pre-accept (we synthesize a default); required for mutual / platform-attributed.
   cancelReason?: string;

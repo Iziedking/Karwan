@@ -344,6 +344,10 @@ const envSchema = z.object({
   // when the delivery scanner flags a proof. Optional: when unset (or the v2
   // escrow isn't live), the security agent stays off-chain-only.
   GUARDIAN_WALLET_ID: optionalString,
+  // Circle wallet id for the escrow arbiter (the security council). Signs the
+  // on-chain resolve() that splits a post-accept dispute between the parties.
+  // Must match the address set via escrow.setArbiter. Optional until v2 live.
+  SECURITY_COUNCIL_WALLET_ID: optionalString,
   BUYER_AGENT_ADDRESS: optionalAddr,
   /// Genuinely legacy. Nothing in production code reads these. Safe to drop.
   SELLER_AGENT_WALLET_ID: optionalString,

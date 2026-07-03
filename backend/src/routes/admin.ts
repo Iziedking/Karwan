@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { formatUnits } from 'viem';
+import { formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { getAgentWallets, listAllAgentWallets, agentWalletIntegrity } from '../db/agentWallets.js';
@@ -8,8 +8,8 @@ import { listAllDeals } from '../db/deals.js';
 import { reputation, readUsdcBalance } from '../chain/contracts.js';
 import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
 import type { DirectDeal } from '../db/deals.js';
-import { releaseMilestone, finalizeIfSettled } from '../chain/settlement.js';
-import { readEscrow } from '../chain/contracts.js';
+import { releaseMilestone, finalizeIfSettled, resolveDispute } from '../chain/settlement.js';
+import { readEscrow, ESCROW_STATE } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import {
   listAllMatchProposals,
@@ -344,6 +344,49 @@ adminRoutes.post('/deals/:jobId/release', async (c) => {
     return c.json({ ok: true, txHash, settled, milestoneIndex: idx });
   } catch (err) {
     return c.json({ error: 'release failed', detail: (err as Error).message }, 502);
+  }
+});
+
+/// Arbiter resolves a post-accept dispute (v2b). The security council is the
+/// on-chain arbiter; this admin route signs resolve() with the council wallet,
+/// splitting the unreleased funds sellerBps to the seller / the rest to the
+/// buyer and settling the reservation proportionally. rulingReason is hashed
+/// on chain as the audit anchor. Only reachable when the escrow is Disputed.
+const adminResolveSchema = z.object({
+  sellerBps: z.number().int().min(0).max(10000),
+  rulingReason: z.string().min(1).max(2000),
+});
+adminRoutes.post('/deals/:jobId/resolve', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = adminResolveSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (!config.ESCROW_V2B_ENABLED) {
+    return c.json({ error: 'arbiter resolve is a v2 escrow feature', code: 'not-available' }, 409);
+  }
+  if (!config.SECURITY_COUNCIL_WALLET_ID) {
+    return c.json({ error: 'SECURITY_COUNCIL_WALLET_ID not configured' }, 500);
+  }
+  const account = await readEscrow(jobId);
+  if (account.state !== ESCROW_STATE.Disputed) {
+    return c.json({ error: `escrow is not Disputed (state ${account.state})`, code: 'not-disputed' }, 409);
+  }
+  try {
+    const rulingHash = keccak256(toBytes(body.rulingReason));
+    const txHash = await resolveDispute(jobId, body.sellerBps, rulingHash);
+    await patchDeal(jobId, {
+      settledAt: Date.now(),
+      cancelKind: 'resolved',
+      cancelReason: body.rulingReason,
+      disputeLoser: body.sellerBps >= 5000 ? 'buyer' : 'seller',
+    });
+    logger.info({ jobId, sellerBps: body.sellerBps, txHash }, 'admin/arbiter resolved dispute');
+    return c.json({ ok: true, txHash, sellerBps: body.sellerBps });
+  } catch (err) {
+    return c.json({ error: 'resolve failed', detail: (err as Error).message }, 502);
   }
 });
 

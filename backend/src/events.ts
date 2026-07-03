@@ -22,6 +22,7 @@ export type KarwanEventType =
   | 'escrow.settled'
   | 'escrow.accepted'
   | 'escrow.released_from_dispute'
+  | 'escrow.resolved'
   | 'security.hold'
   | 'security.hold.cleared'
   | 'security.attested'

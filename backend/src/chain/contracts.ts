@@ -353,6 +353,13 @@ export interface EscrowAccount {
   reviewWindow?: bigint;
   reclaimGrace?: bigint;
   disputedAt?: bigint;
+  /// v2b delivery lifecycle: deliveredAt is set by markDelivered (0 = nothing
+  /// pending review); claimDeadline is when the seller may claim the current
+  /// milestone. Undefined on the v2.E ABI. Surfaced to the UI so the claim
+  /// button gates on the on-chain clock, not the off-chain one (R4).
+  deliveredAt?: bigint;
+  claimDeadline?: bigint;
+  wasAccepted?: boolean;
 }
 
 // maxReservationBps is immutable; cache forever. feeBps became OWNER-SETTABLE in
@@ -468,6 +475,9 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     reviewWindow?: bigint;
     reclaimGrace?: bigint;
     disputedAt?: bigint;
+    deliveredAt?: bigint;
+    claimDeadline?: bigint;
+    wasAccepted?: boolean;
   };
   const value: EscrowAccount = {
     buyer: raw.buyer,
@@ -486,6 +496,9 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
     reviewWindow: raw.reviewWindow,
     reclaimGrace: raw.reclaimGrace,
     disputedAt: raw.disputedAt,
+    deliveredAt: raw.deliveredAt,
+    claimDeadline: raw.claimDeadline,
+    wasAccepted: raw.wasAccepted,
   };
   escrowCache.set(key, { value, expiresAt: now + READ_ESCROW_TTL_MS });
   return value;

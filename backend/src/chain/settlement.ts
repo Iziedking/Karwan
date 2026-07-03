@@ -277,6 +277,37 @@ export async function reclaimAfterDeadline(
   return result.txHash;
 }
 
+/// Seller marks the current milestone delivered ON CHAIN (v2b), opening the
+/// buyer review window and setting deliveredAt. This is what makes the seller
+/// claim path and the DeliveryPending reclaim-guard work — without it,
+/// claimMilestone reverts NotDelivered. Signed by the seller agent. Verifies
+/// deliveredAt actually moved off 0 (ERC-4337 inner-revert guard). Re-callable:
+/// a re-delivery resets the window.
+export async function markDeliveredOnChain(
+  jobId: string,
+  proofHash: string,
+  sellerAgentWalletId: string,
+): Promise<string> {
+  if (!sellerAgentWalletId) throw new Error('markDelivered requires a seller agent wallet id');
+  const result = await executeContractCall(
+    {
+      walletId: sellerAgentWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'markDelivered(bytes32,bytes32)',
+      abiParameters: [jobId, proofHash],
+    },
+    `markDelivered(${jobId})`,
+  );
+  invalidateEscrowCache(jobId);
+  const account = await readEscrow(jobId);
+  if (!account.deliveredAt || account.deliveredAt === 0n) {
+    throw new Error(
+      `markDelivered inner-reverted: tx ${result.txHash} COMPLETE but deliveredAt is 0.`,
+    );
+  }
+  return result.txHash;
+}
+
 /// Seller claims a milestone after the buyer's review window elapses (v2b).
 /// The buyer-vanished safety net: once the seller marked delivery and the window
 /// passed with no buyer release/dispute, the seller forces the payout. Signed by
@@ -330,6 +361,38 @@ export async function extendDeadlineOnChain(
     },
     `extendDeadline(${jobId})`,
   );
+  return result.txHash;
+}
+
+/// Arbiter resolves a post-accept dispute (v2b). Splits the unreleased funds
+/// `sellerBps` to the seller / rest to the buyer and settles the reservation
+/// proportionally. Signed by the security-council wallet (must match the
+/// on-chain arbiter). Verifies the escrow reached Settled.
+export async function resolveDispute(
+  jobId: string,
+  sellerBps: number,
+  rulingHash: string,
+): Promise<string> {
+  if (!config.SECURITY_COUNCIL_WALLET_ID) {
+    throw new Error('SECURITY_COUNCIL_WALLET_ID not configured');
+  }
+  const bps = Math.max(0, Math.min(10000, Math.round(sellerBps)));
+  const result = await executeContractCall(
+    {
+      walletId: config.SECURITY_COUNCIL_WALLET_ID,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'resolve(bytes32,uint16,bytes32)',
+      abiParameters: [jobId, bps.toString(), rulingHash],
+    },
+    `resolve(${jobId}, ${bps})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Settled, 'resolve', result.txHash);
+  bus.emitEvent({
+    type: 'escrow.resolved',
+    jobId,
+    actor: 'platform',
+    payload: { sellerBps: bps, txHash: result.txHash },
+  });
   return result.txHash;
 }
 
