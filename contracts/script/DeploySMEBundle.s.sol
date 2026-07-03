@@ -40,25 +40,30 @@ contract DeploySMEBundle is Script {
             address(0x3600000000000000000000000000000000000000)
         );
         address escrowAddr = vm.envAddress("KARWAN_ESCROW_ADDR");
+        address vaultAddr = vm.envAddress("KARWAN_VAULT_ADDR");
         address registryOwner = vm.envOr("SME_REGISTRY_OWNER", msg.sender);
 
         require(usdc != address(0), "USDC_ADDR unset");
         require(escrowAddr != address(0), "KARWAN_ESCROW_ADDR unset");
+        require(vaultAddr != address(0), "KARWAN_VAULT_ADDR unset");
         require(registryOwner != address(0), "SME_REGISTRY_OWNER zero");
 
         vm.startBroadcast();
 
-        // 1. KarwanInvoiceRegistry — owner-only attester allowlist; deployer
-        //    holds the one-shot setEscrow right.
+        // 1. KarwanInvoiceRegistry — owner-only attester allowlist + escrow
+        //    pointer (v2: owner-settable, repointable).
         KarwanInvoiceRegistry registry = new KarwanInvoiceRegistry(registryOwner);
 
-        // 2. KarwanPOFinancing — pure custody contract; immutables for usdc,
-        //    registry, escrow are set at construction.
-        KarwanPOFinancing po = new KarwanPOFinancing(usdc, address(registry), escrowAddr);
+        // 2. KarwanPOFinancing — custody + factoring stake (v2 vault reserve).
+        //    usdc, registry, escrow, vault are immutable at construction.
+        KarwanPOFinancing po = new KarwanPOFinancing(usdc, address(registry), escrowAddr, vaultAddr);
 
-        // 3. Bind the registry's escrow reference. One-shot; the deployer
-        //    slot zeroes after this call so the binding is locked.
+        // 3. Bind the registry's escrow reference. Owner-settable in v2, so the
+        //    registryOwner (not necessarily the deployer) must run this if it
+        //    differs; here the deployer is the owner in the default path.
         registry.setEscrow(escrowAddr);
+        // NOTE: after deploy, run vault.setConsumer(address(po)) so PO financing
+        // can reserve seller stake as factoring collateral.
 
         vm.stopBroadcast();
 

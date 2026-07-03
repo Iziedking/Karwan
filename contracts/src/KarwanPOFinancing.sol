@@ -5,32 +5,29 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @notice KarwanEscrow subset used for seller lookup at fund time. The
-///         contract reads `getEscrow(invoiceId).seller` so the financier
-///         cannot route funds to a wrong address, the underlying deal's
-///         seller is the canonical recipient on PoD release.
+/// @notice KarwanEscrow subset used for seller lookup at fund time. v2 reads
+///         the decoupled sellerOf() view so adding escrow struct fields never
+///         breaks the ABI decode. The canonical seller is the only valid
+///         recipient on PoD release.
 interface IKarwanEscrow {
-    struct EscrowAccount {
-        address buyer;
-        address seller;
-        uint256 dealAmount;
-        uint256 sellerNet;
-        uint256 feeTotal;
-        uint256 released;
-        uint256 feeReleased;
-        uint256 reservedAmount;
-        uint8[] milestonePcts;
-        uint8 milestonesReleased;
-        uint8 state;
-        uint16 reservationBps;
-    }
-
-    function getEscrow(bytes32 jobId) external view returns (EscrowAccount memory);
+    function sellerOf(bytes32 jobId) external view returns (address);
 }
 
 /// @notice KarwanInvoiceRegistry subset used for PoD acceptance lookup.
 interface IKarwanInvoiceRegistry {
     function isPoDAccepted(bytes32 invoiceId) external view returns (bool);
+}
+
+/// @notice KarwanVault subset for factoring stake v2. The financier can require
+///         the seller to back the line with reserved stake; on default it
+///         slashes to the financier, on settle it releases. Namespaced by
+///         this contract as the consumer, so PO lines can't collide with escrow
+///         insurance reservations. Requires vault.setConsumer(poFinancing).
+interface IKarwanVault {
+    function reserve(bytes32 id, address ownerOrAgent, uint256 amount, address beneficiary) external;
+    function release(bytes32 id) external;
+    function slash(bytes32 id) external;
+    function freeStakeOf(address owner) external view returns (uint256);
 }
 
 /// @title KarwanPOFinancing
@@ -98,6 +95,10 @@ contract KarwanPOFinancing is ReentrancyGuard {
         uint64 repaymentTimeoutAt;
         uint64 settledAt;
         POState state;
+        /// v2: seller stake reserved on the vault as factoring collateral.
+        /// 0 = unsecured line (back-compat). Slashed to the financier on
+        /// default, released on settle / reclaim.
+        uint128 requiredStakeUsdc;
     }
 
     // Storage
@@ -105,6 +106,9 @@ contract KarwanPOFinancing is ReentrancyGuard {
     IERC20 public immutable usdc;
     IKarwanInvoiceRegistry public immutable registry;
     IKarwanEscrow public immutable escrow;
+    /// @notice Vault for factoring stake reservations (v2). Immutable; this is
+    ///         a leaf contract, cheap to redeploy on its own if it must repoint.
+    IKarwanVault public immutable vault;
 
     /// @notice After release, the financier has at least this many seconds
     ///         before they can mark the line defaulted. Gives the seller a
@@ -139,6 +143,8 @@ contract KarwanPOFinancing is ReentrancyGuard {
     event PODefaulted(
         bytes32 indexed invoiceId, address indexed financier, address indexed seller
     );
+    event CollateralSlashed(bytes32 indexed invoiceId, address indexed financier, uint128 amount);
+    event CollateralSlashFailed(bytes32 indexed invoiceId, address indexed financier);
 
     // Errors
 
@@ -155,16 +161,19 @@ contract KarwanPOFinancing is ReentrancyGuard {
     error StillWithinWindow();
     error ZeroAddress();
     error MissingEscrowRecord();
+    error InsufficientStake();
 
     // Constructor
 
-    constructor(address _usdc, address _registry, address _escrow) {
+    constructor(address _usdc, address _registry, address _escrow, address _vault) {
         if (_usdc == address(0)) revert ZeroAddress();
         if (_registry == address(0)) revert ZeroAddress();
         if (_escrow == address(0)) revert ZeroAddress();
+        if (_vault == address(0)) revert ZeroAddress();
         usdc = IERC20(_usdc);
         registry = IKarwanInvoiceRegistry(_registry);
         escrow = IKarwanEscrow(_escrow);
+        vault = IKarwanVault(_vault);
     }
 
     // Fund
@@ -180,11 +189,15 @@ contract KarwanPOFinancing is ReentrancyGuard {
     ///                             the seller's settlement (must be > principal)
     /// @param releaseTimeoutSeconds seconds from now before financier can
     ///                              reclaim if PoD never anchors
+    /// @param requiredStakeUsdc  seller stake to reserve on the vault as
+    ///                           factoring collateral (v2). 0 = unsecured line.
+    ///                           Reverts if the seller lacks the free stake.
     function fund(
         bytes32 invoiceId,
         uint128 principalUsdc,
         uint128 repayUsdc,
-        uint64 releaseTimeoutSeconds
+        uint64 releaseTimeoutSeconds,
+        uint128 requiredStakeUsdc
     ) external nonReentrant {
         if (invoiceId == bytes32(0)) revert InvalidInvoiceId();
         if (lines[invoiceId].state != POState.None) revert AlreadyFunded();
@@ -196,7 +209,7 @@ contract KarwanPOFinancing is ReentrancyGuard {
         if (registry.isPoDAccepted(invoiceId)) revert PoDAlreadyAccepted();
 
         // Resolve seller from escrow. Reverts if the deal does not exist.
-        address seller = escrow.getEscrow(invoiceId).seller;
+        address seller = escrow.sellerOf(invoiceId);
         if (seller == address(0)) revert MissingEscrowRecord();
 
         uint64 nowTs = uint64(block.timestamp);
@@ -210,8 +223,16 @@ contract KarwanPOFinancing is ReentrancyGuard {
             releasedAt: 0,
             repaymentTimeoutAt: 0,
             settledAt: 0,
-            state: POState.Funded
+            state: POState.Funded,
+            requiredStakeUsdc: requiredStakeUsdc
         });
+
+        // v2: reserve the seller's stake as collateral, payable to the
+        // financier on default. Namespaced by this contract on the vault.
+        if (requiredStakeUsdc > 0) {
+            if (vault.freeStakeOf(seller) < requiredStakeUsdc) revert InsufficientStake();
+            vault.reserve(invoiceId, seller, requiredStakeUsdc, msg.sender);
+        }
 
         usdc.safeTransferFrom(msg.sender, address(this), principalUsdc);
 
@@ -263,6 +284,11 @@ contract KarwanPOFinancing is ReentrancyGuard {
         address seller = l.seller;
         uint128 repay = l.repayUsdc;
 
+        // v2: the line settled cleanly, release the seller's collateral.
+        if (l.requiredStakeUsdc > 0) {
+            vault.release(invoiceId);
+        }
+
         usdc.safeTransferFrom(seller, financier, repay);
 
         emit PORepaid(invoiceId, financier, repay, msg.sender);
@@ -281,6 +307,11 @@ contract KarwanPOFinancing is ReentrancyGuard {
         if (registry.isPoDAccepted(invoiceId)) revert PoDAlreadyAccepted();
 
         l.state = POState.Reclaimed;
+
+        // v2: PoD never landed, the seller didn't default, release the stake.
+        if (l.requiredStakeUsdc > 0) {
+            vault.release(invoiceId);
+        }
 
         uint128 principal = l.principalUsdc;
         usdc.safeTransfer(l.financier, principal);
@@ -304,6 +335,19 @@ contract KarwanPOFinancing is ReentrancyGuard {
         if (block.timestamp < l.repaymentTimeoutAt) revert StillWithinWindow();
 
         l.state = POState.Defaulted;
+
+        // v2: repayment never came, slash the seller's collateral to the
+        // financier as on-chain recovery. Wrapped so a vault revert can't trap
+        // the write-off (the line is defaulted either way; operator can follow
+        // up via adminRelease if the reservation is in a bad state).
+        if (l.requiredStakeUsdc > 0) {
+            try vault.slash(invoiceId) {
+                emit CollateralSlashed(invoiceId, l.financier, l.requiredStakeUsdc);
+            } catch {
+                emit CollateralSlashFailed(invoiceId, l.financier);
+            }
+        }
+
         emit PODefaulted(invoiceId, l.financier, l.seller);
     }
 

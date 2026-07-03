@@ -63,4 +63,30 @@ contract KarwanJobBoardTest is Test {
         assertEq(acceptedSeller, sellerA);
         assertEq(acceptedPrice, 420e18);
     }
+
+    // Audit L-2: a counter with a past (or zero) deadline is rejected at source.
+    function test_CounterOffer_RejectsPastDeadline() public {
+        vm.prank(buyer);
+        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        vm.prank(sellerA);
+        board.submitBid(JOB_ID, 480e18, uint64(block.timestamp + 5 days));
+
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(buyer);
+        vm.expectRevert(KarwanJobBoard.InvalidCounter.selector);
+        board.counterOffer(JOB_ID, sellerA, 420e18, uint64(block.timestamp - 1));
+    }
+
+    function test_RespondToCounter_RejectsPastReCounter() public {
+        vm.prank(buyer);
+        board.postJob(JOB_ID, 500e18, uint64(block.timestamp + 7 days), "hash");
+        vm.prank(sellerA);
+        board.submitBid(JOB_ID, 480e18, uint64(block.timestamp + 5 days));
+        vm.prank(buyer);
+        board.counterOffer(JOB_ID, sellerA, 420e18, uint64(block.timestamp + 5 days));
+
+        vm.prank(sellerA);
+        vm.expectRevert(KarwanJobBoard.InvalidCounter.selector);
+        board.respondToCounter(JOB_ID, false, 430e18, uint64(block.timestamp - 1));
+    }
 }

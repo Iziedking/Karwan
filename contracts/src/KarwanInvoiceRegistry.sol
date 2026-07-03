@@ -2,26 +2,12 @@
 pragma solidity ^0.8.24;
 
 /// @notice KarwanEscrow subset used by the registry for caller authorisation.
-///         Only the two address fields are needed; the rest of the struct is
-///         opaque to us. The full struct return is matched so the ABI lines
-///         up with the deployed escrow without redeploy.
+///         v2: reads the decoupled partiesOf() view instead of the full struct,
+///         so adding fields to the escrow's EscrowAccount never breaks the
+///         registry's ABI decode. Returns (address(0), address(0)) for an
+///         unknown jobId.
 interface IKarwanEscrow {
-    struct EscrowAccount {
-        address buyer;
-        address seller;
-        uint256 dealAmount;
-        uint256 sellerNet;
-        uint256 feeTotal;
-        uint256 released;
-        uint256 feeReleased;
-        uint256 reservedAmount;
-        uint8[] milestonePcts;
-        uint8 milestonesReleased;
-        uint8 state;
-        uint16 reservationBps;
-    }
-
-    function getEscrow(bytes32 jobId) external view returns (EscrowAccount memory);
+    function partiesOf(bytes32 jobId) external view returns (address buyer, address seller);
 }
 
 /// @title KarwanInvoiceRegistry
@@ -58,13 +44,9 @@ contract KarwanInvoiceRegistry {
     // Storage
 
     /// @notice The KarwanEscrow contract whose view we trust for buyer/seller
-    ///         lookups. Set once via setEscrow; immutable thereafter so
-    ///         document anchors can't be replayed against a different escrow.
+    ///         lookups. v2 (D1): owner-settable and repointable so an escrow
+    ///         redeploy is a repoint, not a one-shot cascade.
     address public escrow;
-
-    /// @notice Holds the right to call setEscrow exactly once. Zeroed after
-    ///         binding, matching the KarwanReputation pattern.
-    address public deployer;
 
     /// @notice Owner of the attester allowlist + payee emergency reset.
     ///         Starts as deployer. Transferable via a two-step pattern so a
@@ -144,24 +126,19 @@ contract KarwanInvoiceRegistry {
 
     constructor(address _owner) {
         if (_owner == address(0)) revert ZeroAddress();
-        deployer = msg.sender;
         owner = _owner;
         emit OwnershipTransferred(address(0), _owner);
     }
 
     // Escrow binding
 
-    /// @notice Bind the KarwanEscrow address the registry will consult for
-    ///         caller authorisation. One-shot, once set, the slot is locked
-    ///         and `deployer` is zeroed. This matches the KarwanReputation
-    ///         setEscrow pattern so the deploy script can wire the escrow
-    ///         after both contracts exist.
+    /// @notice Set (or repoint) the KarwanEscrow the registry consults for
+    ///         caller authorisation. v2 (D1): owner-only and repointable so a
+    ///         future escrow redeploy doesn't force a registry redeploy.
     function setEscrow(address _escrow) external {
-        if (msg.sender != deployer) revert NotDeployer();
-        if (escrow != address(0)) revert EscrowAlreadySet();
+        if (msg.sender != owner) revert NotOwner();
         if (_escrow == address(0)) revert ZeroAddress();
         escrow = _escrow;
-        deployer = address(0);
         emit EscrowSet(_escrow);
     }
 
@@ -330,23 +307,23 @@ contract KarwanInvoiceRegistry {
     // Internals
 
     /// @dev Reverts unless `who` is the buyer or seller of `invoiceId` per
-    ///      the escrow's record. Reverts if escrow has no record (state ==
-    ///      None) so anchors against an unfunded jobId are rejected.
+    ///      the escrow's record. Reverts if escrow has no record (buyer ==
+    ///      address(0)) so anchors against an unfunded jobId are rejected.
     function _requireDealParty(bytes32 invoiceId, address who) internal view {
-        IKarwanEscrow.EscrowAccount memory account = IKarwanEscrow(escrow).getEscrow(invoiceId);
-        if (account.buyer == address(0)) revert InvalidInvoiceId();
-        if (who != account.buyer && who != account.seller) revert NotParty();
+        (address b, address s) = IKarwanEscrow(escrow).partiesOf(invoiceId);
+        if (b == address(0)) revert InvalidInvoiceId();
+        if (who != b && who != s) revert NotParty();
     }
 
     function _buyerOf(bytes32 invoiceId) internal view returns (address) {
-        IKarwanEscrow.EscrowAccount memory account = IKarwanEscrow(escrow).getEscrow(invoiceId);
-        if (account.buyer == address(0)) revert InvalidInvoiceId();
-        return account.buyer;
+        (address b, ) = IKarwanEscrow(escrow).partiesOf(invoiceId);
+        if (b == address(0)) revert InvalidInvoiceId();
+        return b;
     }
 
     function _sellerOf(bytes32 invoiceId) internal view returns (address) {
-        IKarwanEscrow.EscrowAccount memory account = IKarwanEscrow(escrow).getEscrow(invoiceId);
-        if (account.seller == address(0)) revert InvalidInvoiceId();
-        return account.seller;
+        (, address s) = IKarwanEscrow(escrow).partiesOf(invoiceId);
+        if (s == address(0)) revert InvalidInvoiceId();
+        return s;
     }
 }

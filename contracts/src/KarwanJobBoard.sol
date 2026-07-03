@@ -73,6 +73,7 @@ contract KarwanJobBoard {
     error NoSuchBid();
     error InvalidJob();
     error BidExpired();
+    error InvalidCounter();
 
     function postJob(bytes32 jobId, uint256 budget, uint64 deadline, string calldata termsHash)
         external
@@ -111,6 +112,10 @@ contract KarwanJobBoard {
         if (j.state != JobState.Posted) revert JobNotOpen();
         if (msg.sender != j.buyer) revert NotJobBuyer();
         if (!bids[jobId][seller].exists) revert NoSuchBid();
+        // Audit L-2: reject a counter whose deadline is already in the past, so
+        // an accepted counter can never yield an instantly-expired bid.
+        // forge-lint: disable-next-line(block-timestamp)
+        if (newPrice == 0 || newDeadline <= block.timestamp) revert InvalidCounter();
         counters[jobId][seller] =
             Counter({price: newPrice, deadline: newDeadline, exists: true});
         emit CounterOfferIssued(jobId, seller, newPrice, newDeadline);
@@ -131,6 +136,9 @@ contract KarwanJobBoard {
             bids[jobId][msg.sender].deadline = c.deadline;
             emit CounterResponse(jobId, msg.sender, true, c.price, c.deadline);
         } else {
+            // Audit L-2: a seller's re-counter must also carry a future deadline.
+            // forge-lint: disable-next-line(block-timestamp)
+            if (newPrice == 0 || newDeadline <= block.timestamp) revert InvalidCounter();
             counters[jobId][msg.sender] =
                 Counter({price: newPrice, deadline: newDeadline, exists: true});
             emit CounterResponse(jobId, msg.sender, false, newPrice, newDeadline);

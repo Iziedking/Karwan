@@ -4,22 +4,24 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 import {KarwanInvoiceRegistry, IKarwanEscrow} from "../src/KarwanInvoiceRegistry.sol";
 
-/// @notice Minimal escrow mock that only implements getEscrow(jobId). The
-///         registry never touches the rest of the escrow ABI, so the mock
-///         stays small. `seedDeal` records a buyer/seller pair under a
-///         jobId; unseeded jobIds return the zero account (treated as
-///         InvalidInvoiceId by the registry).
+/// @notice Minimal escrow mock implementing the v2 decoupled party lookup.
+///         `seedDeal` records a buyer/seller pair under a jobId; unseeded
+///         jobIds return zero (treated as InvalidInvoiceId by the registry).
 contract MockEscrow {
-    mapping(bytes32 => IKarwanEscrow.EscrowAccount) private _accounts;
+    mapping(bytes32 => address) private _buyer;
+    mapping(bytes32 => address) private _seller;
 
     function seedDeal(bytes32 jobId, address buyer, address seller) external {
-        IKarwanEscrow.EscrowAccount storage a = _accounts[jobId];
-        a.buyer = buyer;
-        a.seller = seller;
+        _buyer[jobId] = buyer;
+        _seller[jobId] = seller;
     }
 
-    function getEscrow(bytes32 jobId) external view returns (IKarwanEscrow.EscrowAccount memory) {
-        return _accounts[jobId];
+    function partiesOf(bytes32 jobId) external view returns (address, address) {
+        return (_buyer[jobId], _seller[jobId]);
+    }
+
+    function sellerOf(bytes32 jobId) external view returns (address) {
+        return _seller[jobId];
     }
 }
 
@@ -42,16 +44,16 @@ contract KarwanInvoiceRegistryTest is Test {
     function setUp() public {
         reg = new KarwanInvoiceRegistry(owner);
         escrow = new MockEscrow();
+        vm.prank(owner);
         reg.setEscrow(address(escrow));
         escrow.seedDeal(JOB, buyer, seller);
     }
 
     /* ============================ DEPLOYMENT ============================= */
 
-    function test_Constructor_SetsOwnerAndDeployer() public {
+    function test_Constructor_SetsOwner() public {
         KarwanInvoiceRegistry fresh = new KarwanInvoiceRegistry(owner);
         assertEq(fresh.owner(), owner);
-        assertEq(fresh.deployer(), address(this));
     }
 
     function test_Constructor_RevertsOnZeroOwner() public {
@@ -61,28 +63,26 @@ contract KarwanInvoiceRegistryTest is Test {
 
     /* ============================ ESCROW BIND ============================ */
 
-    function test_SetEscrow_OneShot() public {
-        // setUp already bound; a second call reverts.
-        vm.expectRevert(KarwanInvoiceRegistry.NotDeployer.selector);
-        reg.setEscrow(makeAddr("other-escrow"));
+    function test_SetEscrow_OwnerRepointable() public {
+        // v2 (D1): owner-settable and repointable, not one-shot.
+        address next = makeAddr("other-escrow");
+        vm.prank(owner);
+        reg.setEscrow(next);
+        assertEq(reg.escrow(), next);
     }
 
     function test_SetEscrow_RevertsOnZero() public {
         KarwanInvoiceRegistry fresh = new KarwanInvoiceRegistry(owner);
+        vm.prank(owner);
         vm.expectRevert(KarwanInvoiceRegistry.ZeroAddress.selector);
         fresh.setEscrow(address(0));
     }
 
-    function test_SetEscrow_RevertsForNonDeployer() public {
+    function test_SetEscrow_RevertsForNonOwner() public {
         KarwanInvoiceRegistry fresh = new KarwanInvoiceRegistry(owner);
         vm.prank(rando);
-        vm.expectRevert(KarwanInvoiceRegistry.NotDeployer.selector);
+        vm.expectRevert(KarwanInvoiceRegistry.NotOwner.selector);
         fresh.setEscrow(address(escrow));
-    }
-
-    function test_SetEscrow_ZeroesDeployerAfterBind() public {
-        // setUp bound the escrow; deployer must be zero now.
-        assertEq(reg.deployer(), address(0));
     }
 
     function test_Anchor_RevertsBeforeEscrowBound() public {

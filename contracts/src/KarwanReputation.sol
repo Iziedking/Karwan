@@ -1,21 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title KarwanReputation
+/// @title KarwanReputation v2
 /// @notice Records deal-completion outcomes. Companion to ERC-8004
-///         ReputationRegistry. v2.E bundle adds:
-///           - recordPenalty(subject, severity, reasonHash) for confirmed
-///             malicious behaviour (delivery scams, dispute fraud). Gated to
-///             a separate securityAgentSigner role wired via a one-shot
-///             setter so the SecurityAgent can ship later without another
-///             reputation redeploy. See [[karwan_security_agent]].
-///           - cumulative penaltySeverity per subject so the off-chain
-///             composite engine can apply a slash multiplier without a
-///             second on-chain lookup.
+///         ReputationRegistry.
 ///
-///         Already-shipped in v2.D (kept for context):
-///           - Only the KarwanEscrow contract can write outcomes (audit C.4).
+///         v2 vs the v2.E deploy:
+///           - Escrow pointer is OWNER-SETTABLE (audit D1) so a future escrow
+///             redeploy is a repoint, not a one-shot cascade.
+///           - Value-weighted scoring (audit M-1): recordCompletion carries the
+///             deal amount; the contract accumulates per-identity settled value
+///             alongside the raw counts. Deals below minCreditAmount still count
+///             but add zero value weight.
+///           - recordResolution(sellerBps) for arbiter outcomes: the escrow
+///             hands the raw split and the contract bands it.
+///           - Penalty annulment (audit L-3): recordPenalty assigns an id;
+///             annulPenalty reverses it, gated to a securityCouncil.
+///           - Two-step ownership; owner-gated backfill for the v1 -> v2
+///             migration, self-locking via lockBackfill.
+///
+///         Preserved from v1:
+///           - Only the wired KarwanEscrow may record trade outcomes (C.4).
 ///           - Outcome credit is SYMMETRIC across both parties (#210).
+///           - ERC-8004 validator wallet separation: penalty + finance signers
+///             are distinct one-shot roles.
 contract KarwanReputation {
     enum Outcome {
         None,
@@ -24,11 +32,6 @@ contract KarwanReputation {
         Failed
     }
 
-    /// @notice Financier funding outcome. Repaid = the financier got their
-    ///         capital back (factoring repayment leg cleared, or a PO line
-    ///         repaid on settlement). Defaulted = the funded receivable / PO
-    ///         did not repay. Kept distinct from trade Outcome so the off-chain
-    ///         engine can weight a financier's track record on its own axis.
     enum FinanceOutcome {
         None,
         Repaid,
@@ -41,136 +44,213 @@ contract KarwanReputation {
         uint256 failedCount;
     }
 
-    /// @notice A wallet's financing track record, built over time from the
-    ///         invoices and POs it funds. Portable on the same address as its
-    ///         trade Score, so one wallet that both trades and finances carries
-    ///         a single reputation. The off-chain composite folds these in.
     struct Financier {
         uint256 fundedCount;
         uint256 repaidCount;
         uint256 defaultedCount;
     }
 
-    /// @notice The KarwanEscrow contract authorised to record outcomes.
-    ///         Set once after deploy via setEscrow (deployer-only, one-shot)
-    ///         so the contract can be deployed before the escrow address is
-    ///         known. The escrow constructor needs this contract's address,
-    ///         so we can't make `escrow` immutable without a CREATE2 dance.
+    struct Penalty {
+        address subject;
+        uint8 severity;
+        bool annulled;
+    }
+
+    // ------------------------------- Roles -------------------------------
+
+    address public owner;
+    address public pendingOwner;
+
+    /// @notice The KarwanEscrow authorised to record outcomes. Owner-settable
+    ///         (D1) so an escrow redeploy repoints instead of cascading.
     address public escrow;
-    /// @notice Holds the right to call setEscrow exactly once. Zeroed after
-    ///         binding so the escrow address becomes effectively immutable
-    ///         post-setup.
-    address public deployer;
 
-    /// @notice Address authorised to call recordPenalty. The SecurityAgent
-    ///         service (off-chain) signs from this key after confirming a
-    ///         delivery as malicious. Set once via setSecurityAgentSigner so
-    ///         we can ship the contract today and wire the signer when the
-    ///         agent service is built.
+    /// @notice Council that can annul a penalty (audit L-3). Owner-set.
+    address public securityCouncil;
+
+    /// @notice One-shot signer slots (validator separation preserved).
     address public securityAgentSigner;
-    /// @notice Holds the right to call setSecurityAgentSigner exactly once.
-    ///         Distinct from `deployer` so the operational dance is separable:
-    ///         the deployer self-zeros after escrow binding (which is
-    ///         atomic with deploy), while the signer slot can stay armable
-    ///         for as long as it takes to ship the SecurityAgent service.
     address public penaltyAdmin;
-
-    /// @notice Address authorised to call recordFinancing. The factoring +
-    ///         PO-financing settlement watchers (off-chain) sign from this key
-    ///         when a funded receivable repays or defaults. Set once via
-    ///         setFinanceSigner so the financier-reputation layer can light up
-    ///         without another reputation redeploy.
     address public financeSigner;
-    /// @notice Holds the right to call setFinanceSigner exactly once. Distinct
-    ///         from deployer + penaltyAdmin so each signer slot is armable on
-    ///         its own schedule.
     address public financeAdmin;
 
-    mapping(address => Score) public scores;
-    /// @notice Per-wallet financing track record. Read by the off-chain
-    ///         composite engine to score and tier a financier.
-    mapping(address => Financier) public financiers;
-    /// @dev jobId -> already-recorded marker. One outcome record per deal.
-    mapping(bytes32 => bool) public recorded;
-    /// @dev fundingId -> already-recorded marker. One outcome per funding.
-    mapping(bytes32 => bool) public financingRecorded;
+    // ------------------------------- State -------------------------------
 
-    /// @notice Cumulative severity per subject. Increments on every
-    ///         recordPenalty by the severity of the call (1=held-for-review
-    ///         confirmed malicious, 2=repeat offender, 3=active campaign).
-    ///         The off-chain composite engine consumes this directly.
+    mapping(address => Score) public scores;
+    /// @notice Cumulative USDC value of creditable settled deals per identity
+    ///         (audit M-1). The composite engine weights standing by real value.
+    mapping(address => uint256) public settledValue;
+    mapping(address => Financier) public financiers;
+    mapping(bytes32 => bool) public recorded;
+    mapping(bytes32 => bool) public financingRecorded;
     mapping(address => uint256) public penaltySeverity;
 
+    /// @notice Penalties by id, for annulment.
+    mapping(uint256 => Penalty) public penalties;
+    uint256 public penaltyCount;
+
+    /// @notice Minimum deal size that earns value weight. Below it a completion
+    ///         still increments counts but adds no settled value. Owner-set;
+    ///         6-decimal USDC (default 25 USDC).
+    uint256 public minCreditAmount = 25e6;
+
+    /// @notice Migration backfill switch. Owner may seed v1 state until locked.
+    bool public backfillLocked;
+
+    // ------------------------------ Events -------------------------------
+
     event CompletionRecorded(
-        bytes32 indexed jobId,
-        address indexed buyer,
-        address indexed seller,
-        Outcome outcome
+        bytes32 indexed jobId, address indexed buyer, address indexed seller, Outcome outcome, uint256 dealAmount
+    );
+    event ResolutionRecorded(
+        bytes32 indexed jobId, address indexed buyer, address indexed seller, uint16 sellerBps, uint256 dealAmount
     );
     event EscrowSet(address indexed escrow);
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event SecurityCouncilSet(address indexed council);
+    event MinCreditAmountSet(uint256 amount);
     event SecurityAgentSignerSet(address indexed signer);
     event FinanceSignerSet(address indexed signer);
-    /// @notice Emitted when a financier's funding outcome is recorded.
-    /// @param fundingId stable id of the factoring offer or PO line
-    /// @param financier the wallet whose track record is updated
-    /// @param outcome   Repaid or Defaulted
     event FinancingRecorded(
-        bytes32 indexed fundingId,
-        address indexed financier,
-        FinanceOutcome outcome,
-        uint64 timestamp
+        bytes32 indexed fundingId, address indexed financier, FinanceOutcome outcome, uint64 timestamp
     );
-    /// @notice Emitted on confirmed malicious behaviour.
-    /// @param subject the address being slashed
-    /// @param severity 1..255, higher is worse; off-chain engine multiplies
-    /// @param reasonHash sha256 of a JSON {jobId, engines, verdicts, ts}.
-    ///                   On-chain trail without leaking the original URL.
     event PenaltyRecorded(
-        address indexed subject,
-        uint8 severity,
-        bytes32 indexed reasonHash,
-        uint64 timestamp
+        uint256 indexed penaltyId, address indexed subject, uint8 severity, bytes32 indexed reasonHash, uint64 timestamp
     );
+    event PenaltyAnnulled(uint256 indexed penaltyId, address indexed subject, uint8 severity);
+    event Backfilled(address indexed subject, uint256 successCount, uint256 disputedCount, uint256 failedCount, uint256 settledValue);
+    event BackfillLocked();
+
+    // ------------------------------ Errors -------------------------------
 
     error AlreadyRecorded();
     error InvalidOutcome();
     error NotEscrow();
-    error NotDeployer();
-    error EscrowAlreadySet();
+    error NotOwner();
+    error EscrowNotSet();
     error ZeroAddress();
     error NotPenaltyAdmin();
     error SignerAlreadySet();
     error SignerNotSet();
     error NotSecurityAgentSigner();
+    error NotSecurityCouncil();
     error InvalidSeverity();
+    error InvalidBps();
     error NotFinanceAdmin();
     error NotFinanceSigner();
+    error AlreadyAnnulled();
+    error UnknownPenalty();
+    error BackfillLockedError();
 
-    constructor() {
-        deployer = msg.sender;
-        // penaltyAdmin + financeAdmin start as the deployer too; deployer
-        // self-zeros after setEscrow, while each signer slot lives on until its
-        // own one-shot setter binds the operational wallet.
-        penaltyAdmin = msg.sender;
-        financeAdmin = msg.sender;
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
     }
 
-    /// @notice Bind the escrow that's allowed to call recordCompletion.
-    ///         One-shot.
-    function setEscrow(address _escrow) external {
-        if (msg.sender != deployer) revert NotDeployer();
-        if (escrow != address(0)) revert EscrowAlreadySet();
+    constructor() {
+        owner = msg.sender;
+        penaltyAdmin = msg.sender;
+        financeAdmin = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
+    }
+
+    // ---------------------------- Ownership ------------------------------
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotOwner();
+        address previous = owner;
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(previous, owner);
+    }
+
+    /// @notice Set (or repoint) the escrow allowed to record outcomes (D1).
+    function setEscrow(address _escrow) external onlyOwner {
         if (_escrow == address(0)) revert ZeroAddress();
         escrow = _escrow;
-        deployer = address(0);
         emit EscrowSet(_escrow);
     }
 
-    /// @notice Bind the SecurityAgent signer wallet. One-shot. Reverts on a
-    ///         second call so the signer slot becomes effectively immutable
-    ///         after binding. Use a Circle DCW or multi-sig here, anything
-    ///         that can sign the recordPenalty calls when the off-chain
-    ///         engine flags a malicious delivery.
+    function setSecurityCouncil(address council) external onlyOwner {
+        if (council == address(0)) revert ZeroAddress();
+        securityCouncil = council;
+        emit SecurityCouncilSet(council);
+    }
+
+    function setMinCreditAmount(uint256 amount) external onlyOwner {
+        minCreditAmount = amount;
+        emit MinCreditAmountSet(amount);
+    }
+
+    // -------------------------- Trade outcomes ---------------------------
+
+    /// @notice Record a deal outcome against BOTH parties, value-weighted.
+    ///           Success         -> both successCount++; seller + buyer settledValue += dealAmount (if creditable)
+    ///           DisputeResolved -> both disputedCount++
+    ///           Failed          -> buyer successCount++, seller failedCount++
+    function recordCompletion(
+        bytes32 jobId,
+        address buyer,
+        address seller,
+        Outcome outcome,
+        uint256 dealAmount
+    ) external {
+        if (msg.sender != escrow) revert NotEscrow();
+        if (recorded[jobId]) revert AlreadyRecorded();
+        if (outcome == Outcome.None) revert InvalidOutcome();
+        recorded[jobId] = true;
+        _applyOutcome(buyer, seller, outcome, dealAmount);
+        emit CompletionRecorded(jobId, buyer, seller, outcome, dealAmount);
+    }
+
+    /// @notice Record an arbiter resolution. The escrow passes the raw split;
+    ///         this bands it into an outcome. >= 8000 seller-favoured = Success,
+    ///         <= 2000 = Failed, else DisputeResolved.
+    function recordResolution(
+        bytes32 jobId,
+        address buyer,
+        address seller,
+        uint16 sellerBps,
+        uint256 dealAmount
+    ) external {
+        if (msg.sender != escrow) revert NotEscrow();
+        if (recorded[jobId]) revert AlreadyRecorded();
+        if (sellerBps > 10000) revert InvalidBps();
+        recorded[jobId] = true;
+        Outcome outcome = sellerBps >= 8000
+            ? Outcome.Success
+            : (sellerBps <= 2000 ? Outcome.Failed : Outcome.DisputeResolved);
+        _applyOutcome(buyer, seller, outcome, dealAmount);
+        emit ResolutionRecorded(jobId, buyer, seller, sellerBps, dealAmount);
+    }
+
+    function _applyOutcome(address buyer, address seller, Outcome outcome, uint256 dealAmount) internal {
+        bool creditable = dealAmount >= minCreditAmount;
+        if (outcome == Outcome.Success) {
+            scores[buyer].successCount += 1;
+            scores[seller].successCount += 1;
+            if (creditable) {
+                settledValue[buyer] += dealAmount;
+                settledValue[seller] += dealAmount;
+            }
+        } else if (outcome == Outcome.DisputeResolved) {
+            scores[buyer].disputedCount += 1;
+            scores[seller].disputedCount += 1;
+        } else {
+            // Failed: buyer honoured in good faith, seller took the failure.
+            scores[buyer].successCount += 1;
+            scores[seller].failedCount += 1;
+        }
+    }
+
+    // ----------------------------- Penalties -----------------------------
+
     function setSecurityAgentSigner(address _signer) external {
         if (msg.sender != penaltyAdmin) revert NotPenaltyAdmin();
         if (securityAgentSigner != address(0)) revert SignerAlreadySet();
@@ -180,62 +260,37 @@ contract KarwanReputation {
         emit SecurityAgentSignerSet(_signer);
     }
 
-    /// @notice Record a deal outcome against BOTH parties.
-    ///           Success         -> buyer.successCount++,   seller.successCount++
-    ///           DisputeResolved -> buyer.disputedCount++,  seller.disputedCount++
-    ///           Failed          -> buyer.successCount++,   seller.failedCount++
-    /// @dev    Failed semantics: the buyer paid in good faith and got their
-    ///         money back via refund; they did nothing wrong. The seller is
-    ///         the one who didn't deliver, so they alone take the failure
-    ///         credit. This matches credit-bureau intuition where the
-    ///         honoring party gets a check mark even when the deal goes
-    ///         sideways.
-    function recordCompletion(bytes32 jobId, address buyer, address seller, Outcome outcome)
+    /// @notice Record a confirmed-malicious penalty. Assigns an id so it can be
+    ///         annulled later (audit L-3).
+    function recordPenalty(address subject, uint8 severity, bytes32 reasonHash)
         external
+        returns (uint256 penaltyId)
     {
-        if (msg.sender != escrow) revert NotEscrow();
-        if (recorded[jobId]) revert AlreadyRecorded();
-        if (outcome == Outcome.None) revert InvalidOutcome();
-
-        recorded[jobId] = true;
-
-        if (outcome == Outcome.Success) {
-            scores[buyer].successCount += 1;
-            scores[seller].successCount += 1;
-        } else if (outcome == Outcome.DisputeResolved) {
-            scores[buyer].disputedCount += 1;
-            scores[seller].disputedCount += 1;
-        } else {
-            // Outcome.Failed
-            scores[buyer].successCount += 1;
-            scores[seller].failedCount += 1;
-        }
-
-        emit CompletionRecorded(jobId, buyer, seller, outcome);
-    }
-
-    /// @notice Record a confirmed-malicious penalty against a subject. Only
-    ///         callable by the SecurityAgent signer. Subject is typically a
-    ///         seller's identity wallet flagged for shipping a phishing URL
-    ///         or similar.
-    ///
-    /// @param subject     identity wallet of the slashed party
-    /// @param severity    1=held-for-review confirmed, 2=repeat, 3=campaign
-    /// @param reasonHash  sha256 of a JSON {jobId, engines, verdicts, ts}
-    ///                    so a third party can verify off-chain
-    function recordPenalty(address subject, uint8 severity, bytes32 reasonHash) external {
         if (securityAgentSigner == address(0)) revert SignerNotSet();
         if (msg.sender != securityAgentSigner) revert NotSecurityAgentSigner();
         if (subject == address(0)) revert ZeroAddress();
         if (severity == 0) revert InvalidSeverity();
 
+        penaltyId = ++penaltyCount;
+        penalties[penaltyId] = Penalty({subject: subject, severity: severity, annulled: false});
         penaltySeverity[subject] += severity;
-        emit PenaltyRecorded(subject, severity, reasonHash, uint64(block.timestamp));
+        emit PenaltyRecorded(penaltyId, subject, severity, reasonHash, uint64(block.timestamp));
     }
 
-    /// @notice Bind the finance signer wallet. One-shot, mirrors
-    ///         setSecurityAgentSigner. Use a Circle DCW the factoring + PO
-    ///         settlement watchers control.
+    /// @notice Reverse a penalty (audit L-3). securityCouncil-only, event-logged.
+    ///         Idempotent-guarded: a second annul of the same id reverts.
+    function annulPenalty(uint256 penaltyId) external {
+        if (securityCouncil == address(0) || msg.sender != securityCouncil) revert NotSecurityCouncil();
+        Penalty storage p = penalties[penaltyId];
+        if (p.subject == address(0)) revert UnknownPenalty();
+        if (p.annulled) revert AlreadyAnnulled();
+        p.annulled = true;
+        penaltySeverity[p.subject] -= p.severity;
+        emit PenaltyAnnulled(penaltyId, p.subject, p.severity);
+    }
+
+    // ---------------------------- Financing ------------------------------
+
     function setFinanceSigner(address _signer) external {
         if (msg.sender != financeAdmin) revert NotFinanceAdmin();
         if (financeSigner != address(0)) revert SignerAlreadySet();
@@ -245,18 +300,7 @@ contract KarwanReputation {
         emit FinanceSignerSet(_signer);
     }
 
-    /// @notice Record a financier's funding outcome. Only callable by the
-    ///         finance signer. One record per fundingId, so a re-submit can't
-    ///         double-count. Repaid builds the financier's standing; Defaulted
-    ///         counts against it. The off-chain composite engine reads the
-    ///         financiers() getter and folds the track record into the
-    ///         financier's portable score.
-    /// @param fundingId  stable id of the factoring offer or PO line
-    /// @param financier  wallet whose track record is updated
-    /// @param outcome    Repaid or Defaulted
-    function recordFinancing(bytes32 fundingId, address financier, FinanceOutcome outcome)
-        external
-    {
+    function recordFinancing(bytes32 fundingId, address financier, FinanceOutcome outcome) external {
         if (financeSigner == address(0)) revert SignerNotSet();
         if (msg.sender != financeSigner) revert NotFinanceSigner();
         if (financier == address(0)) revert ZeroAddress();
@@ -270,23 +314,43 @@ contract KarwanReputation {
         } else {
             financiers[financier].defaultedCount += 1;
         }
-
         emit FinancingRecorded(fundingId, financier, outcome, uint64(block.timestamp));
     }
 
-    /// @notice Composite reputation: success-weighted, dispute neutral,
-    ///         failure penalty. Returns a score in basis points (0–10000).
-    ///         5000 = neutral. Kept for backward-compat with the legacy
-    ///         frontend badge; the v2 engine uses the raw counts via the
-    ///         scores() getter and runs its own composite that also folds
-    ///         in penaltySeverity.
+    // ----------------------------- Migration -----------------------------
+
+    /// @notice Seed a v1 identity's counts + settled value during migration.
+    ///         Owner-only, additive, disabled once lockBackfill fires.
+    function backfill(
+        address subject,
+        uint256 successCount,
+        uint256 disputedCount,
+        uint256 failedCount,
+        uint256 settledValue_
+    ) external onlyOwner {
+        if (backfillLocked) revert BackfillLockedError();
+        if (subject == address(0)) revert ZeroAddress();
+        scores[subject].successCount += successCount;
+        scores[subject].disputedCount += disputedCount;
+        scores[subject].failedCount += failedCount;
+        settledValue[subject] += settledValue_;
+        emit Backfilled(subject, successCount, disputedCount, failedCount, settledValue_);
+    }
+
+    function lockBackfill() external onlyOwner {
+        backfillLocked = true;
+        emit BackfillLocked();
+    }
+
+    // ------------------------------- Views -------------------------------
+
+    /// @notice Legacy composite badge (0-10000, 5000 neutral). Kept for the
+    ///         v1 frontend; the v2 engine reads scores() + settledValue().
     function getReputationScore(address party) external view returns (uint256) {
         Score memory s = scores[party];
         uint256 total = s.successCount + s.disputedCount + s.failedCount;
         if (total == 0) return 5000;
-        uint256 numerator = s.successCount * 10000;
-        uint256 denominator = total;
-        uint256 raw = numerator / denominator;
+        uint256 raw = (s.successCount * 10000) / total;
         uint256 penalty = (s.failedCount * 10000) / total;
         if (penalty >= raw) return 0;
         return raw - penalty;

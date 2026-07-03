@@ -43,8 +43,26 @@ interface IKarwanReputation {
         Failed
     }
 
-    function recordCompletion(bytes32 jobId, address buyer, address seller, Outcome outcome)
-        external;
+    /// v2: carries dealAmount so the reputation contract can value-weight the
+    /// completion (audit M-1) instead of scoring on raw counts.
+    function recordCompletion(
+        bytes32 jobId,
+        address buyer,
+        address seller,
+        Outcome outcome,
+        uint256 dealAmount
+    ) external;
+
+    /// v2: arbiter resolution routed through the escrow. sellerBps is the
+    /// arbiter's split; the reputation contract bands it into an outcome and
+    /// records the resolution with the deal value.
+    function recordResolution(
+        bytes32 jobId,
+        address buyer,
+        address seller,
+        uint16 sellerBps,
+        uint256 dealAmount
+    ) external;
 }
 
 /// @title KarwanEscrow
@@ -507,6 +525,20 @@ contract KarwanEscrow is ReentrancyGuard {
         return escrows[jobId];
     }
 
+    /// @notice Lightweight party lookup for cross-contract consumers (invoice
+    ///         registry, PO financing). Decoupled from the full struct so
+    ///         adding fields to EscrowAccount never breaks their ABI decode.
+    function partiesOf(bytes32 jobId) external view returns (address buyer, address seller) {
+        EscrowAccount storage e = escrows[jobId];
+        return (e.buyer, e.seller);
+    }
+
+    /// @notice Seller of a deal, or address(0) if unknown. Convenience for
+    ///         consumers that only need the recipient.
+    function sellerOf(bytes32 jobId) external view returns (address) {
+        return escrows[jobId].seller;
+    }
+
     /// @notice Fund an escrow. State: None -> Funded.
     /// @param _reservationBps  per-deal stake gate. 0 = casual (no stake
     ///                         required from seller). 5000..maxReservationBps
@@ -843,7 +875,7 @@ contract KarwanEscrow is ReentrancyGuard {
             vault.release(jobId);
             e.reservedAmount = 0;
             _recordReputation(
-                jobId, e.buyer, e.seller, IKarwanReputation.Outcome.DisputeResolved
+                jobId, e.buyer, e.seller, IKarwanReputation.Outcome.DisputeResolved, e.dealAmount
             );
         }
         // Casual deals: no reservation, no reputation credit on a disputed
@@ -926,7 +958,7 @@ contract KarwanEscrow is ReentrancyGuard {
         }
         // A blown deadline is on-chain-provable lateness, so it records
         // Failed even on casual (no-stake) deals.
-        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Failed);
+        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Failed, e.dealAmount);
     }
 
     /// @notice Buyer-only deadline extension. Extensions favour the seller,
@@ -1061,12 +1093,9 @@ contract KarwanEscrow is ReentrancyGuard {
             }
         }
 
-        IKarwanReputation.Outcome outcome = sellerBps >= 8000
-            ? IKarwanReputation.Outcome.Success
-            : (sellerBps <= 2000
-                ? IKarwanReputation.Outcome.Failed
-                : IKarwanReputation.Outcome.DisputeResolved);
-        _recordReputation(jobId, e.buyer, e.seller, outcome);
+        // Arbiter resolution: hand the raw split to the reputation contract,
+        // which bands it and value-weights it (v2 recordResolution).
+        _recordResolution(jobId, e.buyer, e.seller, sellerBps, e.dealAmount);
     }
 
     // Internals
@@ -1114,7 +1143,7 @@ contract KarwanEscrow is ReentrancyGuard {
             vault.release(jobId);
             e.reservedAmount = 0;
         }
-        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Success);
+        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Success, e.dealAmount);
     }
 
     /// @dev Resolves agent addresses to their identity wallets via the vault
@@ -1128,14 +1157,35 @@ contract KarwanEscrow is ReentrancyGuard {
         bytes32 jobId,
         address buyer,
         address seller,
-        IKarwanReputation.Outcome outcome
+        IKarwanReputation.Outcome outcome,
+        uint256 dealAmount
     ) internal {
         address buyerIdentity = vault.resolveOwner(buyer);
         address sellerIdentity = vault.resolveOwner(seller);
         // Audit I-3: reputation is a non-critical side effect of a settled
         // deal. A revert here (bad rep wiring, paused rep contract) must never
         // block the seller's payout, so we swallow it and emit for retry.
-        try reputation.recordCompletion(jobId, buyerIdentity, sellerIdentity, outcome) {
+        try reputation.recordCompletion(jobId, buyerIdentity, sellerIdentity, outcome, dealAmount) {
+        } catch Error(string memory reason) {
+            emit ReputationRecordFailed(jobId, reason);
+        } catch (bytes memory) {
+            emit ReputationRecordFailed(jobId, "low-level revert");
+        }
+    }
+
+    /// @dev Arbiter resolution -> reputation, non-blocking (audit I-3). Routes
+    ///      through recordResolution so the reputation contract bands sellerBps
+    ///      into an outcome and value-weights it.
+    function _recordResolution(
+        bytes32 jobId,
+        address buyer,
+        address seller,
+        uint16 sellerBps,
+        uint256 dealAmount
+    ) internal {
+        address buyerIdentity = vault.resolveOwner(buyer);
+        address sellerIdentity = vault.resolveOwner(seller);
+        try reputation.recordResolution(jobId, buyerIdentity, sellerIdentity, sellerBps, dealAmount) {
         } catch Error(string memory reason) {
             emit ReputationRecordFailed(jobId, reason);
         } catch (bytes memory) {

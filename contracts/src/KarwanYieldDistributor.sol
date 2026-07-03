@@ -28,9 +28,10 @@ contract KarwanYieldDistributor is ReentrancyGuard {
 
     /// @notice Contract owner. Rotates operator + recovers excess USDC sent
     ///         in error (the recovery cannot touch outstanding claimable
-    ///         balances; see excessReserves()). Two-step rotation skipped
-    ///         to match the rest of the Karwan contracts' simple owner model.
+    ///         balances; see excessReserves()). Two-step rotation (audit I-2)
+    ///         so a fat-fingered transfer can't strand ownership.
     address public owner;
+    address public pendingOwner;
 
     /// @notice Authorized key for bulkCredit. The daily cron's signer.
     ///         Distinct from owner so the cron can run from a hot operator
@@ -61,6 +62,7 @@ contract KarwanYieldDistributor is ReentrancyGuard {
     event YieldClaimed(address indexed staker, address indexed to, uint256 amount);
 
     event OperatorRotated(address indexed previous, address indexed next);
+    event OwnershipTransferStarted(address indexed previous, address indexed next);
     event OwnerTransferred(address indexed previous, address indexed next);
 
     /// @notice Emitted when owner recovers operator-over-funded USDC that was
@@ -221,13 +223,20 @@ contract KarwanYieldDistributor is ReentrancyGuard {
         emit OperatorRotated(previous, next);
     }
 
-    /// @notice Transfer ownership. Single-step, matches the existing Karwan
-    ///         contracts' owner model. Owner controls operator rotation and
+    /// @notice Begin a two-step ownership transfer (audit I-2). The new owner
+    ///         must call acceptOwnership() to take control, so a wrong address
+    ///         can never strand ownership. Owner controls operator rotation and
     ///         excess recovery; no privileged access to user claimables.
     function transferOwnership(address next) external onlyOwner {
-        if (next == address(0)) revert ZeroAddress();
+        pendingOwner = next;
+        emit OwnershipTransferStarted(owner, next);
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotOwner();
         address previous = owner;
-        owner = next;
-        emit OwnerTransferred(previous, next);
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        emit OwnerTransferred(previous, owner);
     }
 }

@@ -41,18 +41,73 @@ contract MockUSDC {
     }
 }
 
-/// @notice Escrow mock — only getEscrow() is needed.
+/// @notice Escrow mock — only sellerOf() is needed (v2 decoupled lookup).
 contract MockEscrow {
-    mapping(bytes32 => IKarwanEscrow.EscrowAccount) private _accounts;
+    mapping(bytes32 => address) private _seller;
 
-    function seedDeal(bytes32 jobId, address buyer, address seller) external {
-        IKarwanEscrow.EscrowAccount storage a = _accounts[jobId];
-        a.buyer = buyer;
-        a.seller = seller;
+    function seedDeal(bytes32 jobId, address, address seller) external {
+        _seller[jobId] = seller;
     }
 
-    function getEscrow(bytes32 jobId) external view returns (IKarwanEscrow.EscrowAccount memory) {
-        return _accounts[jobId];
+    function sellerOf(bytes32 jobId) external view returns (address) {
+        return _seller[jobId];
+    }
+}
+
+/// @notice Vault mock for factoring stake v2. Tracks reserve/release/slash by
+///         the (consumer, id) key like the real vault, and pays the beneficiary
+///         on slash. freeStakeOf is a settable per-seller figure.
+contract MockVault {
+    struct R {
+        address owner;
+        uint256 amount;
+        address beneficiary;
+        bool active;
+    }
+
+    mapping(bytes32 => R) public reservations;
+    mapping(address => uint256) public freeStake;
+    MockUSDC public immutable usdc;
+
+    constructor(address _usdc) {
+        usdc = MockUSDC(_usdc);
+    }
+
+    function setFreeStake(address who, uint256 amount) external {
+        freeStake[who] = amount;
+    }
+
+    function freeStakeOf(address owner) external view returns (uint256) {
+        return freeStake[owner];
+    }
+
+    function _key(address consumer, bytes32 id) internal pure returns (bytes32) {
+        return keccak256(abi.encode(consumer, id));
+    }
+
+    function reserve(bytes32 id, address owner, uint256 amount, address beneficiary) external {
+        bytes32 k = _key(msg.sender, id);
+        require(!reservations[k].active, "reserved");
+        require(freeStake[owner] >= amount, "insufficient");
+        freeStake[owner] -= amount;
+        reservations[k] = R(owner, amount, beneficiary, true);
+    }
+
+    function release(bytes32 id) external {
+        bytes32 k = _key(msg.sender, id);
+        R storage r = reservations[k];
+        if (!r.active) return;
+        r.active = false;
+        freeStake[r.owner] += r.amount;
+    }
+
+    function slash(bytes32 id) external {
+        bytes32 k = _key(msg.sender, id);
+        R storage r = reservations[k];
+        require(r.active, "not reserved");
+        r.active = false;
+        // Pay the beneficiary from the mock's own USDC (funded in tests).
+        usdc.transfer(r.beneficiary, r.amount);
     }
 }
 
@@ -74,6 +129,7 @@ contract KarwanPOFinancingTest is Test {
     MockUSDC usdc;
     MockEscrow escrow;
     MockRegistry registry;
+    MockVault vault;
 
     address buyer = makeAddr("buyer");
     address seller = makeAddr("seller");
@@ -90,7 +146,8 @@ contract KarwanPOFinancingTest is Test {
         usdc = new MockUSDC();
         escrow = new MockEscrow();
         registry = new MockRegistry();
-        po = new KarwanPOFinancing(address(usdc), address(registry), address(escrow));
+        vault = new MockVault(address(usdc));
+        po = new KarwanPOFinancing(address(usdc), address(registry), address(escrow), address(vault));
 
         escrow.seedDeal(JOB, buyer, seller);
 
@@ -112,24 +169,24 @@ contract KarwanPOFinancingTest is Test {
 
     function test_Constructor_RevertsOnZeroUSDC() public {
         vm.expectRevert(KarwanPOFinancing.ZeroAddress.selector);
-        new KarwanPOFinancing(address(0), address(registry), address(escrow));
+        new KarwanPOFinancing(address(0), address(registry), address(escrow), address(vault));
     }
 
     function test_Constructor_RevertsOnZeroRegistry() public {
         vm.expectRevert(KarwanPOFinancing.ZeroAddress.selector);
-        new KarwanPOFinancing(address(usdc), address(0), address(escrow));
+        new KarwanPOFinancing(address(usdc), address(0), address(escrow), address(vault));
     }
 
     function test_Constructor_RevertsOnZeroEscrow() public {
         vm.expectRevert(KarwanPOFinancing.ZeroAddress.selector);
-        new KarwanPOFinancing(address(usdc), address(registry), address(0));
+        new KarwanPOFinancing(address(usdc), address(registry), address(0), address(vault));
     }
 
     /* =============================== FUND ================================ */
 
     function test_Fund_HappyPath() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         KarwanPOFinancing.POLine memory l = po.getLine(JOB);
         assertEq(uint256(l.state), 1);                        // Funded
@@ -147,60 +204,60 @@ contract KarwanPOFinancingTest is Test {
     function test_Fund_RevertsOnZeroInvoiceId() public {
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidInvoiceId.selector);
-        po.fund(bytes32(0), PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(bytes32(0), PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
     }
 
     function test_Fund_RevertsOnZeroPrincipal() public {
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidAmount.selector);
-        po.fund(JOB, 0, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, 0, REPAY, RELEASE_WINDOW, 0);
     }
 
     function test_Fund_RevertsWhenRepayNotAbovePrincipal() public {
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidRepay.selector);
-        po.fund(JOB, PRINCIPAL, PRINCIPAL, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, PRINCIPAL, RELEASE_WINDOW, 0);
     }
 
     function test_Fund_RevertsOnZeroTimeout() public {
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidTimeout.selector);
-        po.fund(JOB, PRINCIPAL, REPAY, 0);
+        po.fund(JOB, PRINCIPAL, REPAY, 0, 0);
     }
 
     function test_Fund_RevertsOnOversizedTimeout() public {
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidTimeout.selector);
-        po.fund(JOB, PRINCIPAL, REPAY, 5 * 365 days + 1);
+        po.fund(JOB, PRINCIPAL, REPAY, 5 * 365 days + 1, 0);
     }
 
     function test_Fund_RevertsWhenPoDAlreadyAccepted() public {
         registry.setPoD(JOB, true);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.PoDAlreadyAccepted.selector);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
     }
 
     function test_Fund_RevertsWhenEscrowDealUnknown() public {
         bytes32 unknown = keccak256("nope");
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.MissingEscrowRecord.selector);
-        po.fund(unknown, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(unknown, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
     }
 
     function test_Fund_RevertsOnDoubleFund() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.AlreadyFunded.selector);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
     }
 
     /* =========================== RELEASE TO SELLER ======================== */
 
     function test_ReleaseToSeller_HappyPath() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         registry.setPoD(JOB, true);
 
@@ -221,7 +278,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_ReleaseToSeller_RevertsWithoutPoD() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         vm.expectRevert(KarwanPOFinancing.PoDNotAccepted.selector);
         po.releaseToSeller(JOB);
@@ -279,7 +336,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_ClaimRepayment_RevertsBeforeRelease() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidState.selector);
@@ -320,7 +377,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_ReclaimPrincipal_HappyPath() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         // Travel past release timeout.
         vm.warp(block.timestamp + RELEASE_WINDOW + 1);
@@ -335,7 +392,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_ReclaimPrincipal_RevertsWhileInWindow() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.StillWithinWindow.selector);
@@ -344,7 +401,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_ReclaimPrincipal_RevertsForNonFinancier() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         vm.warp(block.timestamp + RELEASE_WINDOW + 1);
 
         vm.prank(rando);
@@ -354,7 +411,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_ReclaimPrincipal_RevertsWhenPoDLanded() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         registry.setPoD(JOB, true);
         vm.warp(block.timestamp + RELEASE_WINDOW + 1);
 
@@ -405,7 +462,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_MarkDefaulted_RevertsBeforeRelease() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
 
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidState.selector);
@@ -429,12 +486,12 @@ contract KarwanPOFinancingTest is Test {
         vm.expectEmit(true, true, true, true, address(po));
         emit KarwanPOFinancing.POFunded(JOB, financier, seller, PRINCIPAL, REPAY, expectedTimeout);
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
     }
 
     function test_POReleased_Emits() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         registry.setPoD(JOB, true);
 
         vm.expectEmit(true, true, false, true, address(po));
@@ -459,7 +516,7 @@ contract KarwanPOFinancingTest is Test {
     function test_FullHappyPathFlow() public {
         // 1. Financier funds.
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         assertEq(usdc.balanceOf(address(po)), PRINCIPAL);
 
         // 2. PoD anchors on registry (simulating buyer/attester action).
@@ -488,7 +545,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_PoDTimeoutFlow() public {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         // PoD never lands. Financier reclaims after timeout.
         vm.warp(block.timestamp + RELEASE_WINDOW + 1);
         vm.prank(financier);
@@ -509,7 +566,7 @@ contract KarwanPOFinancingTest is Test {
 
     function _fundAndRelease() internal {
         vm.prank(financier);
-        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, 0);
         registry.setPoD(JOB, true);
         po.releaseToSeller(JOB);
     }
@@ -520,5 +577,67 @@ contract KarwanPOFinancingTest is Test {
         usdc.approve(address(po), REPAY);
         vm.prank(financier);
         po.claimRepayment(JOB);
+    }
+
+    /* ==================== v2 factoring stake (vault) ===================== */
+
+    uint128 constant STAKE = 1_000_000_000; // 1,000 USDC collateral
+
+    function test_v2_Fund_ReservesSellerStake() public {
+        vault.setFreeStake(seller, 2_000_000_000);
+        vm.prank(financier);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, STAKE);
+        // The reservation locked 1,000 of the seller's 2,000 free stake.
+        assertEq(vault.freeStakeOf(seller), 1_000_000_000, "stake reserved");
+        assertEq(po.getLine(JOB).requiredStakeUsdc, STAKE);
+    }
+
+    function test_v2_Fund_RevertsWhenSellerLacksStake() public {
+        vault.setFreeStake(seller, 500_000_000); // less than STAKE
+        vm.prank(financier);
+        vm.expectRevert(KarwanPOFinancing.InsufficientStake.selector);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, STAKE);
+    }
+
+    function test_v2_Settle_ReleasesStake() public {
+        vault.setFreeStake(seller, 2_000_000_000);
+        vm.prank(financier);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, STAKE);
+        registry.setPoD(JOB, true);
+        po.releaseToSeller(JOB);
+        _approveAndClaim();
+        // Clean settlement returns the collateral to the seller's free stake.
+        assertEq(vault.freeStakeOf(seller), 2_000_000_000, "stake released on settle");
+    }
+
+    function test_v2_Default_SlashesStakeToFinancier() public {
+        vault.setFreeStake(seller, 2_000_000_000);
+        usdc.mint(address(vault), STAKE); // vault funded to pay the slash
+        vm.prank(financier);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, STAKE);
+        registry.setPoD(JOB, true);
+        po.releaseToSeller(JOB);
+
+        // Repayment never comes; window passes; financier writes it off.
+        vm.warp(block.timestamp + 7 days + 1);
+        uint256 finBefore = usdc.balanceOf(financier);
+        vm.prank(financier);
+        po.markDefaulted(JOB);
+
+        assertEq(uint256(po.getLine(JOB).state), 5, "defaulted");
+        // Collateral slashed to the financier as on-chain recovery.
+        assertEq(usdc.balanceOf(financier) - finBefore, STAKE, "stake slashed to financier");
+    }
+
+    function test_v2_Reclaim_ReleasesStakeWhenPoDNeverLands() public {
+        vault.setFreeStake(seller, 2_000_000_000);
+        vm.prank(financier);
+        po.fund(JOB, PRINCIPAL, REPAY, RELEASE_WINDOW, STAKE);
+        // PoD never lands; release window passes; financier reclaims principal.
+        vm.warp(block.timestamp + RELEASE_WINDOW + 1);
+        vm.prank(financier);
+        po.reclaimPrincipal(JOB);
+        // Seller didn't default, collateral returns.
+        assertEq(vault.freeStakeOf(seller), 2_000_000_000, "stake released on reclaim");
     }
 }

@@ -17,23 +17,30 @@ contract KarwanReputationTest is Test {
 
     /* ============================= ADMIN ============================== */
 
-    function test_SetEscrow_OnlyOnce() public {
-        vm.expectRevert(KarwanReputation.NotDeployer.selector);
+    function test_SetEscrow_OwnerRepointable() public {
+        // v2 (D1): the escrow pointer is owner-settable and repointable, not a
+        // one-shot. Non-owner can't move it; owner can.
+        vm.prank(makeAddr("rando"));
+        vm.expectRevert(KarwanReputation.NotOwner.selector);
         rep.setEscrow(makeAddr("other-escrow"));
+
+        address next = makeAddr("next-escrow");
+        rep.setEscrow(next);
+        assertEq(rep.escrow(), next);
     }
 
     function test_RecordCompletion_RevertsBeforeEscrowBound() public {
         KarwanReputation fresh = new KarwanReputation();
         bytes32 jobId = keccak256("job-1");
         vm.expectRevert(KarwanReputation.NotEscrow.selector);
-        fresh.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success);
+        fresh.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success, 100e6);
     }
 
     function test_RecordCompletion_NotEscrowReverts() public {
         bytes32 jobId = keccak256("job-1");
         vm.prank(makeAddr("eve"));
         vm.expectRevert(KarwanReputation.NotEscrow.selector);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success, 100e6);
     }
 
     /* ====================== SYMMETRIC CREDITING ======================= */
@@ -41,7 +48,7 @@ contract KarwanReputationTest is Test {
     function test_Success_CreditsBothSides() public {
         bytes32 jobId = keccak256("job-1");
         vm.prank(escrow);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success, 100e6);
 
         (uint256 buyerSuccess, , ) = rep.scores(buyer);
         (uint256 sellerSuccess, , ) = rep.scores(seller);
@@ -52,7 +59,7 @@ contract KarwanReputationTest is Test {
     function test_DisputeResolved_CreditsBothDisputed() public {
         bytes32 jobId = keccak256("job-1");
         vm.prank(escrow);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.DisputeResolved);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.DisputeResolved, 100e6);
 
         (, uint256 buyerDisputed, ) = rep.scores(buyer);
         (, uint256 sellerDisputed, ) = rep.scores(seller);
@@ -64,7 +71,7 @@ contract KarwanReputationTest is Test {
         // Buyer paid in good faith, got refunded; seller didn't deliver.
         bytes32 jobId = keccak256("job-1");
         vm.prank(escrow);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Failed);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Failed, 100e6);
 
         (uint256 buyerSuccess, , uint256 buyerFailed) = rep.scores(buyer);
         (uint256 sellerSuccess, , uint256 sellerFailed) = rep.scores(seller);
@@ -81,9 +88,9 @@ contract KarwanReputationTest is Test {
     function test_DuplicateRecord_Reverts() public {
         bytes32 jobId = keccak256("job-1");
         vm.startPrank(escrow);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success, 100e6);
         vm.expectRevert(KarwanReputation.AlreadyRecorded.selector);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.Success, 100e6);
         vm.stopPrank();
     }
 
@@ -91,7 +98,7 @@ contract KarwanReputationTest is Test {
         bytes32 jobId = keccak256("job-1");
         vm.prank(escrow);
         vm.expectRevert(KarwanReputation.InvalidOutcome.selector);
-        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.None);
+        rep.recordCompletion(jobId, buyer, seller, KarwanReputation.Outcome.None, 100e6);
     }
 
     /* ==================== v2.E recordPenalty + signer =================== */
