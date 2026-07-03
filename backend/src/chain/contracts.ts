@@ -5,8 +5,27 @@ import { jobBoardAbi } from './abis/jobBoard.js';
 import { escrowAbi } from './abis/escrow.js';
 import { reputationAbi } from './abis/reputation.js';
 import { vaultAbi } from './abis/vault.js';
+import { escrowV2Abi } from './abis/escrowV2.js';
+import { vaultV2Abi } from './abis/vaultV2.js';
+import { reputationV2Abi } from './abis/reputationV2.js';
+import { jobBoardV2Abi } from './abis/jobBoardV2.js';
 import { legacyEscrowAbi, LEGACY_ESCROW_STATE } from './abis/legacyEscrow.js';
 import { v2dEscrowAbi, V2D_ESCROW_STATE } from './abis/v2dEscrow.js';
+
+/// Contracts-v2 cutover: when ESCROW_V2B_ENABLED is on (and KARWAN_*_ADDR point
+/// at the v2 bundle), the backend binds the v2 ABIs so it can decode the new
+/// escrow struct + call the new functions. Off (default) it keeps the current
+/// ABIs against the live contracts. The flag, the addresses, and this selection
+/// must flip together at the atomic redeploy. Cast to Abi so the ternary yields
+/// one type; the read return shapes are cast explicitly at each call site.
+const V2 = config.ESCROW_V2B_ENABLED;
+// Type against the v2 ABI shape (a superset) so viem keeps typed read methods;
+// the runtime value is the correct ABI for the deployed contract. The backend
+// only ever reads methods present in BOTH versions, so this is sound.
+const activeEscrowAbi = (V2 ? escrowV2Abi : escrowAbi) as typeof escrowV2Abi;
+const activeVaultAbi = (V2 ? vaultV2Abi : vaultAbi) as typeof vaultV2Abi;
+const activeReputationAbi = (V2 ? reputationV2Abi : reputationAbi) as typeof reputationV2Abi;
+const activeJobBoardAbi = (V2 ? jobBoardV2Abi : jobBoardAbi) as typeof jobBoardV2Abi;
 
 function required(name: string, value: string | undefined): Address {
   if (!value) throw new Error(`${name} is not set in .env`);
@@ -20,19 +39,19 @@ function optional(value: string | undefined): Address | null {
 
 export const jobBoard = getContract({
   address: required('KARWAN_JOBBOARD_ADDR', config.KARWAN_JOBBOARD_ADDR),
-  abi: jobBoardAbi,
+  abi: activeJobBoardAbi,
   client: publicClient,
 });
 
 export const escrow = getContract({
   address: required('KARWAN_ESCROW_ADDR', config.KARWAN_ESCROW_ADDR),
-  abi: escrowAbi,
+  abi: activeEscrowAbi,
   client: publicClient,
 });
 
 export const reputation = getContract({
   address: required('KARWAN_REPUTATION_ADDR', config.KARWAN_REPUTATION_ADDR),
-  abi: reputationAbi,
+  abi: activeReputationAbi,
   client: publicClient,
 });
 
@@ -41,7 +60,7 @@ export const reputation = getContract({
 /// stake factor in the reputation engine.
 export const vault = getContract({
   address: required('KARWAN_VAULT_ADDR', config.KARWAN_VAULT_ADDR),
-  abi: vaultAbi,
+  abi: activeVaultAbi,
   client: publicClient,
 });
 

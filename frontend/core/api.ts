@@ -1921,6 +1921,15 @@ export const api = {
       `/api/deals/direct/${jobId}/release`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  /// v2b seller claim: after the buyer's review window elapses on a marked
+  /// delivery, the seller forces the next milestone payout. The contract
+  /// enforces the window; a too-early call returns 502 (ReviewWindowOpen) and a
+  /// held delivery returns 502 (Frozen). Available on the v2 escrow only.
+  claimDirectDeal: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; milestoneIndex: number; txHash: string }>(
+      `/api/deals/direct/${jobId}/claim`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
   /// Seller asks the buyer for more delivery time. Off-chain handshake; stored
   /// as deal.extensionRequest until the buyer responds via respondExtension.
   requestExtension: (input: {

@@ -339,6 +339,11 @@ const envSchema = z.object({
   /// use CCTP_RELAY_WALLET_ID / CCTP_RELAY_ADDRESS instead. Kept for one
   /// release window so existing production deploys don't break mid-flight.
   BUYER_AGENT_WALLET_ID: optionalString,
+  // Circle wallet id for the security guardian (the escrow/vault/treasury/PO
+  // Guardable `guardian`). Signs on-chain hold / releaseHold / attestDelivery
+  // when the delivery scanner flags a proof. Optional: when unset (or the v2
+  // escrow isn't live), the security agent stays off-chain-only.
+  GUARDIAN_WALLET_ID: optionalString,
   BUYER_AGENT_ADDRESS: optionalAddr,
   /// Genuinely legacy. Nothing in production code reads these. Safe to drop.
   SELLER_AGENT_WALLET_ID: optionalString,

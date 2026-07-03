@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomBytes } from 'node:crypto';
-import { parseUnits, formatUnits } from 'viem';
+import { parseUnits, formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import {
   escrow,
@@ -21,6 +21,9 @@ import {
   releaseMilestone,
   finalizeIfSettled,
   acceptEscrow as acceptEscrowOnChain,
+  claimMilestone as claimMilestoneOnChain,
+  guardianHold,
+  guardianReleaseHold,
   disputeEscrow,
   refundEscrow,
   reclaimAfterDeadline,
@@ -1328,6 +1331,14 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
           verdict: scan.verdict === 'malicious' ? 'malicious' : 'suspicious',
           reasons: scan.reasons,
         });
+        // v2b: bind the hold ON CHAIN too, so a flagged delivery can't be
+        // claimed by calling the escrow directly. Fire-and-forget; inert until
+        // the guardian wallet + v2 escrow are live. reasonHash anchors the
+        // verdict without leaking the URL.
+        void guardianHold(
+          jobId,
+          keccak256(toBytes(`${scan.verdict}|${scan.reasons.join(',')}|${Date.now()}`)),
+        );
       }
     } catch (err) {
       // A scan failure must not block the seller from delivering; mark the
@@ -1412,6 +1423,9 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       },
     });
   } else if (wasHeld) {
+    // The corrected delivery cleared the scan: lift the on-chain hold too so the
+    // seller-paying paths unfreeze (inert until the guardian + v2 escrow live).
+    void guardianReleaseHold(jobId);
     bus.emitEvent({
       type: 'deal.delivery.cleared',
       jobId,
@@ -1425,6 +1439,61 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 /// Buyer releases the next milestone. After the seller marks delivered, the
 /// buyer calls this twice: first to release the on-delivery slice, then again
 /// to verify and release the remainder, which settles the deal.
+/// v2b seller claim: after the buyer's review window elapses on a marked
+/// delivery with no buyer release or dispute, the seller forces the next
+/// milestone payout. The contract enforces the window (ReviewWindowOpen) and a
+/// security hold (Frozen); this route just checks the off-chain preconditions
+/// and signs with the seller agent. Available only on the v2 escrow.
+dealsRoutes.post('/direct/:jobId/claim', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  if (!config.ESCROW_V2B_ENABLED) {
+    return c.json({ error: 'seller claim is available on the v2 escrow only', code: 'not-available' }, 409);
+  }
+
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.seller) {
+    return c.json({ error: 'only the seller can claim this deal' }, 403);
+  }
+  if (!deal.delivered) {
+    return c.json({ error: 'mark the work delivered first', code: 'not-delivered' }, 409);
+  }
+  if (!deal.sellerAgentWalletId) {
+    return c.json({ error: 'this deal has no seller agent wallet on record' }, 409);
+  }
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this deal' }, 409);
+  }
+
+  const account = await readEscrow(jobId);
+  if (account.state !== ESCROW_ACCEPTED) {
+    return c.json({ error: `escrow is not claimable (state ${account.state})` }, 409);
+  }
+
+  inFlight.add(jobId);
+  try {
+    const index = account.milestonesReleased;
+    const txHash = await claimMilestoneOnChain(jobId, index, deal.sellerAgentWalletId);
+    await finalizeIfSettled(jobId);
+    return c.json({ accepted: true, jobId, milestoneIndex: index, txHash }, 200);
+  } catch (err) {
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'seller claim failed');
+    return c.json({ error: 'claim failed', code: info.code, detail: info.message }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
 dealsRoutes.post('/direct/:jobId/release', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);

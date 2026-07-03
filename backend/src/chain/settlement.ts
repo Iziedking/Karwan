@@ -277,6 +277,41 @@ export async function reclaimAfterDeadline(
   return result.txHash;
 }
 
+/// Seller claims a milestone after the buyer's review window elapses (v2b).
+/// The buyer-vanished safety net: once the seller marked delivery and the window
+/// passed with no buyer release/dispute, the seller forces the payout. Signed by
+/// the seller agent. Same milestone-counter guard as releaseMilestone.
+export async function claimMilestone(
+  jobId: string,
+  index: number,
+  sellerAgentWalletId: string,
+): Promise<string> {
+  if (!sellerAgentWalletId) throw new Error('claimMilestone requires a seller agent wallet id');
+  const result = await executeContractCall(
+    {
+      walletId: sellerAgentWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'claimMilestone(bytes32,uint8)',
+      abiParameters: [jobId, index.toString()],
+    },
+    `claimMilestone(${jobId}, ${index})`,
+  );
+  invalidateEscrowCache(jobId);
+  const account = await readEscrow(jobId);
+  if (account.milestonesReleased <= index) {
+    throw new Error(
+      `claimMilestone inner-reverted: tx ${result.txHash} COMPLETE but milestonesReleased=${account.milestonesReleased}, expected >${index}.`,
+    );
+  }
+  bus.emitEvent({
+    type: 'escrow.milestone.released',
+    jobId,
+    actor: 'seller',
+    payload: { milestoneIndex: index, txHash: result.txHash, byClaim: true },
+  });
+  return result.txHash;
+}
+
 /// Buyer-only deadline extension (v2b). Mirrors the off-chain extension-approve
 /// flow so the on-chain clock tracks the agreed new deadline. newDeadline is
 /// absolute unix seconds.
@@ -352,6 +387,88 @@ export async function mutualCancelOnChain(
   );
   await assertEscrowState(jobId, ESCROW_STATE.Settled, 'acceptCancel', result.txHash);
   return result.txHash;
+}
+
+// ============================ Guardian (v2b) ===========================
+// The security agent's on-chain hand. Signs from the guardian wallet
+// (config.GUARDIAN_WALLET_ID). All are best-effort: a guardian action must
+// never block the delivery/settlement flow, so callers fire-and-forget and log.
+// Inert until the v2 escrow is live and the guardian wallet is set + wired as
+// the escrow's guardian.
+
+/// Freeze the seller-paying paths for a jobId while the off-chain pipeline
+/// runs (flagged delivery link, fraud review). Auto-expires on chain.
+export async function guardianHold(jobId: string, reasonHash: string): Promise<string | null> {
+  if (!config.ESCROW_V2B_ENABLED || !config.GUARDIAN_WALLET_ID) return null;
+  try {
+    const result = await executeContractCall(
+      {
+        walletId: config.GUARDIAN_WALLET_ID,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'hold(bytes32,bytes32)',
+        abiParameters: [jobId, reasonHash],
+      },
+      `guardian.hold(${jobId})`,
+    );
+    bus.emitEvent({ type: 'security.hold', jobId, actor: 'platform', payload: { txHash: result.txHash } });
+    return result.txHash;
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'guardian.hold failed (non-blocking)');
+    return null;
+  }
+}
+
+/// Lift a hold once the flagged proof clears.
+export async function guardianReleaseHold(jobId: string): Promise<string | null> {
+  if (!config.ESCROW_V2B_ENABLED || !config.GUARDIAN_WALLET_ID) return null;
+  try {
+    const result = await executeContractCall(
+      {
+        walletId: config.GUARDIAN_WALLET_ID,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'releaseHold(bytes32)',
+        abiParameters: [jobId],
+      },
+      `guardian.releaseHold(${jobId})`,
+    );
+    bus.emitEvent({ type: 'security.hold.cleared', jobId, actor: 'platform', payload: { txHash: result.txHash } });
+    return result.txHash;
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'guardian.releaseHold failed (non-blocking)');
+    return null;
+  }
+}
+
+/// Attest a marked delivery. pass=true collapses the review window so an
+/// agent-verified good delivery settles sooner; pass=false places a hold.
+export async function guardianAttestDelivery(
+  jobId: string,
+  milestoneIndex: number,
+  pass: boolean,
+  evidenceHash: string,
+): Promise<string | null> {
+  if (!config.ESCROW_V2B_ENABLED || !config.GUARDIAN_WALLET_ID) return null;
+  try {
+    const result = await executeContractCall(
+      {
+        walletId: config.GUARDIAN_WALLET_ID,
+        contractAddress: escrow.address,
+        abiFunctionSignature: 'attestDelivery(bytes32,uint8,bool,bytes32)',
+        abiParameters: [jobId, milestoneIndex.toString(), pass, evidenceHash],
+      },
+      `guardian.attestDelivery(${jobId}, ${pass})`,
+    );
+    bus.emitEvent({
+      type: 'security.attested',
+      jobId,
+      actor: 'platform',
+      payload: { pass, txHash: result.txHash },
+    });
+    return result.txHash;
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'guardian.attestDelivery failed (non-blocking)');
+    return null;
+  }
 }
 
 /// Reads the escrow on chain; if it has reached the Settled state, emits
