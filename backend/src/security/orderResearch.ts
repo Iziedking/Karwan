@@ -28,7 +28,11 @@ export async function securityResearchOrder(
   try {
     const read = await researchMarket(cleaned);
     setResearchHeat(cleaned, read);
-    if (!read.cached) {
+    // Only record an agent.paid event when a payment actually settled. A free
+    // read (endpoint answered the unpaid probe with 200, so payExternal returns
+    // paidUsd 0 and no txHash) is NOT a payment and must not surface on the deal
+    // page as a "$0.000" entry with no receipt. Mirrors the /research emitter.
+    if (!read.cached && read.paidUsd > 0) {
       bus.emitEvent({
         type: 'agent.paid',
         jobId,

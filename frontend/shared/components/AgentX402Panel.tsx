@@ -73,7 +73,16 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
       .recentEvents(jobId, 'agent.paid', 50)
       .then((r) => {
         if (cancelled) return;
-        setPayments(dedupeSort(r.events.map(fromEvent).filter((p): p is Payment => p !== null)));
+        // Only show entries where USDC actually moved. A free read (paidUsd 0,
+        // no txHash) is not a payment and would render as a "$0.000" row with no
+        // receipt; drop it so the card only ever shows real, provable spend.
+        setPayments(
+          dedupeSort(
+            r.events
+              .map(fromEvent)
+              .filter((p): p is Payment => p !== null && p.amountUsd > 0),
+          ),
+        );
       })
       .catch(() => {
         /* seed is best-effort; live stream still fills in */
@@ -81,7 +90,7 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
     const unsub = subscribeLiveEvents((e) => {
       if (e.type !== 'agent.paid' || e.jobId !== jobId) return;
       const p = fromEvent(e);
-      if (p) setPayments((prev) => dedupeSort([p, ...prev]));
+      if (p && p.amountUsd > 0) setPayments((prev) => dedupeSort([p, ...prev]));
     });
     return () => {
       cancelled = true;
@@ -114,8 +123,7 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
       </div>
 
       <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)] max-w-[60ch]">
-        Your agents pay per call for the data they negotiate with. Each payment is real USDC,
-        settled on chain.
+        Your agents pay per call for the data they negotiate with.
       </p>
 
       <ul className="mt-4 space-y-2">
