@@ -12,8 +12,8 @@ export function useBalances() {
   const query = useQuery({
     queryKey: qk.balances.me(),
     queryFn: () => api.balances(),
-    staleTime: 5_000,
-    refetchInterval: 5_000,
+    staleTime: 20_000,
+    refetchInterval: 20_000,
   });
 
   return {

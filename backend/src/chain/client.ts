@@ -119,9 +119,15 @@ export function watchEventsViaGetLogs(input: {
   let prev: bigint | null = null;
   let inFlight = false;
   let stopped = false;
+  // Exponential backoff so a persistently failing range (e.g. a getLogs window
+  // the RPC keeps rejecting) stops re-firing every tick and hammering the RPC.
+  let errorStreak = 0;
+  let nextAllowedAt = 0;
+  const BACKOFF_CAP_MS = 5 * 60_000;
 
   const tick = async () => {
     if (inFlight || stopped) return;
+    if (Date.now() < nextAllowedAt) return; // backing off after errors
     inFlight = true;
     try {
       const head = await publicClient.getBlockNumber();
@@ -129,9 +135,13 @@ export function watchEventsViaGetLogs(input: {
         // First tick anchors the cursor: only events AFTER watch start are
         // emitted, matching filter semantics (history is the backfill's job).
         prev = head;
+        errorStreak = 0;
         return;
       }
-      if (head <= prev) return;
+      if (head <= prev) {
+        errorStreak = 0;
+        return;
+      }
       let from = prev + 1n;
       if (head - from > WATCH_MAX_RANGE) {
         from = head - WATCH_MAX_RANGE;
@@ -144,9 +154,14 @@ export function watchEventsViaGetLogs(input: {
         toBlock: head,
       });
       prev = head;
+      errorStreak = 0;
       if (logs.length > 0) input.onLogs(logs as Log[]);
     } catch (err) {
-      // Cursor stays put: the same range retries on the next tick.
+      // Cursor stays put: the same range retries, but after a growing delay
+      // (interval × 2^streak, capped) so a broken range doesn't spin the RPC.
+      errorStreak += 1;
+      const delay = Math.min(input.pollingInterval * 2 ** (errorStreak - 1), BACKOFF_CAP_MS);
+      nextAllowedAt = Date.now() + delay;
       input.onError(err as Error);
     } finally {
       inFlight = false;

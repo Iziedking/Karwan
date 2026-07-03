@@ -14,7 +14,7 @@ import { logger } from '../logger.js';
 /// long ranges. Throws if any chunk fails every retry so the route returns
 /// 502 rather than dressing up partial data.
 const SCAN_CHUNK_BLOCKS = 5_000n;
-const SCAN_CHUNK_RETRIES = 3;
+const SCAN_CHUNK_RETRIES = 2;
 const SCAN_CHUNK_BACKOFF_MS = 400;
 const SCAN_CONCURRENCY = 8;
 
@@ -191,7 +191,7 @@ interface MeSnapshot {
 }
 
 const meCache = new Map<string, { at: number; data: MeSnapshot }>();
-const ME_TTL_MS = 30_000;
+const ME_TTL_MS = 120_000;
 
 yieldRoutes.get('/me', async (c) => {
   const distributor = distributorAddress();
@@ -352,12 +352,18 @@ interface HistoryPoint {
 }
 
 const historyCache = new Map<string, { at: number; data: HistoryPoint[] }>();
-const HISTORY_TTL_MS = 30_000;
+const HISTORY_TTL_MS = 120_000;
 
 function distributorDeployBlock(): bigint {
   const v = (config as unknown as Record<string, string | undefined>)
     .KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK;
   if (v && /^\d+$/.test(v)) return BigInt(v);
+  // Fallback: the vault deploy block. The distributor shipped in the same
+  // bundle era, so this is a safe (and MUCH tighter) lower bound than the old
+  // 14-day window that scanned ~1.2M blocks on every uncached call. Set
+  // KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK to the exact block to tighten further.
+  const vault = config.KARWAN_VAULT_DEPLOY_BLOCK;
+  if (vault && /^\d+$/.test(String(vault))) return BigInt(vault);
   return 0n;
 }
 

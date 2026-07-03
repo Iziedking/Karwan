@@ -173,7 +173,7 @@ function logDedupeKey(label: string, log: Log): string {
 /// profile, and each bids through their own seller agent wallet.
 /// Event-watch poll cadence. Arc blocks are ~0.5s, so a 4s poll picks up a new
 /// JobPosted / counter within a few seconds while keeping getLogs load light.
-const WATCH_POLL_MS = 4_000;
+const WATCH_POLL_MS = 15_000;
 
 export function startSellerAgents() {
   logger.info({ jobBoard: jobBoard.address }, 'seller agent starting (multi-tenant)');

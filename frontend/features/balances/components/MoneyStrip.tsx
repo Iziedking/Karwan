@@ -43,8 +43,8 @@ export function MoneyStrip() {
     // Live cadence: refetch every 5s (silent background, paused when the tab is
     // hidden) so the money tiles track top-ups, settlements, and the activation
     // seed without a manual refresh. SSE still updates instantly on deal events.
-    staleTime: 5_000,
-    refetchInterval: 5_000,
+    staleTime: 20_000,
+    refetchInterval: 20_000,
   });
   const available = overviewQuery.data
     ? (() => {

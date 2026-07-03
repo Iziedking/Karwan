@@ -21,7 +21,7 @@ export function BalanceRail() {
     chainId: arcTestnet.id,
     // Keep the nav balance live: silent 5s refetch on top of wagmi's block
     // watching, so a top-up or settlement shows without a reload.
-    query: { refetchInterval: 5_000 },
+    query: { refetchInterval: 20_000 },
   });
   const { copied, copy } = useClipboard();
 

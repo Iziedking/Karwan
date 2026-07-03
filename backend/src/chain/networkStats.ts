@@ -27,6 +27,15 @@ const USDC_DECIMALS = 6;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SERIES_DAYS = 30;
 const CACHE_TTL_MS = 60_000;
+/// Minimum gap between background rebuilds. Without this, stale-while-revalidate
+/// kicked a fresh full scan on nearly every 60s poll, so the scanner ran
+/// back-to-back forever. The stats don't move fast on testnet, so a 15-minute
+/// floor is plenty and slashes RPC usage. Env-overridable.
+const REFRESH_FLOOR_MS = Number(process.env.NETWORK_STATS_REFRESH_FLOOR_MS ?? 15 * 60_000);
+/// Full re-seed cadence. The incremental scanner only sweeps NEW blocks each
+/// refresh; a periodic full reseed self-heals any window the RPC silently
+/// dropped (Arc returns empty on wide getLogs) so cumulative counts can't drift.
+const RESEED_MS = Number(process.env.NETWORK_STATS_RESEED_MS ?? 6 * 60 * 60_000);
 // Arc public RPC silently returns empty on overly wide getLogs windows.
 // 5k-block chunks are a compromise between staying under the RPC's hidden
 // per-response cap and keeping the total chunk count low enough that the
@@ -237,6 +246,11 @@ let refreshing = false;
 /// dashboard never waits on RPC. Guarded so concurrent reads don't stack builds.
 function refreshInBackground(): void {
   if (refreshing) return;
+  // Refresh floor: once this process has seeded its accumulator, don't rebuild
+  // if the last snapshot is younger than the floor. This is what stops the
+  // scanner from running continuously. The first seed (acc still null) always
+  // runs so a fresh boot populates the incremental accumulator promptly.
+  if (acc && cached && Date.now() - cached.builtAt < REFRESH_FLOOR_MS) return;
   refreshing = true;
   void buildAndStore()
     .catch((err) =>
@@ -274,7 +288,7 @@ interface ScanInputs {
 /// Per-chunk retry tuning. RPC flakiness on testnet can drop a window even
 /// when nothing's wrong with the data; up to 3 attempts with linear backoff
 /// recovers > 95% of transient failures we've seen in practice.
-const SCAN_CHUNK_RETRIES = 3;
+const SCAN_CHUNK_RETRIES = 2;
 const SCAN_CHUNK_BACKOFF_MS = 400;
 
 async function scanOneChunk(
@@ -400,6 +414,76 @@ function formatUsdc(value: bigint): string {
   return formatUnits(value, USDC_DECIMALS);
 }
 
+/// Incremental accumulator. Seeded by ONE full historical scan (cold start or
+/// after a redeploy / periodic reseed), then advanced by scanning only the new
+/// blocks since `cursor` on each refresh. Every counter and volume on chain is
+/// strictly cumulative, so merging deltas is exact; the daily series keeps an
+/// absolute day->counts map that the response projects the last 30 days from.
+interface DayCounts {
+  funded: number;
+  settled: number;
+  disputed: number;
+  refunded: number;
+}
+interface StatsAcc {
+  cursor: bigint; // last block folded into the accumulator
+  contractsKey: string; // detects a redeploy -> forces a reseed
+  seededAt: number;
+  counts: {
+    jobsPosted: number;
+    escrowsFunded: number;
+    escrowsSettled: number;
+    escrowsDisputed: number;
+    escrowsRefunded: number;
+    milestoneReleases: number;
+    vaultDeposits: number;
+    vaultClaims: number;
+    vaultSlashes: number;
+    reputationRecords: number;
+    yieldClaims: number;
+  };
+  vol: {
+    fundedUsdc: bigint;
+    releasedUsdc: bigint;
+    refundedUsdc: bigint;
+    slashedUsdc: bigint;
+    feesCollectedUsdc: bigint;
+    vaultDepositsUsdc: bigint;
+  };
+  days: Map<number, DayCounts>;
+}
+let acc: StatsAcc | null = null;
+
+function freshAcc(contractsKey: string): StatsAcc {
+  return {
+    cursor: 0n,
+    contractsKey,
+    seededAt: Date.now(),
+    counts: {
+      jobsPosted: 0,
+      escrowsFunded: 0,
+      escrowsSettled: 0,
+      escrowsDisputed: 0,
+      escrowsRefunded: 0,
+      milestoneReleases: 0,
+      vaultDeposits: 0,
+      vaultClaims: 0,
+      vaultSlashes: 0,
+      reputationRecords: 0,
+      yieldClaims: 0,
+    },
+    vol: {
+      fundedUsdc: 0n,
+      releasedUsdc: 0n,
+      refundedUsdc: 0n,
+      slashedUsdc: 0n,
+      feesCollectedUsdc: 0n,
+      vaultDepositsUsdc: 0n,
+    },
+    days: new Map(),
+  };
+}
+
 async function build(): Promise<NetworkStats> {
   const now = Date.now();
   const head = await publicClient.getBlockNumber();
@@ -419,86 +503,113 @@ async function build(): Promise<NetworkStats> {
   const distributorAddr = ((config as unknown as Record<string, string | undefined>)
     .KARWAN_YIELD_DISTRIBUTOR_ADDR ?? null) as `0x${string}` | null;
 
-  const [
-    funded,
-    settled,
-    disputed,
-    refunded,
-    releases,
-    fees,
-    deposits,
-    claims,
-    slashes,
-    completions,
-    posted,
-    yieldClaimsLogs,
-  ] = await Promise.all([
-    safeScan({ address: escrowAddr, event: EVENT_ESCROW_FUNDED }, lowerBound, head),
-    safeScan({ address: escrowAddr, event: EVENT_ESCROW_SETTLED }, lowerBound, head),
-    safeScan({ address: escrowAddr, event: EVENT_ESCROW_DISPUTED }, lowerBound, head),
-    safeScan({ address: escrowAddr, event: EVENT_ESCROW_REFUNDED }, lowerBound, head),
-    safeScan({ address: escrowAddr, event: EVENT_PROGRESS_RELEASED }, lowerBound, head),
-    safeScan({ address: escrowAddr, event: EVENT_FEE_COLLECTED }, lowerBound, head),
-    safeScan({ address: vaultAddr, event: EVENT_VAULT_DEPOSITED }, lowerBound, head),
-    safeScan({ address: vaultAddr, event: EVENT_VAULT_CLAIMED }, lowerBound, head),
-    safeScan({ address: vaultAddr, event: EVENT_VAULT_SLASHED }, lowerBound, head),
-    safeScan({ address: repAddr, event: EVENT_REP_COMPLETION }, lowerBound, head),
-    safeScan({ address: jobBoardAddr, event: EVENT_JOB_POSTED }, lowerBound, head),
-    safeScan({ address: distributorAddr, event: EVENT_YIELD_CLAIMED }, lowerBound, head),
-  ]);
+  const contractsKey = [escrowAddr, vaultAddr, repAddr, jobBoardAddr, distributorAddr].join('|');
 
-  // Resolve timestamps only for events that feed the daily series; saves a
-  // pile of getBlockByNumber calls when refunds and disputes are rare.
-  const seriesBlocks = new Set<bigint>();
-  for (const l of [...funded, ...settled, ...disputed, ...refunded]) {
-    seriesBlocks.add(l.blockNumber);
+  // Seed on cold start, after a redeploy (contracts changed), or on the
+  // periodic reseed cadence. A seed scans the full history from the deploy
+  // block; every other refresh scans only new blocks.
+  const needsSeed =
+    !acc || acc.contractsKey !== contractsKey || now - acc.seededAt >= RESEED_MS;
+  if (needsSeed) {
+    acc = freshAcc(contractsKey);
+    acc.cursor = lowerBound - 1n; // so `from` below == lowerBound
   }
-  const timeByBlock = await timestampsFor(seriesBlocks);
+  const a = acc as StatsAcc;
 
+  const from = a.cursor + 1n;
+  if (from <= head) {
+    const [
+      funded,
+      settled,
+      disputed,
+      refunded,
+      releases,
+      fees,
+      deposits,
+      claims,
+      slashes,
+      completions,
+      posted,
+      yieldClaimsLogs,
+    ] = await Promise.all([
+      safeScan({ address: escrowAddr, event: EVENT_ESCROW_FUNDED }, from, head),
+      safeScan({ address: escrowAddr, event: EVENT_ESCROW_SETTLED }, from, head),
+      safeScan({ address: escrowAddr, event: EVENT_ESCROW_DISPUTED }, from, head),
+      safeScan({ address: escrowAddr, event: EVENT_ESCROW_REFUNDED }, from, head),
+      safeScan({ address: escrowAddr, event: EVENT_PROGRESS_RELEASED }, from, head),
+      safeScan({ address: escrowAddr, event: EVENT_FEE_COLLECTED }, from, head),
+      safeScan({ address: vaultAddr, event: EVENT_VAULT_DEPOSITED }, from, head),
+      safeScan({ address: vaultAddr, event: EVENT_VAULT_CLAIMED }, from, head),
+      safeScan({ address: vaultAddr, event: EVENT_VAULT_SLASHED }, from, head),
+      safeScan({ address: repAddr, event: EVENT_REP_COMPLETION }, from, head),
+      safeScan({ address: jobBoardAddr, event: EVENT_JOB_POSTED }, from, head),
+      safeScan({ address: distributorAddr, event: EVENT_YIELD_CLAIMED }, from, head),
+    ]);
+    // All safeScans succeeded (a hard failure throws, leaving cursor put so the
+    // same range retries). Fold the deltas into the accumulator.
+
+    // Timestamps only for the series-feeding events (funded/settled/disputed/refunded).
+    const seriesBlocks = new Set<bigint>();
+    for (const l of [...funded, ...settled, ...disputed, ...refunded]) seriesBlocks.add(l.blockNumber);
+    const timeByBlock = await timestampsFor(seriesBlocks);
+    const bumpDay = (
+      logs: Array<{ blockNumber: bigint }>,
+      key: keyof DayCounts,
+    ) => {
+      for (const e of logs) {
+        const ts = timeByBlock.get(e.blockNumber.toString());
+        if (!ts) continue;
+        const day = bucketKey(ts);
+        let bucket = a.days.get(day);
+        if (!bucket) {
+          bucket = { funded: 0, settled: 0, disputed: 0, refunded: 0 };
+          a.days.set(day, bucket);
+        }
+        bucket[key] += 1;
+      }
+    };
+
+    a.counts.jobsPosted += posted.length;
+    a.counts.escrowsFunded += funded.length;
+    a.counts.escrowsSettled += settled.length;
+    a.counts.escrowsDisputed += disputed.length;
+    a.counts.escrowsRefunded += refunded.length;
+    a.counts.milestoneReleases += releases.length;
+    a.counts.vaultDeposits += deposits.length;
+    a.counts.vaultClaims += claims.length;
+    a.counts.vaultSlashes += slashes.length;
+    a.counts.reputationRecords += completions.length;
+    a.counts.yieldClaims += yieldClaimsLogs.length;
+
+    for (const e of funded) a.vol.fundedUsdc += asBigint(e.args.dealAmount);
+    for (const e of refunded) a.vol.refundedUsdc += asBigint(e.args.amount);
+    for (const e of releases) a.vol.releasedUsdc += asBigint(e.args.amount);
+    for (const e of fees) a.vol.feesCollectedUsdc += asBigint(e.args.amount);
+    for (const e of deposits) a.vol.vaultDepositsUsdc += asBigint(e.args.principal);
+    for (const e of slashes) a.vol.slashedUsdc += asBigint(e.args.amount);
+
+    bumpDay(funded, 'funded');
+    bumpDay(settled, 'settled');
+    bumpDay(disputed, 'disputed');
+    bumpDay(refunded, 'refunded');
+
+    // Prune day buckets well past the 30-day window to bound memory.
+    const oldest = bucketKey(now) - (SERIES_DAYS + 5) * DAY_MS;
+    for (const day of a.days.keys()) if (day < oldest) a.days.delete(day);
+
+    a.cursor = head;
+  }
+
+  // Project the public snapshot from the accumulator.
   const series = emptySeries(now);
-  const seriesIndex = new Map<number, DaySeriesPoint>();
-  for (const p of series) seriesIndex.set(p.ts, p);
-
-  function bumpSeries(blockNumber: bigint, key: keyof Omit<DaySeriesPoint, 'ts'>) {
-    const ts = timeByBlock.get(blockNumber.toString());
-    if (!ts) return;
-    const bucket = seriesIndex.get(bucketKey(ts));
-    if (!bucket) return;
-    bucket[key] += 1;
-  }
-
-  let fundedUsdc = 0n;
-  let releasedUsdc = 0n;
-  let refundedUsdc = 0n;
-  let slashedUsdc = 0n;
-  let feesCollectedUsdc = 0n;
-  let vaultDepositsUsdc = 0n;
-
-  for (const e of funded) {
-    fundedUsdc += asBigint(e.args.dealAmount);
-    bumpSeries(e.blockNumber, 'funded');
-  }
-  for (const e of settled) {
-    bumpSeries(e.blockNumber, 'settled');
-  }
-  for (const e of disputed) {
-    bumpSeries(e.blockNumber, 'disputed');
-  }
-  for (const e of refunded) {
-    refundedUsdc += asBigint(e.args.amount);
-    bumpSeries(e.blockNumber, 'refunded');
-  }
-  for (const e of releases) {
-    releasedUsdc += asBigint(e.args.amount);
-  }
-  for (const e of fees) {
-    feesCollectedUsdc += asBigint(e.args.amount);
-  }
-  for (const e of deposits) {
-    vaultDepositsUsdc += asBigint(e.args.principal);
-  }
-  for (const e of slashes) {
-    slashedUsdc += asBigint(e.args.amount);
+  for (const p of series) {
+    const d = a.days.get(p.ts);
+    if (d) {
+      p.funded = d.funded;
+      p.settled = d.settled;
+      p.disputed = d.disputed;
+      p.refunded = d.refunded;
+    }
   }
 
   return {
@@ -512,26 +623,14 @@ async function build(): Promise<NetworkStats> {
       jobBoard: jobBoardAddr ?? '',
       yieldDistributor: distributorAddr ?? '',
     },
-    totals: {
-      jobsPosted: posted.length,
-      escrowsFunded: funded.length,
-      escrowsSettled: settled.length,
-      escrowsDisputed: disputed.length,
-      escrowsRefunded: refunded.length,
-      milestoneReleases: releases.length,
-      vaultDeposits: deposits.length,
-      vaultClaims: claims.length,
-      vaultSlashes: slashes.length,
-      reputationRecords: completions.length,
-      yieldClaims: yieldClaimsLogs.length,
-    },
+    totals: { ...a.counts },
     volumes: {
-      fundedUsdc: formatUsdc(fundedUsdc),
-      releasedUsdc: formatUsdc(releasedUsdc),
-      refundedUsdc: formatUsdc(refundedUsdc),
-      slashedUsdc: formatUsdc(slashedUsdc),
-      feesCollectedUsdc: formatUsdc(feesCollectedUsdc),
-      vaultDepositsUsdc: formatUsdc(vaultDepositsUsdc),
+      fundedUsdc: formatUsdc(a.vol.fundedUsdc),
+      releasedUsdc: formatUsdc(a.vol.releasedUsdc),
+      refundedUsdc: formatUsdc(a.vol.refundedUsdc),
+      slashedUsdc: formatUsdc(a.vol.slashedUsdc),
+      feesCollectedUsdc: formatUsdc(a.vol.feesCollectedUsdc),
+      vaultDepositsUsdc: formatUsdc(a.vol.vaultDepositsUsdc),
     },
     series,
     scannedAt: now,

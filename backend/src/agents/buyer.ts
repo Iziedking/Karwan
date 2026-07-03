@@ -358,7 +358,7 @@ function logDedupeKey(label: string, log: Log): string {
 /// posted it, and that profile drives the auction.
 /// Event-watch poll cadence (HTTP polling, no websocket). Matches the seller
 /// agent; ~4s picks up bids/counters within seconds without heavy getLogs load.
-const WATCH_POLL_MS = 4_000;
+const WATCH_POLL_MS = 15_000;
 
 export function startBuyerAgents() {
   logger.info(

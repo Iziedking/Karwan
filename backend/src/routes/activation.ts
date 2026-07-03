@@ -117,12 +117,22 @@ activationRoutes.get('/status', async (c) => {
 /// read separately via the bridge route (they hit a different chain's RPC and
 /// are slower). On Arc, USDC is the gas token, so a single USDC balance per
 /// wallet covers both spend and gas.
+const WALLETS_TTL_MS = 15_000;
+const walletsCache = new Map<string, { at: number; body: unknown }>();
+
 activationRoutes.get('/wallets', async (c) => {
   const address = c.req.query('address');
   if (!address || !addrSchema.safeParse(address).success) {
     return c.json({ error: 'address query param required' }, 400);
   }
   const addr = address.toLowerCase();
+
+  // Server-side cache: the top-up/withdraw card polls this per user every few
+  // seconds; a short TTL collapses N tabs to one 3-read on-chain fetch.
+  const cachedWallets = walletsCache.get(addr);
+  if (cachedWallets && Date.now() - cachedWallets.at < WALLETS_TTL_MS) {
+    return c.json(cachedWallets.body as Record<string, unknown>);
+  }
 
   let identityUsdc: string | null = null;
   try {
@@ -153,11 +163,13 @@ activationRoutes.get('/wallets', async (c) => {
     };
   }
 
-  return c.json({
+  const body = {
     identity: { address: addr, usdcBalance: identityUsdc },
     agents,
     bridgeWallets: wallets?.bridgeWallets ?? {},
-  });
+  };
+  walletsCache.set(addr, { at: Date.now(), body });
+  return c.json(body);
 });
 
 /// Tops up the user's Base Sepolia bridge wallet with native gas + USDC from the

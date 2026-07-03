@@ -7,7 +7,15 @@ const NATIVE_DECIMALS = arcTestnet.nativeCurrency.decimals;
 
 export const balancesRoutes = new Hono();
 
+/// Server-side cache so N frontend tabs polling every few seconds collapse to a
+/// single on-chain read per window instead of one per tab per poll.
+const BALANCES_TTL_MS = 15_000;
+let balancesCache: { at: number; body: unknown } | null = null;
+
 balancesRoutes.get('/', async (c) => {
+  if (balancesCache && Date.now() - balancesCache.at < BALANCES_TTL_MS) {
+    return c.json(balancesCache.body as Record<string, unknown>);
+  }
   const wallets: Array<{ label: string; address?: string }> = [
     { label: 'buyer', address: config.BUYER_AGENT_ADDRESS },
     { label: 'seller', address: config.SELLER_AGENT_ADDRESS },
@@ -30,5 +38,7 @@ balancesRoutes.get('/', async (c) => {
     }),
   );
 
-  return c.json({ wallets: result, fetchedAt: Date.now() });
+  const body = { wallets: result, fetchedAt: Date.now() };
+  balancesCache = { at: Date.now(), body };
+  return c.json(body);
 });
