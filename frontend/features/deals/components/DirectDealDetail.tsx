@@ -842,6 +842,36 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 </div>
               </PageCard>
             )}
+
+          {/* Security agent's verdict on the MATCH (distinct from delivery-link
+              safety above). Non-blocking: the funds are escrowed and the human is
+              the judge. 'hold' marks the deal for review; 'flag' is advisory. */}
+          {deal.matchRisk && !deal.matchRisk.clearedAt && (
+            <PageCard>
+              <CardHead
+                label={deal.matchRisk.decision === 'hold' ? 'Match held for review' : 'Match flagged'}
+              />
+              <div className="p-5 md:p-6 space-y-3">
+                <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                  {deal.matchRisk.decision === 'hold'
+                    ? 'The security agent flagged this match for review. Your funds stay safely in escrow while it is looked at; nothing releases until it clears.'
+                    : 'The security agent noted something worth a look on this match. It does not block the deal; the funds are escrowed and you remain the judge.'}
+                </p>
+                {deal.matchRisk.reasons.length > 0 && (
+                  <ul className="list-disc ps-5 space-y-1 text-[13px] text-[var(--lp-text-muted)]">
+                    {deal.matchRisk.reasons.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                )}
+                {deal.matchRisk.paidConsulted && (
+                  <p className="text-[12px]" style={{ color: 'var(--lp-accent)' }}>
+                    Screened against the paid counterparty and market data the agents already gathered.
+                  </p>
+                )}
+              </div>
+            </PageCard>
+          )}
         </div>
       </Band>
 

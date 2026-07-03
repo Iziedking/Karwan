@@ -26,6 +26,7 @@ export type KarwanEventType =
   | 'security.hold'
   | 'security.hold.cleared'
   | 'security.attested'
+  | 'security.match.evaluated'
   | 'bridge.approving'
   | 'bridge.burning'
   | 'bridge.burned'

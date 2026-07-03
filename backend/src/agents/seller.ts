@@ -34,6 +34,8 @@ import {
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { categoryPriceSnapshot } from '../db/priceObservations.js';
+import { shouldDenyPaidCall } from '../security/sa-stub.js';
+import { recordSpend } from '../security/spendGuard.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
@@ -427,6 +429,19 @@ async function maybeSellerCounterpartyPull(
 ): Promise<void> {
   if (!config.X402_PAID_SIGNALS_ENABLED || !config.KARWAN_TREASURY_ADDR) return;
   if (cachedBuyerPassport(jobId)) return;
+  // Per-deal spend cap: bound paid pulls per job (a bid flood must not trigger
+  // unbounded spend). Skip and negotiate on free signals once the cap is hit.
+  if (
+    await shouldDenyPaidCall({
+      invoiceId: jobId,
+      signal: 'credit-passport',
+      costEstimateUsdc: '0.01',
+      callerRole: 'seller-agent',
+    })
+  ) {
+    logger.info({ jobId, seller: seller.address }, 'seller counterparty pull skipped: per-deal cap reached');
+    return;
+  }
   try {
     const record = await findAgentWalletByAgentAddress(seller.address);
     const owner = record?.userAddress;
@@ -435,6 +450,7 @@ async function maybeSellerCounterpartyPull(
 
     const signal = await paidCreditPassport(seller.address, buyerAddress);
     sellerBuyerPassport.set(jobId, { signal, at: Date.now() });
+    recordSpend(jobId, signal.amountUsd);
     await chargeResearch(owner, signal.amountUsd);
     bus.emitEvent({
       type: 'agent.paid',

@@ -56,6 +56,7 @@ const DEAL_EVENTS = new Set<string>([
   'security.hold',
   'security.hold.cleared',
   'security.attested',
+  'security.match.evaluated',
 ]);
 
 function routes(event: ChainEvent): readonly (readonly string[])[] {

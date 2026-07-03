@@ -368,6 +368,19 @@ export interface DirectDeal {
   /// until cleared; verificationReasons explains why in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
+  /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
+  /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for
+  /// review. Deterministic, non-blocking — the money is escrowed and the human
+  /// is the judge. Set at match persist when the gate is enabled.
+  matchRisk?: {
+    decision: 'flag' | 'hold';
+    flags: string[];
+    reason: string;
+    reasons: string[];
+    paidConsulted: boolean;
+    evaluatedAt: number;
+    clearedAt?: number;
+  };
   /// Security Agent verdict on whether the delivery meets the request (separate
   /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
   /// pause auto-release; the proof is always shown, the buyer decides.

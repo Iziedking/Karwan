@@ -68,6 +68,21 @@ export interface DirectDeal {
   // check. verificationReasons explains a non-clean verdict in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
+  /// Security agent's verdict on the MATCH itself (distinct from the delivery-
+  /// proof verificationStatus above), set at match persist when
+  /// SECURITY_MATCH_GATE_ENABLED. 'flag' surfaces a risk banner; 'hold' also
+  /// marks the deal for review. Deterministic, non-blocking, reversible — the
+  /// money is escrowed either way and the human is the final judge. Absent =
+  /// passed clean or the gate is off. See security/matchGate.ts.
+  matchRisk?: {
+    decision: 'flag' | 'hold';
+    flags: string[];
+    reason: string;
+    reasons: string[];
+    paidConsulted: boolean;
+    evaluatedAt: number;
+    clearedAt?: number;
+  };
   /// Security Agent verdict on whether the delivery meets the buyer's request,
   /// separate from link safety. 'aligned' (or absent) flows normally; 'partial'
   /// and 'mismatch' surface a buyer review notice and pause auto-release so the

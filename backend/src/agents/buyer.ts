@@ -50,7 +50,7 @@ import { countCleanDealsBetween } from './workRecord.js';
 /// few enough to keep total negotiation time bounded.
 const MAX_CANDIDATES = 3;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
-import { createDeal, getDeal } from '../db/deals.js';
+import { createDeal, getDeal, patchDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
 import { getProfile } from '../db/profiles.js';
 import {
@@ -80,6 +80,9 @@ import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
 import { chargeResearch, getResearchState } from '../x402/researchAccount.js';
 import { securityResearchOrder } from '../security/orderResearch.js';
+import { shouldDenyPaidCall } from '../security/sa-stub.js';
+import { recordSpend } from '../security/spendGuard.js';
+import { evaluateMatch } from '../security/matchGate.js';
 import { upsertMarketAdvisory } from '../db/marketAdvisory.js';
 import {
   recordDealPrice,
@@ -652,7 +655,21 @@ async function handleBidSubmitted(log: Log) {
           .then((s) => s.active)
           .catch(() => false)
       : false;
-  if (buyerResearchActive) {
+  // Per-deal spend cap: a job flooded with bids must not trigger unbounded paid
+  // pulls. Skip the pull (score on free signals) once this deal's paid spend
+  // would exceed the cap. The pull is best-effort anyway, so skipping is safe.
+  const paidPullDenied =
+    buyerResearchActive &&
+    (await shouldDenyPaidCall({
+      invoiceId: state.jobId,
+      signal: 'credit-passport',
+      costEstimateUsdc: '0.01',
+      callerRole: 'buyer-agent',
+    }));
+  if (paidPullDenied) {
+    logger.info({ jobId: state.jobId, seller: args.seller }, 'paid passport pull skipped: per-deal cap reached');
+  }
+  if (buyerResearchActive && !paidPullDenied) {
     try {
       paidSignal = await Promise.race([
         paidCreditPassport(buyer.address, args.seller),
@@ -660,6 +677,7 @@ async function handleBidSubmitted(log: Log) {
           setTimeout(() => reject(new Error('paid passport pull timed out')), 45_000),
         ),
       ]);
+      recordSpend(state.jobId, paidSignal.amountUsd);
       logger.info(
         {
           jobId: state.jobId,
@@ -2704,6 +2722,45 @@ async function persistApprovedMatch(
       priceUsdc: Number(proposal.agreedPriceUsdc),
       ts: now,
     });
+
+    // Security match gate: a deterministic screen over the match, consuming the
+    // paid evidence both agents already gathered + free risk signals. It runs
+    // AFTER escrow funded (money is safe) and only surfaces risk — 'flag' shows a
+    // banner, 'hold' marks the deal for review. Never blocks or confiscates; the
+    // human already approved and remains the judge. Best-effort, flag-gated.
+    if (config.SECURITY_MATCH_GATE_ENABLED) {
+      try {
+        const verdict = await evaluateMatch(proposal);
+        if (verdict.decision !== 'pass') {
+          await patchDeal(proposal.jobId, {
+            matchRisk: {
+              decision: verdict.decision,
+              flags: verdict.flags,
+              reason: verdict.reason,
+              reasons: verdict.reasons,
+              paidConsulted: verdict.paidConsulted,
+              evaluatedAt: verdict.evaluatedAt,
+            },
+          });
+        }
+        bus.emitEvent({
+          type: 'security.match.evaluated',
+          jobId: proposal.jobId,
+          actor: 'platform',
+          payload: {
+            decision: verdict.decision,
+            flags: verdict.flags,
+            reason: verdict.reason,
+            paidConsulted: verdict.paidConsulted,
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          { jobId: proposal.jobId, err: (err as Error).message },
+          'match gate evaluation failed (non-fatal, deal proceeds)',
+        );
+      }
+    }
 
     // Settle the research cost on the MATCHED pair only. The SecurityAgent
     // fronted the call at post for the whole auction; here we draw it down from
