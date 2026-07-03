@@ -11,9 +11,11 @@ import { rateLimit } from '../middleware/rateLimit.js';
 /// guidance only.
 ///
 /// Provider chain: the Conduit gateway (Claude Sonnet) is preferred when
-/// configured, with the direct Anthropic key as the fallback. Both speak the
-/// Anthropic /v1/messages format, so one request shape and one response parser
-/// cover both, and a failure on the primary drops to the next.
+/// configured, then the direct Anthropic key, then OpenRouter as the last-resort
+/// fallback so a Conduit + Anthropic outage still answers the user. Conduit and
+/// Anthropic speak the Anthropic /v1/messages format; OpenRouter speaks the
+/// OpenAI chat-completions format, so callProvider builds the request and parses
+/// the reply per provider `kind`. A failure on one drops to the next.
 export const assistantRoutes = new Hono();
 
 const MAX_OUTPUT_TOKENS = 600;
@@ -24,12 +26,16 @@ interface Provider {
   url: string;
   headers: Record<string, string>;
   model: string;
+  /// Wire format. 'anthropic' = /v1/messages (Conduit, Anthropic); 'openai' =
+  /// chat-completions (OpenRouter). Drives request shape + reply parsing.
+  kind: 'anthropic' | 'openai';
 }
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
-/// The ordered provider chain. Conduit first when its key is set, Anthropic as
-/// the fallback. Empty when nothing is configured (assistant disabled).
+/// The ordered provider chain. Conduit first when its key is set, then Anthropic,
+/// then OpenRouter as the last-resort fallback. Empty when nothing is configured
+/// (assistant disabled).
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
   // Conduit's Anthropic-compatible endpoint mirrors Anthropic exactly:
@@ -49,6 +55,7 @@ export function assistantProviders(): Provider[] {
         'anthropic-version': '2023-06-01',
       },
       model: config.CONDUIT_MODEL,
+      kind: 'anthropic',
     });
   });
   if (config.ANTHROPIC_API_KEY) {
@@ -61,6 +68,23 @@ export function assistantProviders(): Provider[] {
         'anthropic-version': '2023-06-01',
       },
       model: config.ASSISTANT_MODEL,
+      kind: 'anthropic',
+    });
+  }
+  // OpenRouter last: keeps the assistant answering if BOTH Conduit and Anthropic
+  // are down or out of credit. OpenAI-compatible endpoint, so the system prompt
+  // rides as the first message (no separate `system` field) and the reply is
+  // read from choices[].message.content.
+  if (config.OPENROUTER_API_KEY) {
+    list.push({
+      name: 'openrouter',
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${config.OPENROUTER_API_KEY}`,
+      },
+      model: config.LLM_MODEL,
+      kind: 'openai',
     });
   }
   return list;
@@ -119,29 +143,52 @@ async function parseClaudeReply(res: Response): Promise<string> {
   }
 }
 
+/// Read an OpenAI chat-completions reply (OpenRouter). The text sits at
+/// choices[0].message.content in a single JSON body.
+async function parseOpenAiReply(res: Response): Promise<string> {
+  try {
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    return (data.choices?.[0]?.message?.content ?? '').trim();
+  } catch {
+    return '';
+  }
+}
+
 async function callProvider(
   p: Provider,
   messages: ChatMessage[],
   maxTokens: number,
   signal: AbortSignal,
 ): Promise<ProviderResult> {
+  // OpenAI format carries the system prompt as the first message; the Anthropic
+  // format carries it in a dedicated `system` field.
+  const requestBody =
+    p.kind === 'openai'
+      ? {
+          model: p.model,
+          max_tokens: maxTokens,
+          messages: [{ role: 'system', content: KARWAN_ASSISTANT_SYSTEM }, ...messages],
+        }
+      : {
+          model: p.model,
+          max_tokens: maxTokens,
+          system: KARWAN_ASSISTANT_SYSTEM,
+          messages,
+          stream: false,
+        };
   const res = await fetch(p.url, {
     method: 'POST',
     headers: p.headers,
-    body: JSON.stringify({
-      model: p.model,
-      max_tokens: maxTokens,
-      system: KARWAN_ASSISTANT_SYSTEM,
-      messages,
-      stream: false,
-    }),
+    body: JSON.stringify(requestBody),
     signal,
   });
   if (!res.ok) {
     const detail = (await res.text().catch(() => '')).slice(0, 300);
     return { ok: false, status: res.status, detail };
   }
-  const reply = await parseClaudeReply(res);
+  const reply = p.kind === 'openai' ? await parseOpenAiReply(res) : await parseClaudeReply(res);
   if (!reply) return { ok: false, detail: 'empty reply' };
   return { ok: true, reply };
 }
