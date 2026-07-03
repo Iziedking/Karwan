@@ -57,6 +57,11 @@ contract MockBackstop {
         frozen = f;
     }
 
+    function receiveEscrowFloat(uint256 amount) external {
+        require(msg.sender == escrow, "not escrow");
+        usdc.transferFrom(escrow, address(this), amount);
+    }
+
     function returnEscrowLiquidity(uint256 amount) external {
         require(msg.sender == escrow, "not escrow");
         require(!frozen, "treasury dry");

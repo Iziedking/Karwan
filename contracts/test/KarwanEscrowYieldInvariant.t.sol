@@ -50,6 +50,11 @@ contract MockBackstop {
         escrow = e;
     }
 
+    function receiveEscrowFloat(uint256 amount) external {
+        require(msg.sender == escrow, "not escrow");
+        usdc.transferFrom(escrow, address(this), amount);
+    }
+
     function returnEscrowLiquidity(uint256 amount) external {
         require(msg.sender == escrow, "not escrow");
         usdc.transfer(escrow, amount);

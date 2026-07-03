@@ -24,10 +24,13 @@ interface IKarwanVault {
 ///         payout. The escrow never holds USYC and needs no Circle whitelist;
 ///         the Treasury, holding the NAV upside, absorbs any shortfall.
 interface IEscrowYieldBackstop {
+    /// Pulls `amount` USDC from the escrow (which approved first) and books it
+    /// as a liquid reserved float. Escrow-only on the Treasury side.
+    function receiveEscrowFloat(uint256 amount) external;
+
     /// Escrow-only on the Treasury side. MUST deliver exactly `amount` USDC to
-    /// msg.sender (the escrow), unwrapping USYC if needed. Reverts if it cannot
-    /// cover it, so the escrow's payout reverts rather than paying short: funds
-    /// are delayed, never lost.
+    /// msg.sender (the escrow). Reverts if it cannot cover it, so the escrow's
+    /// payout reverts rather than paying short: funds are delayed, never lost.
     function returnEscrowLiquidity(uint256 amount) external;
 }
 
@@ -469,7 +472,11 @@ contract KarwanEscrow is ReentrancyGuard {
         uint256 bal = usdc.balanceOf(address(this));
         if (bal < amount || bal - amount < coverageFloor) revert FloorBreach();
         atTreasury += amount;
-        usdc.safeTransfer(yieldBackstop, amount);
+        // Pull model: approve and let the backstop draw, so it books the float
+        // atomically. Reset the allowance after in case the pull took less.
+        usdc.forceApprove(yieldBackstop, amount);
+        IEscrowYieldBackstop(yieldBackstop).receiveEscrowFloat(amount);
+        usdc.forceApprove(yieldBackstop, 0);
         emit IdleSwept(amount, atTreasury);
     }
 
