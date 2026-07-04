@@ -174,6 +174,7 @@ export async function payX402<T = unknown>(
   if (!offerHeader) throw new Error('402 without PAYMENT-REQUIRED header');
   const offer = JSON.parse(Buffer.from(offerHeader, 'base64').toString('utf-8')) as {
     x402Version?: number;
+    resource?: { url: string; description: string; mimeType: string };
     accepts?: PaymentOption[];
   };
   const option = offer.accepts?.find(
@@ -188,8 +189,13 @@ export async function payX402<T = unknown>(
   const payload = await scheme.createPaymentPayload(offer.x402Version ?? 2, option);
   const paid = await fetch(url, {
     headers: {
+      // Circle Gateway verify requires the resource object ON the payment
+      // payload ({url, description, mimeType}). createPaymentPayload does not
+      // echo it, so copy it from the offer (the 402's PAYMENT-REQUIRED resource)
+      // into the signed payload, else verify rejects with
+      // "paymentPayload.resource: Required".
       'Payment-Signature': Buffer.from(
-        JSON.stringify({ ...payload, accepted: option }),
+        JSON.stringify({ ...payload, resource: offer.resource, accepted: option }),
       ).toString('base64'),
     },
   });
