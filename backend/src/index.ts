@@ -104,6 +104,11 @@ app.use(
     credentials: true,
     allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
     allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token'],
+    // Cache the CORS preflight for a day so the browser stops firing an OPTIONS
+    // round-trip before every cross-origin API call. The allowed methods and
+    // headers are static, so a long cache is safe and cuts perceived latency on
+    // every authed page (each of which makes several api.karwan.site calls).
+    maxAge: 86_400,
   }),
 );
 
