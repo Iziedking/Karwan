@@ -25,7 +25,9 @@ jobs:
   contracts:
     name: Foundry tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # viaIR (required to keep KarwanEscrow under the EIP-170 limit on solc 0.8.28)
+    # roughly doubles compile time, so allow headroom over the ~8 min build+test.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:

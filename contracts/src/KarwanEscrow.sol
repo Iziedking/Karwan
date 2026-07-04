@@ -174,6 +174,13 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         uint64 reviewWindow;
         uint64 reclaimGrace;
         uint64 disputedAt;
+        /// v2b deal-timing appeals. extensionCount is the number of
+        /// buyer-APPROVED extensions (hard-capped at MAX_EXTENSIONS); once it
+        /// hits the cap the seller can no longer request more time and must
+        /// dispute. pendingDeadline holds a standing seller request awaiting the
+        /// buyer's approve/deny (0 = none pending).
+        uint8 extensionCount;
+        uint64 pendingDeadline;
     }
 
     /// @notice Per-deal clock passed to fundEscrow. reviewWindow 0 = use the
@@ -196,6 +203,10 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     }
 
     uint8 internal constant MAX_MILESTONES = 5;
+    /// @notice Hard cap on buyer-approved seller extension appeals. Past this,
+    ///         requestExtension reverts and the seller's only recourse is
+    ///         dispute (no auto-dispute). Buyer-direct extendDeadline is uncapped.
+    uint8 public constant MAX_EXTENSIONS = 3;
     uint8 internal constant PCT_TOTAL = 100;
     uint16 internal constant BPS_DENOMINATOR = 10000;
     /// @notice Minimum reservation when Trusted Match is on. Anything below
@@ -362,6 +373,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event DealTiming(bytes32 indexed jobId, uint64 deliveryDeadline, uint64 reviewWindow, uint64 reclaimGrace);
     event DeadlineReclaimed(bytes32 indexed jobId, uint256 amount, uint256 priorReleased, address indexed to);
     event DeadlineExtended(bytes32 indexed jobId, uint64 newDeadline);
+    event ExtensionRequested(bytes32 indexed jobId, uint64 newDeadline);
     event DisputeLapsed(bytes32 indexed jobId, uint64 frozenSecs);
     event CancelProposed(bytes32 indexed jobId, address indexed proposer, bool proposerIsBuyer, uint16 sellerBps);
     event CancelWithdrawn(bytes32 indexed jobId);
@@ -404,6 +416,8 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     error NoDeadline();
     error DeliveryPending();
     error DeadlineNotPassed();
+    error NoPendingExtension();
+    error ExtensionsExhausted();
     error DisputeStillFresh();
     error NoCancelProposal();
     error CancelMismatch();
@@ -724,35 +738,26 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             if (sum != PCT_TOTAL) revert InvalidMilestones();
         }
 
-        // Fee math kept inside this scope so the local vars don't pile up
-        // when we hit the emit below (stack-too-deep otherwise on solc 0.8.24).
+        // viaIR compiles per-field storage writes without the stack pressure of
+        // a 20-field struct literal. The slot is fresh (state == None checked
+        // above), so every zero/false field is left at its default and never
+        // written, trimming both gas and bytecode.
         uint256 feeTotal = (dealAmount * feeBps) / BPS_DENOMINATOR;
-        uint256 fundedAmount;
+        uint256 buyerFee = feeTotal / 2;
+        uint256 fundedAmount = dealAmount + buyerFee;
         {
-            uint256 buyerFee = feeTotal / 2;
-            uint256 sellerFee = feeTotal - buyerFee;
-            fundedAmount = dealAmount + buyerFee;
-            escrows[jobId] = EscrowAccount({
-                buyer: msg.sender,
-                seller: seller,
-                dealAmount: dealAmount,
-                sellerNet: dealAmount - sellerFee,
-                feeTotal: feeTotal,
-                released: 0,
-                feeReleased: 0,
-                reservedAmount: 0,
-                milestonePcts: milestonePcts,
-                milestonesReleased: 0,
-                state: EscrowState.Funded,
-                reservationBps: _reservationBps,
-                wasAccepted: false,
-                deliveredAt: 0,
-                claimDeadline: 0,
-                deliveryDeadline: timing.deliveryDeadline,
-                reviewWindow: window,
-                reclaimGrace: timing.reclaimGrace,
-                disputedAt: 0
-            });
+            EscrowAccount storage e = escrows[jobId];
+            e.buyer = msg.sender;
+            e.seller = seller;
+            e.dealAmount = dealAmount;
+            e.sellerNet = dealAmount - (feeTotal - buyerFee);
+            e.feeTotal = feeTotal;
+            e.milestonePcts = milestonePcts;
+            e.state = EscrowState.Funded;
+            e.reservationBps = _reservationBps;
+            e.deliveryDeadline = timing.deliveryDeadline;
+            e.reviewWindow = window;
+            e.reclaimGrace = timing.reclaimGrace;
         }
 
         usdc.safeTransferFrom(msg.sender, address(this), fundedAmount);
@@ -1070,25 +1075,61 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             uint256 slashShare = (e.reservedAmount * remainingSellerNet) / e.sellerNet;
             address seller = e.seller;
             e.reservedAmount = 0;
-            try vault.slashTo(jobId, slashShare) {
-            } catch Error(string memory reason) {
-                emit SlashFailed(jobId, seller, reason);
-            } catch (bytes memory) {
-                emit SlashFailed(jobId, seller, "low-level revert");
-            }
+            _settleReservationSlash(jobId, seller, slashShare);
         }
         // A blown deadline is on-chain-provable lateness, so it records
         // Failed even on casual (no-stake) deals.
         _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Failed, e.dealAmount);
     }
 
-    /// @notice Buyer-only deadline extension. Extensions favour the seller,
-    ///         so buyer consent is the only gate; mirrors the off-chain
-    ///         extension-approve flow.
+    /// @notice Buyer's own forward extension: the buyer voluntarily grants the
+    ///         seller more time. Uncapped, because it only ever favours the
+    ///         seller and the buyer is the party a late delivery would harm; the
+    ///         MAX_EXTENSIONS cap governs seller-initiated appeals, not buyer
+    ///         generosity.
     function extendDeadline(bytes32 jobId, uint64 newDeadline) external {
         EscrowAccount storage e = escrows[jobId];
-        if (e.state != EscrowState.Accepted) revert InvalidState();
         if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        _moveDeadline(jobId, e, newDeadline);
+    }
+
+    /// @notice Seller-initiated extension appeal (v2b two-step, decision #1).
+    ///         Records a standing request the buyer must approve. Forward-only,
+    ///         within the horizon, and hard-capped: once MAX_EXTENSIONS buyer
+    ///         approvals have landed, a further request reverts and the seller's
+    ///         only recourse is dispute. No auto-dispute at the cap, an exhausted
+    ///         appeal never surprises the seller into a dispute they didn't open.
+    function requestExtension(bytes32 jobId, uint64 newDeadline) external {
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Accepted) revert InvalidState();
+        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
+        if (e.deliveryDeadline == 0) revert NoDeadline();
+        if (e.extensionCount >= MAX_EXTENSIONS) revert ExtensionsExhausted();
+        if (newDeadline <= e.deliveryDeadline) revert InvalidTiming();
+        if (newDeadline > block.timestamp + maxDeadlineHorizon) revert InvalidTiming();
+        e.pendingDeadline = newDeadline;
+        emit ExtensionRequested(jobId, newDeadline);
+    }
+
+    /// @notice Buyer approves the standing seller request, applying it and
+    ///         consuming one capped slot. The horizon is re-validated at
+    ///         approval time inside _moveDeadline (time passed since the request).
+    function approveExtension(bytes32 jobId) external {
+        EscrowAccount storage e = escrows[jobId];
+        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (e.pendingDeadline == 0) revert NoPendingExtension();
+        if (e.extensionCount >= MAX_EXTENSIONS) revert ExtensionsExhausted();
+        uint64 nd = e.pendingDeadline;
+        e.pendingDeadline = 0;
+        e.extensionCount += 1;
+        _moveDeadline(jobId, e, nd);
+    }
+
+    /// @dev Shared forward-only deadline move for the buyer's direct extend and
+    ///      the buyer's approval of a seller appeal. Enforces Accepted state, a
+    ///      live clock, forward-only motion, and the horizon.
+    function _moveDeadline(bytes32 jobId, EscrowAccount storage e, uint64 newDeadline) private {
+        if (e.state != EscrowState.Accepted) revert InvalidState();
         if (e.deliveryDeadline == 0) revert NoDeadline();
         if (newDeadline <= e.deliveryDeadline) revert InvalidTiming();
         if (newDeadline > block.timestamp + maxDeadlineHorizon) revert InvalidTiming();
@@ -1206,12 +1247,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             uint256 slashShare = (e.reservedAmount * (BPS_DENOMINATOR - sellerBps)) / BPS_DENOMINATOR;
             address seller = e.seller;
             e.reservedAmount = 0;
-            try vault.slashTo(jobId, slashShare) {
-            } catch Error(string memory reason) {
-                emit SlashFailed(jobId, seller, reason);
-            } catch (bytes memory) {
-                emit SlashFailed(jobId, seller, "low-level revert");
-            }
+            _settleReservationSlash(jobId, seller, slashShare);
         }
 
         // Arbiter resolution: hand the raw split to the reputation contract,
@@ -1255,6 +1291,18 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         }
         if (buyerCut > 0) {
             usdc.safeTransfer(buyerTo, buyerCut);
+        }
+    }
+
+    /// @dev Settle the seller's reservation slash without letting a vault revert
+    ///      strand a settled deal (audit M-2). Shared by reclaimAfterDeadline and
+    ///      resolve; the caller zeroes reservedAmount before calling (CEI).
+    function _settleReservationSlash(bytes32 jobId, address seller, uint256 slashShare) private {
+        try vault.slashTo(jobId, slashShare) {}
+        catch Error(string memory reason) {
+            emit SlashFailed(jobId, seller, reason);
+        } catch (bytes memory) {
+            emit SlashFailed(jobId, seller, "low-level revert");
         }
     }
 

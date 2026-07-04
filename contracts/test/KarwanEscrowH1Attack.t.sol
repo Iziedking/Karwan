@@ -126,14 +126,14 @@ contract KarwanEscrowH1AttackTest is Test {
         // Milestone 1: seller delivers, buyer ignores it, window elapses.
         vm.prank(seller);
         escrow.markDelivered(JOB_ID, "proof-1");
-        vm.warp(block.timestamp + 5 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days + 1);
         vm.prank(seller);
         escrow.claimMilestone(JOB_ID, 0);
 
         // Milestone 2 (final): same.
         vm.prank(seller);
         escrow.markDelivered(JOB_ID, "proof-2");
-        vm.warp(block.timestamp + 5 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days + 1);
         vm.prank(seller);
         escrow.claimMilestone(JOB_ID, 1);
 
@@ -153,7 +153,7 @@ contract KarwanEscrowH1AttackTest is Test {
         escrow.markDelivered(JOB_ID, "proof");
 
         // One second before the deadline: too early.
-        vm.warp(block.timestamp + 5 days - 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days - 1);
         vm.prank(seller);
         vm.expectRevert(KarwanEscrow.ReviewWindowOpen.selector);
         escrow.claimMilestone(JOB_ID, 0);
@@ -162,7 +162,7 @@ contract KarwanEscrowH1AttackTest is Test {
     /// The seller cannot claim a milestone they never marked delivered.
     function test_H1_SellerClaimRequiresDelivery() public {
         _fundAndAccept();
-        vm.warp(block.timestamp + 30 days);
+        vm.warp(vm.getBlockTimestamp() + 30 days);
         vm.prank(seller);
         vm.expectRevert(KarwanEscrow.NotDelivered.selector);
         escrow.claimMilestone(JOB_ID, 0);

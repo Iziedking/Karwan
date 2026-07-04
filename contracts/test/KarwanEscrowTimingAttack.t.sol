@@ -100,7 +100,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         returns (KarwanEscrow.Timing memory)
     {
         return KarwanEscrow.Timing({
-            deliveryDeadline: deadlineFromNow == 0 ? 0 : uint64(block.timestamp) + deadlineFromNow,
+            deliveryDeadline: deadlineFromNow == 0 ? 0 : uint64(vm.getBlockTimestamp()) + deadlineFromNow,
             reviewWindow: window,
             reclaimGrace: grace
         });
@@ -125,7 +125,7 @@ contract KarwanEscrowTimingAttackTest is Test {
     function test_V2B_BuyerReclaimsAfterDeadline() public {
         _fundTimedAndAccept();
 
-        vm.warp(block.timestamp + 11 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 11 days + 1);
         vm.prank(buyer);
         escrow.reclaimAfterDeadline(JOB_ID, address(0));
 
@@ -161,7 +161,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         vm.prank(seller);
         escrow.markDelivered(JOB_ID, "proof");
 
-        vm.warp(block.timestamp + 30 days);
+        vm.warp(vm.getBlockTimestamp() + 30 days);
         vm.prank(buyer);
         vm.expectRevert(KarwanEscrow.DeliveryPending.selector);
         escrow.reclaimAfterDeadline(JOB_ID, address(0));
@@ -177,7 +177,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         vm.prank(buyer);
         escrow.releaseProgress(JOB_ID, 0);
 
-        vm.warp(block.timestamp + 30 days);
+        vm.warp(vm.getBlockTimestamp() + 30 days);
         vm.prank(buyer);
         escrow.reclaimAfterDeadline(JOB_ID, address(0));
 
@@ -194,7 +194,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         vm.prank(seller);
         escrow.acceptEscrow(JOB_ID);
 
-        vm.warp(block.timestamp + 3650 days);
+        vm.warp(vm.getBlockTimestamp() + 3650 days);
         vm.prank(buyer);
         vm.expectRevert(KarwanEscrow.NoDeadline.selector);
         escrow.reclaimAfterDeadline(JOB_ID, address(0));
@@ -235,7 +235,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         escrow.markDelivered(JOB_ID, "proof-1");
 
         // One second before the claim unlocks, the buyer disputes.
-        vm.warp(block.timestamp + 5 days - 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days - 1);
         vm.prank(buyer);
         escrow.dispute(JOB_ID, "spite dispute at the buzzer");
 
@@ -245,7 +245,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         escrow.lapseDispute(JOB_ID);
 
         // Arbiter stays silent past the timeout; the seller lapses.
-        vm.warp(block.timestamp + 14 days);
+        vm.warp(vm.getBlockTimestamp() + 14 days);
         vm.prank(seller);
         escrow.lapseDispute(JOB_ID);
 
@@ -257,12 +257,12 @@ contract KarwanEscrowTimingAttackTest is Test {
         uint256 sellerStart = usdc.balanceOf(seller);
         vm.prank(seller);
         escrow.markDelivered(JOB_ID, "proof-1-again");
-        vm.warp(block.timestamp + 5 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days + 1);
         vm.prank(seller);
         escrow.claimMilestone(JOB_ID, 0);
         vm.prank(seller);
         escrow.markDelivered(JOB_ID, "proof-2");
-        vm.warp(block.timestamp + 5 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days + 1);
         vm.prank(seller);
         escrow.claimMilestone(JOB_ID, 1);
 
@@ -380,7 +380,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         escrow.releaseProgress(JOB_ID, 0);
         vm.prank(sellerHuman);
         escrow.markDelivered(JOB_ID, "proof-2");
-        vm.warp(block.timestamp + 5 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days + 1);
         vm.prank(sellerHuman);
         escrow.claimMilestone(JOB_ID, 1, sellerHuman);
 
@@ -396,7 +396,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         _fundTimedAndAccept();
         vm.prank(seller);
         escrow.markDelivered(JOB_ID, "proof");
-        vm.warp(block.timestamp + 5 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 5 days + 1);
 
         vm.prank(seller);
         vm.expectRevert(KarwanEscrow.InvalidPayee.selector);
@@ -441,7 +441,7 @@ contract KarwanEscrowTimingAttackTest is Test {
         vm.expectRevert(KarwanEscrow.InvalidTiming.selector);
         escrow.fundEscrow(
             JOB_ID, seller, 500e18, _twoMilestones(50, 50), 0,
-            KarwanEscrow.Timing({deliveryDeadline: uint64(block.timestamp), reviewWindow: 0, reclaimGrace: 0})
+            KarwanEscrow.Timing({deliveryDeadline: uint64(vm.getBlockTimestamp()), reviewWindow: 0, reclaimGrace: 0})
         );
         vm.stopPrank();
     }
@@ -452,12 +452,12 @@ contract KarwanEscrowTimingAttackTest is Test {
         vm.prank(buyer);
         escrow.fundEscrow(
             JOB_ID, seller, 500e18, _twoMilestones(50, 50), RESERVATION_BPS,
-            KarwanEscrow.Timing({deliveryDeadline: uint64(block.timestamp) + 1 hours, reviewWindow: 240, reclaimGrace: 60})
+            KarwanEscrow.Timing({deliveryDeadline: uint64(vm.getBlockTimestamp()) + 1 hours, reviewWindow: 240, reclaimGrace: 60})
         );
         vm.startPrank(seller);
         escrow.acceptEscrow(JOB_ID);
         escrow.markDelivered(JOB_ID, "proof-1");
-        vm.warp(block.timestamp + 241);
+        vm.warp(vm.getBlockTimestamp() + 241);
         escrow.claimMilestone(JOB_ID, 0);
         vm.stopPrank();
 

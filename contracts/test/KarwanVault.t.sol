@@ -82,7 +82,7 @@ contract KarwanVaultTest is Test {
         ) = vault.positions(id);
         assertEq(owner, alice);
         assertEq(principal, 100 * ONE_USDC);
-        assertEq(depositedAt, uint64(block.timestamp));
+        assertEq(depositedAt, uint64(vm.getBlockTimestamp()));
         assertEq(cooldownStartedAt, 0);
         assertEq(claimableAt, 0);
         assertEq(uint8(state), uint8(KarwanVault.PositionState.Active));
@@ -100,7 +100,7 @@ contract KarwanVaultTest is Test {
 
     function test_RequestWithdraw_StartsThreeDayCooldown() public {
         uint256 id = _deposit(alice, 100 * ONE_USDC);
-        uint64 now64 = uint64(block.timestamp);
+        uint64 now64 = uint64(vm.getBlockTimestamp());
         vm.prank(alice);
         vault.requestWithdraw(id);
 
@@ -118,7 +118,7 @@ contract KarwanVaultTest is Test {
         uint256 id = _deposit(alice, 100 * ONE_USDC);
         vm.prank(alice);
         vault.requestWithdraw(id);
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(vm.getBlockTimestamp() + 2 days);
         vm.prank(alice);
         vm.expectRevert(KarwanVault.StillCooling.selector);
         vault.claim(id);
@@ -128,7 +128,7 @@ contract KarwanVaultTest is Test {
         uint256 id = _deposit(alice, 100 * ONE_USDC);
         vm.prank(alice);
         vault.requestWithdraw(id);
-        vm.warp(block.timestamp + 3 days + 1);
+        vm.warp(vm.getBlockTimestamp() + 3 days + 1);
         vm.prank(alice);
         vault.claim(id);
         assertEq(usdc.balanceOf(alice), 1_000 * ONE_USDC);
@@ -136,11 +136,11 @@ contract KarwanVaultTest is Test {
 
     function test_CancelWithdraw_RestoresActive_AndKeepsTenure() public {
         uint256 id = _deposit(alice, 100 * ONE_USDC);
-        uint64 originalDeposit = uint64(block.timestamp);
-        vm.warp(block.timestamp + 2 days);
+        uint64 originalDeposit = uint64(vm.getBlockTimestamp());
+        vm.warp(vm.getBlockTimestamp() + 2 days);
         vm.prank(alice);
         vault.requestWithdraw(id);
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(vm.getBlockTimestamp() + 1 days);
         vm.prank(alice);
         vault.cancelWithdraw(id);
 
@@ -225,7 +225,7 @@ contract KarwanVaultTest is Test {
 
     function test_Slash_WalksOldestFirst() public {
         uint256 first = _deposit(alice, 40 * ONE_USDC); // oldest
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(vm.getBlockTimestamp() + 1 days);
         uint256 second = _deposit(alice, 60 * ONE_USDC);
 
         vm.startPrank(escrow);
