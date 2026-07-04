@@ -44,7 +44,6 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
-import { getResearchState, chargeResearch } from '../x402/researchAccount.js';
 import { config } from '../config.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
@@ -464,12 +463,10 @@ function cachedBuyerPassport(jobId: string): PaidPassportSignal | undefined {
 
 /// Symmetric counterparty pull: the seller agent pays Karwan's credit-passport
 /// endpoint on the BUYER before negotiating, the mirror of the buyer pulling the
-/// seller. Gated on the seller owner having agent research active, so the 1.5
-/// USDC subscription is what unlocks the agent vetting its counterparty (the
-/// public passport is a bare score; this buys the settled-deal evidence). Fired
-/// non-blocking so it never sits on the bid path; the result lands in the cache
-/// for the counter round. Metered against the seller's research credit on the
-/// fresh paid call. Best-effort.
+/// seller. Paid from the seller agent's OWN Gateway deposit (not the research
+/// subscription, which funds only the external market read), so it runs whenever
+/// paid signals are enabled. Fired non-blocking so it never sits on the bid path;
+/// the result lands in the cache for the counter round. Best-effort.
 async function maybeSellerCounterpartyPull(
   seller: SellerProfile,
   buyerAddress: string,
@@ -491,15 +488,9 @@ async function maybeSellerCounterpartyPull(
     return;
   }
   try {
-    const record = await findAgentWalletByAgentAddress(seller.address);
-    const owner = record?.userAddress;
-    if (!owner) return;
-    if (!(await getResearchState(owner)).active) return;
-
     const signal = await paidCreditPassport(seller.address, buyerAddress);
     sellerBuyerPassport.set(jobId, { signal, at: Date.now() });
     recordSpend(jobId, signal.amountUsd);
-    await chargeResearch(owner, signal.amountUsd);
     bus.emitEvent({
       type: 'agent.paid',
       jobId,

@@ -99,6 +99,7 @@ export async function ensureGatewayFunding(
   record: AgentWallets,
   x402: X402WalletRef,
   neededUsd: number,
+  payerWalletId: string,
 ): Promise<{ funded: boolean; availableUsd: number }> {
   const availableUsd = await gatewayAvailableUsd(x402.address);
   if (availableUsd >= neededUsd) return { funded: true, availableUsd };
@@ -107,11 +108,14 @@ export async function ensureGatewayFunding(
   const amountAtomic = BigInt(Math.round(depositUsd * 10 ** USDC_DECIMALS));
   logger.info(
     { user: record.userAddress, x402Address: x402.address, depositUsd, availableUsd },
-    'x402: funding Gateway deposit from buyer agent wallet',
+    'x402: funding Gateway deposit from the paying agent wallet',
   );
+  // Fund from the wallet of whichever agent is paying (buyer OR seller), so the
+  // deposit — and the settled payment behind it — comes from that agent's own
+  // SCA. The shared x402 EOA is only the signer; the USDC originates here.
   await executeContractCall(
     {
-      walletId: record.buyerWalletId,
+      walletId: payerWalletId,
       contractAddress: config.USDC_ADDR,
       abiFunctionSignature: 'approve(address,uint256)',
       abiParameters: [GATEWAY_WALLET_ADDR, amountAtomic.toString()],
@@ -120,7 +124,7 @@ export async function ensureGatewayFunding(
   );
   await executeContractCall(
     {
-      walletId: record.buyerWalletId,
+      walletId: payerWalletId,
       contractAddress: GATEWAY_WALLET_ADDR,
       abiFunctionSignature: 'depositFor(address,address,uint256)',
       abiParameters: [config.USDC_ADDR, x402.address, amountAtomic.toString()],
@@ -252,8 +256,16 @@ export async function paidCreditPassport(
   const record = await findAgentWalletByAgentAddress(payerAgentAddress);
   if (!record) throw new Error('no agent wallet record behind the paying agent');
 
+  // Pay from the paying agent's own wallet: seller pulls fund from the seller
+  // SCA, buyer pulls from the buyer SCA. Both share one x402 EOA (the signer),
+  // but the deposit that backs the payment comes from the right agent.
+  const payerWalletId =
+    payerAgentAddress.toLowerCase() === record.sellerAddress.toLowerCase()
+      ? record.sellerWalletId
+      : record.buyerWalletId;
+
   const x402 = await ensureX402Wallet(record);
-  const funding = await ensureGatewayFunding(record, x402, CREDIT_PASSPORT_PRICE_USD);
+  const funding = await ensureGatewayFunding(record, x402, CREDIT_PASSPORT_PRICE_USD, payerWalletId);
   if (!funding.funded) {
     throw new Error(
       `Gateway deposit not yet credited (available ${funding.availableUsd} USDC); retrying on a later bid`,

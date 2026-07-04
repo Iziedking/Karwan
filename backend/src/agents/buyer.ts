@@ -78,7 +78,7 @@ import { clearOutOfReach } from '../db/outOfReach.js';
 import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
-import { chargeResearch, getResearchState } from '../x402/researchAccount.js';
+import { chargeResearch } from '../x402/researchAccount.js';
 import { securityResearchOrder } from '../security/orderResearch.js';
 import { shouldDenyPaidCall } from '../security/sa-stub.js';
 import { recordSpend } from '../security/spendGuard.js';
@@ -649,17 +649,16 @@ async function handleBidSubmitted(log: Log) {
   // deposit still lands and the next bid gets the signal. The bid is
   // never blocked or dropped over a failed pull.
   let paidSignal: PaidPassportSignal | undefined;
-  const buyerResearchActive =
-    config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR
-      ? await getResearchState(state.context.buyer)
-          .then((s) => s.active)
-          .catch(() => false)
-      : false;
+  // The internal counterparty pull is paid from the buyer agent's own Gateway
+  // deposit, so it fires whenever paid signals are enabled, NOT gated on the
+  // research subscription (that funds only the external market research). The
+  // per-deal cap still bounds spend against a bid flood.
+  const paidSignalsOn = !!(config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR);
   // Per-deal spend cap: a job flooded with bids must not trigger unbounded paid
   // pulls. Skip the pull (score on free signals) once this deal's paid spend
   // would exceed the cap. The pull is best-effort anyway, so skipping is safe.
   const paidPullDenied =
-    buyerResearchActive &&
+    paidSignalsOn &&
     (await shouldDenyPaidCall({
       invoiceId: state.jobId,
       signal: 'credit-passport',
@@ -669,7 +668,7 @@ async function handleBidSubmitted(log: Log) {
   if (paidPullDenied) {
     logger.info({ jobId: state.jobId, seller: args.seller }, 'paid passport pull skipped: per-deal cap reached');
   }
-  if (buyerResearchActive && !paidPullDenied) {
+  if (paidSignalsOn && !paidPullDenied) {
     try {
       paidSignal = await Promise.race([
         paidCreditPassport(buyer.address, args.seller),
@@ -2768,15 +2767,15 @@ async function persistApprovedMatch(
       }
     }
 
-    // Settle the research cost on the MATCHED pair only. The SecurityAgent
-    // fronted the call at post for the whole auction; here we draw it down from
-    // the two accounts that actually transacted, out of their 1.5 USDC research
-    // credit. The buyer also bears the internal counterparty pull it ran.
-    // Best-effort and a no-op for an account with no credit.
+    // Settle the EXTERNAL research cost on the MATCHED pair only. The
+    // SecurityAgent fronted the external market read at post for the whole
+    // auction; here we draw it down from the two accounts that actually
+    // transacted, out of their research credit. The internal counterparty pulls
+    // are paid from each agent's own Gateway deposit, so they are NOT billed to
+    // the research credit. Best-effort and a no-op for an account with no credit.
     const externalUsd = proposal.marketRead?.amountUsd ?? 0;
-    const internalPullUsd = proposal.paidSignal?.amountUsd ?? 0;
     await Promise.allSettled([
-      chargeResearch(buyerWallets.userAddress, externalUsd + internalPullUsd),
+      chargeResearch(buyerWallets.userAddress, externalUsd),
       chargeResearch(sellerWallets.userAddress, externalUsd),
     ]);
   } catch (err) {
