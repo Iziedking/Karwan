@@ -815,6 +815,33 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     </p>
                   </div>
                 )}
+                {/* Positive review. When the link scanned clean AND the agent
+                    judged the delivery aligned with the request, surface the
+                    confirmation so the buyer sees the security agent already
+                    vetted it before they release. Buyer-only; still their call. */}
+                {viewerIsBuyer &&
+                  deal.deliveryMatch?.verdict === 'aligned' &&
+                  deal.verificationStatus !== 'suspicious' &&
+                  deal.verificationStatus !== 'malicious' && (
+                    <div
+                      className="px-4 py-3"
+                      style={{
+                        background: 'rgba(79, 138, 63, 0.10)',
+                        border: '1px solid rgba(79, 138, 63, 0.35)',
+                        borderTopLeftRadius: 10,
+                        borderTopRightRadius: 10,
+                        borderBottomLeftRadius: 10,
+                        borderBottomRightRadius: 3,
+                      }}
+                    >
+                      <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#4f8a3f]">
+                        [:{dd.terms.deliveryOkLabel}:]
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                        {dd.terms.deliveryOkBody}
+                      </p>
+                    </div>
+                  )}
               </div>
             </PageCard>
           )}

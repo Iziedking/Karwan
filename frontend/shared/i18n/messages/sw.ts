@@ -1955,6 +1955,8 @@ export const sw: Messages = {
       deliveryVerifyingBody: 'Karwan imeashiria kiungo chako cha kuwasilisha na inakithibitisha kabla mnunuzi hajakiona. Atakiona mara tu kitakapothibitishwa.',
       deliveryReviewLabel: 'Hakikisha inakidhi ombi lako',
       deliveryReviewBody: 'Wakala wako alilinganisha uwasilishaji na ombi lako na hana uhakika unakidhi kikamilifu. Fungua na uthibitishe kabla ya kuachilia malipo.',
+      deliveryOkLabel: 'Imekaguliwa, inakidhi ombi lako',
+      deliveryOkBody: 'Wakala wako wa usalama alikagua kiungo na kubaini uwasilishaji unakidhi ombi lako. Fedha hubaki kwenye escrow hadi uziachilie.',
     },
     progress: {
       eyebrow: 'MAENDELEO',

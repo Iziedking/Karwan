@@ -1955,6 +1955,8 @@ export const fr: Messages = {
       deliveryVerifyingBody: 'Karwan a signalé votre lien de livraison et le vérifie avant que l’acheteur puisse le voir. Il le verra une fois validé.',
       deliveryReviewLabel: 'Vérifiez que cela répond à votre demande',
       deliveryReviewBody: 'Votre agent a comparé la livraison à votre demande et n’est pas sûr qu’elle corresponde entièrement. Ouvrez-la et confirmez avant de libérer les fonds.',
+      deliveryOkLabel: 'Vérifié, correspond à votre demande',
+      deliveryOkBody: 'Votre agent de sécurité a vérifié le lien et constaté que la livraison correspond à votre demande. Les fonds restent sous séquestre jusqu’à ce que vous les libériez.',
     },
     progress: {
       eyebrow: 'AVANCEMENT',
