@@ -54,6 +54,18 @@ export function makeQueryPersister(): Persister | null {
   }) as Persister;
 }
 
+/// Purge the persisted snapshot from localStorage. Called on sign-out so one
+/// account's cached profile / balances never linger at rest, and can't rehydrate
+/// for the next account that signs in on the same browser.
+export function clearPersistedCache(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* storage unavailable (private mode / quota); nothing to purge */
+  }
+}
+
 export const persistOptions = {
   buster: BUSTER,
   maxAge: MAX_AGE_MS,

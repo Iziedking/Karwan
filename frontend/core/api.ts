@@ -1482,6 +1482,20 @@ export const api = {
         hasPasskey?: boolean;
       } | null;
     }>('/api/auth/me'),
+  /// One round-trip session + profile, so an authed page resolves both in a
+  /// single call instead of authMe -> getProfile serially. useAuth seeds the
+  /// profile query cache from `profile` so useUserProfile finds it without a
+  /// second request.
+  bootstrap: () =>
+    json<{
+      user: {
+        address: string;
+        method: string;
+        email?: string;
+        hasPasskey?: boolean;
+      } | null;
+      profile: UserProfile | null;
+    }>('/api/auth/bootstrap'),
   authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
   authLookup: (email: string) =>
     json<{ exists: boolean; hasPasskey: boolean }>('/api/auth/lookup', {

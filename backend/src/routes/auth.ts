@@ -27,6 +27,7 @@ import {
   OTP_PLACEHOLDER_CREDENTIAL_ID,
 } from '../db/users.js';
 import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.js';
+import { getProfile } from '../db/profiles.js';
 import {
   clearSessionCookie,
   readSession,
@@ -262,6 +263,33 @@ authRoutes.get('/me', (c) => {
       email: session.email,
       hasPasskey,
     },
+  });
+});
+
+/// One-shot session + profile fetch. Collapses the authMe -> getProfile
+/// waterfall the client ran on every authed page (two serial cross-origin
+/// round-trips before the page could render) into a single call: identity comes
+/// from the session cookie and the profile is resolved from it here. The client
+/// seeds its profile cache from the response so useUserProfile finds it without
+/// a second request. Returns nulls (not a 401) for a signed-out visitor so the
+/// landing/gate paths read it the same way /me behaves.
+authRoutes.get('/bootstrap', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ user: null, profile: null });
+  let hasPasskey = false;
+  if (session.method === 'circle' && session.email) {
+    const user = getUserByEmail(session.email);
+    hasPasskey = !!user && hasRealPasskey(user);
+  }
+  const profile = (await getProfile(session.address)) ?? null;
+  return c.json({
+    user: {
+      address: session.address,
+      method: session.method,
+      email: session.email,
+      hasPasskey,
+    },
+    profile,
   });
 });
 

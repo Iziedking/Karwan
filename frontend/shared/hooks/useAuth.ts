@@ -1,7 +1,10 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, setApiCaller } from '@/core/api';
+import { qk } from '@/core/queryKeys';
+import { clearPersistedCache } from '@/core/queryPersister';
 
 export type AuthMethod = 'web3' | 'circle';
 
@@ -58,12 +61,17 @@ export function useAuth(): AuthState & {
 } {
   const { address: wagmiAddress, isConnected: wagmiConnected, status: wagmiStatus } = useAccount();
   const { disconnectAsync } = useDisconnect();
+  const qc = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const r = await api.authMe();
+      // One-shot: bootstrap returns the session AND the profile, so the page
+      // resolves both in a single round-trip instead of authMe then getProfile
+      // serially. Seed the profile query cache from the response so
+      // useUserProfile finds it without a second request.
+      const r = await api.bootstrap();
       if (r.user) {
         setSession({
           address: r.user.address,
@@ -71,6 +79,7 @@ export function useAuth(): AuthState & {
           email: r.user.email,
           hasPasskey: !!r.user.hasPasskey,
         });
+        if (r.profile) qc.setQueryData(qk.profile.me(r.user.address), r.profile);
       } else {
         setSession(null);
       }
@@ -79,7 +88,7 @@ export function useAuth(): AuthState & {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [qc]);
 
   useEffect(() => {
     refresh();
@@ -105,11 +114,13 @@ export function useAuth(): AuthState & {
     if (session.method !== 'web3') return;
     if (wagmiStatus !== 'disconnected') return;
     setSession(null);
+    qc.clear();
+    clearPersistedCache();
     api.authLogout().catch(() => {
       /* clear-local-state already done; backend cookie will expire on its own */
     });
     emitAuthChanged({ signedOut: true });
-  }, [session, wagmiStatus]);
+  }, [session, wagmiStatus, qc]);
 
   // Sync this instance's circle slice whenever ANY other useAuth() in the app
   // changes the session. Without this, signing out from CircleAccountModal
@@ -150,6 +161,11 @@ export function useAuth(): AuthState & {
       /* clear local state regardless */
     }
     setSession(null);
+    // Drop the account's cached + persisted private data (profile, balances)
+    // so it can't linger at rest or rehydrate for the next account that signs
+    // in on this browser. Public queries (status, network stats) just refetch.
+    qc.clear();
+    clearPersistedCache();
     if (wagmiConnected) {
       try {
         await disconnectAsync();
@@ -159,7 +175,7 @@ export function useAuth(): AuthState & {
     }
     // Broadcast so every other useAuth instance clears in the same frame.
     emitAuthChanged({ signedOut: true });
-  }, [wagmiConnected, disconnectAsync]);
+  }, [wagmiConnected, disconnectAsync, qc]);
 
   const address = session?.address ?? null;
   const method: AuthMethod | null = session?.method ?? null;
