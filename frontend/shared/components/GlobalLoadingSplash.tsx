@@ -1,48 +1,53 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/shared/hooks/useAuth';
 import { isLandingRoute } from '@/shared/utils/routes';
 
-/// Full-screen brand loader that covers nav, footer, and content during the
-/// initial auth/render window, so the page never flashes a rendered footer or a
-/// stack of skeletons before it's ready (the Cloudflare-interstitial pattern).
-/// Gated on auth resolving; skipped on the public landing routes, which render
-/// instantly with no auth. If the network stalls past STALL_MS it stops spinning
-/// and offers a retry instead of hanging forever. Fades out when ready.
+/// Branded route-transition loader. Shows the Karwan logo on the initial load
+/// and on EVERY route change (launch app, nav clicks), held for a minimum
+/// branded duration so it covers the incoming page rendering behind it, then
+/// fades to reveal the page. Deliberately NOT gated on auth — it fires for
+/// every navigation, not just sign-in.
+///
+/// MIN_VISIBLE_MS is the single knob for how long the logo stays. Bump it (e.g.
+/// to 5000) for a longer, more dramatic hold; drop it for a snappier feel.
+const MIN_VISIBLE_MS = 2000;
 const STALL_MS = 12_000;
 
 export function GlobalLoadingSplash() {
-  const { isLoading } = useAuth();
   const pathname = usePathname();
+  // Start visible on an app route (covers the initial load / launch-app), start
+  // hidden on the public landing so the marketing home never flashes it.
+  const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
-  const [mounted, setMounted] = useState(true);
+  const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
 
-  // Never cover the public landing (no auth there; it must paint instantly).
-  const active = isLoading && !isLandingRoute(pathname);
-
-  // Network-stall fallback: if loading drags on, surface a retry.
+  // Fire on the first mount AND on every pathname change. Skip the public
+  // landing routes so the marketing home still paints instantly.
   useEffect(() => {
-    if (!active) {
-      setStalled(false);
+    if (isLandingRoute(pathname)) {
+      setActive(false);
       return;
     }
-    const id = setTimeout(() => setStalled(true), STALL_MS);
-    return () => clearTimeout(id);
-  }, [active]);
+    setActive(true);
+    setStalled(false);
+    setMounted(true);
+    const hide = setTimeout(() => setActive(false), MIN_VISIBLE_MS);
+    const stall = setTimeout(() => setStalled(true), STALL_MS);
+    return () => {
+      clearTimeout(hide);
+      clearTimeout(stall);
+    };
+  }, [pathname]);
 
-  // Keep the overlay mounted briefly after it goes inactive so it can fade out
-  // cleanly rather than vanishing.
+  // Keep the overlay mounted through its fade-out, then drop it from the tree.
   useEffect(() => {
-    if (active) {
-      setMounted(true);
-      return;
-    }
+    if (active) return;
     const id = setTimeout(() => setMounted(false), 340);
     return () => clearTimeout(id);
   }, [active]);
 
-  if (!mounted && !active) return null;
+  if (!mounted) return null;
 
   return (
     <div
@@ -58,22 +63,22 @@ export function GlobalLoadingSplash() {
         pointerEvents: active ? 'auto' : 'none',
       }}
     >
-      <div className="flex flex-col items-center gap-7 px-6 text-center">
+      <div className="flex flex-col items-center gap-8 px-6 text-center">
         <span
           className="karwan-splash-mark inline-flex items-center justify-center"
           style={{
-            width: 72,
-            height: 72,
-            borderRadius: 20,
+            width: 104,
+            height: 104,
+            borderRadius: 26,
             // Theme-adaptive, high-contrast in both: the badge is the ink color
             // (dark square in light theme, light square in dark theme) and the
             // mark is the page background (the inverse), so it always reads.
             background: 'var(--color-ink, #0c0e10)',
             color: 'var(--color-bg, #fafaf7)',
-            boxShadow: '0 8px 40px -12px rgba(0,0,0,0.28)',
+            boxShadow: '0 10px 48px -14px rgba(0,0,0,0.30)',
           }}
         >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
               d="M7 17 L10 7 L12 13 L14 7 L17 17"
               stroke="currentColor"
