@@ -8,6 +8,8 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
+import { MarketScout } from '@/features/research/components/MarketScout';
+import { SCOUT_ENABLED } from '@/features/profile/config';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -185,7 +187,10 @@ function SellerPageInner() {
               </div>
             </div>
           </div>
-          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
+          <div className="space-y-4">
+            <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
+            {SCOUT_ENABLED && <MarketScout />}
+          </div>
         </div>
       </Band>
 
