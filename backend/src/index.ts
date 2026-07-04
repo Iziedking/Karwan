@@ -32,7 +32,7 @@ import { supportTeamRoutes } from './routes/supportTeam.js';
 import { adminTreasuryRoutes } from './routes/adminTreasury.js';
 import { adminUsycRoutes } from './routes/adminUsyc.js';
 import { treasuryRoutes } from './routes/treasury.js';
-import { yieldRoutes } from './routes/yield.js';
+import { yieldRoutes, startYieldWarmer } from './routes/yield.js';
 import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
@@ -322,6 +322,17 @@ function bootAgents() {
     appLogger.warn(
       { err: (err as Error).message },
       'vault scan watcher not started',
+    );
+  }
+
+  /// Keep the protocol yield-distribution history hot so /stake's chart never
+  /// pays the cold event scan on a visitor's first load (the blank-chart stall).
+  try {
+    stopFns.push(startYieldWarmer());
+  } catch (err) {
+    appLogger.warn(
+      { err: (err as Error).message },
+      'yield warmer not started',
     );
   }
 }

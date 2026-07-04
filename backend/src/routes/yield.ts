@@ -391,50 +391,81 @@ yieldRoutes.get('/history', async (c) => {
   }
 
   try {
-    const head = await publicClient.getBlockNumber();
-    const deploy = distributorDeployBlock();
-    // Fallback to ~14 days of blocks at 1.2s avg if deploy block unknown.
-    const fallbackBack = 14n * 24n * 60n * 60n / 1n;
-    const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
-
-    const logs = await chunkedGetLogs({
-      address: distributor,
-      event: YieldCreditedEvent,
-      fromBlock: start,
-      toBlock: head,
-      args: filterAddress ? { staker: filterAddress } : undefined,
-    });
-
-    /// Sum credits per unix day. The `day` topic on the event is
-    /// `block.timestamp / 86400`, an integer day index.
-    const perDay = new Map<number, bigint>();
-    for (const log of logs) {
-      const day = Number((log.args.day as bigint | number | undefined) ?? 0n);
-      const amount = (log.args.amount as bigint | undefined) ?? 0n;
-      perDay.set(day, (perDay.get(day) ?? 0n) + amount);
-    }
-
-    const sortedDays = [...perDay.keys()].sort((a, b) => a - b);
-    let running = 0n;
-    const history: HistoryPoint[] = [];
-    for (const day of sortedDays) {
-      const daily = perDay.get(day) ?? 0n;
-      running += daily;
-      const iso = new Date(day * 86_400_000).toISOString().slice(0, 10);
-      history.push({
-        day: iso,
-        dailyCreditedUsdc: formatUnits(daily, USDC_DECIMALS),
-        cumulativeCreditedUsdc: formatUnits(running, USDC_DECIMALS),
-      });
-    }
-
-    historyCache.set(cacheKey, { at: Date.now(), data: history });
+    const history = await loadHistory(distributor, filterAddress);
     return c.json({ configured: true, history });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'yield /history read failed');
     return c.json({ error: 'read failed', detail: (err as Error).message }, 502);
   }
 });
+
+/// The event scan + per-day aggregation behind /history, factored out so the
+/// background warmer can keep the cache hot on the same path the route reads.
+/// Populates historyCache under 'protocol' (or the staker address).
+async function loadHistory(
+  distributor: `0x${string}`,
+  filterAddress: `0x${string}` | null,
+): Promise<HistoryPoint[]> {
+  const head = await publicClient.getBlockNumber();
+  const deploy = distributorDeployBlock();
+  // Fallback to ~14 days of blocks at 1.2s avg if deploy block unknown.
+  const fallbackBack = 14n * 24n * 60n * 60n / 1n;
+  const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
+
+  const logs = await chunkedGetLogs({
+    address: distributor,
+    event: YieldCreditedEvent,
+    fromBlock: start,
+    toBlock: head,
+    args: filterAddress ? { staker: filterAddress } : undefined,
+  });
+
+  /// Sum credits per unix day. The `day` topic on the event is
+  /// `block.timestamp / 86400`, an integer day index.
+  const perDay = new Map<number, bigint>();
+  for (const log of logs) {
+    const day = Number((log.args.day as bigint | number | undefined) ?? 0n);
+    const amount = (log.args.amount as bigint | undefined) ?? 0n;
+    perDay.set(day, (perDay.get(day) ?? 0n) + amount);
+  }
+
+  const sortedDays = [...perDay.keys()].sort((a, b) => a - b);
+  let running = 0n;
+  const history: HistoryPoint[] = [];
+  for (const day of sortedDays) {
+    const daily = perDay.get(day) ?? 0n;
+    running += daily;
+    const iso = new Date(day * 86_400_000).toISOString().slice(0, 10);
+    history.push({
+      day: iso,
+      dailyCreditedUsdc: formatUnits(daily, USDC_DECIMALS),
+      cumulativeCreditedUsdc: formatUnits(running, USDC_DECIMALS),
+    });
+  }
+
+  historyCache.set(filterAddress ?? 'protocol', { at: Date.now(), data: history });
+  return history;
+}
+
+/// Keep the protocol-wide distribution history hot so the /stake chart never
+/// pays the cold event scan on a user's first load. That scan is the slowest
+/// yield read; running it in the background under the cache TTL means visitors
+/// always hit a warm cache instead of a blank chart. Only the protocol series
+/// is warmed (it is address-independent and the most-viewed surface); per-staker
+/// series still warm lazily on first request. Returns a stop function.
+export function startYieldWarmer(): () => void {
+  const distributor = distributorAddress();
+  if (!distributor) return () => {};
+  const tick = () => {
+    loadHistory(distributor, null).catch((err) =>
+      logger.warn({ err: (err as Error).message }, 'yield warmer: protocol history refresh failed'),
+    );
+  };
+  tick(); // warm immediately at boot so the first demo load is already hot
+  const id = setInterval(tick, 90_000);
+  logger.info('yield history warmer started');
+  return () => clearInterval(id);
+}
 
 /// Circle-user claim path. Web3 users sign `claim()` from their connected
 /// wallet. They do not hit this route. Circle accounts route every
