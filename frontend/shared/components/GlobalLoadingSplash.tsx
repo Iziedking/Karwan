@@ -1,46 +1,80 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { isLandingRoute } from '@/shared/utils/routes';
 
-/// Branded route-transition loader. Shows the Karwan logo on the initial load
-/// and on EVERY route change (launch app, nav clicks), held for a minimum
-/// branded duration so it covers the incoming page rendering behind it, then
-/// fades to reveal the page. Deliberately NOT gated on auth — it fires for
-/// every navigation, not just sign-in.
+/// Branded loader for entering the app. It covers the incoming page with the
+/// Karwan logo for a beat, then fades to reveal it. It fires on:
+///   - every route change into a non-landing page (launch app -> /app,
+///     onboarding -> /app, page clicks), and
+///   - the auth flip to signed-in (the non-auth -> authed /app swap, which is an
+///     in-place content swap, not a route change).
+/// It is deliberately NOT tied to the auth LOADING state, so the sign-in flow
+/// itself stays smooth; the auth trigger only fires the moment sign-in
+/// completes. The public landing routes never show it.
 ///
-/// MIN_VISIBLE_MS is the single knob for how long the logo stays. Bump it (e.g.
-/// to 5000) for a longer, more dramatic hold; drop it for a snappier feel.
+/// MIN_VISIBLE_MS is the single knob for how long the logo holds. Bump it (e.g.
+/// to 5000) for a longer hold; drop it for a snappier feel.
 const MIN_VISIBLE_MS = 2000;
 const STALL_MS = 12_000;
 
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
-  // Start visible on an app route (covers the initial load / launch-app), start
-  // hidden on the public landing so the marketing home never flashes it.
+  const { isAuthenticated, isLoading } = useAuth();
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
+  const [nonce, setNonce] = useState(0);
 
-  // Fire on the first mount AND on every pathname change. Skip the public
-  // landing routes so the marketing home still paints instantly.
+  const show = useCallback(() => {
+    if (isLandingRoute(pathname)) return;
+    setActive(true);
+    setStalled(false);
+    setMounted(true);
+    setNonce((n) => n + 1);
+  }, [pathname]);
+
+  // Route-change trigger: the initial load and every navigation. Landing stays
+  // instant (no splash).
   useEffect(() => {
     if (isLandingRoute(pathname)) {
       setActive(false);
       return;
     }
-    setActive(true);
-    setStalled(false);
-    setMounted(true);
+    show();
+  }, [pathname, show]);
+
+  // Auth-flip trigger: cover the in-place non-auth -> authed swap (signing in
+  // while already on /app is a content swap, not a route change). NOT tied to
+  // isLoading, so the sign-in flow stays smooth; it fires only when auth
+  // resolves to signed-in. Skips the initial bootstrap resolve so a normal
+  // reload doesn't double up with the route trigger.
+  const resolvedOnce = useRef(false);
+  const prevAuth = useRef(false);
+  useEffect(() => {
+    if (isLoading) return;
+    if (!resolvedOnce.current) {
+      resolvedOnce.current = true;
+      prevAuth.current = isAuthenticated;
+      return;
+    }
+    if (isAuthenticated && !prevAuth.current) show();
+    prevAuth.current = isAuthenticated;
+  }, [isAuthenticated, isLoading, show]);
+
+  // Auto-hide after the branded minimum whenever a trigger bumps the nonce.
+  useEffect(() => {
+    if (nonce === 0 && !active) return;
     const hide = setTimeout(() => setActive(false), MIN_VISIBLE_MS);
     const stall = setTimeout(() => setStalled(true), STALL_MS);
     return () => {
       clearTimeout(hide);
       clearTimeout(stall);
     };
-  }, [pathname]);
+  }, [nonce]);
 
-  // Keep the overlay mounted through its fade-out, then drop it from the tree.
+  // Fade out, then drop from the tree.
   useEffect(() => {
     if (active) return;
     const id = setTimeout(() => setMounted(false), 340);
