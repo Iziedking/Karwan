@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { formatUnits, parseAbiItem, getAddress, type AbiEvent } from 'viem';
@@ -184,15 +186,6 @@ const YieldClaimedEvent = parseAbiItem(
   'event YieldClaimed(address indexed staker, address indexed to, uint256 amount)',
 );
 
-interface MeSnapshot {
-  claimableUsdc: string;
-  lifetimeCreditedUsdc: string;
-  lifetimeClaimedUsdc: string;
-}
-
-const meCache = new Map<string, { at: number; data: MeSnapshot }>();
-const ME_TTL_MS = 120_000;
-
 yieldRoutes.get('/me', async (c) => {
   const distributor = distributorAddress();
   if (!distributor) {
@@ -211,66 +204,25 @@ yieldRoutes.get('/me', async (c) => {
     return c.json({ error: 'address required' }, 400);
   }
   const checksummed = getAddress(parsed.data) as `0x${string}`;
-  /// `?fresh=1` skips the in-memory cache for one read. Used by the
-  /// claim panel right after a successful claim so the button flips
-  /// from "Claim N" to "Nothing yet" without waiting up to 30s for the
-  /// next TTL window.
-  const fresh = c.req.query('fresh') === '1';
-  const cached = meCache.get(checksummed);
-  if (!fresh && cached && Date.now() - cached.at < ME_TTL_MS) {
+  try {
+    // claimable is a live contract view (cheap, always fresh). lifetimeClaimed
+    // comes from the incremental index (no chain scan), and credited is derived
+    // as claimable + claimed so the panel's three numbers always reconcile.
+    const claimable = (await publicClient.readContract({
+      address: distributor,
+      abi: distributorAbi,
+      functionName: 'claimable',
+      args: [checksummed],
+    })) as bigint;
+    const lifetimeClaimed = indexedStakerClaimed(checksummed);
+    const lifetimeCredited = claimable + lifetimeClaimed;
+
     return c.json({
       configured: true,
       address: distributor,
-      ...cached.data,
-    });
-  }
-  try {
-    const head = await publicClient.getBlockNumber();
-    const deploy = distributorDeployBlock();
-    const fallbackBack = 14n * 24n * 60n * 60n / 1n;
-    const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
-
-    const [claimable, claimedLogs] = await Promise.all([
-      publicClient.readContract({
-        address: distributor,
-        abi: distributorAbi,
-        functionName: 'claimable',
-        args: [checksummed],
-      }) as Promise<bigint>,
-      chunkedGetLogs({
-        address: distributor,
-        event: YieldClaimedEvent,
-        fromBlock: start,
-        toBlock: head,
-        args: { staker: checksummed },
-      }),
-    ]);
-
-    let lifetimeClaimed = 0n;
-    for (const log of claimedLogs) lifetimeClaimed += (log.args.amount as bigint | undefined) ?? 0n;
-    /// Derive lifetime credited from the on-chain identity rather than a second
-    /// event scan: every unit ever credited to a staker is either still
-    /// `claimable` or already `claimed`, so credited = claimable + claimed. This
-    /// guarantees distributed = available + claimed (the panel's three numbers
-    /// always reconcile) and sidesteps the credited-scan truncation that made
-    /// claimed look larger than distributed. Claimed itself is complete only
-    /// when the scan starts at the distributor deploy block, so set
-    /// KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK (else the 14-day fallback can still
-    /// undercount both claimed and credited by the same amount, but they stay
-    /// internally consistent).
-    const lifetimeCredited = claimable + lifetimeClaimed;
-
-    const snapshot: MeSnapshot = {
       claimableUsdc: formatUnits(claimable, USDC_DECIMALS),
       lifetimeCreditedUsdc: formatUnits(lifetimeCredited, USDC_DECIMALS),
       lifetimeClaimedUsdc: formatUnits(lifetimeClaimed, USDC_DECIMALS),
-    };
-    meCache.set(checksummed, { at: Date.now(), data: snapshot });
-
-    return c.json({
-      configured: true,
-      address: distributor,
-      ...snapshot,
     });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'yield /me read failed');
@@ -351,9 +303,6 @@ interface HistoryPoint {
   cumulativeCreditedUsdc: string;
 }
 
-const historyCache = new Map<string, { at: number; data: HistoryPoint[] }>();
-const HISTORY_TTL_MS = 120_000;
-
 function distributorDeployBlock(): bigint {
   const v = (config as unknown as Record<string, string | undefined>)
     .KARWAN_YIELD_DISTRIBUTOR_DEPLOY_BLOCK;
@@ -383,87 +332,153 @@ yieldRoutes.get('/history', async (c) => {
     filterAddress = getAddress(parsed.data) as `0x${string}`;
   }
 
-  const cacheKey = filterAddress ?? 'protocol';
-  const fresh = c.req.query('fresh') === '1';
-  const cached = historyCache.get(cacheKey);
-  if (!fresh && cached && Date.now() - cached.at < HISTORY_TTL_MS) {
-    return c.json({ configured: true, history: cached.data });
-  }
-
-  try {
-    const history = await loadHistory(distributor, filterAddress);
-    return c.json({ configured: true, history });
-  } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'yield /history read failed');
-    return c.json({ error: 'read failed', detail: (err as Error).message }, 502);
-  }
+  // Served from the incremental index (no chain scan). Empty only until the
+  // first index pass completes after a brand-new deploy; instant after that.
+  return c.json({ configured: true, history: indexedHistory(filterAddress) });
 });
 
-/// The event scan + per-day aggregation behind /history, factored out so the
-/// background warmer can keep the cache hot on the same path the route reads.
-/// Populates historyCache under 'protocol' (or the staker address).
-async function loadHistory(
-  distributor: `0x${string}`,
-  filterAddress: `0x${string}` | null,
-): Promise<HistoryPoint[]> {
-  const head = await publicClient.getBlockNumber();
-  const deploy = distributorDeployBlock();
-  // Fallback to ~14 days of blocks at 1.2s avg if deploy block unknown.
-  const fallbackBack = 14n * 24n * 60n * 60n / 1n;
-  const start = deploy > 0n ? deploy : head > fallbackBack ? head - fallbackBack : 0n;
+// ── Incremental yield index ──────────────────────────────────────────────
+// The distributor's event history grows with chain height (millions of blocks),
+// so re-scanning it on every read cost ~30s. Instead: scan once, checkpoint the
+// last block plus the running totals, then only scan the new blocks since. Reads
+// become a memory lookup. The checkpoint persists to disk so a restart resumes
+// incrementally instead of re-walking the whole chain.
 
-  const logs = await chunkedGetLogs({
-    address: distributor,
-    event: YieldCreditedEvent,
-    fromBlock: start,
-    toBlock: head,
-    args: filterAddress ? { staker: filterAddress } : undefined,
-  });
+const INDEX_PATH = resolve(process.cwd(), 'data', 'yield-index.json');
 
-  /// Sum credits per unix day. The `day` topic on the event is
-  /// `block.timestamp / 86400`, an integer day index.
-  const perDay = new Map<number, bigint>();
-  for (const log of logs) {
-    const day = Number((log.args.day as bigint | number | undefined) ?? 0n);
-    const amount = (log.args.amount as bigint | undefined) ?? 0n;
-    perDay.set(day, (perDay.get(day) ?? 0n) + amount);
+interface YieldIndex {
+  lastBlock: number;
+  /// Protocol-wide daily credited totals (the chart): day index -> atomic USDC.
+  perDayCredited: Record<string, string>;
+  /// Per-staker daily credited (per-address chart): staker -> day -> atomic.
+  perStakerDayCredited: Record<string, Record<string, string>>;
+  /// Per-staker lifetime claimed (the /me number): staker -> atomic USDC.
+  perStakerClaimed: Record<string, string>;
+}
+
+let yieldIndex: YieldIndex | null = null;
+
+function emptyYieldIndex(): YieldIndex {
+  return { lastBlock: 0, perDayCredited: {}, perStakerDayCredited: {}, perStakerClaimed: {} };
+}
+
+function loadYieldIndex(): YieldIndex {
+  if (yieldIndex) return yieldIndex;
+  try {
+    if (existsSync(INDEX_PATH)) {
+      yieldIndex = JSON.parse(readFileSync(INDEX_PATH, 'utf8')) as YieldIndex;
+      return yieldIndex;
+    }
+  } catch {
+    /* corrupt snapshot: rebuild from scratch */
   }
+  yieldIndex = emptyYieldIndex();
+  return yieldIndex;
+}
 
-  const sortedDays = [...perDay.keys()].sort((a, b) => a - b);
+function saveYieldIndex(): void {
+  if (!yieldIndex) return;
+  try {
+    const dir = dirname(INDEX_PATH);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(INDEX_PATH, JSON.stringify(yieldIndex), 'utf8');
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'yield index persist failed');
+  }
+}
+
+let indexRefreshing = false;
+
+/// Scan only the blocks added since the last checkpoint and fold them into the
+/// running totals. The first call after a fresh deploy walks the full range once
+/// (in the background); every later call scans a handful of new blocks.
+async function refreshYieldIndex(): Promise<void> {
+  const distributor = distributorAddress();
+  if (!distributor || indexRefreshing) return;
+  indexRefreshing = true;
+  try {
+    const state = loadYieldIndex();
+    const deploy = distributorDeployBlock();
+    const head = await publicClient.getBlockNumber();
+    const from = BigInt(state.lastBlock > 0 ? state.lastBlock + 1 : Number(deploy));
+    if (from > head) return;
+
+    const [creditedLogs, claimedLogs] = await Promise.all([
+      chunkedGetLogs({ address: distributor, event: YieldCreditedEvent, fromBlock: from, toBlock: head }),
+      chunkedGetLogs({ address: distributor, event: YieldClaimedEvent, fromBlock: from, toBlock: head }),
+    ]);
+
+    for (const log of creditedLogs) {
+      const staker = String(log.args.staker ?? '').toLowerCase();
+      const dayKey = String(Number((log.args.day as bigint | number | undefined) ?? 0n));
+      const amount = (log.args.amount as bigint | undefined) ?? 0n;
+      state.perDayCredited[dayKey] = (BigInt(state.perDayCredited[dayKey] ?? '0') + amount).toString();
+      if (staker) {
+        const days = (state.perStakerDayCredited[staker] ??= {});
+        days[dayKey] = (BigInt(days[dayKey] ?? '0') + amount).toString();
+      }
+    }
+    for (const log of claimedLogs) {
+      const staker = String(log.args.staker ?? '').toLowerCase();
+      const amount = (log.args.amount as bigint | undefined) ?? 0n;
+      if (staker) {
+        state.perStakerClaimed[staker] = (BigInt(state.perStakerClaimed[staker] ?? '0') + amount).toString();
+      }
+    }
+
+    state.lastBlock = Number(head);
+    saveYieldIndex();
+    logger.info(
+      { from: from.toString(), head: head.toString(), credited: creditedLogs.length, claimed: claimedLogs.length },
+      'yield index refreshed',
+    );
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'yield index refresh failed');
+  } finally {
+    indexRefreshing = false;
+  }
+}
+
+/// Cumulative daily distribution series from the index (protocol-wide, or one
+/// staker when filtered). Pure lookup, no chain scan.
+function indexedHistory(filterAddress: `0x${string}` | null): HistoryPoint[] {
+  const state = loadYieldIndex();
+  const source = filterAddress
+    ? state.perStakerDayCredited[filterAddress.toLowerCase()] ?? {}
+    : state.perDayCredited;
+  const days = Object.keys(source)
+    .map(Number)
+    .sort((a, b) => a - b);
   let running = 0n;
   const history: HistoryPoint[] = [];
-  for (const day of sortedDays) {
-    const daily = perDay.get(day) ?? 0n;
+  for (const day of days) {
+    const daily = BigInt(source[String(day)] ?? '0');
     running += daily;
-    const iso = new Date(day * 86_400_000).toISOString().slice(0, 10);
     history.push({
-      day: iso,
+      day: new Date(day * 86_400_000).toISOString().slice(0, 10),
       dailyCreditedUsdc: formatUnits(daily, USDC_DECIMALS),
       cumulativeCreditedUsdc: formatUnits(running, USDC_DECIMALS),
     });
   }
-
-  historyCache.set(filterAddress ?? 'protocol', { at: Date.now(), data: history });
   return history;
 }
 
-/// Keep the protocol-wide distribution history hot so the /stake chart never
-/// pays the cold event scan on a user's first load. That scan is the slowest
-/// yield read; running it in the background under the cache TTL means visitors
-/// always hit a warm cache instead of a blank chart. Only the protocol series
-/// is warmed (it is address-independent and the most-viewed surface); per-staker
-/// series still warm lazily on first request. Returns a stop function.
-export function startYieldWarmer(): () => void {
+/// A staker's lifetime claimed total from the index. Pure lookup.
+function indexedStakerClaimed(addr: `0x${string}`): bigint {
+  return BigInt(loadYieldIndex().perStakerClaimed[addr.toLowerCase()] ?? '0');
+}
+
+/// Start the incremental indexer: a full catch-up scan on boot (background),
+/// then a light incremental scan every 90s. Returns a stop function.
+export function startYieldIndexer(): () => void {
   const distributor = distributorAddress();
   if (!distributor) return () => {};
   const tick = () => {
-    loadHistory(distributor, null).catch((err) =>
-      logger.warn({ err: (err as Error).message }, 'yield warmer: protocol history refresh failed'),
-    );
+    void refreshYieldIndex();
   };
-  tick(); // warm immediately at boot so the first demo load is already hot
+  tick(); // catch up from the checkpoint at boot so reads are hot
   const id = setInterval(tick, 90_000);
-  logger.info('yield history warmer started');
+  logger.info('yield indexer started');
   return () => clearInterval(id);
 }
 

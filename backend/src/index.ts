@@ -32,7 +32,7 @@ import { supportTeamRoutes } from './routes/supportTeam.js';
 import { adminTreasuryRoutes } from './routes/adminTreasury.js';
 import { adminUsycRoutes } from './routes/adminUsyc.js';
 import { treasuryRoutes } from './routes/treasury.js';
-import { yieldRoutes, startYieldWarmer } from './routes/yield.js';
+import { yieldRoutes, startYieldIndexer } from './routes/yield.js';
 import { listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
@@ -325,14 +325,15 @@ function bootAgents() {
     );
   }
 
-  /// Keep the protocol yield-distribution history hot so /stake's chart never
-  /// pays the cold event scan on a visitor's first load (the blank-chart stall).
+  /// Incremental yield indexer: scans the distributor's events once, checkpoints
+  /// the running totals, then only reads new blocks. Keeps /stake's chart and the
+  /// per-user numbers instant instead of re-walking millions of blocks per read.
   try {
-    stopFns.push(startYieldWarmer());
+    stopFns.push(startYieldIndexer());
   } catch (err) {
     appLogger.warn(
       { err: (err as Error).message },
-      'yield warmer not started',
+      'yield indexer not started',
     );
   }
 }
