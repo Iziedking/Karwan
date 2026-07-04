@@ -130,6 +130,24 @@ export function deleteBrief(jobId: string): boolean {
   return true;
 }
 
+/// Move a brief from one jobId to another. The posting route derives a
+/// provisional jobId off-chain, but the contract's real jobId (from the
+/// JobPosted event) differs when the stored signer address has drifted. When it
+/// does, the brief must follow the real id so the tracked job carries its text,
+/// keywords, and negotiation settings instead of being an orphan. No-op if the
+/// source is missing.
+export function rekeyBrief(fromJobId: string, toJobId: string): boolean {
+  load();
+  const from = fromJobId.toLowerCase();
+  const to = toJobId.toLowerCase();
+  const brief = store.get(from);
+  if (!brief) return false;
+  store.delete(from);
+  store.set(to, { ...brief, jobId: to });
+  persist();
+  return true;
+}
+
 /// Read all stored briefs. Used by aggregators (reputation spam detector,
 /// marketplace surface). The in-memory store is small (one entry per posted
 /// brief), so a full scan is cheap.

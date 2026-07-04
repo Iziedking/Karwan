@@ -8,7 +8,7 @@ import {
   type Address,
 } from 'viem';
 import { z } from 'zod';
-import { jobBoard, readJobExistsOnChain } from '../chain/contracts.js';
+import { jobBoard, readPostedJobId } from '../chain/contracts.js';
 import { publicClient, arcTestnet } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import {
@@ -33,7 +33,7 @@ import { getOutOfReach } from '../db/outOfReach.js';
 import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearMiss.js';
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
-import { createBrief, patchBrief, getBrief, deleteBrief } from '../db/briefs.js';
+import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
@@ -298,7 +298,11 @@ jobsRoutes.post('/', async (c) => {
   // the id the contract will emit. The postJob ABI selector is unchanged; the
   // first bytes32 param is now the salt.
   const salt = keccak256(toBytes(`${body.brief}|${Date.now()}|${Math.random()}`));
-  const jobId = keccak256(
+  // Provisional id derived the same way the contract does. It is only correct
+  // when the stored buyer agent address equals the real Circle SCA that signs;
+  // when it has drifted, the on-chain JobPosted event carries a different id and
+  // we reconcile to it after the tx (see below).
+  let jobId = keccak256(
     encodeAbiParameters(
       [{ type: 'address' }, { type: 'bytes32' }],
       [buyerProfile.address as Address, salt],
@@ -354,18 +358,18 @@ jobsRoutes.post('/', async (c) => {
       },
       `postJob(${jobId})`,
     );
-    // Circle reports COMPLETE when the outer handleOps lands, even if the inner
-    // postJob reverted (jobId collision, past deadline, zero budget). Without a
-    // real event, the buyer agent never tracks the job, so the deal page 404s
-    // forever and the buyer is stranded on a job that was never created. Confirm
-    // the job exists on-chain before returning success; on a revert, drop the
-    // anticipatory brief and surface a retry. See erc4337-inner-revert notes.
-    const posted = await readJobExistsOnChain(jobId);
-    if (!posted) {
+    // Trust the on-chain JobPosted event, not the off-chain derived id. Circle
+    // reports the tx COMPLETE when the outer handleOps lands; the id it emits can
+    // differ from what we derived when the stored buyer agent address has drifted
+    // from the real signer (msg.sender), and no event at all means the inner
+    // postJob reverted. Either way the buyer would otherwise be stranded on a
+    // /jobs/<id> that 404s. See erc4337-inner-revert + own-auction-misfire notes.
+    const realJobId = await readPostedJobId(result.txHash);
+    if (!realJobId) {
       deleteBrief(jobId);
       logger.error(
         { jobId, txHash: result.txHash },
-        'postJob handleOps completed but the job is absent on-chain: inner call reverted',
+        'postJob completed but emitted no JobPosted event: treating as a failed post',
       );
       return c.json(
         {
@@ -374,6 +378,20 @@ jobsRoutes.post('/', async (c) => {
         },
         502,
       );
+    }
+    if (realJobId.toLowerCase() !== jobId.toLowerCase()) {
+      logger.warn(
+        { derivedJobId: jobId, realJobId, storedSigner: buyerProfile.address },
+        'postJob jobId mismatch: the stored buyer agent address differs from the on-chain signer; reconciling to the emitted id',
+      );
+      // Move the brief to the real id so the tracked job carries its metadata,
+      // and re-run keyword extraction against it in case the first pass patched
+      // (and left behind) the provisional key.
+      rekeyBrief(jobId, realJobId);
+      extractKeywords(body.brief, `brief:${realJobId}`)
+        .then((keywords) => patchBrief(realJobId, { keywords }))
+        .catch(() => {});
+      jobId = realJobId as `0x${string}`;
     }
     return c.json({ jobId, deadlineUnix, ...result });
   } catch (err) {

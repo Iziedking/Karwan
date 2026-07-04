@@ -1,4 +1,4 @@
-import { getContract, type Address } from 'viem';
+import { getContract, parseEventLogs, type Address } from 'viem';
 import { config } from '../config.js';
 import { publicClient } from './client.js';
 import { jobBoardAbi } from './abis/jobBoard.js';
@@ -514,27 +514,36 @@ const erc20BalanceAbi = [
   },
 ] as const;
 
-/// Confirms a job actually landed on-chain. Circle's ERC-4337 bundler reports
-/// the tx COMPLETE when the outer handleOps succeeds, even if the inner postJob
-/// reverted (jobId already exists, past deadline, zero budget) — leaving no
-/// JobPosted event and a job that is never tracked. The posting route reads this
-/// right after the tx so it can surface a retry instead of redirecting the buyer
-/// to a job that was never created. State None (0) means the post reverted. A
-/// transient RPC read failure is retried a couple of times before giving up, so
-/// a flaky read doesn't masquerade as a revert. See erc4337-inner-revert notes.
-export async function readJobExistsOnChain(jobId: string): Promise<boolean> {
+/// The jobId the JobBoard actually emitted for a postJob tx, read from the
+/// JobPosted event in the receipt. This is the ONLY source of truth for the id:
+/// the contract derives jobId = keccak256(msg.sender, salt) from the real Circle
+/// SCA that signs, while the backend derives it off-chain from the STORED buyer
+/// agent address. When that stored address has drifted from the real signer the
+/// two disagree, so the derived id points at a job that never existed while the
+/// real job posts under a different id (the buyer is stranded on a 404). It also
+/// catches a genuine inner revert: Circle reports the tx COMPLETE when the outer
+/// handleOps lands even if the inner postJob reverted, in which case no
+/// JobPosted event is present. Returns null on no-event (revert) or an
+/// unreadable receipt after a few tries. See erc4337-inner-revert +
+/// own-auction-misfire notes.
+export async function readPostedJobId(txHash: string): Promise<string | null> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      // jobs() returns a tuple [buyer, budget, deadline, termsHash, state, ...];
-      // state is the 5th element (index 4). JobState.None == 0 means no job.
-      const job = await jobBoard.read.jobs([jobId as `0x${string}`]);
-      const state = Number((job as readonly unknown[])[4]);
-      return state !== 0;
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: txHash as `0x${string}`,
+      });
+      const parsed = parseEventLogs({
+        abi: activeJobBoardAbi,
+        eventName: 'JobPosted',
+        logs: receipt.logs,
+      });
+      const jobId = (parsed[0]?.args as { jobId?: string } | undefined)?.jobId;
+      return jobId ?? null;
     } catch {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
-  return false;
+  return null;
 }
 
 /// Reads an address's USDC balance on Arc. Used to preflight escrow
