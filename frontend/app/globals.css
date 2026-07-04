@@ -336,6 +336,40 @@ html[data-theme="dark"] {
   [data-instrument-blink] { animation: none !important; opacity: 1 !important; }
 }
 
+/* Full-screen brand loader (GlobalLoadingSplash): a breathing mark + an
+   indeterminate sweeping bar, so page loads show the Karwan logo instead of a
+   footer-first flicker. */
+@keyframes karwanSplashBreathe {
+  0%, 100% { opacity: 0.6; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+.karwan-splash-mark { animation: karwanSplashBreathe 1.6s ease-in-out infinite; }
+@keyframes karwanSplashSweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+.karwan-splash-bar {
+  position: relative;
+  width: 132px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-ink, #ededed) 12%, transparent);
+}
+.karwan-splash-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 38%;
+  border-radius: 2px;
+  background: var(--lp-accent, #afc95b);
+  animation: karwanSplashSweep 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .karwan-splash-mark { animation: none; opacity: 1; }
+  .karwan-splash-bar::after { animation: none; width: 100%; opacity: 0.6; }
+}
+
 @keyframes peer-drop {
   0% { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
   12%, 86% { opacity: 1; transform: translateY(0); filter: blur(0); }

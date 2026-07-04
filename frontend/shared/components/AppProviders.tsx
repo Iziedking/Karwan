@@ -14,6 +14,7 @@ import { LocaleProvider } from '@/shared/i18n/LocaleProvider';
 import { GuideProvider } from '@/shared/guide/GuideProvider';
 import { AssistantWidget } from '@/shared/components/AssistantWidget';
 import { SiweGate } from '@/shared/components/SiweGate';
+import { GlobalLoadingSplash } from '@/shared/components/GlobalLoadingSplash';
 import type { Locale } from '@/shared/i18n/locales';
 
 type Mode = 'light' | 'dark';
@@ -60,6 +61,7 @@ export function AppProviders({
 
   const inner = (
     <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
+      <GlobalLoadingSplash />
       <SiweGate />
       <QueryInvalidator />
       <LiveCallerSync />
