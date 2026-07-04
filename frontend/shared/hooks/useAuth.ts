@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
-import { api, setApiCaller } from '@/core/api';
+import { api, setApiCaller, type UserProfile } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { clearPersistedCache } from '@/core/queryPersister';
 
@@ -67,19 +67,32 @@ export function useAuth(): AuthState & {
 
   const refresh = useCallback(async () => {
     try {
-      // One-shot: bootstrap returns the session AND the profile, so the page
-      // resolves both in a single round-trip instead of authMe then getProfile
-      // serially. Seed the profile query cache from the response so
-      // useUserProfile finds it without a second request.
-      const r = await api.bootstrap();
-      if (r.user) {
+      let user: { address: string; method: string; email?: string; hasPasskey?: boolean } | null;
+      let profile: UserProfile | null = null;
+      try {
+        // Fast path: one round-trip for session + profile, so the page resolves
+        // both at once instead of authMe then getProfile serially.
+        const r = await api.bootstrap();
+        user = r.user;
+        profile = r.profile;
+      } catch {
+        // The bootstrap endpoint may not be on the backend yet (the frontend
+        // deploys ahead of the API on a split deploy). Fall back to authMe so
+        // auth NEVER breaks on a deploy-order skew; the profile then loads via
+        // useUserProfile's own query, the same as before.
+        const r = await api.authMe();
+        user = r.user;
+      }
+      if (user) {
         setSession({
-          address: r.user.address,
-          method: r.user.method as 'circle' | 'web3',
-          email: r.user.email,
-          hasPasskey: !!r.user.hasPasskey,
+          address: user.address,
+          method: user.method as 'circle' | 'web3',
+          email: user.email,
+          hasPasskey: !!user.hasPasskey,
         });
-        if (r.profile) qc.setQueryData(qk.profile.me(r.user.address), r.profile);
+        // Seed the profile cache so useUserProfile resolves without a second
+        // request (only present on the bootstrap fast path).
+        if (profile) qc.setQueryData(qk.profile.me(user.address), profile);
       } else {
         setSession(null);
       }
