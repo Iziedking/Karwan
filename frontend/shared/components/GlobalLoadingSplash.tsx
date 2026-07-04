@@ -50,7 +50,10 @@ export function GlobalLoadingSplash() {
       role="status"
       className="fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 motion-reduce:transition-none"
       style={{
-        background: 'var(--color-surface, #0c0e10)',
+        // Match the page background of whichever theme is active (cream in
+        // light, near-black in dark) so the splash reads as the same surface
+        // the page will paint into.
+        background: 'var(--color-bg, #0a0a0c)',
         opacity: active ? 1 : 0,
         pointerEvents: active ? 'auto' : 'none',
       }}
@@ -62,9 +65,12 @@ export function GlobalLoadingSplash() {
             width: 72,
             height: 72,
             borderRadius: 20,
-            background: 'var(--lp-band-dark, #101214)',
-            color: 'var(--lp-accent, #afc95b)',
-            boxShadow: '0 8px 40px -12px rgba(0,0,0,0.45)',
+            // Theme-adaptive, high-contrast in both: the badge is the ink color
+            // (dark square in light theme, light square in dark theme) and the
+            // mark is the page background (the inverse), so it always reads.
+            background: 'var(--color-ink, #0c0e10)',
+            color: 'var(--color-bg, #fafaf7)',
+            boxShadow: '0 8px 40px -12px rgba(0,0,0,0.28)',
           }}
         >
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
