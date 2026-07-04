@@ -123,15 +123,23 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
       </div>
 
       <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)] max-w-[60ch]">
-        Your agents pay per call for the data they negotiate with.
+        Your agents pay per call for the data they negotiate with. Reputation checks
+        run on our own x402 on Arc; market research on an external x402 on Base.
       </p>
 
       <ul className="mt-4 space-y-2">
         {payments.map((p) => {
           const isOpen = openId === p.id;
           const railTone = p.rail === 'arc' ? '#4f8a3f' : '#3a6ea5';
+          // Make the bilateral direction explicit: on a reputation pull the buyer
+          // agent verifies the seller and the seller agent verifies the buyer, so
+          // a judge sees both sides paying to vet each other on our own x402.
           const label =
-            p.kind === 'reputation' ? 'verified counterparty reputation' : 'researched the market';
+            p.kind === 'reputation'
+              ? p.agent === 'seller'
+                ? 'verified the buyer'
+                : 'verified the seller'
+              : 'researched the market';
           const href = explorerUrl(p);
           return (
             <li
