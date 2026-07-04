@@ -333,18 +333,27 @@ function WorkRecordSection({
     };
   }, [jobId, caller]);
 
-  // Only the seller side carries a delivered-work record. Skip for a buyer peek.
-  if (role !== 'seller') return null;
   if (state.kind === 'error') return null;
+  const payment = state.kind === 'done' ? state.data.payment : null;
+  // Buyers don't deliver work, so there's no delivered-work record for a buyer
+  // peek. But the counterparty agent still PAID to pull their passport, so the
+  // paid-read receipt must surface on this side too (the seller paying for the
+  // buyer), not just buyer-viewing-seller.
+  const showWorkRecord = role === 'seller';
+  if (!showWorkRecord && !payment && state.kind !== 'loading') return null;
 
   return (
     <div className="px-6 pb-6 pt-4 border-t border-[var(--lp-border-light)]">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{wr.eyebrow}:]
-      </span>
-      <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{wr.subtitle}</p>
+      {showWorkRecord && (
+        <>
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{wr.eyebrow}:]
+          </span>
+          <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{wr.subtitle}</p>
+        </>
+      )}
 
-      {state.kind === 'done' && state.data.payment && (
+      {payment && (
         <div
           className="mt-3 flex items-center justify-between gap-3 px-3 py-2"
           style={{
@@ -354,11 +363,11 @@ function WorkRecordSection({
           }}
         >
           <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            agent paid ${state.data.payment.amountUsd.toFixed(2)} on Arc for this read
+            agent paid ${payment.amountUsd.toFixed(2)} on Arc for this read
           </span>
-          {isTxHash(state.data.payment.txHash) && (
+          {isTxHash(payment.txHash) && (
             <a
-              href={`https://testnet.arcscan.app/tx/${state.data.payment.txHash}`}
+              href={`https://testnet.arcscan.app/tx/${payment.txHash}`}
               target="_blank"
               rel="noreferrer"
               className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] underline underline-offset-2"
@@ -370,15 +379,15 @@ function WorkRecordSection({
         </div>
       )}
 
-      {state.kind === 'loading' && (
+      {showWorkRecord && state.kind === 'loading' && (
         <p className="mt-3 mono text-[11px] text-[var(--lp-text-muted)]">{wr.loading}</p>
       )}
 
-      {state.kind === 'done' && state.data.locked && (
+      {showWorkRecord && state.kind === 'done' && state.data.locked && (
         <p className="mt-3 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{wr.locked}</p>
       )}
 
-      {state.kind === 'done' && !state.data.locked && state.data.record && (
+      {showWorkRecord && state.kind === 'done' && !state.data.locked && state.data.record && (
         <>
           {(state.data.record.summary.completionRate != null ||
             state.data.record.summary.onTimeRate != null) && (
