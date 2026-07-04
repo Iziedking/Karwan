@@ -1,28 +1,36 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
 
 /// Branded route-transition loader. Shows the Karwan logo (the lime mark in a
 /// dark square) on the initial load and on EVERY navigation into a non-landing
-/// page — launch app -> /app, onboarding -> /app, page clicks — held for a beat
-/// so it covers the incoming page rendering behind it, then fades to reveal it.
+/// page — launch app -> /app, onboarding -> /app, page clicks — then hides when
+/// the incoming page is actually ready, not on a fixed timer.
 ///
-/// It fires ONLY on navigation. It is not tied to auth in any way, so the
-/// sign-in flow stays calm (page blurred behind the wallet popup, no reload
-/// flash). The public landing routes never show it.
+/// "Ready" = no React Query fetches in flight past a short floor (so it can't
+/// hide before the page's queries even start, and won't flicker), capped by a
+/// hard max so a slow on-chain read never hangs the splash — at the cap it
+/// lifts and the page's own skeleton takes over.
 ///
-/// MIN_VISIBLE_MS is the single knob for how long the logo holds.
-const MIN_VISIBLE_MS = 2000;
+/// It fires ONLY on navigation, never tied to auth, so the sign-in flow stays
+/// calm (page blurred behind the wallet popup, no reload flash). Landing routes
+/// never show it.
+const MIN_MS = 600; // floor: let the new page's queries start; avoid a flicker
+const MAX_MS = 5000; // cap: never hold longer than this, even on a slow page
 const STALL_MS = 12_000;
 
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
+  const isFetching = useIsFetching();
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
+  const startRef = useRef(0);
 
-  // Initial load + every route change. Landing stays instant.
+  // Show on the initial load + every route change (skip landing). Arm the cap
+  // and the stall timers; the data-settled effect below hides it earlier.
   useEffect(() => {
     if (isLandingRoute(pathname)) {
       setActive(false);
@@ -31,13 +39,24 @@ export function GlobalLoadingSplash() {
     setActive(true);
     setStalled(false);
     setMounted(true);
-    const hide = setTimeout(() => setActive(false), MIN_VISIBLE_MS);
+    startRef.current = Date.now();
+    const cap = setTimeout(() => setActive(false), MAX_MS);
     const stall = setTimeout(() => setStalled(true), STALL_MS);
     return () => {
-      clearTimeout(hide);
+      clearTimeout(cap);
       clearTimeout(stall);
     };
   }, [pathname]);
+
+  // Hide as soon as the incoming page's data has settled (nothing fetching)
+  // past the MIN floor. Re-arms automatically if a new fetch starts before the
+  // floor, so the splash waits for the page's real queries rather than a guess.
+  useEffect(() => {
+    if (!active || isFetching > 0) return;
+    const wait = Math.max(0, MIN_MS - (Date.now() - startRef.current));
+    const id = setTimeout(() => setActive(false), wait);
+    return () => clearTimeout(id);
+  }, [active, isFetching]);
 
   // Fade out, then drop from the tree.
   useEffect(() => {
