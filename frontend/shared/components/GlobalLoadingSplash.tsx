@@ -1,78 +1,43 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/shared/hooks/useAuth';
 import { isLandingRoute } from '@/shared/utils/routes';
 
-/// Branded loader for entering the app. It covers the incoming page with the
-/// Karwan logo for a beat, then fades to reveal it. It fires on:
-///   - every route change into a non-landing page (launch app -> /app,
-///     onboarding -> /app, page clicks), and
-///   - the auth flip to signed-in (the non-auth -> authed /app swap, which is an
-///     in-place content swap, not a route change).
-/// It is deliberately NOT tied to the auth LOADING state, so the sign-in flow
-/// itself stays smooth; the auth trigger only fires the moment sign-in
-/// completes. The public landing routes never show it.
+/// Branded route-transition loader. Shows the Karwan logo (the lime mark in a
+/// dark square) on the initial load and on EVERY navigation into a non-landing
+/// page — launch app -> /app, onboarding -> /app, page clicks — held for a beat
+/// so it covers the incoming page rendering behind it, then fades to reveal it.
 ///
-/// MIN_VISIBLE_MS is the single knob for how long the logo holds. Bump it (e.g.
-/// to 5000) for a longer hold; drop it for a snappier feel.
+/// It fires ONLY on navigation. It is not tied to auth in any way, so the
+/// sign-in flow stays calm (page blurred behind the wallet popup, no reload
+/// flash). The public landing routes never show it.
+///
+/// MIN_VISIBLE_MS is the single knob for how long the logo holds.
 const MIN_VISIBLE_MS = 2000;
 const STALL_MS = 12_000;
 
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuth();
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
-  const [nonce, setNonce] = useState(0);
 
-  const show = useCallback(() => {
-    if (isLandingRoute(pathname)) return;
-    setActive(true);
-    setStalled(false);
-    setMounted(true);
-    setNonce((n) => n + 1);
-  }, [pathname]);
-
-  // Route-change trigger: the initial load and every navigation. Landing stays
-  // instant (no splash).
+  // Initial load + every route change. Landing stays instant.
   useEffect(() => {
     if (isLandingRoute(pathname)) {
       setActive(false);
       return;
     }
-    show();
-  }, [pathname, show]);
-
-  // Auth-flip trigger: cover the in-place non-auth -> authed swap (signing in
-  // while already on /app is a content swap, not a route change). NOT tied to
-  // isLoading, so the sign-in flow stays smooth; it fires only when auth
-  // resolves to signed-in. Skips the initial bootstrap resolve so a normal
-  // reload doesn't double up with the route trigger.
-  const resolvedOnce = useRef(false);
-  const prevAuth = useRef(false);
-  useEffect(() => {
-    if (isLoading) return;
-    if (!resolvedOnce.current) {
-      resolvedOnce.current = true;
-      prevAuth.current = isAuthenticated;
-      return;
-    }
-    if (isAuthenticated && !prevAuth.current) show();
-    prevAuth.current = isAuthenticated;
-  }, [isAuthenticated, isLoading, show]);
-
-  // Auto-hide after the branded minimum whenever a trigger bumps the nonce.
-  useEffect(() => {
-    if (nonce === 0 && !active) return;
+    setActive(true);
+    setStalled(false);
+    setMounted(true);
     const hide = setTimeout(() => setActive(false), MIN_VISIBLE_MS);
     const stall = setTimeout(() => setStalled(true), STALL_MS);
     return () => {
       clearTimeout(hide);
       clearTimeout(stall);
     };
-  }, [nonce]);
+  }, [pathname]);
 
   // Fade out, then drop from the tree.
   useEffect(() => {
@@ -89,9 +54,8 @@ export function GlobalLoadingSplash() {
       role="status"
       className="fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 motion-reduce:transition-none"
       style={{
-        // Match the page background of whichever theme is active (cream in
-        // light, near-black in dark) so the splash reads as the same surface
-        // the page will paint into.
+        // Theme-aware page background (cream in light, near-black in dark) so
+        // the splash reads as the surface the page will paint into.
         background: 'var(--color-bg, #0a0a0c)',
         opacity: active ? 1 : 0,
         pointerEvents: active ? 'auto' : 'none',
@@ -104,11 +68,12 @@ export function GlobalLoadingSplash() {
             width: 104,
             height: 104,
             borderRadius: 26,
-            // Theme-adaptive, high-contrast in both: the badge is the ink color
-            // (dark square in light theme, light square in dark theme) and the
-            // mark is the page background (the inverse), so it always reads.
-            background: 'var(--color-ink, #0c0e10)',
-            color: 'var(--color-bg, #fafaf7)',
+            // The brand logo lockup, identical in both themes: the lime mark in
+            // a dark square. A faint border keeps the square defined on the dark
+            // theme's near-black background.
+            background: 'var(--lp-band-dark, #101214)',
+            color: 'var(--lp-accent, #afc95b)',
+            border: '1px solid var(--color-line, rgba(255,255,255,0.08))',
             boxShadow: '0 10px 48px -14px rgba(0,0,0,0.30)',
           }}
         >
