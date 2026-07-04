@@ -10,7 +10,8 @@ contract KarwanJobBoard {
         None,
         Posted,
         Accepted,
-        Cancelled
+        Cancelled,
+        Expired
     }
 
     struct Job {
@@ -64,6 +65,11 @@ contract KarwanJobBoard {
     event BidAccepted(
         bytes32 indexed jobId, address indexed seller, uint256 price, uint64 deadline
     );
+    /// @notice A posted job reached its match-accept deadline without an accept
+    ///         and was moved to the terminal Expired state. Permissionless: any
+    ///         caller can clean up a stale job on-chain (v2b: replaces reliance
+    ///         on the off-chain jobExpiryWatcher).
+    event JobExpired(bytes32 indexed jobId);
 
     error JobAlreadyExists();
     error JobNotOpen();
@@ -74,6 +80,8 @@ contract KarwanJobBoard {
     error InvalidJob();
     error BidExpired();
     error InvalidCounter();
+    error MatchWindowClosed();
+    error MatchWindowOpen();
 
     /// @notice Post a job. Audit L-1: the jobId is DERIVED as
     ///         keccak256(msg.sender, salt), namespacing it to the poster so no
@@ -162,6 +170,12 @@ contract KarwanJobBoard {
         Job storage j = jobs[jobId];
         if (j.state != JobState.Posted) revert JobNotOpen();
         if (msg.sender != j.buyer) revert NotJobBuyer();
+        // v2b: the job's own deadline is the match-accept window. Once it
+        // passes, no match can be accepted even on a still-valid bid, so a late
+        // accept can't slip through before someone calls expireJob. "Miss the
+        // window -> nothing funded" is enforced here, not just by the watcher.
+        // forge-lint: disable-next-line(block-timestamp)
+        if (j.deadline <= block.timestamp) revert MatchWindowClosed();
         Bid storage b = bids[jobId][seller];
         if (!b.exists) revert NoSuchBid();
         // forge-lint: disable-next-line(block-timestamp)
@@ -171,5 +185,21 @@ contract KarwanJobBoard {
         j.acceptedPrice = b.price;
         j.acceptedDeadline = b.deadline;
         emit BidAccepted(jobId, seller, b.price, b.deadline);
+    }
+
+    /// @notice Permissionless terminal cleanup: move a Posted job whose
+    ///         match-accept window has closed to Expired. Anyone may call it
+    ///         (the buyer, a keeper, a curious seller) once the deadline passes,
+    ///         so a matched-but-unaccepted job reaches a dead on-chain state
+    ///         instead of lingering in "awaiting approval". No funds are
+    ///         involved: the escrow is never touched until acceptBid + a
+    ///         separate fund call, both already blocked past the window.
+    function expireJob(bytes32 jobId) external {
+        Job storage j = jobs[jobId];
+        if (j.state != JobState.Posted) revert JobNotOpen();
+        // forge-lint: disable-next-line(block-timestamp)
+        if (block.timestamp < j.deadline) revert MatchWindowOpen();
+        j.state = JobState.Expired;
+        emit JobExpired(jobId);
     }
 }
