@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#F4F4F1" />
+
+  <!-- Arc-style line to node motif, drawn in ink at low opacity for cream -->
+  <circle cx="1760" cy="450" r="640" fill="none" stroke="#0e0e0e" stroke-opacity="0.08" stroke-width="2" />
+  <circle cx="1760" cy="450" r="470" fill="none" stroke="#0e0e0e" stroke-opacity="0.06" stroke-width="2" />
+  <line x1="980" y1="450" x2="1418" y2="450" stroke="#0e0e0e" stroke-opacity="0.18" stroke-width="2" />
+  <circle cx="1430" cy="450" r="30" fill="#AFC95B" fill-opacity="0.22" />
+  <circle cx="1430" cy="450" r="13" fill="#AFC95B" stroke="#0e0e0e" stroke-width="2" />
+
+  <!-- hairline rules -->
+  <line x1="100" y1="150" x2="1500" y2="150" stroke="#0e0e0e" stroke-opacity="0.12" stroke-width="1" />
+  <line x1="100" y1="800" x2="1500" y2="800" stroke="#0e0e0e" stroke-opacity="0.12" stroke-width="1" />
+
+  <!-- Karwan mark -->
+  <g transform="translate(100,96) scale(0.115)">
+    <path d="M148,362 L215,150 L256,278 L297,150 L364,362" fill="none" stroke="#AFC95B" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <text x="162" y="135" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="34" letter-spacing="2" fill="#0e0e0e">KARWAN</text>
+
+  <!-- SME TRADES tag with lime SOON pill -->
+  <text x="1318" y="132" text-anchor="end" font-family="Consolas, monospace" font-size="22" letter-spacing="3" fill="#6F6F6B">SME TRADES</text>
+  <rect x="1338" y="108" width="162" height="34" fill="#AFC95B" />
+  <text x="1419" y="132" text-anchor="middle" font-family="Consolas, monospace" font-size="22" letter-spacing="4" fill="#0e0e0e">SOON</text>
+
+  <!-- Headline, with a lime marker highlight behind the hero word -->
+  <text x="100" y="372" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="64" letter-spacing="0.5" fill="#0e0e0e">PRIVATE WHERE IT MATTERS.</text>
+  <rect x="90" y="406" width="556" height="68" fill="#AFC95B" />
+  <text x="100" y="456" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="64" letter-spacing="0.5" fill="#0e0e0e">ACCOUNTABLE WHERE IT COUNTS.</text>
+
+  <!-- Subhead -->
+  <text x="100" y="522" font-family="Consolas, monospace" font-size="26" letter-spacing="1" fill="#4F4F4B">B2B trade finance for SMEs, settling on Arc.</text>
+
+  <!-- Rail list -->
+  <g font-family="Consolas, monospace" font-size="25" letter-spacing="1" fill="#1A1A18">
+    <rect x="100" y="592" width="11" height="11" fill="#AFC95B" stroke="#0e0e0e" stroke-width="1" />
+    <text x="132" y="603">VERIFIED BUSINESS IDENTITY</text>
+    <rect x="100" y="640" width="11" height="11" fill="#AFC95B" stroke="#0e0e0e" stroke-width="1" />
+    <text x="132" y="651">INVOICE FACTORING AND PO FINANCING</text>
+    <rect x="100" y="688" width="11" height="11" fill="#AFC95B" stroke="#0e0e0e" stroke-width="1" />
+    <text x="132" y="699">TREASURY YIELD ON IDLE RESERVES</text>
+    <rect x="100" y="736" width="11" height="11" fill="#AFC95B" stroke="#0e0e0e" stroke-width="1" />
+    <text x="132" y="747">CROSS-BORDER USDC SETTLEMENT</text>
+  </g>
+
+  <!-- Bottom strip -->
+  <text x="100" y="852" font-family="Consolas, monospace" font-size="22" letter-spacing="3" fill="#6F6F6B">ON ARC</text>
+  <text x="1500" y="852" text-anchor="end" font-family="Consolas, monospace" font-size="22" letter-spacing="2" fill="#0e0e0e">karwan.site</text>
+</svg>

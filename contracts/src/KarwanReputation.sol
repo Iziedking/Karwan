@@ -80,6 +80,17 @@ contract KarwanReputation {
     /// @notice Cumulative USDC value of creditable settled deals per identity
     ///         (audit M-1). The composite engine weights standing by real value.
     mapping(address => uint256) public settledValue;
+    /// @notice Distinct settled counterparties per identity — the anti-farming
+    ///         keystone. A self-dealing ring or a buddy pair inflates counts and
+    ///         settledValue but never this, so the off-chain composite gates
+    ///         ELITE/STRONG on distinct breadth, not raw volume. Bumped once, the
+    ///         first time a given unordered pair settles.
+    mapping(address => uint256) public distinctCounterparties;
+    /// @notice Settled deal count per unordered {a,b} pair (keyed by _pairKey),
+    ///         so a buyer/seller role swap across deals hits one slot. Drives the
+    ///         composite's geometric per-pair diminishing returns (the k-th
+    ///         same-pair deal is worth ~half the (k-1)-th).
+    mapping(bytes32 => uint256) public pairDeals;
     mapping(address => Financier) public financiers;
     mapping(bytes32 => bool) public recorded;
     mapping(bytes32 => bool) public financingRecorded;
@@ -120,6 +131,14 @@ contract KarwanReputation {
     );
     event PenaltyAnnulled(uint256 indexed penaltyId, address indexed subject, uint8 severity);
     event Backfilled(address indexed subject, uint256 successCount, uint256 disputedCount, uint256 failedCount, uint256 settledValue);
+    /// @notice Emitted on every recorded outcome so an indexer can reconstruct
+    ///         diversity without re-reading the pair map. pairCount is the new
+    ///         {buyer,seller} total; the distinct fields are each side's running
+    ///         distinct-counterparty count after this settlement.
+    event PairSettled(
+        address indexed buyer, address indexed seller, uint256 pairCount, uint256 buyerDistinct, uint256 sellerDistinct
+    );
+    event DiversityBackfilled(address indexed subject, uint256 partyCount);
     event BackfillLocked();
 
     // ------------------------------ Errors -------------------------------
@@ -142,6 +161,7 @@ contract KarwanReputation {
     error AlreadyAnnulled();
     error UnknownPenalty();
     error BackfillLockedError();
+    error LengthMismatch();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -230,7 +250,26 @@ contract KarwanReputation {
         emit ResolutionRecorded(jobId, buyer, seller, sellerBps, dealAmount);
     }
 
+    /// @dev Order-independent key for a counterparty pair, so pairDeals[{a,b}]
+    ///      is a single slot regardless of who was buyer vs seller on a deal.
+    function _pairKey(address a, address b) private pure returns (bytes32) {
+        return a < b ? keccak256(abi.encodePacked(a, b)) : keccak256(abi.encodePacked(b, a));
+    }
+
     function _applyOutcome(address buyer, address seller, Outcome outcome, uint256 dealAmount) internal {
+        // Diversity accounting runs on EVERY outcome (success, disputed, failed):
+        // a distinct real counterparty relationship exists regardless of how the
+        // deal ended, and a failed deal can't be farmed for standing because it
+        // still lands as failedCount on the seller. First time a pair settles,
+        // both sides gain a distinct counterparty; repeats only deepen the pair.
+        bytes32 pk = _pairKey(buyer, seller);
+        if (pairDeals[pk] == 0) {
+            distinctCounterparties[buyer] += 1;
+            distinctCounterparties[seller] += 1;
+        }
+        pairDeals[pk] += 1;
+        emit PairSettled(buyer, seller, pairDeals[pk], distinctCounterparties[buyer], distinctCounterparties[seller]);
+
         bool creditable = dealAmount >= minCreditAmount;
         if (outcome == Outcome.Success) {
             scores[buyer].successCount += 1;
@@ -337,12 +376,50 @@ contract KarwanReputation {
         emit Backfilled(subject, successCount, disputedCount, failedCount, settledValue_);
     }
 
+    /// @notice Seed a v1 identity's distinct-counterparty history during the v2
+    ///         migration. For each prior counterparty it seeds the unordered
+    ///         pair count and, on a first-seen pair, bumps BOTH sides' distinct
+    ///         count, so post-migration a repeat deal with a known partner is
+    ///         correctly recognised (pairDeals > 0) instead of counting as new.
+    ///         Additive and one-shot like backfill(): the migration script MUST
+    ///         pass each unordered pair EXACTLY once (walk each identity's
+    ///         adjacency list and skip a partner already processed as a subject)
+    ///         or pair counts double. Disabled once lockBackfill fires.
+    function backfillDiversity(address subject, address[] calldata parties, uint256[] calldata counts)
+        external
+        onlyOwner
+    {
+        if (backfillLocked) revert BackfillLockedError();
+        if (subject == address(0)) revert ZeroAddress();
+        uint256 n = parties.length;
+        if (n != counts.length) revert LengthMismatch();
+        for (uint256 i = 0; i < n; i++) {
+            address party = parties[i];
+            if (party == address(0)) revert ZeroAddress();
+            uint256 cnt = counts[i];
+            if (cnt == 0) continue;
+            bytes32 pk = _pairKey(subject, party);
+            if (pairDeals[pk] == 0) {
+                distinctCounterparties[subject] += 1;
+                distinctCounterparties[party] += 1;
+            }
+            pairDeals[pk] += cnt;
+        }
+        emit DiversityBackfilled(subject, n);
+    }
+
     function lockBackfill() external onlyOwner {
         backfillLocked = true;
         emit BackfillLocked();
     }
 
     // ------------------------------- Views -------------------------------
+
+    /// @notice Settled deal count between two identities, order-independent.
+    ///         The composite reads this to apply per-pair diminishing returns.
+    function pairDealCount(address a, address b) external view returns (uint256) {
+        return pairDeals[_pairKey(a, b)];
+    }
 
     /// @notice Legacy composite badge (0-10000, 5000 neutral). Kept for the
     ///         v1 frontend; the v2 engine reads scores() + settledValue().
