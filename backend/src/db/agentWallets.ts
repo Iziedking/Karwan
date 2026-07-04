@@ -231,6 +231,39 @@ export async function updateX402Wallet(
   return next;
 }
 
+/// Correct the stored agent SCA addresses for a user, preserving every other
+/// field including createdAt. The record captures the address Circle returns at
+/// activation (the counterfactual SCA address); if Circle later migrates the
+/// wallet set or upgrades the SCA implementation, the walletId keeps signing
+/// from a NEW deployed address while our copy goes stale. A stale buyerAddress
+/// silently breaks jobId derivation (keccak256(signer, salt)), the gas-balance
+/// precheck, own-auction exclusion, and reputation keying. This re-syncs from
+/// Circle's live getWallet. Pass only the sides that changed. Returns null if
+/// the user has no agents.
+export async function updateAgentAddresses(
+  userAddress: string,
+  addrs: { buyerAddress?: string; sellerAddress?: string },
+): Promise<AgentWallets | null> {
+  const key = userAddress.toLowerCase();
+  const existing = await getAgentWallets(key);
+  if (!existing) return null;
+  const next: AgentWallets = {
+    ...existing,
+    buyerAddress: (addrs.buyerAddress ?? existing.buyerAddress).toLowerCase(),
+    sellerAddress: (addrs.sellerAddress ?? existing.sellerAddress).toLowerCase(),
+  };
+  if (pgEnabled) {
+    await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
+    invalidateAgentWalletCaches();
+    return next;
+  }
+  const store = loadFile();
+  store[key] = next;
+  saveFile(store);
+  invalidateAgentWalletCaches();
+  return next;
+}
+
 /// Update just the agent display names, preserving every other field including
 /// createdAt (saveAgentWallets resets createdAt, which would wipe the agent's
 /// age, so renames must not go through it). Pass a name to set it, or undefined
