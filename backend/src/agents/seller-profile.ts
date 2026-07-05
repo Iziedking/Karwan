@@ -1,6 +1,9 @@
 export interface SellerProfile {
   walletId: string;
   address: string;
+  /// Owner (identity) address behind the agent. Tier state and deal history
+  /// live on the owner, so sweep ordering reads it, not the agent wallet.
+  userAddress: string;
   displayName: string;
   skills: string[];
   bio: string;

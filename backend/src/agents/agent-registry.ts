@@ -47,6 +47,7 @@ function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProf
   return {
     walletId: agents.sellerWalletId,
     address: agents.sellerAddress,
+    userAddress: agents.userAddress,
     displayName: profile.displayName,
     skills: s.skills,
     bio: s.bio,

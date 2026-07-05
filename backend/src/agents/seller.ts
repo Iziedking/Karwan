@@ -45,10 +45,29 @@ import { accountTypeOf } from '../profile/accountType.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { config } from '../config.js';
+import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
+import { cleanDealPartnersFor } from './workRecord.js';
+import { getTierState } from '../db/tierState.js';
+import type { Tier as StandingTier } from '../reputation/config.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
 const USDC_DECIMALS = 6;
+
+/// How many seller evaluations run at once in the JobPosted sweep. Each one is
+/// an LLM call plus a bounded research await, so serial was 60-90s end to end.
+const EVAL_CONCURRENCY = Number(process.env.AGENT_EVAL_CONCURRENCY ?? 5);
+
+/// Sweep-priority rank only (proven sellers evaluated earlier). Ranking at bid
+/// time stays match-first per the match-ranking rule. Keyed by the tier-state
+/// store's standing tier, not the strategy tier (different casing).
+const EVAL_TIER_RANK: Record<StandingTier, number> = {
+  ELITE: 4,
+  STRONG: 3,
+  ESTABLISHED: 2,
+  COLD: 1,
+  NEW: 0,
+};
 
 interface ActiveBid {
   // The seller profile of the user whose seller agent placed this bid.
@@ -352,35 +371,92 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
     );
   }
 
-  for (const seller of sellers) {
-    const sellerLower = seller.address.toLowerCase();
-    // Skip sellers already handled for this job (idempotent rescans).
-    if (evaluated.has(sellerLower)) continue;
-    if (sellerLower === excludeSeller) {
-      // The buyer's own seller agent is kept out of their own request so they
-      // don't bid against themselves. Emit it so the owner sees why their seller
-      // stood down instead of wondering where their bid went (the silent skip
-      // here read as "my agent ignored my request").
-      evaluated.add(sellerLower);
-      bus.emitEvent({
-        type: 'agent.skipped',
-        jobId,
-        actor: 'seller',
-        payload: {
-          seller: seller.address,
-          reason: 'own-auction',
-          detail: 'This is your own seller agent. Karwan keeps it out of your own request so you never bid against yourself.',
-        },
-      });
-      continue;
+  // Order the sweep the way a human works their contacts: providers this buyer
+  // has closed clean deals with before ("my regulars") first, then proven tiers,
+  // then everyone else in registry order. The old registration-order serial scan
+  // put diligent elite sellers at the back where their bid landed after the
+  // buyer's collection window (deal 0x29e498: ELITE match-95 bid 7s late, a COLD
+  // match-80 got the deal).
+  const buyerOwner = (await findAgentWalletByAgentAddress(args.buyer))?.userAddress ?? null;
+  let familiar = new Map<string, number>();
+  if (buyerOwner) {
+    try {
+      familiar = await cleanDealPartnersFor(buyerOwner);
+    } catch (err) {
+      logger.warn({ err: (err as Error).message }, 'familiarity lookup failed, sweeping unordered');
     }
-    if (activeBids.has(bidKey(jobId, seller.address))) {
-      evaluated.add(sellerLower);
-      continue;
-    }
-    await evaluateAndBid(seller, { ...baseJob });
-    evaluated.add(sellerLower);
   }
+  // Precompute both sort keys once per seller; the comparator runs O(n log n)
+  // times and getTierState reads a file per call.
+  const sweepKey = new Map<string, { familiarity: number; tier: number }>();
+  for (const s of sellers) {
+    sweepKey.set(s.address, {
+      familiarity:
+        familiar.get(s.userAddress.toLowerCase()) ?? familiar.get(s.address.toLowerCase()) ?? 0,
+      tier: EVAL_TIER_RANK[getTierState(s.userAddress)?.tier ?? 'NEW'] ?? 0,
+    });
+  }
+  const ordered = [...sellers].sort((a, b) => {
+    const ka = sweepKey.get(a.address)!;
+    const kb = sweepKey.get(b.address)!;
+    return kb.familiarity - ka.familiarity || kb.tier - ka.tier;
+  });
+
+  // Evaluate concurrently (bounded) instead of one-by-one. Each evaluation is
+  // an LLM decision plus, for research-active sellers, a bounded research
+  // await, so a serial sweep spread bids over 60-90s and the window missed the
+  // tail. Every in-flight evaluation is tracked so the buyer's collection
+  // window can hold until the market has actually answered. A single seller's
+  // failure no longer aborts the rest of the sweep.
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(EVAL_CONCURRENCY, ordered.length)) },
+    async () => {
+      while (cursor < ordered.length) {
+        const seller = ordered[cursor++]!;
+        const sellerLower = seller.address.toLowerCase();
+        // Skip sellers already handled for this job (idempotent rescans).
+        if (evaluated.has(sellerLower)) continue;
+        if (sellerLower === excludeSeller) {
+          // The buyer's own seller agent is kept out of their own request so they
+          // don't bid against themselves. Emit it so the owner sees why their seller
+          // stood down instead of wondering where their bid went (the silent skip
+          // here read as "my agent ignored my request").
+          evaluated.add(sellerLower);
+          bus.emitEvent({
+            type: 'agent.skipped',
+            jobId,
+            actor: 'seller',
+            payload: {
+              seller: seller.address,
+              reason: 'own-auction',
+              detail: 'This is your own seller agent. Karwan keeps it out of your own request so you never bid against yourself.',
+            },
+          });
+          continue;
+        }
+        if (activeBids.has(bidKey(jobId, seller.address))) {
+          evaluated.add(sellerLower);
+          continue;
+        }
+        evaluationStarted(jobId);
+        try {
+          await evaluateAndBid(seller, { ...baseJob });
+          // Marked only on success, so the reconciler's rescan retries a seller
+          // whose evaluation failed instead of writing them off for the job.
+          evaluated.add(sellerLower);
+        } catch (err) {
+          logger.warn(
+            { jobId, seller: seller.address, err: (err as Error).message },
+            'seller evaluation failed, continuing the sweep',
+          );
+        } finally {
+          evaluationFinished(jobId);
+        }
+      }
+    },
+  );
+  await Promise.all(workers);
 
   // After profile-driven evaluation, scan open listings against this fresh
   // brief so listings posted BEFORE the brief still match. Listings posted

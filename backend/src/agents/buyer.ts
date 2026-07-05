@@ -42,6 +42,7 @@ import {
   type Tier,
 } from './strategy.js';
 import { countCleanDealsBetween } from './workRecord.js';
+import { pendingEvaluations } from './evaluationTracker.js';
 
 /// Hard cap on how many seller candidates the buyer agent will attempt
 /// sequentially on a single brief. Without this, a 10-bid auction could
@@ -209,6 +210,9 @@ interface JobState {
   /// measured from here for the adaptive soft-close.
   collectionStartedAt?: number;
   collectionFired: boolean;
+  /// One-shot timeline note when the close is deferred because seller agents
+  /// are still mid-evaluation (research + LLM in flight).
+  windowHoldAnnounced?: boolean;
   counterRoundsBySeller: Map<`0x${string}`, number>;
   lastCounterPriceBySeller: Map<`0x${string}`, string>;
   /// Cascading negotiation queue. After finalizeBidCollection ranks bids by
@@ -250,6 +254,18 @@ interface JobState {
   /// stalled (seller declined off-chain, dropped event, or a seller-side crash)
   /// and the buyer cascades to the next candidate. See COUNTER_RESPONSE_TIMEOUT_MS.
   counterWatchdog?: NodeJS.Timeout | null;
+  /// Park-and-counter probe. When a strictly-outranking bid lands late but
+  /// above the cap (within the near-miss stretch), the converged agreement is
+  /// parked here while the buyer counters the stronger seller ONCE at the cap.
+  /// Accept -> the stronger seller gets the match; decline / re-counter /
+  /// watchdog timeout -> the parked agreement is proposed unchanged. One probe
+  /// per job (latePreemptAttempted), so two late bidders can't ping-pong it.
+  parkedAgreement?: {
+    seller: `0x${string}`;
+    priceUsdc: string;
+    pattern?: ReturnType<typeof classifyBid>;
+  } | null;
+  latePreemptAttempted?: boolean;
 }
 
 /// How long a cancelled managed job lingers in the buyer's Managed Deals
@@ -978,6 +994,8 @@ async function maybeSupersedeNearMiss(
 const BID_COLLECTION_FLOOR_MS = Number(process.env.BID_COLLECTION_FLOOR_SECONDS ?? 45) * 1000;
 const BID_WINDOW_QUIET_MS = Number(process.env.BID_WINDOW_QUIET_MS ?? 15_000);
 const BID_WINDOW_MAX_MS = Number(process.env.BID_WINDOW_MAX_MS ?? 180_000);
+/// Recheck cadence while the close is held for in-flight seller evaluations.
+const BID_WINDOW_HOLD_RECHECK_MS = 3_000;
 
 function scheduleCollectionClose(state: JobState, floorMs: number): void {
   if (state.collectionFired) return;
@@ -1151,15 +1169,23 @@ function rankBidEntries(state: JobState): RankedBidEntry[] {
 /// the agent is mid-negotiation with a COLD seller) would otherwise never be
 /// reconsidered. Before a match commits, re-rank the whole pool: if the best bid
 /// is now a different, untried seller that strictly outranks the one about to be
-/// proposed AND its bid price is already within the buyer's cap (acceptable
-/// directly, no fresh negotiation), return it to commit instead. Returns null
-/// when the intended seller is still best, when it has no bid in the pool, or
-/// when the better bid would need negotiation. It never abandons an in-flight
-/// negotiation; it only redirects the commit to an already-acceptable winner.
+/// proposed, return a verdict: 'direct' when its bid already fits the buyer's
+/// cap (swap the commit, no fresh negotiation), 'probe' when it sits above the
+/// cap but within the near-miss stretch (park the agreement, counter once at
+/// the cap, guaranteed fallback). Returns null when the intended seller is
+/// still best, has no bid to compare, or the late bid is beyond the stretch.
+/// A converged handshake is never abandoned: the probe path parks it and every
+/// non-accept outcome proposes it unchanged.
+/// Verdict for a late outranking bid at commit time. 'direct': acceptable at
+/// its own price, swap the commit. 'probe': above the cap but within the
+/// near-miss stretch, park the converged agreement and counter the stronger
+/// seller once at the cap (guaranteed fallback, see parkedAgreement).
+type SupersedeVerdict = { bid: Bid; mode: 'direct' | 'probe' };
+
 function pickSupersedingBid(
   state: JobState,
   intendedSeller: `0x${string}`,
-): Bid | null {
+): SupersedeVerdict | null {
   const ranked = rankBidEntries(state);
   if (ranked.length === 0) return null;
   const top = ranked[0]!.bid;
@@ -1183,16 +1209,91 @@ function pickSupersedingBid(
     TIER_RANK[(intendedEntry.bid.sellerTier ?? 'established') as Tier];
   if (!betterBand && !(sameBand && betterTier)) return null;
 
-  // The winner must be acceptable at its own bid price; we do not reopen
-  // negotiation here.
+  // Acceptable at its own price: swap the commit directly. Above the cap but
+  // inside the near-miss stretch: probe once (park-and-counter) so a stronger
+  // seller who'd likely meet the cap isn't lost to a few dollars. Beyond the
+  // stretch, keep the converged in-budget match and say so on the timeline
+  // instead of dropping the information silently.
   const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
-  if (Number(top.priceUsdc) > effectiveCap) return null;
+  if (Number(top.priceUsdc) > effectiveCap) {
+    // Probe band: the ask-mode override when set, else the near-miss module's
+    // default profile band (NEAR_MISS_MAX_GAP_PCT, 40). Beyond it a seller is
+    // unlikely to meet the cap, so probing would only delay the parked match.
+    const stretchPct = nearMissBandFor(state.context) ?? 40;
+    const stretchCap = effectiveCap * (1 + stretchPct / 100);
+    if (!state.latePreemptAttempted && Number(top.priceUsdc) <= stretchCap) {
+      return { bid: top, mode: 'probe' };
+    }
+    logger.info(
+      {
+        jobId: state.jobId,
+        lateSeller: top.seller,
+        latePrice: top.priceUsdc,
+        lateTier: top.sellerTier,
+        lateMatch: top.topicalMatch,
+        effectiveCap,
+        keptSeller: intendedSeller,
+      },
+      'late outranking bid above the buyer cap; keeping the converged seller',
+    );
+    bus.emitEvent({
+      type: 'agent.decision',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: {
+        scope: 'late-outranked-over-cap',
+        seller: top.seller,
+        priceUsdc: top.priceUsdc,
+        tier: top.sellerTier,
+        detail:
+          'A stronger seller bid after the window closed, above your budget. The agent kept your agreed match.',
+      },
+    });
+    return null;
+  }
 
-  return top;
+  return { bid: top, mode: 'direct' };
 }
 
 async function finalizeBidCollection(state: JobState) {
   if (state.collectionFired || state.finalized) return;
+
+  // Settle-aware close: while seller agents are still mid-evaluation for this
+  // job (research await + LLM decision in flight), hold the window open so a
+  // diligent agent's bid isn't lost to a timer race. The quiet-period timer
+  // only resets on ARRIVED bids, so before this hold, an agent whose research
+  // made it slower than the quiet gap missed the auction entirely (deal
+  // 0x29e498: the ELITE's bid landed 7s after close and a weaker seller won).
+  // Bounded by the same hard cap as the window itself, so a hung evaluation
+  // can never freeze the auction.
+  const stillEvaluating = pendingEvaluations(state.jobId);
+  const startedAt = state.collectionStartedAt ?? Date.now();
+  if (stillEvaluating > 0 && Date.now() < startedAt + BID_WINDOW_MAX_MS) {
+    if (!state.windowHoldAnnounced) {
+      state.windowHoldAnnounced = true;
+      logger.info(
+        { jobId: state.jobId, stillEvaluating },
+        'holding the bid window: seller agents still evaluating',
+      );
+      bus.emitEvent({
+        type: 'agent.decision',
+        jobId: state.jobId,
+        actor: 'buyer',
+        payload: {
+          scope: 'window-held',
+          pendingAgents: stillEvaluating,
+          detail: `Holding the auction window while ${stillEvaluating} agent(s) finish reviewing this request.`,
+        },
+      });
+    }
+    if (state.collectionTimer) clearTimeout(state.collectionTimer);
+    state.collectionTimer = setTimeout(
+      () => finalizeBidCollection(state),
+      BID_WINDOW_HOLD_RECHECK_MS,
+    );
+    return;
+  }
+
   state.collectionFired = true;
   state.collectionTimer = null;
 
@@ -1476,6 +1577,25 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
     actor: 'buyer',
     payload: { seller: failedSeller, reason, triedCount: state.triedSellers.size },
   });
+
+  // A park-and-counter probe that ended without acceptance (watchdog timeout,
+  // decline) falls back to the parked handshake before any queue cascade: the
+  // converged deal was only delayed by the probe, never abandoned.
+  if (
+    state.parkedAgreement &&
+    state.parkedAgreement.seller.toLowerCase() !== failedSeller.toLowerCase()
+  ) {
+    const parked = state.parkedAgreement;
+    state.parkedAgreement = null;
+    logger.info(
+      { jobId: state.jobId, probedSeller: failedSeller, parkedSeller: parked.seller },
+      'probe ended without acceptance, proposing the parked agreement',
+    );
+    await proposeMatch(state, parked.seller, parked.priceUsdc, parked.pattern, {
+      allowSupersede: false,
+    });
+    return;
+  }
 
   // Find the next not-tried bid in the queue.
   const next = state.candidateQueue.find((b) => !state.triedSellers.has(b.seller));
@@ -1815,6 +1935,29 @@ async function handleCounterResponse(log: Log) {
     const agreedPriceUsdc = state.lastCounterPriceBySeller.get(args.seller) ?? '0';
     const originatingBid = state.bids.get(args.seller);
     await proposeMatch(state, args.seller, agreedPriceUsdc, originatingBid?.pattern);
+    return;
+  }
+
+  // A standing park-and-counter probe is one-shot: a non-accept reply from the
+  // probed seller (a re-counter) counts as a decline, and the parked handshake
+  // is proposed unchanged rather than opening a fresh multi-round negotiation
+  // while the converged seller waits.
+  if (
+    state.parkedAgreement &&
+    args.seller.toLowerCase() !== state.parkedAgreement.seller.toLowerCase()
+  ) {
+    const parked = state.parkedAgreement;
+    state.parkedAgreement = null;
+    state.triedSellers.add(args.seller);
+    bus.emitEvent({
+      type: 'negotiation.attempt-ended',
+      jobId: state.jobId,
+      actor: 'buyer',
+      payload: { seller: args.seller, reason: 'probe-declined', triedCount: state.triedSellers.size },
+    });
+    await proposeMatch(state, parked.seller, parked.priceUsdc, parked.pattern, {
+      allowSupersede: false,
+    });
     return;
   }
 
@@ -2262,39 +2405,98 @@ async function proposeMatch(
   // its own price. Skipped for explicit human-chosen commits (near-miss resume).
   if (opts?.allowSupersede !== false && !state.finalized) {
     const better = pickSupersedingBid(state, seller);
-    if (better && better.seller.toLowerCase() !== seller.toLowerCase()) {
-      logger.info(
-        {
+    if (better && better.bid.seller.toLowerCase() !== seller.toLowerCase()) {
+      if (better.mode === 'direct') {
+        logger.info(
+          {
+            jobId: state.jobId,
+            supersededSeller: seller,
+            supersededPrice: agreedPriceUsdc,
+            winner: better.bid.seller,
+            winnerPrice: better.bid.priceUsdc,
+            winnerTier: better.bid.sellerTier,
+            winnerMatch: better.bid.topicalMatch,
+          },
+          'late higher-ranked bid superseded the about-to-propose seller',
+        );
+        bus.emitEvent({
+          type: 'agent.decision',
           jobId: state.jobId,
-          supersededSeller: seller,
-          supersededPrice: agreedPriceUsdc,
-          winner: better.seller,
-          winnerPrice: better.priceUsdc,
-          winnerTier: better.sellerTier,
-          winnerMatch: better.topicalMatch,
-        },
-        'late higher-ranked bid superseded the about-to-propose seller',
-      );
-      bus.emitEvent({
-        type: 'agent.decision',
-        jobId: state.jobId,
-        actor: 'buyer',
-        payload: {
-          scope: 'late-supersede',
-          seller: better.seller,
-          priceUsdc: better.priceUsdc,
-          tier: better.sellerTier,
-          reasoning:
-            'A stronger bid arrived after the auction window closed and is accepted directly instead of the seller in negotiation.',
-        },
-      });
-      seller = better.seller;
-      agreedPriceUsdc = better.priceUsdc;
-      pattern = better.pattern;
+          actor: 'buyer',
+          payload: {
+            scope: 'late-supersede',
+            seller: better.bid.seller,
+            priceUsdc: better.bid.priceUsdc,
+            tier: better.bid.sellerTier,
+            reasoning:
+              'A stronger bid arrived after the auction window closed and is accepted directly instead of the seller in negotiation.',
+          },
+        });
+        seller = better.bid.seller;
+        agreedPriceUsdc = better.bid.priceUsdc;
+        pattern = better.bid.pattern;
+      } else {
+        // Park-and-counter: hold the converged agreement, counter the stronger
+        // seller ONCE at the buyer's cap. Any non-accept outcome (decline,
+        // re-counter, watchdog timeout) proposes the parked match unchanged,
+        // so the handshake in hand is never lost, only briefly delayed.
+        state.latePreemptAttempted = true;
+        state.parkedAgreement = { seller, priceUsdc: agreedPriceUsdc, pattern };
+        const cap = computeBuyerEffectiveCap(state.context, state.buyer);
+        logger.info(
+          {
+            jobId: state.jobId,
+            parkedSeller: seller,
+            parkedPrice: agreedPriceUsdc,
+            probedSeller: better.bid.seller,
+            probedBidPrice: better.bid.priceUsdc,
+            probedTier: better.bid.sellerTier,
+            counterAt: cap,
+          },
+          'late outranking bid within stretch: parking the agreement and probing at the cap',
+        );
+        bus.emitEvent({
+          type: 'agent.decision',
+          jobId: state.jobId,
+          actor: 'buyer',
+          payload: {
+            scope: 'late-preempt-probe',
+            seller: better.bid.seller,
+            priceUsdc: better.bid.priceUsdc,
+            tier: better.bid.sellerTier,
+            detail:
+              'A stronger seller bid after the window closed, just above your budget. The agent countered them once at your cap and keeps the agreed match as the fallback.',
+          },
+        });
+        const remainingDays = Math.max(
+          state.buyer.minDeadlineDays,
+          Math.min(
+            state.buyer.maxDeadlineDays,
+            Math.floor((better.bid.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+          ),
+        );
+        try {
+          await issueCounter(state, {
+            ...better.bid,
+            suggestedCounterPrice: cap.toFixed(2),
+            suggestedCounterDeadlineDays: remainingDays,
+          });
+          return; // probe in flight; the fallback paths own the commit now
+        } catch (err) {
+          // Probe failed to launch (chain error): fall through and propose the
+          // parked agreement as if the probe never happened.
+          logger.warn(
+            { jobId: state.jobId, err: (err as Error).message },
+            'late-preempt probe failed to launch, proposing the parked agreement',
+          );
+          state.parkedAgreement = null;
+        }
+      }
     }
   }
 
   state.finalized = true;
+  state.parkedAgreement = null;
   clearCounterWatchdog(state);
   try {
     const buyerWallets = await findAgentWalletByAgentAddress(state.buyer.address);

@@ -59,6 +59,27 @@ function outcomeOf(d: DirectDeal): WorkOutcome | null {
 /// clean"). Matched on OWNER addresses so the relationship survives either side
 /// rotating its agent wallet, with the seller's bidding agent address as a
 /// fallback when the owner link was never recorded on the old deal.
+/// Every counterparty this buyer has closed clean deals with, keyed by BOTH the
+/// seller's owner address and the bidding agent address (lowercase), counted per
+/// key. One deal-store read orders a whole seller sweep by familiarity: in real
+/// trade a repeat provider is "my customer / my regular", and the buyer agent
+/// calls them first instead of treating them like a stranger in the queue.
+export async function cleanDealPartnersFor(buyerOwner: string): Promise<Map<string, number>> {
+  const b = buyerOwner.toLowerCase();
+  const out = new Map<string, number>();
+  const deals = await listDealsForAddress(buyerOwner);
+  for (const d of deals) {
+    if (d.buyer.toLowerCase() !== b) continue;
+    if (outcomeOf(d) !== 'clean') continue;
+    for (const key of [d.seller, d.sellerAgentAddress]) {
+      if (!key) continue;
+      const k = key.toLowerCase();
+      out.set(k, (out.get(k) ?? 0) + 1);
+    }
+  }
+  return out;
+}
+
 export async function countCleanDealsBetween(
   buyerOwner: string,
   sellerOwner: string | null,
