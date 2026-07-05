@@ -62,19 +62,11 @@ The business-to-business path needs richer context than a P2P deal. A supplier n
 - **Credit passport.** A portable, on-chain record of completed deals, repayment behaviour, and counterparty concentration that travels with each business.
 - **Paid agent signals.** Through Circle's x402 nanopayment surface, agents pull outside data during negotiation for fractions of a cent: counterparty sanctions screening, market-rate medians, and credit checks against a passport.
 
-## Skills verification (coming soon)
+## Skill verification (planned)
 
 Today an agent ranks a seller on what they say they do plus their settled-deal record. The next layer proves it.
 
-Sellers will bind external identities, GitHub first, then X, Substack, and Dribbble, with a wallet-signed proof published as a public gist. No OAuth, no passwords, no tokens to leak. The agent reads public signals for the seller's skill category, commits and languages for a developer, audit-contest placements for a security researcher, published work for a writer, and blends that evidence into the match score. A buyer sees why a seller ranks where they do, in plain language, on the match.
-
-The design holds to a few rules:
-
-- **Evidence and reputation stay separate labels.** Proving a skill never overwrites a track record, and a thin track record never hides a proven skill. One strong proof is enough; weak proofs never drag a strong one down.
-- **Opt-in and deal-scoped.** A seller verifies what they want, when a deal is worth it. The binding follows the wallet, so it survives a key rotation, with a cool-down that stops a verified handle from being resold with a fresh reputation.
-- **Free first, paid only where it earns it.** Public sources cover the common categories at no cost. Deeper or paid checks gate behind reputation tier and deal value, paid per call over x402, so the cost only shows up where it is worth paying.
-
-Full design in [docs/skill-verification-roadmap.md](./docs/skill-verification-roadmap.md).
+The plan is to verify a seller's skills through the platforms that already hold that evidence, GitHub for developers and portfolio or credential sources for other trades, rather than run assessments in-house. Verification uses privacy-preserving proofs, so a seller proves a claim without exposing the underlying account and only a commitment lands on chain. Verified skill becomes an input to matching alongside the settled-deal record, never a replacement for it. A seller stays anonymous by default, and stake and reputation remain valid ways to earn trust without verifying.
 
 ## Contracts on Arc Testnet (chain 5042002)
 
@@ -112,8 +104,9 @@ Karwan runs on the Circle commerce stack end to end.
 | Developer-Controlled Wallets | Identity wallets for email and passkey users, plus a buyer and seller agent wallet per active user. |
 | Gas Station | Sponsors gas on Base Sepolia and Ethereum Sepolia for new accounts, so a first-time user arrives without buying a separate gas asset. |
 | Cross-Chain Transfer Protocol V2 | Pulls USDC into Arc from five EVM testnets and Solana Devnet. The backend relays the destination side. |
+| App Kit | The SDK behind the bridge and cash-out flows, running server-side against the same Circle wallets. |
+| Gateway Nanopayments (x402) | Settles the agents' per-call market-intelligence payments on Arc, batched and gasless. Live in every deal, not only the SME layer. |
 | Hashnote USYC | On-chain yield on treasury idle reserves, sourced from tokenized Treasury bills. |
-| x402 nanopayments | Sub-cent paid signals to agents during negotiation. Part of the SME layer. |
 
 The agent layer wraps Circle wallets so neither side handles keys. Web3 users can sign in with their own wallet through Sign-In with Ethereum if they prefer.
 
@@ -123,7 +116,6 @@ The agent layer wraps Circle wallets so neither side handles keys. Web3 users ca
 - [docs/architecture.md](./docs/architecture.md). Components, both deal flows, the wallet model.
 - [docs/circle-integration.md](./docs/circle-integration.md). Each Circle product and where it lands in the code.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite score, tier breakpoints, and agent integration.
-- [docs/skill-verification-roadmap.md](./docs/skill-verification-roadmap.md). How agents will prove a seller's skill, not just rank their claims.
 - [docs/why-karwan.md](./docs/why-karwan.md). The longer design brief.
 - [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). Notes from building on Circle.
 
