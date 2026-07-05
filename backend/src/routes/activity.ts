@@ -3,6 +3,7 @@ import { bus, recentEventsByType, type KarwanEvent } from '../events.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { listAllDeals } from '../db/deals.js';
 import { sessionAddress } from '../auth/session.js';
+import { callerJobIds } from '../auth/partyScope.js';
 
 export const activityRoutes = new Hono();
 
@@ -130,17 +131,17 @@ activityRoutes.get('/', async (c) => {
     return c.json({ events: publicEvents.slice(0, limit).map(pulseEvent) });
   }
 
-  // Two-pass filter so we don't drop follow-up events that lack party fields
-  // in their payload but belong to a job the caller is a party to. Pass 1
-  // collects jobIds where the caller is named in a party field; pass 2 keeps
-  // every event whose jobId is in that set OR whose payload names the caller.
-  const callerJobIds = new Set<string>();
+  // Party membership: the durable stores (briefs posted, deals, proposals)
+  // plus a payload scan of this window. Auction-phase events carry only agent
+  // addresses, so without the durable seed a buyer's own live auction would
+  // filter to nothing here.
+  const callerJobs = await callerJobIds(caller);
   for (const e of base) {
-    if (isParty(e, caller) && e.jobId) callerJobIds.add(e.jobId.toLowerCase());
+    if (isParty(e, caller) && e.jobId) callerJobs.add(e.jobId.toLowerCase());
   }
   const events = base.filter((e) => {
     if (isParty(e, caller)) return true;
-    if (e.jobId && callerJobIds.has(e.jobId.toLowerCase())) return true;
+    if (e.jobId && callerJobs.has(e.jobId.toLowerCase())) return true;
     return false;
   });
 

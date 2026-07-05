@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { bus, type KarwanEvent } from '../events.js';
 import { readSession } from '../auth/session.js';
+import { callerJobIds, isBriefPoster } from '../auth/partyScope.js';
 
 export const eventsRoutes = new Hono();
 
@@ -28,28 +29,35 @@ function pulse(e: KarwanEvent): KarwanEvent {
 }
 
 /// Project one event for a caller: full detail when it is their deal (a party
-/// event, or a follow-up on a deal they are already tracked on), else a pulse.
-/// `callerJobs` accumulates the caller's deal ids so later follow-up events that
-/// don't restate the party (e.g. escrow.settled) still pass as full detail.
+/// event, a follow-up on a deal they are tracked on, or an event on a brief
+/// they posted), else a pulse. `callerJobs` accumulates the caller's deal ids
+/// so later follow-up events that don't restate the party still pass as full
+/// detail. The brief-poster check covers a job posted AFTER the stream was
+/// seeded: auction events carry only agent addresses, so without it the buyer
+/// would watch their own live auction as pulses.
 function projectFor(
   e: KarwanEvent,
   caller: string | null,
   callerJobs: Set<string>,
 ): KarwanEvent {
   if (!caller) return pulse(e);
+  const jobKey = e.jobId?.toLowerCase();
   const party = isParty(e, caller);
-  const tracked = !!e.jobId && callerJobs.has(e.jobId.toLowerCase());
+  const tracked =
+    !!jobKey && (callerJobs.has(jobKey) || isBriefPoster(jobKey, caller));
   if (party || tracked) {
-    if (party && e.jobId) callerJobs.add(e.jobId.toLowerCase());
+    if (jobKey) callerJobs.add(jobKey);
     return e;
   }
   return pulse(e);
 }
 
-/// Seed the caller's deal ids from recent history so a freshly-opened stream
-/// already treats follow-up events on the caller's existing deals as full.
-function seedCallerJobs(caller: string): Set<string> {
-  const set = new Set<string>();
+/// Seed the caller's deal ids: the durable stores (briefs they posted, deals
+/// on either side, match proposals on either side) plus a scan of the recent
+/// ring. The durable seed is what makes a fresh stream recognize the caller's
+/// live auction; the ring scan only adds recency it may otherwise miss.
+async function seedCallerJobs(caller: string): Promise<Set<string>> {
+  const set = await callerJobIds(caller);
   for (const e of bus.recent(500)) {
     if (e.jobId && isParty(e, caller)) set.add(e.jobId.toLowerCase());
   }
@@ -59,7 +67,7 @@ function seedCallerJobs(caller: string): Set<string> {
 /// One-shot JSON snapshot of recent events. Caller-aware: full for the caller's
 /// own deals, pulse otherwise. Used from curl/jq during testing and to seed
 /// per-deal panels (where the caller is a party, so they get full detail).
-eventsRoutes.get('/recent', (c) => {
+eventsRoutes.get('/recent', async (c) => {
   const limitParam = c.req.query('limit');
   const limit = Math.min(500, Math.max(1, Number(limitParam ?? 100) || 100));
   const jobId = c.req.query('jobId') ?? undefined;
@@ -71,9 +79,10 @@ eventsRoutes.get('/recent', (c) => {
     const types = new Set(type.split(',').map((s) => s.trim()).filter(Boolean));
     events = events.filter((e) => types.has(e.type));
   }
-  // Party membership for this result set: if the caller is a party to any event
-  // of a job, every event of that job is full for them.
-  const callerJobs = new Set<string>();
+  // Party membership: the durable stores plus this result set. Auction events
+  // name only agent addresses, so the payload scan alone misses the caller's
+  // own live auction.
+  const callerJobs = caller ? await callerJobIds(caller) : new Set<string>();
   if (caller) {
     for (const e of events) {
       if (e.jobId && isParty(e, caller)) callerJobs.add(e.jobId.toLowerCase());
@@ -82,9 +91,9 @@ eventsRoutes.get('/recent', (c) => {
   return c.json({ events: events.map((e) => projectFor(e, caller, callerJobs)) });
 });
 
-eventsRoutes.get('/', (c) => {
+eventsRoutes.get('/', async (c) => {
   const caller = readSession(c)?.address?.toLowerCase() ?? null;
-  const callerJobs = caller ? seedCallerJobs(caller) : new Set<string>();
+  const callerJobs = caller ? await seedCallerJobs(caller) : new Set<string>();
   return streamSSE(c, async (stream) => {
     let id = 0;
     const queue: KarwanEvent[] = [];

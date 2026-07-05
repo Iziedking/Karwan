@@ -32,10 +32,12 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
       .activity(max, filterJobId, caller)
       .then(({ events }) => {
         if (callerLower) {
+          // The caller-scoped backfill is filtered server-side by the signed
+          // session and returns only the caller's own events, so every jobId in
+          // it is a job the caller is a party to. Payload matching alone would
+          // miss auction events, which carry agent addresses.
           for (const e of events) {
-            if (e.jobId && isPartyMatch(e, callerLower)) {
-              callerJobsRef.current.add(e.jobId.toLowerCase());
-            }
+            if (e.jobId) callerJobsRef.current.add(e.jobId.toLowerCase());
           }
         }
         setEvents(events);
@@ -45,8 +47,14 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
 
   useEffect(() => {
     return subscribeLiveEvents((parsed) => {
-      if (filterJobId && parsed.jobId !== filterJobId) return;
-      if (callerLower) {
+      if (filterJobId) {
+        // Per-job pages trust the server-side session scoping: non-party events
+        // arrive as pulses with NO jobId, so a jobId match here already means
+        // the backend granted this caller full detail for this job. Re-checking
+        // party keys client-side would drop live auction events, whose payloads
+        // carry agent addresses rather than the signed-in identity.
+        if (parsed.jobId !== filterJobId) return;
+      } else if (callerLower) {
         const tracked = parsed.jobId
           ? callerJobsRef.current.has(parsed.jobId.toLowerCase())
           : false;
