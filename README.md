@@ -51,7 +51,7 @@ USDC flows in from Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus
 A staker locks USDC into KarwanVault, and the same principal does two jobs.
 
 - **Deal insurance.** When a seller accepts a deal, the escrow reserves a portion of their free stake against it. A lost dispute slashes that reservation to the buyer. Trusted Match mode makes the reservation a precondition for matching rather than an option.
-- **Yield on idle reserves.** Platform-fee reserves route through Hashnote USYC on Arc Testnet via KarwanTreasury, an ERC-4626 contract that subscribes idle USDC into USYC and redeems on demand. It earns the live Hashnote yield rate.
+- **Yield on idle balances.** Idle USDC routes into Hashnote USYC on Arc Testnet through KarwanTreasury, an ERC-4626 contract that subscribes to USYC and redeems on demand. Three balances feed it: platform-fee reserves in the treasury, idle staking principal in the vault, and, with the next contract release, escrow funds left idle during long-dated trades. The treasury holds real allowlisted USYC today.
 
 ## SME Trades: the next layer
 
@@ -94,7 +94,9 @@ Before any mainnet launch, user funds move to user-held wallets, with agents fun
 
 ### Wider reach
 
-More source chains for top-up and cash-out as Circle's CCTP coverage grows, including non-EVM ecosystems.
+More source chains for top-up and cash-out as Circle's CCTP coverage grows, including the non-EVM ecosystems already on the way.
+
+Fiat on and off ramps through the Circle Payments Network, so a business can fund a deal and cash out in local currency through partner institutions without going through a crypto exchange. The aim is onboarding and payout that feel like ordinary software, with the settlement layer kept out of sight.
 
 ## Contracts on Arc Testnet (chain 5042002)
 

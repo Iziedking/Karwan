@@ -29,19 +29,16 @@ Friction:
   call. Circle offers webhook notifications for transaction state changes, so this
   is on us, not a gap in the product. The poll loop was faster to ship without
   standing up a public endpoint.
-- `createContractExecutionTransaction` returns only `{ id, state: 'INITIATED' }`.
-  The `txHash` appears later through `getTransaction`. The docs do not say which
-  state first populates it. Given the lifecycle
-  INITIATED to CLEARED to QUEUED to SENT to CONFIRMED to COMPLETE, and that `SENT`
-  means broadcast to the chain, the hash should be readable at `SENT`. Our loop
-  only reads it at `COMPLETE`, so we never confirmed the earliest state.
+- `createContractExecutionTransaction` returns `{ id, state: 'INITIATED' }`, and
+  the `txHash` populates as the transaction moves through the documented lifecycle
+  (INITIATED, CLEARED, QUEUED, SENT, CONFIRMED, COMPLETE). Circle sends a webhook
+  notification at each state change, and the payload carries the transaction object
+  including the hash once it is broadcast. Our poll loop only surfaces the hash at
+  `COMPLETE`, which is our own simplification rather than a product gap. A webhook
+  subscription would give it earlier.
 
-Asks:
-
-- Document the transaction state at which `txHash` is first populated, so a UI can
-  link to the explorer as soon as the tx is broadcast.
-- An SSE or long-poll option as a lighter alternative to a webhook endpoint for
-  local development.
+Developer-Controlled Wallets covered the whole agent signing path, so we have
+nothing to ask changed here.
 
 ## USDC on Arc
 
@@ -83,23 +80,28 @@ Friction:
 
 - The Bridge Kit does not yet support Circle wallets (Developer-Controlled,
   User-Controlled, or Modular). Our agents and identity wallets are Circle SCAs, so
-  the managed bridge path did not fit them directly. We build the burn as a
-  user-signed transaction and relay the destination mint through our backend agent
-  instead. This works, but the whole point of adopting Circle Wallets is to avoid
-  wiring raw signing paths, and here we had to.
-- We ran CCTP V2 Standard (slow) transfers, which wait for source-chain hard
-  finality. Sandbox attestation latency was variable, roughly 10 to 19 minutes in
-  our runs, in line with the documented finality windows. Our relay polls Iris for
-  up to 25 minutes before giving up.
+  the managed bridge path did not fit them directly, and we build the burn as a
+  user-signed transaction. This is the part that still needs a hand-rolled signing
+  path.
+- We relay the destination mint through our backend agent. Circle's newer Forwarding
+  Service now does that leg for you, and Arc is a supported destination: a forward
+  request in the burn hook data lets Circle broadcast the mint on Arc. We have not
+  moved to it yet, mostly because our burn is already hand-rolled for the wallet
+  reason above, and because the mint is still surfaced by polling Iris rather than a
+  push.
+- We ran CCTP Standard (slow) transfers, which wait for source-chain hard finality.
+  Sandbox attestation latency was variable, roughly 10 to 19 minutes in our runs, in
+  line with the documented finality windows. Our relay polls Iris for up to 25
+  minutes before giving up.
 
 Asks:
 
 - Circle wallet support in the Bridge Kit, so a project already on
   Developer-Controlled Wallets can bridge without dropping to a hand-rolled signing
   path.
-- A per-source-chain sandbox attestation latency range near the Iris polling docs,
-  so timeouts can be set without trial and error. A webhook for attestation-ready
-  would remove the polling entirely.
+- An attestation-ready webhook. Both direct CCTP and the Forwarding Service surface
+  the mint by polling `GET /v2/messages`; a push notification would remove the poll
+  loop.
 
 ## Gateway Nanopayments and x402
 
@@ -205,14 +207,16 @@ Asks:
 An observation from building the cross-chain money path, offered as a direction
 rather than a complaint.
 
-CCTP V2, the Bridge Kit, and Gateway are strongest on EVM chains and Solana. Our
-Solana cash-out works over CCTP, but the managed adapter's Solana signing flow did
-not compose with our server-relay model the way the EVM adapters did, so we fell
-back to a manual burn for that leg. Non-EVM ecosystems beyond Solana, such as Sui
-and Aptos, are not on CCTP V2 today.
+CCTP and Gateway already reach past the EVM world. Solana is supported on both,
+and Circle has said CCTP V2 will add Sui and Aptos before the V1 phase-out, so the
+chain coverage we would have asked for is already on the way. Our own Solana
+cash-out works over CCTP, though the managed adapter's Solana signing flow did not
+fit our backend-relay model the way the EVM adapters did, so we used a manual burn
+for that leg.
 
-As stablecoin settlement spreads past the EVM world, the ecosystems that would
-benefit most from USDC rails are often the non-EVM ones. Broader CCTP V2 coverage,
-Bridge Kit adapter parity, and Gateway support for chains like Sui would let a
-product like ours reach those users without a bespoke integration per chain. This
-is where we would point Circle's roadmap if asked: same rails, more of the map.
+The gap we still feel is adapter parity, not chain coverage. A product that relays
+on a server would benefit from the same managed signing ergonomics on Solana, and
+later Sui and Aptos, that it gets on EVM today. Extending Gateway's unified balance
+to those same non-EVM chains would also let agent nanopayments settle from anywhere
+USDC lives, not only from EVM and Solana. Same rails, matching ergonomics across
+them.

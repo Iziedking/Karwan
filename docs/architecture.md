@@ -13,8 +13,8 @@
   the OTP and SIWE auth flow, and the cashout router. The agent loops watch
   chain events by polling the RPC over HTTP, so a dropped websocket never
   silently stops them.
-- **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury`, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002), plus `KarwanInvoiceRegistry` and `KarwanPOFinancing` for the SME layer. USDC is the native gas asset. The treasury subscribes idle USDC into Hashnote USYC through an ERC-4626 Teller. Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
-- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2, Gas Station, Hashnote USYC, and x402 nanopayments. See [circle-integration.md](./circle-integration.md).
+- **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury`, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002), plus `KarwanInvoiceRegistry`, `KarwanPOFinancing`, and `KarwanBusinessRegistry` for the SME layer. USDC is the native gas asset. The treasury subscribes idle USDC into Hashnote USYC through an ERC-4626 Teller. Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
+- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2 through App Kit, Gas Station, Hashnote USYC, and x402 settled through Circle Gateway Nanopayments. See [circle-integration.md](./circle-integration.md).
 - **Storage.** Postgres (via Drizzle) for profile and direct-deal metadata,
   with a flat-file fallback that mirrors the same shape for fast cold
   starts. The chain is the source of truth for everything financial;
@@ -46,10 +46,10 @@ straight to funding with a named seller.
 ```mermaid
 flowchart TD
     subgraph Managed["Managed deal"]
-        M1[Buyer posts a brief] --> M2[Seller agent bids]
-        M2 --> M3[Buyer agent counters once]
+        M1[Buyer posts a brief] --> M2[Seller agents bid]
+        M2 --> M3[Buyer agent negotiates within limits]
         M3 --> M4[Seller responds]
-        M4 --> M5[Buyer agent accepts]
+        M4 --> M5[Buyer agent accepts the best fit]
         M5 --> F1
     end
 
@@ -96,9 +96,14 @@ human broker rather than a price matcher.
   both buyer-side and both clamped so they can never beat a clearly better or
   cheaper stranger, raise the cap, or overpay. Skill, price, and reputation come
   first; the relationship only decides a genuine near-tie.
-- **Adaptive bid window.** Collection opens with a floor and soft-closes:
-  each new bid extends the window by a short quiet period up to a hard cap, so
-  a late strong bid still gets ranked, and a quiet auction finalizes fast.
+- **A negotiation lifecycle that mirrors a human.** The seller sweep evaluates
+  the buyer's past clean counterparties and proven tiers first, and runs the
+  market concurrently rather than one seller at a time. The bid window opens with
+  a floor and holds while agents are still evaluating an order, so a diligent
+  agent that paused to research is not lost to a timer. A stronger bid that lands
+  after the window closes still wins: if it is already within budget the agent
+  swaps to it, and if it needs a small stretch the agent counters it once at the
+  buyer's cap while holding the agreed match in reserve as the fallback.
 - **Market research, shared as a skill.** During negotiation an agent can pay
   a sub-cent x402 fee on Base for a market read: an Exa web search plus a
   grounded price, blended by the LLM. The read is general, not profile-gated.

@@ -92,6 +92,28 @@ Contract addresses on Arc Testnet, verified against Circle's published list:
 | Hashnote USYC/USD Oracle | `0x52b56c7642E71dc54714d879127d97cd0B3D4581` |
 | Hashnote Entitlements (RolesAuthority) | `0xcc205224862c7641930c87679e98999d23c26113` |
 
+USYC routing runs from three balances. The treasury subscribes platform-fee
+reserves, the vault subscribes idle staking principal through the same
+operator-mediated Teller path, and, with the next contract release, escrow funds
+that sit idle during long-dated trades subscribe too. The treasury holds real
+allowlisted USYC today.
+
+### x402 and Gateway Nanopayments
+
+Agents pay for market intelligence per call over x402. The platform runs both
+sides of the rail: it sells its own underwriting signals (credit passport,
+repayment behaviour, counterparty concentration) over x402, and its agents pay
+external providers for research.
+
+Internal payments settle through Circle Gateway Nanopayments on Arc. A buyer agent
+funds a Gateway Wallet deposit, then signs an offchain EIP-3009 authorization with
+zero gas, which Gateway verifies and batches onchain. Circle wallets are smart
+accounts and the EIP-3009 signature needs a private key, so each user gets a
+lightweight x402 EOA that signs while the agent wallet funds the deposit. External
+research runs on the standard x402 exact-EVM scheme on Base. Every payment emits an
+`agent.paid` event, and `GET /api/x402` lists the internal paid endpoints and their
+prices.
+
 ## Wallet topology
 
 - **Buyer agent wallet.** Funds escrows, releases milestones, records
@@ -109,15 +131,7 @@ Karwan the buyer and seller are different principals, and `recordCompletion`
 rates the counterparty of the caller, so the constraint holds without an extra
 validator wallet. The platform never writes its own reputation.
 
-## On the roadmap
+## Roadmap
 
-- **x402 nanopayment rails for agents.** Plug Circle's x402 micropayment
-  surface into the agent loop. The buyer and seller agents pay sub-cent
-  fees for live data during a negotiation: market medians from paid APIs,
-  skill demand snapshots, deeper credit checks against a credit passport,
-  news during a delivery review window. Each round can pull a fresh
-  outside signal for a few thousandths of a cent. Logged to the deal
-  timeline as `agent.signal.purchased` so the human sees what the agent
-  paid for and why.
-- **Gateway.** Treasury aggregation across chains. Tracks behind x402;
-  worth picking up once the cross-corridor financier flow lands.
+Forward-looking items live in the repository [README](../README.md#roadmap).
+This document stays scoped to what is built and running.
