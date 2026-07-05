@@ -31,6 +31,14 @@ export interface BridgeRelay {
   direction?: 'in' | 'out';
   /// For 'out' bridges: the destination CCTP chain the mint lands on.
   destChainKey?: CctpChainKey;
+  /// The session identity that created this bridge. For an 'in' bridge this
+  /// equals `mintRecipient` (the user's own Arc address), but for an 'out'
+  /// bridge `mintRecipient` is the destination-chain recipient, so ownership
+  /// checks (recheck / status / resume) must read this field, not
+  /// `mintRecipient`. Absent on records created before this field landed; those
+  /// fall back to `mintRecipient`, which is correct for 'in' and the pre-fix
+  /// stuck case for 'out'.
+  owner?: string;
   // --- Circle-user source-side pipeline state (resume across restarts) ---
   /// Which source chain the DCW lives on. Present only for Circle bridges.
   /// Hand-rolled (CCTP V2 contract direct) bridges use a CctpChainKey (the

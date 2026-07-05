@@ -60,10 +60,17 @@ domain and USDC address vary per chain.
 
 ### Gas Station
 
-Source-chain gas is the friction we never want a user to feel. Karwan's
-Gas Station policy sponsors the burn and approve transactions on Base
-Sepolia and Ethereum Sepolia for Circle wallet users, so a user funding
-their first escrow only ever holds USDC. No "buy ETH first" detour.
+Karwan has a Gas Station policy that sponsors the approve and burn on Base
+Sepolia and Ethereum Sepolia, but only on one of the two add-money paths. On the
+Circle-wallet deposit path (`startCircle`), the backend signs both transactions
+from a provisioned source-chain Circle DCW, and the Gas Station policy covers the
+gas, so that user holds only USDC. This path is gated behind
+`CIRCLE_GAS_STATION_ENABLED` and a per-chain whitelist.
+
+The default add-money path is different: the user signs the burn in their own
+connected wallet through App Kit and Circle's Forwarding Service. Gas Station does
+not sponsor an external wallet, so on that path the user pays the source-chain gas
+themselves, and the Arc mint is handled by the forwarder.
 
 ### App Kit
 

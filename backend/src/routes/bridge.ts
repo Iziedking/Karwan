@@ -861,7 +861,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   // Auth: only the recipient (owner) may re-trigger their bridge.
-  if (!isSessionSelf(c, record.mintRecipient)) {
+  if (!isSessionSelf(c, record.owner ?? record.mintRecipient)) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
   if (record.status === 'minted') {
@@ -1470,7 +1470,7 @@ bridgeRoutes.get('/:bridgeId', async (c) => {
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   // Auth: a bridge record is private to its recipient (the owner). Without
   // this, anyone could read another user's bridge status + tx hashes by id.
-  if (!isSessionSelf(c, record.mintRecipient)) {
+  if (!isSessionSelf(c, record.owner ?? record.mintRecipient)) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
   return c.json({
@@ -1495,7 +1495,7 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   // Auth: only the recipient (owner) may resume their bridge.
-  if (!isSessionSelf(c, record.mintRecipient)) {
+  if (!isSessionSelf(c, record.owner ?? record.mintRecipient)) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
   if (record.status === 'minted') {
@@ -1880,6 +1880,9 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   await createBridge({
     bridgeId: body.bridgeId,
     direction: 'out',
+    // Ownership binds to the user's identity. mintRecipient is the destination
+    // recipient (not the user's Arc address), so auth reads owner, not it.
+    owner: userAddress,
     sourceDomain: ARC_DOMAIN,
     sourceTxHash: '',
     amountUsdc: body.amountUsdc.toString(),
@@ -2027,6 +2030,7 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
   await createBridge({
     bridgeId: body.bridgeId,
     direction: 'out',
+    owner: userAddress,
     sourceDomain: ARC_DOMAIN,
     sourceTxHash: body.sourceTxHash,
     amountUsdc: body.amountUsdc.toString(),

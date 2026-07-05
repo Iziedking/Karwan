@@ -537,6 +537,14 @@ function cachedBuyerPassport(jobId: string): PaidPassportSignal | undefined {
   return hit.signal;
 }
 
+/// The seller agent's paid pull of the buyer's passport for a job, if it ran and
+/// is still cached. Read at deal creation so the pull is persisted durably on
+/// the deal (the seller-side mirror of `proposal.paidSignal`), letting the
+/// counterparty report gate the buyer's record on the payment that bought it.
+export function getSellerBuyerPassport(jobId: string): PaidPassportSignal | undefined {
+  return cachedBuyerPassport(jobId);
+}
+
 /// Symmetric counterparty pull: the seller agent pays Karwan's credit-passport
 /// endpoint on the BUYER before negotiating, the mirror of the buyer pulling the
 /// seller. Paid from the seller agent's OWN Gateway deposit (not the research

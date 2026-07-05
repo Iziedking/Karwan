@@ -138,9 +138,19 @@ Asks:
 
 What worked:
 
-- The testnet default policy meant no setup. Once wallets were SCAs, USDC-only CCTP
-  burns from our Circle wallet users worked without users holding native gas on the
-  source chain. Non-crypto users never see a "you also need ETH" step.
+- The testnet default policy meant no setup. On our Circle-wallet deposit path,
+  where the backend signs the burn from a provisioned SCA, the Gas Station policy
+  sponsored the gas on Base and Ethereum Sepolia, so that user held only USDC.
+
+Friction:
+
+- Gas Station sponsors Circle wallets, not external ones, which is expected but
+  worth stating plainly: our default add-money flow signs the burn in the user's
+  own connected wallet, so it falls outside sponsorship and the user pays the
+  source-chain gas. The two facts we would want a builder to see together are that
+  the Bridge Kit does not accept Circle wallets and that Gas Station only sponsors
+  Circle wallets, because together they push a bridge integration toward exactly
+  the external-wallet path that cannot be sponsored.
 
 Asks:
 

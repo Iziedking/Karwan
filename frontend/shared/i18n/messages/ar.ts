@@ -1124,9 +1124,13 @@ export const ar: Messages = {
       eyebrow: 'سجل العمل',
       subtitle: 'صفقات حقيقية نفّذها هذا البائع. خاصة بك، وليست على جواز السمعة العام.',
       loading: 'جارٍ تحميل سجل العمل…',
-      locked: 'فعّل بحث الوكيل على صفقة لفتح سجل العمل الحقيقي للبائع.',
+      locked: 'لم يسحب الوكيل جواز سمعة مدفوعًا في هذه الصفقة، لذا يبقى سجل العمل الكامل مقفلًا.',
       empty: 'لا يوجد عمل مكتمل في السجل بعد.',
       summaryTemplate: '{total} صفقة · {clean} نظيفة · {disputed} متنازع عليها · بمتوسط {avg}',
+      receiptTemplate: 'دفع الوكيل {amount} على Arc مقابل هذه القراءة',
+      receiptRail: 'دفعة صغيرة بدون رسوم غاز. تُسوّى على Arc عبر تجميع Circle Gateway.',
+      receiptView: 'عرض ↗',
+      buyerContext: 'دفع وكيل الطرف المقابل لقراءة سجل هذا المشتري على السلسلة. المشترون لا ينفّذون عملًا، لذا لا يوجد سجل تسليم.',
     },
   },
   listingDetail: {
@@ -1627,7 +1631,7 @@ export const ar: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'لم يتم تكوين وكيل المشتري.',
     inFlightTemplate: '{n} قيد التنفيذ',
-    reassurance: 'كروان يغطي رسوم الشبكة. أنت ترسل USDC فقط.',
+    reassurance: 'تصل USDC إلى رصيدك على Arc.',
     connect: {
       cta: 'اربط محفظة',
       hint: 'أحضر USDC من أي محفظة. توقيع واحد ينقلها إلى رصيدك على Arc.',

@@ -62,7 +62,7 @@ import {
   hasPendingProposal as dbHasPendingProposal,
   type MatchProposal as DbMatchProposal,
 } from '../db/matchProposals.js';
-import { getSellerBidFlags, submitListingBid } from './seller.js';
+import { getSellerBidFlags, submitListingBid, getSellerBuyerPassport } from './seller.js';
 import { withLlmRetry } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -2892,6 +2892,29 @@ async function persistApprovedMatch(
         dealDeadlineUnix = Math.floor(now / 1000) + negotiatedWindowSeconds;
       }
     }
+    // Carry the paid credit-passport pulls onto the deal so the counterparty
+    // report gates each side's granular record on the SAME payment whose receipt
+    // it shows: the buyer paid to read the seller (proposal.paidSignal), the
+    // seller paid to read the buyer (the seller agent's in-memory pull cache,
+    // still warm in this process right after negotiation). Either may be absent
+    // when a pull was capped, skipped, or timed out; the report locks that side.
+    const sellerPull = proposal.paidSignal
+      ? {
+          amountUsd: proposal.paidSignal.amountUsd,
+          txHash: proposal.paidSignal.transaction,
+          pulledAt: proposal.paidSignal.paidAt,
+        }
+      : undefined;
+    const buyerPullSignal = getSellerBuyerPassport(proposal.jobId);
+    const buyerPull = buyerPullSignal
+      ? {
+          amountUsd: buyerPullSignal.amountUsd,
+          txHash: buyerPullSignal.transaction,
+          pulledAt: buyerPullSignal.paidAt,
+        }
+      : undefined;
+    const passportPulls =
+      sellerPull || buyerPull ? { ...(sellerPull ? { seller: sellerPull } : {}), ...(buyerPull ? { buyer: buyerPull } : {}) } : undefined;
     await createDeal({
       jobId: proposal.jobId,
       buyer: buyerWallets.userAddress,
@@ -2915,6 +2938,7 @@ async function persistApprovedMatch(
       fundTxHash,
       origin: 'agent',
       ...(proposal.marketRead ? { marketRead: proposal.marketRead } : {}),
+      ...(passportPulls ? { passportPulls } : {}),
     });
     logger.info(
       { jobId: proposal.jobId, buyer: proposal.buyerUser, seller: proposal.sellerUser },

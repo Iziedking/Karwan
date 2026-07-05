@@ -55,12 +55,14 @@ researchRoutes.post('/activate', async (c) => {
     candidates.push({ walletId: wallets.sellerWalletId, address: wallets.sellerAddress });
   }
   let payer: { walletId: string; address: string } | null = null;
+  let payerBalBefore = 0n;
   let bestBalance = 0n;
   for (const cand of candidates) {
     const bal = await readUsdcBalance(cand.address).catch(() => 0n);
     if (bal > bestBalance) bestBalance = bal;
     if (bal >= feeAtomic) {
       payer = cand;
+      payerBalBefore = bal;
       break;
     }
   }
@@ -86,6 +88,28 @@ researchRoutes.post('/activate', async (c) => {
       },
       'research.activate',
     );
+    // On Arc an agent SCA userOp can report COMPLETE at the handleOps layer while
+    // the inner USDC transfer reverts (the ERC-4337 inner-revert gotcha), so the
+    // txHash alone is not proof the fee moved. This bites a wallet holding exactly
+    // the fee with no headroom for the USDC-denominated gas. Verify the payer's
+    // balance actually dropped by at least the fee before crediting; otherwise the
+    // charge silently no-oped and we must not record a credit the user did not pay.
+    const balAfter = await readUsdcBalance(payer.address).catch(() => null);
+    if (balAfter !== null && payerBalBefore - balAfter < feeAtomic) {
+      logger.warn(
+        { owner, txHash: tx.txHash, before: payerBalBefore.toString(), after: balAfter.toString() },
+        'research charge did not move the fee; treating as insufficient',
+      );
+      return c.json(
+        {
+          error: 'insufficient-balance',
+          needUsdc: RESEARCH_ACTIVATION_USDC,
+          haveUsdc: Number(formatUnits(balAfter, USDC_DECIMALS)),
+          message: 'The charge did not go through. Top up your agent wallet and try again.',
+        },
+        402,
+      );
+    }
     const state = await activateResearch(owner, RESEARCH_ACTIVATION_USDC);
     bus.emitEvent({
       type: 'agent.funded',

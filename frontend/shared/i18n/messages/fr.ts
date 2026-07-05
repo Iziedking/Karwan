@@ -1124,9 +1124,13 @@ export const fr: Messages = {
       eyebrow: 'DOSSIER DE TRAVAIL',
       subtitle: 'Vraies transactions livrées par ce vendeur. Privé, absent du passeport public.',
       loading: 'Chargement du dossier de travail…',
-      locked: "Activez la recherche de l'agent sur une transaction pour débloquer le vrai dossier de travail du vendeur.",
+      locked: "L'agent n'a pas payé de passeport sur cette transaction, le dossier de travail complet reste verrouillé.",
       empty: 'Aucun travail terminé au dossier pour le moment.',
       summaryTemplate: '{total} transactions · {clean} propres · {disputed} en litige · moyenne {avg}',
+      receiptTemplate: "L'agent a payé {amount} sur Arc pour cette lecture",
+      receiptRail: 'Nanopaiement sans gas. Réglé sur Arc via le traitement par lots de Circle Gateway.',
+      receiptView: 'voir ↗',
+      buyerContext: "L'agent de la contrepartie a payé pour lire la réputation on-chain de cet acheteur. Les acheteurs ne livrent aucun travail, il n'y a donc pas de dossier de livraison.",
     },
   },
   listingDetail: {
@@ -1627,7 +1631,7 @@ export const fr: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Agent acheteur non configuré.',
     inFlightTemplate: '{n} EN COURS',
-    reassurance: 'Karwan prend en charge les frais de réseau. Vous n\'envoyez que de l\'USDC.',
+    reassurance: 'Votre USDC arrive sur votre solde Arc.',
     connect: {
       cta: 'Connecter un portefeuille',
       hint: 'Apportez de l\'USDC depuis n\'importe quel portefeuille. Une signature le déplace vers votre solde Arc.',

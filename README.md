@@ -132,7 +132,7 @@ Karwan runs on the Circle commerce stack end to end.
 |---|---|
 | USDC on Arc | Settlement asset. Shares its address with the Arc gas token through a dual interface. |
 | Developer-Controlled Wallets | Identity wallets for email and passkey users, plus a buyer and seller agent wallet per active user. |
-| Gas Station | Sponsors gas on Base Sepolia and Ethereum Sepolia for new accounts, so a first-time user arrives without buying a separate gas asset. |
+| Gas Station | Sponsors the burn on Base and Ethereum Sepolia for the Circle-wallet deposit flow, where the backend signs from a provisioned Circle wallet. The default add-money flow signs from the user's own connected wallet, which pays its own source-chain gas. |
 | Cross-Chain Transfer Protocol V2 | Pulls USDC into Arc from five EVM testnets and Solana Devnet. The backend relays the destination side. |
 | App Kit | The SDK behind the bridge and cash-out flows, running server-side against the same Circle wallets. |
 | Gateway Nanopayments (x402) | Settles the agents' per-call market-intelligence payments on Arc, batched and gasless. Live in every deal, not only the SME layer. |

@@ -354,29 +354,47 @@ function WorkRecordSection({
       )}
 
       {payment && (
-        <div
-          className="mt-3 flex items-center justify-between gap-3 px-3 py-2"
-          style={{
-            background: 'var(--lp-light)',
-            border: '1px solid var(--lp-border-light)',
-            borderRadius: 8,
-          }}
-        >
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            agent paid ${payment.amountUsd.toFixed(2)} on Arc for this read
-          </span>
-          {isTxHash(payment.txHash) && (
-            <a
-              href={`https://testnet.arcscan.app/tx/${payment.txHash}`}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] underline underline-offset-2"
-              style={{ color: 'var(--lp-accent)' }}
-            >
-              view ↗
-            </a>
+        <>
+          <div
+            className="mt-3 flex items-center justify-between gap-3 px-3 py-2"
+            style={{
+              background: 'var(--lp-light)',
+              border: '1px solid var(--lp-border-light)',
+              borderRadius: 8,
+            }}
+          >
+            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              {wr.receiptTemplate.replace('{amount}', `$${payment.amountUsd.toFixed(2)}`)}
+            </span>
+            {isTxHash(payment.txHash) && (
+              <a
+                href={`https://testnet.arcscan.app/tx/${payment.txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] underline underline-offset-2"
+                style={{ color: 'var(--lp-accent)' }}
+              >
+                {wr.receiptView}
+              </a>
+            )}
+          </div>
+          {/* Circle Gateway nets many nanopayments into one on-chain batch, so a
+              single $0.01 read has no per-call Arc tx to link. Say so plainly
+              instead of showing a bare amount that reads as an unbacked claim. */}
+          {!isTxHash(payment.txHash) && (
+            <p className="mt-1.5 text-[10px] leading-snug text-[var(--lp-text-muted)]">
+              {wr.receiptRail}
+            </p>
           )}
-        </div>
+          {/* Buyer peek: the counterparty paid to read this buyer's standing, but
+              buyers deliver no work, so there is no record below. Explain it so
+              "paid, nothing here" reads as intended, not broken. */}
+          {role === 'buyer' && (
+            <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+              {wr.buyerContext}
+            </p>
+          )}
+        </>
       )}
 
       {showWorkRecord && state.kind === 'loading' && (

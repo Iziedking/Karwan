@@ -241,6 +241,13 @@ export function BridgeCard({
   const { bridges, startCircle, startAppKitBridge, isActive } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
+  // True while an add-money bridge is in an early, pre-attestation phase. The
+  // record is created the instant the user submits (before the App Kit dynamic
+  // import and the wallet popup), so this drives the submit button's loading
+  // state through that gap, where the user previously saw no feedback.
+  const startingBridge = inBridgesAll.some(
+    (b) => b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning',
+  );
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
   /// localStorage so a dismiss survives reload, but never written to the
   /// shared useBridges store. The bridge history modal (a separate
@@ -768,8 +775,9 @@ export function BridgeCard({
             <button
               type="submit"
               data-guide="bridge-submit"
-              disabled={!canSubmit}
-              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              disabled={!canSubmit || startingBridge}
+              aria-busy={startingBridge}
+              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--lp-dark)',
@@ -777,7 +785,8 @@ export function BridgeCard({
                 borderTopRightRadius: 14,
                 borderBottomLeftRadius: 14,
                 borderBottomRightRadius: 4,
-                boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
+                boxShadow: canSubmit && !startingBridge ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
+                opacity: startingBridge ? 0.75 : !canSubmit ? 0.4 : 1,
               }}
             >
               <span>
@@ -790,9 +799,16 @@ export function BridgeCard({
                       : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
               </span>
               <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                {startingBridge ? (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="animate-spin">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.8" strokeOpacity="0.25" />
+                    <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </span>
             </button>
           )}

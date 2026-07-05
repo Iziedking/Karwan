@@ -1088,6 +1088,10 @@ interface MessagesShape {
       locked: string;
       empty: string;
       summaryTemplate: string;
+      receiptTemplate: string;
+      receiptRail: string;
+      receiptView: string;
+      buyerContext: string;
     };
   };
   listingDetail: {
@@ -4859,9 +4863,13 @@ export const en: MessagesShape = {
       eyebrow: 'WORK RECORD',
       subtitle: 'Real deals this seller delivered. Private to you, not on the public passport.',
       loading: 'Loading work record…',
-      locked: 'Activate agent research on a deal to unlock the seller’s real work record.',
+      locked: 'The agent did not pull a paid passport on this deal, so the full work record stays locked.',
       empty: 'No completed work on record yet.',
       summaryTemplate: '{total} deals · {clean} clean · {disputed} disputed · avg {avg}',
+      receiptTemplate: 'Agent paid {amount} on Arc for this read',
+      receiptRail: 'Gasless nanopayment. Settles on Arc through Circle Gateway batching.',
+      receiptView: 'view ↗',
+      buyerContext: 'The counterparty agent paid to read this buyer’s on-chain standing. Buyers deliver no work, so there is no delivery record.',
     },
   },
   listingDetail: {
@@ -5362,7 +5370,7 @@ export const en: MessagesShape = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Buyer agent not configured.',
     inFlightTemplate: '{n} IN FLIGHT',
-    reassurance: 'Karwan covers the network fee. You only send USDC.',
+    reassurance: 'Your USDC lands on your Arc balance.',
     connect: {
       cta: 'Connect a wallet',
       hint: 'Bring USDC from any wallet. One signature moves it to your Arc balance.',

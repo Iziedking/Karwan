@@ -6,6 +6,17 @@ import { directDeals } from './schema.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
 
+/// A credit-passport pull an agent PAID for over x402 during negotiation: real
+/// USDC from that agent's Gateway deposit to the platform treasury, settled
+/// through Circle Gateway batching on Arc. Gateway nets many payments into one
+/// on-chain batch, so `txHash` is a batch reference or empty; the UI links it
+/// only when it is a real 32-byte Arc tx hash.
+export interface PassportPull {
+  amountUsd: number;
+  txHash?: string;
+  pulledAt: number;
+}
+
 export interface DirectDeal {
   jobId: string;
   // The user wallet that created the deal. The on-chain escrow buyer is the
@@ -54,6 +65,20 @@ export interface DirectDeal {
     txHash?: string;
     payer?: string;
     researchedAt: number;
+  };
+  /// The credit-passport pulls the agents PAID for over x402 during negotiation,
+  /// carried onto the deal at acceptance. The counterparty work-record read
+  /// gates on the SAME pull whose receipt it shows: the buyer paid to read the
+  /// seller (`seller`), the seller paid to read the buyer (`buyer`). This is why
+  /// the granular record unlocks — the paid pull that bought it — instead of the
+  /// unrelated market read. Absent on deals created before this field, or when a
+  /// pull was skipped (per-deal cap, an unactivated agent, or a timed-out cold
+  /// start); the report falls back to the legacy marketRead gate for those.
+  passportPulls?: {
+    /// Buyer agent's paid pull of the SELLER's passport.
+    seller?: PassportPull;
+    /// Seller agent's paid pull of the BUYER's passport.
+    buyer?: PassportPull;
   };
   // The seller has confirmed they agree to the deal terms. A deal cannot be
   // marked delivered until it is accepted.

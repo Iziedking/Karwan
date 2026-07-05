@@ -1124,9 +1124,13 @@ export const sw: Messages = {
       eyebrow: 'REKODI YA KAZI',
       subtitle: 'Mikataba halisi aliyowasilisha muuzaji huyu. Ni ya faragha kwako, haiko kwenye pasipoti ya umma.',
       loading: 'Inapakia rekodi ya kazi…',
-      locked: 'Washa utafiti wa wakala kwenye mkataba ili kufungua rekodi halisi ya kazi ya muuzaji.',
+      locked: 'Wakala hakuvuta pasipoti ya malipo kwenye mkataba huu, hivyo rekodi kamili ya kazi inabaki imefungwa.',
       empty: 'Hakuna kazi iliyokamilika kwenye rekodi bado.',
       summaryTemplate: 'Mikataba {total} · {clean} safi · {disputed} yenye mzozo · wastani {avg}',
+      receiptTemplate: 'Wakala alilipa {amount} kwenye Arc kwa usomaji huu',
+      receiptRail: 'Malipo madogo bila gesi. Hukamilishwa kwenye Arc kupitia uwekaji wa makundi wa Circle Gateway.',
+      receiptView: 'tazama ↗',
+      buyerContext: 'Wakala wa upande mwingine alilipa kusoma hadhi ya mnunuzi huyu kwenye chain. Wanunuzi hawawasilishi kazi, hivyo hakuna rekodi ya uwasilishaji.',
     },
   },
   listingDetail: {
@@ -1627,7 +1631,7 @@ export const sw: Messages = {
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Wakala wa mnunuzi hajasanidiwa.',
     inFlightTemplate: '{n} INASAFIRI',
-    reassurance: 'Karwan hulipa ada ya mtandao. Wewe hutuma USDC pekee.',
+    reassurance: 'USDC yako huingia kwenye salio lako la Arc.',
     connect: {
       cta: 'Unganisha pochi',
       hint: 'Leta USDC kutoka pochi yoyote. Saini moja huihamishia kwenye salio lako la Arc.',

@@ -782,25 +782,39 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   if (!isParty) {
     return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
   }
-  // Report on the caller's counterparty.
-  const subject = caller === deal.buyer.toLowerCase() ? deal.seller : deal.buyer;
+  // Report on the caller's counterparty, and gate on the SAME paid pull whose
+  // receipt we show: the buyer paid to read the seller, the seller paid to read
+  // the buyer. Unlocking the granular record on the payment that bought it (not
+  // the unrelated market read) keeps the story coherent: the record is visible
+  // exactly when, and because, its own credit-passport pull was paid.
+  const callerIsBuyer = caller === deal.buyer.toLowerCase();
+  const subject = callerIsBuyer ? deal.seller : deal.buyer;
+
+  // Newer deals carry the durable pull; read the one for this subject.
+  if (deal.passportPulls) {
+    const pull = callerIsBuyer ? deal.passportPulls.seller : deal.passportPulls.buyer;
+    if (!pull) return c.json({ locked: true, subject });
+    const record = await buildWorkRecord(subject);
+    const payment = { amountUsd: pull.amountUsd, txHash: pull.txHash };
+    return c.json({ locked: false, subject, record, payment });
+  }
+
+  // Legacy deals (created before passportPulls): fall back to the old gate on
+  // the market read, with the receipt recovered from the agent.paid event log.
   if (!deal.marketRead) {
     return c.json({ locked: true, subject });
   }
   const record = await buildWorkRecord(subject);
-  // Internal x402 receipt: the buyer agent's paid credit-passport pull on Arc
-  // that unlocked this record. Surfaced so the internal paid call has visible
-  // proof of its own, not just the external Base research payment. The Arc
-  // settlement rides Circle Gateway batching, so txHash may be a batch
-  // reference or empty; the UI only links it when it looks like a real hash.
   const payment = await paidPullReceipt(jobId);
   return c.json({ locked: false, subject, record, payment });
 });
 
-/// The buyer agent's internal x402 credit-passport payment for a deal: the
-/// agent.paid event on the Arc rail. Returns the amount + tx so the counterparty
-/// report can show the receipt. Null when there was no paid pull (unactivated
-/// buyer, capped, or a cache hit).
+/// Legacy receipt path for deals created before the pull was persisted on the
+/// deal: recover the credit-passport pull from the agent.paid event on the Arc
+/// rail. Returns the amount + tx, or null when there was no paid pull
+/// (unactivated agent, capped, cache hit) or it aged out of the event log. The
+/// Arc settlement rides Circle Gateway batching, so txHash may be a batch
+/// reference or empty; the UI only links it when it looks like a real hash.
 async function paidPullReceipt(
   jobId: string,
 ): Promise<{ amountUsd: number; txHash?: string } | null> {
