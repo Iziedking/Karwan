@@ -1,11 +1,100 @@
 ﻿'use client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useBalance } from 'wagmi';
+import { formatUnits } from 'viem';
+import { arcTestnet } from '@/core/wagmi';
+import { formatUsdc } from '@/shared/utils/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { LoginModal } from './LoginModal';
 import { CircleAccountModal } from './CircleAccountModal';
 import { ChainLogo, type ChainKey } from './ChainLogo';
+
+/// Arc USDC balance for the signed-in identity, shown inside the account pill.
+/// Replaces the standalone nav balance+address chip: the address was redundant
+/// with the pill's name, so only the balance carries over, with an eye toggle
+/// to hide it. lg-only so the nav never overflows on smaller screens (matching
+/// the old chip). Reads Arc directly, so it is the same balance for Circle and
+/// web3 identities regardless of the connected wallet's chain.
+function NavBalance() {
+  const bc = useTranslations().balancesCard;
+  const auth = useAuth();
+  const [hidden, setHidden] = useState(false);
+  const { data, isLoading } = useBalance({
+    address: auth.address as `0x${string}` | undefined,
+    chainId: arcTestnet.id,
+    query: { refetchInterval: 20_000 },
+  });
+  if (!auth.isAuthenticated || !auth.address) return null;
+  const human = data ? formatUnits(data.value, data.decimals) : null;
+  return (
+    <span className="hidden lg:inline-flex items-center gap-1.5">
+      <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">
+        {hidden ? '••••' : isLoading || !human ? '-' : formatUsdc(human, { withSuffix: false })}
+      </span>
+      <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+        USDC
+      </span>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setHidden((v) => !v);
+        }}
+        aria-pressed={hidden}
+        aria-label={hidden ? bc.reveal : bc.hide}
+        className="inline-flex items-center justify-center text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full transition-colors"
+      >
+        {hidden ? (
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="8" cy="8" r="1.75" stroke="currentColor" strokeWidth="1.3" />
+          </svg>
+        ) : (
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="8" cy="8" r="1.75" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M2.5 2.5l11 11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        )}
+      </button>
+      <span aria-hidden className="w-px h-4 bg-[var(--color-line)]" />
+    </span>
+  );
+}
+
+/// The account pill: the identity's Arc balance (with hide toggle) alongside a
+/// name button that opens the account manager. One shape for all authed states
+/// (Circle, web3 session-without-wallet, web3 connected) so the balance and
+/// hide affordance are identical everywhere.
+function IdentityPill({
+  leading,
+  name,
+  title,
+  onOpen,
+}: {
+  leading: ReactNode;
+  name: string;
+  title?: string;
+  onOpen: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1.5 ps-2.5 pe-2.5 py-1 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] whitespace-nowrap shrink-0 hover:bg-[var(--color-surface-2)] transition-colors">
+      <NavBalance />
+      <button
+        type="button"
+        onClick={onOpen}
+        suppressHydrationWarning
+        title={title}
+        className="inline-flex items-center gap-1.5 mono text-[11px] tabular-nums text-[var(--color-ink)]"
+      >
+        {leading}
+        <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">{name}</span>
+      </button>
+    </div>
+  );
+}
 
 /// Maps a wallet's current chain id to our branded ChainLogo key. Returns null
 /// for chains we don't have a mark for (the pill then just omits the logo).
@@ -57,30 +146,31 @@ export function ConnectWalletButton() {
     );
   }
 
+  // Arc mark + live dot: the leading visual for the Circle and web3-session
+  // identity pills, both of which resolve to an Arc identity address.
+  const arcLeading = (
+    <>
+      <ChainLogo chain="arc" size={16} />
+      <span
+        aria-hidden
+        className="w-[6px] h-[6px] rounded-full"
+        style={{ background: 'var(--lp-accent)' }}
+      />
+    </>
+  );
+
   // Circle-session users: render our own pill since RainbowKit doesn't know
   // about them. Clicking opens our Karwan-styled account modal (copy address,
   // sign out). RainbowKit's account modal isn't reachable for these users.
   if (auth.method === 'circle' && auth.address) {
     return (
       <>
-        <button
-          type="button"
-          onClick={() => setAccountOpen(true)}
-          suppressHydrationWarning
+        <IdentityPill
+          leading={arcLeading}
+          name={auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
           title={auth.email ?? auth.address}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
-        >
-          {/* Circle wallets operate on Arc, so the chain mark is always Arc. */}
-          <ChainLogo chain="arc" size={16} />
-          <span
-            aria-hidden
-            className="w-[6px] h-[6px] rounded-full"
-            style={{ background: 'var(--lp-accent)' }}
-          />
-          <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">
-            {auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
-          </span>
-        </button>
+          onOpen={() => setAccountOpen(true)}
+        />
         <CircleAccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
       </>
     );
@@ -113,23 +203,12 @@ export function ConnectWalletButton() {
                   // pill when there is genuinely no session.
                   if (auth.isAuthenticated && auth.address) {
                     return (
-                      <button
-                        type="button"
-                        onClick={() => setAccountOpen(true)}
-                        suppressHydrationWarning
+                      <IdentityPill
+                        leading={arcLeading}
+                        name={auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
                         title={auth.email ?? auth.address}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
-                      >
-                        <ChainLogo chain="arc" size={16} />
-                        <span
-                          aria-hidden
-                          className="w-[6px] h-[6px] rounded-full"
-                          style={{ background: 'var(--lp-accent)' }}
-                        />
-                        <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">
-                          {auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
-                        </span>
-                      </button>
+                        onOpen={() => setAccountOpen(true)}
+                      />
                     );
                   }
                   return (
@@ -185,28 +264,24 @@ export function ConnectWalletButton() {
                 }
                 const chainKey = chainKeyFromId(chain.id);
                 return (
-                  <button
-                    onClick={openAccountModal}
-                    type="button"
-                    suppressHydrationWarning
+                  <IdentityPill
+                    leading={
+                      // Current chain mark; updates the moment the wallet
+                      // switches because RainbowKit re-renders with the new chain.
+                      chainKey ? (
+                        <ChainLogo chain={chainKey} size={16} />
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="w-[6px] h-[6px] rounded-full"
+                          style={{ background: '#0a7553' }}
+                        />
+                      )
+                    }
+                    name={account.displayName}
                     title={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mono text-[11px] tabular-nums text-[var(--color-ink)] whitespace-nowrap shrink-0 border border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] transition-colors"
-                  >
-                    {/* Current chain mark; updates the moment the wallet switches
-                        because RainbowKit re-renders this with the new chain. */}
-                    {chainKey ? (
-                      <ChainLogo chain={chainKey} size={16} />
-                    ) : (
-                      <span
-                        aria-hidden
-                        className="w-[6px] h-[6px] rounded-full"
-                        style={{ background: '#0a7553' }}
-                      />
-                    )}
-                    <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">
-                      {account.displayName}
-                    </span>
-                  </button>
+                    onOpen={openAccountModal}
+                  />
                 );
               })()}
             </div>

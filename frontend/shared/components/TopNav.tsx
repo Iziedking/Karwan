@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { LiveDot } from './LiveDot';
-import { BalanceRail } from '@/features/balances/components/BalanceRail';
 import { ConnectWalletButton } from './ConnectWallet';
 import { ThemeToggle } from './ThemeToggle';
 import { SoundToggle } from './SoundToggle';
@@ -18,8 +17,8 @@ import { isBusinessAccount } from '@/features/account/accountKind';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 
 // Landing routes are forced dark via these var overrides, so every embedded
-// child (BalanceRail, bell, toggles, ConnectWalletButton) picks up dark mode
-// without each one knowing about route context.
+// child (bell, toggles, ConnectWalletButton) picks up dark mode without each
+// one knowing about route context.
 const DARK_NAV_VARS = {
   '--color-surface': '#0e0e0e',
   '--color-surface-2': 'rgba(255,255,255,0.07)',
@@ -177,9 +176,6 @@ export function TopNav() {
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {showAppChrome ? (
             <>
-              <div className="hidden lg:inline-flex items-center px-3 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] mono shrink-0 whitespace-nowrap">
-                <BalanceRail />
-              </div>
               <div className="hidden md:inline-flex">
                 <LiveDot />
               </div>
