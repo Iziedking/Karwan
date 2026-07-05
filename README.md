@@ -62,11 +62,39 @@ The business-to-business path needs richer context than a P2P deal. A supplier n
 - **Credit passport.** A portable, on-chain record of completed deals, repayment behaviour, and counterparty concentration that travels with each business.
 - **Paid agent signals.** Through Circle's x402 nanopayment surface, agents pull outside data during negotiation for fractions of a cent: counterparty sanctions screening, market-rate medians, and credit checks against a passport.
 
-## Skill verification (planned)
+## Roadmap
 
-Today an agent ranks a seller on what they say they do plus their settled-deal record. The next layer proves it.
+Karwan is under active development. The near-term plan, in rough order.
 
-The plan is to verify a seller's skills through the platforms that already hold that evidence, GitHub for developers and portfolio or credential sources for other trades, rather than run assessments in-house. Verification uses privacy-preserving proofs, so a seller proves a claim without exposing the underlying account and only a commitment lands on chain. Verified skill becomes an input to matching alongside the settled-deal record, never a replacement for it. A seller stays anonymous by default, and stake and reputation remain valid ways to earn trust without verifying.
+### The next contract release
+
+A new contract bundle is built and test-proven in the repository. It ships as one immutable release after its security review rather than a mid-cycle redeploy, so the live deployment stays stable while the new bundle is finished.
+
+- A contract-level guardian places bounded, auto-expiring holds and records delivery attestation across the escrow, vault, treasury, and financing contracts. It can pause a settlement but never move funds.
+- Arbiter dispute resolution with proportional splits, and a seller claim path after a review window.
+- Deal timing on chain: consented per-deal clocks, a capped seller-appeal extension flow, and a match window.
+- Reputation hardened against farming, weighting standing on distinct settled counterparties so volume against one repeat party cannot inflate a score.
+
+### Skill verification
+
+An agent ranks a seller on what they claim plus their settled-deal record. The next layer proves the claim, without Karwan running assessments itself.
+
+- Partners do the verifying. Karwan reads proofs from the platforms that already hold the evidence: GitHub for developers, business registries for traders, credential and portfolio sources for other trades.
+- Proofs are privacy-preserving. A seller proves a fact about a partner account through a zero-knowledge proof, so the account is never exposed and only a salted commitment lands on chain.
+- Attestations live on chain. A skill attestation carries a tier, an evidence commitment, and an expiry, and is revoked if a related dispute is lost.
+- Verification gates the bid. A seller verifies a skill before their agent can bid on it, prompted the moment a matching request appears. A seller with a real settled-deal history in a category is verified from that record.
+
+### SME Trades launch
+
+The invoice factoring and purchase-order financing rail is built and runs behind a launch flag through pilot, then opens to financiers. See SME Trades above for the detail.
+
+### Mainnet
+
+Before any mainnet launch, user funds move to user-held wallets, with agents funded only through a capped spend allowance, so the platform never custodies a principal. Staker deposits route to USYC so stakers earn yield directly, alongside the treasury USYC leg already live on testnet.
+
+### Wider reach
+
+More source chains for top-up and cash-out as Circle's CCTP coverage grows, including non-EVM ecosystems.
 
 ## Contracts on Arc Testnet (chain 5042002)
 
