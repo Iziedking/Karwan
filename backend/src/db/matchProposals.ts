@@ -75,6 +75,12 @@ export interface MatchProposal {
     score: number;
     amountUsd: number;
     transaction: string;
+    /// The agent's x402 payer wallet. Its Arc token history is the on-chain
+    /// proof of the paid pull even when the batched settlement has no per-call
+    /// hash. Carried onto the deal so the counterparty report can link it.
+    payer?: string;
+    /// The Arc depositFor tx that funded this pull, when a top-up was needed.
+    depositTxHash?: string;
     paidAt: number;
   };
   /// Market read the agent PAID for over x402 on Base mainnet (Exa web search,

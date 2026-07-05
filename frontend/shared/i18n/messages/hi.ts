@@ -1130,6 +1130,8 @@ export const hi: Messages = {
       receiptTemplate: 'एजेंट ने इस रीड के लिए Arc पर {amount} चुकाए',
       receiptRail: 'बिना गैस वाला नैनोपेमेंट. Circle Gateway बैचिंग के जरिए Arc पर सेटल होता है.',
       receiptView: 'देखें ↗',
+      receiptDeposit: 'फंडिंग ↗',
+      receiptWallet: 'वॉलेट ↗',
       buyerContext: 'प्रतिपक्ष एजेंट ने इस खरीदार की ऑन-चेन साख पढ़ने के लिए भुगतान किया. खरीदार कोई काम डिलीवर नहीं करते, इसलिए कोई डिलीवरी रिकॉर्ड नहीं है.',
     },
   },

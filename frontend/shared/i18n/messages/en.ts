@@ -1091,6 +1091,8 @@ interface MessagesShape {
       receiptTemplate: string;
       receiptRail: string;
       receiptView: string;
+      receiptDeposit: string;
+      receiptWallet: string;
       buyerContext: string;
     };
   };
@@ -4869,6 +4871,8 @@ export const en: MessagesShape = {
       receiptTemplate: 'Agent paid {amount} on Arc for this read',
       receiptRail: 'Gasless nanopayment. Settles on Arc through Circle Gateway batching.',
       receiptView: 'view ↗',
+      receiptDeposit: 'funding ↗',
+      receiptWallet: 'wallet ↗',
       buyerContext: 'The counterparty agent paid to read this buyer’s on-chain standing. Buyers deliver no work, so there is no delivery record.',
     },
   },

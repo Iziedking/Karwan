@@ -293,11 +293,33 @@ const OUTCOME_HUE: Record<string, string> = {
   failed: '#b03d3a',
 };
 
+const ARCSCAN = 'https://testnet.arcscan.app';
+
 /// Only link a payment tx when it looks like a real 32-byte hash. The internal
 /// Arc x402 settlement rides Circle Gateway batching, so the receipt sometimes
-/// carries a batch reference or nothing; in that case show the amount, no link.
+/// carries a batch reference or nothing; in that case we link the on-chain
+/// deposit that funded the pull, or the paying wallet, instead.
 function isTxHash(h?: string): boolean {
   return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
+}
+
+function isAddress(a?: string): boolean {
+  return !!a && /^0x[0-9a-fA-F]{40}$/.test(a);
+}
+
+/// The best on-chain proof we can link for a paid pull. The per-read settlement
+/// is gasless and batched, so a settlement hash rarely exists; fall through to
+/// the Arc deposit tx that funded the pull, then to the paying wallet's Arc
+/// history. Any of these is a real artifact a viewer can open on Arcscan.
+function passportProof(
+  payment: NonNullable<CounterpartyReport['payment']>,
+  labels: { view: string; deposit: string; wallet: string },
+): { href: string; label: string } | null {
+  if (isTxHash(payment.txHash)) return { href: `${ARCSCAN}/tx/${payment.txHash}`, label: labels.view };
+  if (isTxHash(payment.depositTxHash))
+    return { href: `${ARCSCAN}/tx/${payment.depositTxHash}`, label: labels.deposit };
+  if (isAddress(payment.payer)) return { href: `${ARCSCAN}/address/${payment.payer}`, label: labels.wallet };
+  return null;
 }
 
 /// The counterparty's real, DB-private work record. Granular per-deal proof a
@@ -335,6 +357,9 @@ function WorkRecordSection({
 
   if (state.kind === 'error') return null;
   const payment = state.kind === 'done' ? state.data.payment : null;
+  const proof = payment
+    ? passportProof(payment, { view: wr.receiptView, deposit: wr.receiptDeposit, wallet: wr.receiptWallet })
+    : null;
   // Buyers don't deliver work, so there's no delivered-work record for a buyer
   // peek. But the counterparty agent still PAID to pull their passport, so the
   // paid-read receipt must surface on this side too (the seller paying for the
@@ -366,21 +391,22 @@ function WorkRecordSection({
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               {wr.receiptTemplate.replace('{amount}', `$${payment.amountUsd.toFixed(2)}`)}
             </span>
-            {isTxHash(payment.txHash) && (
+            {proof && (
               <a
-                href={`https://testnet.arcscan.app/tx/${payment.txHash}`}
+                href={proof.href}
                 target="_blank"
                 rel="noreferrer"
                 className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] underline underline-offset-2"
                 style={{ color: 'var(--lp-accent)' }}
               >
-                {wr.receiptView}
+                {proof.label}
               </a>
             )}
           </div>
           {/* Circle Gateway nets many nanopayments into one on-chain batch, so a
-              single $0.01 read has no per-call Arc tx to link. Say so plainly
-              instead of showing a bare amount that reads as an unbacked claim. */}
+              single $0.01 read has no per-call Arc tx. The linked deposit / payer
+              wallet is the real on-chain proof; the caption explains the rail so
+              the amount never reads as an unbacked claim. */}
           {!isTxHash(payment.txHash) && (
             <p className="mt-1.5 text-[10px] leading-snug text-[var(--lp-text-muted)]">
               {wr.receiptRail}

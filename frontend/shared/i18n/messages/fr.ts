@@ -1130,6 +1130,8 @@ export const fr: Messages = {
       receiptTemplate: "L'agent a payé {amount} sur Arc pour cette lecture",
       receiptRail: 'Nanopaiement sans gas. Réglé sur Arc via le traitement par lots de Circle Gateway.',
       receiptView: 'voir ↗',
+      receiptDeposit: 'financement ↗',
+      receiptWallet: 'portefeuille ↗',
       buyerContext: "L'agent de la contrepartie a payé pour lire la réputation on-chain de cet acheteur. Les acheteurs ne livrent aucun travail, il n'y a donc pas de dossier de livraison.",
     },
   },

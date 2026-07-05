@@ -795,7 +795,12 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
     const pull = callerIsBuyer ? deal.passportPulls.seller : deal.passportPulls.buyer;
     if (!pull) return c.json({ locked: true, subject });
     const record = await buildWorkRecord(subject);
-    const payment = { amountUsd: pull.amountUsd, txHash: pull.txHash };
+    const payment = {
+      amountUsd: pull.amountUsd,
+      txHash: pull.txHash,
+      payer: pull.payer,
+      depositTxHash: pull.depositTxHash,
+    };
     return c.json({ locked: false, subject, record, payment });
   }
 

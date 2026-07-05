@@ -1130,6 +1130,8 @@ export const sw: Messages = {
       receiptTemplate: 'Wakala alilipa {amount} kwenye Arc kwa usomaji huu',
       receiptRail: 'Malipo madogo bila gesi. Hukamilishwa kwenye Arc kupitia uwekaji wa makundi wa Circle Gateway.',
       receiptView: 'tazama ↗',
+      receiptDeposit: 'ufadhili ↗',
+      receiptWallet: 'pochi ↗',
       buyerContext: 'Wakala wa upande mwingine alilipa kusoma hadhi ya mnunuzi huyu kwenye chain. Wanunuzi hawawasilishi kazi, hivyo hakuna rekodi ya uwasilishaji.',
     },
   },

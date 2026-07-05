@@ -2572,6 +2572,8 @@ async function proposeMatch(
               score: paidBid.score,
               amountUsd: paidBid.amountUsd,
               transaction: paidBid.transaction,
+              payer: paidBid.payer,
+              ...(paidBid.depositTxHash ? { depositTxHash: paidBid.depositTxHash } : {}),
               paidAt: paidBid.paidAt,
             },
           }
@@ -2902,6 +2904,8 @@ async function persistApprovedMatch(
       ? {
           amountUsd: proposal.paidSignal.amountUsd,
           txHash: proposal.paidSignal.transaction,
+          ...(proposal.paidSignal.payer ? { payer: proposal.paidSignal.payer } : {}),
+          ...(proposal.paidSignal.depositTxHash ? { depositTxHash: proposal.paidSignal.depositTxHash } : {}),
           pulledAt: proposal.paidSignal.paidAt,
         }
       : undefined;
@@ -2910,6 +2914,8 @@ async function persistApprovedMatch(
       ? {
           amountUsd: buyerPullSignal.amountUsd,
           txHash: buyerPullSignal.transaction,
+          ...(buyerPullSignal.payer ? { payer: buyerPullSignal.payer } : {}),
+          ...(buyerPullSignal.depositTxHash ? { depositTxHash: buyerPullSignal.depositTxHash } : {}),
           pulledAt: buyerPullSignal.paidAt,
         }
       : undefined;

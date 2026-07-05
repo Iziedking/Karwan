@@ -1130,6 +1130,8 @@ export const ar: Messages = {
       receiptTemplate: 'دفع الوكيل {amount} على Arc مقابل هذه القراءة',
       receiptRail: 'دفعة صغيرة بدون رسوم غاز. تُسوّى على Arc عبر تجميع Circle Gateway.',
       receiptView: 'عرض ↗',
+      receiptDeposit: 'التمويل ↗',
+      receiptWallet: 'المحفظة ↗',
       buyerContext: 'دفع وكيل الطرف المقابل لقراءة سجل هذا المشتري على السلسلة. المشترون لا ينفّذون عملًا، لذا لا يوجد سجل تسليم.',
     },
   },

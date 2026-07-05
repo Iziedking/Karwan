@@ -90,17 +90,29 @@ export async function gatewayAvailableUsd(depositor: string): Promise<number> {
   return Number(data.balances?.[0]?.balance ?? 0);
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/// How long to wait for a fresh Gateway deposit to clear Arc finality before
+/// giving up on the current paid call. Gateway credits a deposit only after the
+/// depositFor tx finalizes, so the very first pull on a new agent would
+/// otherwise see a zero balance and skip. Polling briefly lets that first pull
+/// land on a single-bid deal where there is no "next bid" to retry on. Bounded
+/// so the bid path never hangs on a stuck deposit.
+const GATEWAY_CREDIT_POLLS = 5;
+const GATEWAY_CREDIT_POLL_MS = 1500;
+
 /// Top up the x402 EOA's Gateway deposit from the buyer agent SCA when the
 /// available balance can't cover the next call. One approve + one depositFor,
-/// both signed by the agent SCA on Arc (fast path). The deposit needs Arc
-/// block finality before Gateway credits it, so the first paid call after a
-/// fresh deposit may still see a low balance; callers retry on the next bid.
+/// both signed by the agent SCA on Arc (fast path). Returns the depositFor tx so
+/// callers can surface it as on-chain proof: it is the real Arc transaction that
+/// moved the agent's USDC onto the paid rail (the per-read settlement itself is
+/// gasless and batched by Gateway, so it has no per-call hash).
 export async function ensureGatewayFunding(
   record: AgentWallets,
   x402: X402WalletRef,
   neededUsd: number,
   payerWalletId: string,
-): Promise<{ funded: boolean; availableUsd: number }> {
+): Promise<{ funded: boolean; availableUsd: number; depositTxHash?: string }> {
   const availableUsd = await gatewayAvailableUsd(x402.address);
   if (availableUsd >= neededUsd) return { funded: true, availableUsd };
 
@@ -122,7 +134,7 @@ export async function ensureGatewayFunding(
     },
     'x402.gateway.approve',
   );
-  await executeContractCall(
+  const deposit = await executeContractCall(
     {
       walletId: payerWalletId,
       contractAddress: GATEWAY_WALLET_ADDR,
@@ -131,11 +143,16 @@ export async function ensureGatewayFunding(
     },
     'x402.gateway.depositFor',
   );
-  // The deposit tx confirmed, but Gateway credits it only after finality.
-  // Report the pre-deposit availability honestly; the caller decides whether
-  // to attempt the payment now or pick it up on a later bid.
-  const after = await gatewayAvailableUsd(x402.address).catch(() => availableUsd);
-  return { funded: after >= neededUsd, availableUsd: after };
+  // Gateway credits the deposit only after Arc finality. Poll briefly so the
+  // FIRST paid call on a fresh agent still lands instead of deferring to a later
+  // bid that may never come. Bounded by GATEWAY_CREDIT_POLLS so a stuck deposit
+  // can't hang the bid path; on timeout the caller skips this one pull.
+  let credited = await gatewayAvailableUsd(x402.address).catch(() => availableUsd);
+  for (let i = 0; credited < neededUsd && i < GATEWAY_CREDIT_POLLS; i++) {
+    await sleep(GATEWAY_CREDIT_POLL_MS);
+    credited = await gatewayAvailableUsd(x402.address).catch(() => credited);
+  }
+  return { funded: credited >= neededUsd, availableUsd: credited, depositTxHash: deposit.txHash };
 }
 
 interface PaymentOption {
@@ -241,6 +258,10 @@ export interface PaidPassportSignal {
   amountUsd: number;
   payer: string;
   transaction: string;
+  /// The Arc depositFor tx that funded this pull's Gateway balance, when a
+  /// top-up was needed for it. Real on-chain proof the agent moved USDC onto the
+  /// paid rail; absent when the pull drew an already-funded balance.
+  depositTxHash?: string;
   paidAt: number;
 }
 
@@ -311,6 +332,7 @@ export async function paidCreditPassport(
     amountUsd: result.amountUsd,
     payer: result.payer,
     transaction: result.transaction,
+    depositTxHash: funding.depositTxHash,
     paidAt: Date.now(),
   };
 }
