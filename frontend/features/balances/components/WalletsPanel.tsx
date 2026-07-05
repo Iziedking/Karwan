@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { LpHint } from '@/shared/components/LpHint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
@@ -112,11 +113,9 @@ function Row({
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{tag}:]
           </span>
-          <p className="mt-1.5 font-sans text-[16px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+          <p className="mt-1.5 flex items-center gap-1.5 font-sans text-[16px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
             {title}
-          </p>
-          <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)] max-w-[44ch]">
-            {purpose}
+            <LpHint>{purpose}</LpHint>
           </p>
           {address && <CopyAddress address={address} onCopied={onCopied} />}
         </div>
@@ -241,18 +240,7 @@ export function WalletsPanel({ address }: { address?: string }) {
 
   return (
     <section style={CARD} className="p-6 md:p-8">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        {wp.eyebrow}
-      </span>
-      <h3 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
-        {wp.headline}
-        <span style={{ color: 'var(--lp-accent)' }}>.</span>
-      </h3>
-      <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-        {isCircle ? wp.intro.circle : wp.intro.web3}
-      </p>
-
-      <ul className="mt-6 space-y-3">
+      <ul className="space-y-3">
         <Row
           tag={wp.rows.identity.tag}
           hub

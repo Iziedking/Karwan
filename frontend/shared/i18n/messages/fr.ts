@@ -543,13 +543,13 @@ export const fr: Messages = {
       tag: 'AVOIRS',
       headlinePrefix: 'Vos ',
       headlineAccent: 'wallets',
-      body: 'Soldes en un coup d’œil. Déposez ou retirez l’USDC depuis la page Dépôt / Retrait.',
+      body: 'Chaque wallet de votre compte, en un coup d’œil.',
     },
     agentTreasury: {
-      tag: 'TRÉSORERIE AGENT',
-      headlineFund: 'Financer',
+      tag: 'ARGENT DE L’AGENT',
+      headlineFund: 'Ajouter',
       headlineWithdraw: 'Retirer',
-      body: 'Rechargez le wallet qui signe vos deals. Retirez quand vous voulez.',
+      body: 'Déplacez l’USDC vers l’agent qui gère vos deals, et récupérez-le quand vous voulez.',
     },
     stake: {
       tag: 'STAKE',
@@ -1590,7 +1590,7 @@ export const fr: Messages = {
   agentWithdrawCard: {
     header: {
       eyebrow: '[:RETIRER:]',
-      title: 'Retirer depuis l\'agent',
+      title: 'Retirez de votre agent',
       subtitle: 'L\'agent signe · règlement sur Arc',
     },
     agents: {
@@ -1616,11 +1616,11 @@ export const fr: Messages = {
     submit: {
       signIn: 'Connectez-vous pour retirer',
       sending: 'Envoi sur Arc...',
-      withdrawTemplate: 'Retirer depuis {agent}',
+      withdrawTemplate: 'Retirer {agent}',
       agentFallback: 'agent',
     },
     success: {
-      message: 'Retrait envoyé.',
+      message: 'En route.',
     },
     errors: {
       invalidAddress: 'Adresse 20 octets invalide.',
@@ -2348,8 +2348,8 @@ export const fr: Messages = {
     agentBuyerLabel: 'Agent acheteur',
     agentSellerLabel: 'Agent vendeur',
     header: {
-      eyebrow: "FINANCER L'AGENT",
-      title: 'Recharger sur Arc',
+      eyebrow: 'AJOUTER DE L’ARGENT',
+      title: 'Rechargez votre agent',
       subtitleCircle: 'Un clic · le backend signe',
       subtitleWeb3: 'Une tx · règlement en ~3s',
       inFlightTemplate: '{count} EN COURS',
@@ -2367,11 +2367,11 @@ export const fr: Messages = {
       availableTemplate: '{amount} USDC disponibles',
     },
     submit: {
-      signInToFund: 'Connectez-vous pour financer',
+      signInToFund: 'Connectez-vous pour ajouter',
       switchingToArc: 'Bascule vers Arc...',
       transferInProgress: 'Transfert en cours...',
       switchToArc: 'Basculer vers Arc',
-      sendToTemplate: 'Envoyer à {label}',
+      sendToTemplate: 'Ajouter à {label}',
       agentFallback: 'agent',
       activeNote: "Un transfert à la fois. Les transferts natifs sont réglés dans l'ordre des nonces.",
     },
@@ -3504,6 +3504,8 @@ export const fr: Messages = {
     chainCountTemplate: 'sur {n} chaînes',
     refresh: 'Actualiser',
     refreshing: 'Actualisation',
+    reveal: 'Afficher',
+    hide: 'Masquer',
     tabs: {
       you: 'Vous',
       buyer: 'Agent acheteur',

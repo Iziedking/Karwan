@@ -543,13 +543,13 @@ export const ar: Messages = {
       tag: 'الأرصدة',
       headlinePrefix: 'محافظك ',
       headlineAccent: '',
-      body: 'الأرصدة بنظرة واحدة. أودِع واسحب USDC من صفحة الإيداع / السحب.',
+      body: 'كل محفظة في حسابك بنظرة واحدة.',
     },
     agentTreasury: {
-      tag: 'خزانة الوكلاء',
-      headlineFund: 'تمويل',
-      headlineWithdraw: 'سحب',
-      body: 'موّل المحفظة التي توقّع صفقاتك. اسحب الرصيد متى شئت.',
+      tag: 'أموال الوكيل',
+      headlineFund: 'أضف أموالاً',
+      headlineWithdraw: 'اسحب',
+      body: 'انقل USDC إلى الوكيل الذي يدير صفقاتك، واسترجعها إلى محفظتك متى شئت.',
     },
     stake: {
       tag: 'الإيداع',
@@ -1589,8 +1589,8 @@ export const ar: Messages = {
   },
   agentWithdrawCard: {
     header: {
-      eyebrow: '[:سحب:]',
-      title: 'سحب من الوكيل',
+      eyebrow: '[:صرف نقدي:]',
+      title: 'اصرف من وكيلك',
       subtitle: 'الوكيل يوقّع · التسوية على Arc',
     },
     agents: {
@@ -1614,17 +1614,17 @@ export const ar: Messages = {
       },
     },
     submit: {
-      signIn: 'سجّل الدخول للسحب',
+      signIn: 'سجّل الدخول للصرف',
       sending: 'جارٍ الإرسال على Arc...',
-      withdrawTemplate: 'سحب من {agent}',
+      withdrawTemplate: 'اصرف {agent}',
       agentFallback: 'الوكيل',
     },
     success: {
-      message: 'تم إرسال السحب.',
+      message: 'في الطريق.',
     },
     errors: {
       invalidAddress: 'العنوان غير صالح (20 بايت).',
-      failedTag: 'فشل السحب',
+      failedTag: 'فشل الصرف',
     },
   },
   bridgeCard: {
@@ -2348,8 +2348,8 @@ export const ar: Messages = {
     agentBuyerLabel: 'وكيل المشتري',
     agentSellerLabel: 'وكيل البائع',
     header: {
-      eyebrow: 'تمويل الوكيل',
-      title: 'اشحن على Arc',
+      eyebrow: 'أضف أموالاً',
+      title: 'اشحن وكيلك',
       subtitleCircle: 'نقرة واحدة · يوقع الخادم',
       subtitleWeb3: 'معاملة واحدة · تسوية في نحو 3 ثوانٍ',
       inFlightTemplate: '{count} قيد التنفيذ',
@@ -2367,11 +2367,11 @@ export const ar: Messages = {
       availableTemplate: '{amount} USDC متاح',
     },
     submit: {
-      signInToFund: 'سجّل الدخول للتمويل',
+      signInToFund: 'سجّل الدخول لإضافة أموال',
       switchingToArc: 'جارٍ التبديل إلى Arc...',
       transferInProgress: 'التحويل قيد التنفيذ...',
       switchToArc: 'بدّل إلى Arc',
-      sendToTemplate: 'أرسل إلى {label}',
+      sendToTemplate: 'أضف إلى {label}',
       agentFallback: 'الوكيل',
       activeNote: 'تحويل واحد في كل مرة. التحويلات الأصلية تُسوّى بترتيب الرقم التسلسلي.',
     },
@@ -3504,6 +3504,8 @@ export const ar: Messages = {
     chainCountTemplate: 'عبر {n} سلاسل',
     refresh: 'تحديث',
     refreshing: 'جاري التحديث',
+    reveal: 'إظهار',
+    hide: 'إخفاء',
     tabs: {
       you: 'أنت',
       buyer: 'وكيل الشراء',

@@ -543,13 +543,13 @@ export const hi: Messages = {
       tag: 'होल्डिंग्स',
       headlinePrefix: 'आपके ',
       headlineAccent: 'वॉलेट',
-      body: 'एक नज़र में बैलेंस। टॉप-अप / निकासी पेज से USDC टॉप-अप करें और निकालें।',
+      body: 'आपके खाते का हर वॉलेट, एक नज़र में।',
     },
     agentTreasury: {
-      tag: 'एजेंट ट्रेज़री',
-      headlineFund: 'फंड',
+      tag: 'एजेंट का पैसा',
+      headlineFund: 'पैसा जोड़ें',
       headlineWithdraw: 'निकालें',
-      body: 'अपनी डील पर साइन करने वाले वॉलेट को टॉप-अप करें। कभी भी वापस निकाल लें।',
+      body: 'अपनी डील चलाने वाले एजेंट को USDC भेजें, और जब चाहें वापस ले लें।',
     },
     stake: {
       tag: 'स्टेक',
@@ -1589,8 +1589,8 @@ export const hi: Messages = {
   },
   agentWithdrawCard: {
     header: {
-      eyebrow: '[:निकासी:]',
-      title: 'एजेंट से निकालें',
+      eyebrow: '[:कैश आउट:]',
+      title: 'अपने एजेंट से निकालें',
       subtitle: 'एजेंट साइन करता है · Arc पर निपटान',
     },
     agents: {
@@ -1614,17 +1614,17 @@ export const hi: Messages = {
       },
     },
     submit: {
-      signIn: 'निकालने के लिए साइन इन करें',
+      signIn: 'कैश आउट के लिए साइन इन करें',
       sending: 'Arc पर भेजा जा रहा है...',
       withdrawTemplate: '{agent} से निकालें',
       agentFallback: 'एजेंट',
     },
     success: {
-      message: 'निकासी भेजी गई.',
+      message: 'भेज दिया गया।',
     },
     errors: {
       invalidAddress: 'मान्य 20-बाइट पता नहीं.',
-      failedTag: 'निकासी विफल',
+      failedTag: 'कैश आउट विफल',
     },
   },
   bridgeCard: {
@@ -2348,8 +2348,8 @@ export const hi: Messages = {
     agentBuyerLabel: 'खरीदार एजेंट',
     agentSellerLabel: 'विक्रेता एजेंट',
     header: {
-      eyebrow: 'एजेंट को फंड करें',
-      title: 'Arc पर टॉप अप करें',
+      eyebrow: 'पैसा जोड़ें',
+      title: 'अपने एजेंट को टॉप अप करें',
       subtitleCircle: 'एक क्लिक · बैकएंड साइन करता है',
       subtitleWeb3: 'सिंगल tx · लगभग 3 सेकंड में सेटल',
       inFlightTemplate: '{count} प्रगति में',
@@ -2367,11 +2367,11 @@ export const hi: Messages = {
       availableTemplate: '{amount} USDC उपलब्ध',
     },
     submit: {
-      signInToFund: 'फंड करने के लिए साइन इन करें',
+      signInToFund: 'पैसा जोड़ने के लिए साइन इन करें',
       switchingToArc: 'Arc पर स्विच हो रहा है...',
       transferInProgress: 'ट्रांसफर प्रगति में...',
       switchToArc: 'Arc पर स्विच करें',
-      sendToTemplate: '{label} को भेजें',
+      sendToTemplate: '{label} में जोड़ें',
       agentFallback: 'एजेंट',
       activeNote: 'एक समय में एक ट्रांसफर. नेटिव ट्रांसफर nonce क्रम में सेटल होते हैं.',
     },
@@ -3504,6 +3504,8 @@ export const hi: Messages = {
     chainCountTemplate: '{n} चेन में',
     refresh: 'रिफ्रेश',
     refreshing: 'रिफ्रेश हो रहा',
+    reveal: 'दिखाएं',
+    hide: 'छिपाएं',
     tabs: {
       you: 'आप',
       buyer: 'खरीद एजेंट',

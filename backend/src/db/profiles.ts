@@ -269,6 +269,16 @@ export async function findProfileByName(name: string): Promise<UserProfile | nul
   );
 }
 
+/// The profile that currently holds a verified contact email (case-insensitive),
+/// if any. Keeps one email bound to a single account so a wallet user cannot
+/// claim an address that already belongs to someone else's profile.
+export async function findProfileByEmail(email: string): Promise<UserProfile | null> {
+  const e = email.trim().toLowerCase();
+  if (!e) return null;
+  const all = await listProfiles();
+  return all.find((p) => p.emailVerified && p.email?.trim().toLowerCase() === e) ?? null;
+}
+
 /// Removes a user's off-chain profile. Used by account delete. On-chain
 /// reputation is permanent and lives elsewhere; this only clears the off-chain
 /// record (display name, role, X handle, settings).

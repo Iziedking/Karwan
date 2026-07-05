@@ -3294,6 +3294,8 @@ interface MessagesShape {
     chainCountTemplate: string;
     refresh: string;
     refreshing: string;
+    reveal: string;
+    hide: string;
     tabs: {
       you: string;
       buyer: string;
@@ -4273,13 +4275,13 @@ export const en: MessagesShape = {
       tag: 'HOLDINGS',
       headlinePrefix: 'Your ',
       headlineAccent: 'wallets',
-      body: 'Balances at a glance. Top up and withdraw USDC from the Top up / Withdraw page.',
+      body: 'Every wallet on your account, at a glance.',
     },
     agentTreasury: {
-      tag: 'AGENT TREASURY',
-      headlineFund: 'Fund',
-      headlineWithdraw: 'Withdraw',
-      body: 'Top up the wallet that signs your deals. Sweep it back any time.',
+      tag: 'AGENT MONEY',
+      headlineFund: 'Add money',
+      headlineWithdraw: 'Cash out',
+      body: 'Move USDC to the agent that runs your deals, and pull it back to yourself any time.',
     },
     stake: {
       tag: 'STAKE',
@@ -5330,8 +5332,8 @@ export const en: MessagesShape = {
   },
   agentWithdrawCard: {
     header: {
-      eyebrow: '[:WITHDRAW:]',
-      title: 'Sweep from agent',
+      eyebrow: '[:CASH OUT:]',
+      title: 'Cash out your agent',
       subtitle: 'Agent signs · settles on Arc',
     },
     agents: {
@@ -5355,17 +5357,17 @@ export const en: MessagesShape = {
       },
     },
     submit: {
-      signIn: 'Sign in to withdraw',
+      signIn: 'Sign in to cash out',
       sending: 'Sending on Arc...',
-      withdrawTemplate: 'Withdraw from {agent}',
+      withdrawTemplate: 'Cash out {agent}',
       agentFallback: 'agent',
     },
     success: {
-      message: 'Withdrawal sent.',
+      message: 'On its way.',
     },
     errors: {
       invalidAddress: 'Not a valid 20-byte address.',
-      failedTag: 'WITHDRAW FAILED',
+      failedTag: 'CASH OUT FAILED',
     },
   },
   bridgeCard: {
@@ -6089,8 +6091,8 @@ export const en: MessagesShape = {
     agentBuyerLabel: 'Buyer agent',
     agentSellerLabel: 'Seller agent',
     header: {
-      eyebrow: 'FUND AGENT',
-      title: 'Top up on Arc',
+      eyebrow: 'ADD MONEY',
+      title: 'Top up your agent',
       subtitleCircle: 'One click · backend signs',
       subtitleWeb3: 'Single tx · settles in ~3s',
       inFlightTemplate: '{count} IN FLIGHT',
@@ -6108,11 +6110,11 @@ export const en: MessagesShape = {
       availableTemplate: '{amount} USDC available',
     },
     submit: {
-      signInToFund: 'Sign in to fund',
+      signInToFund: 'Sign in to add money',
       switchingToArc: 'Switching to Arc...',
       transferInProgress: 'Transfer in progress...',
       switchToArc: 'Switch to Arc',
-      sendToTemplate: 'Send to {label}',
+      sendToTemplate: 'Add to {label}',
       agentFallback: 'agent',
       activeNote: 'One transfer at a time. Native transfers settle in nonce order.',
     },
@@ -7338,6 +7340,8 @@ export const en: MessagesShape = {
     chainCountTemplate: 'across {n} chains',
     refresh: 'Refresh',
     refreshing: 'Refreshing',
+    reveal: 'Show',
+    hide: 'Hide',
     tabs: {
       you: 'You',
       buyer: 'Buy agent',

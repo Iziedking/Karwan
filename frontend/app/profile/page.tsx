@@ -17,7 +17,6 @@ import { TelegramConnectButton } from '@/features/telegram/components/TelegramCo
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
-import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { AgentResearchCard } from '@/features/reputation/components/AgentResearchCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
@@ -68,7 +67,6 @@ function ProfilePageInner() {
     { id: 'identity', label: t.tabs.identity, hash: 'identity' },
     { id: 'wallets', label: t.tabs.wallets, hash: 'wallets' },
     { id: 'agents', label: t.tabs.agents, hash: 'agents' },
-    { id: 'stake', label: t.tabs.stake, hash: 'stake' },
     { id: 'preferences', label: t.tabs.preferences, hash: 'preferences' },
   ];
 
@@ -77,7 +75,7 @@ function ProfilePageInner() {
   // Drive tab active state from scroll position.
   useEffect(() => {
     if (!isConnected) return;
-    const ids = ['identity', 'wallets', 'agents', 'stake', 'preferences'];
+    const ids = ['identity', 'wallets', 'agents', 'preferences'];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -492,24 +490,6 @@ function ProfilePageInner() {
             <AgentResearchCard />
           </div>
         )}
-      </Band>
-
-      {/* STAKING anchor */}
-      <div id="stake" aria-hidden style={{ scrollMarginTop: 80 }} />
-
-      {/* STAKE: vault deposits + cool-down + tier badge. */}
-      <Band tone="light" compact>
-        <SectionTag>{t.stake.tag}</SectionTag>
-        <HeroHeadline size="md">
-          {t.stake.headlinePrefix}<Accent>{t.stake.headlineAccent}</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          {t.stake.body}
-        </p>
-        <div className="mt-10" data-guide="profile-stake">
-          <StakeCard tour={false} />
-        </div>
       </Band>
 
       {/* PREFERENCES anchor */}

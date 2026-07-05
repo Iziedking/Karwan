@@ -7,11 +7,12 @@ import {
   upsertProfile,
   findProfileByName,
   findProfileByXHandle,
+  findProfileByEmail,
   setProfileEmail,
   deleteProfile,
 } from '../db/profiles.js';
 import { getAgentWallets } from '../db/agentWallets.js';
-import { deleteUser, getUserByAddress } from '../db/users.js';
+import { deleteUser, getUserByAddress, getUserByEmail } from '../db/users.js';
 import { removeTelegramLink } from '../db/telegramLinks.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { readSession, clearSessionCookie, isSessionSelf } from '../auth/session.js';
@@ -268,6 +269,23 @@ profileRoutes.post('/email/request', async (c) => {
   if (!caller) return c.json({ error: 'sign in to add an email to this wallet' }, 401);
   const profile = await getProfile(caller);
   if (!profile) return c.json({ error: 'set up your profile first' }, 404);
+
+  // One email binds to one account. Block before sending a code if this address
+  // already belongs to a Circle login account or another profile's verified
+  // contact email, so a user can't claim an email that isn't theirs. Their own
+  // account (same caller) passes through so re-verifying is fine.
+  const lower = caller.toLowerCase();
+  const circleOwner = getUserByEmail(body.email);
+  const profileOwner = await findProfileByEmail(body.email);
+  const takenByOther =
+    (circleOwner && circleOwner.address.toLowerCase() !== lower) ||
+    (profileOwner && profileOwner.address.toLowerCase() !== lower);
+  if (takenByOther) {
+    return c.json(
+      { error: 'email in use', detail: 'This email is connected to another account.' },
+      409,
+    );
+  }
 
   // Deterministic-free 6-digit code. Math.random is fine for a short-lived OTP.
   const code = String(Math.floor(100000 + Math.random() * 900000));

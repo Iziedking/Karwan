@@ -543,13 +543,13 @@ export const sw: Messages = {
       tag: 'MILIKI',
       headlinePrefix: 'Pochi ',
       headlineAccent: 'zako',
-      body: 'Salio kwa mtazamo mmoja. Weka au toa USDC kupitia ukurasa wa Weka / Toa.',
+      body: 'Kila pochi kwenye akaunti yako, kwa mtazamo mmoja.',
     },
     agentTreasury: {
-      tag: 'HAZINA YA MAWAKALA',
+      tag: 'PESA YA WAKALA',
       headlineFund: 'Ongeza fedha',
-      headlineWithdraw: 'Toa',
-      body: 'Ongeza fedha kwenye pochi inayotia saini biashara zako. Toa wakati wowote.',
+      headlineWithdraw: 'Toa fedha',
+      body: 'Hamisha USDC kwa wakala anayeendesha biashara zako, na uirudishe kwako wakati wowote.',
     },
     stake: {
       tag: 'STEKI',
@@ -1589,8 +1589,8 @@ export const sw: Messages = {
   },
   agentWithdrawCard: {
     header: {
-      eyebrow: '[:TOA:]',
-      title: 'Toa kutoka kwa wakala',
+      eyebrow: '[:TOA FEDHA:]',
+      title: 'Toa fedha kwa wakala wako',
       subtitle: 'Wakala anasaini · malipo Arc',
     },
     agents: {
@@ -1616,15 +1616,15 @@ export const sw: Messages = {
     submit: {
       signIn: 'Ingia ili kutoa',
       sending: 'Inatumwa Arc...',
-      withdrawTemplate: 'Toa kutoka {agent}',
+      withdrawTemplate: 'Toa {agent}',
       agentFallback: 'wakala',
     },
     success: {
-      message: 'Utoaji umetumwa.',
+      message: 'Iko njiani.',
     },
     errors: {
       invalidAddress: 'Si anwani halali ya baiti 20.',
-      failedTag: 'UTOAJI UMESHINDWA',
+      failedTag: 'KUTOA KUMESHINDWA',
     },
   },
   bridgeCard: {
@@ -2348,8 +2348,8 @@ export const sw: Messages = {
     agentBuyerLabel: 'Wakala wa mnunuzi',
     agentSellerLabel: 'Wakala wa muuzaji',
     header: {
-      eyebrow: 'FADHILI WAKALA',
-      title: 'Jaza kwenye Arc',
+      eyebrow: 'ONGEZA FEDHA',
+      title: 'Jaza wakala wako',
       subtitleCircle: 'Bonyezo moja · seva inasaini',
       subtitleWeb3: 'Tx moja · inakaa kwa sekunde 3 hivi',
       inFlightTemplate: '{count} ZINASAFIRI',
@@ -2367,11 +2367,11 @@ export const sw: Messages = {
       availableTemplate: '{amount} USDC zinapatikana',
     },
     submit: {
-      signInToFund: 'Ingia ili ufadhili',
+      signInToFund: 'Ingia ili kuongeza fedha',
       switchingToArc: 'Inabadilisha kwenda Arc...',
       transferInProgress: 'Uhamisho unaendelea...',
       switchToArc: 'Badilisha kwenda Arc',
-      sendToTemplate: 'Tuma kwa {label}',
+      sendToTemplate: 'Ongeza kwa {label}',
       agentFallback: 'wakala',
       activeNote: 'Uhamisho mmoja kwa wakati. Uhamisho asilia hukamilika kwa mpangilio wa nonce.',
     },
@@ -3504,6 +3504,8 @@ export const sw: Messages = {
     chainCountTemplate: 'kwenye minyororo {n}',
     refresh: 'Onyesha upya',
     refreshing: 'Inaonyesha upya',
+    reveal: 'Onyesha',
+    hide: 'Ficha',
     tabs: {
       you: 'Wewe',
       buyer: 'Wakala wa ununuzi',

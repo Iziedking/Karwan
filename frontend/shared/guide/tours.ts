@@ -249,7 +249,7 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
     {
       target: 'profile-nav',
       title: 'Your profile, in parts',
-      body: 'These tabs jump to each part: identity, wallets, agents, stake, and preferences.',
+      body: 'These tabs jump to each part: identity, wallets, agents, and preferences.',
     },
     {
       target: 'profile-identity',
@@ -265,15 +265,10 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
     },
     {
       target: 'profile-agents',
-      title: 'Fund or withdraw your agent',
+      title: 'Move money to your agent',
       body: isCircle
-        ? 'Top up the wallet that signs your deals so it can fund escrow. Sweep it back to yourself any time. Circle handles the signing for you.'
-        : 'Top up the wallet that signs your deals so it can fund escrow, and sweep it back to your own wallet any time.',
-    },
-    {
-      target: 'profile-stake',
-      title: 'Build your reputation',
-      body: 'Stake USDC to lift your tier. A higher tier gets you better deals, and the same stake accrues yield through tokenized US Treasuries.',
+        ? 'Add USDC to the wallet that signs your deals so it can fund escrow, and move it back to yourself any time. Circle handles the signing for you.'
+        : 'Add USDC to the wallet that signs your deals so it can fund escrow, and move it back to your own wallet any time.',
     },
     {
       target: 'profile-preferences',

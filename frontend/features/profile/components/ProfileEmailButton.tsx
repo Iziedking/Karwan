@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { api } from '@/core/api';
+import { api, ApiError } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -130,7 +130,9 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
       setDevCode(r.devCode ?? null);
       setStep('code');
     } catch (e) {
-      setError((e as Error).message);
+      // The 409 "email in use" carries the friendly line on `detail`; prefer it
+      // over the terse top-level error code.
+      setError(e instanceof ApiError && e.detail ? String(e.detail) : (e as Error).message);
     } finally {
       setSending(false);
     }

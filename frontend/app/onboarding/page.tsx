@@ -535,7 +535,7 @@ function OnboardingInner() {
             <GetReadyStep
               address={address}
               onDone={() =>
-                router.push(accountType === 'business' ? '/profile?verify=business' : '/app')
+                router.push(accountType === 'business' ? '/profile?verify=business' : '/profile')
               }
               onBack={() => setStep('profile')}
             />
