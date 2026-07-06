@@ -42,13 +42,24 @@ function fromEvent(e: ChainEvent): Payment | null {
   };
 }
 
-function explorerUrl(p: Payment): string | null {
-  if (p.txHash) {
-    return p.rail === 'arc'
-      ? `${ARC_EXPLORER}/tx/${p.txHash}`
-      : `https://basescan.org/tx/${p.txHash}`;
+function isTxHash(h?: string): boolean {
+  return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
+}
+function isAddress(a?: string): boolean {
+  return !!a && /^0x[0-9a-fA-F]{40}$/.test(a);
+}
+
+/// The linkable on-chain proof for a payment, or null. Only a real 32-byte tx
+/// hash gets a /tx link: the internal Arc x402 rides Circle Gateway batching, so
+/// its "txHash" is usually a settlement reference (a Circle UUID), not a chain
+/// hash, and linking that 404s the explorer. Fall back to the paying wallet.
+function explorerProof(p: Payment): { href: string; label: string } | null {
+  const scan = p.rail === 'base' ? 'https://basescan.org' : ARC_EXPLORER;
+  if (isTxHash(p.txHash)) return { href: `${scan}/tx/${p.txHash}`, label: 'view payment ↗' };
+  if (isAddress(p.payer)) {
+    const href = p.rail === 'base' ? `${scan}/tokentxns?a=${p.payer}` : `${scan}/address/${p.payer}`;
+    return { href, label: 'view payer ↗' };
   }
-  if (p.rail === 'base' && p.payer) return `https://basescan.org/tokentxns?a=${p.payer}`;
   return null;
 }
 
@@ -140,7 +151,7 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
                 ? 'verified the buyer'
                 : 'verified the seller'
               : 'researched the market';
-          const href = explorerUrl(p);
+          const proof = explorerProof(p);
           return (
             <li
               key={p.id}
@@ -195,16 +206,18 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
                   )}
                   <div className="mt-2 flex items-center gap-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     <span>${p.amountUsd.toFixed(3)} on {p.rail === 'arc' ? 'Arc' : 'Base'}</span>
-                    {href && (
+                    {proof ? (
                       <a
-                        href={href}
+                        href={proof.href}
                         target="_blank"
                         rel="noreferrer"
                         className="underline underline-offset-2 hover:opacity-80"
                         style={{ color: railTone }}
                       >
-                        {p.txHash ? 'view payment ↗' : 'view payer ↗'}
+                        {proof.label}
                       </a>
+                    ) : (
+                      <span>gasless · settles in a Gateway batch</span>
                     )}
                   </div>
                 </div>

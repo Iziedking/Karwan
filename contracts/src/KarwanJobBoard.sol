@@ -70,6 +70,9 @@ contract KarwanJobBoard {
     ///         caller can clean up a stale job on-chain (v2b: replaces reliance
     ///         on the off-chain jobExpiryWatcher).
     event JobExpired(bytes32 indexed jobId);
+    /// @notice An accepted-but-unfunded job was returned to Posted by the buyer
+    ///         so the match can be retried (see cancelAccept).
+    event AcceptCancelled(bytes32 indexed jobId);
 
     error JobAlreadyExists();
     error JobNotOpen();
@@ -185,6 +188,30 @@ contract KarwanJobBoard {
         j.acceptedPrice = b.price;
         j.acceptedDeadline = b.deadline;
         emit BidAccepted(jobId, seller, b.price, b.deadline);
+    }
+
+    /// @notice Return an accepted-but-unfunded job to Posted so the match can be
+    ///         retried. acceptBid and the escrow's separate fund call are two
+    ///         transactions; if the fund fails (e.g. the buyer agent was
+    ///         momentarily short on USDC), the job would otherwise be wedged in
+    ///         Accepted with an empty escrow, and a re-accept reverts JobNotOpen,
+    ///         stranding the deal forever. This lets the buyer un-accept and try
+    ///         again. Buyer-only, Accepted-only, and only while the match window
+    ///         is still open (past it, expireJob is the terminal path). No funds
+    ///         are touched: a funded escrow is independent of this record and
+    ///         cannot be double-funded (fundEscrow reverts once a jobId is
+    ///         funded), so its settlement is unaffected.
+    function cancelAccept(bytes32 jobId) external {
+        Job storage j = jobs[jobId];
+        if (j.state != JobState.Accepted) revert JobNotOpen();
+        if (msg.sender != j.buyer) revert NotJobBuyer();
+        // forge-lint: disable-next-line(block-timestamp)
+        if (j.deadline <= block.timestamp) revert MatchWindowClosed();
+        j.state = JobState.Posted;
+        j.acceptedSeller = address(0);
+        j.acceptedPrice = 0;
+        j.acceptedDeadline = 0;
+        emit AcceptCancelled(jobId);
     }
 
     /// @notice Permissionless terminal cleanup: move a Posted job whose

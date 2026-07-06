@@ -80,7 +80,7 @@ export function MarketReadCard({ mr }: { mr: MarketReadData }) {
       )}
       <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         <span>agent paid ${mr.amountUsd} to research · Base</span>
-        {mr.txHash ? (
+        {/^0x[0-9a-fA-F]{64}$/.test(mr.txHash ?? '') ? (
           <a
             href={`https://basescan.org/tx/${mr.txHash}`}
             target="_blank"
@@ -90,7 +90,7 @@ export function MarketReadCard({ mr }: { mr: MarketReadData }) {
           >
             view payment ↗
           </a>
-        ) : mr.payer ? (
+        ) : /^0x[0-9a-fA-F]{40}$/.test(mr.payer ?? '') ? (
           <a
             href={`https://basescan.org/tokentxns?a=${mr.payer}`}
             target="_blank"
