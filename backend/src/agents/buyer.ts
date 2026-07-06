@@ -2347,7 +2347,11 @@ async function verifyCounterpartyAtMatch(
         subject,
         amountUsd: signal.amountUsd,
         txHash: signal.transaction,
+        // The agent SCA that holds the USDC and ran the on-chain deposit; its
+        // Arcscan page is the real proof. depositTxHash is the exact deposit tx
+        // when this pull triggered a top-up (the strongest per-payment proof).
         payer: signal.payer,
+        depositTxHash: signal.depositTxHash,
         tier: signal.tier,
         score: signal.score,
       },

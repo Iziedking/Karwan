@@ -330,7 +330,12 @@ export async function paidCreditPassport(
     lifetimeVolumeUsdc: d.lifetimeVolumeUsdc,
     completionRate,
     amountUsd: result.amountUsd,
-    payer: result.payer,
+    // On-chain proof points at the agent SCA, NOT the x402 EOA. The EOA only
+    // signs the offchain EIP-3009 auth and never transacts, so its Arcscan page
+    // is empty (0 tx, 0 USDC) and reads as fake. The agent SCA is what holds the
+    // USDC and ran the on-chain depositFor into the Gateway rail, so its Arcscan
+    // page shows the real balance and deposit transfer.
+    payer: payerAgentAddress,
     transaction: result.transaction,
     depositTxHash: funding.depositTxHash,
     paidAt: Date.now(),

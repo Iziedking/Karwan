@@ -17,6 +17,9 @@ interface Payment {
   agent: 'buyer' | 'seller';
   amountUsd: number;
   txHash?: string;
+  /// The Arc deposit tx that funded this pull's Gateway balance, when a top-up
+  /// ran for it — a real on-chain tx and the strongest per-payment proof.
+  depositTxHash?: string;
   payer?: string;
   ts: number;
   tier?: string;
@@ -34,6 +37,7 @@ function fromEvent(e: ChainEvent): Payment | null {
     agent: p.agent === 'seller' ? 'seller' : 'buyer',
     amountUsd: Number(p.amountUsd ?? 0),
     txHash: typeof p.txHash === 'string' ? p.txHash : undefined,
+    depositTxHash: typeof p.depositTxHash === 'string' ? p.depositTxHash : undefined,
     payer: typeof p.payer === 'string' ? p.payer : undefined,
     ts: e.ts,
     tier: typeof p.tier === 'string' ? p.tier : undefined,
@@ -49,12 +53,16 @@ function isAddress(a?: string): boolean {
   return !!a && /^0x[0-9a-fA-F]{40}$/.test(a);
 }
 
-/// The linkable on-chain proof for a payment, or null. Only a real 32-byte tx
-/// hash gets a /tx link: the internal Arc x402 rides Circle Gateway batching, so
-/// its "txHash" is usually a settlement reference (a Circle UUID), not a chain
-/// hash, and linking that 404s the explorer. Fall back to the paying wallet.
+/// The linkable on-chain proof for a payment, or null. The internal Arc x402
+/// settles through Circle Gateway batching, so the per-call `txHash` is a
+/// settlement reference (a Circle UUID), not a chain hash, and the x402 EOA never
+/// transacts — both dead ends on the explorer. Prefer the real Arc deposit tx
+/// (funds moving onto the Gateway rail), then the settlement hash if it happens to
+/// be one, then the paying AGENT wallet, which holds the USDC and the deposit
+/// history. Base research pays from a real EOA, so its links resolve directly.
 function explorerProof(p: Payment): { href: string; label: string } | null {
   const scan = p.rail === 'base' ? 'https://basescan.org' : ARC_EXPLORER;
+  if (isTxHash(p.depositTxHash)) return { href: `${scan}/tx/${p.depositTxHash}`, label: 'view deposit ↗' };
   if (isTxHash(p.txHash)) return { href: `${scan}/tx/${p.txHash}`, label: 'view payment ↗' };
   if (isAddress(p.payer)) {
     const href = p.rail === 'base' ? `${scan}/tokentxns?a=${p.payer}` : `${scan}/address/${p.payer}`;
@@ -74,7 +82,16 @@ function dedupeSort(list: Payment[]): Payment[] {
   return out.sort((a, b) => b.ts - a.ts);
 }
 
-export function AgentX402Panel({ jobId }: { jobId: string }) {
+export function AgentX402Panel({
+  jobId,
+  viewerRole = 'buyer',
+}: {
+  jobId: string;
+  /// The viewer's side. A buyer sees what its agent did about the seller; a
+  /// seller sees what its agent did about the buyer. Defaults to buyer (the job
+  /// page is the buyer's request auction).
+  viewerRole?: 'buyer' | 'seller';
+}) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -109,9 +126,23 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
     };
   }, [jobId]);
 
-  const total = useMemo(() => payments.reduce((s, p) => s + p.amountUsd, 0), [payments]);
+  // Viewer-aware: a buyer sees only what ITS agent did about the seller, a seller
+  // sees only what its agent did about the buyer — never the counterparty's own
+  // spend. Reputation pulls are per-agent, so keep just the viewer's. Research is
+  // one shared market read the viewer's side is billed for, so show a single row
+  // attributed to the viewer's agent rather than every seller's re-read.
+  const display = useMemo(() => {
+    const reputation = payments.filter((p) => p.kind === 'reputation' && p.agent === viewerRole);
+    const research = payments.filter((p) => p.kind === 'research');
+    const one = research[0];
+    return [...(one ? [{ ...one, agent: viewerRole }] : []), ...reputation].sort(
+      (a, b) => b.ts - a.ts,
+    );
+  }, [payments, viewerRole]);
 
-  if (payments.length === 0) return null;
+  const total = useMemo(() => display.reduce((s, p) => s + p.amountUsd, 0), [display]);
+
+  if (display.length === 0) return null;
 
   return (
     <div
@@ -129,7 +160,7 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
         </span>
         <span className="inline-flex items-center gap-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           <span aria-hidden className="inline-block size-1.5 rounded-full bg-[var(--lp-accent)] animate-pulse" />
-          agents paid ${total.toFixed(3)} · {payments.length} call{payments.length === 1 ? '' : 's'}
+          agents paid ${total.toFixed(3)} · {display.length} call{display.length === 1 ? '' : 's'}
         </span>
       </div>
 
@@ -139,7 +170,7 @@ export function AgentX402Panel({ jobId }: { jobId: string }) {
       </p>
 
       <ul className="mt-4 space-y-2">
-        {payments.map((p) => {
+        {display.map((p) => {
           const isOpen = openId === p.id;
           const railTone = p.rail === 'arc' ? '#4f8a3f' : '#3a6ea5';
           // Make the bilateral direction explicit: on a reputation pull the buyer
