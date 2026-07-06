@@ -2622,6 +2622,23 @@ async function proposeMatch(
       );
     }
 
+    // Never clobber a human-gate state. A re-propose (e.g. the fundability
+    // refresh after a buyer top-up) rebuilds the proposal from scratch, which
+    // would wipe a pending seller raise (awaitingParty='buyer') or an existing
+    // approval/decline. That reset flipped the approval gate back to the seller
+    // and left the buyer unable to approve the raised price. Carry those fields
+    // over from the stored proposal so the gate survives a refresh.
+    const prior = await dbGetMatchProposal(state.jobId);
+    if (prior?.awaitingParty === 'buyer' && prior.raisedPriceUsdc) {
+      proposal.awaitingParty = prior.awaitingParty;
+      proposal.raisedPriceUsdc = prior.raisedPriceUsdc;
+      proposal.originalPriceUsdc = prior.originalPriceUsdc;
+      proposal.raisedAt = prior.raisedAt;
+      proposal.raiseOverCap = prior.raiseOverCap;
+    }
+    if (prior?.approvedAt) proposal.approvedAt = prior.approvedAt;
+    if (prior?.declinedAt) proposal.declinedAt = prior.declinedAt;
+
     await dbUpsertMatchProposal(proposal);
 
     logger.info(

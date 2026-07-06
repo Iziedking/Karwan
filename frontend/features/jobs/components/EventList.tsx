@@ -217,6 +217,25 @@ const RAIL_COLOR: Record<Tone, string> = {
   error: '#b03d3a',
 };
 
+/// Only link an on-chain explorer when the value is a real 32-byte tx hash.
+/// Agent x402 payments settle through Circle Gateway batching, so their
+/// `txHash` is often a settlement reference (a Circle UUID), not a chain hash;
+/// linking that produced a broken explorer page. Base-rail payments (off-
+/// platform research) also live on BaseScan, not the Arc explorer.
+function isTxHash(h?: string): boolean {
+  return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
+}
+function txExplorerHref(
+  explorer: string,
+  payload: Record<string, unknown> | undefined,
+  txHash?: string,
+): string | null {
+  if (!isTxHash(txHash)) return null;
+  const rail = typeof payload?.rail === 'string' ? payload.rail : undefined;
+  const base = rail === 'base' ? 'https://basescan.org' : explorer;
+  return `${base}/tx/${txHash}`;
+}
+
 export function EventList({
   events,
   explorer,
@@ -260,6 +279,7 @@ export function EventList({
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
           const rail = RAIL_COLOR[tone];
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
+          const txHref = txExplorerHref(explorer, e.payload, txHash);
           const chips = chipsFor(e.payload, el);
           const href = hrefForEvent(e);
           // Full message stays in backend logs. The [:WHERE:] scope chip
@@ -309,9 +329,9 @@ export function EventList({
                 {chips.map((c) => (
                   <DetailChip key={c.key} label={c.label} value={c.value} variant="card" />
                 ))}
-                {txHash && (
+                {txHref && (
                   <a
-                    href={`${explorer}/tx/${txHash}`}
+                    href={txHref}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(ev) => ev.stopPropagation()}
@@ -320,7 +340,7 @@ export function EventList({
                     title={el.explorerTitle}
                   >
                     <span className="tabular-nums normal-case tracking-normal">
-                      {shortHash(txHash, 6, 4)}
+                      {shortHash(txHash!, 6, 4)}
                     </span>
                     <svg
                       width="9"
@@ -409,6 +429,7 @@ export function EventList({
             ? 'critical'
             : 'muted';
         const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
+        const txHref = txExplorerHref(explorer, e.payload, txHash);
         const chips = chipsFor(e.payload, el);
         return (
           <li key={`${e.ts}-${i}`} className="slide-in py-3 ps-6 relative">
@@ -432,15 +453,15 @@ export function EventList({
               {chips.map((c) => (
                 <DetailChip key={c.key} label={c.label} value={c.value} />
               ))}
-              {txHash && (
+              {txHref && (
                 <a
-                  href={`${explorer}/tx/${txHash}`}
+                  href={txHref}
                   target="_blank"
                   rel="noreferrer"
                   className="group inline-flex items-center gap-1 text-[11px] mono text-[var(--color-accent)] hover:underline decoration-dotted underline-offset-2"
                   title={el.explorerTitle}
                 >
-                  <span>{shortHash(txHash, 6, 4)}</span>
+                  <span>{shortHash(txHash!, 6, 4)}</span>
                   <svg
                     width="9"
                     height="9"
