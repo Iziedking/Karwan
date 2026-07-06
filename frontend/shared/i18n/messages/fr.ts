@@ -1132,7 +1132,9 @@ export const fr: Messages = {
       receiptView: 'voir ↗',
       receiptDeposit: 'financement ↗',
       receiptWallet: 'portefeuille ↗',
-      buyerContext: "L'agent de la contrepartie a payé pour lire la réputation on-chain de cet acheteur. Les acheteurs ne livrent aucun travail, il n'y a donc pas de dossier de livraison.",
+      buyerEyebrow: 'DOSSIER ACHETEUR',
+      buyerSubtitle: 'Vraies transactions financées par cet acheteur. Privé, absent du passeport public.',
+      buyerEmpty: 'Aucune transaction financée au dossier pour le moment.',
     },
   },
   listingDetail: {

@@ -268,6 +268,10 @@ export interface PaidPassportSignal {
   /// top-up was needed for it. Real on-chain proof the agent moved USDC onto the
   /// paid rail; absent when the pull drew an already-funded balance.
   depositTxHash?: string;
+  /// Gateway balance (USD) remaining after this payment. Shows the on-chain
+  /// deposit being drawn down call by call, since the cents themselves settle
+  /// in netted batches and never appear as individual transfers.
+  gatewayBalanceAfter?: number;
   paidAt: number;
 }
 
@@ -324,6 +328,10 @@ export async function paidCreditPassport(
   const completionRate =
     terminal > 0 ? Math.round(((d.successCount ?? 0) / terminal) * 100) : null;
 
+  // Balance after the payment: the visible drawdown of the on-chain deposit.
+  // Best-effort; the receipt just omits it on a read failure.
+  const gatewayBalanceAfter = await gatewayAvailableUsd(x402.address).catch(() => undefined);
+
   return {
     subject: d.address,
     tier: d.tier,
@@ -348,6 +356,7 @@ export async function paidCreditPassport(
     // settlement means the $0.01 itself never gets its own tx, so the deposit is
     // where the money verifiably came from.
     depositTxHash: funding.depositTxHash ?? record.x402LastDeposit?.txHash,
+    gatewayBalanceAfter,
     paidAt: Date.now(),
   };
 }

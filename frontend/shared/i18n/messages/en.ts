@@ -1093,7 +1093,9 @@ interface MessagesShape {
       receiptView: string;
       receiptDeposit: string;
       receiptWallet: string;
-      buyerContext: string;
+      buyerEyebrow: string;
+      buyerSubtitle: string;
+      buyerEmpty: string;
     };
   };
   listingDetail: {
@@ -4875,7 +4877,9 @@ export const en: MessagesShape = {
       receiptView: 'view ↗',
       receiptDeposit: 'funding ↗',
       receiptWallet: 'wallet ↗',
-      buyerContext: 'The counterparty agent paid to read this buyer’s on-chain standing. Buyers deliver no work, so there is no delivery record.',
+      buyerEyebrow: 'BUYER RECORD',
+      buyerSubtitle: 'Real deals this buyer funded. Private to you, not on the public passport.',
+      buyerEmpty: 'No funded deals on record yet.',
     },
   },
   listingDetail: {

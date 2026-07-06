@@ -2352,6 +2352,7 @@ async function verifyCounterpartyAtMatch(
         // when this pull triggered a top-up (the strongest per-payment proof).
         payer: signal.payer,
         depositTxHash: signal.depositTxHash,
+        gatewayBalanceAfter: signal.gatewayBalanceAfter,
         tier: signal.tier,
         score: signal.score,
       },

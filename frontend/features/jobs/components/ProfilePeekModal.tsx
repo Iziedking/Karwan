@@ -363,23 +363,17 @@ function WorkRecordSection({
   const proof = payment
     ? passportProof(payment, { view: wr.receiptView, deposit: wr.receiptDeposit, wallet: wr.receiptWallet })
     : null;
-  // Buyers don't deliver work, so there's no delivered-work record for a buyer
-  // peek. But the counterparty agent still PAID to pull their passport, so the
-  // paid-read receipt must surface on this side too (the seller paying for the
-  // buyer), not just buyer-viewing-seller.
-  const showWorkRecord = role === 'seller';
-  if (!showWorkRecord && !payment && state.kind !== 'loading') return null;
-
+  // Both sides get a record: the buyer vets the seller's delivered work, the
+  // seller vets the buyer's funded deals (does this buyer transact and settle
+  // clean). The backend already returns the role-appropriate rows.
   return (
     <div className="px-6 pb-6 pt-4 border-t border-[var(--lp-border-light)]">
-      {showWorkRecord && (
-        <>
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{wr.eyebrow}:]
-          </span>
-          <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{wr.subtitle}</p>
-        </>
-      )}
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:{role === 'seller' ? wr.eyebrow : wr.buyerEyebrow}:]
+      </span>
+      <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+        {role === 'seller' ? wr.subtitle : wr.buyerSubtitle}
+      </p>
 
       {payment && (
         <>
@@ -415,26 +409,18 @@ function WorkRecordSection({
               {wr.receiptRail}
             </p>
           )}
-          {/* Buyer peek: the counterparty paid to read this buyer's standing, but
-              buyers deliver no work, so there is no record below. Explain it so
-              "paid, nothing here" reads as intended, not broken. */}
-          {role === 'buyer' && (
-            <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-              {wr.buyerContext}
-            </p>
-          )}
         </>
       )}
 
-      {showWorkRecord && state.kind === 'loading' && (
+      {state.kind === 'loading' && (
         <p className="mt-3 mono text-[11px] text-[var(--lp-text-muted)]">{wr.loading}</p>
       )}
 
-      {showWorkRecord && state.kind === 'done' && state.data.locked && (
+      {state.kind === 'done' && state.data.locked && (
         <p className="mt-3 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{wr.locked}</p>
       )}
 
-      {showWorkRecord && state.kind === 'done' && !state.data.locked && state.data.record && (
+      {state.kind === 'done' && !state.data.locked && state.data.record && (
         <>
           {(state.data.record.summary.completionRate != null ||
             state.data.record.summary.onTimeRate != null) && (
@@ -468,7 +454,9 @@ function WorkRecordSection({
             </div>
           )}
           {state.data.record.rows.length === 0 ? (
-            <p className="mt-3 text-[12px] text-[var(--lp-text-sub)]">{wr.empty}</p>
+            <p className="mt-3 text-[12px] text-[var(--lp-text-sub)]">
+              {role === 'seller' ? wr.empty : wr.buyerEmpty}
+            </p>
           ) : (
             <ul className="mt-3 space-y-1.5 max-h-[40vh] overflow-y-auto">
               {state.data.record.rows.slice(0, 30).map((row, i) => (

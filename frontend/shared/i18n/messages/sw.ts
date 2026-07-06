@@ -1132,7 +1132,9 @@ export const sw: Messages = {
       receiptView: 'tazama ↗',
       receiptDeposit: 'ufadhili ↗',
       receiptWallet: 'pochi ↗',
-      buyerContext: 'Wakala wa upande mwingine alilipa kusoma hadhi ya mnunuzi huyu kwenye chain. Wanunuzi hawawasilishi kazi, hivyo hakuna rekodi ya uwasilishaji.',
+      buyerEyebrow: 'REKODI YA MNUNUZI',
+      buyerSubtitle: 'Mikataba halisi aliyofadhili mnunuzi huyu. Ni ya faragha kwako, haiko kwenye pasipoti ya umma.',
+      buyerEmpty: 'Hakuna mikataba iliyofadhiliwa kwenye rekodi bado.',
     },
   },
   listingDetail: {

@@ -1132,7 +1132,9 @@ export const ar: Messages = {
       receiptView: 'عرض ↗',
       receiptDeposit: 'التمويل ↗',
       receiptWallet: 'المحفظة ↗',
-      buyerContext: 'دفع وكيل الطرف المقابل لقراءة سجل هذا المشتري على السلسلة. المشترون لا ينفّذون عملًا، لذا لا يوجد سجل تسليم.',
+      buyerEyebrow: 'سجل المشتري',
+      buyerSubtitle: 'صفقات حقيقية موّلها هذا المشتري. خاصة بك، وليست على جواز السمعة العام.',
+      buyerEmpty: 'لا توجد صفقات ممولة في السجل بعد.',
     },
   },
   listingDetail: {

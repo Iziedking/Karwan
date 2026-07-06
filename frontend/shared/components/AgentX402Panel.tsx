@@ -21,6 +21,9 @@ interface Payment {
   /// ran for it — a real on-chain tx and the strongest per-payment proof.
   depositTxHash?: string;
   payer?: string;
+  /// Gateway balance remaining after this call: the on-chain deposit drawing
+  /// down cent by cent.
+  gatewayBalanceAfter?: number;
   ts: number;
   tier?: string;
   score?: number;
@@ -39,6 +42,8 @@ function fromEvent(e: ChainEvent): Payment | null {
     txHash: typeof p.txHash === 'string' ? p.txHash : undefined,
     depositTxHash: typeof p.depositTxHash === 'string' ? p.depositTxHash : undefined,
     payer: typeof p.payer === 'string' ? p.payer : undefined,
+    gatewayBalanceAfter:
+      typeof p.gatewayBalanceAfter === 'number' ? p.gatewayBalanceAfter : undefined,
     ts: e.ts,
     tier: typeof p.tier === 'string' ? p.tier : undefined,
     score: typeof p.score === 'number' ? p.score : undefined,
@@ -240,8 +245,11 @@ export function AgentX402Panel({
                       agent used this read to price the deal.
                     </p>
                   )}
-                  <div className="mt-2 flex items-center gap-3 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  <div className="mt-2 flex items-center gap-3 flex-wrap mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                     <span>${p.amountUsd.toFixed(3)} on {p.rail === 'arc' ? 'Arc' : 'Base'}</span>
+                    {p.rail === 'arc' && typeof p.gatewayBalanceAfter === 'number' && (
+                      <span>deposit left ${p.gatewayBalanceAfter.toFixed(2)}</span>
+                    )}
                     {proof ? (
                       <a
                         href={proof.href}
@@ -256,6 +264,12 @@ export function AgentX402Panel({
                       <span>gasless · settles in a Gateway batch</span>
                     )}
                   </div>
+                  {p.rail === 'arc' && (
+                    <p className="mt-1.5 text-[10px] leading-snug text-[var(--lp-text-muted)] normal-case tracking-normal">
+                      Paid from the agent&apos;s on-chain Gateway deposit. Cents settle in netted
+                      batches, so they never appear as individual transfers.
+                    </p>
+                  )}
                 </div>
               )}
             </li>

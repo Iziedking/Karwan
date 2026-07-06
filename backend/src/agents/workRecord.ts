@@ -144,17 +144,25 @@ function terminalAt(d: DirectDeal): number {
   return d.settledAt ?? d.disputedAt ?? d.cancelledAt ?? d.createdAt;
 }
 
-export async function buildWorkRecord(subject: string, now = Date.now()): Promise<WorkRecord> {
+/// Role picks which side of the subject's deals the rows come from: 'seller'
+/// (default) is the delivered-work proof a buyer vets; 'buyer' is the funded-
+/// deals record a seller vets (does this buyer transact, settle clean, dispute
+/// a lot). Same anonymized shape either way.
+export async function buildWorkRecord(
+  subject: string,
+  now = Date.now(),
+  role: 'seller' | 'buyer' = 'seller',
+): Promise<WorkRecord> {
   const s = subject.toLowerCase();
   const deals = await listDealsForAddress(s);
 
-  const sellerDeals = deals
-    .filter((d) => d.seller.toLowerCase() === s)
+  const sideDeals = deals
+    .filter((d) => (role === 'seller' ? d.seller : d.buyer).toLowerCase() === s)
     .map((d) => ({ d, outcome: outcomeOf(d) }))
     .filter((x): x is { d: DirectDeal; outcome: WorkOutcome } => x.outcome !== null)
     .sort((a, b) => terminalAt(b.d) - terminalAt(a.d));
 
-  const rows: WorkRow[] = sellerDeals.map(({ d, outcome }) => ({
+  const rows: WorkRow[] = sideDeals.map(({ d, outcome }) => ({
     category: categoryLabel(d),
     amountBand: band(d.dealAmountUsdc),
     outcome,
@@ -162,18 +170,20 @@ export async function buildWorkRecord(subject: string, now = Date.now()): Promis
     ageLabel: ageLabel(terminalAt(d), now),
   }));
 
-  const clean = sellerDeals.filter((x) => x.outcome === 'clean').length;
-  const disputed = sellerDeals.filter((x) => x.outcome === 'disputed').length;
-  const failed = sellerDeals.filter((x) => x.outcome === 'failed').length;
-  const total = sellerDeals.length;
+  const clean = sideDeals.filter((x) => x.outcome === 'clean').length;
+  const disputed = sideDeals.filter((x) => x.outcome === 'disputed').length;
+  const failed = sideDeals.filter((x) => x.outcome === 'failed').length;
+  const total = sideDeals.length;
   const avgAmount =
     total > 0
-      ? sellerDeals.reduce((sum, x) => sum + (Number(x.d.dealAmountUsdc) || 0), 0) / total
+      ? sideDeals.reduce((sum, x) => sum + (Number(x.d.dealAmountUsdc) || 0), 0) / total
       : 0;
 
   // On-time: of the delivered deals that carried a deadline, how many were
   // delivered on or before it. deliveredAt is ms, deadlineUnix is seconds.
-  const withDeadline = sellerDeals.filter(({ d }) => d.deliveredAt && d.deadlineUnix);
+  // Seller-side only: a buyer does not deliver, so it stays null there.
+  const withDeadline =
+    role === 'seller' ? sideDeals.filter(({ d }) => d.deliveredAt && d.deadlineUnix) : [];
   const onTime = withDeadline.filter(
     ({ d }) => (d.deliveredAt as number) <= (d.deadlineUnix as number) * 1000,
   ).length;

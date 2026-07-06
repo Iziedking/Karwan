@@ -790,11 +790,15 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   const callerIsBuyer = caller === deal.buyer.toLowerCase();
   const subject = callerIsBuyer ? deal.seller : deal.buyer;
 
+  // The subject's side on THIS deal decides which record renders: the buyer
+  // vets the seller's delivered work, the seller vets the buyer's funded deals.
+  const subjectRole: 'seller' | 'buyer' = callerIsBuyer ? 'seller' : 'buyer';
+
   // Newer deals carry the durable pull; read the one for this subject.
   if (deal.passportPulls) {
     const pull = callerIsBuyer ? deal.passportPulls.seller : deal.passportPulls.buyer;
     if (!pull) return c.json({ locked: true, subject });
-    const record = await buildWorkRecord(subject);
+    const record = await buildWorkRecord(subject, Date.now(), subjectRole);
     const payment = {
       amountUsd: pull.amountUsd,
       txHash: pull.txHash,
@@ -809,7 +813,7 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   if (!deal.marketRead) {
     return c.json({ locked: true, subject });
   }
-  const record = await buildWorkRecord(subject);
+  const record = await buildWorkRecord(subject, Date.now(), subjectRole);
   const payment = await paidPullReceipt(jobId);
   return c.json({ locked: false, subject, record, payment });
 });
