@@ -62,7 +62,12 @@ import {
   hasPendingProposal as dbHasPendingProposal,
   type MatchProposal as DbMatchProposal,
 } from '../db/matchProposals.js';
-import { getSellerBidFlags, submitListingBid, getSellerBuyerPassport } from './seller.js';
+import {
+  getSellerBidFlags,
+  submitListingBid,
+  getSellerBuyerPassport,
+  setSellerBuyerPassport,
+} from './seller.js';
 import { withLlmRetry } from './llm-utils.js';
 import {
   actorSignalsFor,
@@ -653,77 +658,13 @@ async function handleBidSubmitted(log: Log) {
     /* leave both undefined */
   }
 
-  // Paid x402 pull: the agent buys the seller's credit passport from
-  // Karwan's own paid endpoint before scoring ($0.01, agent Gateway
-  // deposit -> treasury, settled through Circle Gateway batching).
-  // Gated on the buyer owner having agent research active, mirroring the seller
-  // pull: the 1.5 USDC subscription is what unlocks the agent buying counterparty
-  // evidence beyond the public score. A non-activated buyer scores on local
-  // signals only and skips the pull entirely, so nothing waits on it.
-  // Best-effort with a hard deadline: a cold start (EOA provisioning +
-  // first Gateway deposit) can outrun the window, in which case the
-  // deposit still lands and the next bid gets the signal. The bid is
-  // never blocked or dropped over a failed pull.
-  let paidSignal: PaidPassportSignal | undefined;
-  // The internal counterparty pull is paid from the buyer agent's own Gateway
-  // deposit, so it fires whenever paid signals are enabled, NOT gated on the
-  // research subscription (that funds only the external market research). The
-  // per-deal cap still bounds spend against a bid flood.
-  const paidSignalsOn = !!(config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR);
-  // Per-deal spend cap: a job flooded with bids must not trigger unbounded paid
-  // pulls. Skip the pull (score on free signals) once this deal's paid spend
-  // would exceed the cap. The pull is best-effort anyway, so skipping is safe.
-  const paidPullDenied =
-    paidSignalsOn &&
-    (await shouldDenyPaidCall({
-      invoiceId: state.jobId,
-      signal: 'credit-passport',
-      costEstimateUsdc: '0.01',
-      callerRole: 'buyer-agent',
-    }));
-  if (paidPullDenied) {
-    logger.info({ jobId: state.jobId, seller: args.seller }, 'paid passport pull skipped: per-deal cap reached');
-  }
-  if (paidSignalsOn && !paidPullDenied) {
-    try {
-      paidSignal = await Promise.race([
-        paidCreditPassport(buyer.address, args.seller),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('paid passport pull timed out')), 45_000),
-        ),
-      ]);
-      recordSpend(state.jobId, paidSignal.amountUsd);
-      logger.info(
-        {
-          jobId: state.jobId,
-          seller: args.seller,
-          amountUsd: paidSignal.amountUsd,
-          transaction: paidSignal.transaction,
-        },
-        'x402: paid credit passport pulled at bid time',
-      );
-      bus.emitEvent({
-        type: 'agent.paid',
-        jobId: state.jobId,
-        actor: 'buyer',
-        payload: {
-          rail: 'arc',
-          kind: 'reputation',
-          agent: 'buyer',
-          seller: args.seller,
-          amountUsd: paidSignal.amountUsd,
-          txHash: paidSignal.transaction,
-          tier: paidSignal.tier,
-          score: paidSignal.score,
-        },
-      });
-    } catch (err) {
-      logger.warn(
-        { jobId: state.jobId, seller: args.seller, err: (err as Error).message },
-        'x402: paid passport pull failed (non-fatal, scoring on local signals)',
-      );
-    }
-  }
+  // Counterparty verification is paid at MATCH time (proposeMatch ->
+  // verifyCounterpartyAtMatch), once the agent has settled on a seller — not per
+  // bid. Bids rank on free reputation signals (tier, score, completion,
+  // velocity), so the bidding phase never surfaces internal Arc receipts; the
+  // paid credit-passport check and its stamp land in the matched window. The one
+  // place an Arc pull may surface during bidding is a genuine multi-profile
+  // comparison (a tie-break across sellers), which is a separate, deliberate path.
 
   const priceUsdc = formatUnits(args.price, USDC_DECIMALS);
   const briefBudget = Number(state.context.budgetUsdc);
@@ -764,7 +705,6 @@ async function handleBidSubmitted(log: Log) {
     sellerFreeStakeUsdc,
     sellerUserAddress,
     sellerDisplayName,
-    paidSignal,
     priorCleanDealsWithBuyer,
   };
 
@@ -779,21 +719,6 @@ async function handleBidSubmitted(log: Log) {
     priceAnomaly: anomaly,
     sellerReputationBps,
     priorCleanDeals: priorCleanDealsWithBuyer,
-    ...(paidSignal && (paidSignal.successCount != null || paidSignal.disputedCount != null)
-      ? {
-          paidEvidence: {
-            settledDeals:
-              (paidSignal.successCount ?? 0) +
-              (paidSignal.disputedCount ?? 0) +
-              (paidSignal.failedCount ?? 0),
-            clean: paidSignal.successCount ?? 0,
-            disputed: paidSignal.disputedCount ?? 0,
-            failed: paidSignal.failedCount ?? 0,
-            volumeUsdc: paidSignal.lifetimeVolumeUsdc,
-            completionRate: paidSignal.completionRate,
-          },
-        }
-      : {}),
     // Route the paid market read into the ranking. Present only once research
     // has landed (it fires non-blocking at collection open); later bids in the
     // window score with it, matching the existing timing. review #4.
@@ -845,8 +770,8 @@ async function handleBidSubmitted(log: Log) {
       actor: 'buyer',
       // tier + topicalMatch are surfaced so the timeline shows the agent scored
       // this bid with the seller's reputation AND skill fit in hand, not just price.
-      // paidSignal carries the x402 settlement reference when the agent paid for
-      // the seller's passport, so the audit trail proves the pull.
+      // The paid counterparty check is deferred to match time, so a scored bid no
+      // longer carries an x402 receipt; the bidding phase stays free of them.
       payload: {
         seller: args.seller,
         priceUsdc,
@@ -857,16 +782,6 @@ async function handleBidSubmitted(log: Log) {
         // favored a seller it has a clean track record with (only when there is
         // one, to keep the audit trail quiet for first-time counterparties).
         ...(priorCleanDealsWithBuyer > 0 ? { priorCleanDeals: priorCleanDealsWithBuyer } : {}),
-        ...(paidSignal
-          ? {
-              paidSignal: {
-                amountUsd: paidSignal.amountUsd,
-                transaction: paidSignal.transaction,
-                tier: paidSignal.tier,
-                score: paidSignal.score,
-              },
-            }
-          : {}),
         ...score,
       },
     });
@@ -2389,6 +2304,68 @@ export function listAllMatchProposals(): Promise<MatchProposal[]> {
 /// the MatchBanner shows the seller a warning rather than the agent silently
 /// auto-accepting. The human stays the decision-maker per the karwan-agent-
 /// risk-principle memory note.
+/// Counterparty verification, paid at match time. Once the buyer agent has
+/// settled on a seller it pays $0.01 over the internal Arc x402 rail to read
+/// that seller's credit passport, and the matched seller pays to read the
+/// buyer's, so both receipts stamp in the matched window instead of cluttering
+/// the bidding phase. The counterparty DATA stays agent-only; only the payment
+/// surfaces. Best-effort with a hard deadline and the per-deal cap: a failure
+/// just means no stamp, never a blocked match.
+async function verifyCounterpartyAtMatch(
+  payerAgent: `0x${string}`,
+  subject: `0x${string}`,
+  actor: 'buyer' | 'seller',
+  jobId: string,
+): Promise<PaidPassportSignal | undefined> {
+  if (!(config.X402_PAID_SIGNALS_ENABLED && config.KARWAN_TREASURY_ADDR)) return undefined;
+  const denied = await shouldDenyPaidCall({
+    invoiceId: jobId,
+    signal: 'credit-passport',
+    costEstimateUsdc: '0.01',
+    callerRole: actor === 'buyer' ? 'buyer-agent' : 'seller-agent',
+  });
+  if (denied) {
+    logger.info({ jobId, actor, subject }, 'match verification skipped: per-deal cap reached');
+    return undefined;
+  }
+  try {
+    const signal = await Promise.race([
+      paidCreditPassport(payerAgent, subject),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('match verification pull timed out')), 45_000),
+      ),
+    ]);
+    recordSpend(jobId, signal.amountUsd);
+    bus.emitEvent({
+      type: 'agent.paid',
+      jobId,
+      actor,
+      payload: {
+        rail: 'arc',
+        kind: 'reputation',
+        agent: actor,
+        subject,
+        amountUsd: signal.amountUsd,
+        txHash: signal.transaction,
+        payer: signal.payer,
+        tier: signal.tier,
+        score: signal.score,
+      },
+    });
+    logger.info(
+      { jobId, actor, subject, amountUsd: signal.amountUsd },
+      'x402: counterparty verified at match',
+    );
+    return signal;
+  } catch (err) {
+    logger.warn(
+      { jobId, actor, subject, err: (err as Error).message },
+      'x402: match verification pull failed (non-fatal)',
+    );
+    return undefined;
+  }
+}
+
 async function proposeMatch(
   state: JobState,
   seller: `0x${string}`,
@@ -2529,12 +2506,16 @@ async function proposeMatch(
       state.context.budgetUsdc,
       sellerFlags?.humanReview === true,
     );
-    // Carry the paid x402 signals (if the bid-time calls succeeded) onto
-    // the proposal so the approval banner can prove them.
-    const winningBid = [...state.bids.entries()].find(
-      ([k]) => k.toLowerCase() === seller.toLowerCase(),
-    )?.[1];
-    const paidBid = winningBid?.paidSignal;
+    // Counterparty verification, paid HERE at match, not per bid: the buyer
+    // agent pays to read the matched seller's credit passport, and the matched
+    // seller pays to read the buyer's, so both stamps land in the matched
+    // window. Run together; either failing is non-fatal (no stamp, match still
+    // forms). The seller's pull is cached for the deal's passportPulls at accept.
+    const [paidBid, sellerVerify] = await Promise.all([
+      verifyCounterpartyAtMatch(state.buyer.address as `0x${string}`, seller, 'buyer', state.jobId),
+      verifyCounterpartyAtMatch(seller, state.buyer.address as `0x${string}`, 'seller', state.jobId),
+    ]);
+    if (sellerVerify) setSellerBuyerPassport(state.jobId, sellerVerify);
     // Compact verified-business snapshot for the match badge. Only the seller's
     // owner profile is read; the full company detail stays on the profile so
     // the deal page renders a chip, not a dossier.

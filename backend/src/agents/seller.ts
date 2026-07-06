@@ -34,8 +34,6 @@ import {
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { categoryPriceSnapshot } from '../db/priceObservations.js';
-import { shouldDenyPaidCall } from '../security/sa-stub.js';
-import { recordSpend } from '../security/spendGuard.js';
 import { saveActiveBids, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
 import { marketHeat, setResearchHeat } from './marketDemand.js';
 import { maybeRaiseNearMiss } from './nearMiss.js';
@@ -43,7 +41,7 @@ import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
-import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
+import { type PaidPassportSignal } from '../x402/buyerClient.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
 import { cleanDealPartnersFor } from './workRecord.js';
@@ -545,62 +543,11 @@ export function getSellerBuyerPassport(jobId: string): PaidPassportSignal | unde
   return cachedBuyerPassport(jobId);
 }
 
-/// Symmetric counterparty pull: the seller agent pays Karwan's credit-passport
-/// endpoint on the BUYER before negotiating, the mirror of the buyer pulling the
-/// seller. Paid from the seller agent's OWN Gateway deposit (not the research
-/// subscription, which funds only the external market read), so it runs whenever
-/// paid signals are enabled. Fired non-blocking so it never sits on the bid path;
-/// the result lands in the cache for the counter round. Best-effort.
-async function maybeSellerCounterpartyPull(
-  seller: SellerProfile,
-  buyerAddress: string,
-  jobId: string,
-): Promise<void> {
-  if (!config.X402_PAID_SIGNALS_ENABLED || !config.KARWAN_TREASURY_ADDR) return;
-  if (cachedBuyerPassport(jobId)) return;
-  // Per-deal spend cap: bound paid pulls per job (a bid flood must not trigger
-  // unbounded spend). Skip and negotiate on free signals once the cap is hit.
-  if (
-    await shouldDenyPaidCall({
-      invoiceId: jobId,
-      signal: 'credit-passport',
-      costEstimateUsdc: '0.01',
-      callerRole: 'seller-agent',
-    })
-  ) {
-    logger.info({ jobId, seller: seller.address }, 'seller counterparty pull skipped: per-deal cap reached');
-    return;
-  }
-  try {
-    const signal = await paidCreditPassport(seller.address, buyerAddress);
-    sellerBuyerPassport.set(jobId, { signal, at: Date.now() });
-    recordSpend(jobId, signal.amountUsd);
-    bus.emitEvent({
-      type: 'agent.paid',
-      jobId,
-      actor: 'seller',
-      payload: {
-        rail: 'arc',
-        kind: 'reputation',
-        agent: 'seller',
-        seller: seller.address,
-        subject: buyerAddress,
-        amountUsd: signal.amountUsd,
-        txHash: signal.transaction,
-        tier: signal.tier,
-        score: signal.score,
-      },
-    });
-    logger.info(
-      { jobId, seller: seller.address, buyer: buyerAddress, tier: signal.tier },
-      'seller agent pulled the buyer credit passport',
-    );
-  } catch (err) {
-    logger.warn(
-      { jobId, seller: seller.address, err: (err as Error).message },
-      'seller counterparty pull failed (non-fatal)',
-    );
-  }
+/// Store a seller-side buyer-passport pull. Written by the match-time
+/// verification (which runs in the buyer process) so the deal's passportPulls
+/// can read the seller's paid check on the buyer at accept.
+export function setSellerBuyerPassport(jobId: string, signal: PaidPassportSignal): void {
+  sellerBuyerPassport.set(jobId, { signal, at: Date.now() });
 }
 
 async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
@@ -862,10 +809,10 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   } else {
     void maybeSellerResearch(seller, dealKeywords, job.jobId);
   }
-  // Symmetric counterparty pull (always non-blocking): the seller vets the buyer
-  // it is about to negotiate with. It feeds the counter round, not the opening
-  // price, so awaiting it would add latency for no opening-bid benefit.
-  void maybeSellerCounterpartyPull(seller, job.buyer, job.jobId);
+  // Counterparty verification is paid at MATCH, not during the auction: the
+  // seller reads the buyer's credit passport when the two are matched (done in
+  // the buyer process via verifyCounterpartyAtMatch), so the bidding phase stays
+  // free of internal Arc receipts. Counters here price on free reputation.
   const heat = await marketHeat(dealKeywords, seller.address);
   const opening = sellerOpeningBid(
     seller,
@@ -1168,7 +1115,6 @@ async function runCounterEvaluation(
   // by the counter round the read is almost always warm from the opening, so
   // the counter still prices research-tuned without stalling on a fresh call.
   void maybeSellerResearch(seller, dealKeywords, active.jobContext.jobId);
-  void maybeSellerCounterpartyPull(seller, active.jobContext.buyer, active.jobContext.jobId);
   const buyerPassport = cachedBuyerPassport(active.jobContext.jobId);
   const heat = await marketHeat(dealKeywords, seller.address);
   // Market-aware counter floor: the seller won't concede below what the deal is
