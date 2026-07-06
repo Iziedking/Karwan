@@ -41,10 +41,14 @@ function scanLink(
   rail: string,
   txHash: unknown,
   payer: unknown,
+  depositTxHash?: unknown,
 ): { href: string; label: string } | null {
   const base = rail === 'base' ? BASE_SCAN : ARC_SCAN;
+  if (isHash(depositTxHash)) return { href: `${base}/tx/${depositTxHash}`, label: 'deposit ↗' };
   if (isHash(txHash)) return { href: `${base}/tx/${txHash}`, label: 'tx ↗' };
-  if (isAddr(payer)) return { href: `${base}/address/${payer}`, label: 'payer ↗' };
+  // Token-transfers tab: agent SCAs act via userOps, so the default address tab
+  // shows "Transactions 0" even on a funded wallet.
+  if (isAddr(payer)) return { href: `${base}/address/${payer}?tab=token_transfers`, label: 'payer ↗' };
   return null;
 }
 
@@ -121,7 +125,7 @@ export default function AdminPayments() {
             (typeof p.seller === 'string' && p.seller) ||
             (typeof p.user === 'string' && p.user) ||
             '';
-          const link = scanLink(rail, p.txHash, p.payer);
+          const link = scanLink(rail, p.txHash, p.payer, p.depositTxHash);
           const railColor = rail === 'base' ? '#3a6ea5' : '#8bbf4d';
           return (
             <div

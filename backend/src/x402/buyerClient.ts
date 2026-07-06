@@ -5,6 +5,7 @@ import { executeContractCall } from '../chain/txs.js';
 import { circleWalletsClient, ARC_TESTNET_BLOCKCHAIN } from '../circle/wallets.js';
 import {
   updateX402Wallet,
+  updateX402LastDeposit,
   findAgentWalletByAgentAddress,
   type AgentWallets,
 } from '../db/agentWallets.js';
@@ -143,6 +144,11 @@ export async function ensureGatewayFunding(
     },
     'x402.gateway.depositFor',
   );
+  // Persist the deposit tx on the user's record: batched settlement means later
+  // paid calls have no on-chain tx of their own, so this deposit is the receipt
+  // they all point at. Best-effort; the funding result still carries it fresh.
+  void updateX402LastDeposit(record.userAddress, deposit.txHash).catch(() => {});
+
   // Gateway credits the deposit only after Arc finality. Poll briefly so the
   // FIRST paid call on a fresh agent still lands instead of deferring to a later
   // bid that may never come. Bounded by GATEWAY_CREDIT_POLLS so a stuck deposit
@@ -337,7 +343,11 @@ export async function paidCreditPassport(
     // page shows the real balance and deposit transfer.
     payer: payerAgentAddress,
     transaction: result.transaction,
-    depositTxHash: funding.depositTxHash,
+    // Every payment carries a real on-chain receipt: the deposit this pull just
+    // made, or the persisted last deposit its balance draws down from. Batched
+    // settlement means the $0.01 itself never gets its own tx, so the deposit is
+    // where the money verifiably came from.
+    depositTxHash: funding.depositTxHash ?? record.x402LastDeposit?.txHash,
     paidAt: Date.now(),
   };
 }

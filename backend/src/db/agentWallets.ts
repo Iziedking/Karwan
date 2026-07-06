@@ -35,6 +35,12 @@ export interface AgentWallets {
   /// EOA owns the Gateway deposit (funded via depositFor from the buyer
   /// agent SCA) and signs EIP-3009. Lazy-provisioned on first paid call.
   x402Wallet?: { walletId: string; address: string };
+  /// The most recent on-chain depositFor tx that moved this user's agent USDC
+  /// onto the Gateway rail. Gateway nanopayments settle in netted batches, so a
+  /// single paid call has no on-chain tx of its own; this deposit is the real,
+  /// linkable receipt every subsequent payment draws down from. Refreshed each
+  /// time ensureGatewayFunding tops the deposit up.
+  x402LastDeposit?: { txHash: string; at: number };
 }
 
 export async function getAgentWallets(userAddress: string): Promise<AgentWallets | null> {
@@ -219,6 +225,28 @@ export async function updateX402Wallet(
     ...existing,
     x402Wallet: { walletId: x402Wallet.walletId, address: x402Wallet.address.toLowerCase() },
   };
+  if (pgEnabled) {
+    await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
+    invalidateAgentWalletCaches();
+    return next;
+  }
+  const store = loadFile();
+  store[key] = next;
+  saveFile(store);
+  invalidateAgentWalletCaches();
+  return next;
+}
+
+/// Record the latest Gateway deposit tx on the user's x402 rail (see
+/// x402LastDeposit). Same preserve-everything pattern as updateX402Wallet.
+export async function updateX402LastDeposit(
+  userAddress: string,
+  txHash: string,
+): Promise<AgentWallets | null> {
+  const key = userAddress.toLowerCase();
+  const existing = await getAgentWallets(key);
+  if (!existing) return null;
+  const next: AgentWallets = { ...existing, x402LastDeposit: { txHash, at: Date.now() } };
   if (pgEnabled) {
     await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
     invalidateAgentWalletCaches();

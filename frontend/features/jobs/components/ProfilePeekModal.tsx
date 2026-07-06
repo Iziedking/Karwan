@@ -315,10 +315,13 @@ function passportProof(
   payment: NonNullable<CounterpartyReport['payment']>,
   labels: { view: string; deposit: string; wallet: string },
 ): { href: string; label: string } | null {
-  if (isTxHash(payment.txHash)) return { href: `${ARCSCAN}/tx/${payment.txHash}`, label: labels.view };
   if (isTxHash(payment.depositTxHash))
     return { href: `${ARCSCAN}/tx/${payment.depositTxHash}`, label: labels.deposit };
-  if (isAddress(payment.payer)) return { href: `${ARCSCAN}/address/${payment.payer}`, label: labels.wallet };
+  if (isTxHash(payment.txHash)) return { href: `${ARCSCAN}/tx/${payment.txHash}`, label: labels.view };
+  if (isAddress(payment.payer))
+    // Token-transfers tab: an SCA acts via userOps, so the default tab reads
+    // "Transactions 0" and looks empty even on a funded, active wallet.
+    return { href: `${ARCSCAN}/address/${payment.payer}?tab=token_transfers`, label: labels.wallet };
   return null;
 }
 

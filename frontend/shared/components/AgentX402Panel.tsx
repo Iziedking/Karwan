@@ -65,7 +65,12 @@ function explorerProof(p: Payment): { href: string; label: string } | null {
   if (isTxHash(p.depositTxHash)) return { href: `${scan}/tx/${p.depositTxHash}`, label: 'view deposit ↗' };
   if (isTxHash(p.txHash)) return { href: `${scan}/tx/${p.txHash}`, label: 'view payment ↗' };
   if (isAddress(p.payer)) {
-    const href = p.rail === 'base' ? `${scan}/tokentxns?a=${p.payer}` : `${scan}/address/${p.payer}`;
+    // Open the agent wallet on its token transfers: an SCA acts via userOps, so
+    // the explorer's default tab shows "Transactions 0" and reads empty.
+    const href =
+      p.rail === 'base'
+        ? `${scan}/tokentxns?a=${p.payer}`
+        : `${scan}/address/${p.payer}?tab=token_transfers`;
     return { href, label: 'view payer ↗' };
   }
   return null;
