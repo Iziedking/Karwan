@@ -2697,6 +2697,38 @@ export async function approveAgentMatch(
   if (!state) return { ok: false, code: 'NO_JOB_STATE', message: 'job state not in memory' };
 
   const seller = proposal.sellerAgent as `0x${string}`;
+
+  // Fund-first safety. acceptBid moves the job to Accepted on chain; if the
+  // fundEscrow that follows then fails because the buyer agent is short on USDC,
+  // the job is wedged (Accepted, empty escrow) and every retry reverts
+  // JobNotOpen, so the deal can never fund even after a top-up. Read the agent's
+  // balance up front and refuse before any on-chain step when it can't cover the
+  // price plus the buyer's half of the fee, so top-up-and-approve-again stays
+  // clean instead of stranding the deal.
+  try {
+    const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
+    const [agentBal, feeBps] = await Promise.all([
+      readUsdcBalance(proposal.buyerAgent),
+      getEscrowFeeBps(),
+    ]);
+    const { fundedAmount } = computeFunding(priceWei, feeBps);
+    if (agentBal < fundedAmount) {
+      return {
+        ok: false,
+        code: 'INSUFFICIENT_AGENT_BALANCE',
+        message:
+          'The buyer agent is short on USDC for the agreed price plus the platform fee. Top up the buyer agent, then approve again.',
+      };
+    }
+  } catch (err) {
+    // A transient balance/fee read failure must not block a fundable approval;
+    // the post-fund escrow read still stops an unfunded deal from persisting.
+    logger.warn(
+      { jobId, err: (err as Error).message },
+      'approveAgentMatch: pre-accept balance check skipped',
+    );
+  }
+
   let acceptResult;
   try {
     acceptResult = await executeContractCall(
