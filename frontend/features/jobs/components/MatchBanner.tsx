@@ -250,7 +250,10 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
           evidence. Shared component, also rendered on the deal page. */}
       {proposal.marketRead && (
         <div className="mt-3">
-          <MarketReadCard mr={proposal.marketRead} />
+          <MarketReadCard
+            mr={proposal.marketRead}
+            role={viewerIsBuyer ? 'buyer' : viewerIsSeller ? 'seller' : undefined}
+          />
         </div>
       )}
 

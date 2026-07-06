@@ -24,8 +24,36 @@ const TONES: Record<MarketReadData['demand'], { fg: string; bg: string }> = {
   steady: { fg: '#3a6ea5', bg: 'rgba(58,110,165,0.12)' },
 };
 
-export function MarketReadCard({ mr }: { mr: MarketReadData }) {
+/// Frame the price takeaway from the viewer's side. The market FACTS (summary,
+/// highlights, fair price) are shared; only the advice differs: hot demand is
+/// leverage for a seller but a premium for a buyer. Derived from `demand` so each
+/// party reads guidance that fits its own situation, not the counterparty's.
+function roleNote(demand: MarketReadData['demand'], role: 'buyer' | 'seller'): string {
+  if (demand === 'hot') {
+    return role === 'buyer'
+      ? 'Demand is hot, so expect to pay toward the top of the range.'
+      : 'Demand is hot, so you hold leverage on price here.';
+  }
+  if (demand === 'soft') {
+    return role === 'buyer'
+      ? 'Demand is soft, so there is room to negotiate the price down.'
+      : 'Demand is soft, so expect some price pressure.';
+  }
+  return 'Demand is steady, so the price should sit near the market rate.';
+}
+
+export function MarketReadCard({
+  mr,
+  role,
+}: {
+  mr: MarketReadData;
+  /// The viewer's side, so the price note reads from their angle. Omitted on
+  /// role-less surfaces (e.g. the user's own market scout), which fall back to
+  /// the neutral note the agent wrote.
+  role?: 'buyer' | 'seller';
+}) {
   const tone = TONES[mr.demand];
+  const note = role ? roleNote(mr.demand, role) : mr.priceNote;
   return (
     <div
       className="px-4 py-3"
@@ -60,10 +88,8 @@ export function MarketReadCard({ mr }: { mr: MarketReadData }) {
         </div>
       </div>
       <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">{mr.summary}</p>
-      {mr.priceNote && (
-        <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)] italic">
-          {mr.priceNote}
-        </p>
+      {note && (
+        <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)] italic">{note}</p>
       )}
       {mr.highlights.length > 0 && (
         <ul className="mt-2 space-y-1">

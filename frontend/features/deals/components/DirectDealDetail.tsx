@@ -607,7 +607,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 : dd.agentResearch.buyerIntro}
             </p>
             <div className="mt-5 max-w-[640px]">
-              <MarketReadCard mr={deal.marketRead} />
+              <MarketReadCard mr={deal.marketRead} role={viewerRole ?? undefined} />
             </div>
           </div>
         </Band>
