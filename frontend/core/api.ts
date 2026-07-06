@@ -376,7 +376,10 @@ export interface DirectDeal {
     decision: 'flag' | 'hold';
     flags: string[];
     reason: string;
-    reasons: string[];
+    /// Per-flag lines, each tagged with the party it is for; the deal page shows
+    /// a viewer only lines whose audience is their role or 'both'. Legacy rows
+    /// hold bare strings (pre-audience); the UI treats those as 'both'.
+    reasons: Array<string | { text: string; audience: 'buyer' | 'seller' | 'both' }>;
     paidConsulted: boolean;
     evaluatedAt: number;
     clearedAt?: number;

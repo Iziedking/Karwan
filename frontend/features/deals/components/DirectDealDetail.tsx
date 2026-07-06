@@ -873,32 +873,44 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           {/* Security agent's verdict on the MATCH (distinct from delivery-link
               safety above). Non-blocking: the funds are escrowed and the human is
               the judge. 'hold' marks the deal for review; 'flag' is advisory. */}
-          {deal.matchRisk && !deal.matchRisk.clearedAt && (
-            <PageCard>
-              <CardHead
-                label={deal.matchRisk.decision === 'hold' ? 'Match held for review' : 'Match flagged'}
-              />
-              <div className="p-5 md:p-6 space-y-3">
-                <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                  {deal.matchRisk.decision === 'hold'
-                    ? 'The security agent flagged this match for review. Your funds stay safely in escrow while it is looked at; nothing releases until it clears.'
-                    : 'The security agent noted something worth a look on this match. It does not block the deal; the funds are escrowed and you remain the judge.'}
-                </p>
-                {deal.matchRisk.reasons.length > 0 && (
-                  <ul className="list-disc ps-5 space-y-1 text-[13px] text-[var(--lp-text-muted)]">
-                    {deal.matchRisk.reasons.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                )}
-                {deal.matchRisk.paidConsulted && (
-                  <p className="text-[12px]" style={{ color: 'var(--lp-accent)' }}>
-                    Screened against the paid counterparty and market data the agents already gathered.
+          {(() => {
+            const mr = deal.matchRisk;
+            if (!mr || mr.clearedAt) return null;
+            // Show a viewer only the lines that are for them or shared. A warning
+            // about the other party (e.g. "the buyer is new") is meaningless, even
+            // alarming, on this party's own page. Legacy rows are bare strings and
+            // read as shared.
+            const mine = mr.reasons
+              .map((r) => (typeof r === 'string' ? { text: r, audience: 'both' as const } : r))
+              .filter((r) => r.audience === 'both' || r.audience === viewerRole);
+            // A 'hold' always shows (funds are held; both parties must know). A
+            // 'flag' is advisory, so it only shows when a line fits this viewer.
+            if (mr.decision !== 'hold' && mine.length === 0) return null;
+            return (
+              <PageCard>
+                <CardHead label={mr.decision === 'hold' ? 'Match held for review' : 'Match flagged'} />
+                <div className="p-5 md:p-6 space-y-3">
+                  <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                    {mr.decision === 'hold'
+                      ? 'The security agent flagged this match for review. Your funds stay safely in escrow while it is looked at; nothing releases until it clears.'
+                      : 'The security agent noted something worth a look on this match. It does not block the deal; the funds are escrowed and you remain the judge.'}
                   </p>
-                )}
-              </div>
-            </PageCard>
-          )}
+                  {mine.length > 0 && (
+                    <ul className="list-disc ps-5 space-y-1 text-[13px] text-[var(--lp-text-muted)]">
+                      {mine.map((r, i) => (
+                        <li key={i}>{r.text}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {mr.paidConsulted && (
+                    <p className="text-[12px]" style={{ color: 'var(--lp-accent)' }}>
+                      Screened against the paid counterparty and market data the agents already gathered.
+                    </p>
+                  )}
+                </div>
+              </PageCard>
+            );
+          })()}
         </div>
       </Band>
 

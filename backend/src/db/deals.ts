@@ -110,7 +110,10 @@ export interface DirectDeal {
     decision: 'flag' | 'hold';
     flags: string[];
     reason: string;
-    reasons: string[];
+    /// Per-flag lines, each tagged with the party it is for so the deal page can
+    /// show each side only what fits its situation. Legacy rows stored bare
+    /// strings (before the audience tag); readers treat those as 'both'.
+    reasons: Array<string | { text: string; audience: 'buyer' | 'seller' | 'both' }>;
     paidConsulted: boolean;
     evaluatedAt: number;
     clearedAt?: number;
