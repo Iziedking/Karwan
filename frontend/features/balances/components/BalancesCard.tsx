@@ -99,10 +99,11 @@ export function BalancesCard({
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const [view, setView] = useState<View>('you');
-  // Balances stay masked until the user asks to see them, so a shoulder-surfer
-  // (or a demo recording) never exposes holdings by default. Per-tab reveal is
-  // deliberately not persisted: it resets on remount.
-  const [revealed, setRevealed] = useState(false);
+  // The whole card folds shut by default, so a secondary breakdown (the same
+  // holdings the wallet cards already show, spread across chains) never crowds
+  // the page or exposes balances on a demo recording. One tap on the header
+  // opens it. Not persisted: it resets on remount.
+  const [open, setOpen] = useState(false);
   const bc = useTranslations().balancesCard;
 
   const buyer = (buyerAgent as `0x${string}` | undefined) ?? undefined;
@@ -155,8 +156,13 @@ export function BalancesCard({
   });
 
   return (
-    <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
+    <div style={CARD_STYLE} className="flex flex-col overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="px-6 pt-6 pb-4 flex items-start justify-between gap-4 text-start hover:bg-black/[0.015] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-t-[22px]"
+      >
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {bc.eyebrow}
@@ -168,54 +174,21 @@ export function BalancesCard({
             {bc.chainCountTemplate.replace('{n}', String(rows.length))}
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => setRevealed((v) => !v)}
-            aria-pressed={revealed}
-            className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full px-1.5 py-0.5"
-          >
-            {revealed ? (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="8" cy="8" r="1.75" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M2.5 2.5l11 11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="8" cy="8" r="1.75" stroke="currentColor" strokeWidth="1.3" />
-              </svg>
-            )}
-            {revealed ? bc.hide : bc.reveal}
-          </button>
-          <button
-            type="button"
-            onClick={refreshAll}
-            disabled={busy}
-            className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full px-1.5 py-0.5"
-          >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden
-              className={busy ? 'animate-spin motion-reduce:animate-none' : ''}
-            >
-              <path
-                d="M14 8a6 6 0 1 1-1.76-4.24M14 3v3h-3"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {busy ? bc.refreshing : bc.refresh}
-          </button>
-        </div>
-      </div>
+        <span
+          aria-hidden
+          className="mt-1 shrink-0 text-[var(--lp-text-muted)] transition-transform duration-300"
+          style={{ transform: open ? 'rotate(180deg)' : 'none' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
 
+      {!open && <div className="pb-2" />}
+
+      {open && (
+        <>
       <div className="px-6 pb-3">
         <div
           className="inline-flex p-1 gap-1"
@@ -282,7 +255,7 @@ export function BalancesCard({
               </div>
               <div className="text-end">
                 <p className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
-                  {num === null ? '-' : revealed ? <AnimatedNumber value={num} decimals={2} /> : '••••'}
+                  {num === null ? '-' : <AnimatedNumber value={num} decimals={2} />}
                 </p>
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1">
                   USDC
@@ -293,16 +266,31 @@ export function BalancesCard({
         })}
       </ul>
 
-      <div className="px-6 py-3.5 mt-auto border-t border-[var(--lp-border-light)] flex items-baseline justify-between gap-3">
+      <div className="px-6 py-3.5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3">
         <p className="mono text-[11px] tabular-nums text-[var(--lp-text-muted)]">
           {active.address ? shortAddress(active.address) : bc.notConfigured}
         </p>
-        {lastUpdated > 0 && (
-          <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            {bc.updatedTemplate.replace('{time}', timeAgo(lastUpdated, bc.timeAgo))}
-          </p>
-        )}
+        <div className="flex items-center gap-3">
+          {lastUpdated > 0 && (
+            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              {bc.updatedTemplate.replace('{time}', timeAgo(lastUpdated, bc.timeAgo))}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={refreshAll}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full px-1.5 py-0.5"
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden className={busy ? 'animate-spin motion-reduce:animate-none' : ''}>
+              <path d="M14 8a6 6 0 1 1-1.76-4.24M14 3v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {busy ? bc.refreshing : bc.refresh}
+          </button>
+        </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

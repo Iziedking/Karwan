@@ -8,7 +8,7 @@ import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { shortHash, formatUsdc } from '@/shared/utils/format';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -202,39 +202,18 @@ export function AgentWithdrawCard({
                   }}
                 >
                   {active && (
-                    <>
-                      <span
-                        aria-hidden
-                        className="absolute start-0 top-0 bottom-0 w-[3px]"
-                        style={{ background: 'var(--lp-accent)' }}
-                      />
-                      <span
-                        aria-hidden
-                        data-instrument-blink
-                        className="absolute top-2.5 end-2.5 inline-block w-[6px] h-[6px]"
-                        style={{
-                          background: 'var(--lp-accent)',
-                          animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                        }}
-                      />
-                    </>
+                    <span
+                      aria-hidden
+                      className="absolute start-0 top-0 bottom-0 w-[3px]"
+                      style={{ background: 'var(--lp-accent)' }}
+                    />
                   )}
                   <div className="flex items-center gap-2.5">
-                    <WalletAvatar address={o.address ?? '0x0'} size={26} />
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-semibold tracking-[-0.01em] leading-tight">
-                        {o.label}
-                      </p>
-                      <p className="mono text-[10px] tabular-nums mt-0.5 truncate text-[var(--lp-text-muted)]">
-                        {o.address ? shortAddress(o.address) : aw.agents.notConfigured}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-[var(--lp-border-light)]">
-                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      {aw.agents.balanceLabel}
-                    </span>
-                    <span className="inline-flex items-baseline gap-1">
+                    <WalletAvatar address={o.address ?? '0x0'} size={24} />
+                    <p className="min-w-0 flex-1 text-[13px] font-semibold tracking-[-0.01em] leading-tight truncate">
+                      {o.label}
+                    </p>
+                    <span className="inline-flex items-baseline gap-1 shrink-0">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
                         {o.address ? (human ?? '-') : '-'}
                       </span>

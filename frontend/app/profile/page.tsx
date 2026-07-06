@@ -62,6 +62,9 @@ function ProfilePageInner() {
   const activation = useActivation();
   const [activationOpen, setActivationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('identity');
+  // Agent money is one surface with two modes, so only one card shows at a
+  // time instead of two dense cards side by side.
+  const [moneyMode, setMoneyMode] = useState<'add' | 'out'>('add');
 
   const TABS: Tab[] = [
     { id: 'identity', label: t.tabs.identity, hash: 'identity' },
@@ -451,11 +454,8 @@ function ProfilePageInner() {
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           {t.holdings.body}
         </p>
-        <div className="mt-10">
+        <div className="mt-10" data-guide="profile-wallets">
           <WalletsPanel address={address ?? undefined} />
-        </div>
-        <div className="mt-5" data-guide="profile-wallets">
-          <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
         </div>
       </Band>
 
@@ -471,25 +471,81 @@ function ProfilePageInner() {
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
           {t.agentTreasury.body}
         </p>
-        <div className="mt-10 grid lg:grid-cols-2 gap-5" data-guide="profile-agents">
-          <ArcFundCard
-            buyerAgent={agents.buyer}
-            sellerAgent={agents.seller}
-            defaultAgent={defaultAgent}
-          />
-          {activation.activated && (
-            <AgentWithdrawCard
+        {activation.activated ? (
+          <>
+            {/* One surface, two modes: a toggle swaps between adding money and
+                cashing out, so the page shows a single card, not two. */}
+            <div
+              className="mt-8 inline-flex p-1 gap-1"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                borderTopLeftRadius: 9,
+                borderTopRightRadius: 9,
+                borderBottomLeftRadius: 9,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {(['add', 'out'] as const).map((mode) => {
+                const on = moneyMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setMoneyMode(mode)}
+                    aria-pressed={on}
+                    className={`px-4 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+                      on ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'text-white/60 hover:text-white'
+                    }`}
+                    style={{
+                      borderTopLeftRadius: 7,
+                      borderTopRightRadius: 7,
+                      borderBottomLeftRadius: 7,
+                      borderBottomRightRadius: 2,
+                    }}
+                  >
+                    {mode === 'add' ? t.agentTreasury.headlineFund : t.agentTreasury.headlineWithdraw}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-5 max-w-[640px]" data-guide="profile-agents">
+              {moneyMode === 'add' ? (
+                <ArcFundCard
+                  buyerAgent={agents.buyer}
+                  sellerAgent={agents.seller}
+                  defaultAgent={defaultAgent}
+                />
+              ) : (
+                <AgentWithdrawCard
+                  buyerAgent={agents.buyer}
+                  sellerAgent={agents.seller}
+                  defaultAgent={defaultAgent}
+                />
+              )}
+            </div>
+            <div className="mt-5 max-w-[640px]">
+              <AgentResearchCard />
+            </div>
+          </>
+        ) : (
+          <div className="mt-10 max-w-[640px]" data-guide="profile-agents">
+            <ArcFundCard
               buyerAgent={agents.buyer}
               sellerAgent={agents.seller}
               defaultAgent={defaultAgent}
             />
-          )}
-        </div>
-        {activation.activated && (
-          <div className="mt-5">
-            <AgentResearchCard />
           </div>
         )}
+      </Band>
+
+      {/* MULTI-CHAIN BREAKDOWN. Folded by default, below the agent-money band:
+          the same holdings the wallet cards show, spread across chains, for
+          anyone bridging in. One tap opens it. */}
+      <Band tone="light" compact>
+        <div data-guide="profile-balances">
+          <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
+        </div>
       </Band>
 
       {/* PREFERENCES anchor */}

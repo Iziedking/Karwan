@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useBalance, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
-import { CopyAddress } from '@/shared/components/CopyAddress';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
@@ -294,42 +293,18 @@ export function ArcFundCard({
                   }}
                 >
                   {active && (
-                    <>
-                      <span
-                        aria-hidden
-                        className="absolute start-0 top-0 bottom-0 w-[3px]"
-                        style={{ background: 'var(--lp-accent)' }}
-                      />
-                      <span
-                        aria-hidden
-                        data-instrument-blink
-                        className="absolute top-2.5 end-2.5 inline-block w-[6px] h-[6px]"
-                        style={{
-                          background: 'var(--lp-accent)',
-                          animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                        }}
-                      />
-                    </>
+                    <span
+                      aria-hidden
+                      className="absolute start-0 top-0 bottom-0 w-[3px]"
+                      style={{ background: 'var(--lp-accent)' }}
+                    />
                   )}
                   <div className="flex items-center gap-2.5">
-                    <WalletAvatar address={o.address ?? '0x0'} size={26} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold tracking-[-0.01em] leading-tight">
-                        {o.label}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="mono text-[10px] tabular-nums truncate text-[var(--lp-text-muted)]">
-                          {o.address ? shortAddress(o.address) : af.recipient.notConfigured}
-                        </span>
-                        {o.address && <CopyAddress value={o.address} />}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-2.5 flex items-baseline justify-between gap-2 border-t border-[var(--lp-border-light)]">
-                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      {af.recipient.balance}
-                    </span>
-                    <span className="inline-flex items-baseline gap-1">
+                    <WalletAvatar address={o.address ?? '0x0'} size={24} />
+                    <p className="min-w-0 flex-1 text-[13px] font-semibold tracking-[-0.01em] leading-tight truncate">
+                      {o.label}
+                    </p>
+                    <span className="inline-flex items-baseline gap-1 shrink-0">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
                         {o.address ? (balHuman ?? '-') : '-'}
                       </span>
