@@ -2952,6 +2952,8 @@ export const hi: Messages = {
       openJobAria: 'कार्य {id} खोलें',
       dismissTitle: 'खारिज करें',
       dismissAria: 'इस अंतिम बोली को खारिज करें',
+      abandon: 'छोड़ें',
+      abandonConfirm: 'पुष्टि करें',
       open: 'खोलें',
     },
   },

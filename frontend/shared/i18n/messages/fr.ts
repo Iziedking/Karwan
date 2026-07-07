@@ -2952,6 +2952,8 @@ export const fr: Messages = {
       openJobAria: 'Ouvrir la mission {id}',
       dismissTitle: 'Ignorer',
       dismissAria: 'Ignorer cette offre finalisée',
+      abandon: 'Abandonner',
+      abandonConfirm: 'Confirmer',
       open: 'Ouvrir',
     },
   },

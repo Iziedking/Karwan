@@ -2828,7 +2828,7 @@ interface MessagesShape {
     empty: { idle: string; dismissed: string };
     columns: { job: string; buyer: string; bid: string; rounds: string; status: string; open: string };
     status: { finalized: string; negotiating: string };
-    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string };
+    row: { openJobAria: string; dismissTitle: string; dismissAria: string; open: string; abandon: string; abandonConfirm: string };
   };
   releaseMilestones: {
     button: { released: string; releasing: string; release: string };
@@ -6721,6 +6721,8 @@ export const en: MessagesShape = {
       openJobAria: 'Open job {id}',
       dismissTitle: 'Dismiss',
       dismissAria: 'Dismiss this finalized bid',
+      abandon: 'Abandon',
+      abandonConfirm: 'Confirm',
       open: 'Open',
     },
   },

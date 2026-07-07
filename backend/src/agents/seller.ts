@@ -1496,6 +1496,50 @@ export function getSellerBidFlags(
   return { humanReview: entry.humanReview === true };
 }
 
+/// Prune bids whose auction has concluded, so the seller's active-bids view is
+/// live-only and the in-memory map (plus its persisted snapshot) stop gathering
+/// dead negotiations. A bid is done when a deal exists for its job (the auction
+/// was awarded, to us or to another seller), its offer deadline has passed, or
+/// the negotiation itself already finalized (accepted / declined). Called from
+/// the job-expiry watcher tick. Returns how many were pruned.
+export function reconcileActiveBids(resolvedJobIds: Set<string>, now: number): number {
+  let removed = 0;
+  for (const [key, bid] of activeBids) {
+    const jobId = bid.jobContext.jobId.toLowerCase();
+    const expired = Number(bid.jobContext.deadlineUnix) * 1000 < now;
+    if (bid.finalized || resolvedJobIds.has(jobId) || expired) {
+      activeBids.delete(key);
+      removed += 1;
+    }
+  }
+  if (removed > 0) {
+    scheduleActiveBidsPersist();
+    logger.info({ removed }, 'pruned concluded/expired active bids');
+  }
+  return removed;
+}
+
+/// Manually abandon an in-flight bid: the seller walks away from the
+/// negotiation. Off-chain and consistent with the agent's own decline path
+/// (which also just stops responding): it drops the bid from the active map so
+/// the agent stops countering and it leaves the seller's list. A bid already on
+/// chain still expires at its offer deadline; the agent simply won't pursue it.
+/// Returns true if a matching bid was found and removed.
+export function abandonBid(jobId: string, sellerAgentAddress: string): boolean {
+  const key = bidKey(jobId, sellerAgentAddress);
+  if (!activeBids.has(key)) return false;
+  activeBids.delete(key);
+  scheduleActiveBidsPersist();
+  bus.emitEvent({
+    type: 'agent.declined',
+    jobId,
+    actor: 'seller',
+    payload: { seller: sellerAgentAddress, reason: 'seller-abandoned' },
+  });
+  logger.info({ jobId, seller: sellerAgentAddress }, 'seller abandoned bid');
+  return true;
+}
+
 /// Snapshot of active bids. Pass a seller agent address to scope it to the bids
 /// that agent placed.
 export function getSellerSnapshot(

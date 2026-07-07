@@ -1,16 +1,41 @@
 'use client';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { SellerActiveBid } from '@/core/api';
+import { api, type SellerActiveBid } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortHash, formatUsdc } from '@/shared/utils/format';
 
-export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
+export function BidsTable({
+  bids,
+  onAbandon,
+}: {
+  bids: SellerActiveBid[];
+  /// Called after the server confirms a bid was abandoned, so the parent can
+  /// drop it from its list immediately.
+  onAbandon?: (jobId: string) => void;
+}) {
   const router = useRouter();
   const bt = useTranslations().bidsTable;
   const { dismissed, dismiss } = useDismissed('seller-bids');
   const visible = bids.filter((b) => !dismissed.has(b.jobId));
+  // Two-step abandon: first click arms the confirm, second calls the server.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function doAbandon(jobId: string) {
+    setBusy(jobId);
+    try {
+      await api.abandonBid(jobId);
+      onAbandon?.(jobId);
+    } catch {
+      // A failed abandon just leaves the row in place; the agent keeps it.
+    } finally {
+      setBusy(null);
+      setConfirming(null);
+    }
+  }
 
   if (visible.length === 0) {
     return (
@@ -89,6 +114,32 @@ export function BidsTable({ bids }: { bids: SellerActiveBid[] }) {
                         ×
                       </button>
                     )}
+                    {!b.finalized &&
+                      (confirming === b.jobId ? (
+                        <button
+                          type="button"
+                          disabled={busy === b.jobId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void doAbandon(b.jobId);
+                          }}
+                          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-2.5 py-1 rounded-full border border-[#ff8a7a]/40 text-[#ff8a7a] hover:bg-[#ff8a7a]/10 transition-colors disabled:opacity-50"
+                        >
+                          {busy === b.jobId ? '…' : bt.row.abandonConfirm}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          aria-label={`${bt.row.abandon} ${shortHash(b.jobId, 8, 4)}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirming(b.jobId);
+                          }}
+                          className="mono text-[10px] uppercase tracking-[0.12em] px-2.5 py-1 rounded-full text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+                        >
+                          {bt.row.abandon}
+                        </button>
+                      ))}
                     <span
                       className="inline-flex items-center gap-1 mono text-[11px] uppercase tracking-[0.12em] font-bold"
                       style={{ color: 'var(--lp-accent)' }}

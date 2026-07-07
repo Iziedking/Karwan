@@ -248,7 +248,12 @@ function SellerPageInner() {
                 {sh.activeBids.emptyMessage}
               </p>
             ) : (
-              <BidsTable bids={activeBids} />
+              <BidsTable
+                bids={activeBids}
+                onAbandon={(jobId) =>
+                  setActiveBids((prev) => prev.filter((b) => b.jobId !== jobId))
+                }
+              />
             )}
           </div>
         </div>

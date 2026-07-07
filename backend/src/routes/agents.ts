@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { generateObject } from 'ai';
 import { config } from '../config.js';
 import { getBuyerSnapshot } from '../agents/buyer.js';
-import { getSellerSnapshot } from '../agents/seller.js';
+import { getSellerSnapshot, abandonBid } from '../agents/seller.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { sessionAddress } from '../auth/session.js';
 import { llmModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
@@ -28,6 +29,30 @@ agentsRoutes.get('/seller', async (c) => {
   const agents = await getAgentWallets(address);
   if (!agents) return c.json({ profile: null, activeBids: [] });
   return c.json({ profile: null, ...getSellerSnapshot(agents.sellerAddress) });
+});
+
+/// Manually abandon one of the caller's own in-flight seller bids. Identity is
+/// the signed session (never a query param), and the bid is keyed by the
+/// caller's own seller agent address, so a caller can only ever drop their own
+/// bid. Idempotent: abandoning an unknown/already-cleared bid returns ok with
+/// abandoned:false.
+const abandonSchema = z.object({ jobId: z.string().min(1) });
+
+agentsRoutes.post('/seller/bids/abandon', async (c) => {
+  const caller = sessionAddress(c);
+  if (!caller) return c.json({ error: 'not authenticated' }, 401);
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'invalid json body' }, 400);
+  }
+  const parsed = abandonSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: 'invalid body' }, 400);
+  const agents = await getAgentWallets(caller);
+  if (!agents) return c.json({ error: 'no agents for this account' }, 404);
+  const abandoned = abandonBid(parsed.data.jobId, agents.sellerAddress);
+  return c.json({ ok: true, abandoned });
 });
 
 agentsRoutes.get('/status', (c) =>

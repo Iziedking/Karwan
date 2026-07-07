@@ -1052,6 +1052,13 @@ export const api = {
     json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
+  /// Abandon one of the signed-in seller's own in-flight bids. Identity is the
+  /// session cookie; the backend scopes to the caller's seller agent.
+  abandonBid: (jobId: string) =>
+    json<{ ok: boolean; abandoned: boolean }>('/api/agents/seller/bids/abandon', {
+      method: 'POST',
+      body: JSON.stringify({ jobId }),
+    }),
   /// Natural-language deal extractor for the hybrid intake. Free text in,
   /// structured fields + per-field confidence out. The form remains the
   /// source of truth; every field returned here is editable before posting.

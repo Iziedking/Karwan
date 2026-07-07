@@ -2952,6 +2952,8 @@ export const ar: Messages = {
       openJobAria: 'فتح المهمة {id}',
       dismissTitle: 'تجاهل',
       dismissAria: 'تجاهل هذا العرض المُنجز',
+      abandon: 'التخلي',
+      abandonConfirm: 'تأكيد',
       open: 'فتح',
     },
   },

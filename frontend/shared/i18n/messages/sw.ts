@@ -2952,6 +2952,8 @@ export const sw: Messages = {
       openJobAria: 'Fungua kazi {id}',
       dismissTitle: 'Ondoa',
       dismissAria: 'Ondoa zabuni hii iliyokamilika',
+      abandon: 'Achana',
+      abandonConfirm: 'Thibitisha',
       open: 'Fungua',
     },
   },
