@@ -23,6 +23,7 @@ import {
   AddressPill,
   PageCard,
 } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -164,15 +165,15 @@ function SellerPageInner() {
       {/* POST LISTING */}
       <Band tone="dark" compact>
         <div id="post-listing" className="scroll-mt-20" />
-        <SectionTag tone="dark">{sh.postOffer.tag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag tone="dark">{sh.postOffer.tag}</SectionTag>
+          <Hint glow side="bottom" align="start">{sh.postOffer.lede}</Hint>
+        </div>
         <HeroHeadline size="md">
           {sh.postOffer.headlineLine1}<Punc>.</Punc>
           <br />
           {sh.postOffer.headlineLine2}
         </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          {sh.postOffer.lede}
-        </p>
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
           <div className="min-w-0 lg:col-span-2">
             <div
@@ -202,9 +203,12 @@ function SellerPageInner() {
       <Band tone="dark" compact>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[46ch]">
-            <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-              {sh.activeBids.tag}
-            </SectionTag>
+            <div className="flex items-center gap-2">
+              <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
+                {sh.activeBids.tag}
+              </SectionTag>
+              <Hint glow side="bottom" align="start">{sh.activeBids.lede}</Hint>
+            </div>
             <HeroHeadline size="md">
               {sh.activeBids.headline}
               {activeBids.length > 0 && (
@@ -217,9 +221,6 @@ function SellerPageInner() {
               )}
               {activeBids.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
-            <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              {sh.activeBids.lede}
-            </p>
           </div>
         </div>
         <div className="mt-10">

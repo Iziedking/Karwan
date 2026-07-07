@@ -41,6 +41,7 @@ import {
   CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 
 export default function ProfilePage() {
   const t = useTranslations().profile;
@@ -444,14 +445,14 @@ function ProfilePageInner() {
 
       {/* HOLDINGS */}
       <Band tone="light" compact>
-        <SectionTag>{t.holdings.tag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>{t.holdings.tag}</SectionTag>
+          <Hint glow side="bottom" align="start">{t.holdings.body}</Hint>
+        </div>
         <HeroHeadline size="md">
           {t.holdings.headlinePrefix}<Accent>{t.holdings.headlineAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          {t.holdings.body}
-        </p>
         <div className="mt-10" data-guide="profile-wallets">
           <WalletsPanel address={address ?? undefined} />
         </div>
@@ -468,13 +469,13 @@ function ProfilePageInner() {
 
       {/* FUND + WITHDRAW */}
       <Band tone="dark" compact>
-        <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
+          <Hint glow side="bottom" align="start">{t.agentTreasury.body}</Hint>
+        </div>
         <HeroHeadline size="md">
           {t.agentTreasury.headlineFund}<Punc>.</Punc> {t.agentTreasury.headlineWithdraw}<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-          {t.agentTreasury.body}
-        </p>
         {activation.activated ? (
           <>
             {/* One surface, two modes: a toggle swaps between adding money and
@@ -548,13 +549,13 @@ function ProfilePageInner() {
 
       {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
       <Band tone="light" compact>
-        <SectionTag>{t.preferences.tag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>{t.preferences.tag}</SectionTag>
+          <Hint glow side="bottom" align="start">{t.preferences.body}</Hint>
+        </div>
         <HeroHeadline size="md">
           {t.preferences.headline}<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          {t.preferences.body}
-        </p>
         <div className="mt-8 flex flex-wrap items-center gap-3" data-guide="profile-preferences">
           {address && <ProfileEmailButton address={address} tone="light" />}
           <TelegramConnectButton address={address ?? undefined} tone="light" />

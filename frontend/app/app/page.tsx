@@ -59,10 +59,6 @@ const PendingMatchesBand = dynamic(
   () => import('@/features/notifications/components/PendingMatchesBand').then((m) => m.PendingMatchesBand),
   { ssr: false },
 );
-const PendingDealsBand = dynamic(
-  () => import('@/features/notifications/components/PendingDealsBand').then((m) => m.PendingDealsBand),
-  { ssr: false },
-);
 /// Business-track home. Only loaded for accounts on the business track, so its
 /// chart + heavy bands never ship in the person-home bundle.
 const BusinessHome = dynamic(
@@ -88,6 +84,7 @@ import {
   CTAPill,
   BigStatTile,
 } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 
 interface NetStats {
   deals: number;
@@ -309,21 +306,21 @@ export default function AppHome() {
 
       {/* PENDING MATCHES. surfaces here so users see them from the home page
           without having to navigate to /seller. Renders nothing when there
-          are none, so the layout stays clean for buyers / fresh users. */}
+          are none, so the layout stays clean for buyers / fresh users. Open
+          deals (your book) live on /profile, not here. */}
       <PendingMatchesBand tone="light" />
-      <PendingDealsBand tone="light" />
 
       {/* THREE DOORS */}
       <Band tone="light">
-        <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
+          <Hint glow side="bottom" align="start">{t.threeDoors.description}</Hint>
+        </div>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           {t.threeDoors.headlineTop}<Punc>.</Punc>
           <br />
           {t.threeDoors.headlineBottom}
         </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          {t.threeDoors.description}
-        </p>
         <div data-guide="home-doors" className="mt-12 grid md:grid-cols-3 gap-5">
           <div className="fade-up fade-up-1">
             <FeatureCard

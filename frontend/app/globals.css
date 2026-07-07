@@ -336,6 +336,21 @@ html[data-theme="dark"] {
   [data-instrument-blink] { animation: none !important; opacity: 1 !important; }
 }
 
+/* Gentle glow on a collapsed-explanation hint, just enough to say "tap me".
+   Kept subtle (small blur, low accent mix, slow pulse). Static faint ring
+   under reduced motion. */
+@keyframes hintGlow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--lp-accent) 38%, transparent); }
+  50% { box-shadow: 0 0 7px 1px color-mix(in oklab, var(--lp-accent) 38%, transparent); }
+}
+.hint-glow { animation: hintGlow 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .hint-glow {
+    animation: none;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--lp-accent) 28%, transparent);
+  }
+}
+
 /* Full-screen brand loader (GlobalLoadingSplash): a breathing mark + an
    indeterminate sweeping bar, so page loads show the Karwan logo instead of a
    footer-first flicker. */

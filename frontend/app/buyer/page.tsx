@@ -21,6 +21,7 @@ import {
   AddressPill,
   PageCard,
 } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -128,14 +129,14 @@ function BuyerPageInner() {
       {/* NEW DEAL + SIDE COLUMN */}
       <Band tone="light" compact>
         <div id="new-deal" className="scroll-mt-20" />
-        <SectionTag>{bh.newDeal.sectionTag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>{bh.newDeal.sectionTag}</SectionTag>
+          <Hint glow side="bottom" align="start">{bh.newDeal.description}</Hint>
+        </div>
         <HeroHeadline size="md">
           {bh.newDeal.headline}
           <Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          {bh.newDeal.description}
-        </p>
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
           <div className="min-w-0 lg:col-span-2">
             <PageCard>
@@ -155,9 +156,12 @@ function BuyerPageInner() {
       <Band tone="dark" compact>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[46ch]">
-            <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-              {bh.managedDeals.sectionTag}
-            </SectionTag>
+            <div className="flex items-center gap-2">
+              <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
+                {bh.managedDeals.sectionTag}
+              </SectionTag>
+              <Hint glow side="bottom" align="start">{bh.managedDeals.description}</Hint>
+            </div>
             <HeroHeadline size="md">
               {bh.managedDeals.headline}
               {sortedJobs.length > 0 && (
@@ -170,9 +174,6 @@ function BuyerPageInner() {
               )}
               {sortedJobs.length === 0 && <Punc>.</Punc>}
             </HeroHeadline>
-            <p className="mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[46ch]">
-              {bh.managedDeals.description}
-            </p>
           </div>
         </div>
         <div className="mt-10">

@@ -10,6 +10,7 @@ import {
   Punc,
   Accent,
 } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
@@ -163,14 +164,16 @@ function StakePageInner() {
 
       {/* NETWORK YIELD: protocol-wide accrual, three tiles + live chart. */}
       <Band tone="light" compact>
-        <SectionTag>NETWORK YIELD</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>NETWORK YIELD</SectionTag>
+          <Hint glow side="bottom" align="start">
+            Idle stake earns real yield through Hashnote USYC, tokenized US
+            Treasuries. Settled on Arc, provable on chain.
+          </Hint>
+        </div>
         <HeroHeadline size="md">
           Tokenized T-bills<Punc>.</Punc> Verified yield<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-          Idle stake earns real yield through Hashnote USYC, tokenized US
-          Treasuries. Settled on Arc, provable on chain.
-        </p>
         <div className="mt-9">
           <UsycReservesWidget />
         </div>
@@ -181,14 +184,16 @@ function StakePageInner() {
 
       {/* PER-ACCOUNT YIELD: the connected wallet's slice + Claim CTA. */}
       <Band tone="light" compact>
-        <SectionTag>YOUR YIELD</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>YOUR YIELD</SectionTag>
+          <Hint glow side="bottom" align="start">
+            Your share of the protocol&apos;s yield. Claim to your wallet
+            anytime, non-custodial.
+          </Hint>
+        </div>
         <HeroHeadline size="md">
           Earned by you<Punc>.</Punc> Claimable by you<Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-          Your share of the protocol&apos;s yield. Claim to your wallet anytime,
-          non-custodial.
-        </p>
         <div className="mt-9">
           <YieldClaimPanel />
         </div>
@@ -208,14 +213,14 @@ function StakePageInner() {
 
       {/* TIER LADDER: what stake unlocks in the agent loop. */}
       <Band tone="light" compact>
-        <SectionTag>{sp.ladder.tag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag>{sp.ladder.tag}</SectionTag>
+          <Hint glow side="bottom" align="start">{sp.ladder.body}</Hint>
+        </div>
         <HeroHeadline size="md">
           {sp.ladder.headingPrefix} <Accent>{sp.ladder.headingAccent}</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-          {sp.ladder.body}
-        </p>
         <ul className="mt-9 space-y-2.5">
           {ORDER.map((t, i) => {
             const here = t === tier;

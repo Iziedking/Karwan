@@ -10,10 +10,14 @@ export function Hint({
   children,
   side = 'top',
   align = 'start',
+  glow = false,
 }: {
   children: ReactNode;
   side?: 'top' | 'bottom';
   align?: 'start' | 'center' | 'end';
+  /// Adds a subtle pulsing glow to the trigger so a collapsed explanation reads
+  /// as tappable at a glance. Off by default.
+  glow?: boolean;
 }) {
   const t = useTranslations().hint;
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -98,7 +102,7 @@ export function Hint({
         }
         if (e.key === 'Escape') setOpen(false);
       }}
-      className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus:outline-none focus-visible:text-[var(--color-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 transition-colors duration-150 cursor-help"
+      className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus:outline-none focus-visible:text-[var(--color-ink)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 transition-colors duration-150 cursor-help${glow ? ' hint-glow' : ''}`}
     >
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden className="block">
         <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.2" />

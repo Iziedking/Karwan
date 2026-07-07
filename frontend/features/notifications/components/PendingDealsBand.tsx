@@ -6,6 +6,7 @@ import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { Band, SectionTag, HeroHeadline, Punc } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 
 interface Props {
@@ -95,19 +96,20 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
 
   return (
     <Band tone={tone} compact>
-      <SectionTag tone={tone} dot="live">
-        {t.deals.sectionTag}
-      </SectionTag>
+      {/* The green/grey chip legend folds into a gently glowing tap-to-reveal
+          hint beside the eyebrow, so the header stays clean on mobile. */}
+      <div className="flex items-center gap-2">
+        <SectionTag tone={tone} dot="live">
+          {t.deals.sectionTag}
+        </SectionTag>
+        <Hint glow side="bottom" align="start">
+          {t.deals.body}
+        </Hint>
+      </div>
       <HeroHeadline size="md">
         {resolvedHeadline}
         <Punc>.</Punc>
       </HeroHeadline>
-      <p
-        className="mt-5 text-pretty text-[15px] leading-relaxed max-w-[52ch]"
-        style={{ color: dark ? 'var(--lp-text-muted)' : 'var(--lp-text-sub)' }}
-      >
-        {t.deals.body}
-      </p>
       <ul className="mt-8 space-y-3">
         {rows.map(({ deal, isBuyer, label }) => {
           const counterparty = isBuyer ? deal.seller : deal.buyer;
