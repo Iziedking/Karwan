@@ -219,6 +219,9 @@ export interface UserProfile {
       averageDaysToSettle: number;
       defaultCount: number;
       lastSettledAt: number;
+      financingsTaken?: number;
+      financingsRepaid?: number;
+      financingsDefaulted?: number;
       computedAt: number;
     };
   };
@@ -2562,6 +2565,9 @@ export const api = {
         averageDaysToSettle: number;
         defaultCount: number;
         lastSettledAt: number;
+        financingsTaken: number;
+        financingsRepaid: number;
+        financingsDefaulted: number;
         computedAt: number;
       } | null;
     }>(`/api/sme/profile/${address}`),

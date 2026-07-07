@@ -60,6 +60,9 @@ export function CreditPassport({ address }: { address: string }) {
       onTimeRate: number;
       averageDaysToSettle: number;
       defaultCount: number;
+      financingsTaken?: number;
+      financingsRepaid?: number;
+      financingsDefaulted?: number;
     } | null;
   } | null>(null);
 
@@ -535,6 +538,9 @@ function SmePassportBand({
       onTimeRate: number;
       averageDaysToSettle: number;
       defaultCount: number;
+      financingsTaken?: number;
+      financingsRepaid?: number;
+      financingsDefaulted?: number;
     } | null;
   } | null;
 }) {
@@ -542,7 +548,8 @@ function SmePassportBand({
   const p = sme.smeProfile;
   const r = sme.repaymentBehavior;
   const hasProfile = !!p && (p.companyName || p.sector || p.region || p.websiteUrl);
-  const hasRepay = !!r && r.windowDealCount > 0;
+  const financed = r?.financingsTaken ?? 0;
+  const hasRepay = !!r && (r.windowDealCount > 0 || financed > 0);
   if (!hasProfile && !hasRepay) return null;
   return (
     <section
@@ -617,6 +624,22 @@ function SmePassportBand({
                 value={String(r!.defaultCount)}
                 tone={r!.defaultCount === 0 ? 'positive' : 'critical'}
               />
+              {/* Trade-finance repayment: advances and PO principals this SME
+                  took, and how many it repaid the financier. The signal a
+                  financier underwrites on, distinct from plain deal settlement. */}
+              {financed > 0 ? (
+                <PassportStat
+                  label="Financing repaid"
+                  value={`${r!.financingsRepaid ?? 0}/${financed}`}
+                  tone={
+                    (r!.financingsDefaulted ?? 0) === 0
+                      ? 'positive'
+                      : (r!.financingsRepaid ?? 0) >= (r!.financingsDefaulted ?? 0)
+                        ? 'neutral'
+                        : 'critical'
+                  }
+                />
+              ) : null}
             </dl>
           </div>
         ) : null}

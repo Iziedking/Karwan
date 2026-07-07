@@ -4,6 +4,8 @@ import { readSession } from '../auth/session.js';
 import { accountKindOf } from '../profile/accountType.js';
 import { getProfile, upsertProfile } from '../db/profiles.js';
 import { listDealsForAddress } from '../db/deals.js';
+import { listOffersBySeller } from '../db/factoring.js';
+import { listLinesBySeller } from '../db/poFinancing.js';
 import { logger } from '../logger.js';
 
 /// SME profile routes. Public passport read (no auth) + authenticated
@@ -116,9 +118,33 @@ export async function computeRepaymentBehavior(address: string): Promise<{
   averageDaysToSettle: number;
   defaultCount: number;
   lastSettledAt: number;
+  /// Trade-finance repayment: when this SME took financing (a factoring advance
+  /// or a PO principal), did they repay the financier or default. This is the
+  /// signal a financier actually underwrites on, distinct from how the address
+  /// behaves as a plain deal party above. Both counts read real settle/default
+  /// outcomes driven on chain by the factoring and PO watchers.
+  financingsTaken: number;
+  financingsRepaid: number;
+  financingsDefaulted: number;
   computedAt: number;
 }> {
   const deals = await listDealsForAddress(address);
+
+  // Trade-finance repayment outcomes where this address is the financed seller.
+  // A factoring offer settles when the financier is repaid, defaults otherwise;
+  // a PO line is 'repaid' or 'defaulted' on the same terminal split.
+  const [factoringOffers, poLines] = await Promise.all([
+    listOffersBySeller(address).catch(() => []),
+    listLinesBySeller(address).catch(() => []),
+  ]);
+  const financingsRepaid =
+    factoringOffers.filter((o) => o.status === 'settled').length +
+    poLines.filter((l) => l.state === 'repaid').length;
+  const financingsDefaulted =
+    factoringOffers.filter((o) => o.status === 'defaulted').length +
+    poLines.filter((l) => l.state === 'defaulted').length;
+  const financingsTaken = financingsRepaid + financingsDefaulted;
+
   const settled = deals
     .filter((d) => d.settledAt && d.acceptedAt)
     .sort((a, b) => (b.settledAt ?? 0) - (a.settledAt ?? 0))
@@ -130,6 +156,9 @@ export async function computeRepaymentBehavior(address: string): Promise<{
       averageDaysToSettle: 0,
       defaultCount: 0,
       lastSettledAt: 0,
+      financingsTaken,
+      financingsRepaid,
+      financingsDefaulted,
       computedAt: Date.now(),
     };
   }
@@ -149,6 +178,9 @@ export async function computeRepaymentBehavior(address: string): Promise<{
     averageDaysToSettle: totalDaysToSettle / settled.length,
     defaultCount: defaults,
     lastSettledAt: settled[0]?.settledAt ?? 0,
+    financingsTaken,
+    financingsRepaid,
+    financingsDefaulted,
     computedAt: Date.now(),
   };
 }
