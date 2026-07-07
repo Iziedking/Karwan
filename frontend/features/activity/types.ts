@@ -68,7 +68,10 @@ export function applyFilters(events: ChainEvent[], filters: ActivityFilters): Ch
   if (!groupActive && !actorActive && !search) return events;
   return events.filter((e) => {
     if (groupActive && !filters.groups.has(groupOf(e.type))) return false;
-    if (actorActive && !filters.actors.has(e.actor as ActorFilter)) return false;
+    // Backend events carry actor 'platform'; the SYSTEM tab filters on 'system'.
+    // Bridge the two so the SYSTEM tab actually matches platform events.
+    const actorKey = (e.actor === 'platform' ? 'system' : e.actor) as ActorFilter;
+    if (actorActive && !filters.actors.has(actorKey)) return false;
     if (search && (!e.jobId || !e.jobId.toLowerCase().includes(search))) return false;
     return true;
   });

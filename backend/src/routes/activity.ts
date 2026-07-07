@@ -104,10 +104,18 @@ function pulseEvent(e: KarwanEvent): KarwanEvent {
 activityRoutes.get('/', async (c) => {
   const limitParam = c.req.query('limit');
   const jobId = c.req.query('jobId') ?? undefined;
-  // The caller-filtered feed returns full unredacted events (amounts, parties)
-  // for deals the caller is a party to, so identity is the signed session, not
-  // a spoofable ?caller= param. No session falls through to the public pulse.
-  const caller = sessionAddress(c);
+  // Scope to the connected wallet only when the request asks for a personal or
+  // per-deal view: the ?caller= param (personal notifications feed) or a jobId
+  // (a deal timeline) opts in. The bare /activity network log (neither set) is
+  // always the global public pulse, even when signed in, so "AUDIT THE CHAIN"
+  // shows network-wide activity rather than only the viewer's own deals. The
+  // caller-filtered feed returns full unredacted events (amounts, parties) for
+  // deals the caller is a party to, so identity is the signed session, never
+  // the spoofable ?caller= param. No session on a scoped request falls through
+  // to the public pulse.
+  const callerParam = c.req.query('caller');
+  const wantsScoped = (callerParam != null && callerParam !== '') || jobId != null;
+  const caller = wantsScoped ? sessionAddress(c) : null;
   const limit = limitParam ? Math.min(500, Math.max(1, Number(limitParam))) : 100;
 
   // Reload from event_history if the in-memory ring came up cold (boot hydrate
