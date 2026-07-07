@@ -236,6 +236,7 @@ function ProfilePageInner() {
                 on the profile since it is no longer a nav item. */}
             <a
               href="/bridge"
+              data-guide="profile-topup"
               className="group block p-5 border border-white/15 hover:border-[var(--lp-accent)] transition-colors"
               style={{
                 borderTopLeftRadius: 16,

@@ -241,9 +241,12 @@ export const DEAL_STEPS: TourStep[] = [
   },
 ];
 
-/// Profile tour. Spotlights each part of the profile, and the bridge step is
+/// Profile tour. Spotlights each part of the redesigned profile in page order,
 /// role-aware because funding works differently for Circle vs web3 wallets.
-export const PROFILE_TOUR_ID = 'profile-v1';
+/// Bumped to v2 for the distill redesign: the bridge moved to the hero Top up
+/// card, wallets became a holdings view, and a folded multi-chain breakdown was
+/// added, so returning users should see the refreshed walkthrough.
+export const PROFILE_TOUR_ID = 'profile-v2';
 export function buildProfileSteps(isCircle: boolean): TourStep[] {
   return [
     {
@@ -252,23 +255,33 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
       body: 'These tabs jump to each part: identity, wallets, agents, and preferences.',
     },
     {
+      target: 'profile-topup',
+      title: 'Bring USDC to Arc',
+      body: isCircle
+        ? 'Deals settle in USDC (digital dollars, about 1 to a US dollar) on Arc. Open Top up and send USDC to the wallet shown; Karwan moves it onto Arc for you.'
+        : 'Deals settle in USDC (digital dollars, about 1 to a US dollar) on Arc. Open Top up to move USDC from Base or Ethereum: you burn it from your own wallet and it mints on Arc. No wrapped tokens.',
+    },
+    {
       target: 'profile-identity',
-      title: 'Identity and agents',
-      body: 'Your name, and the buyer and seller wallets that sign your deals on chain. Activate here if you have not yet.',
+      title: 'Activate your agents',
+      body: 'This shows whether your buyer and seller agents are live. Activate here to let them bid, negotiate, and fund deals for you. Your reputation tier sits up top.',
     },
     {
       target: 'profile-wallets',
-      title: 'Bring USDC to Arc',
-      body: isCircle
-        ? 'Deals settle in USDC on Arc. To add funds, send USDC to the source-chain wallet shown in the bridge and Karwan moves it to Arc for you. Its address and balance are right there.'
-        : 'Deals settle in USDC on Arc. The bridge moves your USDC from Base or Ethereum: you approve and burn it from your own wallet, and it mints on Arc. No wrapped tokens.',
+      title: 'What your wallets hold',
+      body: 'Your own wallet and each agent wallet, with their USDC on Arc and copyable addresses. This is your money at rest, before any deal locks it.',
     },
     {
       target: 'profile-agents',
       title: 'Move money to your agent',
       body: isCircle
-        ? 'Add USDC to the wallet that signs your deals so it can fund escrow, and move it back to yourself any time. Circle handles the signing for you.'
-        : 'Add USDC to the wallet that signs your deals so it can fund escrow, and move it back to your own wallet any time.',
+        ? 'Add USDC to the wallet that signs your deals so it can fund escrow, and cash it back out any time. Circle handles the signing for you.'
+        : 'Add USDC to the wallet that signs your deals so it can fund escrow, and cash it back out to your own wallet any time.',
+    },
+    {
+      target: 'profile-balances',
+      title: 'Across every chain',
+      body: 'Bringing funds from elsewhere? Open this to see the same balances spread across chains. Folded by default to keep things calm.',
     },
     {
       target: 'profile-preferences',
