@@ -272,16 +272,16 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
       body: 'Your own wallet and each agent wallet, with their USDC on Arc and copyable addresses. This is your money at rest, before any deal locks it.',
     },
     {
+      target: 'profile-balances',
+      title: 'Across every chain',
+      body: 'Bringing funds from elsewhere? Open this to see the same balances spread across chains. Folded by default to keep things calm.',
+    },
+    {
       target: 'profile-agents',
       title: 'Move money to your agent',
       body: isCircle
         ? 'Add USDC to the wallet that signs your deals so it can fund escrow, and cash it back out any time. Circle handles the signing for you.'
         : 'Add USDC to the wallet that signs your deals so it can fund escrow, and cash it back out to your own wallet any time.',
-    },
-    {
-      target: 'profile-balances',
-      title: 'Across every chain',
-      body: 'Bringing funds from elsewhere? Open this to see the same balances spread across chains. Folded by default to keep things calm.',
     },
     {
       target: 'profile-preferences',

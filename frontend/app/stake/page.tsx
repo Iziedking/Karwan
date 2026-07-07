@@ -168,10 +168,8 @@ function StakePageInner() {
           Tokenized T-bills<Punc>.</Punc> Verified yield<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-          Idle stake accrues through Hashnote USYC, a regulated tokenized
-          money-market fund backed by short-duration US Treasuries. Lifetime
-          distribution to every staker on the protocol, settled on Arc and
-          provable on chain.
+          Idle stake earns real yield through Hashnote USYC, tokenized US
+          Treasuries. Settled on Arc, provable on chain.
         </p>
         <div className="mt-9">
           <UsycReservesWidget />
@@ -188,9 +186,8 @@ function StakePageInner() {
           Earned by you<Punc>.</Punc> Claimable by you<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-          Your share of the protocol&apos;s lifetime accrual. The longer and
-          larger your active stake, the bigger the slice. Claim to your
-          connected wallet at any time, non-custodial and on demand.
+          Your share of the protocol&apos;s yield. Claim to your wallet anytime,
+          non-custodial.
         </p>
         <div className="mt-9">
           <YieldClaimPanel />

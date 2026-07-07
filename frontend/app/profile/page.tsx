@@ -218,11 +218,8 @@ function ProfilePageInner() {
               ) : (
                 <CTAPill href="/onboarding">{t.hero.setUpProfileCta}</CTAPill>
               )}
-              <div className="flex items-center gap-2 flex-wrap">
-                {address && <ProfileEmailButton address={address} tone="dark" />}
-                <ConnectXButton />
-                <TelegramConnectButton address={address ?? undefined} />
-              </div>
+              {/* Email / X / Telegram connect live once, in the labeled
+                  PREFERENCES band below; the hero stays identity + one action. */}
             </div>
             {/* Persistent tier card. your reputation right at the top of the profile. */}
             <ProfileTierCard address={address} />
@@ -458,6 +455,12 @@ function ProfilePageInner() {
         <div className="mt-10" data-guide="profile-wallets">
           <WalletsPanel address={address ?? undefined} />
         </div>
+        {/* Multi-chain breakdown, folded by default: the same holdings spread
+            across chains, kept with the wallet holdings instead of a separate
+            band lower down. */}
+        <div className="mt-5" data-guide="profile-balances">
+          <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
+        </div>
       </Band>
 
       {/* AGENTS anchor */}
@@ -538,15 +541,6 @@ function ProfilePageInner() {
             />
           </div>
         )}
-      </Band>
-
-      {/* MULTI-CHAIN BREAKDOWN. Folded by default, below the agent-money band:
-          the same holdings the wallet cards show, spread across chains, for
-          anyone bridging in. One tap opens it. */}
-      <Band tone="light" compact>
-        <div data-guide="profile-balances">
-          <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
-        </div>
       </Band>
 
       {/* PREFERENCES anchor */}

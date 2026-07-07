@@ -68,17 +68,10 @@ function ActivityPageInner({
         </div>
       </Band>
 
-      {/* STREAM SECTION */}
+      {/* STREAM SECTION. The hero already frames this, and ActivityView carries
+          its own [:event stream:] eyebrow + counts, so no restated header here. */}
       <Band tone="light" compact>
-        <SectionTag>{t.stream.sectionTag}</SectionTag>
-        <HeroHeadline size="md">
-          {t.stream.headlinePrefix}<Accent>{t.stream.headlineAccent}</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
-          {t.stream.description}
-        </p>
-        <div className="mt-10 fade-up fade-up-1" data-guide="activity-stream">
+        <div className="fade-up fade-up-1" data-guide="activity-stream">
           <PageCard>
             <div className="p-6 md:p-8">
               <ActivityView explorer={explorer} />

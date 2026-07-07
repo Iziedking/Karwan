@@ -673,10 +673,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 <button
                   type="button"
                   onClick={() => setReportOpen(true)}
-                  className="w-full mt-1 flex items-center justify-between gap-2 px-3 py-2.5 border border-[var(--lp-border-light)] rounded-xl hover:bg-black/[0.02] transition-colors text-start"
+                  className="w-full mt-1 flex items-center justify-between gap-2 text-start hover:opacity-80 transition-opacity"
                 >
                   <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    your agent&apos;s read on the counterparty
+                    Agent read on the counterparty
                   </span>
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-accent)] shrink-0">
                     view report ↗
