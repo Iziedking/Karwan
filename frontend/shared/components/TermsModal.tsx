@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -7,6 +7,11 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { isLandingRoute } from '@/shared/utils/routes';
+import {
+  subscribeSplash,
+  getSplashActive,
+  getSplashActiveServer,
+} from '@/shared/utils/splashSignal';
 import { TermsContent } from './TermsContent';
 import { cn } from '@/shared/utils/cn';
 
@@ -23,6 +28,14 @@ export function TermsModal() {
   const [submitting, setSubmitting] = useState(false);
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Hold the gate until the brand loader has lifted, so it never pops over the
+  // splash on a fresh load. The splash publishes this; on landing/no-splash
+  // routes it reads false and the gate shows as soon as it otherwise would.
+  const splashActive = useSyncExternalStore(
+    subscribeSplash,
+    getSplashActive,
+    getSplashActiveServer,
+  );
 
   // Re-arm the scroll gate every time the modal opens (after sign-in flip,
   // logout-then-login, version bump, etc).
@@ -35,6 +48,7 @@ export function TermsModal() {
   // shows there, even after a wallet account switch flips the connected user.
   if (isLandingRoute(pathname)) return null;
   if (!isAuthenticated) return null;
+  if (splashActive) return null;
   if (terms.loading) return null;
   if (!terms.needsAcceptance) return null;
   if (typeof document === 'undefined') return null;

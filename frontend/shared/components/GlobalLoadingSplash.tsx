@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
+import { setSplashActive } from '@/shared/utils/splashSignal';
 
 /// Branded route-transition loader. Shows the Karwan logo (the lime mark in a
 /// dark square) on the initial load and on EVERY navigation into a non-landing
@@ -28,6 +29,12 @@ export function GlobalLoadingSplash() {
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
   const startRef = useRef(0);
+
+  // Publish whether the splash is covering the screen so other root overlays
+  // (the Terms gate) can hold until it lifts, instead of popping over the logo.
+  useEffect(() => {
+    setSplashActive(active);
+  }, [active]);
 
   // Show on the initial load + every route change (skip landing). Arm the cap
   // and the stall timers; the data-settled effect below hides it earlier.
