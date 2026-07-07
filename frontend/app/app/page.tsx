@@ -274,9 +274,13 @@ export default function AppHome() {
                   {t.hero.postOfferCta}
                 </CTAPill>
               )}
-              <CTAPill href="/activity" variant="secondary" tone="dark">
+              <Link
+                href="/activity"
+                className="ms-1 inline-flex items-center gap-1.5 mono text-[12px] uppercase tracking-[0.08em] text-white/60 hover:text-white transition-colors"
+              >
                 {t.hero.viewActivityCta}
-              </CTAPill>
+                <span aria-hidden>→</span>
+              </Link>
               <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
                 {shortAddress(profile.address)}
@@ -427,21 +431,9 @@ export default function AppHome() {
           /api/network/onchain or hits the contract addresses on Arc Explorer. */}
       <OnChainProofBand />
 
-      {/* NETWORK PULSE. sliding evidence ticker. Pure read-only proof that
-          deals are flowing; never links anywhere, never asks for action. */}
-      <Band tone="dark" compact>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="max-w-[44ch]">
-            <SectionTag tone="dark" dot="live">
-              {t.networkPulse.sectionTag}
-            </SectionTag>
-            <HeroHeadline size="md">
-              {t.networkPulse.headlinePrefix}<Accent>{t.networkPulse.headlineAccent}</Accent>
-              <Punc>.</Punc>
-            </HeroHeadline>
-          </div>
-        </div>
-      </Band>
+      {/* NETWORK PULSE. A self-evident sliding ticker of recent deals. The
+          LIVE NETWORK band above already frames it, so it carries no separate
+          header (that band was pure restatement of the two proof surfaces). */}
       <NetworkTicker />
 
       {/* DEALS ACROSS KARWAN */}
