@@ -10,12 +10,19 @@
 ///   npm run sme:testkit -- status 0xACTOR 0x..  per-actor: kind, verified, financier, balances
 ///   npm run sme:testkit -- deal 0xJOBID         one deal: stage, PoD anchored, PO line, offers
 ///
+/// Operator fast-track for demo setup (WRITES to the profile store, same effect
+/// as the admin routes; the actors must already exist, i.e. have signed in once):
+///   npm run sme:testkit -- verify-business 0xADDR      mark a profile verified business
+///   npm run sme:testkit -- approve-financier 0xADDR    grant financier access
+///   npm run sme:testkit -- setup 0xSUPPLIER 0xBUYER 0xFINANCIER
+///                                                      verify both businesses + approve financier
+///
 /// Point it at the two sample businesses from the runbook (supplier + buyer) and
 /// the financier to see the whole board update between steps.
 
 import { formatUnits } from 'viem';
 import { publicClient } from '../chain/client.js';
-import { getProfile } from '../db/profiles.js';
+import { getProfile, upsertProfile } from '../db/profiles.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { financierEligibility, isApprovedFinancier } from '../profile/financier.js';
@@ -202,6 +209,43 @@ async function dealCmd(jobId: string): Promise<void> {
   console.log('');
 }
 
+/// Operator fast-track: mark a profile as a verified business. Mirrors the
+/// admin route (accountType business + business.status verified), which is what
+/// the SME gates read through accountKindOf. No-ops with a clear message if the
+/// actor has not signed in yet (no profile to patch).
+async function verifyBusinessCmd(address: string): Promise<boolean> {
+  const addr = address.toLowerCase();
+  const p = await getProfile(addr);
+  if (!p) {
+    console.log(`   ${short(addr)}: no profile yet. Sign in once in the app, then re-run.`);
+    return false;
+  }
+  await upsertProfile({
+    ...p,
+    accountType: 'business',
+    business: { ...(p.business ?? { status: 'none' }), status: 'verified', verifiedAt: Date.now() },
+  });
+  console.log(`   ${short(addr)}: verified business`);
+  return true;
+}
+
+/// Operator fast-track: grant financier access. Mirrors the approved grant the
+/// apply route writes when eligible.
+async function approveFinancierCmd(address: string): Promise<boolean> {
+  const addr = address.toLowerCase();
+  const p = await getProfile(addr);
+  if (!p) {
+    console.log(`   ${short(addr)}: no profile yet. Sign in once in the app, then re-run.`);
+    return false;
+  }
+  await upsertProfile({
+    ...p,
+    financier: { ...(p.financier ?? { status: 'none' }), status: 'approved', approvedAt: Date.now() },
+  });
+  console.log(`   ${short(addr)}: financier approved`);
+  return true;
+}
+
 async function main(): Promise<void> {
   const [cmd, ...rest] = process.argv.slice(2);
   switch (cmd) {
@@ -219,8 +263,38 @@ async function main(): Promise<void> {
       }
       await dealCmd(rest[0]);
       break;
+    case 'verify-business':
+      if (!rest[0]) {
+        console.log('usage: sme:testkit -- verify-business 0xADDR');
+        break;
+      }
+      await verifyBusinessCmd(rest[0]);
+      break;
+    case 'approve-financier':
+      if (!rest[0]) {
+        console.log('usage: sme:testkit -- approve-financier 0xADDR');
+        break;
+      }
+      await approveFinancierCmd(rest[0]);
+      break;
+    case 'setup': {
+      const [supplier, buyer, financier] = rest;
+      if (!supplier || !buyer || !financier) {
+        console.log('usage: sme:testkit -- setup 0xSUPPLIER 0xBUYER 0xFINANCIER');
+        break;
+      }
+      console.log('=== fast-track demo setup ===');
+      await verifyBusinessCmd(supplier);
+      await verifyBusinessCmd(buyer);
+      await approveFinancierCmd(financier);
+      console.log('done. run the board to confirm.');
+      break;
+    }
     default:
-      console.log(`unknown command "${cmd}". try: board | status <addr...> | deal <jobId>`);
+      console.log(
+        `unknown command "${cmd}". try: board | status <addr...> | deal <jobId> | ` +
+          `verify-business <addr> | approve-financier <addr> | setup <supplier> <buyer> <financier>`,
+      );
   }
 }
 
