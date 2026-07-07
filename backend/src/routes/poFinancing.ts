@@ -79,6 +79,11 @@ poFinancingRoutes.get('/available', async (c) => {
   const deals = await listAllDeals();
   const available = deals.filter(
     (d) =>
+      // PO financing is a finance-lane (SME trade-finance) product only, same
+      // as factoring. A finance lane arises only from a verified-business
+      // creator (see deriveLane), so this keeps individual P2P deals out of the
+      // financier desk.
+      d.tradeLane === 'finance' &&
       d.acceptedAt &&
       !d.delivered &&
       !d.settledAt &&
@@ -115,6 +120,9 @@ poFinancingRoutes.post('/fund', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  if (deal.tradeLane !== 'finance') {
+    return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
+  }
   if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal not eligible for PO financing' }, 409);
   }
@@ -218,6 +226,9 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  if (deal.tradeLane !== 'finance') {
+    return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
+  }
   if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal not eligible for PO financing' }, 409);
   }

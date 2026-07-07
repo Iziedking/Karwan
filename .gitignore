@@ -57,6 +57,7 @@ backend/data/
 PLAN.md
 USYC.md
 todo.md
+docs/ignyte-demo-runbook.md
 docs/agent.md
 docs/agent_reasoning.md
 docs/api-healthcheck.md
