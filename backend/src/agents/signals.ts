@@ -103,7 +103,18 @@ function tierToLower(t: Tier): RepTier {
   }
 }
 
-export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
+// The account-standing half of ActorSignals: the fields that read on-chain
+// reputation (bps, tier, completion). These change only when a deal settles
+// (reputation.recorded), so they are safe to cache for a short window. This is
+// the expensive part: a DB agent-wallet lookup plus 3-5 uncached Arc RPC reads.
+// Caching it collapses the N+1 fan-out on /api/factoring/available (one read per
+// open invoice, many sharing the same seller) and unblocks the financier page.
+type RepStanding = Pick<ActorSignals, 'reputationBps' | 'repTier' | 'completionRate'>;
+const STANDING_TTL_MS = 60_000;
+const standingCache = new Map<string, { at: number; value: RepStanding }>();
+const standingInFlight = new Map<string, Promise<RepStanding>>();
+
+async function computeRepStanding(addr: string): Promise<RepStanding> {
   // Reputation belongs to the account, not the agent wallet. If `addr` is one of
   // our agent wallets (a buyer/seller DCW), resolve it to the owner's identity
   // address so a brand-new agent wallet inherits the account's real standing
@@ -128,9 +139,6 @@ export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
   const total = counts.successCount + counts.disputedCount + counts.failedCount;
   const completionRate =
     total === 0n ? 1 : Number(counts.successCount) / Number(total);
-  // Velocity stays on the agent address: it measures the bidding cadence of the
-  // wallet doing the bidding (an anti-bot signal), not the account's standing.
-  const velocity24h = countRecentActorEvents(addr.toLowerCase());
 
   // Primary tier source: the composite reputation engine. It reads stake,
   // time, completion, and penalty signals on top of the legacy bps and bins
@@ -154,12 +162,38 @@ export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
     repTier = tierForLegacy(reputationBps, total);
   }
 
-  return {
-    reputationBps,
-    repTier,
-    completionRate,
-    velocity24h,
-  };
+  return { reputationBps, repTier, completionRate };
+}
+
+// TTL cache + in-flight dedupe over the on-chain standing. Concurrent callers
+// for the same address (the factoring fan-out) share one computation; repeat
+// loads inside the window skip the RPC entirely.
+async function repStandingFor(addr: string): Promise<RepStanding> {
+  const key = addr.toLowerCase();
+  const now = Date.now();
+  const cached = standingCache.get(key);
+  if (cached && now - cached.at < STANDING_TTL_MS) return cached.value;
+  const inflight = standingInFlight.get(key);
+  if (inflight) return inflight;
+  const p = computeRepStanding(addr)
+    .then((value) => {
+      standingCache.set(key, { at: Date.now(), value });
+      return value;
+    })
+    .finally(() => {
+      standingInFlight.delete(key);
+    });
+  standingInFlight.set(key, p);
+  return p;
+}
+
+export async function actorSignalsFor(addr: string): Promise<ActorSignals> {
+  const standing = await repStandingFor(addr);
+  // Velocity stays on the agent address and is recomputed every call: it reads
+  // the in-memory bus ring (cheap, no RPC) and is an anti-bot signal that must
+  // not go stale mid-auction the way the cached standing safely can.
+  const velocity24h = countRecentActorEvents(addr.toLowerCase());
+  return { ...standing, velocity24h };
 }
 
 // ---------- Velocity ----------
