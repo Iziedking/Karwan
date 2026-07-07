@@ -1,4 +1,6 @@
 import { listExpirableJobs, expireJob } from './buyer.js';
+import { reconcileActiveBids } from './seller.js';
+import { listAllDeals } from '../db/deals.js';
 import { reRaiseNearMissFromPassed } from './nearMiss.js';
 import { getOutOfReach } from '../db/outOfReach.js';
 import { getPendingNearMiss } from '../db/nearMiss.js';
@@ -88,6 +90,17 @@ async function tick(): Promise<void> {
         'expireJob threw',
       );
     }
+  }
+
+  // Prune the seller agents' active-bid map: any bid whose auction concluded (a
+  // deal exists for the job) or whose deadline passed is done, so it stops
+  // showing as "negotiating" and does not accumulate across restarts.
+  try {
+    const deals = await listAllDeals();
+    const resolved = new Set(deals.map((d) => d.jobId.toLowerCase()));
+    reconcileActiveBids(resolved, now);
+  } catch (err) {
+    logger.warn({ err: (err as Error).message }, 'active-bid reconcile failed');
   }
 }
 
