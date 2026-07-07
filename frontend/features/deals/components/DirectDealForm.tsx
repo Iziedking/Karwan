@@ -8,6 +8,7 @@ import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { feeBreakdown } from '../config';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -89,7 +90,7 @@ export function DirectDealForm() {
   // business surface. Individuals never see it, so a P2P direct deal stays the
   // simple service flow.
   const { profile } = useUserProfile();
-  const isBusiness = profile?.accountKind === 'business';
+  const isBusiness = isBusinessAccount(profile);
   // "Make offer" links from a listing detail land here with seller/amount/terms
   // pre-filled. Read once on mount; further changes come from user input.
   const search = useSearchParams();

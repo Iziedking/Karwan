@@ -17,6 +17,7 @@ import {
   Accent,
   CTAPill,
 } from '@/shared/components/Bands';
+import { isBusinessAccount } from '@/features/account/accountKind';
 
 // Matches the onboarding form inputs so edit and setup look identical.
 const INPUT_CLS =
@@ -62,8 +63,8 @@ function ProfileEditInner() {
   // A business account edits its company details on /profile#company, not here.
   // Send it there so the two surfaces never overlap.
   useEffect(() => {
-    if (profile?.accountKind === 'business') router.replace('/profile#company');
-  }, [profile?.accountKind, router]);
+    if (isBusinessAccount(profile)) router.replace('/profile#company');
+  }, [profile, router]);
 
   // Prefill from the saved profile once. A signed-in user with no profile has
   // not onboarded yet, so send them to onboarding rather than an empty form.

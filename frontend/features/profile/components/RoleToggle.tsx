@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Option = { value: UserRole; label: string; description: string };
@@ -17,7 +18,7 @@ export function RoleToggle({
   const t = useTranslations().roleToggle;
   // A business reads as a company sourcing/supplying goods and services, not an
   // individual buyer/seller, so it gets the business-framed labels.
-  const opts = profile.accountKind === 'business' ? t.businessOptions : t.options;
+  const opts = isBusinessAccount(profile) ? t.businessOptions : t.options;
   const OPTIONS: Option[] = [
     { value: 'buyer', ...opts.buyer },
     { value: 'seller', ...opts.seller },

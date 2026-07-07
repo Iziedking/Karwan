@@ -85,6 +85,7 @@ import {
   BigStatTile,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
+import { isBusinessAccount } from '@/features/account/accountKind';
 
 interface NetStats {
   deals: number;
@@ -133,19 +134,20 @@ export default function AppHome() {
       }
     : null;
 
-  /// The onboarding account kind decides which home renders: a business account
-  /// gets the trade desk, an individual keeps the P2P home. It reads off the
-  /// already-loaded profile, so there is no extra fetch and no hero flash. The
-  /// verification status (separate) feeds the verified chip + company name on
-  /// the business desk; it can resolve a beat later without changing the route.
+  /// Whether the account is a business decides which home renders: a business
+  /// gets the trade desk, an individual keeps the P2P home. Uses the canonical
+  /// isBusinessAccount predicate (onboarding accountKind OR verified accountType
+  /// OR a live business envelope), so a verified business is never stranded on
+  /// the individual home just because accountKind was never set. Reads off the
+  /// already-loaded profile, so there is no extra fetch and no hero flash.
   const businessQuery = useQuery({
     queryKey: qk.business.status(profile?.address),
     queryFn: () => api.getBusinessStatus(profile!.address),
-    enabled: !!profile?.address && profile?.accountKind === 'business',
+    enabled: !!profile?.address && isBusinessAccount(profile),
     staleTime: 60_000,
   });
   const business = businessQuery.data ?? null;
-  const onBusinessTrack = profile?.accountKind === 'business';
+  const onBusinessTrack = isBusinessAccount(profile);
 
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {

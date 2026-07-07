@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { api, ApiError } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useQueryClient } from '@tanstack/react-query';
@@ -91,7 +92,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
   // body in a neutral skeleton instead of flashing the "Add email" form before
   // the verified card paints.
   const notReady = auth.isLoading || profileLoading;
-  const isBusiness = profile?.accountKind === 'business';
+  const isBusiness = isBusinessAccount(profile);
   // An email-login user's verified email is their login email even before the
   // backend backfills profile.email, so prefer it for display + prefill.
   const sessionEmail = auth.method === 'circle' ? auth.email : undefined;

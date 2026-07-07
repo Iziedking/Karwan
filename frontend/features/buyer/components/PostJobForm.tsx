@@ -15,6 +15,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
+import { isBusinessAccount } from '@/features/account/accountKind';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -316,7 +317,7 @@ export function PostJobForm() {
   // a business surface. Individuals on P2P never see it, so their request stays
   // the simple service flow. Businesses keep it, including when they post a
   // service request to hire a person (tradeType defaults to 'service').
-  const isBusiness = profile?.accountKind === 'business';
+  const isBusiness = isBusinessAccount(profile);
 
   return (
     <>
