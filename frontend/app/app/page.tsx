@@ -382,7 +382,7 @@ export default function AppHome() {
           <div className="fade-up fade-up-1">
             <BigStatTile
               label={t.liveNetwork.stats.totalDeals}
-              value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} />}
+              value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} replayEveryMs={9000} />}
               hint={t.liveNetwork.stats.directPlusAgent}
               loading={!stats}
             />
@@ -390,28 +390,28 @@ export default function AppHome() {
           <div className="fade-up fade-up-2">
             <BigStatTile
               label={t.liveNetwork.stats.directDeals}
-              value={<AnimatedNumber value={stats?.direct ?? 0} decimals={0} />}
+              value={<AnimatedNumber value={stats?.direct ?? 0} decimals={0} replayEveryMs={9800} />}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-3">
             <BigStatTile
               label={t.liveNetwork.stats.agentDeals}
-              value={<AnimatedNumber value={stats?.agent ?? 0} decimals={0} />}
+              value={<AnimatedNumber value={stats?.agent ?? 0} decimals={0} replayEveryMs={10600} />}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-4">
             <BigStatTile
               label={t.liveNetwork.stats.settled}
-              value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} />}
+              value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} replayEveryMs={9400} />}
               loading={!stats}
             />
           </div>
           <div className="fade-up fade-up-4">
             <BigStatTile
               label={t.liveNetwork.stats.usdcThrough}
-              value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} />}
+              value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} replayEveryMs={10200} />}
               unit="USDC"
               loading={!stats}
             />
