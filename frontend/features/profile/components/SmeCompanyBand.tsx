@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
@@ -105,15 +105,16 @@ export function SmeCompanyBand({ address }: { address: string }) {
   }, [address]);
 
   // Reached via "Edit details" (which links to /profile?edit=company): open the
-  // form in edit mode and scroll to it, so the user lands directly on an
-  // editable company card instead of a view they have to hunt an Edit button in.
+  // form in edit mode and scroll to the trade card itself, so the user lands
+  // directly on the editable card instead of a blank strip above it.
   const searchParams = useSearchParams();
   const wantsEdit = searchParams.get('edit') === 'company';
+  const cardRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!loaded || !wantsEdit) return;
     setEditing(true);
     const raf = requestAnimationFrame(() =>
-      document.getElementById('company')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
     );
     return () => cancelAnimationFrame(raf);
   }, [loaded, wantsEdit]);
@@ -168,7 +169,11 @@ export function SmeCompanyBand({ address }: { address: string }) {
 
   return (
     <Band tone="light" compact>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+      <div
+        ref={cardRef}
+        style={{ scrollMarginTop: 80 }}
+        className="flex items-end justify-between gap-4 flex-wrap"
+      >
         <div>
           <SectionTag dot={verifiedAt ? 'live' : undefined}>
             [:COMPANY PROFILE:]
