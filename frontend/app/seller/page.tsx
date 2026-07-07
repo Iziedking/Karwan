@@ -137,25 +137,29 @@ function SellerPageInner() {
       {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
       <PendingDealsBand tone="light" />
 
-      {/* HOW IT WORKS */}
-      <Band tone="light" compact>
-        <SectionTag>{sh.howItWorks.tag}</SectionTag>
-        <HeroHeadline size="md">
-          {sh.howItWorks.headlineLine1}<Punc>.</Punc>
-          <br />
-          <Accent>{sh.howItWorks.headlineLine2Accent}</Accent>
-        </HeroHeadline>
-        <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          {sh.howItWorks.lede}
-        </p>
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-          {steps.map((s, i) => (
-            <div key={s.n} className={`fade-up fade-up-${i + 1}`}>
-              <StepCard n={s.n} title={s.title} body={s.body} />
-            </div>
-          ))}
-        </div>
-      </Band>
+      {/* HOW IT WORKS. First-run orientation only: once the seller has activated
+          agents they know the flow, so the working desk leads instead of a
+          three-step explainer taking the fold. */}
+      {!activated && (
+        <Band tone="light" compact>
+          <SectionTag>{sh.howItWorks.tag}</SectionTag>
+          <HeroHeadline size="md">
+            {sh.howItWorks.headlineLine1}<Punc>.</Punc>
+            <br />
+            <Accent>{sh.howItWorks.headlineLine2Accent}</Accent>
+          </HeroHeadline>
+          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+            {sh.howItWorks.lede}
+          </p>
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
+            {steps.map((s, i) => (
+              <div key={s.n} className={`fade-up fade-up-${i + 1}`}>
+                <StepCard n={s.n} title={s.title} body={s.body} />
+              </div>
+            ))}
+          </div>
+        </Band>
+      )}
 
       {/* POST LISTING */}
       <Band tone="dark" compact>
