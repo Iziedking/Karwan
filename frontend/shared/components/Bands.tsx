@@ -86,8 +86,8 @@ export function SectionTag({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 mono text-[12px] font-medium uppercase tracking-[0.16em]',
-        tone === 'dark' ? 'text-white/70' : 'text-[var(--lp-text-sub)]',
+        'inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em]',
+        tone === 'dark' ? 'text-white/60' : 'text-[var(--lp-text-muted)]',
       )}
     >
       {dot === 'live' ? (
@@ -102,7 +102,9 @@ export function SectionTag({
           />
         </span>
       ) : (
-        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
+        // Static eyebrows use a muted dot, not lime, so the accent stays reserved
+        // for one thing per view and headlines carry the hierarchy.
+        <span aria-hidden className="w-1 h-1 rounded-full bg-current opacity-40" />
       )}
       [:{children}:]
     </span>
