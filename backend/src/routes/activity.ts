@@ -3,7 +3,7 @@ import { bus, recentEventsByType, type KarwanEvent } from '../events.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { listAllDeals } from '../db/deals.js';
 import { sessionAddress } from '../auth/session.js';
-import { callerJobIds } from '../auth/partyScope.js';
+import { callerJobIds, buyerJobIds, AUCTION_INTERNAL_TYPES } from '../auth/partyScope.js';
 
 export const activityRoutes = new Hono();
 
@@ -143,14 +143,25 @@ activityRoutes.get('/', async (c) => {
   // plus a payload scan of this window. Auction-phase events carry only agent
   // addresses, so without the durable seed a buyer's own live auction would
   // filter to nothing here.
-  const callerJobs = await callerJobIds(caller);
+  const [callerJobs, buyerJobs] = await Promise.all([
+    callerJobIds(caller),
+    buyerJobIds(caller),
+  ]);
   for (const e of base) {
     if (isParty(e, caller) && e.jobId) callerJobs.add(e.jobId.toLowerCase());
   }
   const events = base.filter((e) => {
-    if (isParty(e, caller)) return true;
-    if (e.jobId && callerJobs.has(e.jobId.toLowerCase())) return true;
-    return false;
+    const inScope =
+      isParty(e, caller) || (!!e.jobId && callerJobs.has(e.jobId.toLowerCase()));
+    if (!inScope) return false;
+    // Seller-side privacy: the caller is a party to this job but not its buyer,
+    // so the competitive auction internals (rival bids, scores, counters, the
+    // buyer's market strategy) never reach their notifications feed. Their own
+    // match + settlement events are not in the internal set and stay.
+    const jobKey = e.jobId?.toLowerCase();
+    const isBuyerOfJob = !!jobKey && buyerJobs.has(jobKey);
+    if (!isBuyerOfJob && AUCTION_INTERNAL_TYPES.has(e.type)) return false;
+    return true;
   });
 
   return c.json({ events: events.slice(0, limit) });

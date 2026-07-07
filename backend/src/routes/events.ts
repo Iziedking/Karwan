@@ -2,7 +2,12 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { bus, type KarwanEvent } from '../events.js';
 import { readSession } from '../auth/session.js';
-import { callerJobIds, isBriefPoster } from '../auth/partyScope.js';
+import {
+  callerJobIds,
+  buyerJobIds,
+  isBriefPoster,
+  AUCTION_INTERNAL_TYPES,
+} from '../auth/partyScope.js';
 
 export const eventsRoutes = new Hono();
 
@@ -39,6 +44,7 @@ function projectFor(
   e: KarwanEvent,
   caller: string | null,
   callerJobs: Set<string>,
+  buyerJobs: Set<string>,
 ): KarwanEvent {
   if (!caller) return pulse(e);
   const jobKey = e.jobId?.toLowerCase();
@@ -47,6 +53,14 @@ function projectFor(
     !!jobKey && (callerJobs.has(jobKey) || isBriefPoster(jobKey, caller));
   if (party || tracked) {
     if (jobKey) callerJobs.add(jobKey);
+    // Seller-side privacy: a caller who is a party but NOT the buyer of this
+    // job sees the competitive auction internals as a pulse only. The buyer
+    // who ran the auction (brief poster / buyer side of the deal) sees them in
+    // full. Their own match + settlement events are not in the internal set
+    // and pass through for both sides.
+    const isBuyerOfJob =
+      !!jobKey && (buyerJobs.has(jobKey) || isBriefPoster(jobKey, caller));
+    if (!isBuyerOfJob && AUCTION_INTERNAL_TYPES.has(e.type)) return pulse(e);
     return e;
   }
   return pulse(e);
@@ -82,18 +96,22 @@ eventsRoutes.get('/recent', async (c) => {
   // Party membership: the durable stores plus this result set. Auction events
   // name only agent addresses, so the payload scan alone misses the caller's
   // own live auction.
-  const callerJobs = caller ? await callerJobIds(caller) : new Set<string>();
+  const [callerJobs, buyerJobs] = caller
+    ? await Promise.all([callerJobIds(caller), buyerJobIds(caller)])
+    : [new Set<string>(), new Set<string>()];
   if (caller) {
     for (const e of events) {
       if (e.jobId && isParty(e, caller)) callerJobs.add(e.jobId.toLowerCase());
     }
   }
-  return c.json({ events: events.map((e) => projectFor(e, caller, callerJobs)) });
+  return c.json({ events: events.map((e) => projectFor(e, caller, callerJobs, buyerJobs)) });
 });
 
 eventsRoutes.get('/', async (c) => {
   const caller = readSession(c)?.address?.toLowerCase() ?? null;
-  const callerJobs = caller ? await seedCallerJobs(caller) : new Set<string>();
+  const [callerJobs, buyerJobs] = caller
+    ? await Promise.all([seedCallerJobs(caller), buyerJobIds(caller)])
+    : [new Set<string>(), new Set<string>()];
   return streamSSE(c, async (stream) => {
     let id = 0;
     const queue: KarwanEvent[] = [];
@@ -131,7 +149,7 @@ eventsRoutes.get('/', async (c) => {
           await stream.writeSSE({
             id: String(id),
             event: 'karwan',
-            data: JSON.stringify(projectFor(e, caller, callerJobs)),
+            data: JSON.stringify(projectFor(e, caller, callerJobs, buyerJobs)),
           });
         }
         await stream.writeSSE({ event: 'ping', data: String(Date.now()) });

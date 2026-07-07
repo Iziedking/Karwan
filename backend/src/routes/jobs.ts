@@ -220,6 +220,16 @@ jobsRoutes.get('/:jobId', async (c) => {
   }
   const isParty = !!caller && parties.has(caller);
 
+  // Within the two parties, the bidder roster belongs to the buyer alone. The
+  // buyer side is whoever posted the brief or holds the buyer seat on the
+  // proposal/deal/near-miss; a matched seller is a party but not the buyer.
+  const buyerSide = new Set<string>();
+  if (brief?.postedBy) buyerSide.add(brief.postedBy.toLowerCase());
+  if (proposal) buyerSide.add(proposal.buyerUser.toLowerCase());
+  if (deal) buyerSide.add(deal.buyer.toLowerCase());
+  if (nearMiss) buyerSide.add(nearMiss.buyerUser.toLowerCase());
+  const viewerIsBuyer = !!caller && buyerSide.has(caller);
+
   if (!isParty) {
     const matched = !!(proposal || deal) || job.finalized || job.escrowFunded;
     const status = job.cancelledAt
@@ -238,6 +248,12 @@ jobsRoutes.get('/:jobId', async (c) => {
   return c.json({
     ...job,
     isParty: true,
+    viewerIsBuyer,
+    // The bidder roster is the buyer's competitive picture. A matched seller
+    // gets the job page to accept their match (the proposal is a separate
+    // route) but never the list of who else bid or at what price, so strip it
+    // server-side rather than trusting the client to hide it.
+    bids: viewerIsBuyer ? job.bids : [],
     briefText: brief?.briefText ?? null,
     keywords: brief?.keywords ?? null,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct ?? null,

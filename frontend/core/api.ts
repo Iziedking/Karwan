@@ -106,6 +106,11 @@ export interface BuyerJob {
   /// posted it (and, once matched, the matched seller). For everyone else it
   /// returns a status-only stub with `isParty: false` and no bids/amounts.
   isParty?: boolean;
+  /// True when the viewer is the buyer who ran the auction. A matched seller is
+  /// a party (isParty true) but gets viewerIsBuyer false, an empty `bids` array,
+  /// and no negotiation internals: the bidder roster is the buyer's alone.
+  /// Absent on the status-only stub (non-parties never reach the live page).
+  viewerIsBuyer?: boolean;
   /// Set on the status-only stub so the page can say "collecting bids" /
   /// "in negotiation" without leaking the auction.
   status?: 'open' | 'negotiating' | 'cancelled' | 'expired';

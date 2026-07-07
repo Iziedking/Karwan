@@ -71,6 +71,13 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const backHref = viewerIsSeller ? '/seller' : '/buyer';
   const backLabel = viewerIsSeller ? lj.backToSeller : lj.backToBuyer;
 
+  // The bidder roster and the negotiation walk belong to the buyer who ran the
+  // auction. The backend already strips `bids` and the competitor events for a
+  // matched seller; this flag hides the surfaces that would otherwise render
+  // empty or mislead them. Defaults to buyer when the flag is absent (older
+  // cached snapshot) since only an explicit false marks a seller.
+  const viewerIsBuyer = job.viewerIsBuyer !== false;
+
   const expired = !!job.expiredAt;
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
     ? {
@@ -98,7 +105,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             }
           : job.finalized
             ? { label: lj.statusLabels.acceptedFunding, tone: 'warning', live: true }
-            : job.bids.length > 0
+            : viewerIsBuyer && job.bids.length > 0
               ? {
                   label:
                     job.bids.length === 1
@@ -170,7 +177,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             value={formatUsdc(job.budgetUsdc, { withSuffix: false })}
             unit="USDC"
           />
-          <StatTile label={lj.stats.bids} value={String(job.bids.length)} />
+          {/* Bid count is the buyer's competitive picture. A matched seller
+              never sees how many rivals bid. */}
+          {viewerIsBuyer && (
+            <StatTile label={lj.stats.bids} value={String(job.bids.length)} />
+          )}
           {/* Once a match is approved or escrow has funded, the brief deadline
               is irrelevant. show the auction state instead. The page redirects
               to /deals/[id] on escrowFunded anyway, but during the brief flash
@@ -323,9 +334,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           </div>
         )}
 
-        {/* FLOW + TIMELINE + BIDS */}
+        {/* FLOW + TIMELINE + BIDS. The bidder roster and the negotiation walk
+            are the buyer's alone; a matched seller sees the flow, their match
+            banner, and the settle section, so their side goes full-width. */}
         <div className="mt-8 grid lg:grid-cols-3 gap-5 items-start">
-          <div className="lg:col-span-2 space-y-5">
+          <div className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-5`}>
             <PageCard>
               <div className="p-6" data-guide="job-flow">
                 <SectionTag>{lj.sections.flow}</SectionTag>
@@ -335,13 +348,15 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               </div>
             </PageCard>
 
-            <div data-guide="job-negotiation">
-              <NegotiationCard
-                events={events}
-                explorer={explorer}
-                terminal={expired || declined || ended === 'out-of-reach'}
-              />
-            </div>
+            {viewerIsBuyer && (
+              <div data-guide="job-negotiation">
+                <NegotiationCard
+                  events={events}
+                  explorer={explorer}
+                  terminal={expired || declined || ended === 'out-of-reach'}
+                />
+              </div>
+            )}
 
             <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
             <EditBriefSection
@@ -361,14 +376,16 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             />
           </div>
 
-          <div className="space-y-5" data-guide="job-bids">
-            <PageCard>
-              <div className="px-6 pt-6">
-                <SectionTag>{lj.sections.bids}</SectionTag>
-              </div>
-              <LiveBidsPanel initial={job} />
-            </PageCard>
-          </div>
+          {viewerIsBuyer && (
+            <div className="space-y-5" data-guide="job-bids">
+              <PageCard>
+                <div className="px-6 pt-6">
+                  <SectionTag>{lj.sections.bids}</SectionTag>
+                </div>
+                <LiveBidsPanel initial={job} />
+              </PageCard>
+            </div>
+          )}
         </div>
       </Band>
     </FullBleed>
