@@ -151,14 +151,14 @@ export function ListingsBrowse() {
   const sections = useMemo<Section[]>(() => {
     if (onBusinessTrack) {
       return [
-        { key: 'b2b', title: 'Business deals', note: 'Open B2B trade-finance deals.', cards: buckets.b2b, variant: 'default' },
-        { key: 'hiring', title: 'Hiring individuals', note: 'Businesses sourcing individual services.', cards: buckets.hiring, variant: 'hiring' },
+        { key: 'b2b', title: 'Business deals', note: 'Open trade-finance deals.', cards: buckets.b2b, variant: 'default' },
+        { key: 'hiring', title: 'Hiring individuals', note: 'Businesses hiring individuals.', cards: buckets.hiring, variant: 'hiring' },
       ];
     }
     return [
-      { key: 'p2p', title: 'Open trades', note: 'Peer-to-peer requests and offers you can take.', cards: buckets.p2p, variant: 'default' },
-      { key: 'hiring', title: 'Businesses hiring', note: 'Companies sourcing individual services. Bid like any request.', cards: buckets.hiring, variant: 'hiring' },
-      { key: 'b2b', title: 'Business deals', note: 'Public B2B trade activity. View-only from a personal account.', cards: buckets.b2b, variant: 'summary' },
+      { key: 'p2p', title: 'Open trades', note: 'Requests and offers you can take.', cards: buckets.p2p, variant: 'default' },
+      { key: 'hiring', title: 'Businesses hiring', note: 'Bid like any request.', cards: buckets.hiring, variant: 'hiring' },
+      { key: 'b2b', title: 'Business deals', note: 'View-only from a personal account.', cards: buckets.b2b, variant: 'summary' },
     ];
   }, [onBusinessTrack, buckets]);
 
