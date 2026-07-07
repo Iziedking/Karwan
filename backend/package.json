@@ -24,7 +24,8 @@
     "agent:buyer": "tsx --env-file=../.env src/scripts/buyer-agent.ts",
     "job:post": "tsx --env-file=../.env src/scripts/post-test-job.ts",
     "milestones:release": "tsx --env-file=../.env src/scripts/release-milestones.ts",
-    "view": "tsx --env-file=../.env src/scripts/view-cli.ts"
+    "view": "tsx --env-file=../.env src/scripts/view-cli.ts",
+    "sme:testkit": "tsx --env-file=../.env src/scripts/sme-testkit.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
