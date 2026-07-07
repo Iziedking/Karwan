@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
@@ -102,6 +103,20 @@ export function SmeCompanyBand({ address }: { address: string }) {
       cancelled = true;
     };
   }, [address]);
+
+  // Reached via "Edit details" (which links to /profile?edit=company): open the
+  // form in edit mode and scroll to it, so the user lands directly on an
+  // editable company card instead of a view they have to hunt an Edit button in.
+  const searchParams = useSearchParams();
+  const wantsEdit = searchParams.get('edit') === 'company';
+  useEffect(() => {
+    if (!loaded || !wantsEdit) return;
+    setEditing(true);
+    const raf = requestAnimationFrame(() =>
+      document.getElementById('company')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+    return () => cancelAnimationFrame(raf);
+  }, [loaded, wantsEdit]);
 
   async function save() {
     setSaving(true);

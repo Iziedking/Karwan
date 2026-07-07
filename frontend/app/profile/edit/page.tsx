@@ -63,7 +63,7 @@ function ProfileEditInner() {
   // A business account edits its company details on /profile#company, not here.
   // Send it there so the two surfaces never overlap.
   useEffect(() => {
-    if (isBusinessAccount(profile)) router.replace('/profile#company');
+    if (isBusinessAccount(profile)) router.replace('/profile?edit=company');
   }, [profile, router]);
 
   // Prefill from the saved profile once. A signed-in user with no profile has

@@ -22,6 +22,7 @@ import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -138,7 +139,10 @@ function ProfilePageInner() {
   // Business accounts read as a company, not a person: the title comes from the
   // structured company name (the freeform displayName often has the whole
   // "Name, sector, region" string crammed in), with sector + region as chips.
-  const isBusiness = profile?.accountKind === 'business';
+  // Use the canonical predicate (accountKind OR accountType OR business.status),
+  // not accountKind alone: business registration sets accountType, so the strict
+  // accountKind check rendered every business as an individual.
+  const isBusiness = isBusinessAccount(profile);
   const heroTitle =
     (isBusiness ? profile?.smeProfile?.companyName?.trim() : '') ||
     (profile ? profile.displayName : t.hero.fallbackName);
@@ -150,8 +154,10 @@ function ProfilePageInner() {
   const bizSector = isBusiness ? profile?.smeProfile?.sector : undefined;
   const bizRegion = isBusiness ? profile?.smeProfile?.region?.trim() : undefined;
   // A business edits its structured company details (the TRADE CARD), not the
-  // individual display-name onboarding flow.
-  const editHref = isBusiness ? '/profile#company' : '/profile/edit';
+  // individual display-name onboarding flow. ?edit=company makes the company
+  // band open in edit mode and scroll to itself, so the button lands on an
+  // editable form instead of just bouncing to the read-only card.
+  const editHref = isBusiness ? '/profile?edit=company' : '/profile/edit';
 
   return (
     <FullBleed>
@@ -433,10 +439,10 @@ function ProfilePageInner() {
           one re-renders nothing else on this page. */}
       {/* Company section anchor: a business's EDIT DETAILS scrolls here. */}
       <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
-      {SME_TRADES_ENABLED && address && profile?.accountKind === 'business' ? (
+      {SME_TRADES_ENABLED && address && isBusiness ? (
         <RegisterBusinessBand address={address} />
       ) : null}
-      {SME_TRADES_ENABLED && address && profile?.accountKind === 'business' ? (
+      {SME_TRADES_ENABLED && address && isBusiness ? (
         <SmeCompanyBand address={address} />
       ) : null}
 
