@@ -56,6 +56,7 @@ import {
 import { startSellerAgents, hydrateActiveBids, flushActiveBidsSync } from './agents/seller.js';
 import { startDealWatcher } from './agents/dealWatcher.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
+import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startTrendScout } from './agents/trendScout.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
@@ -264,6 +265,7 @@ function bootAgents() {
   }
   try {
     stopFns.push(startFactoringWatcher());
+    stopFns.push(startPOWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
   }

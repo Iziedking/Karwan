@@ -338,8 +338,13 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
 });
 
 /// POST /api/po-financing/release: anyone records that releaseToSeller
-/// fired on chain after PoD anchored. Updates state to Released.
+/// fired on chain after PoD anchored. Updates state to Released. The PO
+/// watcher drives this leg automatically; this route is the web3 manual
+/// fallback and no-ops when the contract is not configured.
 poFinancingRoutes.post('/release', async (c) => {
+  if (!config.KARWAN_PO_FINANCING_ADDR) {
+    return c.json({ error: 'po financing contract not configured' }, 503);
+  }
   let body;
   try {
     body = releaseBodySchema.parse(await c.req.json());
@@ -374,6 +379,9 @@ poFinancingRoutes.post('/release', async (c) => {
 /// POST /api/po-financing/claim: financier or seller records that
 /// claimRepayment fired on chain. Updates state to Settled.
 poFinancingRoutes.post('/claim', async (c) => {
+  if (!config.KARWAN_PO_FINANCING_ADDR) {
+    return c.json({ error: 'po financing contract not configured' }, 503);
+  }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
 
@@ -413,6 +421,9 @@ poFinancingRoutes.post('/claim', async (c) => {
 /// POST /api/po-financing/reclaim: financier reclaimed principal after
 /// the release timeout passed with no PoD. State -> Reclaimed.
 poFinancingRoutes.post('/reclaim', async (c) => {
+  if (!config.KARWAN_PO_FINANCING_ADDR) {
+    return c.json({ error: 'po financing contract not configured' }, 503);
+  }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
 
@@ -449,6 +460,9 @@ poFinancingRoutes.post('/reclaim', async (c) => {
 /// POST /api/po-financing/default: financier writes off the line after
 /// the repayment window expired. State -> Defaulted.
 poFinancingRoutes.post('/default', async (c) => {
+  if (!config.KARWAN_PO_FINANCING_ADDR) {
+    return c.json({ error: 'po financing contract not configured' }, 503);
+  }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
 

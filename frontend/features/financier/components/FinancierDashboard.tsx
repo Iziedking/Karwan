@@ -21,6 +21,7 @@ import {
   buildTransferAuthorization,
   serializeAuthorization,
 } from '@/features/factoring/usdcAuthorization';
+import { POLinesPanel } from './POLinesPanel';
 
 /// Actionable empty state for a funding lane (SKILL §5.3 bracket-message
 /// pattern): what the lane is, why it is empty, and one way to act. Replaces the
@@ -301,12 +302,15 @@ export function FinancierDashboard() {
             onOpenOffer={(deal) => setOfferTarget(deal)}
           />
         ) : (
-          <FundPOsTab
-            available={poAvailable}
-            loading={poLoading}
-            error={poError}
-            onOpenFund={(deal) => setFundTarget(deal)}
-          />
+          <>
+            <FundPOsTab
+              available={poAvailable}
+              loading={poLoading}
+              error={poError}
+              onOpenFund={(deal) => setFundTarget(deal)}
+            />
+            <POLinesPanel />
+          </>
         )}
       </Band>
 
