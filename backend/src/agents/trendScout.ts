@@ -11,6 +11,7 @@ import {
 } from '../db/trendSnapshots.js';
 import { bus, recentEventsByType } from '../events.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 /// Trending-demand nudges (audit/AGENTIC_WORKFLOW_REVIEW.md item 9). A daily pass
 /// counts how many recent open requests mention each keyword, diffs that against a
@@ -194,6 +195,7 @@ export function startTrendScout(): () => void {
       ),
     );
     interval = setInterval(() => {
+      recordHeartbeat('trendScout');
       runOnce().catch((err) =>
         logger.error({ err: (err as Error).message }, 'trend scout run failed'),
       );

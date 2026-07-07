@@ -5,6 +5,7 @@ import { publicClient } from './client.js';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 /// Periodic watcher that fires `vault.cooldown.completed` when a position's
 /// 3-day cooldown crosses the wire. The vault has no on-chain event for the
@@ -170,7 +171,10 @@ export function startCooldownWatcher(): () => void {
   }
 
   void scan();
-  const timer = setInterval(() => void scan(), POLL_MS);
+  const timer = setInterval(() => {
+    recordHeartbeat('cooldownWatcher');
+    void scan();
+  }, POLL_MS);
 
   return () => {
     stopped = true;

@@ -4,6 +4,7 @@ import { getOutOfReach } from '../db/outOfReach.js';
 import { getPendingNearMiss } from '../db/nearMiss.js';
 import { deleteMatchProposal } from '../db/matchProposals.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 const TICK_MS = 30_000;
 
@@ -96,6 +97,7 @@ async function tick(): Promise<void> {
 /// terminal state instead of lingering in `open` forever.
 export function startJobExpiryWatcher(): () => void {
   const id = setInterval(() => {
+    recordHeartbeat('jobExpiryWatcher');
     tick().catch((err: unknown) => {
       logger.error(
         { err: err instanceof Error ? err.message : String(err) },

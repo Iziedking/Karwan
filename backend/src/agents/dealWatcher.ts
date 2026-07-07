@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 import { listAllDeals, patchDeal } from '../db/deals.js';
 import { readEscrow } from '../chain/contracts.js';
 import {
@@ -258,6 +259,7 @@ async function tick() {
 /// carries its own buyer agent wallet; deals without one are skipped.
 export function startDealWatcher(): () => void {
   const id = setInterval(() => {
+    recordHeartbeat('dealWatcher');
     tick().catch((err) =>
       logger.error({ err: (err as Error).message }, 'deal watcher tick failed'),
     );

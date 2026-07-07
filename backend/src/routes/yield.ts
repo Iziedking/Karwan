@@ -8,6 +8,7 @@ import { publicClient } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 /// Arc public RPC silently returns empty on wide getLogs windows. Same fix
 /// shape as backend/src/chain/networkStats.ts: chunk the scan into 5k-block
@@ -474,6 +475,7 @@ export function startYieldIndexer(): () => void {
   const distributor = distributorAddress();
   if (!distributor) return () => {};
   const tick = () => {
+    recordHeartbeat('yieldIndexer');
     void refreshYieldIndex();
   };
   tick(); // catch up from the checkpoint at boot so reads are hot

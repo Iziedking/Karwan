@@ -24,6 +24,7 @@ import {
   type ReputationOutcome,
 } from '../chain/settlement.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 export interface ReconcileResult {
   candidates: number;
@@ -200,6 +201,7 @@ export function startReputationReconciler(): () => void {
   let inFlight = false;
 
   const id = setInterval(async () => {
+    recordHeartbeat('reputationReconciler');
     if (inFlight) {
       logger.warn(
         'reputation reconciler: previous tick still running, skipping this tick',

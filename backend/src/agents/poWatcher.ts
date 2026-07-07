@@ -28,6 +28,7 @@ import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 const TICK_MS = Number(process.env.PO_WATCHER_TICK_MS ?? 60_000);
 const MAX_REPAY_ATTEMPTS = 5;
@@ -257,6 +258,7 @@ export function startPOWatcher(): () => void {
     return () => {};
   }
   const id = setInterval(() => {
+    recordHeartbeat('poWatcher');
     tick().catch((err) => logger.error({ err: (err as Error).message }, 'po watcher: tick failed'));
   }, TICK_MS);
   logger.info({ tickMs: TICK_MS }, 'po watcher started');

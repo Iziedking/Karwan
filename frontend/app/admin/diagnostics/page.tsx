@@ -36,6 +36,46 @@ function Dot({ ok }: { ok: boolean }) {
   );
 }
 
+const GREEN = '#6BE39A';
+const AMBER = '#e0794f';
+const GREY = 'rgba(255,255,255,0.25)';
+
+function StatusDot({ color }: { color: string }) {
+  return (
+    <span aria-hidden className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+  );
+}
+
+function fmtAge(ms: number | null): string {
+  if (ms == null) return 'never';
+  const s = Math.round(ms / 1000);
+  if (s < 90) return `${s}s ago`;
+  const m = Math.round(s / 60);
+  if (m < 90) return `${m}m ago`;
+  return `${Math.round(m / 60)}h ago`;
+}
+
+function watcherColor(status: Health['watchers'][number]['status']): string {
+  return status === 'healthy' ? GREEN : status === 'dormant' ? GREY : AMBER;
+}
+
+function watcherDetail(w: Health['watchers'][number]): string {
+  if (w.status === 'dormant') return 'dormant (disabled)';
+  if (w.status === 'missing') return 'not ticking';
+  if (w.status === 'stalled') return `stalled · last ${fmtAge(w.ageMs)}`;
+  return `${fmtAge(w.ageMs)} · ${w.runs} ticks`;
+}
+
+function cronColor(status: Health['crons'][number]['status']): string {
+  return status === 'fresh' ? GREEN : status === 'unknown' ? GREY : AMBER;
+}
+
+function cronDetail(cr: Health['crons'][number]): string {
+  if (cr.status === 'unknown') return cr.detail ?? 'no record yet';
+  if (cr.status === 'fresh') return `ran ${cr.lastRunDate}${cr.detail ? ` · ${cr.detail}` : ''}`;
+  return `stale · last ${cr.lastRunDate ?? '—'}`;
+}
+
 export default function AdminDiagnostics() {
   return (
     <div className="space-y-8">
@@ -44,7 +84,7 @@ export default function AdminDiagnostics() {
         <h1 className="mt-2 font-sans text-[26px] font-extrabold text-white">Diagnostics</h1>
         <p className="mt-1 text-[13px] text-white/50 max-w-[64ch]">
           Live backend health and the agent gas seed, so a failing model key, an unfunded operator
-          wallet, or a down service is visible without reading logs.
+          wallet, a stalled watcher, or a cron that stopped firing is visible without reading logs.
         </p>
       </div>
       <HealthOverview />
@@ -169,6 +209,36 @@ function HealthOverview() {
               <HealthItem key={f.label} ok={f.on}>
                 {f.label} <span className="text-white/40">{f.on ? '' : 'off'}</span>
               </HealthItem>
+            ))}
+          </HealthCard>
+        </div>
+      )}
+      {data && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <HealthCard title="Watchers (in-process)">
+            {data.watchers.map((w) => (
+              <div key={w.name} className="flex items-start gap-2">
+                <span className="mt-1">
+                  <StatusDot color={watcherColor(w.status)} />
+                </span>
+                <span className="min-w-0 break-words text-white/80">
+                  {w.label} <span className="text-white/45">{watcherDetail(w)}</span>
+                </span>
+              </div>
+            ))}
+          </HealthCard>
+
+          <HealthCard title="Host crons (VPS)">
+            {data.crons.map((cr) => (
+              <div key={cr.name} className="flex items-start gap-2">
+                <span className="mt-1">
+                  <StatusDot color={cronColor(cr.status)} />
+                </span>
+                <span className="min-w-0 break-words text-white/80">
+                  {cr.label} <span className="text-white/45">{cronDetail(cr)}</span>
+                  <span className="block mono text-[10px] text-white/30">{cr.schedule}</span>
+                </span>
+              </div>
             ))}
           </HealthCard>
         </div>

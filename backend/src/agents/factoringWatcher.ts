@@ -30,6 +30,7 @@ import { deterministicIdempotencyKey } from '../chain/txs.js';
 import { bus } from '../events.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 const TICK_MS = Number(process.env.FACTORING_WATCHER_TICK_MS ?? 60_000);
 const MAX_SETTLE_ATTEMPTS = 5;
@@ -204,6 +205,7 @@ export function startFactoringWatcher(): () => void {
     return () => {};
   }
   const id = setInterval(() => {
+    recordHeartbeat('factoringWatcher');
     tick().catch((err) =>
       logger.error(
         { err: (err as Error).message },

@@ -4,6 +4,7 @@ import { usdc as USDC_ADDR } from './contracts.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 // USDC on Arc is exposed both as a 6-decimal ERC-20 and an 18-decimal native
 // asset. Transfer events emit at 6 decimals on the ERC-20 surface, which is
@@ -219,6 +220,7 @@ export function startBalanceWatcher(): () => void {
   // then settle into the regular cadence.
   void tick();
   pollTimer = setInterval(() => {
+    recordHeartbeat('balanceWatcher');
     void tick();
   }, POLL_INTERVAL_MS);
   logger.info(

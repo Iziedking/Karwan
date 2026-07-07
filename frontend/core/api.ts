@@ -1329,6 +1329,23 @@ export const api = {
       funds: Array<{ label: string; address: string; balanceUsdc: string | null; ok: boolean; detail?: string }>;
       infrastructure: Array<{ label: string; ok: boolean; detail?: string }>;
       features: Array<{ label: string; on: boolean }>;
+      watchers: Array<{
+        name: string;
+        label: string;
+        enabled: boolean;
+        status: 'healthy' | 'stalled' | 'missing' | 'dormant';
+        lastRunAt: number | null;
+        ageMs: number | null;
+        runs: number;
+      }>;
+      crons: Array<{
+        name: string;
+        label: string;
+        schedule: string;
+        lastRunDate: string | null;
+        status: 'fresh' | 'stale' | 'unknown';
+        detail?: string;
+      }>;
     }>('/api/admin/health', { headers: adminHeaders() }),
   adminAgentSeedStatus: (address: string) =>
     json<{

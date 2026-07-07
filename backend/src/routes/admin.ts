@@ -34,6 +34,7 @@ import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { pingAssistantProviders } from './assistant.js';
+import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { db, pgEnabled } from '../db/client.js';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -218,6 +219,13 @@ adminRoutes.get('/health', async (c) => {
     .every((i) => i.ok);
   const overall: 'healthy' | 'degraded' = modelOk && coreInfraOk ? 'healthy' : 'degraded';
 
+  // Background jobs: the in-process watchers (liveness from their tick
+  // heartbeats) and the VPS host crons (freshness from the state files each
+  // writes). This is the part the dependency checks above can't see: a watcher
+  // that crashed at boot or a cron that silently stopped firing.
+  const watchers = watcherHealth();
+  const crons = cronHealth();
+
   return c.json({
     checkedAt,
     overall,
@@ -225,6 +233,8 @@ adminRoutes.get('/health', async (c) => {
     funds,
     infrastructure,
     features,
+    watchers,
+    crons,
   });
 });
 

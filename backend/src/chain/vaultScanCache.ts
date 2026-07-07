@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { publicClient } from './client.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { recordHeartbeat } from '../ops/heartbeats.js';
 
 /// Shared in-memory cache of every KarwanVault position, refreshed by a
 /// periodic background scan and served by `GET /api/vault/positions`. Before
@@ -277,6 +278,7 @@ export function startVaultScanWatcher(): () => void {
     logger.warn({ err: (err as Error).message }, 'vault scan: initial refresh failed'),
   );
   const timer = setInterval(() => {
+    recordHeartbeat('vaultScanCache');
     void refreshVaultScan().catch((err) =>
       logger.warn({ err: (err as Error).message }, 'vault scan: periodic refresh failed'),
     );
