@@ -297,7 +297,6 @@ function MarketCard({
   copy: Messages['listingsBrowse']['card'];
   variant?: CardVariant;
 }) {
-  const sideTone = card.side === 'offer' ? '#0a7553' : '#b25425';
   const isSummary = variant === 'summary';
   const isHiring = variant === 'hiring';
   const statusLabel = isHiring
@@ -309,7 +308,9 @@ function MarketCard({
         : card.side === 'offer'
           ? copy.statusOffer
           : copy.statusRequest;
-  const statusTone = isHiring ? '#1b3a5b' : isSummary ? '#6b6b6b' : card.matched ? 'var(--lp-accent)' : sideTone;
+  // One accent per view: lime marks a matched card; every other state stays
+  // neutral, since the label text already says offer / request / hiring / deal.
+  const statusTone = card.matched ? 'var(--lp-accent)' : 'var(--lp-text-muted)';
 
   const cardStyle = {
     background: 'var(--lp-card)',
