@@ -113,6 +113,12 @@ async function recordSubmission(
   const now = Date.now();
   await upsertProfile({
     ...existing,
+    // Registering a business puts the account on the SME rail (business home,
+    // nav, tours, profile) immediately: accountKind is the rail and follows the
+    // act of registering. accountType (finance-lane access) flips on approval.
+    // Without this, a registered business kept accountKind 'person' and every
+    // accountKind-gated surface rendered it as an individual.
+    accountKind: 'business' as const,
     ...(autoApprove ? { accountType: 'business' as const } : {}),
     smeProfile: {
       ...(existing.smeProfile ?? {}),
@@ -440,6 +446,7 @@ businessAdminRoutes.post('/review', async (c) => {
       await upsertProfile({
         ...profile,
         accountType: 'business',
+        accountKind: 'business',
         business: {
           ...(profile.business ?? { status: 'submitted' }),
           status: 'verified',

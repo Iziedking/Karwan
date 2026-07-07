@@ -22,7 +22,7 @@
 
 import { formatUnits } from 'viem';
 import { publicClient } from '../chain/client.js';
-import { getProfile, upsertProfile } from '../db/profiles.js';
+import { getProfile, upsertProfile, listProfiles } from '../db/profiles.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { financierEligibility, isApprovedFinancier } from '../profile/financier.js';
@@ -223,10 +223,31 @@ async function verifyBusinessCmd(address: string): Promise<boolean> {
   await upsertProfile({
     ...p,
     accountType: 'business',
+    // accountKind is the SME rail (business home, nav, tours, profile). Without
+    // it, accountKind-gated surfaces render a verified business as an individual.
+    accountKind: 'business',
     business: { ...(p.business ?? { status: 'none' }), status: 'verified', verifiedAt: Date.now() },
   });
   console.log(`   ${short(addr)}: verified business`);
   return true;
+}
+
+/// Backfill: set accountKind='business' on any profile that is already a
+/// business by accountType or business.status but predates accountKind sync, so
+/// the SME rail (business home, nav, tours, profile) shows for existing
+/// businesses without re-registering. Idempotent.
+async function backfillAccountKindCmd(): Promise<void> {
+  const profiles = await listProfiles();
+  let fixed = 0;
+  for (const p of profiles) {
+    const isBiz = p.accountType === 'business' || (p.business && p.business.status !== 'none');
+    if (isBiz && p.accountKind !== 'business') {
+      await upsertProfile({ ...p, accountKind: 'business' });
+      console.log(`   ${short(p.address)}: accountKind -> business`);
+      fixed += 1;
+    }
+  }
+  console.log(`done. ${fixed} profile(s) backfilled to accountKind=business.`);
 }
 
 /// Operator fast-track: grant financier access. Mirrors the approved grant the
@@ -290,10 +311,14 @@ async function main(): Promise<void> {
       console.log('done. run the board to confirm.');
       break;
     }
+    case 'backfill-account-kind':
+      await backfillAccountKindCmd();
+      break;
     default:
       console.log(
         `unknown command "${cmd}". try: board | status <addr...> | deal <jobId> | ` +
-          `verify-business <addr> | approve-financier <addr> | setup <supplier> <buyer> <financier>`,
+          `verify-business <addr> | approve-financier <addr> | setup <supplier> <buyer> <financier> | ` +
+          `backfill-account-kind`,
       );
   }
 }
