@@ -76,6 +76,9 @@ export function SmeCompanyBand({
   const [registrationId, setRegistrationId] = useState('');
   const [primaryMarkets, setPrimaryMarkets] = useState('');
   const [annualVolumeBand, setAnnualVolumeBand] = useState<VolumeBand | ''>('');
+  const [minOrderValue, setMinOrderValue] = useState('');
+  const [leadTimeDays, setLeadTimeDays] = useState<number | ''>('');
+  const [certifications, setCertifications] = useState('');
   const [verifiedAt, setVerifiedAt] = useState<number | null>(null);
   const [repayment, setRepayment] = useState<{
     windowDealCount: number;
@@ -100,6 +103,9 @@ export function SmeCompanyBand({
           setRegistrationId(r.smeProfile.registrationId ?? '');
           setPrimaryMarkets(r.smeProfile.primaryMarkets ?? '');
           setAnnualVolumeBand((r.smeProfile.annualVolumeBand as VolumeBand) ?? '');
+          setMinOrderValue(r.smeProfile.minOrderValue ?? '');
+          setLeadTimeDays(r.smeProfile.leadTimeDays ?? '');
+          setCertifications(r.smeProfile.certifications ?? '');
           setVerifiedAt(r.smeProfile.verifiedAt ?? null);
         }
         // Seed the name from the account display name when the structured company
@@ -152,6 +158,9 @@ export function SmeCompanyBand({
           registrationId: registrationId.trim() || undefined,
           primaryMarkets: primaryMarkets.trim() || undefined,
           annualVolumeBand: annualVolumeBand || undefined,
+          minOrderValue: minOrderValue.trim() || undefined,
+          leadTimeDays: typeof leadTimeDays === 'number' ? leadTimeDays : undefined,
+          certifications: certifications.trim() || undefined,
         },
       });
       setEditing(false);
@@ -171,7 +180,10 @@ export function SmeCompanyBand({
     websiteUrl ||
     registrationId ||
     primaryMarkets ||
-    annualVolumeBand;
+    annualVolumeBand ||
+    minOrderValue ||
+    leadTimeDays ||
+    certifications;
 
   if (!loaded) {
     return (
@@ -239,6 +251,12 @@ export function SmeCompanyBand({
                 setPrimaryMarkets={setPrimaryMarkets}
                 annualVolumeBand={annualVolumeBand}
                 setAnnualVolumeBand={setAnnualVolumeBand}
+                minOrderValue={minOrderValue}
+                setMinOrderValue={setMinOrderValue}
+                leadTimeDays={leadTimeDays}
+                setLeadTimeDays={setLeadTimeDays}
+                certifications={certifications}
+                setCertifications={setCertifications}
                 disabled={saving}
               />
             ) : hasAny ? (
@@ -252,6 +270,9 @@ export function SmeCompanyBand({
                 registrationId={registrationId}
                 primaryMarkets={primaryMarkets}
                 annualVolumeBand={annualVolumeBand}
+                minOrderValue={minOrderValue}
+                leadTimeDays={leadTimeDays}
+                certifications={certifications}
               />
             ) : (
               <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
@@ -336,6 +357,9 @@ function SmeViewRows(props: {
   registrationId: string;
   primaryMarkets: string;
   annualVolumeBand: string;
+  minOrderValue: string;
+  leadTimeDays: number | '';
+  certifications: string;
 }) {
   const volumeLabel =
     VOLUME_BAND_OPTIONS.find((o) => o.value === props.annualVolumeBand)?.label ?? '';
@@ -355,6 +379,15 @@ function SmeViewRows(props: {
         <ViewRow label="Markets" value={props.primaryMarkets} />
       ) : null}
       {volumeLabel ? <ViewRow label="Annual volume" value={volumeLabel} /> : null}
+      {props.minOrderValue ? (
+        <ViewRow label="Min order" value={props.minOrderValue} />
+      ) : null}
+      {props.leadTimeDays ? (
+        <ViewRow label="Lead time" value={`${props.leadTimeDays} days`} />
+      ) : null}
+      {props.certifications ? (
+        <ViewRow label="Certifications" value={props.certifications} />
+      ) : null}
       {props.websiteUrl ? (
         <ViewRow
           label="Website"
@@ -419,6 +452,12 @@ function SmeEditGrid(props: {
   setPrimaryMarkets: (v: string) => void;
   annualVolumeBand: VolumeBand | '';
   setAnnualVolumeBand: (v: VolumeBand | '') => void;
+  minOrderValue: string;
+  setMinOrderValue: (v: string) => void;
+  leadTimeDays: number | '';
+  setLeadTimeDays: (v: number | '') => void;
+  certifications: string;
+  setCertifications: (v: string) => void;
   disabled?: boolean;
 }) {
   return (
@@ -536,6 +575,42 @@ function SmeEditGrid(props: {
             </option>
           ))}
         </select>
+      </EditField>
+      <EditField label="Min order">
+        <input
+          type="text"
+          value={props.minOrderValue}
+          disabled={props.disabled}
+          onChange={(e) => props.setMinOrderValue(e.target.value)}
+          placeholder="e.g. 500 units, or $5k"
+          maxLength={60}
+          className="form-input"
+        />
+      </EditField>
+      <EditField label="Lead time (days)">
+        <input
+          type="number"
+          min={0}
+          max={3650}
+          value={props.leadTimeDays}
+          disabled={props.disabled}
+          onChange={(e) =>
+            props.setLeadTimeDays(e.target.value === '' ? '' : Number(e.target.value))
+          }
+          placeholder="e.g. 21"
+          className="form-input"
+        />
+      </EditField>
+      <EditField label="Certifications">
+        <input
+          type="text"
+          value={props.certifications}
+          disabled={props.disabled}
+          onChange={(e) => props.setCertifications(e.target.value)}
+          placeholder="e.g. ISO 9001, GOTS"
+          maxLength={200}
+          className="form-input"
+        />
       </EditField>
     </div>
   );

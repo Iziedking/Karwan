@@ -56,6 +56,10 @@ const smeProfileBodySchema = z.object({
     annualVolumeBand: z
       .enum(['under_100k', '100k_1m', '1m_10m', 'over_10m'])
       .optional(),
+    // Supplier capability signals for partner discovery + underwriting.
+    minOrderValue: z.string().max(60).optional(),
+    leadTimeDays: z.number().int().min(0).max(3650).optional(),
+    certifications: z.string().max(200).optional(),
   }),
 });
 

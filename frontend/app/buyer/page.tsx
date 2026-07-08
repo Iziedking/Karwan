@@ -1,8 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
@@ -41,6 +44,8 @@ function BuyerPageInner() {
   const auth = useAuth();
   const address = auth.address;
   const { agents, activated } = useActivation();
+  const { profile } = useUserProfile();
+  const isBusiness = isBusinessAccount(profile);
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const bh = useTranslations().buyerHub;
@@ -105,6 +110,14 @@ function BuyerPageInner() {
               >
                 {bh.hero.openDealCta}
               </a>
+              {isBusiness && (
+                <Link
+                  href="/partners"
+                  className="mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-accent)] hover:underline"
+                >
+                  Find partners →
+                </Link>
+              )}
               {address && (
                 <span className="ms-1">
                   <AddressPill address={shortAddress(address)} tone="dark" />

@@ -2586,6 +2586,9 @@ export const api = {
         registrationId?: string;
         primaryMarkets?: string;
         annualVolumeBand?: string;
+        minOrderValue?: string;
+        leadTimeDays?: number;
+        certifications?: string;
         verifiedAt?: number;
       } | null;
       repaymentBehavior: {
@@ -2612,12 +2615,26 @@ export const api = {
       registrationId?: string;
       primaryMarkets?: string;
       annualVolumeBand?: 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
+      minOrderValue?: string;
+      leadTimeDays?: number;
+      certifications?: string;
     };
   }) =>
     json<{ smeProfile: NonNullable<UserProfile['smeProfile']> | undefined }>(
       '/api/sme/profile',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  // B2B partner discovery: businesses on the SME rail, filterable by sourcing
+  // sector + region. A directory of companies (their trade card), distinct from
+  // the P2P listings feed.
+  getPartners: (params?: { sector?: string; region?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.sector) q.set('sector', params.sector);
+    if (params?.region) q.set('region', params.region);
+    const qs = q.toString();
+    return json<{ partners: Partner[] }>(`/api/partners${qs ? `?${qs}` : ''}`);
+  },
 
   // Recent events for a job (public, durable ring snapshot). Used to seed the
   // live x402 agent-payments panel before SSE takes over.
@@ -2759,6 +2776,19 @@ export interface BusinessRegisterBody {
   docKind?: 'registration' | 'tax' | 'other';
   label?: string;
   txHash?: string;
+}
+
+export interface Partner {
+  address: string;
+  name: string;
+  sector: string | null;
+  region: string | null;
+  primaryMarkets: string | null;
+  minOrderValue: string | null;
+  leadTimeDays: number | null;
+  certifications: string | null;
+  verified: boolean;
+  canSupply: boolean;
 }
 
 export interface ChatMessage {

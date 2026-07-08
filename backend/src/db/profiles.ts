@@ -92,6 +92,15 @@ export interface UserProfile {
     primaryMarkets?: string;
     /// Annual trade-volume band, what financiers size exposure against.
     annualVolumeBand?: 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
+    /// Supplier capability signals for B2B partner discovery + underwriting.
+    /// Free-text and optional; not match gates (sector + region do the matching),
+    /// but they shape the partner card and give a counterparty/financier context.
+    /// Minimum order the supplier accepts (e.g. "500 units", "$5k").
+    minOrderValue?: string;
+    /// Typical lead time to fulfil, in days.
+    leadTimeDays?: number;
+    /// Certifications / standards held (e.g. "ISO 9001, GOTS").
+    certifications?: string;
     /// AES-encrypted blob; the encryption key lives off-DB. Never returned
     /// from public routes.
     taxIdEncrypted?: string;
