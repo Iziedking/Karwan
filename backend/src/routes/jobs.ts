@@ -242,6 +242,10 @@ jobsRoutes.get('/:jobId', async (c) => {
     return c.json({ jobId, isParty: false, status });
   }
 
+  // Private per-party payload: never let a shared cache or the mobile bfcache
+  // hand this to the next viewer on the device. Forces a fresh authenticated
+  // fetch on every load / back-restore.
+  c.header('Cache-Control', 'no-store');
   // Merge the off-chain brief metadata (human-readable text, negotiation
   // ceiling) into the response so the job page can render it inline. The
   // on-chain snapshot only carries the termsHash for integrity.

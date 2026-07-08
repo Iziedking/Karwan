@@ -749,6 +749,9 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   if (!isParty) {
     return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
   }
+  // Private per-party payload: keep it out of shared caches and the mobile
+  // bfcache so the next viewer on the device never sees a stale render.
+  c.header('Cache-Control', 'no-store');
   const enriched = await enrich(deal);
   // Hold a suspicious/malicious delivery link back from the BUYER until it's
   // cleared. The seller (who submitted it) always sees their own proof. The
