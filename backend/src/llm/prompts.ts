@@ -38,6 +38,12 @@ export interface JobContext {
   /// both sides. Absent reads as 'service'. Matching filters on this so the two
   /// lanes never cross.
   tradeLane?: 'service' | 'finance';
+  /// Sourcing profile from a B2B brief: the KIND of supplier and WHERE the buyer
+  /// wants to source. NOT a named counterparty — the agent finds the partner.
+  /// Used as first-class match signals (sector exact, region substring) that
+  /// boost a bidding seller whose business profile fits. Absent on service/P2P.
+  sourcingSector?: string;
+  sourcingRegion?: string;
 }
 
 export interface BidContext {

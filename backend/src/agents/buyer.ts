@@ -194,6 +194,32 @@ function matchBand(bid: Bid): number {
   return Math.min(Math.floor(bid.topicalMatch / MATCH_BAND_SIZE), topBand);
 }
 
+/// B2B sourcing fit. A goods/mixed brief carries the KIND of supplier and WHERE
+/// the buyer wants to source (context.sourcingSector / sourcingRegion — set from
+/// the trade context, never a named counterparty). We match those against the
+/// bidding seller's business profile and fold the result into the topical match,
+/// so a real sector fit lifts a partner up a match band on top of keyword
+/// coverage. Sector is an exact match (a controlled list); region is a
+/// case-insensitive substring against the seller's region + primary markets, so
+/// "dubai" hits a seller whose markets read "MEASA, Dubai". No effect on the
+/// P2P/service lane, which carries no sourcing profile.
+const SECTOR_MATCH_BOOST = 30;
+const REGION_MATCH_BOOST = 12;
+
+function sourcingFitBoost(
+  context: JobContext,
+  sellerSme: { sector?: string; region?: string; primaryMarkets?: string } | undefined,
+): number {
+  if (!sellerSme) return 0;
+  const wantSector = context.sourcingSector?.trim().toLowerCase();
+  const sectorMatch =
+    !!wantSector && (sellerSme.sector?.trim().toLowerCase() ?? '') === wantSector;
+  const wantRegion = context.sourcingRegion?.trim().toLowerCase();
+  const hay = `${sellerSme.region ?? ''} ${sellerSme.primaryMarkets ?? ''}`.toLowerCase();
+  const regionMatch = !!wantRegion && wantRegion.length >= 2 && hay.includes(wantRegion);
+  return (sectorMatch ? SECTOR_MATCH_BOOST : 0) + (regionMatch ? REGION_MATCH_BOOST : 0);
+}
+
 interface JobState {
   jobId: `0x${string}`;
   // The buyer profile of the user whose buyer agent posted this job. Carried on
@@ -529,6 +555,8 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
       milestonePcts: brief?.milestonePcts,
       trustedMatch: brief?.trustedMatch === true,
       tradeLane: brief?.tradeLane ?? 'service',
+      sourcingSector: brief?.counterpartyCompany?.sector,
+      sourcingRegion: brief?.counterpartyCompany?.region,
     },
     bids: new Map(),
     collectionTimer: null,
@@ -645,6 +673,7 @@ async function handleBidSubmitted(log: Log) {
   // falls back to the masked address.
   let sellerUserAddress: string | undefined;
   let sellerDisplayName: string | undefined;
+  let sellerSme: { sector?: string; region?: string; primaryMarkets?: string } | undefined;
   try {
     const wallet = await findAgentWalletByAgentAddress(args.seller);
     if (wallet?.userAddress) {
@@ -653,9 +682,19 @@ async function handleBidSubmitted(log: Log) {
       if (profile?.displayName?.trim()) {
         sellerDisplayName = profile.displayName.trim();
       }
+      sellerSme = profile?.smeProfile;
     }
   } catch {
-    /* leave both undefined */
+    /* leave all undefined */
+  }
+
+  // B2B partner fit: fold a sourcing sector/region match into the topical score
+  // so a seller whose business fits the brief's sourcing profile ranks up a
+  // band. No-op on the service lane (no sourcing profile) and when the seller
+  // has no SME profile, so P2P ranking is unchanged.
+  const fitBoost = sourcingFitBoost(state.context, sellerSme);
+  if (fitBoost > 0) {
+    topicalMatch = Math.min(100, (topicalMatch ?? 0) + fitBoost);
   }
 
   // Counterparty verification is paid at MATCH time (proposeMatch ->
