@@ -533,6 +533,7 @@ export const sw: Messages = {
         delivery: 'Uwasilishaji',
       },
       daysSuffix: 'siku',
+      editRanges: 'Hariri viwango',
     },
     noProfile: {
       tag: 'BADO HAKUNA WASIFU',

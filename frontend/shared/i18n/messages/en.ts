@@ -518,6 +518,7 @@ interface MessagesShape {
         delivery: string;
       };
       daysSuffix: string;
+      editRanges: string;
     };
     noProfile: {
       tag: string;
@@ -4269,6 +4270,7 @@ export const en: MessagesShape = {
         delivery: 'Delivery',
       },
       daysSuffix: 'days',
+      editRanges: 'Edit ranges',
     },
     noProfile: {
       tag: 'NO PROFILE YET',

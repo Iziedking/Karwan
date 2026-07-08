@@ -533,6 +533,7 @@ export const ar: Messages = {
         delivery: 'التسليم',
       },
       daysSuffix: 'يوم',
+      editRanges: 'تعديل النطاقات',
     },
     noProfile: {
       tag: 'لا يوجد ملف بعد',

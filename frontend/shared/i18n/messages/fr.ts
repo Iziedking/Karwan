@@ -533,6 +533,7 @@ export const fr: Messages = {
         delivery: 'Livraison',
       },
       daysSuffix: 'jours',
+      editRanges: 'Modifier les plages',
     },
     noProfile: {
       tag: 'PAS ENCORE DE PROFIL',

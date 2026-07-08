@@ -533,6 +533,7 @@ export const hi: Messages = {
         delivery: 'डिलीवरी',
       },
       daysSuffix: 'दिन',
+      editRanges: 'रेंज संपादित करें',
     },
     noProfile: {
       tag: 'अभी कोई प्रोफ़ाइल नहीं',

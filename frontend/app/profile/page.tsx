@@ -352,7 +352,16 @@ function ProfilePageInner() {
 
           {(profile.buyer || profile.seller) && (
             <Band tone="light" compact>
-              <SectionTag>{t.agentProfiles.tag}</SectionTag>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <SectionTag>{t.agentProfiles.tag}</SectionTag>
+                {/* The ranges editor is the same for a business and an individual.
+                    A business's hero EDIT DETAILS opens the company trade card, so
+                    this is the entry point that reaches the agent ranges for them
+                    (and a handy second one for individuals). */}
+                <CTAPill href="/profile/edit" variant="secondary" tone="light">
+                  {t.agentProfiles.editRanges}
+                </CTAPill>
+              </div>
               <HeroHeadline size="md">
                 {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent>
                 <Punc>.</Punc>

@@ -60,11 +60,12 @@ function ProfileEditInner() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // A business account edits its company details on /profile#company, not here.
-  // Send it there so the two surfaces never overlap.
-  useEffect(() => {
-    if (isBusinessAccount(profile)) router.replace('/profile?edit=company');
-  }, [profile, router]);
+  // A business sets its NAME + trade card on /profile?edit=company, so the
+  // display-name field is hidden on this form (below) to keep the two name
+  // surfaces from fighting. But the agent RANGES (budgets, deadlines, skills,
+  // milestones) still live here and are identical for both account kinds, so a
+  // business must be able to reach this editor. No redirect.
+  const isBusiness = isBusinessAccount(profile);
 
   // Prefill from the saved profile once. A signed-in user with no profile has
   // not onboarded yet, so send them to onboarding rather than an empty form.
@@ -96,6 +97,12 @@ function ProfileEditInner() {
 
   const wantsSeller = role === 'seller' || role === 'both';
   const wantsBuyer = role === 'buyer' || role === 'both';
+
+  // Section numbers renumber when the Identity block is hidden (business) so the
+  // list never starts at 02 or skips a number.
+  const showIdentity = !isBusiness;
+  const sellerNo = String((showIdentity ? 1 : 0) + 1).padStart(2, '0');
+  const buyerNo = String((showIdentity ? 1 : 0) + (wantsSeller ? 2 : 1)).padStart(2, '0');
 
   const canSave = (() => {
     if (saving || !displayName.trim()) return false;
@@ -174,19 +181,21 @@ function ProfileEditInner() {
         <div className="max-w-3xl mx-auto space-y-6 fade-up">
           <RoleSelector role={role} onChange={setRole} disabled={saving} />
 
-          <Section number="01" title="Identity">
-            <FieldLabel label="Display name">
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={40}
-                className={INPUT_CLS}
-              />
-            </FieldLabel>
-          </Section>
+          {showIdentity && (
+            <Section number="01" title="Identity">
+              <FieldLabel label="Display name">
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={40}
+                  className={INPUT_CLS}
+                />
+              </FieldLabel>
+            </Section>
+          )}
 
           {wantsSeller && (
-            <Section number="02" title="As a seller">
+            <Section number={sellerNo} title="As a seller">
               <FieldLabel label="Skills (comma separated)">
                 <input value={skills} onChange={(e) => setSkills(e.target.value)} className={INPUT_CLS} />
               </FieldLabel>
@@ -203,7 +212,7 @@ function ProfileEditInner() {
           )}
 
           {wantsBuyer && (
-            <Section number={role === 'both' ? '03' : '02'} title="As a buyer">
+            <Section number={buyerNo} title="As a buyer">
               <div className="grid grid-cols-2 gap-3">
                 <NumberField label="Max budget (USDC)" value={buyerMax} onChange={setBuyerMax} />
                 <NumberField label="Min days" value={buyerMinDays} onChange={setBuyerMinDays} />
