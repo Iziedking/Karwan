@@ -79,6 +79,7 @@ export function SmeCompanyBand({
   const [minOrderValue, setMinOrderValue] = useState('');
   const [leadTimeDays, setLeadTimeDays] = useState<number | ''>('');
   const [certifications, setCertifications] = useState('');
+  const [hideFromDiscovery, setHideFromDiscovery] = useState(false);
   const [verifiedAt, setVerifiedAt] = useState<number | null>(null);
   const [repayment, setRepayment] = useState<{
     windowDealCount: number;
@@ -106,6 +107,7 @@ export function SmeCompanyBand({
           setMinOrderValue(r.smeProfile.minOrderValue ?? '');
           setLeadTimeDays(r.smeProfile.leadTimeDays ?? '');
           setCertifications(r.smeProfile.certifications ?? '');
+          setHideFromDiscovery(r.smeProfile.hideFromDiscovery ?? false);
           setVerifiedAt(r.smeProfile.verifiedAt ?? null);
         }
         // Seed the name from the account display name when the structured company
@@ -161,6 +163,7 @@ export function SmeCompanyBand({
           minOrderValue: minOrderValue.trim() || undefined,
           leadTimeDays: typeof leadTimeDays === 'number' ? leadTimeDays : undefined,
           certifications: certifications.trim() || undefined,
+          hideFromDiscovery,
         },
       });
       setEditing(false);
@@ -280,6 +283,26 @@ export function SmeCompanyBand({
                 region before they fund.
               </p>
             )}
+            {editing ? (
+              <label className="flex items-start gap-3 pt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!hideFromDiscovery}
+                  disabled={saving}
+                  onChange={(e) => setHideFromDiscovery(!e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+                />
+                <span className="min-w-0">
+                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
+                    List in partner discovery
+                  </span>
+                  <span className="mt-1 block text-[12px] leading-snug text-[var(--lp-text-sub)]">
+                    Let other businesses find you by sector and region. You can
+                    still post, bid, and deal with this off.
+                  </span>
+                </span>
+              </label>
+            ) : null}
             {editing ? (
               <div className="flex items-center gap-2 pt-2">
                 <button

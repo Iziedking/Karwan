@@ -575,6 +575,10 @@ function SmePassportBand({
             <dl className="space-y-2">
               {p!.sector ? <PassportRow label="Sector" value={p!.sector} capitalize /> : null}
               {p!.region ? <PassportRow label="Region" value={p!.region} /> : null}
+              {p!.primaryMarkets ? <PassportRow label="Markets" value={p!.primaryMarkets} /> : null}
+              {p!.minOrderValue ? <PassportRow label="Min order" value={p!.minOrderValue} /> : null}
+              {p!.leadTimeDays ? <PassportRow label="Lead time" value={`${p!.leadTimeDays} days`} /> : null}
+              {p!.certifications ? <PassportRow label="Certifications" value={p!.certifications} /> : null}
               {p!.yearFounded ? <PassportRow label="Founded" value={String(p!.yearFounded)} /> : null}
               {p!.employeeBand ? <PassportRow label="Size" value={p!.employeeBand} capitalize /> : null}
               {p!.websiteUrl ? (

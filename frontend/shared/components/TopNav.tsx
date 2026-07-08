@@ -128,6 +128,15 @@ export function TopNav() {
             <NavLink href={biz ? '/buyer' : '/p2p'} active={tradesActive}>
               {biz ? 'B2B Trades' : t.nav.trades}
             </NavLink>
+            {biz && (
+              <NavLink
+                href="/partners"
+                active={pathname.startsWith('/partners')}
+                title="Find businesses to trade with, by sector and region"
+              >
+                Partners
+              </NavLink>
+            )}
             <NavLink
               href="/market"
               active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
@@ -247,6 +256,11 @@ export function TopNav() {
             >
               {biz ? 'B2B Trades' : t.nav.trades}
             </MobileNavLink>
+            {biz && (
+              <MobileNavLink href="/partners" active={pathname.startsWith('/partners')}>
+                Partners
+              </MobileNavLink>
+            )}
             <div className="my-1.5 border-t border-[var(--color-line)]" />
             <MobileNavLink
               href="/market"

@@ -60,6 +60,8 @@ const smeProfileBodySchema = z.object({
     minOrderValue: z.string().max(60).optional(),
     leadTimeDays: z.number().int().min(0).max(3650).optional(),
     certifications: z.string().max(200).optional(),
+    // Opt out of the partner directory without leaving the SME rail.
+    hideFromDiscovery: z.boolean().optional(),
   }),
 });
 

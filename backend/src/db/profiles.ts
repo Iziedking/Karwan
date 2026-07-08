@@ -101,6 +101,10 @@ export interface UserProfile {
     leadTimeDays?: number;
     /// Certifications / standards held (e.g. "ISO 9001, GOTS").
     certifications?: string;
+    /// Opt out of the partner directory (/api/partners). The business stays
+    /// fully usable (posts, bids, deals); it just won't be listed for other
+    /// businesses to browse. Absent/false = discoverable (the default).
+    hideFromDiscovery?: boolean;
     /// AES-encrypted blob; the encryption key lives off-DB. Never returned
     /// from public routes.
     taxIdEncrypted?: string;

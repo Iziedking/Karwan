@@ -217,6 +217,10 @@ export interface UserProfile {
     registrationId?: string;
     primaryMarkets?: string;
     annualVolumeBand?: 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
+    minOrderValue?: string;
+    leadTimeDays?: number;
+    certifications?: string;
+    hideFromDiscovery?: boolean;
     verifiedAt?: number;
     repaymentBehavior?: {
       windowDealCount: number;
@@ -2589,6 +2593,7 @@ export const api = {
         minOrderValue?: string;
         leadTimeDays?: number;
         certifications?: string;
+        hideFromDiscovery?: boolean;
         verifiedAt?: number;
       } | null;
       repaymentBehavior: {
@@ -2618,6 +2623,7 @@ export const api = {
       minOrderValue?: string;
       leadTimeDays?: number;
       certifications?: string;
+      hideFromDiscovery?: boolean;
     };
   }) =>
     json<{ smeProfile: NonNullable<UserProfile['smeProfile']> | undefined }>(

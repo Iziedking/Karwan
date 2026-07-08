@@ -40,6 +40,7 @@ import { maybeRaiseNearMiss } from './nearMiss.js';
 import { topicalOverlap, extractKeywords, judgeRelevance } from '../llm/keywords.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
+import { getProfile } from '../db/profiles.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
 import { type PaidPassportSignal } from '../x402/buyerClient.js';
 import { config } from '../config.js';
@@ -352,6 +353,8 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
     keywords: briefKeywords,
     trustedMatch: brief?.trustedMatch === true,
     tradeLane: brief?.tradeLane ?? 'service',
+    sourcingSector: brief?.counterpartyCompany?.sector,
+    sourcingRegion: brief?.counterpartyCompany?.region,
   };
 
   // Read the buyer's deterministic signals once and share across every seller
@@ -618,6 +621,42 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   const briefTags = job.keywords ?? [];
   const sellerTags = [...(seller.keywords ?? []), ...(seller.skills ?? [])];
   if (briefTags.length > 0 && sellerTags.length > 0 && topicalOverlap(briefTags, sellerTags) === 0) {
+    // B2B sector fit is a strong relevance signal on its own: a supplier in the
+    // brief's sourcing sector is a real partner even when the free-text tokens
+    // don't overlap ("500kg shea butter" vs a seller tagged "agriculture, bulk
+    // commodities"). When the sector fits, skip the LLM bridge and proceed.
+    let sectorFit = false;
+    if (job.sourcingSector) {
+      try {
+        const ownerWallet = await findAgentWalletByAgentAddress(seller.address);
+        const ownerSector = ownerWallet
+          ? (await getProfile(ownerWallet.userAddress))?.smeProfile?.sector
+          : undefined;
+        sectorFit =
+          !!ownerSector && ownerSector.toLowerCase() === job.sourcingSector.toLowerCase();
+      } catch {
+        /* leave false; fall through to the LLM relevance bridge */
+      }
+    }
+    if (sectorFit) {
+      logger.info(
+        { jobId: job.jobId, seller: seller.address, sourcingSector: job.sourcingSector },
+        'zero keyword overlap but sourcing sector fits; proceeding',
+      );
+      bus.emitEvent({
+        type: 'agent.decision',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: {
+          seller: seller.address,
+          stage: 'relevance',
+          decision: 'sector-fit',
+          source: 'deterministic',
+          detail: `Sourcing sector "${job.sourcingSector}" matches this seller's sector; bidding despite no keyword overlap.`,
+          signals: { sourcingSector: job.sourcingSector },
+        },
+      });
+    } else {
     const judgement = await judgeRelevance({
       briefText: job.briefText,
       briefTags,
@@ -663,6 +702,7 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
         signals: { confidence: judgement.confidence, briefTags, sellerTags },
       },
     });
+    }
   }
 
   // Trusted Match: filter sellers whose stake can't cover the worst-case

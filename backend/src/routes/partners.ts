@@ -29,9 +29,16 @@ partnersRoutes.get('/', async (c) => {
 
   const all = await listProfiles();
   const partners = all
-    // A discoverable partner is a business with a filled company card. Exclude
-    // the caller's own company so a buyer never matches themselves.
-    .filter((p) => isBusinessProfile(p) && p.smeProfile && p.address !== self)
+    // A discoverable partner is a business with a filled company card that has
+    // not opted out. Exclude the caller's own company so a buyer never matches
+    // themselves.
+    .filter(
+      (p) =>
+        isBusinessProfile(p) &&
+        p.smeProfile &&
+        !p.smeProfile.hideFromDiscovery &&
+        p.address !== self,
+    )
     .filter((p) => !sector || (p.smeProfile?.sector ?? '').toLowerCase() === sector)
     .filter((p) => {
       if (!region) return true;
