@@ -481,6 +481,7 @@ export const sw: Messages = {
       publicPassport: 'Pasipoti ya umma ↗',
       updatedPrefix: 'Imesasishwa',
       editDetailsCta: 'Hariri maelezo',
+      editCompanyCta: 'Hariri kampuni',
       setUpProfileCta: 'Anzisha wasifu',
     },
     agentStatus: {

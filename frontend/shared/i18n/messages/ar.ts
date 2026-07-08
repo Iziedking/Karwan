@@ -481,6 +481,7 @@ export const ar: Messages = {
       publicPassport: 'جواز السمعة العام ↗',
       updatedPrefix: 'آخر تحديث',
       editDetailsCta: 'تعديل البيانات',
+      editCompanyCta: 'تعديل الشركة',
       setUpProfileCta: 'إعداد الملف',
     },
     agentStatus: {

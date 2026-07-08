@@ -481,6 +481,7 @@ export const hi: Messages = {
       publicPassport: 'सार्वजनिक पासपोर्ट ↗',
       updatedPrefix: 'अपडेट किया',
       editDetailsCta: 'विवरण संपादित करें',
+      editCompanyCta: 'कंपनी संपादित करें',
       setUpProfileCta: 'प्रोफ़ाइल सेट करें',
     },
     agentStatus: {

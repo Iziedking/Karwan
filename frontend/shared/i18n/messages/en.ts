@@ -466,6 +466,7 @@ interface MessagesShape {
       publicPassport: string;
       updatedPrefix: string;
       editDetailsCta: string;
+      editCompanyCta: string;
       setUpProfileCta: string;
     };
     agentStatus: {
@@ -4218,6 +4219,7 @@ export const en: MessagesShape = {
       publicPassport: 'Public passport ↗',
       updatedPrefix: 'Updated',
       editDetailsCta: 'Edit details',
+      editCompanyCta: 'Edit company',
       setUpProfileCta: 'Set up profile',
     },
     agentStatus: {

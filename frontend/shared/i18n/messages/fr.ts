@@ -481,6 +481,7 @@ export const fr: Messages = {
       publicPassport: 'Passeport public ↗',
       updatedPrefix: 'Mis à jour le',
       editDetailsCta: 'Modifier les détails',
+      editCompanyCta: 'Modifier la société',
       setUpProfileCta: 'Configurer le profil',
     },
     agentStatus: {

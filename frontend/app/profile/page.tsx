@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -153,11 +154,12 @@ function ProfilePageInner() {
   const heroDisplay = heroTitle.length > 28 ? `${heroTitle.slice(0, 28).trimEnd()}…` : heroTitle;
   const bizSector = isBusiness ? profile?.smeProfile?.sector : undefined;
   const bizRegion = isBusiness ? profile?.smeProfile?.region?.trim() : undefined;
-  // A business edits its structured company details (the TRADE CARD), not the
-  // individual display-name onboarding flow. ?edit=company makes the company
-  // band open in edit mode and scroll to itself, so the button lands on an
-  // editable form instead of just bouncing to the read-only card.
-  const editHref = isBusiness ? '/profile?edit=company' : '/profile/edit';
+  // Everyone's primary EDIT DETAILS opens the same flow: the profile editor with
+  // the agent ranges (budgets, deadlines, skills, milestones). A business gets a
+  // second, lighter action to edit its company trade card (name, sector, region),
+  // which ?edit=company opens in place. The individual editor hides the display-
+  // name field for a business, so the two name surfaces never overlap.
+  const editHref = '/profile/edit';
 
   return (
     <FullBleed>
@@ -219,9 +221,22 @@ function ProfilePageInner() {
             </div>
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {profile ? (
-                <CTAPill href={editHref} variant="secondary" tone="dark">
-                  {t.hero.editDetailsCta}
-                </CTAPill>
+                <>
+                  <CTAPill href={editHref} variant="secondary" tone="dark">
+                    {t.hero.editDetailsCta}
+                  </CTAPill>
+                  {/* Company trade card is the business's second edit surface;
+                      ?edit=company opens the band in edit mode and scrolls to it. */}
+                  {isBusiness && (
+                    <Link
+                      href="/profile?edit=company"
+                      scroll={false}
+                      className="mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+                    >
+                      {t.hero.editCompanyCta}
+                    </Link>
+                  )}
+                </>
               ) : (
                 <CTAPill href="/onboarding">{t.hero.setUpProfileCta}</CTAPill>
               )}
