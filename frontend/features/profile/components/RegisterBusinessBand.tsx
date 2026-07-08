@@ -52,6 +52,11 @@ export function RegisterBusinessBand({ address }: { address: string }) {
   const [status, setStatus] = useState<Status>('none');
   const [companyName, setCompanyName] = useState('');
   const [editing, setEditing] = useState(false);
+  // Prefer the registry address the backend reports at runtime; fall back to the
+  // build-time env only if the backend didn't send one. This keeps web3
+  // registration working even when the frontend was built without the
+  // NEXT_PUBLIC var (which is what makes the form say "opens at launch").
+  const [registryAddr, setRegistryAddr] = useState<`0x${string}` | ''>(REGISTRY_ADDR);
 
   const [sector, setSector] = useState<Sector | ''>('');
   const [region, setRegion] = useState('');
@@ -70,6 +75,9 @@ export function RegisterBusinessBand({ address }: { address: string }) {
         if (r.company?.companyName) setCompanyName(r.company.companyName);
         if (r.company?.sector) setSector(r.company.sector as Sector);
         if (r.company?.region) setRegion(r.company.region);
+        if (r.registryAddr && /^0x[a-fA-F0-9]{40}$/.test(r.registryAddr)) {
+          setRegistryAddr(r.registryAddr as `0x${string}`);
+        }
       } finally {
         if (!cancelled) setLoaded(true);
       }
@@ -110,11 +118,11 @@ export function RegisterBusinessBand({ address }: { address: string }) {
         await api.registerBusinessCircle(body);
       } else {
         // Web3: sign submitRegistration locally, then record the tx.
-        if (!REGISTRY_ADDR) {
+        if (!registryAddr) {
           throw new Error('Business verification opens at launch.');
         }
         const txHash = await writeContractAsync({
-          address: REGISTRY_ADDR,
+          address: registryAddr,
           abi: REGISTRY_ABI,
           functionName: 'submitRegistration',
           args: [docHash],

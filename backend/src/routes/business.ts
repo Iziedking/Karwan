@@ -368,6 +368,10 @@ businessRoutes.get('/status/:address', async (c) => {
           region: sme.region,
         }
       : null,
+    // Expose the registry address so the web3 register flow reads it at runtime
+    // instead of a build-time NEXT_PUBLIC var (which can ship empty and make the
+    // form wrongly say "opens at launch" even when the contract is deployed).
+    registryAddr: config.KARWAN_BUSINESS_REGISTRY_ADDR ?? null,
   });
 });
 

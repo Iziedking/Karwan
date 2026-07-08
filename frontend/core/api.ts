@@ -2710,6 +2710,11 @@ export const api = {
       status: 'none' | 'submitted' | 'verified' | 'rejected';
       verifiedAt?: number;
       company: { companyName?: string; sector?: string; region?: string } | null;
+      /// On-chain business registry address, read from the backend config at
+      /// runtime. Web3 users sign submitRegistration against it. Sourced here
+      /// (not the build-time NEXT_PUBLIC var) so a frontend built without that
+      /// var still registers whenever the backend has the contract wired.
+      registryAddr?: string | null;
     }>(`/api/business/status/${address}`),
   /// Web3 path: the caller has signed submitRegistration locally and reports
   /// the tx hash. Backend records the company snapshot + the submitted state.
