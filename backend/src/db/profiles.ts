@@ -191,6 +191,30 @@ export async function getProfile(address: string): Promise<UserProfile | null> {
   return loadFile()[key] ?? null;
 }
 
+/// Server-owned fields a client-facing profile save (POST /profile, settings,
+/// X connect) never carries in its body. Several of those routes REBUILD the
+/// profile from the request shape, so without this guard a plain "save my name"
+/// would silently wipe the account's verification state, agent-research credit,
+/// financier grant, contact email, and so on. We restore each only when the
+/// caller OMITTED it (checked with `in`, so an explicit `field: undefined` still
+/// clears it, e.g. disconnecting X or clearing an email).
+const PRESERVE_WHEN_OMITTED = [
+  'research',
+  'business',
+  'financier',
+  'accountType',
+  'accountKind',
+  'smeProfile',
+  'nameEdits',
+  'email',
+  'emailVerified',
+  'emailVerifiedAt',
+  'xHandle',
+  'xUserId',
+  'xProfileImageUrl',
+  'settings',
+] as const;
+
 export async function upsertProfile(
   input: Omit<UserProfile, 'createdAt' | 'updatedAt'>,
 ): Promise<UserProfile> {
@@ -203,6 +227,14 @@ export async function upsertProfile(
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
+  if (existing) {
+    const merged = next as unknown as Record<string, unknown>;
+    for (const f of PRESERVE_WHEN_OMITTED) {
+      if (!(f in input) && existing[f] !== undefined) {
+        merged[f] = existing[f];
+      }
+    }
+  }
   if (pgEnabled) {
     await db()
       .insert(profiles)
