@@ -22,6 +22,14 @@ const MIN_MS = 600; // floor: let the new page's queries start; avoid a flicker
 const MAX_MS = 5000; // cap: never hold longer than this, even on a slow page
 const STALL_MS = 12_000;
 
+/// The top-level section a route belongs to (its first path segment): '/admin',
+/// '/admin/events', '/admin/deals' are all the 'admin' section. Used to tell a
+/// page route (a move BETWEEN sections) from a tab / sub-view switch (a move
+/// WITHIN one). The branded splash is for the former only.
+function sectionOf(path: string): string {
+  return path.split('/').filter(Boolean)[0] ?? '';
+}
+
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
   const isFetching = useIsFetching();
@@ -29,6 +37,7 @@ export function GlobalLoadingSplash() {
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
   const startRef = useRef(0);
+  const prevPathRef = useRef<string | null>(null);
 
   // Publish whether the splash is covering the screen so other root overlays
   // (the Terms gate) can hold until it lifts, instead of popping over the logo.
@@ -36,11 +45,22 @@ export function GlobalLoadingSplash() {
     setSplashActive(active);
   }, [active]);
 
-  // Show on the initial load + every route change (skip landing). Arm the cap
-  // and the stall timers; the data-settled effect below hides it earlier.
+  // Show on the initial load + every PAGE-ROUTE change (skip landing). A switch
+  // within the same section (admin tabs, /deals -> /deals/[id], /profile ->
+  // /profile/edit) is a sub-view, not a page route, so the branded splash stays
+  // down and the section just swaps its content. Arm the cap and stall timers;
+  // the data-settled effect below hides it earlier.
   useEffect(() => {
     if (isLandingRoute(pathname)) {
       setActive(false);
+      prevPathRef.current = pathname;
+      return;
+    }
+    const prev = prevPathRef.current;
+    prevPathRef.current = pathname;
+    // Same-section navigation (and only that; the initial load has prev == null)
+    // never re-arms the splash.
+    if (prev !== null && sectionOf(prev) === sectionOf(pathname)) {
       return;
     }
     setActive(true);
