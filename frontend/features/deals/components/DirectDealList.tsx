@@ -244,6 +244,20 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                   <p className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
                     {shortHash(deal.jobId, 6, 4)}
                   </p>
+                  {((deal.tradeLane ?? 'service') === 'finance' ||
+                    deal.tradeType === 'goods' ||
+                    deal.tradeType === 'mixed') && (
+                    <span
+                      className="inline-flex mono text-[8.5px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                      style={{
+                        background: 'color-mix(in oklab, var(--lp-accent) 20%, transparent)',
+                        color: 'var(--lp-dark)',
+                        borderRadius: 3,
+                      }}
+                    >
+                      {deal.tradeType === 'goods' || deal.tradeType === 'mixed' ? 'Goods' : 'B2B'}
+                    </span>
+                  )}
                 </div>
                 <span
                   aria-hidden

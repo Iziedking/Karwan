@@ -3288,6 +3288,10 @@ export interface BuyerJobSnapshot {
   }>;
   lastCounterPriceBySeller: Record<string, string>;
   counterRoundsBySeller: Record<string, number>;
+  /// B2B lane + trade type so a business can tell trade-finance deals from
+  /// service ones at a glance in its managed-deals list. Absent reads as service.
+  tradeLane?: 'service' | 'finance';
+  tradeType?: 'service' | 'goods' | 'mixed' | null;
 }
 
 /// Snapshot of tracked managed jobs. Pass a buyer agent address to scope it to
@@ -3363,6 +3367,8 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
       })),
       lastCounterPriceBySeller: Object.fromEntries(s.lastCounterPriceBySeller),
       counterRoundsBySeller: Object.fromEntries(s.counterRoundsBySeller),
+      tradeLane: s.context.tradeLane ?? 'service',
+      tradeType: getBrief(s.jobId)?.tradeType ?? null,
     })),
   };
 }

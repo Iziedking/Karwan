@@ -71,7 +71,23 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                 className="group cursor-pointer border-b border-white/[0.06] last:border-0 hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none transition-colors"
               >
                 <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white">
-                  {shortHash(j.jobId, 8, 4)}
+                  <span className="inline-flex items-center gap-2">
+                    <span>{shortHash(j.jobId, 8, 4)}</span>
+                    {((j.tradeLane ?? 'service') === 'finance' ||
+                      j.tradeType === 'goods' ||
+                      j.tradeType === 'mixed') && (
+                      <span
+                        className="mono text-[8.5px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                        style={{
+                          background: 'color-mix(in oklab, var(--lp-accent) 18%, transparent)',
+                          color: 'var(--lp-accent)',
+                          borderRadius: 3,
+                        }}
+                      >
+                        {j.tradeType === 'goods' || j.tradeType === 'mixed' ? 'Goods' : 'B2B'}
+                      </span>
+                    )}
+                  </span>
                 </td>
                 <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-white">
                   {formatUsdc(j.budgetUsdc)}
