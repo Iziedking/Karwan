@@ -175,7 +175,7 @@ function ProfilePageInner() {
               {/* Username/company in its natural case (not the display all-caps)
                   and allowed to wrap so a long handle never overflows. */}
               <HeroHeadline className="break-words">
-                <span className="normal-case">{heroTitle}</span>
+                <span className="normal-case" title={heroTitle}>{heroDisplay}</span>
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
@@ -443,7 +443,7 @@ function ProfilePageInner() {
         <RegisterBusinessBand address={address} />
       ) : null}
       {SME_TRADES_ENABLED && address && isBusiness ? (
-        <SmeCompanyBand address={address} />
+        <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
       ) : null}
 
       {/* WALLETS anchor */}

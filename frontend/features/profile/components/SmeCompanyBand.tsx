@@ -50,7 +50,18 @@ type EmployeeBand = 'micro' | 'small' | 'medium';
 /// Top-level component per `rerender-no-inline-components`. Independent
 /// of the rest of /profile so the page re-renders nothing when the form
 /// is edited.
-export function SmeCompanyBand({ address }: { address: string }) {
+export function SmeCompanyBand({
+  address,
+  fallbackName,
+}: {
+  address: string;
+  /// The account display name. When the structured company name was never set
+  /// (a business whose sign-up crammed "Name, sector, region" into displayName),
+  /// we seed the editable name field from this so the user can correct the long
+  /// value in place instead of finding a blank field. Saving then writes the
+  /// clean name back to both the company name and the display name.
+  fallbackName?: string;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -91,6 +102,12 @@ export function SmeCompanyBand({ address }: { address: string }) {
           setAnnualVolumeBand((r.smeProfile.annualVolumeBand as VolumeBand) ?? '');
           setVerifiedAt(r.smeProfile.verifiedAt ?? null);
         }
+        // Seed the name from the account display name when the structured company
+        // name was never set, so a business can correct a long sign-up name in
+        // place rather than staring at a blank field.
+        if (!r.smeProfile?.companyName && fallbackName) {
+          setCompanyName(fallbackName);
+        }
         if (r.repaymentBehavior) {
           setRepayment(r.repaymentBehavior);
         }
@@ -102,7 +119,7 @@ export function SmeCompanyBand({ address }: { address: string }) {
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, fallbackName]);
 
   // Reached via "Edit details" (which links to /profile?edit=company): open the
   // form in edit mode and scroll to the trade card itself, so the user lands

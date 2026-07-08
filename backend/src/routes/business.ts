@@ -289,33 +289,17 @@ businessRoutes.post('/profile', async (c) => {
   const { address: _addr, companyName, ...soft } = body;
   const smeProfile = { ...(existing.smeProfile ?? {}), ...soft };
   let nameEdits = existing.nameEdits;
+  let displayName = existing.displayName;
 
   // A legal-name change is the one sensitive field here. Apply it only when it
-  // actually differs, and gate it on the 30-day / 5-lifetime cap so a typo can
-  // be corrected without opening the door to name churn.
+  // actually differs. The uniqueness check always runs; the 30-day / 5-lifetime
+  // cap only applies to CHANGING an already-set name. The first time a business
+  // fills in its structured name is free, so an account whose sign-up crammed
+  // the whole "Name, sector, region" string into its display name (and left the
+  // company name blank) can always set a clean name once.
   const trimmedName = companyName?.trim();
   if (trimmedName && trimmedName !== (existing.smeProfile?.companyName ?? '')) {
-    const ledger = existing.nameEdits ?? { count: 0, lastAt: 0 };
-    if (ledger.count >= NAME_EDIT_LIFETIME_MAX) {
-      return c.json(
-        {
-          error: 'You have reached the limit of 5 name changes. Contact support if you need another.',
-          code: 'name_edit_capped',
-        },
-        429,
-      );
-    }
-    const since = Date.now() - ledger.lastAt;
-    if (ledger.lastAt && since < NAME_EDIT_COOLDOWN_MS) {
-      const days = Math.ceil((NAME_EDIT_COOLDOWN_MS - since) / 86_400_000);
-      return c.json(
-        {
-          error: `Your name can be changed once every 30 days. Try again in ${days} day${days === 1 ? '' : 's'}.`,
-          code: 'name_edit_cooldown',
-        },
-        429,
-      );
-    }
+    const hadName = !!(existing.smeProfile?.companyName ?? '').trim();
     const nameOwner = await findProfileByName(trimmedName);
     if (nameOwner && nameOwner.address !== existing.address) {
       return c.json(
@@ -323,11 +307,38 @@ businessRoutes.post('/profile', async (c) => {
         409,
       );
     }
+    if (hadName) {
+      const ledger = existing.nameEdits ?? { count: 0, lastAt: 0 };
+      if (ledger.count >= NAME_EDIT_LIFETIME_MAX) {
+        return c.json(
+          {
+            error: 'You have reached the limit of 5 name changes. Contact support if you need another.',
+            code: 'name_edit_capped',
+          },
+          429,
+        );
+      }
+      const since = Date.now() - ledger.lastAt;
+      if (ledger.lastAt && since < NAME_EDIT_COOLDOWN_MS) {
+        const days = Math.ceil((NAME_EDIT_COOLDOWN_MS - since) / 86_400_000);
+        return c.json(
+          {
+            error: `Your name can be changed once every 30 days. Try again in ${days} day${days === 1 ? '' : 's'}.`,
+            code: 'name_edit_cooldown',
+          },
+          429,
+        );
+      }
+      nameEdits = { count: ledger.count + 1, lastAt: Date.now() };
+    }
     smeProfile.companyName = trimmedName;
-    nameEdits = { count: ledger.count + 1, lastAt: Date.now() };
+    // Keep the account display name in step with the structured company name so
+    // fixing the name corrects the profile hero (and everywhere else that reads
+    // displayName), not just the trade-card row.
+    displayName = trimmedName;
   }
 
-  const saved = await upsertProfile({ ...existing, smeProfile, nameEdits });
+  const saved = await upsertProfile({ ...existing, displayName, smeProfile, nameEdits });
   logger.info(
     { address: body.address, fields: Object.keys(soft), nameChanged: !!nameEdits && nameEdits !== existing.nameEdits },
     'business: soft profile updated',
