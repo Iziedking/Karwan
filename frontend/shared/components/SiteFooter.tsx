@@ -58,11 +58,11 @@ export function SiteFooter() {
               <NewsletterSignup />
             </div>
 
-            {/* RIGHT. three columns of links */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-10">
+            {/* RIGHT. three columns of links. Kept on ONE row from mobile up so
+                the footer stays compact; the type steps down a touch on small
+                screens so three columns don't feel cramped. */}
+            <div className="grid grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-8 md:gap-y-10">
               <FooterCol title={t.columns.product}>
-                <FooterLink href="/buyer">{t.productLinks.buyer}</FooterLink>
-                <FooterLink href="/seller">{t.productLinks.seller}</FooterLink>
                 <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
                 <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
                 <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
@@ -282,10 +282,10 @@ function OperationalPill() {
 function FooterCol({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-4">
+      <p className="mono text-[9px] sm:text-[10px] uppercase tracking-[0.16em] sm:tracking-[0.18em] text-[var(--lp-text-muted)] mb-3 sm:mb-4">
         {title}
       </p>
-      <div className="flex flex-col gap-2.5">{children}</div>
+      <div className="flex flex-col gap-2 sm:gap-2.5">{children}</div>
     </div>
   );
 }
@@ -300,7 +300,7 @@ function FooterLink({
   external?: boolean;
 }) {
   const className = cn(
-    'group inline-flex items-center gap-1.5 w-fit text-[13.5px] font-medium tracking-[-0.005em]',
+    'group inline-flex items-center gap-1.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
     'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
   );
   const inner = (
@@ -352,7 +352,7 @@ function FooterLink({
 function FooterContact({ label }: { label: string }) {
   const [revealed, setRevealed] = useState(false);
   const className = cn(
-    'group inline-flex items-center gap-1.5 w-fit text-[13.5px] font-medium tracking-[-0.005em]',
+    'group inline-flex items-center gap-1.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
     'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
   );
   if (revealed) {
@@ -394,11 +394,11 @@ function FooterSocialLink({
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      className="group inline-flex items-center gap-2.5 w-fit text-[13.5px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
+      className="group inline-flex items-center gap-2 sm:gap-2.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
     >
       <span
         aria-hidden
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--lp-light)] border border-[var(--lp-border-light)] text-[var(--lp-dark)] transition-[transform,background-color,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:bg-[var(--lp-band-dark)] group-hover:text-[var(--lp-accent)] group-hover:border-[var(--lp-dark)]"
+        className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[var(--lp-light)] border border-[var(--lp-border-light)] text-[var(--lp-dark)] transition-[transform,background-color,border-color] duration-200 group-hover:-translate-y-0.5 group-hover:bg-[var(--lp-band-dark)] group-hover:text-[var(--lp-accent)] group-hover:border-[var(--lp-dark)]"
       >
         {glyph}
       </span>
