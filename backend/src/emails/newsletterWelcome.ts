@@ -13,12 +13,10 @@ const INNER = `
     Thanks for subscribing. You're on the Karwan list.
   </p>
   <p class="k-sub" style="margin:0 0 16px 0;font-size:15px;line-height:24px;">
-    You'll get product updates and new trade corridors, one topic at a time so
-    nothing gets buried. No spam, and every send has a one-click unsubscribe.
+    We'll send product updates and new trade corridors as we ship them.
   </p>
   <p class="k-muted" style="margin:0;font-size:13px;line-height:21px;">
     Karwan settles cross-border SME trade in USDC, milestone-escrowed on Arc.
-    First up: how your agent pays for its own market research.
   </p>
 `;
 
@@ -29,14 +27,12 @@ export async function sendNewsletterWelcome(email: string): Promise<void> {
     eyebrow: 'NEWSLETTER',
     title: "You're on the list",
     inner: INNER,
-    footerNote:
-      'You subscribed at karwan.site. Every update carries a one-click unsubscribe.',
+    footerNote: 'You subscribed at karwan.site.',
   });
   const text =
     "Thanks for subscribing. You're on the Karwan list.\n\n" +
-    "You'll get product updates and new trade corridors, one topic at a time. " +
-    'No spam, and every send has a one-click unsubscribe.\n\n' +
-    'Karwan settles cross-border SME trade in USDC, milestone-escrowed on Arc.\n' +
+    "We'll send product updates and new trade corridors as we ship them.\n\n" +
+    'Karwan settles cross-border SME trade in USDC, milestone-escrowed on Arc.\n\n' +
     'You subscribed at karwan.site.';
   try {
     const { error } = await client.emails.send({
