@@ -96,7 +96,11 @@ export default function HomePage() {
           />
         }
       >
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        {/* Extra bottom padding below lg reserves a clean lane under the stacked
+            flow diagram for the scroll cue, so it sits neatly instead of on top
+            of the diagram's bottom label. The two-column lg layout already has
+            room, so no padding there. */}
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center pb-24 lg:pb-0">
           <motion.div
             className="space-y-7"
             initial={{ opacity: 0, y: 20 }}
@@ -125,6 +129,9 @@ export default function HomePage() {
             <HeroFlow />
           </div>
         </div>
+        {/* Sits in the whitespace under the hero: the two-column lg layout leaves
+            it below both columns, and the pb-24 on the stacked grid above opens
+            the same lane on mobile so it clears the flow diagram. */}
         <div className="absolute inset-x-0 bottom-[clamp(16px,3vw,30px)] flex justify-center">
           <ScrollCue label="Scroll" />
         </div>
