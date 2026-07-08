@@ -34,6 +34,13 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
+const PAYMENT_TERM_LABELS: Record<'immediate' | 'net30' | 'net60' | 'net90', string> = {
+  immediate: 'Immediate',
+  net30: 'Net 30',
+  net60: 'Net 60',
+  net90: 'Net 90',
+};
+
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const t = useTranslations();
   const lj = t.liveJob;
@@ -77,6 +84,28 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   // empty or mislead them. Defaults to buyer when the flag is absent (older
   // cached snapshot) since only an explicit false marks a seller.
   const viewerIsBuyer = job.viewerIsBuyer !== false;
+
+  // B2B trade: a verified business trading goods/mixed lands on the finance
+  // lane. It gets the business treatment — a trade eyebrow and a trade-context
+  // band (goods, Incoterms, payment terms, sourcing sector/region) — instead of
+  // the generic managed-deal surface. P2P/service jobs are unchanged.
+  const isB2B =
+    (job.tradeLane ?? 'service') === 'finance' ||
+    job.tradeType === 'goods' ||
+    job.tradeType === 'mixed';
+  const tradeChips = isB2B
+    ? [
+        job.tradeType && job.tradeType !== 'service'
+          ? { label: 'Type', value: job.tradeType }
+          : null,
+        job.sourcingSector ? { label: 'Sector', value: job.sourcingSector } : null,
+        job.sourcingRegion ? { label: 'Region', value: job.sourcingRegion } : null,
+        job.incoterms ? { label: 'Incoterms', value: job.incoterms } : null,
+        job.paymentTerms
+          ? { label: 'Terms', value: PAYMENT_TERM_LABELS[job.paymentTerms] }
+          : null,
+      ].filter((c): c is { label: string; value: string } => c !== null)
+    : [];
 
   const expired = !!job.expiredAt;
   const status: { label: string; tone: StatusTone; live: boolean } = job.escrowFunded
@@ -142,7 +171,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           <div className="min-w-0">
             <div className="fade-up fade-up-1">
               <SectionTag tone="dark" dot={status.live ? 'live' : undefined}>
-                {lj.managedDealTag}
+                {isB2B ? 'B2B TRADE' : lj.managedDealTag}
               </SectionTag>
             </div>
             <div className="fade-up fade-up-2">
@@ -256,6 +285,51 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* B2B TRADE CONTEXT. Goods vs service, sourcing sector + region, and the
+            trade rules (Incoterms, payment terms). Finance lane only — gives the
+            deal a business surface instead of the generic managed-deal look. */}
+        {isB2B && tradeChips.length > 0 && (
+          <div className="mt-6 fade-up fade-up-1">
+            <div
+              className="relative flex items-stretch border bg-[var(--lp-card)]"
+              style={{
+                borderColor: 'var(--lp-border-light)',
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 3,
+              }}
+            >
+              <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-band-dark)' }} />
+              <div className="flex-1 px-5 py-4">
+                <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-3">
+                  [:TRADE CONTEXT:]
+                </p>
+                <div className="flex flex-wrap gap-2.5">
+                  {tradeChips.map((c) => (
+                    <span
+                      key={c.label}
+                      className="inline-flex items-baseline gap-1.5 px-2.5 py-1.5"
+                      style={{
+                        background: 'var(--lp-light)',
+                        border: '1px solid var(--lp-border-light)',
+                        borderRadius: 4,
+                      }}
+                    >
+                      <span className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                        {c.label}
+                      </span>
+                      <span className="text-[13px] font-medium capitalize text-[var(--lp-dark)]">
+                        {c.value}
+                      </span>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

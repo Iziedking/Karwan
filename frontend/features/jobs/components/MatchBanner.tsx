@@ -258,23 +258,49 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
       )}
 
       {/* Verified-business badge: the counterparty trades as a Karwan-verified
-          business. Compact by design, full company detail lives on the profile
-          and credit passport so the deal page stays lean. */}
+          business. Rendered as a prominent trust badge so a B2B deal reads as a
+          business transaction at a glance; full company detail lives on the
+          profile + credit passport. */}
       {proposal.counterpartyBusiness && (
-        <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-          [:{mb.business.label}:]{' '}
-          <span className="normal-case tracking-normal text-[11px]">
-            {proposal.counterpartyBusiness.companyName
-              ? [
-                  proposal.counterpartyBusiness.companyName,
-                  proposal.counterpartyBusiness.sector,
-                  proposal.counterpartyBusiness.region,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')
-              : mb.business.template}
+        <div
+          className="mt-3 inline-flex items-center gap-2 px-3 py-1.5"
+          style={{
+            background: 'color-mix(in oklab, var(--color-positive) 12%, transparent)',
+            border: '1px solid color-mix(in oklab, var(--color-positive) 42%, var(--color-line))',
+            borderTopLeftRadius: 6,
+            borderTopRightRadius: 6,
+            borderBottomLeftRadius: 6,
+            borderBottomRightRadius: 2,
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <circle cx="8" cy="8" r="7" fill="var(--color-positive)" />
+            <path
+              d="M4.8 8.2l2 2 4-4.4"
+              stroke="#fff"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span
+            className="mono text-[9px] font-bold uppercase tracking-[0.16em]"
+            style={{ color: 'var(--color-positive)' }}
+          >
+            {mb.business.label}
           </span>
-        </p>
+          {proposal.counterpartyBusiness.companyName && (
+            <span className="text-[13px] font-semibold text-[var(--color-ink)]">
+              {[
+                proposal.counterpartyBusiness.companyName,
+                proposal.counterpartyBusiness.sector,
+                proposal.counterpartyBusiness.region,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Risk flags are all seller-facing warnings (honey-trap, lowball,

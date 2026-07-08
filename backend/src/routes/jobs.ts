@@ -262,6 +262,15 @@ jobsRoutes.get('/:jobId', async (c) => {
     keywords: brief?.keywords ?? null,
     negotiationMaxIncreasePct: brief?.negotiationMaxIncreasePct ?? null,
     trustedMatch: brief?.trustedMatch === true,
+    // B2B trade context so the job page can render a business surface (lane,
+    // goods vs service, Incoterms, payment terms, sourcing sector/region)
+    // instead of the generic managed-deal treatment. Absent on P2P/service.
+    tradeLane: brief?.tradeLane ?? 'service',
+    tradeType: brief?.tradeType ?? null,
+    incoterms: brief?.incoterms ?? null,
+    paymentTerms: brief?.paymentTerms ?? null,
+    sourcingSector: brief?.counterpartyCompany?.sector ?? null,
+    sourcingRegion: brief?.counterpartyCompany?.region ?? null,
   });
 });
 
