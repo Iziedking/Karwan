@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { subscribeToNewsletter } from '../emails/audienceSync.js';
+import { sendNewsletterWelcome } from '../emails/newsletterWelcome.js';
 
 export const newsletterRoutes = new Hono();
 
@@ -29,6 +30,9 @@ newsletterRoutes.post(
     if (!result.ok) {
       return c.json({ error: 'could not subscribe, try again later' }, 502);
     }
+    // Fire the "you're on the list" confirmation without blocking the response;
+    // a send failure never fails the subscribe (the contact is already stored).
+    void sendNewsletterWelcome(body.email);
     return c.json({ ok: true });
   },
 );
