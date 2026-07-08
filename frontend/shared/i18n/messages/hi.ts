@@ -63,6 +63,8 @@ export const hi: Messages = {
     },
     allSettings: 'सभी सेटिंग्स',
     help: 'मदद और यह कैसे काम करता है',
+    back: 'वापस',
+    backAria: 'वापस जाएं',
   },
   settings: {
     eyebrow: 'सेटिंग्स',

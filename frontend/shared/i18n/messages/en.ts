@@ -64,6 +64,8 @@ interface MessagesShape {
     };
     allSettings: string;
     help: string;
+    back: string;
+    backAria: string;
   };
   settings: {
     eyebrow: string;
@@ -3783,6 +3785,8 @@ export const en: MessagesShape = {
     },
     allSettings: 'All settings',
     help: 'Help and how it works',
+    back: 'Back',
+    backAria: 'Go back',
   },
   settings: {
     eyebrow: 'SETTINGS',

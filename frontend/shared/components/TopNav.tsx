@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { LiveDot } from './LiveDot';
+import { BackButton } from './BackButton';
 import { ConnectWalletButton } from './ConnectWallet';
 import { ThemeToggle } from './ThemeToggle';
 import { SoundToggle } from './SoundToggle';
@@ -108,6 +109,10 @@ export function TopNav() {
               Karwan
             </span>
           </Link>
+          {/* Back control. Self-gates: hidden on landing and on the app home
+              (the root), shown on every other page, and never returns the user
+              to the marketing site. */}
+          <BackButton />
         </div>
 
         {/* CENTER. floating pill nav (app only, signed-in only). Hides the

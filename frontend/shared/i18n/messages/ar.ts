@@ -63,6 +63,8 @@ export const ar: Messages = {
     },
     allSettings: 'كل الإعدادات',
     help: 'المساعدة وكيف يعمل',
+    back: 'رجوع',
+    backAria: 'العودة للخلف',
   },
   settings: {
     eyebrow: 'الإعدادات',

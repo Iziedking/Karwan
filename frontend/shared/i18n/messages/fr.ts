@@ -63,6 +63,8 @@ export const fr: Messages = {
     },
     allSettings: 'Tous les paramètres',
     help: 'Aide et fonctionnement',
+    back: 'Retour',
+    backAria: 'Revenir en arrière',
   },
   settings: {
     eyebrow: 'PARAMÈTRES',

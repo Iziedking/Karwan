@@ -63,6 +63,8 @@ export const sw: Messages = {
     },
     allSettings: 'Mipangilio yote',
     help: 'Msaada na jinsi inavyofanya kazi',
+    back: 'Rudi',
+    backAria: 'Rudi nyuma',
   },
   settings: {
     eyebrow: 'MAPENDELEO',
