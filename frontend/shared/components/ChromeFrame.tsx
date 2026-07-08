@@ -40,7 +40,14 @@ export function ChromeFrame({
     <div className="min-h-screen flex flex-col">
       {topNav}
       {profileNudge}
-      <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10">{children}</main>
+      {/* min-height reserves a full viewport (minus the 68px nav) so the tall
+          footer can never ride up into view while a page is still fetching. Its
+          content is short mid-load, and the footer's big wordmark is taller than
+          the leftover space, so without this floor the footer painted first and
+          the page looked like it rendered from the bottom up. */}
+      <main className="flex-1 mx-auto max-w-6xl w-full px-6 py-10 min-h-[calc(100vh-68px)]">
+        {children}
+      </main>
       {footer}
       {notifications}
       {guide}
