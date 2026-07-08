@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { profiles } from './schema.js';
+import { logger } from '../logger.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'profiles.json');
 
@@ -246,6 +247,24 @@ export async function upsertProfile(
       if (!(f in input) && existing[f] !== undefined) {
         merged[f] = existing[f];
       }
+    }
+    // Early-warning tripwire. A write that OMITS a LIVE email / X binding is a
+    // route rebuilding the profile from a partial shape instead of spreading the
+    // existing row. The preserve loop above already kept the data, so this is not
+    // data loss — but it is exactly the pattern that silently disconnected a
+    // user's email + X before, so surface it. Any NEW route that reconstructs the
+    // row trips this in logs before it ships a regression; the clean fix is to
+    // make that route spread `existing`. Fires only when a binding actually
+    // exists, so accounts without email/X (and the dedicated email/X routes,
+    // which SET the field) never trigger it.
+    const droppedBindings: string[] = [];
+    if (existing.email && !('email' in input)) droppedBindings.push('email');
+    if (existing.xHandle && !('xHandle' in input)) droppedBindings.push('xHandle');
+    if (droppedBindings.length > 0) {
+      logger.warn(
+        { address: key, fields: droppedBindings },
+        'upsertProfile: caller omitted a live identity binding (preserved it, but that route should spread the existing profile instead of rebuilding it)',
+      );
     }
   }
   if (pgEnabled) {
