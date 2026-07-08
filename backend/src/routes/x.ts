@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import {
   getProfile,
   upsertProfile,
+  carryProfile,
   findProfileByXHandle,
   findProfileByXUserId,
 } from '../db/profiles.js';
@@ -199,11 +200,7 @@ xRoutes.get('/oauth/callback', async (c) => {
       });
     } else {
       await upsertProfile({
-        address: existing.address,
-        role: existing.role,
-        displayName: existing.displayName,
-        seller: existing.seller,
-        buyer: existing.buyer,
+        ...carryProfile(existing, ['xHandle', 'xUserId', 'xProfileImageUrl']),
         xHandle: me.data.username,
         xUserId: me.data.id,
         xProfileImageUrl: profileImage,

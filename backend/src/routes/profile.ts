@@ -5,6 +5,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import {
   getProfile,
   upsertProfile,
+  carryProfile,
   findProfileByName,
   findProfileByXHandle,
   findProfileByEmail,
@@ -124,7 +125,8 @@ profileRoutes.post('/', async (c) => {
   // and must never trip on it, even if a pre-existing duplicate exists from
   // before this rule. Case-insensitive, trimmed.
   const self = body.address.toLowerCase();
-  const currentName = (await getProfile(self))?.displayName?.trim().toLowerCase();
+  const existing = await getProfile(self);
+  const currentName = existing?.displayName?.trim().toLowerCase();
   if (body.displayName.trim().toLowerCase() !== currentName) {
     const nameOwner = await findProfileByName(body.displayName);
     if (nameOwner && nameOwner.address !== self) {
@@ -155,7 +157,16 @@ profileRoutes.post('/', async (c) => {
     );
   }
 
-  const profile = await upsertProfile({ ...body, seller: sellerWithKeywords });
+  // Carry every untouched field (email, X binding, settings, business/
+  // verification, agent-research credit, ...) forward from the existing row so a
+  // profile save can never drop them. body drives role/displayName/buyer; seller
+  // is the keyword-enriched copy. buyer/seller keep clear-by-omission (they're in
+  // the `edited` list) so switching role still clears the unused agent profile.
+  const profile = await upsertProfile({
+    ...carryProfile(existing, ['role', 'displayName', 'buyer', 'seller']),
+    ...body,
+    seller: sellerWithKeywords,
+  });
 
   // Email-login (Circle) users proved their email at sign-in, so auto-fill it
   // as a verified contact email the first time they save a profile. Web3 users
@@ -393,11 +404,7 @@ profileRoutes.post('/x-handle', async (c) => {
     }
   }
   const profile = await upsertProfile({
-    address: existing.address,
-    role: existing.role,
-    displayName: existing.displayName,
-    seller: existing.seller,
-    buyer: existing.buyer,
+    ...carryProfile(existing, ['xHandle']),
     xHandle: normalised,
   });
   logger.info({ address: existing.address, handle: normalised ?? null }, 'x handle updated');

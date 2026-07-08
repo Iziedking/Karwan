@@ -280,6 +280,31 @@ export async function upsertProfile(
   return next;
 }
 
+/// Spread every field of an existing profile EXCEPT the ones a caller is
+/// editing, so a route that rebuilds a profile from a partial body carries the
+/// untouched fields (email, X binding, settings, business/verification, agent
+/// research, ...) forward instead of dropping them. `edited` names the keys the
+/// caller sets itself, so buyer/seller keep their clear-by-omission behaviour
+/// when a role changes. createdAt/updatedAt are always stripped — upsertProfile
+/// owns them. Pair with upsertProfile: `upsertProfile({ ...carryProfile(existing,
+/// ['settings']), settings })`. This is the clean alternative to relying on the
+/// preserve-on-omit safety net; using it keeps the identity tripwire quiet.
+/// Return type asserts the required identity core (address/role/displayName) is
+/// present so a call site can spread it straight into upsertProfile. The
+/// contract: whatever you list in `edited` you must re-provide. For a brand-new
+/// wallet (existing null) it returns an empty shell — the caller's own body
+/// supplies the required fields in that case (the profile-create path).
+export function carryProfile(
+  existing: UserProfile | null,
+  edited: ReadonlyArray<keyof UserProfile> = [],
+): Omit<UserProfile, 'createdAt' | 'updatedAt'> {
+  if (!existing) return {} as Omit<UserProfile, 'createdAt' | 'updatedAt'>;
+  const { createdAt: _c, updatedAt: _u, ...rest } = existing;
+  const carried = rest as Record<string, unknown>;
+  for (const k of edited) delete carried[k as string];
+  return carried as Omit<UserProfile, 'createdAt' | 'updatedAt'>;
+}
+
 /// Patch only the email fields on an existing profile, leaving everything else
 /// intact. No-op (returns null) when the wallet has no profile yet. Used by the
 /// verify route and the email-login auto-capture. Pass email=null to clear it.

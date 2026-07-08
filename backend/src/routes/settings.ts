@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   getProfile,
   upsertProfile,
+  carryProfile,
   type UserSettings,
   type UserLocale,
 } from '../db/profiles.js';
@@ -66,14 +67,7 @@ settingsRoutes.post('/', async (c) => {
   }
   const merged: UserSettings = { ...(existing.settings ?? {}), ...body.settings };
   const updated = await upsertProfile({
-    address: existing.address,
-    role: existing.role,
-    displayName: existing.displayName,
-    seller: existing.seller,
-    buyer: existing.buyer,
-    xHandle: existing.xHandle,
-    xUserId: existing.xUserId,
-    xProfileImageUrl: existing.xProfileImageUrl,
+    ...carryProfile(existing, ['settings']),
     settings: merged,
   });
   logger.info({ address, settings: merged }, 'settings updated');
