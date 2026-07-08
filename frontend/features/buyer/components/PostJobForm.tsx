@@ -150,7 +150,10 @@ export function PostJobForm() {
   const [tradeType, setTradeType] = useState<TradeType>('service');
   const [incoterms, setIncoterms] = useState<IncotermsCode | null>(null);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermsCode>('immediate');
-  const [companyName, setCompanyName] = useState('');
+  // Sourcing profile: the KIND of supplier and WHERE, not a named counterparty.
+  // This is an auction — the agent finds the partner — so there is no company
+  // name here (that lives on the direct-deal flow). Sector + region drive the
+  // agent's partner matching and the financier's deal filtering.
   const [companySector, setCompanySector] = useState('');
   const [companyRegion, setCompanyRegion] = useState('');
   const [documentRefs, setDocumentRefs] = useState<
@@ -200,11 +203,12 @@ export function PostJobForm() {
     try {
       // SME trade-finance payload. Only included when the user actually
       // engaged the goods / mixed flow; service deals stay on the legacy
-      // shape so the auction surface doesn't see noise.
-      const counterpartyCompany =
-        companyName || companySector || companyRegion
+      // shape so the auction surface doesn't see noise. No counterparty NAME in
+      // an auction (the agent finds the partner); sector + region describe the
+      // supplier the agent should match, and carry through to financier filtering.
+      const sourcingProfile =
+        companySector || companyRegion
           ? {
-              name: companyName.trim() || undefined,
               sector: companySector || undefined,
               region: companyRegion.trim() || undefined,
             }
@@ -222,7 +226,7 @@ export function PostJobForm() {
         tradeType: tradeType !== 'service' ? tradeType : undefined,
         incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
-        counterpartyCompany: tradeType !== 'service' ? counterpartyCompany : undefined,
+        counterpartyCompany: tradeType !== 'service' ? sourcingProfile : undefined,
         documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
       });
       sfx.send();
@@ -502,19 +506,11 @@ export function PostJobForm() {
                 ))}
               </div>
             </FormLabel>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <FormLabel label="Company" hint="Counterparty's legal name.">
-                <input
-                  type="text"
-                  value={companyName}
-                  disabled={submitting}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="e.g. Acme Imports Ltd"
-                  className="form-input"
-                  maxLength={120}
-                />
-              </FormLabel>
-              <FormLabel label="Sector">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormLabel
+                label="Sourcing sector"
+                hint="The kind of supplier you want. Your agent matches partners on this."
+              >
                 <select
                   value={companySector}
                   disabled={submitting}
@@ -529,13 +525,16 @@ export function PostJobForm() {
                   ))}
                 </select>
               </FormLabel>
-              <FormLabel label="Region">
+              <FormLabel
+                label="Sourcing region"
+                hint="Where you want to source from. Weighted in matching and shown to financiers."
+              >
                 <input
                   type="text"
                   value={companyRegion}
                   disabled={submitting}
                   onChange={(e) => setCompanyRegion(e.target.value)}
-                  placeholder="e.g. Dubai, AE"
+                  placeholder="e.g. South Asia, or Dubai, AE"
                   className="form-input"
                   maxLength={80}
                 />
