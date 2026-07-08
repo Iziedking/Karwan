@@ -10,7 +10,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// we never hand the user back onto the marketing site. Everywhere else it goes
 /// back one step (router.back) when there is a real in-app previous route, and
 /// falls back to home on a cold load / refresh where the in-app history was lost.
-export function BackButton() {
+export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
@@ -38,13 +38,21 @@ export function BackButton() {
     else router.push('/app');
   }
 
+  // The lane matches the page's first band: dark on the dark heroes (most
+  // pages), light on the doc-style / financier surfaces. Style the button for
+  // whichever it sits on so it never washes out.
+  const toneCls =
+    tone === 'light'
+      ? 'border-black/15 text-[var(--lp-dark)]/70 hover:text-[var(--lp-dark)] hover:border-black/40 hover:bg-black/[0.04]'
+      : 'border-white/20 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/5';
+
   return (
     <button
       type="button"
       onClick={goBack}
       aria-label={t.nav.backAria}
       title={t.nav.backAria}
-      className="group inline-flex items-center gap-1.5 h-9 px-2 sm:px-2.5 rounded-md border border-[var(--color-line)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors shrink-0"
+      className={`group inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-md border transition-colors shrink-0 ${toneCls}`}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
         <path
@@ -56,7 +64,7 @@ export function BackButton() {
           className="transition-transform duration-200 group-hover:-translate-x-0.5"
         />
       </svg>
-      <span className="hidden sm:inline text-[13px] font-semibold tracking-[-0.005em]">
+      <span className="text-[13px] font-semibold tracking-[-0.005em]">
         {t.nav.back}
       </span>
     </button>
