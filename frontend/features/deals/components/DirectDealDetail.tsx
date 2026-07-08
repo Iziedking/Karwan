@@ -571,6 +571,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     // reverts InvalidState. The banner above already points users to /legacy.
     !deal.legacyEscrow;
 
+  // B2B trade: a verified-business, goods/mixed deal on the finance lane gets the
+  // business treatment (trade eyebrow + a verified badge in the hero) instead of
+  // the generic direct-deal look. The finance lane is verified-business-only on
+  // both sides, so the presence of the lane is the verified signal.
+  const isB2B =
+    (deal.tradeLane ?? 'service') === 'finance' ||
+    deal.tradeType === 'goods' ||
+    deal.tradeType === 'mixed';
+  const counterpartyName = deal.counterpartyCompany?.name;
+
   return (
     <FullBleed>
       <PageTour id={DEAL_TOUR_ID} steps={DEAL_STEPS} />
@@ -578,8 +588,26 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="fade-up">
           <div className="flex flex-wrap items-center gap-3">
-            <SectionTag tone="dark">{dd.hero.eyebrow}</SectionTag>
+            <SectionTag tone="dark">{isB2B ? 'B2B TRADE' : dd.hero.eyebrow}</SectionTag>
             <StageBadge stage={stage} />
+            {isB2B && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[9px] font-bold uppercase tracking-[0.16em]"
+                style={{
+                  background: 'color-mix(in oklab, var(--lp-positive) 16%, transparent)',
+                  border: '1px solid color-mix(in oklab, var(--lp-positive) 45%, transparent)',
+                  color: 'var(--lp-positive)',
+                  borderRadius: 4,
+                }}
+                title={counterpartyName ? `Verified business: ${counterpartyName}` : 'Verified business'}
+              >
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <circle cx="8" cy="8" r="7" fill="var(--lp-positive)" />
+                  <path d="M4.8 8.2l2 2 4-4.4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Verified business
+              </span>
+            )}
           </div>
         </div>
         <div className="fade-up fade-up-1 mt-7 flex items-baseline gap-3 flex-wrap">
@@ -1249,9 +1277,28 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
           <PageCard>
             <CardHead label="COUNTERPARTY" />
             <div className="p-5 md:p-6 space-y-2">
-              {company?.name ? (
-                <p className="text-[14px] font-medium text-[var(--lp-dark)]">{company.name}</p>
-              ) : null}
+              <div className="flex items-center gap-2 flex-wrap">
+                {company?.name ? (
+                  <p className="text-[14px] font-medium text-[var(--lp-dark)]">{company.name}</p>
+                ) : null}
+                {(deal.tradeLane ?? 'service') === 'finance' && (
+                  <span
+                    className="inline-flex items-center gap-1 mono text-[8.5px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                    style={{
+                      background: 'color-mix(in oklab, var(--lp-positive) 16%, transparent)',
+                      border: '1px solid color-mix(in oklab, var(--lp-positive) 45%, transparent)',
+                      color: 'var(--lp-positive)',
+                      borderRadius: 3,
+                    }}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <circle cx="8" cy="8" r="7" fill="var(--lp-positive)" />
+                      <path d="M4.8 8.2l2 2 4-4.4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Verified
+                  </span>
+                )}
+              </div>
               <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 {[company?.sector, company?.region].filter(Boolean).join(' · ') || '—'}
               </p>
