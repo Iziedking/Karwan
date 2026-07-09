@@ -1951,6 +1951,11 @@ interface MessagesShape {
         reclaimCta: string;
         reclaimBusy: string;
       };
+      releaseBlocked: {
+        buyerMismatch: string;
+        sellerMismatch: string;
+        noAgent: string;
+      };
       awaitingFirstRelease: {
         buyerIntroTemplate: string;
         buyerAutoReleasePrefixTemplate: string;
@@ -5808,6 +5813,11 @@ export const en: MessagesShape = {
         buyerDeadlinePassedNote: 'Deadline passed without delivery. Reclaim the full escrow now, or leave it and the refund runs automatically after a 24h grace.',
         reclaimCta: 'Cancel & reclaim funds',
         reclaimBusy: 'Working…',
+      },
+      releaseBlocked: {
+        buyerMismatch: 'Auto-release is paused. The delivery does not match your request. Review it, then release or appeal.',
+        sellerMismatch: 'Auto-release is paused. The buyer has to review this delivery before any funds move. If they stall, appeal the deal.',
+        noAgent: 'Auto-release is unavailable on this deal. Release manually, or appeal.',
       },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Seller marked delivered. Release the first {firstPct}% now. The remaining {remainPct}% releases once you verify.',

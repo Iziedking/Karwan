@@ -1716,11 +1716,11 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     const txHash = await releaseMilestone(jobId, releasedIndex, deal.buyerAgentWalletId);
     const settled = await finalizeIfSettled(jobId);
     if (settled) {
-      await patchDeal(jobId, { settledAt: Date.now() });
+      await patchDeal(jobId, { settledAt: Date.now(), lastReleaseAt: Date.now() });
     } else if (releasedIndex === 0) {
       // First milestone is out. Open the buyer's review window for the rest.
       const startedAt = Date.now();
-      await patchDeal(jobId, { reviewWindowStartedAt: startedAt });
+      await patchDeal(jobId, { reviewWindowStartedAt: startedAt, lastReleaseAt: startedAt });
       bus.emitEvent({
         type: 'deal.review.started',
         jobId,
@@ -1732,6 +1732,9 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
           startedAt,
         },
       });
+    } else {
+      // Intermediate milestone on a 3+ part deal. Anchors the next window.
+      await patchDeal(jobId, { lastReleaseAt: Date.now() });
     }
     return c.json({ accepted: true, jobId, txHash, settled }, 200);
   } catch (err) {
@@ -1995,8 +1998,12 @@ dealsRoutes.post('/direct/:jobId/delay-appeal', async (c) => {
     return c.json({ error: 'a delay appeal is already open; wait for the buyer to respond' }, 409);
   }
   const now = Date.now();
-  if (now < deal.reviewWindowStartedAt + config.DEAL_DELAY_APPEAL_GRACE_MS) {
-    const remaining = deal.reviewWindowStartedAt + config.DEAL_DELAY_APPEAL_GRACE_MS - now;
+  // Grace runs from the most recent release, not from the first one. On a 3+
+  // part deal the buyer gets a fresh grace period per tranche they are sitting
+  // on, rather than one that expired back at milestone one.
+  const graceFrom = deal.lastReleaseAt ?? deal.reviewWindowStartedAt;
+  if (now < graceFrom + config.DEAL_DELAY_APPEAL_GRACE_MS) {
+    const remaining = graceFrom + config.DEAL_DELAY_APPEAL_GRACE_MS - now;
     return c.json(
       {
         error: 'too early to raise a delay appeal; give the buyer the grace period first',

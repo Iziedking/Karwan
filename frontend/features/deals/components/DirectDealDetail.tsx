@@ -1858,8 +1858,21 @@ function ActionPanel({
     // the misleading "auto-releases / will release shortly" countdown.
     const held =
       deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
-    const open = !held && endsAt != null && msLeft > 0;
-    const expired = !held && endsAt != null && msLeft <= 0;
+    // The agent has stopped the clock for a reason other than the link scan.
+    // Until this shipped, a paused deal still rendered "the agent will release
+    // shortly" and the seller waited on a timer that was never running.
+    const blocked = !held ? (deal.releaseBlockedReason ?? null) : null;
+    const stopped = held || blocked !== null;
+    const open = !stopped && endsAt != null && msLeft > 0;
+    const expired = !stopped && endsAt != null && msLeft <= 0;
+    const blockedNote =
+      blocked === 'no-agent-wallet'
+        ? copy.releaseBlocked.noAgent
+        : blocked === 'requirement-mismatch'
+          ? viewerIsBuyer
+            ? copy.releaseBlocked.buyerMismatch
+            : copy.releaseBlocked.sellerMismatch
+          : null;
 
     if (viewerIsBuyer) {
       return (
@@ -1874,6 +1887,7 @@ function ActionPanel({
               {copy.awaitingFirstRelease.releaseHeldNote}
             </WindowNote>
           )}
+          {blockedNote && <WindowNote tone="warning">{blockedNote}</WindowNote>}
           {open && (
             <WindowNote tone="warning">
               {copy.awaitingFirstRelease.buyerAutoReleasePrefixTemplate.replace('{firstPct}', String(firstPct))}{' '}
@@ -1930,6 +1944,17 @@ function ActionPanel({
             </CTAPill>
           </>
         )}
+        {blockedNote && (
+          <div className="space-y-2.5">
+            <WindowNote tone="warning">{blockedNote}</WindowNote>
+            {/* The clock is stopped and the seller cannot claim. Without a way
+                out here the deal wedges: no auto-release, no buyer click, no
+                appeal. The dispute route already accepts the seller. */}
+            <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
+              {copy.awaitingFirstRelease.appealCta}
+            </CTAPill>
+          </div>
+        )}
         {open && (
           <WindowNote tone="muted">
             {copy.awaitingFirstRelease.sellerOpenPrefix}{' '}
@@ -1947,6 +1972,13 @@ function ActionPanel({
             {V2B_LIVE && !held && (
               <CTAPill onClick={onClaim} disabled={busy}>
                 {busy ? 'Claiming…' : `Claim ${firstPct}% now`}
+              </CTAPill>
+            )}
+            {/* Pre-v2b there is no claim path, so an expired window with a silent
+                buyer leaves the seller nothing to do but appeal. */}
+            {!V2B_LIVE && (
+              <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
+                {copy.awaitingFirstRelease.appealCta}
               </CTAPill>
             )}
           </div>

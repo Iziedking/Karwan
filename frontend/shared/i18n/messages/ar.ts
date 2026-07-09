@@ -2060,6 +2060,11 @@ export const ar: Messages = {
         reclaimCta: 'إلغاء واسترداد الأموال',
         reclaimBusy: 'جارٍ العمل…',
       },
+      releaseBlocked: {
+        buyerMismatch: 'الإصدار التلقائي متوقف. التسليم لا يطابق طلبك. راجعه ثم أصدر الدفعة أو قدّم اعتراضاً.',
+        sellerMismatch: 'الإصدار التلقائي متوقف. على المشتري مراجعة هذا التسليم قبل تحويل أي مبلغ. إذا تأخر، قدّم اعتراضاً على الصفقة.',
+        noAgent: 'الإصدار التلقائي غير متاح في هذه الصفقة. أصدر الدفعة يدوياً أو قدّم اعتراضاً.',
+      },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'وسم البائع بالتسليم. حرّر أول {firstPct}% الآن. تُحرَّر النسبة المتبقية {remainPct}% بعد التحقق.',
         buyerAutoReleasePrefixTemplate: 'سيُحرَّر تلقائياً أول {firstPct}% خلال',

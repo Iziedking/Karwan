@@ -2060,6 +2060,11 @@ export const sw: Messages = {
         reclaimCta: 'Ghairi na rudisha fedha',
         reclaimBusy: 'Inafanya kazi…',
       },
+      releaseBlocked: {
+        buyerMismatch: 'Utoaji wa kiotomatiki umesimama. Uwasilishaji haulingani na ombi lako. Ukague, kisha toa malipo au kata rufaa.',
+        sellerMismatch: 'Utoaji wa kiotomatiki umesimama. Mnunuzi lazima akague uwasilishaji huu kabla ya fedha yoyote kuhama. Akichelewa, kata rufaa kwenye mkataba.',
+        noAgent: 'Utoaji wa kiotomatiki haupatikani kwenye mkataba huu. Toa malipo mwenyewe, au kata rufaa.',
+      },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Muuzaji ametia alama imewasilishwa. Toa asilimia ya kwanza {firstPct}% sasa. Iliyobaki {remainPct}% itatolewa baada ya kuthibitisha.',
         buyerAutoReleasePrefixTemplate: 'Hutolewa kiotomatiki asilimia ya kwanza {firstPct}% baada ya',

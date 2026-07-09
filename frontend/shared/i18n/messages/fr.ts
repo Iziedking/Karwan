@@ -2060,6 +2060,11 @@ export const fr: Messages = {
         reclaimCta: 'Annuler et récupérer les fonds',
         reclaimBusy: 'Traitement…',
       },
+      releaseBlocked: {
+        buyerMismatch: "La libération automatique est en pause. La livraison ne correspond pas à votre demande. Examinez-la, puis libérez ou contestez.",
+        sellerMismatch: "La libération automatique est en pause. L'acheteur doit examiner cette livraison avant tout versement. S'il tarde, contestez l'accord.",
+        noAgent: 'La libération automatique est indisponible sur cet accord. Libérez manuellement, ou contestez.',
+      },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Vendeur a marqué livré. Libérez les premiers {firstPct} % maintenant. Les {remainPct} % restants sont libérés après vérification.',
         buyerAutoReleasePrefixTemplate: 'Libère automatiquement les premiers {firstPct} % dans',

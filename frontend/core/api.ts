@@ -389,6 +389,11 @@ export interface DirectDeal {
   /// until cleared; verificationReasons explains why in plain language.
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   verificationReasons?: string[];
+  /// Why the agent stopped the auto-release clock. Visible to BOTH parties; the
+  /// buyer's private deliveryMatch verdict never is. Without this the seller
+  /// reads a countdown that already expired and never learns to appeal.
+  releaseBlockedReason?: 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+  releaseBlockedAt?: number;
   /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
   /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for
   /// review. Deterministic, non-blocking — the money is escrowed and the human

@@ -124,10 +124,22 @@ export interface DirectDeal {
   /// buyer looks before money moves; 'unknown' means it could not be judged. The
   /// proof is never withheld for a requirement verdict, the buyer is the judge.
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  /// Why the agent is NOT running the auto-release clock on this deal. The
+  /// watcher sets it the moment it decides to pause and clears it when the
+  /// condition lifts. Both parties see the code (never the buyer's private
+  /// deliveryMatch.reason), because a paused payout that reads as "releasing
+  /// shortly" is how a deal silently wedges: the seller waits on a clock that
+  /// is not running and never learns they should appeal.
+  releaseBlockedReason?: 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+  releaseBlockedAt?: number;
   // Set when the first milestone is released (by the buyer or by the auto
   // first-release). Starts the final-release window during which the buyer
   // must release the final milestone, else the agent auto-releases.
   reviewWindowStartedAt?: number;
+  /// When the most recent milestone was released, by either side. Anchors the
+  /// auto-release window for the NEXT milestone on a 3+ part deal, where
+  /// reviewWindowStartedAt only ever marks the first one.
+  lastReleaseAt?: number;
   // Total time the buyer has added to the final-release window by tipping
   // "still reviewing", and how many times they have done so.
   reviewExtensionMs?: number;
