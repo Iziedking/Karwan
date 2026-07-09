@@ -529,6 +529,7 @@ export const fr: Messages = {
         bidWindow: 'Fenêtre d’offres',
         milestones: 'Étapes',
         skills: 'Compétences',
+        supplies: 'Fournit',
         bio: 'Bio',
         budget: 'Budget',
         delivery: 'Livraison',

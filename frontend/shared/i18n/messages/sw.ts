@@ -529,6 +529,7 @@ export const sw: Messages = {
         bidWindow: 'Dirisha la zabuni',
         milestones: 'Hatua',
         skills: 'Ujuzi',
+        supplies: 'Hutoa',
         bio: 'Wasifu mfupi',
         budget: 'Bajeti',
         delivery: 'Uwasilishaji',

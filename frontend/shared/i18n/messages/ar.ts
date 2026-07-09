@@ -529,6 +529,7 @@ export const ar: Messages = {
         bidWindow: 'نافذة العروض',
         milestones: 'المعالم',
         skills: 'المهارات',
+        supplies: 'يورّد',
         bio: 'نبذة',
         budget: 'الميزانية',
         delivery: 'التسليم',

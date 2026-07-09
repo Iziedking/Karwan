@@ -514,6 +514,7 @@ interface MessagesShape {
         bidWindow: string;
         milestones: string;
         skills: string;
+        supplies: string;
         bio: string;
         budget: string;
         delivery: string;
@@ -4272,6 +4273,7 @@ export const en: MessagesShape = {
         bidWindow: 'Bid window',
         milestones: 'Milestones',
         skills: 'Skills',
+        supplies: 'Supplies',
         bio: 'Bio',
         budget: 'Budget',
         delivery: 'Delivery',

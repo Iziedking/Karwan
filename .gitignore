@@ -68,6 +68,7 @@ docs/bot-assets
 docs/SKILL.md
 docs/test-guide.md
 docs/biz_demo.md
+docs/p2p-testkit/
 docs/deploy.md
 docs/go-live.md
 docs/cronJobs.md

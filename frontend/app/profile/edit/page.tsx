@@ -195,11 +195,26 @@ function ProfileEditInner() {
           )}
 
           {wantsSeller && (
-            <Section number={sellerNo} title="As a seller">
-              <FieldLabel label="Skills (comma separated)">
-                <input value={skills} onChange={(e) => setSkills(e.target.value)} className={INPUT_CLS} />
+            // Same field, same matching keywords, different vocabulary. A business
+            // supplies goods and categories; only an individual has skills.
+            <Section number={sellerNo} title={isBusiness ? 'As a supplier' : 'As a seller'}>
+              <FieldLabel
+                label={
+                  isBusiness
+                    ? 'What you supply (comma separated)'
+                    : 'Skills (comma separated)'
+                }
+              >
+                <input
+                  value={skills}
+                  onChange={(e) => setSkills(e.target.value)}
+                  placeholder={
+                    isBusiness ? 'e.g. textiles, woven cotton, apparel' : undefined
+                  }
+                  className={INPUT_CLS}
+                />
               </FieldLabel>
-              <FieldLabel label="Short bio">
+              <FieldLabel label={isBusiness ? 'What your company does' : 'Short bio'}>
                 <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} className={cn(INPUT_CLS, 'resize-none')} />
               </FieldLabel>
               <div className="grid grid-cols-2 gap-3">

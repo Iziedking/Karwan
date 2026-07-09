@@ -421,7 +421,12 @@ function ProfilePageInner() {
                     name={activation.agents?.sellerName}
                     agentAddress={agents.seller}
                     rows={[
-                      { label: t.agentProfiles.rows.skills, value: profile.seller.skills.join(', ') || '-' },
+                      {
+                        label: isBusiness
+                          ? t.agentProfiles.rows.supplies
+                          : t.agentProfiles.rows.skills,
+                        value: profile.seller.skills.join(', ') || '-',
+                      },
                       { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
                       {
                         label: t.agentProfiles.rows.budget,

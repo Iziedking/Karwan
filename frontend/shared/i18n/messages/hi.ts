@@ -529,6 +529,7 @@ export const hi: Messages = {
         bidWindow: 'बोली विंडो',
         milestones: 'माइलस्टोन',
         skills: 'कौशल',
+        supplies: 'आपूर्ति',
         bio: 'बायो',
         budget: 'बजट',
         delivery: 'डिलीवरी',
