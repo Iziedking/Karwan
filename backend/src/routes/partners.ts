@@ -22,6 +22,25 @@ function isBusinessProfile(p: UserProfile): boolean {
   );
 }
 
+function toPartnerCard(p: UserProfile) {
+  return {
+    address: p.address,
+    name: p.smeProfile?.companyName || p.displayName || 'Business',
+    sector: p.smeProfile?.sector ?? null,
+    region: p.smeProfile?.region ?? null,
+    primaryMarkets: p.smeProfile?.primaryMarkets ?? null,
+    minOrderValue: p.smeProfile?.minOrderValue ?? null,
+    leadTimeDays: p.smeProfile?.leadTimeDays ?? null,
+    certifications: p.smeProfile?.certifications ?? null,
+    // Verified = Karwan-reviewed registration (the badge counterparties trust).
+    verified: p.business?.status === 'verified' || p.accountType === 'business',
+    // Whether they can act as a supplier (have a seller agent profile). A
+    // business without one can still be a buyer-side partner, so this is a hint
+    // on the card, not a filter.
+    canSupply: !!p.seller,
+  };
+}
+
 partnersRoutes.get('/', async (c) => {
   const sector = c.req.query('sector')?.trim().toLowerCase() || '';
   const region = c.req.query('region')?.trim().toLowerCase() || '';
@@ -45,25 +64,25 @@ partnersRoutes.get('/', async (c) => {
       const hay = `${p.smeProfile?.region ?? ''} ${p.smeProfile?.primaryMarkets ?? ''}`.toLowerCase();
       return hay.includes(region);
     })
-    .map((p) => ({
-      address: p.address,
-      name: p.smeProfile?.companyName || p.displayName || 'Business',
-      sector: p.smeProfile?.sector ?? null,
-      region: p.smeProfile?.region ?? null,
-      primaryMarkets: p.smeProfile?.primaryMarkets ?? null,
-      minOrderValue: p.smeProfile?.minOrderValue ?? null,
-      leadTimeDays: p.smeProfile?.leadTimeDays ?? null,
-      certifications: p.smeProfile?.certifications ?? null,
-      // Verified = Karwan-reviewed registration (the badge counterparties trust).
-      verified: p.business?.status === 'verified' || p.accountType === 'business',
-      // Whether they can act as a supplier (have a seller agent profile). A
-      // business without one can still be a buyer-side partner, so this is a hint
-      // on the card, not a filter.
-      canSupply: !!p.seller,
-    }))
+    .map(toPartnerCard)
     // Verified companies first, then a stable order by name.
     .sort((a, b) => Number(b.verified) - Number(a.verified) || a.name.localeCompare(b.name))
     .slice(0, 60);
 
   return c.json({ partners });
+});
+
+/// Single-company lookup by wallet address. Backs the "open a deal with a
+/// partner" flow: the buyer already picked the company, so the deal form seeds
+/// the counterparty block from the same card the directory rendered. Ignores
+/// hideFromDiscovery on purpose. That flag governs being *listed*, and every
+/// field here already ships on the company's public credit passport.
+partnersRoutes.get('/:address', async (c) => {
+  const address = c.req.param('address').toLowerCase();
+  const all = await listProfiles();
+  const p = all.find((x) => x.address.toLowerCase() === address);
+  if (!p || !isBusinessProfile(p) || !p.smeProfile) {
+    return c.json({ error: 'not_found' }, 404);
+  }
+  return c.json({ partner: toPartnerCard(p) });
 });

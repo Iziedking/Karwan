@@ -1,9 +1,9 @@
 ﻿'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, type Partner } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { feeBreakdown } from '../config';
@@ -149,10 +149,46 @@ export function DirectDealForm() {
   const [hashingFile, setHashingFile] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /// The counterparty's company card, when the address belongs to a registered
+  /// business. Seeds the trade-context block so a buyer coming from /partners
+  /// never retypes what the partner already published.
+  const [partner, setPartner] = useState<Partner | null>(null);
 
   const sellerValid = ADDR_RE.test(seller.trim());
   const sameWallet =
     sellerValid && address && seller.trim().toLowerCase() === address.toLowerCase();
+
+  // Look the counterparty up once per address. Seeding overwrites the company
+  // fields because the partner's own card is more authoritative than anything
+  // the buyer would type about them; edits after the lookup stick, since the
+  // effect only re-runs when the address itself changes.
+  const seededFor = useRef<string | null>(null);
+  const lookupAddr =
+    isBusiness && counterpartyMode === 'wallet' && sellerValid && !sameWallet
+      ? seller.trim().toLowerCase()
+      : null;
+  useEffect(() => {
+    if (!lookupAddr || seededFor.current === lookupAddr) return;
+    let live = true;
+    api
+      .getPartner(lookupAddr)
+      .then(({ partner: p }) => {
+        if (!live) return;
+        seededFor.current = lookupAddr;
+        setPartner(p);
+        setCompanyName(p.name);
+        setCompanySector(p.sector ?? '');
+        setCompanyRegion(p.region ?? '');
+      })
+      .catch(() => {
+        // Not a registered business, or no company card. Leave the block blank
+        // so the buyer can describe the counterparty themselves.
+        if (live) setPartner(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [lookupAddr]);
   // Loose email pattern. Backend re-validates via zod.
   const emailValid =
     counterpartyEmail.trim().length > 3 &&
@@ -379,6 +415,49 @@ export function DirectDealForm() {
               <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
                 {dd.counterparty.walletSelfWarning}
               </span>
+            )}
+            {partner && (
+              <div
+                className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5"
+                style={{
+                  background: 'var(--lp-light)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                <span className="font-sans text-[13.5px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+                  {partner.name}
+                </span>
+                {partner.verified && (
+                  <span
+                    className="inline-flex items-center gap-1 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                    style={{
+                      background: 'color-mix(in oklab, #1f7a4c 14%, transparent)',
+                      color: '#1f7a4c',
+                      borderRadius: 3,
+                    }}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden>
+                      <path
+                        d="M2.5 6.2 4.8 8.5 9.5 3.8"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Verified
+                  </span>
+                )}
+                {(partner.sector || partner.region) && (
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                    {[partner.sector, partner.region].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </div>
             )}
           </FormLabel>
         ) : (

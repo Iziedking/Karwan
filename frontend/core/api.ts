@@ -2650,6 +2650,8 @@ export const api = {
     const qs = q.toString();
     return json<{ partners: Partner[] }>(`/api/partners${qs ? `?${qs}` : ''}`);
   },
+  getPartner: (address: string) =>
+    json<{ partner: Partner }>(`/api/partners/${address}`),
 
   // Recent events for a job (public, durable ring snapshot). Used to seed the
   // live x402 agent-payments panel before SSE takes over.
