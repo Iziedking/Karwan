@@ -3875,6 +3875,8 @@ export const hi: Messages = {
       wrongNetwork: 'गलत नेटवर्क',
       networkTooltip: '{chain} पर। बदलने या प्रबंधित करने के लिए टैप करें।',
       fallbackChain: 'अज्ञात नेटवर्क',
+      switchToArc: 'Arc पर जाएँ',
+      switchingToArc: 'बदल रहे हैं…',
     },
     signInGate: {
       defaultTag: 'साइन इन',

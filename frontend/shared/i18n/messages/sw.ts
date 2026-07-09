@@ -3875,6 +3875,8 @@ export const sw: Messages = {
       wrongNetwork: 'Mtandao usio sahihi',
       networkTooltip: 'Kwenye {chain}. Gusa kubadilisha au kusimamia.',
       fallbackChain: 'mtandao usiojulikana',
+      switchToArc: 'Badili hadi Arc',
+      switchingToArc: 'Inabadili…',
     },
     signInGate: {
       defaultTag: 'INGIA',

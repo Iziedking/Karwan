@@ -3649,6 +3649,8 @@ interface MessagesShape {
       wrongNetwork: string;
       networkTooltip: string;
       fallbackChain: string;
+      switchToArc: string;
+      switchingToArc: string;
     };
     signInGate: {
       defaultTag: string;
@@ -7717,6 +7719,8 @@ export const en: MessagesShape = {
       wrongNetwork: 'Wrong network',
       networkTooltip: 'On {chain}. Tap to switch or manage.',
       fallbackChain: 'unknown network',
+      switchToArc: 'Switch to Arc',
+      switchingToArc: 'Switching…',
     },
     signInGate: {
       defaultTag: 'SIGN IN',

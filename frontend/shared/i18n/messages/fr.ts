@@ -3875,6 +3875,8 @@ export const fr: Messages = {
       wrongNetwork: 'Mauvais réseau',
       networkTooltip: 'Sur {chain}. Cliquez pour changer ou gérer.',
       fallbackChain: 'réseau inconnu',
+      switchToArc: 'Passer sur Arc',
+      switchingToArc: 'Changement…',
     },
     signInGate: {
       defaultTag: 'CONNEXION',

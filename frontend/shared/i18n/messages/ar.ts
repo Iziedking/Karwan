@@ -3875,6 +3875,8 @@ export const ar: Messages = {
       wrongNetwork: 'شبكة خاطئة',
       networkTooltip: 'على {chain}. انقر للتبديل أو الإدارة.',
       fallbackChain: 'شبكة غير معروفة',
+      switchToArc: 'التبديل إلى Arc',
+      switchingToArc: 'جارٍ التبديل…',
     },
     signInGate: {
       defaultTag: 'تسجيل الدخول',

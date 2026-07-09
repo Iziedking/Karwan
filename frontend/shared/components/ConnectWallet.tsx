@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useState, type ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useBalance } from 'wagmi';
+import { useBalance, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcTestnet } from '@/core/wagmi';
 import { formatUsdc } from '@/shared/utils/format';
@@ -129,6 +129,11 @@ export function ConnectWalletButton() {
   const t = useTranslations().auth.walletPill;
   const [loginOpen, setLoginOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  // Karwan runs on Arc. The bridge source chains (Base, Sepolia, OP, Arb,
+  // Polygon) are configured for CCTP, so RainbowKit does not consider them
+  // unsupported and its wrong-network branch never fires on them. Every deal
+  // action still targets Arc, so an off-Arc wallet gets an explicit way back.
+  const { switchChain, isPending: switching } = useSwitchChain();
   // Backward-compat: old code referenced a single `open` state. Keep one
   // alias so the logged-out branch reads as before.
   const open = loginOpen;
@@ -259,6 +264,27 @@ export function ConnectWalletButton() {
                       }}
                     >
                       {t.wrongNetwork}
+                    </button>
+                  );
+                }
+                if (chain.id !== arcTestnet.id) {
+                  const key = chainKeyFromId(chain.id);
+                  return (
+                    <button
+                      onClick={() => switchChain({ chainId: arcTestnet.id })}
+                      disabled={switching}
+                      type="button"
+                      suppressHydrationWarning
+                      title={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(201,96,48,0.08)] disabled:opacity-60"
+                      style={{
+                        background: 'var(--color-surface)',
+                        color: '#c96030',
+                        border: '1.5px solid #c96030',
+                      }}
+                    >
+                      {key && <ChainLogo chain={key} size={14} />}
+                      {switching ? t.switchingToArc : t.switchToArc}
                     </button>
                   );
                 }
