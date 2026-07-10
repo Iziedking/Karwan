@@ -98,6 +98,7 @@ async function releaseLine(line: POFinancingLine): Promise<void> {
     payload: {
       lineId: line.id,
       seller: line.seller,
+      financier: line.financier,
       principalUsdc: line.principalUsdc,
       releaseTxHash: r.txHash,
     },
@@ -164,6 +165,7 @@ async function repayLine(line: POFinancingLine): Promise<void> {
     payload: {
       lineId: line.id,
       financier: line.financier,
+      seller: line.seller,
       repayUsdc: line.repayUsdc,
       repayTxHash: r.txHash,
     },

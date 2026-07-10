@@ -382,7 +382,12 @@ poFinancingRoutes.post('/release', async (c) => {
     type: 'po.released',
     jobId: line.invoiceId,
     actor: 'platform',
-    payload: { lineId: line.id, seller: line.seller, principalUsdc: line.principalUsdc },
+    payload: {
+      lineId: line.id,
+      seller: line.seller,
+      financier: line.financier,
+      principalUsdc: line.principalUsdc,
+    },
   });
   return c.json({ line: updated });
 });
@@ -424,7 +429,12 @@ poFinancingRoutes.post('/claim', async (c) => {
     type: 'po.repaid',
     jobId: line.invoiceId,
     actor: 'platform',
-    payload: { lineId: line.id, financier: line.financier, repayUsdc: line.repayUsdc },
+    payload: {
+      lineId: line.id,
+      financier: line.financier,
+      seller: line.seller,
+      repayUsdc: line.repayUsdc,
+    },
   });
   return c.json({ line: updated });
 });
@@ -463,7 +473,12 @@ poFinancingRoutes.post('/reclaim', async (c) => {
     type: 'po.reclaimed',
     jobId: line.invoiceId,
     actor: 'platform',
-    payload: { lineId: line.id, financier: line.financier, principalUsdc: line.principalUsdc },
+    payload: {
+      lineId: line.id,
+      financier: line.financier,
+      seller: line.seller,
+      principalUsdc: line.principalUsdc,
+    },
   });
   return c.json({ line: updated });
 });

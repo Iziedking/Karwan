@@ -87,8 +87,16 @@ const RELEVANT = new Set([
   'deal.fund.insufficient',
   'bid.accepted',
   'reputation.recorded',
-  // A financier offered early payout on the seller's invoice.
+  // Financing lifecycle. The financier is not a deal party, so these route
+  // from the payload rather than the deal lookup.
   'factoring.offered',
+  'factoring.accepted',
+  'factoring.settled',
+  'factoring.defaulted',
+  'po.funded',
+  'po.released',
+  'po.repaid',
+  'po.defaulted',
   'listing.matched',
   'listing.match.proactive',
   'trend.match',
@@ -118,6 +126,19 @@ interface Recipient {
   /// 'buyer' | 'seller' | 'self' (for non-deal events, just the linked party)
   role: string;
 }
+
+/// Which payload addresses hear about each financing event. Mirrors the email
+/// notifier's map; keep the two in step.
+const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
+  'factoring.offered': ['seller'],
+  'factoring.accepted': ['financier'],
+  'factoring.settled': ['seller', 'financier'],
+  'factoring.defaulted': ['seller', 'financier'],
+  'po.funded': ['seller'],
+  'po.released': ['seller', 'financier'],
+  'po.repaid': ['seller', 'financier'],
+  'po.defaulted': ['seller', 'financier'],
+};
 
 async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
   // Bridge events fan out only to the address that owns the burn/relay; we
@@ -215,12 +236,17 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     out.push({ address: deal.seller, role: deal.seller === sender ? 'self' : 'seller' });
     return out;
   }
-  // A financier's factoring offer is addressed to the seller only (it's an
-  // offer to pay them early). Route from the payload, not the both-parties
-  // deal lookup below.
-  if (e.type === 'factoring.offered') {
-    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
-    return seller ? [{ address: seller, role: 'seller' }] : [];
+  // Financing events name their parties directly. The financier is never a
+  // party to the underlying deal, so the both-parties lookup below cannot
+  // reach them.
+  const finance = FINANCE_RECIPIENTS[e.type];
+  if (finance) {
+    const out: Recipient[] = [];
+    for (const key of finance) {
+      const addr = (e.payload?.[key] as string | undefined)?.toLowerCase();
+      if (addr) out.push({ address: addr, role: key === 'seller' ? 'seller' : 'self' });
+    }
+    return out;
   }
   // Deal lifecycle events: notify both parties.
   if (e.jobId) {
@@ -570,6 +596,60 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         dealUrl(e.jobId),
       );
     }
+    case 'factoring.accepted':
+      return withLink(
+        '*Your factoring offer was accepted.* The advance is on its way to the seller. You are repaid when the buyer releases the escrow.',
+        url,
+      );
+    case 'factoring.settled': {
+      const repay = (e.payload?.repayUsdc as string | undefined) ?? '';
+      const suffix = repay ? ` ${trimUsdcLabel(repay)} USDC` : '';
+      return withLink(
+        role === 'seller'
+          ? `*Factoring settled.* The escrow settled and${suffix} went to your financier. Nothing further is owed.`
+          : `*Repaid on a factored invoice.*${suffix} landed in your wallet, principal plus spread.`,
+        url,
+      );
+    }
+    case 'factoring.defaulted':
+      return withLink(
+        role === 'seller'
+          ? '*Repayment failed.* The escrow settled but your repayment to the financier did not go through. Fund your wallet and contact them.'
+          : '*A factored invoice defaulted.* The seller\'s repayment did not go through after several attempts.',
+        url,
+      );
+    case 'po.funded':
+      return withLink(
+        '*A financier funded your purchase order.* The principal releases to you once proof of delivery is accepted.',
+        url,
+      );
+    case 'po.released': {
+      const principal = (e.payload?.principalUsdc as string | undefined) ?? '';
+      const suffix = principal ? ` ${trimUsdcLabel(principal)} USDC` : '';
+      return withLink(
+        role === 'seller'
+          ? `*PO financing released.* Proof of delivery was accepted and${suffix} was released to you, ahead of the buyer's settlement.`
+          : `*Your PO line released.* Proof of delivery was accepted and${suffix} moved to the seller. You are repaid when the escrow settles.`,
+        url,
+      );
+    }
+    case 'po.repaid': {
+      const repay = (e.payload?.repayUsdc as string | undefined) ?? '';
+      const suffix = repay ? ` ${trimUsdcLabel(repay)} USDC` : '';
+      return withLink(
+        role === 'seller'
+          ? `*PO line closed.* The escrow settled and${suffix} went to the financier.`
+          : `*Repaid on a PO line.*${suffix} landed in your wallet, principal plus spread.`,
+        url,
+      );
+    }
+    case 'po.defaulted':
+      return withLink(
+        role === 'seller'
+          ? '*Repayment failed.* The escrow settled but your repayment to the financier did not go through. Fund your wallet and contact them.'
+          : '*A PO line defaulted.* The seller\'s repayment did not go through after several attempts.',
+        url,
+      );
     case 'support.reply': {
       const body = (e.payload?.text as string | undefined) ?? '';
       const ticketId = (e.payload?.ticketId as string | undefined) ?? '';

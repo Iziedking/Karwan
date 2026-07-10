@@ -48,8 +48,30 @@ const EMAIL_RELEVANT = new Set([
   'deal.deadline.passed',
   'deal.match.raised',
   'factoring.offered',
+  'factoring.accepted',
+  'factoring.settled',
+  'factoring.defaulted',
+  'po.funded',
+  'po.released',
+  'po.repaid',
+  'po.defaulted',
   'reputation.tier-up',
 ]);
+
+/// Financing events name their parties directly (seller, financier) and the
+/// financier is never a party to the underlying deal, so the jobId-based
+/// recipient fallback below cannot route them. Each entry lists which payload
+/// addresses should hear about it.
+const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
+  'factoring.offered': ['seller'],
+  'factoring.accepted': ['financier'],
+  'factoring.settled': ['seller', 'financier'],
+  'factoring.defaulted': ['seller', 'financier'],
+  'po.funded': ['seller'],
+  'po.released': ['seller', 'financier'],
+  'po.repaid': ['seller', 'financier'],
+  'po.defaulted': ['seller', 'financier'],
+};
 
 interface Recipient {
   address: string;
@@ -73,9 +95,16 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
     return seller ? [{ address: seller, role: 'seller' }] : [];
   }
-  if (e.type === 'factoring.offered') {
-    const seller = (e.payload?.seller as string | undefined)?.toLowerCase();
-    return seller ? [{ address: seller, role: 'seller' }] : [];
+  const finance = FINANCE_RECIPIENTS[e.type];
+  if (finance) {
+    const out: Recipient[] = [];
+    for (const key of finance) {
+      const addr = (e.payload?.[key] as string | undefined)?.toLowerCase();
+      // The financier reads these as their own money moving, not as a deal
+      // counterparty, so 'self' is the honest role for the copy.
+      if (addr) out.push({ address: addr, role: key === 'seller' ? 'seller' : 'self' });
+    }
+    return out;
   }
   if (e.type === 'deal.deadline.passed') {
     // Only the buyer needs this: their funds are reclaimable now.
@@ -270,6 +299,123 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
         ctaUrl: dealUrl(e.jobId),
       };
     }
+    case 'factoring.accepted':
+      return {
+        eyebrow: 'EARLY PAYOUT',
+        subject: 'The seller accepted your factoring offer',
+        heading: 'Offer accepted',
+        body: 'Your advance is on its way to the seller. You are repaid automatically when the buyer releases the escrow.',
+        ctaLabel: 'View the deal',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    case 'factoring.settled': {
+      const repay = (e.payload?.repayUsdc as string | undefined) ?? '';
+      const suffix = repay ? ` ${repay} USDC` : '';
+      return role === 'seller'
+        ? {
+            eyebrow: 'EARLY PAYOUT',
+            subject: 'Your factoring advance has been repaid',
+            heading: 'Factoring settled',
+            body: `The escrow settled and${suffix} went to the financier. Nothing further is owed on this invoice.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            eyebrow: 'EARLY PAYOUT',
+            subject: 'You have been repaid on a factored invoice',
+            heading: 'Repayment received',
+            body: `The buyer released the escrow and${suffix} landed in your wallet, principal plus spread.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    }
+    case 'factoring.defaulted':
+      return role === 'seller'
+        ? {
+            eyebrow: 'ACTION NEEDED',
+            subject: 'Your factoring repayment could not be collected',
+            heading: 'Repayment failed',
+            body: 'The escrow settled but the repayment to your financier did not go through. Fund your wallet and contact them before this reaches your reputation.',
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            eyebrow: 'ACTION NEEDED',
+            subject: 'A factored invoice defaulted',
+            heading: 'Repayment failed',
+            body: 'The escrow settled but the seller\'s repayment did not go through after several attempts. Open the deal to pursue it.',
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    case 'po.funded':
+      return {
+        eyebrow: 'PO FINANCING',
+        subject: 'A financier funded your purchase order',
+        heading: 'Working capital drawn',
+        body: 'A financier funded a line against this order. The principal releases to you once proof of delivery is accepted.',
+        ctaLabel: 'View the deal',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    case 'po.released': {
+      const principal = (e.payload?.principalUsdc as string | undefined) ?? '';
+      const suffix = principal ? ` ${principal} USDC` : '';
+      return role === 'seller'
+        ? {
+            eyebrow: 'PO FINANCING',
+            subject: 'Your PO financing has been released',
+            heading: 'Funds released',
+            body: `Proof of delivery was accepted and${suffix} was released to you, ahead of the buyer's settlement.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            eyebrow: 'PO FINANCING',
+            subject: 'Your PO line released to the seller',
+            heading: 'Principal released',
+            body: `Proof of delivery was accepted and${suffix} moved to the seller. You are repaid when the escrow settles.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    }
+    case 'po.repaid': {
+      const repay = (e.payload?.repayUsdc as string | undefined) ?? '';
+      const suffix = repay ? ` ${repay} USDC` : '';
+      return role === 'seller'
+        ? {
+            eyebrow: 'PO FINANCING',
+            subject: 'Your PO line has been repaid',
+            heading: 'Line closed',
+            body: `The escrow settled and${suffix} went to the financier. This line is closed.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            eyebrow: 'PO FINANCING',
+            subject: 'You have been repaid on a PO line',
+            heading: 'Repayment received',
+            body: `The buyer released the escrow and${suffix} landed in your wallet, principal plus spread.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    }
+    case 'po.defaulted':
+      return role === 'seller'
+        ? {
+            eyebrow: 'ACTION NEEDED',
+            subject: 'Your PO line repayment could not be collected',
+            heading: 'Repayment failed',
+            body: 'The escrow settled but the repayment to your financier did not go through. Fund your wallet and contact them before this reaches your reputation.',
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            eyebrow: 'ACTION NEEDED',
+            subject: 'A PO line defaulted',
+            heading: 'Repayment failed',
+            body: 'The escrow settled but the seller\'s repayment did not go through after several attempts. Open the deal to pursue it.',
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
     case 'reputation.tier-up': {
       const toTier = (e.payload?.toTier as string | undefined) ?? '';
       const addr = e.payload?.address as string | undefined;

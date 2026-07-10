@@ -33,7 +33,7 @@ export interface AppNotification {
   toast?: boolean;
 }
 
-type Role = 'buyer' | 'seller';
+type Role = 'buyer' | 'seller' | 'financier';
 
 const STORAGE_PREFIX = NOTIFICATION_STORAGE_PREFIX;
 const MAX_STORED = 30;
@@ -78,6 +78,23 @@ const DIRECT_TYPES = new Set([
 // payload and surface on the profile (where balances live).
 const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
 
+// Invoice-factoring and PO-financing events. These DO carry a jobId, but the
+// financier is not a party to the underlying deal, so the deal-role machinery
+// can never resolve a role for them. Route by the addresses the payload names,
+// exactly like the wallet events, and keep the jobId so the bell still links
+// to the deal. Mirrors FINANCE_RECIPIENTS in the email + Telegram notifiers.
+const FINANCE_RECIPIENT_KEYS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
+  'factoring.offered': ['seller'],
+  'factoring.accepted': ['financier'],
+  'factoring.settled': ['seller', 'financier'],
+  'factoring.defaulted': ['seller', 'financier'],
+  'po.funded': ['seller'],
+  'po.released': ['seller', 'financier'],
+  'po.repaid': ['seller', 'financier'],
+  'po.defaulted': ['seller', 'financier'],
+};
+const FINANCE_TYPES = new Set(Object.keys(FINANCE_RECIPIENT_KEYS));
+
 // Money-movement events that carry no jobId. Each one names the owner under
 // a different payload key depending on the surface that emitted it. The map
 // keeps the routing local to one place.
@@ -113,6 +130,7 @@ const NOTIFY_TYPES = new Set([
   ...DIRECT_TYPES,
   ...WALLET_TYPES,
   ...MONEY_DIRECT_TYPES,
+  ...FINANCE_TYPES,
   // Trend nudge: no jobId, routed to the seller-user like the wallet events.
   'trend.match',
 ]);
@@ -133,6 +151,13 @@ const TOAST_TYPES = new Set([
   'wallet.debited',
   'vault.cooldown.completed',
   'reputation.tier-up',
+  // Money offered, money moved early, or money that failed to move. All three
+  // want a decision or a look; the rest of the financing lifecycle can sit
+  // quietly in the bell.
+  'factoring.offered',
+  'factoring.defaulted',
+  'po.released',
+  'po.defaulted',
 ]);
 
 // Which party should receive each event. This is the fix for notifications
@@ -257,6 +282,28 @@ function shouldNotify(
   // party (named in the payload, or the jobId is in their deal map).
   if (rule === 'both') return role != null;
   return role === rule;
+}
+
+/// Which side of a financing event the viewer is on, or null if neither. The
+/// seller check comes first: on a deal where one address somehow held both
+/// sides, being told "you were repaid" is less useful than "you owe nothing".
+function financeRoleFor(
+  type: string,
+  payload: Record<string, unknown> | undefined,
+  me: string,
+): Role | null {
+  const keys = FINANCE_RECIPIENT_KEYS[type];
+  if (!keys) return null;
+  for (const k of keys) {
+    if ((payload?.[k] as string | undefined)?.toLowerCase() === me) {
+      return k === 'seller' ? 'seller' : 'financier';
+    }
+  }
+  return null;
+}
+
+function financeHref(jobId: string): string {
+  return jobId ? `/deals/${jobId}` : '/financier';
 }
 
 function summaryFor(
@@ -410,6 +457,48 @@ function summaryFor(
       const raw = (payload?.amountUsdc as string | undefined) ?? '0';
       return `Cashed out ${trimUsdcLabel(raw)} USDC to your wallet.`;
     }
+    case 'factoring.offered': {
+      const raw = (payload?.advance as string | undefined) ?? '';
+      const bps = payload?.discountBps;
+      const at =
+        typeof bps === 'number' ? ` at ${(bps / 100).toFixed(1).replace(/\.0$/, '')}%` : '';
+      return raw
+        ? `A financier offered ${trimUsdcLabel(raw)} USDC now${at} on your invoice.`
+        : 'A financier offered early payout on your invoice.';
+    }
+    case 'factoring.accepted':
+      return 'The seller accepted your factoring offer. Your advance is on its way.';
+    case 'factoring.settled': {
+      const raw = (payload?.repayUsdc as string | undefined) ?? '';
+      const amt = raw ? ` ${trimUsdcLabel(raw)} USDC` : '';
+      return role === 'seller'
+        ? `Factoring settled.${amt} went to your financier. Nothing further is owed.`
+        : `Repaid on a factored invoice.${amt} landed in your wallet.`;
+    }
+    case 'factoring.defaulted':
+      return role === 'seller'
+        ? 'Your factoring repayment failed. Fund your wallet and contact the financier.'
+        : 'A factored invoice defaulted. The repayment never went through.';
+    case 'po.funded':
+      return 'A financier funded a line against your purchase order.';
+    case 'po.released': {
+      const raw = (payload?.principalUsdc as string | undefined) ?? '';
+      const amt = raw ? ` ${trimUsdcLabel(raw)} USDC` : '';
+      return role === 'seller'
+        ? `Proof of delivery accepted.${amt} released to you early.`
+        : `Your PO line released.${amt} moved to the seller.`;
+    }
+    case 'po.repaid': {
+      const raw = (payload?.repayUsdc as string | undefined) ?? '';
+      const amt = raw ? ` ${trimUsdcLabel(raw)} USDC` : '';
+      return role === 'seller'
+        ? `PO line closed.${amt} went to the financier.`
+        : `Repaid on a PO line.${amt} landed in your wallet.`;
+    }
+    case 'po.defaulted':
+      return role === 'seller'
+        ? 'Your PO line repayment failed. Fund your wallet and contact the financier.'
+        : 'A PO line defaulted. The repayment never went through.';
     case 'agent.funded': {
       const raw = (payload?.amountUsdc as string | undefined) ?? '0';
       const which = (payload?.agent as string | undefined) ?? 'agent';
@@ -579,6 +668,27 @@ export function useNotifications() {
           });
           continue;
         }
+        // Financing events. They carry a jobId but the financier is not a deal
+        // party, so route by the addresses the payload names.
+        if (FINANCE_TYPES.has(e.type)) {
+          const financeRole = financeRoleFor(e.type, e.payload, me);
+          if (!financeRole) continue;
+          const ref =
+            (e.payload?.offerId as string | undefined) ??
+            (e.payload?.lineId as string | undefined) ??
+            String(e.ts);
+          const id = `${e.type}-${ref}-${financeRole}`;
+          fresh.push({
+            id,
+            jobId: e.jobId ?? '',
+            type: e.type,
+            summary: summaryFor(e.type, e.payload, financeRole),
+            ts: e.ts,
+            read: readIdsRef.current.has(id),
+            href: financeHref(e.jobId ?? ''),
+          });
+          continue;
+        }
         // Trend nudge: no jobId, addressed to the seller-user in the payload.
         if (e.type === 'trend.match') {
           const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
@@ -684,6 +794,45 @@ export function useNotifications() {
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: hrefForType(e.type, ''),
+          toast: TOAST_TYPES.has(e.type),
+        };
+        setNotifications((list) => {
+          if (list.some((n) => n.id === id)) return list;
+          return [next, ...list].slice(0, MAX_STORED);
+        });
+        if (initialHydrateRef.current) {
+          try {
+            sfx.send();
+          } catch {
+            /* ignore */
+          }
+          if (next.toast) {
+            toastListeners.forEach((fn) => fn(next));
+          }
+        }
+        return;
+      }
+
+      // Financing events. Carry a jobId, but the financier is not a deal party,
+      // so route by the addresses the payload names rather than by deal role.
+      if (FINANCE_TYPES.has(e.type)) {
+        const financeRole = financeRoleFor(e.type, e.payload, me);
+        if (!financeRole) return;
+        const ref =
+          (e.payload?.offerId as string | undefined) ??
+          (e.payload?.lineId as string | undefined) ??
+          String(e.ts);
+        const id = `${e.type}-${ref}-${financeRole}`;
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = {
+          id,
+          jobId: e.jobId ?? '',
+          type: e.type,
+          summary: summaryFor(e.type, e.payload, financeRole),
+          ts: e.ts,
+          read: readIdsRef.current.has(id),
+          href: financeHref(e.jobId ?? ''),
           toast: TOAST_TYPES.has(e.type),
         };
         setNotifications((list) => {

@@ -35,7 +35,11 @@ async function financeJobIds(): Promise<Set<string>> {
 // is only included if one of these keys on its payload matches the caller.
 // jobId-scoped events (e.g. follow-up escrow.* events on a deal you opened)
 // are included via the trackedJobIds pass.
-const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy'] as const;
+// 'financier' is a party to the FINANCING events on a deal (factoring.*, po.*)
+// without being a party to the deal itself, so callerJobIds never covers them.
+// Without this key a financier's own offers and repayments never reach their
+// activity feed or their notification bell.
+const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy', 'financier'] as const;
 
 function isParty(event: KarwanEvent, caller: string): boolean {
   const payload = event.payload as Record<string, unknown> | undefined;
