@@ -298,7 +298,15 @@ export interface FactoringOffer {
   offeredAdvanceUsdc: string;
   expectedReturnUsdc: string;
   discountBps: number;
-  status: 'offered' | 'accepted' | 'rejected' | 'expired' | 'settled' | 'defaulted';
+  status:
+    | 'offered'
+    | 'accepted'
+    | 'rejected'
+    | 'expired'
+    | 'settled'
+    | 'defaulted'
+    // The same financier re-priced this invoice; a newer offer replaced it.
+    | 'superseded';
   offeredAt: number;
   expiresAt: number;
   acceptedAt?: number;

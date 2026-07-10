@@ -262,6 +262,21 @@ factoringRoutes.post('/offer', async (c) => {
     }
   }
 
+  // A financier gets ONE live offer per invoice. Re-pricing supersedes the
+  // previous one instead of stacking a second offer against the same seller,
+  // who would otherwise see two live quotes from one counterparty and have to
+  // guess which is current.
+  const mine = (await listOffersForInvoice(body.invoiceId)).find(
+    (o) => o.financier.toLowerCase() === financier && o.status === 'offered',
+  );
+  if (mine) {
+    await patchFactoringOffer(mine.id, { status: 'superseded' });
+    logger.info(
+      { offerId: mine.id, invoiceId: body.invoiceId, financier },
+      'factoring: superseded the financier\'s previous open offer',
+    );
+  }
+
   const offer = await createFactoringOffer({
     id: randomUUID(),
     invoiceId: body.invoiceId,

@@ -12,6 +12,7 @@ export type FactoringOfferStatus =
   | 'accepted'     // seller accepted; payee redirect lands on chain
   | 'rejected'     // seller declined
   | 'expired'      // 24h window passed with no decision
+  | 'superseded'   // the same financier re-priced; this offer was replaced
   | 'settled'      // buyer's settlement landed, financier repaid
   | 'defaulted';   // settlement happened but financier never received repay
 
