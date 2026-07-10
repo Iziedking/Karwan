@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
 import { parseUnits } from 'viem';
@@ -158,6 +158,10 @@ export function FinancierDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [offerTarget, setOfferTarget] = useState<DirectDeal | null>(null);
+  // This financier's own live offers, keyed by invoice. A second offer on an
+  // invoice you already quoted is a re-price, not a new bid, so the card has
+  // to say Edit rather than let you stack quotes on the same seller.
+  const [myOffers, setMyOffers] = useState<Map<string, FactoringOffer>>(new Map());
   // PO-tab state. Split from the factor tab so a tab switch never
   // re-renders the inactive surface, per Vercel
   // `rerender-split-combined-hooks`.
@@ -165,6 +169,27 @@ export function FinancierDashboard() {
   const [poLoading, setPoLoading] = useState(false);
   const [poError, setPoError] = useState<string | null>(null);
   const [fundTarget, setFundTarget] = useState<DirectDeal | null>(null);
+
+  const reloadMyOffers = useCallback(() => {
+    if (!auth.isAuthenticated) return;
+    api
+      .listMyFactoringOffers()
+      .then(({ asFinancier }) => {
+        const live = new Map<string, FactoringOffer>();
+        for (const o of asFinancier) {
+          if (o.status === 'offered') live.set(o.invoiceId.toLowerCase(), o);
+        }
+        setMyOffers(live);
+      })
+      .catch(() => {
+        // A failed read just means the card shows Make offer; the backend
+        // supersedes the old quote either way.
+      });
+  }, [auth.isAuthenticated]);
+
+  useEffect(() => {
+    reloadMyOffers();
+  }, [reloadMyOffers]);
 
   useEffect(() => {
     if (tab !== 'factor') return;
@@ -299,6 +324,7 @@ export function FinancierDashboard() {
             available={available}
             loading={loading}
             error={error}
+            myOffers={myOffers}
             onOpenOffer={(deal) => setOfferTarget(deal)}
           />
         ) : (
@@ -317,10 +343,12 @@ export function FinancierDashboard() {
       {offerTarget ? (
         <OfferModal
           deal={offerTarget}
+          existingOffer={myOffers.get(offerTarget.jobId.toLowerCase()) ?? null}
           isAuthed={auth.isAuthenticated}
           onClose={() => setOfferTarget(null)}
           onPosted={() => {
             setOfferTarget(null);
+            reloadMyOffers();
             // Re-fetch the list so the just-bid invoice no longer appears.
             api
               .listFactoringAvailable({
@@ -359,11 +387,13 @@ function FactorInvoicesTab({
   available,
   loading,
   error,
+  myOffers,
   onOpenOffer,
 }: {
   available: DirectDeal[] | null;
   loading: boolean;
   error: string | null;
+  myOffers: Map<string, FactoringOffer>;
   onOpenOffer: (deal: DirectDeal) => void;
 }) {
   if (loading && available === null) {
@@ -387,7 +417,12 @@ function FactorInvoicesTab({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {available.map((deal) => (
-        <InvoiceCard key={deal.jobId} deal={deal} onOpenOffer={() => onOpenOffer(deal)} />
+        <InvoiceCard
+          key={deal.jobId}
+          deal={deal}
+          existingOffer={myOffers.get(deal.jobId.toLowerCase()) ?? null}
+          onOpenOffer={() => onOpenOffer(deal)}
+        />
       ))}
     </div>
   );
@@ -395,9 +430,11 @@ function FactorInvoicesTab({
 
 function InvoiceCard({
   deal,
+  existingOffer,
   onOpenOffer,
 }: {
   deal: DirectDeal;
+  existingOffer: FactoringOffer | null;
   onOpenOffer: () => void;
 }) {
   const settlementWindow =
@@ -451,20 +488,27 @@ function InvoiceCard({
           >
             Seller passport ↗
           </Link>
-          <button
-            type="button"
-            onClick={onOpenOffer}
-            data-guide="financier-offer"
-            className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
-            style={{
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
-            }}
-          >
-            Make offer
-          </button>
+          <div className="flex items-center gap-2.5">
+            {existingOffer ? (
+              <span className="mono text-[9.5px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)]">
+                Your offer · {(existingOffer.discountBps / 100).toFixed(1)}%
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={onOpenOffer}
+              data-guide="financier-offer"
+              className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
+              style={{
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {existingOffer ? 'Edit offer' : 'Make offer'}
+            </button>
+          </div>
         </div>
       </div>
     </PageCard>
@@ -577,19 +621,28 @@ const OFFER_EXPIRES_HOURS = 24;
 
 function OfferModal({
   deal,
+  existingOffer,
   isAuthed,
   onClose,
   onPosted,
 }: {
   deal: DirectDeal;
   isAuthed: boolean;
+  existingOffer: FactoringOffer | null;
   onClose: () => void;
   onPosted: (offer: FactoringOffer) => void;
 }) {
   const auth = useAuth();
   const { data: walletClient } = useWalletClient();
   const face = Number(deal.dealAmountUsdc);
-  const [discountBps, setDiscountBps] = useState<number>(200); // 2% default
+  // Re-pricing an existing quote opens on the rate you already offered, not
+  // on the 2% default, so an edit starts from where you left it.
+  const [discountBps, setDiscountBps] = useState<number>(existingOffer?.discountBps ?? 200);
+  // Mirrors discountBps as a free-text percent so the field can hold a
+  // half-typed value without the slider fighting the keyboard.
+  const [discountInput, setDiscountInput] = useState(
+    ((existingOffer?.discountBps ?? 200) / 100).toFixed(1),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -700,7 +753,10 @@ function OfferModal({
                 <button
                   key={tier}
                   type="button"
-                  onClick={() => setDiscountBps(bps)}
+                  onClick={() => {
+                    setDiscountBps(bps);
+                    setDiscountInput((bps / 100).toFixed(1));
+                  }}
                   className={cn(
                     'mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
                     discountBps === bps
@@ -725,8 +781,35 @@ function OfferModal({
               <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 Custom discount
               </span>
-              <span className="mono text-[14px] tabular-nums font-extrabold text-[var(--lp-dark)]">
-                {(discountBps / 100).toFixed(1)}%
+              {/* Typable as well as draggable. The slider steps 0.5% and can
+                  never express a rate a financier actually quoted, like 2.4%.
+                  Clamped on blur, not on change, so intermediate keystrokes
+                  ("" or ".") don't snap the value out from under the cursor. */}
+              <span className="inline-flex items-baseline gap-0.5">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={1}
+                  max={20}
+                  step={0.1}
+                  value={discountInput}
+                  onChange={(e) => {
+                    setDiscountInput(e.target.value);
+                    const pct = Number(e.target.value);
+                    if (Number.isFinite(pct) && pct >= 1 && pct <= 20) {
+                      setDiscountBps(Math.round(pct * 100));
+                    }
+                  }}
+                  onBlur={() => {
+                    const pct = Number(discountInput);
+                    const clamped = Number.isFinite(pct) ? Math.min(20, Math.max(1, pct)) : 1;
+                    setDiscountBps(Math.round(clamped * 100));
+                    setDiscountInput(clamped.toFixed(1));
+                  }}
+                  aria-label="Custom discount percent"
+                  className="w-[3.6rem] bg-transparent text-end mono text-[14px] tabular-nums font-extrabold text-[var(--lp-dark)] border-b border-black/15 focus:border-[var(--lp-accent)] focus:outline-none"
+                />
+                <span className="mono text-[14px] font-extrabold text-[var(--lp-dark)]">%</span>
               </span>
             </div>
             <input
@@ -735,7 +818,10 @@ function OfferModal({
               max={2000}
               step={50}
               value={discountBps}
-              onChange={(e) => setDiscountBps(Number(e.target.value))}
+              onChange={(e) => {
+                setDiscountBps(Number(e.target.value));
+                setDiscountInput((Number(e.target.value) / 100).toFixed(1));
+              }}
               className="w-full"
             />
             <div className="mt-1 flex justify-between mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
@@ -772,7 +858,13 @@ function OfferModal({
               borderBottomRightRadius: 2,
             }}
           >
-            {submitting ? 'Posting…' : isAuthed ? 'Post offer · 24h' : 'Sign in to post'}
+            {submitting
+              ? 'Posting…'
+              : !isAuthed
+                ? 'Sign in to post'
+                : existingOffer
+                  ? 'Replace offer · 24h'
+                  : 'Post offer · 24h'}
           </button>
         </div>
       </div>
