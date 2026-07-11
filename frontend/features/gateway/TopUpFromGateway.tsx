@@ -5,6 +5,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
 import { useGatewayBalance } from './useGatewayBalance';
 import { gatewaySpend, openGatewayRail } from './lib';
+import { chainErrorMessage } from '@/shared/utils/chainError';
+import { GatewayProgress, type StepMap } from './GatewayProgress';
 
 /// Fund an Arc address straight from the pooled Gateway balance. One signature,
 /// no gas on any chain, and the recipient can be a Circle agent SCA because
@@ -28,10 +30,12 @@ export function TopUpFromGateway({
   onFunded?: () => void;
 }) {
   const t = useTranslations().gatewayTopUp;
+  const errCopy = useTranslations().chainErrors;
   const { connector, isConnected } = useAccount();
   const { confirmed, loading, refresh } = useGatewayBalance();
   const [typed, setTyped] = useState('');
   const [phase, setPhase] = useState<'idle' | 'moving' | 'done' | 'error'>('idle');
+  const [steps, setSteps] = useState<StepMap>({});
   const [error, setError] = useState<string | null>(null);
 
   const asks = amount == null;
@@ -49,6 +53,7 @@ export function TopUpFromGateway({
     }
     setError(null);
     setPhase('moving');
+    setSteps({});
     try {
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
@@ -56,6 +61,10 @@ export function TopUpFromGateway({
         provider,
         amount: String(value),
         recipientAddress: recipient,
+        // Funding an agent is the same spend as a move, so it gets the same
+        // stages. The forwarder mint is the long part; it should not be silent
+        // just because this button is small.
+        onStep: (name, step) => setSteps((prev) => ({ ...prev, [name]: step })),
       });
       await refresh();
       setPhase('done');
@@ -63,7 +72,7 @@ export function TopUpFromGateway({
       onFunded?.();
     } catch (err) {
       setPhase('error');
-      setError(err instanceof Error ? err.message : t.failed);
+      setError(chainErrorMessage(err, errCopy, t.failed));
     }
   }
 
@@ -125,6 +134,8 @@ export function TopUpFromGateway({
                 .replace('{need}', formatUsdc(String(value), { withSuffix: false }))}
         </p>
       )}
+
+      {(phase === 'moving' || phase === 'done') && <GatewayProgress steps={steps} />}
 
       {phase === 'error' && <p className="text-[12px] text-[#b03d3a]">{error ?? t.failed}</p>}
     </div>

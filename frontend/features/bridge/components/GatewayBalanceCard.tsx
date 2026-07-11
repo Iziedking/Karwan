@@ -8,7 +8,9 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
 import { GATEWAY_CHAINS, type GatewayChainConfig } from '../config';
-import { loadGatewayKit } from '@/features/gateway/lib';
+import { loadGatewayKit, gatewaySpend, gatewayDeposit } from '@/features/gateway/lib';
+import { GatewayProgress, type StepMap } from '@/features/gateway/GatewayProgress';
+import { chainErrorMessage } from '@/shared/utils/chainError';
 
 /// Circle Gateway pooled balance + deposit.
 ///
@@ -220,6 +222,7 @@ type Recipient = 'wallet' | 'custom';
 
 export function GatewayBalanceCard() {
   const t = useTranslations().gatewayCard;
+  const errCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const { address, chain, connector, isConnected } = useAccount();
   const { switchChainAsync } = useSwitchChain();
@@ -239,6 +242,11 @@ export function GatewayBalanceCard() {
   const [moveError, setMoveError] = useState<string | null>(null);
   const [pulledFrom, setPulledFrom] = useState<string[] | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [maxBusy, setMaxBusy] = useState(false);
+  // Live stage map for the current move, and the tx receipts for both actions.
+  const [moveSteps, setMoveSteps] = useState<StepMap>({});
+  const [poolTx, setPoolTx] = useState<string | null>(null);
+  const [moveTx, setMoveTx] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -283,16 +291,13 @@ export function GatewayBalanceCard() {
 
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-      const { kit, adapter } = await loadGatewayKit(provider);
 
-      // allowanceStrategy defaults to 'authorize' (EIP-2612 permit): one
-      // signature, no separate approve tx. That only works because the signer
-      // is an EOA. A Circle smart account would have to fall back to 'approve'.
-      await kit.unifiedBalance.deposit({
-        from: { adapter, chain: source.appKit },
+      const receipt = await gatewayDeposit({
+        provider,
         amount: String(parsed),
-        token: 'USDC',
-      } as never);
+        chain: source.appKit,
+      });
+      setPoolTx(receipt.explorerUrl ?? null);
 
       // Gateway indexes the deposit a beat after the source tx lands, and our
       // read is cached for 30s. Drop the cache so the panel stops serving the
@@ -308,7 +313,7 @@ export function GatewayBalanceCard() {
       }, 12_000);
     } catch (err) {
       setPhase('error');
-      setError(err instanceof Error ? err.message : t.failed);
+      setError(chainErrorMessage(err, errCopy, t.failed));
     }
   }
 
@@ -332,23 +337,24 @@ export function GatewayBalanceCard() {
     setPulledFrom(null);
     try {
       setMovePhase('moving');
+      setMoveSteps({});
+      setMoveTx(null);
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-      const { kit, adapter } = await loadGatewayKit(provider);
 
-      const res = (await kit.unifiedBalance.spend({
-        from: { adapter },
-        to: {
-          chain: dest.appKit,
-          recipientAddress,
-          useForwarder: true,
-        },
+      const res = await gatewaySpend({
+        provider,
         amount: String(Number(moveAmount)),
-        token: 'USDC',
-      } as never)) as { allocations?: Array<{ chain: string; amount: string }> };
+        recipientAddress,
+        chain: dest.appKit,
+        // Stages land as they happen, so the forwarder's mint stops being an
+        // invisible wait after the signature.
+        onStep: (name, step) => setMoveSteps((prev) => ({ ...prev, [name]: step })),
+      });
 
+      setMoveTx(res.explorerUrl ?? null);
       setPulledFrom(
-        (res?.allocations ?? []).map(
+        res.allocations.map(
           (a) => `${formatUsdc(a.amount, { withSuffix: false })} ${chainLabel(a.chain)}`,
         ),
       );
@@ -358,7 +364,7 @@ export function GatewayBalanceCard() {
       load();
     } catch (err) {
       setMovePhase('error');
-      setMoveError(err instanceof Error ? err.message : t.moveFailed);
+      setMoveError(chainErrorMessage(err, errCopy, t.moveFailed));
     }
   }
 
@@ -369,6 +375,56 @@ export function GatewayBalanceCard() {
   const perChain = (balance?.chains ?? []).filter(
     (c) => Number(c.confirmed) > 0 || Number(c.pending) > 0,
   );
+
+  /// Max is NOT the whole pooled balance.
+  ///
+  /// Gateway takes a forwarding fee out of the spend, so asking to move the full
+  /// confirmed figure always fails ("Insufficient total maxFee ... to cover
+  /// forwarding fee"). Ask the SDK what it will charge and hold that back, so the
+  /// button proposes an amount that can actually settle.
+  ///
+  /// The estimate is retried at 90% because estimateSpend can itself reject the
+  /// full balance for the very same reason. The fee is near-flat, so the figure
+  /// it returns for 90% is the one that applies at max.
+  async function fillMoveMax() {
+    const total = Number(confirmed);
+    if (!connector || !recipientAddress || !(total > 0)) {
+      setMoveAmount(confirmed);
+      return;
+    }
+    setMaxBusy(true);
+    try {
+      const provider = await connector.getProvider();
+      const { kit, adapter } = await loadGatewayKit(provider);
+      const estimate = async (amount: number) =>
+        (await kit.unifiedBalance.estimateSpend({
+          from: { adapter },
+          to: { chain: dest.appKit, recipientAddress, useForwarder: true },
+          amount: String(amount),
+          token: 'USDC',
+        } as never)) as { fees?: Array<{ token?: string; amount?: string }> };
+
+      let est;
+      try {
+        est = await estimate(total);
+      } catch {
+        est = await estimate(total * 0.9);
+      }
+
+      const fee = (est.fees ?? [])
+        .filter((f) => (f.token ?? 'USDC').toUpperCase() === 'USDC')
+        .reduce((sum, f) => sum + Number(f.amount ?? 0), 0);
+
+      const spendable = total - fee;
+      setMoveAmount(spendable > 0 ? spendable.toFixed(6) : '0');
+    } catch {
+      // Could not price it. Offer the full balance and let the humanised error
+      // tell them to trim it, rather than silently inventing a fee.
+      setMoveAmount(confirmed);
+    } finally {
+      setMaxBusy(false);
+    }
+  }
 
   // No top margin and full height: the page owns the column spacing and stretches
   // this card to match the CCTP one beside it.
@@ -471,6 +527,22 @@ export function GatewayBalanceCard() {
             {phase === 'done' && (
               <StatusLine tone="ok" onDismiss={() => setPhase('idle')} label={t.dismiss}>
                 {t.pooled}
+                {/* Deposit has no step events (it is a plain approve + deposit),
+                    but its result carries the explorer URL, which we used to
+                    discard. It is the only receipt the user gets. */}
+                {poolTx && (
+                  <>
+                    {' '}
+                    <a
+                      href={poolTx}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      {t.viewTx}
+                    </a>
+                  </>
+                )}
               </StatusLine>
             )}
             {phase === 'error' && (
@@ -558,8 +630,8 @@ export function GatewayBalanceCard() {
             </span>
             <button
               type="button"
-              onClick={() => setMoveAmount(confirmed)}
-              disabled={movePhase === 'moving'}
+              onClick={() => void fillMoveMax()}
+              disabled={movePhase === 'moving' || maxBusy}
               className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-50"
             >
               {t.maxTemplate.replace(
@@ -607,11 +679,30 @@ export function GatewayBalanceCard() {
               : t.moveCtaTemplate.replace('{chain}', dest.name)}
           </button>
 
+          {/* Live stages. Kept up while moving AND after it lands, so the
+              finished run reads as a receipt rather than vanishing. */}
+          {(movePhase === 'moving' || movePhase === 'moved') && (
+            <GatewayProgress steps={moveSteps} />
+          )}
+
           {movePhase === 'moved' && (
             <StatusLine tone="ok" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
               {t.moved}
               {pulledFrom && pulledFrom.length > 0 && (
                 <> {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}</>
+              )}
+              {moveTx && (
+                <>
+                  {' '}
+                  <a
+                    href={moveTx}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    {t.viewTx}
+                  </a>
+                </>
               )}
             </StatusLine>
           )}

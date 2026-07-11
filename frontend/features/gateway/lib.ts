@@ -1,4 +1,7 @@
 import { GATEWAY_CHAINS } from '@/features/bridge/config';
+import { SPEND_STEPS, type GatewayStep } from './GatewayProgress';
+
+const SPEND_STEP_NAMES: readonly string[] = SPEND_STEPS;
 
 /// Circle Gateway, shared across the four surfaces that touch it: the /bridge
 /// rail, the profile wallets panel, the deal page, and the post-a-job form.
@@ -42,8 +45,32 @@ export async function gatewaySpend(input: {
   amount: string;
   recipientAddress: string;
   chain?: string;
-}): Promise<{ allocations: Array<{ chain: string; amount: string }>; txHash?: string }> {
+  /// Called as each stage lands. The SDK reports buildBurnIntents ->
+  /// signBurnIntents -> fetchAttestation -> mint, and the mint happens AFTER the
+  /// user's signature via Circle's forwarder, so without this the last and
+  /// longest stage is invisible.
+  onStep?: (name: string, step: GatewayStep) => void;
+}): Promise<{
+  allocations: Array<{ chain: string; amount: string }>;
+  txHash?: string;
+  explorerUrl?: string;
+}> {
   const { kit, adapter } = await loadGatewayKit(input.provider);
+
+  if (input.onStep) {
+    // One listener per stage. The kit is per-call, so these can never bleed
+    // across two concurrent spends.
+    const ub = kit.unifiedBalance as unknown as {
+      on: (event: string, handler: (payload: unknown) => void) => void;
+    };
+    for (const name of SPEND_STEP_NAMES) {
+      ub.on(`gateway.spend.step.${name}`, (payload: unknown) => {
+        const data = (payload as { data?: GatewayStep }).data;
+        if (data) input.onStep?.(name, data);
+      });
+    }
+  }
+
   const res = (await kit.unifiedBalance.spend({
     from: { adapter },
     to: {
@@ -56,8 +83,33 @@ export async function gatewaySpend(input: {
   } as never)) as {
     allocations?: Array<{ chain: string; amount: string }>;
     txHash?: string;
+    explorerUrl?: string;
   };
-  return { allocations: res?.allocations ?? [], txHash: res?.txHash };
+  return {
+    allocations: res?.allocations ?? [],
+    txHash: res?.txHash,
+    explorerUrl: res?.explorerUrl,
+  };
+}
+
+/// Deposit into the pool, reporting the tx once it lands.
+///
+/// Deposit has no step events (it is a plain approve + deposit), but its result
+/// carries txHash + explorerUrl, which we used to throw away.
+export async function gatewayDeposit(input: {
+  provider: unknown;
+  amount: string;
+  chain: string;
+}): Promise<{ txHash?: string; explorerUrl?: string }> {
+  const { kit, adapter } = await loadGatewayKit(input.provider);
+  // allowanceStrategy defaults to 'authorize' (EIP-2612 permit): one signature,
+  // no separate approve tx. That only works because the signer is an EOA.
+  const res = (await kit.unifiedBalance.deposit({
+    from: { adapter, chain: input.chain },
+    amount: input.amount,
+    token: 'USDC',
+  } as never)) as { txHash?: string; explorerUrl?: string };
+  return { txHash: res?.txHash, explorerUrl: res?.explorerUrl };
 }
 
 /// Open the Gateway rail in a new tab so the user can pool USDC from any chain.

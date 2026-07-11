@@ -1686,6 +1686,23 @@ interface MessagesShape {
     cctp: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
     gateway: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
   };
+  gatewaySteps: {
+    build: string;
+    sign: string;
+    attest: string;
+    land: string;
+    view: string;
+  };
+  chainErrors: {
+    declined: string;
+    feeHeadroom: string;
+    needsGas: string;
+    notEnough: string;
+    walletBusy: string;
+    wrongChain: string;
+    network: string;
+    generic: string;
+  };
   gatewayTopUp: {
     cta: string;
     fundPool: string;
@@ -1725,6 +1742,7 @@ interface MessagesShape {
     moveFailed: string;
     byChain: string;
     dismiss: string;
+    viewTx: string;
     pulledTemplate: string;
   };
   stakeCard: {
@@ -5611,6 +5629,23 @@ export const en: MessagesShape = {
       nudge: 'Pool USDC from any chain into one balance, then spend it on any chain in a single signature. No gas anywhere.',
     },
   },
+  gatewaySteps: {
+    build: 'Preparing the transfer',
+    sign: 'Waiting for your signature',
+    attest: 'Circle is confirming it',
+    land: 'Landing the funds',
+    view: 'View',
+  },
+  chainErrors: {
+    declined: 'You declined it in your wallet.',
+    feeHeadroom: 'That leaves no room for the network fee. Lower the amount a little.',
+    needsGas: 'Not enough gas on that chain. Claim some, then try again.',
+    notEnough: 'Not enough USDC for that amount. Lower it and try again.',
+    walletBusy: 'Your wallet is still busy with another transaction. Wait a moment.',
+    wrongChain: 'Your wallet is on the wrong network. Switch, then try again.',
+    network: 'Network hiccup. Nothing moved. Try again in a moment.',
+    generic: 'That did not go through. Nothing was charged. Try again.',
+  },
   gatewayTopUp: {
     cta: 'Top up from Gateway',
     fundPool: 'Fund your balance',
@@ -5650,6 +5685,7 @@ export const en: MessagesShape = {
     moveFailed: 'Move failed.',
     byChain: 'Balance by chain',
     dismiss: 'Dismiss',
+    viewTx: 'View transaction',
     pulledTemplate: 'Pulled {chains}.',
   },
   stakeCard: {

@@ -1805,6 +1805,23 @@ export const fr: Messages = {
       nudge: 'Regroupez vos USDC de toutes les chaînes en un solde, puis dépensez sur la chaîne de votre choix en une signature. Sans frais de gas.',
     },
   },
+  gatewaySteps: {
+    build: 'Préparation du transfert',
+    sign: 'En attente de votre signature',
+    attest: 'Circle confirme',
+    land: 'Arrivée des fonds',
+    view: 'Voir',
+  },
+  chainErrors: {
+    declined: 'Vous avez refusé dans votre portefeuille.',
+    feeHeadroom: 'Il ne reste rien pour les frais de réseau. Baissez un peu le montant.',
+    needsGas: 'Pas assez de gas sur cette chaîne. Réclamez-en, puis réessayez.',
+    notEnough: 'Pas assez de USDC pour ce montant. Baissez-le et réessayez.',
+    walletBusy: 'Votre portefeuille traite encore une autre transaction. Patientez un instant.',
+    wrongChain: 'Votre portefeuille est sur le mauvais réseau. Changez, puis réessayez.',
+    network: 'Incident réseau. Rien ne bouge. Réessayez dans un instant.',
+    generic: 'Cela n’a pas abouti. Rien n’a été débité. Réessayez.',
+  },
   gatewayTopUp: {
     cta: 'Recharger via Gateway',
     fundPool: 'Alimenter votre solde',
@@ -1844,6 +1861,7 @@ export const fr: Messages = {
     moveFailed: 'Le déplacement a échoué.',
     byChain: 'Solde par chaîne',
     dismiss: 'Fermer',
+    viewTx: 'Voir la transaction',
     pulledTemplate: 'Tiré {chains}.',
   },
   stakeCard: {

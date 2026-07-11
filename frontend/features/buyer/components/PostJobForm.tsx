@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
+import { chainErrorMessage } from '@/shared/utils/chainError';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -107,6 +108,7 @@ const SPLIT_PRESETS = ['50, 50', '30, 70', '40, 30, 30'] as const;
 
 export function PostJobForm() {
   const t = useTranslations().postJob;
+  const errCopy = useTranslations().chainErrors;
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
@@ -241,7 +243,9 @@ export function PostJobForm() {
       } else if (err instanceof ApiError && err.detail) {
         setError(String(err.detail));
       } else {
-        setError((err as Error).message);
+        // Never surface a raw error. Anything unrecognised (a dropped
+        // connection, an SDK string) collapses to one clean line.
+        setError(chainErrorMessage(err, errCopy, errCopy.generic));
       }
       setSubmitting(false);
     }

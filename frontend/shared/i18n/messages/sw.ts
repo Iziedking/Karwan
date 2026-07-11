@@ -1805,6 +1805,23 @@ export const sw: Messages = {
       nudge: 'Kusanya USDC kutoka mnyororo wowote kuwa salio moja, kisha itumie kwenye mnyororo wowote kwa saini moja. Hakuna gesi popote.',
     },
   },
+  gatewaySteps: {
+    build: 'Inaandaa uhamisho',
+    sign: 'Inasubiri saini yako',
+    attest: 'Circle inathibitisha',
+    land: 'Fedha zinawasili',
+    view: 'Tazama',
+  },
+  chainErrors: {
+    declined: 'Uliikataa kwenye mkoba wako.',
+    feeHeadroom: 'Hii haiachi nafasi kwa ada ya mtandao. Punguza kiasi kidogo.',
+    needsGas: 'Hakuna gesi ya kutosha kwenye mnyororo huo. Pata kiasi, kisha jaribu tena.',
+    notEnough: 'Hakuna USDC ya kutosha kwa kiasi hicho. Punguza na ujaribu tena.',
+    walletBusy: 'Mkoba wako bado unashughulika na muamala mwingine. Subiri kidogo.',
+    wrongChain: 'Mkoba wako uko kwenye mtandao usio sahihi. Badilisha, kisha ujaribu tena.',
+    network: 'Hitilafu ya mtandao. Hakuna kilichohamishwa. Jaribu tena baadaye.',
+    generic: 'Haikufanikiwa. Hakuna kilichotozwa. Jaribu tena.',
+  },
   gatewayTopUp: {
     cta: 'Ongeza kutoka Gateway',
     fundPool: 'Weka pesa kwenye salio lako',
@@ -1844,6 +1861,7 @@ export const sw: Messages = {
     moveFailed: 'Kuhamisha kumeshindwa.',
     byChain: 'Salio kwa mnyororo',
     dismiss: 'Ondoa',
+    viewTx: 'Tazama muamala',
     pulledTemplate: 'Imetolewa {chains}.',
   },
   stakeCard: {
