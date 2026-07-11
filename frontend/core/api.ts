@@ -2666,6 +2666,16 @@ export const api = {
   getPartner: (address: string) =>
     json<{ partner: Partner }>(`/api/partners/${address}`),
 
+  // Circle Gateway pooled balance for the signed-in address. This is USDC
+  // locked in the GatewayWallet contract, NOT wallet USDC: it reads zero until
+  // the user deposits. Session-scoped, so no address argument.
+  getGatewayBalance: () =>
+    json<{ balance: GatewayBalance; stale?: boolean }>('/api/gateway/balance'),
+  // Drop the server's 30s cache right after a deposit lands, so the panel does
+  // not keep serving the pre-deposit zero.
+  refreshGatewayBalance: () =>
+    json<{ ok: true }>('/api/gateway/refresh', { method: 'POST' }),
+
   // Recent events for a job (public, durable ring snapshot). Used to seed the
   // live x402 agent-payments panel before SSE takes over.
   recentEvents: (jobId: string, type?: string, limit = 100) => {
@@ -2819,6 +2829,25 @@ export interface Partner {
   certifications: string | null;
   verified: boolean;
   canSupply: boolean;
+}
+
+/// Circle Gateway pooled balance. `confirmed` is spendable on any supported
+/// chain; `pending` is deposited but not yet finalised by Gateway. Amounts are
+/// human-readable decimal strings ("12.500000"), not base units.
+export interface GatewayBalance {
+  address: string;
+  confirmed: string;
+  pending: string;
+  chains: GatewayChainBalance[];
+  fetchedAt: number;
+}
+
+export interface GatewayChainBalance {
+  chain: string;
+  /// Matches ChainLogo's ChainKey, so the panel reuses the existing chain marks.
+  key: string;
+  confirmed: string;
+  pending: string;
 }
 
 export interface ChatMessage {
