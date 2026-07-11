@@ -20,6 +20,7 @@ import {
   APP_KIT_SOURCE_CHAINS,
   APP_KIT_SOURCE_CHAIN_KEYS,
   bridgeInToArcViaAppKit,
+  bridgeOutFromArcViaAppKit,
 } from '../circle/bridge-kit.js';
 import { usdc as ARC_USDC, readUsdcBalance } from '../chain/contracts.js';
 import {
@@ -252,8 +253,18 @@ bridgeRoutes.post('/record', async (c) => {
   if (existing) return c.json({ ok: true, alreadyRecorded: true });
 
   const key = body.sourceChainKey;
-  // Solana's CCTP domain is 5; EVM domains come from the registry.
-  const sourceDomain = key === 'solanaDevnet' ? 5 : isCctpChainKey(key) ? CCTP_CHAINS[key].domain : 0;
+  // Solana's CCTP domain is 5; EVM domains come from the registry. An 'out'
+  // bridge always burns on Arc, so its source domain is Arc's regardless of what
+  // key the client sent, otherwise it would silently record as domain 0
+  // (Ethereum) and the history row would name the wrong source.
+  const sourceDomain =
+    body.direction === 'out'
+      ? ARC_DOMAIN
+      : key === 'solanaDevnet'
+        ? 5
+        : isCctpChainKey(key)
+          ? CCTP_CHAINS[key].domain
+          : 0;
   const amountUsdc = String(body.amountUsdc);
 
   await createBridge({
@@ -1848,20 +1859,16 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     sourceWalletAddress = userAddress;
   }
 
-  const dest = CCTP_CHAINS[body.destChainKey];
-  // Bridging OUT needs a Circle wallet on the DESTINATION to relay the mint, so
-  // the web3-only chains cannot be destinations at all. They are sources for a
-  // user-signed bridge-in only. See CctpChain.circleBlockchain.
-  const destCircleChain = dest.circleBlockchain;
-  if (!destCircleChain) {
-    return c.json(
-      {
-        error: 'chain_not_circle_supported',
-        detail: `Cannot withdraw to ${dest.name}: Circle cannot relay the mint there`,
-      },
-      400,
-    );
-  }
+  // No destination-wallet check any more. This route used to relay the mint from
+  // a Circle DCW on the destination chain, which capped withdrawals at the five
+  // chains Circle can hold a wallet on. It now goes through App Kit with the
+  // Forwarding Service, so CIRCLE submits the destination mint and no wallet
+  // exists there to constrain us. Every chain reports
+  // cctp.forwarderSupported.destination, so all eleven are reachable.
+  //
+  // The Arc side is unchanged: the burn is still signed by a Circle DCW, and Arc
+  // IS a Circle-supported chain, so that keeps working for the destinations
+  // Circle itself cannot reach.
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
   // Preflight: the chosen source wallet must hold enough Arc USDC (which is
@@ -1890,37 +1897,6 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     );
   }
 
-  // Ensure the destination bridge DCW exists (it relays + pays for the mint) and
-  // nudge native gas to it. Provision lazily if this is the user's first bridge
-  // to that chain.
-  const wallets = await getAgentWallets(userAddress);
-  if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
-  let destWallet = wallets.bridgeWallets?.[destCircleChain];
-  if (!destWallet) {
-    try {
-      const created = await provisionUserBridgeWallet(userAddress, destCircleChain);
-      destWallet = { walletId: created.walletId, address: created.address };
-      await saveAgentWallets({
-        ...wallets,
-        bridgeWallets: {
-          ...(wallets.bridgeWallets ?? {}),
-          [destCircleChain]: destWallet,
-        },
-      });
-    } catch (err) {
-      return c.json(
-        { error: 'destination wallet provisioning failed', detail: (err as Error).message },
-        502,
-      );
-    }
-  }
-  // Best-effort: make sure the destination DCW can pay the mint gas.
-  void dripTestnetUsdc(destWallet.address, {
-    blockchain: destCircleChain,
-    native: true,
-    usdc: false,
-  });
-
   await createBridge({
     bridgeId: body.bridgeId,
     direction: 'out',
@@ -1933,18 +1909,22 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     mintRecipient: body.recipient,
     status: 'burning',
     destChainKey: body.destChainKey,
-    // Reuse the bridge-wallet fields for the DESTINATION DCW that relays the mint.
-    bridgeWalletId: destWallet.walletId,
-    bridgeWalletAddress: destWallet.address,
+    appKit: true,
+    // The Arc wallet that burns. No destination wallet is recorded any more:
+    // Circle's forwarder owns the mint.
+    bridgeWalletId: sourceWalletId,
+    bridgeWalletAddress: sourceWalletAddress,
   });
 
-  startOutPipeline({
+  // Fire-and-forget. The Arc DCW signs the burn, and the Forwarding Service
+  // fetches the attestation and broadcasts the destination mint, so this reaches
+  // every chain including the six Circle cannot hold a wallet on.
+  void bridgeOutFromArcViaAppKit({
     bridgeId: body.bridgeId,
-    identityWalletId: sourceWalletId,
     destChainKey: body.destChainKey,
+    sourceWalletAddress,
     amountUsdc: body.amountUsdc.toString(),
     recipient: body.recipient,
-    destWalletId: destWallet.walletId,
   });
 
   return c.json(
@@ -2126,106 +2106,13 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
   );
 });
 
-interface OutPipelineInput {
-  bridgeId: string;
-  identityWalletId: string;
-  destChainKey: CctpChainKey;
-  amountUsdc: string;
-  recipient: string;
-  destWalletId: string;
-}
+// The Circle out-pipeline (burn on a DCW, then relay the mint from a DESTINATION
+// DCW) is gone. Withdrawals now run through App Kit + the Forwarding Service in
+// bridgeOutFromArcViaAppKit: Circle submits the destination mint, so there is no
+// destination wallet, and every chain becomes reachable rather than only the
+// five Circle can hold a wallet on. startOutRelay survives because the web3
+// bridge-out path and the resume/recheck logic still relay a user-signed burn.
 
-function startOutPipeline(input: OutPipelineInput) {
-  if (outInFlight.has(input.bridgeId)) return;
-  outInFlight.add(input.bridgeId);
-  outPipelineLoop(input).finally(() => outInFlight.delete(input.bridgeId));
-}
-
-/// Burn on Arc (approve + depositForBurn from the identity DCW), then hand off to
-/// the destination mint relay. Arc has sub-second finality and USDC is gas, so
-/// the burn legs run synchronously.
-async function outPipelineLoop(input: OutPipelineInput) {
-  const dest = CCTP_CHAINS[input.destChainKey];
-  const amountStr = parseUnits(input.amountUsdc, USDC_DECIMALS).toString();
-  try {
-    const record = await getBridge(input.bridgeId);
-    if (!record) return;
-    if (record.sourceTxHash) {
-      // Burn already landed (resume): jump to the mint relay.
-      startOutRelay({
-        bridgeId: input.bridgeId,
-        destChainKey: input.destChainKey,
-        sourceTxHash: record.sourceTxHash,
-        amountUsdc: input.amountUsdc,
-        recipient: input.recipient,
-        destWalletId: input.destWalletId,
-      });
-      return;
-    }
-
-    // STAGE 1, approve Arc USDC to the TokenMessenger.
-    await executeContractCall(
-      {
-        walletId: input.identityWalletId,
-        contractAddress: ARC_USDC,
-        abiFunctionSignature: 'approve(address,uint256)',
-        abiParameters: [TOKEN_MESSENGER_V2, amountStr],
-      },
-      `bridge-out.approve(${input.bridgeId})`,
-    );
-
-    // STAGE 2, burn on Arc, routed to the destination domain.
-    const maxFee = await computeFastMaxFee(ARC_DOMAIN, dest.domain, BigInt(amountStr));
-    const burn = await executeContractCall(
-      {
-        walletId: input.identityWalletId,
-        contractAddress: TOKEN_MESSENGER_V2,
-        abiFunctionSignature:
-          'depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)',
-        abiParameters: [
-          amountStr,
-          dest.domain.toString(),
-          addressToBytes32(input.recipient),
-          ARC_USDC,
-          `0x${'0'.repeat(64)}`,
-          maxFee,
-          FINALITY_THRESHOLD_FAST.toString(),
-        ],
-      },
-      `bridge-out.depositForBurn(${input.bridgeId})`,
-    );
-
-    await patchBridge(input.bridgeId, { sourceTxHash: burn.txHash, status: 'relaying' });
-    bus.emitEvent({
-      type: 'bridge.burned',
-      actor: 'buyer',
-      payload: {
-        bridgeId: input.bridgeId,
-        direction: 'out',
-        destChainKey: input.destChainKey,
-        sourceTxHash: burn.txHash,
-        amountUsdc: input.amountUsdc,
-      },
-    });
-
-    startOutRelay({
-      bridgeId: input.bridgeId,
-      destChainKey: input.destChainKey,
-      sourceTxHash: burn.txHash,
-      amountUsdc: input.amountUsdc,
-      recipient: input.recipient,
-      destWalletId: input.destWalletId,
-    });
-  } catch (err) {
-    reportError('bridge.out.pipeline', err, { bridgeId: input.bridgeId });
-    await patchBridge(input.bridgeId, { status: 'error', error: (err as Error).message });
-    bus.emitEvent({
-      type: 'bridge.error',
-      actor: 'buyer',
-      payload: { bridgeId: input.bridgeId, scope: 'out-pipeline', message: (err as Error).message },
-    });
-  }
-}
 
 interface OutRelayInput {
   bridgeId: string;

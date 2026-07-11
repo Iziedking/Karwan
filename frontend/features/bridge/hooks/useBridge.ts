@@ -1420,14 +1420,23 @@ export function useBridges() {
   /// relays the destination mint. Mirrors the inbound runFlow (approve +
   /// depositForBurn + receipt) but Arc -> destination, using the backend quote so
   /// the burn carries the right domain, padded recipient, and Fast maxFee.
+  /// Web3 withdrawal, Arc -> any supported chain.
+  ///
+  /// Runs entirely through App Kit. Not a style choice: a depositForBurn the
+  /// user signs themselves never reaches Circle's Forwarding Service, so it
+  /// needs a relayer on the destination, and that relayer was a Circle DCW,
+  /// which is exactly what capped withdrawals at five chains. Submitting the
+  /// burn through kit.bridge with useForwarder hands the destination mint to
+  /// Circle, so all eleven destinations work and the recipient needs no gas.
   const startWeb3Out = useCallback(
     async (input: {
       destChainKey: CctpChainKey;
       amountUsdc: number;
       recipient: `0x${string}`;
       userAddress: string;
+      getEvmProvider?: () => Promise<unknown>;
     }) => {
-      if (!isConnected || !address || !walletClient || !arcClient) return;
+      if (!isConnected || !address) return;
       const id = `${input.destChainKey}-out-${input.userAddress}-${Date.now()}`;
       const now = Date.now();
       const record: BridgeRecord = {
@@ -1442,79 +1451,96 @@ export function useBridges() {
       };
       setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
 
-      let activePhase: BridgePhase = 'switching';
       try {
+        // The burn happens on Arc, so the wallet must be there to sign it.
         if (chainId !== ARC_TESTNET.chainId) {
           await switchChainAsync({ chainId: ARC_TESTNET.chainId });
         }
-        const quote = await api.web3BridgeOutQuote({
-          destChainKey: input.destChainKey,
-          amountUsdc: input.amountUsdc,
-          recipient: input.recipient,
+        patch(id, (b) => ({ ...b, phase: 'burning' }));
+
+        const provider = input.getEvmProvider ? await input.getEvmProvider() : undefined;
+        if (!provider) throw new Error('Connect your wallet first');
+        const { AppKit } = await import('@circle-fin/app-kit');
+        const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
+        const adapter: unknown = await createViemAdapterFromProvider({
+          provider: provider as never,
         });
-        const amountWei = BigInt(quote.amountWei);
+        const kit = new AppKit();
 
-        const balance = (await arcClient.readContract({
-          address: quote.usdc,
-          abi: usdcAbi,
-          functionName: 'balanceOf',
-          args: [address],
-        })) as bigint;
-        if (balance < amountWei) throw new Error('Not enough USDC on Arc');
+        kit.on('*', (payload: unknown) => {
+          const p = payload as { values?: { name?: string; state?: string; txHash?: string } };
+          const name = p.values?.name;
+          const state = p.values?.state;
+          const txHash = p.values?.txHash as `0x${string}` | undefined;
+          if (name === 'approve') {
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' ? 'burning' : 'approving',
+              updatedAt: Date.now(),
+            }));
+          } else if (name === 'burn') {
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' ? 'attesting' : 'burning',
+              burnTxHash: txHash ?? b.burnTxHash,
+              updatedAt: Date.now(),
+            }));
+          } else if (name === 'fetchAttestation') {
+            patch(id, (b) => ({ ...b, phase: 'attesting', updatedAt: Date.now() }));
+          } else if (name === 'mint') {
+            // The forwarder reports the mint as 'forwarded' (it submitted the
+            // tx), so treat that as terminal too.
+            patch(id, (b) => ({
+              ...b,
+              phase: state === 'success' || state === 'forwarded' ? 'done' : 'minting',
+              mintTxHash: txHash ?? b.mintTxHash,
+              updatedAt: Date.now(),
+            }));
+          }
+        });
 
-        const allowance = (await arcClient.readContract({
-          address: quote.usdc,
-          abi: usdcAbi,
-          functionName: 'allowance',
-          args: [address, quote.tokenMessenger],
-        })) as bigint;
-        if (allowance < amountWei) {
-          activePhase = 'approving';
-          patch(id, (b) => ({ ...b, phase: 'approving' }));
-          const approveHash = await walletClient.writeContract({
-            address: quote.usdc,
-            abi: usdcAbi,
-            functionName: 'approve',
-            args: [quote.tokenMessenger, amountWei],
-            chain: walletClient.chain,
-            account: address,
-          });
-          await arcClient.waitForTransactionReceipt({ hash: approveHash });
-          patch(id, (b) => ({ ...b, approveTxHash: approveHash }));
+        const result = (await kit.bridge({
+          from: { adapter, chain: APPKIT_ARC_CHAIN },
+          to: {
+            recipientAddress: input.recipient,
+            chain: APPKIT_CHAIN[input.destChainKey],
+            useForwarder: true,
+          },
+          amount: input.amountUsdc.toString(),
+          config: { transferSpeed: 'FAST' },
+        } as never)) as {
+          state?: string;
+          steps?: Array<{ name?: string; state?: string; txHash?: string }>;
+        };
+
+        if (result?.state === 'error') {
+          throw new Error('Withdrawal failed on chain.');
         }
 
-        activePhase = 'burning';
-        patch(id, (b) => ({ ...b, phase: 'burning' }));
-        const burnHash = await walletClient.writeContract({
-          address: quote.tokenMessenger,
-          abi: tokenMessengerV2Abi,
-          functionName: 'depositForBurn',
-          args: [
-            amountWei,
-            quote.destDomain,
-            quote.mintRecipient,
-            quote.usdc,
-            quote.destinationCaller,
-            BigInt(quote.maxFee),
-            quote.finalityThreshold,
-          ],
-          chain: walletClient.chain,
-          account: address,
-        });
-        await arcClient.waitForTransactionReceipt({ hash: burnHash });
-        sfx.send();
-        activePhase = 'relaying';
-        patch(id, (b) => ({ ...b, burnTxHash: burnHash, phase: 'relaying' }));
+        const burnHash = result?.steps?.find((s) => s.name === 'burn')?.txHash;
+        const mintHash = result?.steps?.find((s) => s.name === 'mint')?.txHash;
+        patch(id, (b) => ({
+          ...b,
+          phase: 'done',
+          burnTxHash: (burnHash as `0x${string}`) ?? b.burnTxHash,
+          mintTxHash: (mintHash as `0x${string}`) ?? b.mintTxHash,
+          updatedAt: Date.now(),
+        }));
 
-        await api.web3BridgeOut({
-          bridgeId: id,
-          address: input.userAddress,
-          destChainKey: input.destChainKey,
-          amountUsdc: input.amountUsdc,
-          recipient: input.recipient,
-          sourceTxHash: burnHash,
-        });
-        patch(id, (b) => ({ ...b, phase: 'attesting' }));
+        // There is no backend relay on this path any more, so this record is the
+        // only durable trace of the withdrawal. Persist it for the history modal.
+        await api
+          .bridgeRecord({
+            bridgeId: id,
+            sourceChainKey: input.destChainKey,
+            amountUsdc: input.amountUsdc,
+            mintRecipient: input.recipient,
+            direction: 'out',
+            ...(burnHash ? { burnTxHash: burnHash } : {}),
+            ...(mintHash ? { mintTxHash: mintHash } : {}),
+          })
+          .catch(() => {});
+        sfx.success();
       } catch (err) {
         const raw = errorToString(err).toLowerCase();
         const friendly =
@@ -1522,11 +1548,11 @@ export function useBridges() {
             ? 'Your Arc balance is short. Lower the amount and try again.'
             : raw.includes('rejected') || raw.includes('denied')
               ? 'You declined the transaction in your wallet.'
-              : 'Bridge-out could not start. Try again in a moment.';
+              : 'Send could not complete. Try again in a moment.';
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
-    [address, isConnected, walletClient, arcClient, chainId, switchChainAsync, patch],
+    [address, isConnected, chainId, switchChainAsync, patch],
   );
 
   /// Web3 instant Arc-to-Arc send: the user's own wallet signs a plain USDC

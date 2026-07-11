@@ -274,15 +274,25 @@ export const CIRCLE_SOURCE_KEYS: ReadonlySet<string> = new Set([
   'solanaDevnet',
 ]);
 
-/// Chains we can withdraw TO. Bridging out has the backend relay the mint on the
-/// destination, which again needs a Circle wallet there. So the six new chains
-/// are bridge-in sources only, never bridge-out destinations.
+/// Chains we can withdraw TO: every non-Arc CCTP chain.
+///
+/// This used to be five. Bridging out relayed the destination mint from a Circle
+/// DCW on the destination chain, so it could only reach chains Circle can hold a
+/// wallet on. Withdrawals now go through App Kit with the Forwarding Service, so
+/// CIRCLE submits that mint and no destination wallet exists to constrain us.
+/// Verified: all eleven report cctp.forwarderSupported.destination = true.
 export const WITHDRAW_DEST_KEYS: readonly CctpChainKey[] = [
   'sepolia',
   'optimismSepolia',
   'arbitrumSepolia',
   'baseSepolia',
   'polygonAmoy',
+  'avalancheFuji',
+  'unichainSepolia',
+  'seiTestnet',
+  'sonicTestnet',
+  'worldchainSepolia',
+  'hyperevmTestnet',
 ];
 export const APPKIT_ARC_CHAIN = 'Arc_Testnet';
 

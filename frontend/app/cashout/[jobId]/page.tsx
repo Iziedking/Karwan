@@ -234,7 +234,7 @@ function CashoutContent({
 function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) {
   const isWeb3Account = info.accountKind === 'wallet';
   const bridge = useBridges();
-  const { address: connectedAddress, isConnected } = useAccount();
+  const { address: connectedAddress, isConnected, connector } = useAccount();
   const { openConnectModal } = useConnectModal();
   const auth = useAuth();
   const hidden = useHiddenActivityBridgeIds(auth.address ?? null);
@@ -314,6 +314,10 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           amountUsdc: amountNum,
           recipient: recip,
           userAddress: connectedAddress,
+          // The Arc burn now goes through App Kit so Circle's forwarder mints on
+          // the destination; that needs the wallet's provider, not just a signer.
+          getEvmProvider: () =>
+            connector?.getProvider() ?? Promise.reject(new Error('Wallet provider unavailable')),
         });
       }
       setAmount('');

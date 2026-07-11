@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
@@ -28,10 +29,8 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 /// Cash-out destinations. A CCTP chain routes through the burn/mint bridge; Arc
 /// is a same-chain send that settles instantly, so it gets its own path.
 type DestKey = CctpChainKey | 'arc';
-// Withdraw destinations, NOT the full source list. Bridging out has the backend
-// relay the mint on the destination, which needs a Circle wallet there, and
-// Circle cannot execute contracts on Avalanche/Unichain/Sei/Sonic/World
-// Chain/HyperEVM. Those six are bridge-IN sources only. See WITHDRAW_DEST_KEYS.
+// Every non-Arc CCTP chain. Circle's Forwarding Service submits the destination
+// mint, so no wallet is needed there and all eleven are reachable.
 const DEST_KEYS: DestKey[] = ['arc', ...WITHDRAW_DEST_KEYS];
 
 /// Bridge OUT (Arc -> chain). Sends the user's Arc USDC to another chain via
@@ -45,6 +44,7 @@ export function BridgeOutCard() {
   const verifyCopy = msgs.bridgeCard.recipient.verify;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
+  const { connector } = useAccount();
   const { bridges, startCircleOut, startWeb3Out, startArcSend, startWeb3ArcSend, isActive } =
     useBridges();
   /// Activity is a temporary, per-device view: dismissing a row hides it from
@@ -146,10 +146,17 @@ export function BridgeOutCard() {
       recipient: trimmed,
       userAddress: auth.address,
     };
-    // Circle accounts burn on the backend from their DCW; web3 users sign the
-    // Arc burn from their own wallet, then the backend relays the mint.
+    // Circle accounts burn on the backend from their Arc DCW; web3 users sign the
+    // Arc burn from their own wallet. Either way the burn goes through App Kit
+    // with the Forwarding Service, so CIRCLE mints on the destination and no
+    // wallet is needed there. That is what opens every chain as a destination.
     if (isCircle) startCircleOut(args);
-    else startWeb3Out(args);
+    else
+      startWeb3Out({
+        ...args,
+        getEvmProvider: () =>
+          connector?.getProvider() ?? Promise.reject(new Error('Wallet provider unavailable')),
+      });
     setAmount('');
   }
 
