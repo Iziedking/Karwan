@@ -1826,6 +1826,7 @@ export const sw: Messages = {
     moving: 'Inahamisha',
     moved: 'Imehamishiwa Arc.',
     moveFailed: 'Kuhamisha kumeshindwa.',
+    byChain: 'Salio kwa mnyororo',
     pulledTemplate: 'Imetolewa {chains}.',
   },
   stakeCard: {

@@ -1826,6 +1826,7 @@ export const hi: Messages = {
     moving: 'भेजा जा रहा है',
     moved: 'Arc पर भेज दिया गया।',
     moveFailed: 'भेजना विफल रहा।',
+    byChain: 'चेन के अनुसार बैलेंस',
     pulledTemplate: '{chains} से लिया गया।',
   },
   stakeCard: {

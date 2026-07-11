@@ -1826,6 +1826,7 @@ export const fr: Messages = {
     moving: 'Déplacement',
     moved: 'Déplacé vers Arc.',
     moveFailed: 'Le déplacement a échoué.',
+    byChain: 'Solde par chaîne',
     pulledTemplate: 'Tiré {chains}.',
   },
   stakeCard: {

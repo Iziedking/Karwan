@@ -44,6 +44,125 @@ function chainLabel(appKitChain: string): string {
   return DEPOSIT_CHAINS.find((c) => c.appKit === appKitChain)?.name ?? appKitChain;
 }
 
+/// Chain picker, same shape as the CCTP card's source dropdown: one button that
+/// shows the active chain, an absolute list, and a click-outside catcher behind
+/// it. Twelve chains is well past what a chip row can carry.
+function ChainDropdown({
+  value,
+  onChange,
+  disabled,
+  eyebrow,
+}: {
+  value: DepositChain;
+  onChange: (next: DepositChain) => void;
+  disabled: boolean;
+  eyebrow: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        {eyebrow}
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors disabled:opacity-50"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <span className="flex items-center gap-2.5 min-w-0">
+          <ChainLogo chain={value.key} size={26} />
+          <span className="block font-sans text-[14px] font-semibold tracking-tight text-[var(--lp-dark)] leading-tight">
+            {value.name}
+          </span>
+        </span>
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className={`text-[var(--lp-text-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <path
+            d="M3 6l5 5 5-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-10 cursor-default"
+            style={{ background: 'transparent' }}
+          />
+          <ul
+            role="listbox"
+            className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up max-h-[300px] overflow-y-auto"
+            style={{
+              background: 'var(--lp-card)',
+              border: '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 4,
+              boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
+            }}
+          >
+            {DEPOSIT_CHAINS.map((c) => {
+              const isActive = c.key === value.key;
+              return (
+                <li key={c.key}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      onChange(c);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start"
+                  >
+                    <ChainLogo chain={c.key} size={22} />
+                    <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
+                      {c.name}
+                    </span>
+                    {isActive && (
+                      <span
+                        aria-hidden
+                        className="ms-auto inline-block w-[6px] h-[6px]"
+                        style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
 type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
 type Recipient = 'wallet' | 'buyer' | 'seller';
@@ -81,6 +200,7 @@ export function GatewayBalanceCard({
   const [movePhase, setMovePhase] = useState<MovePhase>('idle');
   const [moveError, setMoveError] = useState<string | null>(null);
   const [pulledFrom, setPulledFrom] = useState<string[] | null>(null);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -235,24 +355,6 @@ export function GatewayBalanceCard({
         <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{t.empty}</p>
       )}
 
-      {perChain.length > 0 && (
-        <div className="mt-4 flex flex-col gap-1.5">
-          {perChain.map((c) => (
-            <div key={c.chain} className="flex items-center gap-2 text-[13px]">
-              <ChainLogo chain={c.key as ChainKey} size={14} />
-              <span className="tabular-nums">
-                {formatUsdc(c.confirmed, { withSuffix: false })}
-              </span>
-              {Number(c.pending) > 0 && (
-                <span className="mono text-[10px] uppercase tracking-[0.08em] text-[#b25425]">
-                  +{formatUsdc(c.pending, { withSuffix: false })} {t.pending}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
       <div
         className="mt-5 pt-5"
         style={{ borderTop: '1px solid var(--lp-border-light)' }}
@@ -261,32 +363,12 @@ export function GatewayBalanceCard({
           <p className="text-[13px] text-[var(--lp-text-sub)]">{t.connect}</p>
         ) : (
           <>
-            <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-              {t.poolFrom}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {DEPOSIT_CHAINS.map((c) => {
-                const active = c.key === source.key;
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => setSource(c)}
-                    disabled={busy}
-                    aria-pressed={active}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
-                    style={{
-                      background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-                      border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-                      borderRadius: 999,
-                    }}
-                  >
-                    <ChainLogo chain={c.key} size={13} />
-                    {c.name}
-                  </button>
-                );
-              })}
-            </div>
+            <ChainDropdown
+              value={source}
+              onChange={setSource}
+              disabled={busy}
+              eyebrow={t.poolFrom}
+            />
 
             <div className="mt-4 flex items-center justify-between gap-2">
               <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
@@ -461,6 +543,60 @@ export function GatewayBalanceCard({
           )}
           {movePhase === 'error' && (
             <p className="mt-3 text-[13px] text-[#b03d3a]">{moveError ?? t.moveFailed}</p>
+          )}
+        </div>
+      )}
+
+      {/* Where the balance actually sits, per chain. Collapsed by default and
+          parked at the bottom: the headline number is what the user came for,
+          and the split only matters once they want to know what Gateway will
+          draw from. */}
+      {perChain.length > 0 && (
+        <div
+          className="mt-5 pt-5"
+          style={{ borderTop: '1px solid var(--lp-border-light)' }}
+        >
+          <button
+            type="button"
+            onClick={() => setBreakdownOpen((v) => !v)}
+            aria-expanded={breakdownOpen}
+            className="w-full flex items-center justify-between gap-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            {t.byChain}
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+              className={`transition-transform ${breakdownOpen ? 'rotate-180' : ''}`}
+            >
+              <path
+                d="M3 6l5 5 5-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          {breakdownOpen && (
+            <div className="mt-3 flex flex-col gap-1.5">
+              {perChain.map((c) => (
+                <div key={c.chain} className="flex items-center gap-2 text-[13px]">
+                  <ChainLogo chain={c.key as ChainKey} size={14} />
+                  <span className="tabular-nums">
+                    {formatUsdc(c.confirmed, { withSuffix: false })}
+                  </span>
+                  {Number(c.pending) > 0 && (
+                    <span className="mono text-[10px] uppercase tracking-[0.08em] text-[#b25425]">
+                      +{formatUsdc(c.pending, { withSuffix: false })} {t.pending}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

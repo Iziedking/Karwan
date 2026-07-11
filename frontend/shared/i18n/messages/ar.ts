@@ -1826,6 +1826,7 @@ export const ar: Messages = {
     moving: 'جارٍ النقل',
     moved: 'تم النقل إلى Arc.',
     moveFailed: 'فشل النقل.',
+    byChain: 'الرصيد حسب السلسلة',
     pulledTemplate: 'تم السحب {chains}.',
   },
   stakeCard: {

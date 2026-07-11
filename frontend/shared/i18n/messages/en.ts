@@ -1709,6 +1709,7 @@ interface MessagesShape {
     moving: string;
     moved: string;
     moveFailed: string;
+    byChain: string;
     pulledTemplate: string;
   };
   stakeCard: {
@@ -5616,6 +5617,7 @@ export const en: MessagesShape = {
     moving: 'Moving',
     moved: 'Moved to Arc.',
     moveFailed: 'Move failed.',
+    byChain: 'Balance by chain',
     pulledTemplate: 'Pulled {chains}.',
   },
   stakeCard: {
