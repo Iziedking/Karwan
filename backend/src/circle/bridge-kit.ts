@@ -4,14 +4,21 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { patchBridge } from '../db/bridges.js';
-import type { CctpChainKey } from '../chain/cctpChains.js';
-
-/// Source-chain keys supported by the App Kit bridge path. Mirrors the
-/// hand-rolled CCTP_CHAIN_KEYS for the 5 EVM testnets and adds Solana Devnet
-/// (which the hand-rolled path cannot bridge, it is wired only to EVM CCTP V2
-/// contracts). The hand-rolled path uses [[CctpChainKey]]; the App Kit path
-/// accepts the wider union [[AppKitSourceChainKey]].
-export type AppKitSourceChainKey = CctpChainKey | 'solanaDevnet';
+/// Source-chain keys supported by the App Kit bridge path.
+///
+/// Listed explicitly rather than derived from CctpChainKey. This path signs with
+/// a Circle DCW, so it only reaches chains Circle can hold a wallet on. CCTP now
+/// also covers Avalanche, Unichain, Sei, Sonic, World Chain and HyperEVM, but
+/// those are web3-only (the user's own wallet signs the burn), so widening this
+/// union to CctpChainKey would promise a Circle path that cannot exist. See
+/// CctpChain.circleBlockchain.
+export type AppKitSourceChainKey =
+  | 'sepolia'
+  | 'optimismSepolia'
+  | 'arbitrumSepolia'
+  | 'baseSepolia'
+  | 'polygonAmoy'
+  | 'solanaDevnet';
 
 interface AppKitSourceChain {
   /// App Kit's chain identifier, fed to kit.bridge({ from: { chain } }).
@@ -307,6 +314,180 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
       { bridgeId: input.bridgeId, err: message },
       'appkit bridge threw',
     );
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
+    bus.emitEvent({
+      type: 'bridge.error',
+      actor: 'buyer',
+      payload: { bridgeId: input.bridgeId, scope: 'kit.bridge', message },
+    });
+  }
+}
+
+/// Every chain we can withdraw TO, keyed the way the rest of the app names them.
+///
+/// This is the whole point of the out-direction rewrite. The old path relayed the
+/// destination mint from a Circle DCW on the destination chain, so it could only
+/// reach chains Circle can hold a wallet on. The Forwarding Service submits that
+/// mint instead, so no destination wallet exists to constrain us, and all eleven
+/// non-Arc chains become valid. Verified: every one reports
+/// cctp.forwarderSupported.destination = true.
+export const APP_KIT_DEST_CHAINS: Record<string, BridgeChain> = {
+  sepolia: BridgeChain.Ethereum_Sepolia,
+  optimismSepolia: BridgeChain.Optimism_Sepolia,
+  arbitrumSepolia: BridgeChain.Arbitrum_Sepolia,
+  baseSepolia: BridgeChain.Base_Sepolia,
+  polygonAmoy: BridgeChain.Polygon_Amoy_Testnet,
+  avalancheFuji: BridgeChain.Avalanche_Fuji,
+  unichainSepolia: BridgeChain.Unichain_Sepolia,
+  seiTestnet: BridgeChain.Sei_Testnet,
+  sonicTestnet: BridgeChain.Sonic_Testnet,
+  worldchainSepolia: BridgeChain.World_Chain_Sepolia,
+  hyperevmTestnet: BridgeChain.HyperEVM_Testnet,
+};
+
+export interface AppKitBridgeOutInput {
+  bridgeId: string;
+  /// Destination chain key. Any of the eleven non-Arc chains.
+  destChainKey: string;
+  /// Arc wallet that holds the USDC being withdrawn and signs the burn. A Circle
+  /// DCW: identity or an agent. Arc IS a Circle-supported chain, so this works
+  /// even for the destinations Circle cannot reach.
+  sourceWalletAddress: string;
+  amountUsdc: string;
+  /// Address on the destination chain that receives the minted USDC.
+  recipient: string;
+}
+
+/// Withdraw from Arc to any supported chain, for a Circle (email/passkey) user.
+///
+/// Mirrors bridgeInToArcViaAppKit with the direction reversed: the Arc DCW signs
+/// the burn, and Circle's forwarder fetches the attestation and broadcasts the
+/// mint on the destination. Because the forwarder owns the mint, there is no
+/// destination DCW, which is exactly what used to cap withdrawals at five chains.
+///
+/// Fire-and-forget, same as the in-direction runner: the HTTP handler returns
+/// immediately and this patches the BridgeRelay record as the SDK reports steps.
+export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Promise<void> {
+  const destChain = APP_KIT_DEST_CHAINS[input.destChainKey];
+  if (!destChain) {
+    const message = `App Kit bridge-out: unknown destination chain ${input.destChainKey}`;
+    logger.error({ bridgeId: input.bridgeId }, message);
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
+    return;
+  }
+
+  let adapter: ReturnType<typeof createCircleWalletsAdapter>;
+  try {
+    adapter = getAdapter();
+  } catch (err) {
+    const message = (err as Error).message;
+    await patchBridge(input.bridgeId, { status: 'error', error: message });
+    return;
+  }
+
+  const kit = new AppKit();
+
+  kit.on('bridge.burn', (payload) => {
+    const values = (payload as { values?: { state?: string; txHash?: string } }).values;
+    logger.info(
+      { bridgeId: input.bridgeId, state: values?.state, txHash: values?.txHash },
+      'appkit bridge-out.burn',
+    );
+    if (values?.state === 'success' && values.txHash) {
+      void patchBridge(input.bridgeId, {
+        status: 'relaying',
+        sourceTxHash: values.txHash,
+      });
+      bus.emitEvent({
+        type: 'bridge.burned',
+        actor: 'buyer',
+        payload: {
+          bridgeId: input.bridgeId,
+          destChainKey: input.destChainKey,
+          circle: true,
+          appKit: true,
+        },
+      });
+    }
+  });
+
+  kit.on('bridge.mint', (payload) => {
+    const values = (payload as { values?: { state?: string; txHash?: string } }).values;
+    logger.info(
+      { bridgeId: input.bridgeId, state: values?.state, txHash: values?.txHash },
+      'appkit bridge-out.mint',
+    );
+    // The forwarder reports the mint as 'forwarded' (it submitted the tx), so
+    // treat that as terminal too, exactly as the in-direction client path does.
+    if (values?.state === 'success' || values?.state === 'forwarded') {
+      void patchBridge(input.bridgeId, {
+        status: 'minted',
+        mintTxHash: values.txHash,
+      });
+      bus.emitEvent({
+        type: 'bridge.minted',
+        actor: 'buyer',
+        payload: {
+          bridgeId: input.bridgeId,
+          destChainKey: input.destChainKey,
+          circle: true,
+          appKit: true,
+        },
+      });
+    }
+  });
+
+  try {
+    const result = await kit.bridge({
+      from: {
+        adapter,
+        chain: BridgeChain.Arc_Testnet,
+        address: input.sourceWalletAddress,
+      },
+      to: {
+        recipientAddress: input.recipient,
+        chain: destChain,
+        // The forwarder mints on the destination, so no DCW is needed there.
+        // This is what unlocks the six chains Circle cannot hold a wallet on.
+        useForwarder: true,
+      },
+      amount: input.amountUsdc,
+    });
+
+    if (result.state === 'error') {
+      const failedStep = result.steps?.find?.((s) => s.state === 'error');
+      const stepError = failedStep?.error;
+      const message =
+        typeof stepError === 'string'
+          ? stepError
+          : stepError instanceof Error
+            ? stepError.message
+            : stepError != null
+              ? JSON.stringify(stepError)
+              : 'bridge-out failed without a step-level error';
+      logger.error(
+        { bridgeId: input.bridgeId, failedStep: failedStep?.name, message },
+        'appkit bridge-out errored',
+      );
+      await patchBridge(input.bridgeId, { status: 'error', error: message });
+      bus.emitEvent({
+        type: 'bridge.error',
+        actor: 'buyer',
+        payload: {
+          bridgeId: input.bridgeId,
+          scope: failedStep?.name ?? 'kit.bridge',
+          message,
+        },
+      });
+    } else {
+      logger.info(
+        { bridgeId: input.bridgeId, destChainKey: input.destChainKey },
+        'appkit bridge-out succeeded',
+      );
+    }
+  } catch (err) {
+    const message = (err as Error).message;
+    logger.error({ bridgeId: input.bridgeId, err: message }, 'appkit bridge-out threw');
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',

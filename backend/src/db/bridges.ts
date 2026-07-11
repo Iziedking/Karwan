@@ -40,12 +40,15 @@ export interface BridgeRelay {
   /// stuck case for 'out'.
   owner?: string;
   // --- Circle-user source-side pipeline state (resume across restarts) ---
-  /// Which source chain the DCW lives on. Present only for Circle bridges.
-  /// Hand-rolled (CCTP V2 contract direct) bridges use a CctpChainKey (the
-  /// 5 EVM testnets). App Kit bridges can additionally be 'solanaDevnet',
-  /// which the hand-rolled path cannot handle. `appKit: true` below marks
-  /// those records so resume logic skips them.
-  sourceChainKey?: AppKitSourceChainKey;
+  /// Which source chain the burn happened on.
+  ///
+  /// Widened to CctpChainKey because CCTP now also covers Avalanche, Unichain,
+  /// Sei, Sonic, World Chain and HyperEVM. Those are web3-only (no Circle wallet
+  /// can execute a contract there), so a record on one of them never carries a
+  /// DCW, but it is still a real bridge we must persist and relay. App Kit
+  /// bridges can additionally be 'solanaDevnet'; `appKit: true` below marks
+  /// those so the hand-rolled resume logic skips them.
+  sourceChainKey?: CctpChainKey | AppKitSourceChainKey;
   /// True when this bridge is managed by the App Kit + Forwarding Service
   /// path (POST /circle-bridge-app-kit). The hand-rolled resume logic
   /// (resumePendingBridges → startSourcePipeline) skips these because App
