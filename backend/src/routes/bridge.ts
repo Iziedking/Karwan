@@ -1067,23 +1067,32 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   // this is mostly a fallback for Ethereum Sepolia and for accounts that
   // activated before #102 landed.
   const chainCfg = CCTP_CHAINS[body.sourceChainKey];
+  // Web3-only source: Circle has no wallet there, so the backend cannot sign the
+  // burn. See CctpChain.circleBlockchain.
+  const circleChain = chainCfg.circleBlockchain;
+  if (!circleChain) {
+    return c.json(
+      {
+        error: 'chain_not_circle_supported',
+        detail: `${chainCfg.name} has no Circle wallet; bridge from it with your own wallet`,
+      },
+      400,
+    );
+  }
   let agentWallets = await getAgentWallets(userAddress);
   if (!agentWallets) {
     return c.json({ error: 'user has no agent wallet record; activate first' }, 409);
   }
-  const existingBridge = agentWallets.bridgeWallets?.[chainCfg.circleBlockchain];
+  const existingBridge = agentWallets.bridgeWallets?.[circleChain];
   let bridgeWalletId: string;
   let bridgeWalletAddress: string;
   if (existingBridge) {
     bridgeWalletId = existingBridge.walletId;
     bridgeWalletAddress = existingBridge.address;
   } else {
-    logger.info(
-      { userAddress, blockchain: chainCfg.circleBlockchain },
-      'lazy-provisioning bridge wallet',
-    );
+    logger.info({ userAddress, blockchain: circleChain }, 'lazy-provisioning bridge wallet');
     try {
-      const created = await provisionUserBridgeWallet(userAddress, chainCfg.circleBlockchain);
+      const created = await provisionUserBridgeWallet(userAddress, circleChain);
       bridgeWalletId = created.walletId;
       bridgeWalletAddress = created.address;
       // Persist into the agentWallets row.
@@ -1091,14 +1100,14 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
         ...agentWallets,
         bridgeWallets: {
           ...(agentWallets.bridgeWallets ?? {}),
-          [chainCfg.circleBlockchain]: { walletId: bridgeWalletId, address: bridgeWalletAddress },
+          [circleChain]: { walletId: bridgeWalletId, address: bridgeWalletAddress },
         },
       };
       await saveAgentWallets(next);
       agentWallets = next;
     } catch (err) {
       logger.error(
-        { userAddress, blockchain: chainCfg.circleBlockchain, err: (err as Error).message },
+        { userAddress, blockchain: circleChain, err: (err as Error).message },
         'lazy bridge-wallet provisioning failed',
       );
       return c.json(
@@ -1593,19 +1602,29 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
     return c.json({ error: 'user has no agent wallet record' }, 409);
   }
   const chainCfg = CCTP_CHAINS[parsed.data.sourceChainKey];
-  const existing = agentWallets.bridgeWallets?.[chainCfg.circleBlockchain];
+  const circleChain = chainCfg.circleBlockchain;
+  if (!circleChain) {
+    return c.json(
+      {
+        error: 'chain_not_circle_supported',
+        detail: `${chainCfg.name} has no Circle wallet; bridge from it with your own wallet`,
+      },
+      400,
+    );
+  }
+  const existing = agentWallets.bridgeWallets?.[circleChain];
   let bridgeWalletAddress: string;
   if (existing) {
     bridgeWalletAddress = existing.address;
   } else {
     try {
-      const created = await provisionUserBridgeWallet(userAddress, chainCfg.circleBlockchain);
+      const created = await provisionUserBridgeWallet(userAddress, circleChain);
       bridgeWalletAddress = created.address;
       const next = {
         ...agentWallets,
         bridgeWallets: {
           ...(agentWallets.bridgeWallets ?? {}),
-          [chainCfg.circleBlockchain]: { walletId: created.walletId, address: created.address },
+          [circleChain]: { walletId: created.walletId, address: created.address },
         },
       };
       await saveAgentWallets(next);
@@ -1664,7 +1683,19 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
   }
   let circleBlockchain: string;
   if (isCctpChainKey(sourceChainKey)) {
-    circleBlockchain = CCTP_CHAINS[sourceChainKey].circleBlockchain;
+    const code = CCTP_CHAINS[sourceChainKey].circleBlockchain;
+    // No Circle wallet on this chain, so there is no deposit address to hand
+    // back. The user bridges from it with their own wallet instead.
+    if (!code) {
+      return c.json(
+        {
+          error: 'chain_not_circle_supported',
+          detail: `${CCTP_CHAINS[sourceChainKey].name} has no Circle wallet; bridge from it with your own wallet`,
+        },
+        400,
+      );
+    }
+    circleBlockchain = code;
   } else if (sourceChainKey in APP_KIT_SOURCE_CHAINS) {
     circleBlockchain =
       APP_KIT_SOURCE_CHAINS[sourceChainKey as keyof typeof APP_KIT_SOURCE_CHAINS]
@@ -1818,6 +1849,19 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   }
 
   const dest = CCTP_CHAINS[body.destChainKey];
+  // Bridging OUT needs a Circle wallet on the DESTINATION to relay the mint, so
+  // the web3-only chains cannot be destinations at all. They are sources for a
+  // user-signed bridge-in only. See CctpChain.circleBlockchain.
+  const destCircleChain = dest.circleBlockchain;
+  if (!destCircleChain) {
+    return c.json(
+      {
+        error: 'chain_not_circle_supported',
+        detail: `Cannot withdraw to ${dest.name}: Circle cannot relay the mint there`,
+      },
+      400,
+    );
+  }
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
   // Preflight: the chosen source wallet must hold enough Arc USDC (which is
@@ -1851,16 +1895,16 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   // to that chain.
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
-  let destWallet = wallets.bridgeWallets?.[dest.circleBlockchain];
+  let destWallet = wallets.bridgeWallets?.[destCircleChain];
   if (!destWallet) {
     try {
-      const created = await provisionUserBridgeWallet(userAddress, dest.circleBlockchain);
+      const created = await provisionUserBridgeWallet(userAddress, destCircleChain);
       destWallet = { walletId: created.walletId, address: created.address };
       await saveAgentWallets({
         ...wallets,
         bridgeWallets: {
           ...(wallets.bridgeWallets ?? {}),
-          [dest.circleBlockchain]: destWallet,
+          [destCircleChain]: destWallet,
         },
       });
     } catch (err) {
@@ -1872,7 +1916,7 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   }
   // Best-effort: make sure the destination DCW can pay the mint gas.
   void dripTestnetUsdc(destWallet.address, {
-    blockchain: dest.circleBlockchain,
+    blockchain: destCircleChain,
     native: true,
     usdc: false,
   });
@@ -1997,21 +2041,34 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
   }
 
   const dest = CCTP_CHAINS[body.destChainKey];
+  // Even on the web3 path the backend relays the destination mint, so the
+  // destination still needs a Circle wallet. Web3-only chains are bridge-in
+  // sources, never bridge-out destinations. See CctpChain.circleBlockchain.
+  const destCircleChain = dest.circleBlockchain;
+  if (!destCircleChain) {
+    return c.json(
+      {
+        error: 'chain_not_circle_supported',
+        detail: `Cannot withdraw to ${dest.name}: Circle cannot relay the mint there`,
+      },
+      400,
+    );
+  }
 
   // The destination bridge DCW relays the mint and pays its gas. Provision it
   // lazily on the user's first bridge to that chain, exactly like the Circle path.
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
-  let destWallet = wallets.bridgeWallets?.[dest.circleBlockchain];
+  let destWallet = wallets.bridgeWallets?.[destCircleChain];
   if (!destWallet) {
     try {
-      const created = await provisionUserBridgeWallet(userAddress, dest.circleBlockchain);
+      const created = await provisionUserBridgeWallet(userAddress, destCircleChain);
       destWallet = { walletId: created.walletId, address: created.address };
       await saveAgentWallets({
         ...wallets,
         bridgeWallets: {
           ...(wallets.bridgeWallets ?? {}),
-          [dest.circleBlockchain]: destWallet,
+          [destCircleChain]: destWallet,
         },
       });
     } catch (err) {

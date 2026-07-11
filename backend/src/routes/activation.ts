@@ -189,7 +189,16 @@ activationRoutes.post('/drip-bridge', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
-  const blockchain = CCTP_CHAINS[body.chain ?? 'baseSepolia'].circleBlockchain;
+  const chainKey = body.chain ?? 'baseSepolia';
+  const blockchain = CCTP_CHAINS[chainKey].circleBlockchain;
+  // Web3-only chain: Circle cannot hold a wallet there, so there is nothing to
+  // drip. See CctpChain.circleBlockchain.
+  if (!blockchain) {
+    return c.json(
+      { error: 'chain_not_circle_supported', detail: `${chainKey} has no Circle wallet; bridge from it with your own wallet` },
+      400,
+    );
+  }
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
 
@@ -299,6 +308,14 @@ activationRoutes.post('/fund-source', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const blockchain = CCTP_CHAINS[body.chain].circleBlockchain;
+  // Circle's faucet is keyed by its own blockchain enum, so a web3-only chain
+  // has nothing to drip from. See CctpChain.circleBlockchain.
+  if (!blockchain) {
+    return c.json(
+      { error: 'chain_not_circle_supported', detail: `${body.chain} has no Circle faucet; use that chain's own faucet` },
+      400,
+    );
+  }
   const drip = await dripTestnetUsdc(body.address.toLowerCase(), {
     blockchain,
     native: false,

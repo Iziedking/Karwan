@@ -23,7 +23,26 @@ function withCaller(path: string, caller?: string | null): string {
 
 /// CCTP chain keys Karwan bridges with (mirrors features/bridge/config.ts and
 /// backend chain/cctpChains.ts). Kept local so core/api has no feature import.
+///
+/// The last six are WEB3-ONLY sources. Circle's wallets cannot execute a
+/// contract on them, and a CCTP burn is a contract execution, so only a
+/// user-signed burn works there. See CctpChain.circleBlockchain on the backend.
 export type BridgeChainKey =
+  | 'sepolia'
+  | 'optimismSepolia'
+  | 'arbitrumSepolia'
+  | 'baseSepolia'
+  | 'polygonAmoy'
+  | 'avalancheFuji'
+  | 'unichainSepolia'
+  | 'seiTestnet'
+  | 'sonicTestnet'
+  | 'worldchainSepolia'
+  | 'hyperevmTestnet';
+
+/// Chains the Circle (email/passkey) path can reach. Narrower than
+/// BridgeChainKey on purpose: fundSource and the deposit flow only work here.
+export type CircleBridgeChainKey =
   | 'sepolia'
   | 'optimismSepolia'
   | 'arbitrumSepolia'
@@ -34,7 +53,7 @@ export type BridgeChainKey =
 /// EVM set. Solana is App-Kit-only because the frontend has no wagmi connector
 /// for it; the burn signs on a backend Circle DCW and the App Kit forwarder
 /// broadcasts the Arc mint. Mirrors backend/src/circle/bridge-kit.ts.
-export type AppKitBridgeChainKey = BridgeChainKey | 'solanaDevnet';
+export type AppKitBridgeChainKey = CircleBridgeChainKey | 'solanaDevnet';
 
 export interface ApiStatus {
   chain: { id: number; rpc: string; explorer: string };

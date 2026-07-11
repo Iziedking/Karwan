@@ -4,14 +4,21 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { patchBridge } from '../db/bridges.js';
-import type { CctpChainKey } from '../chain/cctpChains.js';
-
-/// Source-chain keys supported by the App Kit bridge path. Mirrors the
-/// hand-rolled CCTP_CHAIN_KEYS for the 5 EVM testnets and adds Solana Devnet
-/// (which the hand-rolled path cannot bridge, it is wired only to EVM CCTP V2
-/// contracts). The hand-rolled path uses [[CctpChainKey]]; the App Kit path
-/// accepts the wider union [[AppKitSourceChainKey]].
-export type AppKitSourceChainKey = CctpChainKey | 'solanaDevnet';
+/// Source-chain keys supported by the App Kit bridge path.
+///
+/// Listed explicitly rather than derived from CctpChainKey. This path signs with
+/// a Circle DCW, so it only reaches chains Circle can hold a wallet on. CCTP now
+/// also covers Avalanche, Unichain, Sei, Sonic, World Chain and HyperEVM, but
+/// those are web3-only (the user's own wallet signs the burn), so widening this
+/// union to CctpChainKey would promise a Circle path that cannot exist. See
+/// CctpChain.circleBlockchain.
+export type AppKitSourceChainKey =
+  | 'sepolia'
+  | 'optimismSepolia'
+  | 'arbitrumSepolia'
+  | 'baseSepolia'
+  | 'polygonAmoy'
+  | 'solanaDevnet';
 
 interface AppKitSourceChain {
   /// App Kit's chain identifier, fed to kit.bridge({ from: { chain } }).

@@ -18,7 +18,13 @@ export type CctpChainKey =
   | 'optimismSepolia'
   | 'arbitrumSepolia'
   | 'baseSepolia'
-  | 'polygonAmoy';
+  | 'polygonAmoy'
+  | 'avalancheFuji'
+  | 'unichainSepolia'
+  | 'seiTestnet'
+  | 'sonicTestnet'
+  | 'worldchainSepolia'
+  | 'hyperevmTestnet';
 
 /// Source chains supported by the App Kit bridge path on top of the EVM CCTP
 /// V2 set. Solana doesn't fit the SourceChainConfig shape (no chainId, SPL
@@ -111,6 +117,75 @@ export const SOURCE_CHAINS: Record<CctpChainKey, SourceChainConfig> = {
     tokenMessenger: TOKEN_MESSENGER_V2,
     explorerTx: (h) => `https://amoy.polygonscan.com/tx/${h}`,
   },
+  // The six Gateway chains also run CCTP v2. Domains, USDC addresses and
+  // explorers come from the installed @circle-fin SDK's chain records; the
+  // canonical TokenMessenger was verified byte-identical on all six.
+  avalancheFuji: {
+    key: 'avalancheFuji',
+    chainId: 43113,
+    domain: 1,
+    name: 'Avalanche Fuji',
+    shortName: 'Avalanche',
+    nativeSymbol: 'AVAX',
+    usdc: '0x5425890298aed601595a70ab815c96711a31bc65',
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    explorerTx: (h) => `https://subnets-test.avax.network/c-chain/tx/${h}`,
+  },
+  unichainSepolia: {
+    key: 'unichainSepolia',
+    chainId: 1301,
+    domain: 10,
+    name: 'Unichain Sepolia',
+    shortName: 'Unichain',
+    nativeSymbol: 'ETH',
+    usdc: '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    explorerTx: (h) => `https://unichain-sepolia.blockscout.com/tx/${h}`,
+  },
+  seiTestnet: {
+    key: 'seiTestnet',
+    chainId: 1328,
+    domain: 16,
+    name: 'Sei Testnet',
+    shortName: 'Sei',
+    nativeSymbol: 'SEI',
+    usdc: '0x4fCF1784B31630811181f670Aea7A7bEF803eaED',
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    explorerTx: (h) => `https://testnet.seiscan.io/tx/${h}`,
+  },
+  sonicTestnet: {
+    key: 'sonicTestnet',
+    chainId: 14601,
+    domain: 13,
+    name: 'Sonic Testnet',
+    shortName: 'Sonic',
+    nativeSymbol: 'S',
+    usdc: '0x0BA304580ee7c9a980CF72e55f5Ed2E9fd30Bc51',
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    explorerTx: (h) => `https://testnet.sonicscan.org/tx/${h}`,
+  },
+  worldchainSepolia: {
+    key: 'worldchainSepolia',
+    chainId: 4801,
+    domain: 14,
+    name: 'World Chain Sepolia',
+    shortName: 'World Chain',
+    nativeSymbol: 'ETH',
+    usdc: '0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88',
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    explorerTx: (h) => `https://sepolia.worldscan.org/tx/${h}`,
+  },
+  hyperevmTestnet: {
+    key: 'hyperevmTestnet',
+    chainId: 998,
+    domain: 19,
+    name: 'HyperEVM Testnet',
+    shortName: 'HyperEVM',
+    nativeSymbol: 'HYPE',
+    usdc: '0x2B3370eE501B4a559b57D449569354196457D8Ab',
+    tokenMessenger: TOKEN_MESSENGER_V2,
+    explorerTx: (h) => `https://app.hyperliquid-testnet.xyz/explorer/tx/${h}`,
+  },
 };
 
 export const SOURCE_CHAIN_KEYS = Object.keys(SOURCE_CHAINS) as CctpChainKey[];
@@ -138,7 +213,11 @@ export function isAppKitOnlyChainKey(k: string): k is AppKitOnlyChainKey {
 // Native-gas testnet faucets per source chain. Only web3 users need these (they
 // pay their own source-chain burn gas); Circle users are sponsored by Gas
 // Station. USDC for any chain comes from faucet.circle.com.
-export const GAS_FAUCETS: Record<CctpChainKey, string> = {
+/// Partial on purpose. The six chains added alongside Gateway have no faucet URL
+/// here because none was verified, and a "Claim gas" button that opens a guessed
+/// or dead link is worse than no button. BridgeCard hides the button when a
+/// chain is missing. Add a URL here once it's confirmed and the button returns.
+export const GAS_FAUCETS: Partial<Record<CctpChainKey, string>> = {
   sepolia: 'https://www.alchemy.com/faucets/ethereum-sepolia',
   optimismSepolia: 'https://www.alchemy.com/faucets/optimism-sepolia',
   arbitrumSepolia: 'https://www.alchemy.com/faucets/arbitrum-sepolia',
@@ -173,7 +252,38 @@ export const APPKIT_CHAIN: Record<AnySourceChainKey, string> = {
   // reject it as an unsupported chain.
   polygonAmoy: 'Polygon_Amoy_Testnet',
   solanaDevnet: 'Solana_Devnet',
+  avalancheFuji: 'Avalanche_Fuji',
+  unichainSepolia: 'Unichain_Sepolia',
+  seiTestnet: 'Sei_Testnet',
+  sonicTestnet: 'Sonic_Testnet',
+  worldchainSepolia: 'World_Chain_Sepolia',
+  hyperevmTestnet: 'HyperEVM_Testnet',
 };
+
+/// Chains a Circle (email/passkey) account can bridge from. The other six are
+/// web3-only: Circle's wallets cannot execute a contract there, and a CCTP burn
+/// is a contract execution, so no backend wallet can sign it. Mirrors
+/// supportsCircleWallet() on the backend. The picker uses this to disable those
+/// chains for Circle users rather than letting them pick a dead end.
+export const CIRCLE_SOURCE_KEYS: ReadonlySet<string> = new Set([
+  'sepolia',
+  'optimismSepolia',
+  'arbitrumSepolia',
+  'baseSepolia',
+  'polygonAmoy',
+  'solanaDevnet',
+]);
+
+/// Chains we can withdraw TO. Bridging out has the backend relay the mint on the
+/// destination, which again needs a Circle wallet there. So the six new chains
+/// are bridge-in sources only, never bridge-out destinations.
+export const WITHDRAW_DEST_KEYS: readonly CctpChainKey[] = [
+  'sepolia',
+  'optimismSepolia',
+  'arbitrumSepolia',
+  'baseSepolia',
+  'polygonAmoy',
+];
 export const APPKIT_ARC_CHAIN = 'Arc_Testnet';
 
 /// Circle Gateway's chain set, which is WIDER than CCTP's. The bridge above

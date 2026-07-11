@@ -1563,6 +1563,8 @@ interface MessagesShape {
     sourceChain: {
       sepoliaDomainTemplate: string;
       devnetAppKit: string;
+      walletOnlyTag: string;
+      walletOnlyTitle: string;
       circleOnlyTag: string;
       solanaCircleOnlyTitle: string;
     };
@@ -1710,6 +1712,7 @@ interface MessagesShape {
     moved: string;
     moveFailed: string;
     byChain: string;
+    dismiss: string;
     pulledTemplate: string;
   };
   stakeCard: {
@@ -5460,7 +5463,9 @@ export const en: MessagesShape = {
     },
     sourceChain: {
       sepoliaDomainTemplate: 'Sepolia · d{domain}',
-      devnetAppKit: 'Devnet · App Kit',
+      devnetAppKit: 'Devnet · d5',
+      walletOnlyTag: 'Wallet only',
+      walletOnlyTitle: 'Circle cannot sign on this chain. Connect a wallet to bridge from it.',
       circleOnlyTag: 'Circle only',
       solanaCircleOnlyTitle: 'Solana bridge runs through Circle App Kit. Sign in with a Circle account to use it.',
     },
@@ -5618,6 +5623,7 @@ export const en: MessagesShape = {
     moved: 'Moved to Arc.',
     moveFailed: 'Move failed.',
     byChain: 'Balance by chain',
+    dismiss: 'Dismiss',
     pulledTemplate: 'Pulled {chains}.',
   },
   stakeCard: {

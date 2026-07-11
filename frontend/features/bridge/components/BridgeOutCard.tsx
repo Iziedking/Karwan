@@ -6,7 +6,7 @@ import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useBridges } from '../hooks/useBridge';
 import { useHiddenActivityBridgeIds } from './BridgeCard';
 import { BridgeActivityStrip } from './BridgeActivityStrip';
-import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '../config';
+import { SOURCE_CHAINS, WITHDRAW_DEST_KEYS, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -28,7 +28,11 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 /// Cash-out destinations. A CCTP chain routes through the burn/mint bridge; Arc
 /// is a same-chain send that settles instantly, so it gets its own path.
 type DestKey = CctpChainKey | 'arc';
-const DEST_KEYS: DestKey[] = ['arc', ...SOURCE_CHAIN_KEYS];
+// Withdraw destinations, NOT the full source list. Bridging out has the backend
+// relay the mint on the destination, which needs a Circle wallet there, and
+// Circle cannot execute contracts on Avalanche/Unichain/Sei/Sonic/World
+// Chain/HyperEVM. Those six are bridge-IN sources only. See WITHDRAW_DEST_KEYS.
+const DEST_KEYS: DestKey[] = ['arc', ...WITHDRAW_DEST_KEYS];
 
 /// Bridge OUT (Arc -> chain). Sends the user's Arc USDC to another chain via
 /// CCTP: backend burns from the identity DCW on Arc, relays the mint on the

@@ -396,6 +396,16 @@ export function useBridges() {
   const arbitrumSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.arbitrumSepolia.chainId });
   const baseSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.baseSepolia.chainId });
   const polygonAmoyClient = usePublicClient({ chainId: SOURCE_CHAINS.polygonAmoy.chainId });
+  // The six Gateway-era CCTP chains. Web3-only sources (Circle cannot sign a
+  // burn there), but the user's own wallet can, so they still need an RPC client.
+  const avalancheFujiClient = usePublicClient({ chainId: SOURCE_CHAINS.avalancheFuji.chainId });
+  const unichainSepoliaClient = usePublicClient({ chainId: SOURCE_CHAINS.unichainSepolia.chainId });
+  const seiTestnetClient = usePublicClient({ chainId: SOURCE_CHAINS.seiTestnet.chainId });
+  const sonicTestnetClient = usePublicClient({ chainId: SOURCE_CHAINS.sonicTestnet.chainId });
+  const worldchainSepoliaClient = usePublicClient({
+    chainId: SOURCE_CHAINS.worldchainSepolia.chainId,
+  });
+  const hyperevmTestnetClient = usePublicClient({ chainId: SOURCE_CHAINS.hyperevmTestnet.chainId });
   // Arc reads for the web3 bridge-out path (balance, allowance, burn receipt).
   const arcClient = usePublicClient({ chainId: ARC_TESTNET.chainId });
   const sourceClients = useMemo<Record<CctpChainKey, ReturnType<typeof usePublicClient>>>(
@@ -405,8 +415,26 @@ export function useBridges() {
       arbitrumSepolia: arbitrumSepoliaClient,
       baseSepolia: baseSepoliaClient,
       polygonAmoy: polygonAmoyClient,
+      avalancheFuji: avalancheFujiClient,
+      unichainSepolia: unichainSepoliaClient,
+      seiTestnet: seiTestnetClient,
+      sonicTestnet: sonicTestnetClient,
+      worldchainSepolia: worldchainSepoliaClient,
+      hyperevmTestnet: hyperevmTestnetClient,
     }),
-    [sepoliaClient, optimismSepoliaClient, arbitrumSepoliaClient, baseSepoliaClient, polygonAmoyClient],
+    [
+      sepoliaClient,
+      optimismSepoliaClient,
+      arbitrumSepoliaClient,
+      baseSepoliaClient,
+      polygonAmoyClient,
+      avalancheFujiClient,
+      unichainSepoliaClient,
+      seiTestnetClient,
+      sonicTestnetClient,
+      worldchainSepoliaClient,
+      hyperevmTestnetClient,
+    ],
   );
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';

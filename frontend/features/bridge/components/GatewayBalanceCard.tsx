@@ -163,6 +163,52 @@ function ChainDropdown({
   );
 }
 
+/// A settled result the user can clear. Both outcomes stick around until
+/// dismissed rather than auto-fading: a pool or a move is a money event, and
+/// the txHash line is the only receipt shown in-app.
+function StatusLine({
+  tone,
+  onDismiss,
+  label,
+  children,
+}: {
+  tone: 'ok' | 'bad';
+  onDismiss: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-3 flex items-start justify-between gap-2">
+      <p className="text-[13px]" style={{ color: tone === 'ok' ? '#0a7553' : '#b03d3a' }}>
+        {children}
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label={label}
+        title={label}
+        className="shrink-0 inline-flex items-center justify-center transition-colors hover:bg-[var(--lp-light)]"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          border: '1px solid var(--lp-border-light)',
+          color: 'var(--lp-text-sub)',
+        }}
+      >
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
+          <path
+            d="M1 1l8 8M9 1l-8 8"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
 type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
 type Recipient = 'wallet' | 'buyer' | 'seller';
@@ -330,8 +376,10 @@ export function GatewayBalanceCard({
     (c) => Number(c.confirmed) > 0 || Number(c.pending) > 0,
   );
 
+  // No top margin and full height: the page owns the column spacing and stretches
+  // this card to match the CCTP one beside it.
   return (
-    <div className="mt-6 p-6" style={CARD_STYLE}>
+    <div className="p-6 h-full" style={CARD_STYLE}>
       <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
         {t.tag}
       </div>
@@ -427,10 +475,14 @@ export function GatewayBalanceCard({
             </button>
 
             {phase === 'done' && (
-              <p className="mt-3 text-[13px] text-[#0a7553]">{t.pooled}</p>
+              <StatusLine tone="ok" onDismiss={() => setPhase('idle')} label={t.dismiss}>
+                {t.pooled}
+              </StatusLine>
             )}
             {phase === 'error' && (
-              <p className="mt-3 text-[13px] text-[#b03d3a]">{error ?? t.failed}</p>
+              <StatusLine tone="bad" onDismiss={() => setPhase('idle')} label={t.dismiss}>
+                {error ?? t.failed}
+              </StatusLine>
             )}
           </>
         )}
@@ -531,18 +583,17 @@ export function GatewayBalanceCard({
           </button>
 
           {movePhase === 'moved' && (
-            <p className="mt-3 text-[13px] text-[#0a7553]">
+            <StatusLine tone="ok" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
               {t.moved}
               {pulledFrom && pulledFrom.length > 0 && (
-                <>
-                  {' '}
-                  {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}
-                </>
+                <> {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}</>
               )}
-            </p>
+            </StatusLine>
           )}
           {movePhase === 'error' && (
-            <p className="mt-3 text-[13px] text-[#b03d3a]">{moveError ?? t.moveFailed}</p>
+            <StatusLine tone="bad" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
+              {moveError ?? t.moveFailed}
+            </StatusLine>
           )}
         </div>
       )}

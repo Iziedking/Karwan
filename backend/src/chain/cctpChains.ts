@@ -1,5 +1,16 @@
-import type { Chain } from 'viem';
-import { sepolia, baseSepolia, optimismSepolia, arbitrumSepolia, polygonAmoy } from 'viem/chains';
+import { defineChain, type Chain } from 'viem';
+import {
+  sepolia,
+  baseSepolia,
+  optimismSepolia,
+  arbitrumSepolia,
+  polygonAmoy,
+  avalancheFuji,
+  unichainSepolia,
+  seiTestnet,
+  worldchainSepolia,
+  hyperliquidEvmTestnet,
+} from 'viem/chains';
 import {
   BASE_SEPOLIA_BLOCKCHAIN,
   ETH_SEPOLIA_BLOCKCHAIN,
@@ -23,12 +34,30 @@ export const FINALITY_THRESHOLD_STANDARD = 2000;
 
 /// Stable keys for the non-Arc CCTP chains, as a tuple so zod enums and the
 /// union type stay in lockstep. The values match the viem chain export names.
+/// Sonic Testnet is not in viem: its `sonicTestnet` (64165) and
+/// `sonicBlazeTestnet` (57054) are different chains from Circle's Sonic_Testnet
+/// (14601). Defined from Circle's own chain record rather than assuming the
+/// similarly-named export is the right one. Mirrors frontend/core/wagmi.ts.
+const sonicTestnet14601 = defineChain({
+  id: 14601,
+  name: 'Sonic Testnet',
+  nativeCurrency: { name: 'Sonic', symbol: 'S', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.testnet.soniclabs.com'] } },
+  testnet: true,
+});
+
 export const CCTP_CHAIN_KEYS = [
   'sepolia',
   'optimismSepolia',
   'arbitrumSepolia',
   'baseSepolia',
   'polygonAmoy',
+  'avalancheFuji',
+  'unichainSepolia',
+  'seiTestnet',
+  'sonicTestnet',
+  'worldchainSepolia',
+  'hyperevmTestnet',
 ] as const;
 
 export type CctpChainKey = (typeof CCTP_CHAIN_KEYS)[number];
@@ -44,7 +73,18 @@ export interface CctpChain {
   /// Circle Developer-Controlled-Wallets createWallets blockchain code, used to
   /// provision the per-chain bridge DCW that signs the burn (in) / relays the
   /// mint (out).
-  circleBlockchain: BridgeBlockchain;
+  ///
+  /// OPTIONAL, and the omission is load-bearing. A CCTP burn is a contract
+  /// execution (approve + depositForBurn), and Circle's DCWs only support
+  /// contract execution on their named chains. Everything else falls under
+  /// "Other EVM blockchains", where the Wallets docs state contract execution is
+  /// NOT supported. So Sei, Sonic, World Chain and HyperEVM can never be burned
+  /// from by a backend Circle wallet, no matter what we configure.
+  ///
+  /// A chain with no code here is WEB3-ONLY: the user's own wallet signs the
+  /// burn. Circle/email accounts cannot bridge from it. Guard every Circle-path
+  /// call site on this being present.
+  circleBlockchain?: BridgeBlockchain;
   /// Native USDC token on that chain's testnet.
   usdc: `0x${string}`;
   /// Native gas token symbol, for user-facing gas messages.
@@ -110,11 +150,88 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     viemChain: polygonAmoy,
     explorerTx: (h) => `https://amoy.polygonscan.com/tx/${h}`,
   },
+  // The six chains Gateway reaches also run CCTP v2. Domains, USDC addresses and
+  // explorers come from the installed @circle-fin SDK's chain records; the
+  // canonical TokenMessenger was verified byte-identical on all six.
+  //
+  // None carries a circleBlockchain: they are web3-only. Circle's DCWs cannot
+  // execute contracts on non-named EVM chains, and a CCTP burn is a contract
+  // execution. Avalanche and Unichain ARE named by Circle and could gain a code
+  // later; Sei, Sonic, World Chain and HyperEVM never can.
+  avalancheFuji: {
+    key: 'avalancheFuji',
+    name: 'Avalanche Fuji',
+    shortName: 'Avalanche',
+    domain: 1,
+    usdc: '0x5425890298aed601595a70ab815c96711a31bc65',
+    nativeSymbol: 'AVAX',
+    viemChain: avalancheFuji,
+    explorerTx: (h) => `https://subnets-test.avax.network/c-chain/tx/${h}`,
+  },
+  unichainSepolia: {
+    key: 'unichainSepolia',
+    name: 'Unichain Sepolia',
+    shortName: 'Unichain',
+    domain: 10,
+    usdc: '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+    nativeSymbol: 'ETH',
+    viemChain: unichainSepolia,
+    explorerTx: (h) => `https://unichain-sepolia.blockscout.com/tx/${h}`,
+  },
+  seiTestnet: {
+    key: 'seiTestnet',
+    name: 'Sei Testnet',
+    shortName: 'Sei',
+    domain: 16,
+    usdc: '0x4fCF1784B31630811181f670Aea7A7bEF803eaED',
+    nativeSymbol: 'SEI',
+    viemChain: seiTestnet,
+    explorerTx: (h) => `https://testnet.seiscan.io/tx/${h}`,
+  },
+  sonicTestnet: {
+    key: 'sonicTestnet',
+    name: 'Sonic Testnet',
+    shortName: 'Sonic',
+    domain: 13,
+    usdc: '0x0BA304580ee7c9a980CF72e55f5Ed2E9fd30Bc51',
+    nativeSymbol: 'S',
+    viemChain: sonicTestnet14601,
+    explorerTx: (h) => `https://testnet.sonicscan.org/tx/${h}`,
+  },
+  worldchainSepolia: {
+    key: 'worldchainSepolia',
+    name: 'World Chain Sepolia',
+    shortName: 'World Chain',
+    domain: 14,
+    usdc: '0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88',
+    nativeSymbol: 'ETH',
+    viemChain: worldchainSepolia,
+    explorerTx: (h) => `https://sepolia.worldscan.org/tx/${h}`,
+  },
+  hyperevmTestnet: {
+    key: 'hyperevmTestnet',
+    name: 'HyperEVM Testnet',
+    shortName: 'HyperEVM',
+    domain: 19,
+    usdc: '0x2B3370eE501B4a559b57D449569354196457D8Ab',
+    nativeSymbol: 'HYPE',
+    viemChain: hyperliquidEvmTestnet,
+    explorerTx: (h) => `https://app.hyperliquid-testnet.xyz/explorer/tx/${h}`,
+  },
 };
 
 export function isCctpChainKey(v: string): v is CctpChainKey {
   return (CCTP_CHAIN_KEYS as readonly string[]).includes(v);
 }
+
+/// Chains a backend Circle wallet can actually burn from. The Circle deposit
+/// path must gate on this: the others are reachable only by a user-signed
+/// (web3) burn.
+export function supportsCircleWallet(key: CctpChainKey): boolean {
+  return !!CCTP_CHAINS[key].circleBlockchain;
+}
+
+export const CIRCLE_WALLET_CHAIN_KEYS = CCTP_CHAIN_KEYS.filter(supportsCircleWallet);
 
 /// Reverse lookup by CCTP domain (used when relaying a mint to resolve the
 /// destination chain from a burn message's domain).

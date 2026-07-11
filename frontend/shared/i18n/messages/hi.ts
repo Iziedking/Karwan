@@ -1669,7 +1669,9 @@ export const hi: Messages = {
     },
     sourceChain: {
       sepoliaDomainTemplate: 'Sepolia · d{domain}',
-      devnetAppKit: 'Devnet · App Kit',
+      devnetAppKit: 'Devnet · d5',
+      walletOnlyTag: 'केवल वॉलेट',
+      walletOnlyTitle: 'Circle इस चेन पर साइन नहीं कर सकता। ब्रिज करने के लिए वॉलेट कनेक्ट करें।',
       circleOnlyTag: 'केवल Circle',
       solanaCircleOnlyTitle: 'Solana ब्रिज Circle App Kit के माध्यम से चलता है। उपयोग के लिए Circle खाते से साइन इन करें।',
     },
@@ -1827,6 +1829,7 @@ export const hi: Messages = {
     moved: 'Arc पर भेज दिया गया।',
     moveFailed: 'भेजना विफल रहा।',
     byChain: 'चेन के अनुसार बैलेंस',
+    dismiss: 'बंद करें',
     pulledTemplate: '{chains} से लिया गया।',
   },
   stakeCard: {

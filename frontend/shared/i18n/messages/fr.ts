@@ -1669,7 +1669,9 @@ export const fr: Messages = {
     },
     sourceChain: {
       sepoliaDomainTemplate: 'Sepolia · d{domain}',
-      devnetAppKit: 'Devnet · App Kit',
+      devnetAppKit: 'Devnet · d5',
+      walletOnlyTag: 'Portefeuille requis',
+      walletOnlyTitle: 'Circle ne peut pas signer sur cette chaîne. Connectez un portefeuille.',
       circleOnlyTag: 'Circle uniquement',
       solanaCircleOnlyTitle: 'La passerelle Solana passe par Circle App Kit. Connectez-vous avec un compte Circle pour l\'utiliser.',
     },
@@ -1827,6 +1829,7 @@ export const fr: Messages = {
     moved: 'Déplacé vers Arc.',
     moveFailed: 'Le déplacement a échoué.',
     byChain: 'Solde par chaîne',
+    dismiss: 'Fermer',
     pulledTemplate: 'Tiré {chains}.',
   },
   stakeCard: {

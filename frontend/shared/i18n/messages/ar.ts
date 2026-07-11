@@ -1669,7 +1669,9 @@ export const ar: Messages = {
     },
     sourceChain: {
       sepoliaDomainTemplate: 'Sepolia · d{domain}',
-      devnetAppKit: 'Devnet · App Kit',
+      devnetAppKit: 'Devnet · d5',
+      walletOnlyTag: 'محفظة فقط',
+      walletOnlyTitle: 'لا يمكن لـ Circle التوقيع على هذه السلسلة. اربط محفظة للجسر منها.',
       circleOnlyTag: 'Circle فقط',
       solanaCircleOnlyTitle: 'يعمل جسر Solana عبر Circle App Kit. سجّل الدخول بحساب Circle لاستخدامه.',
     },
@@ -1827,6 +1829,7 @@ export const ar: Messages = {
     moved: 'تم النقل إلى Arc.',
     moveFailed: 'فشل النقل.',
     byChain: 'الرصيد حسب السلسلة',
+    dismiss: 'إغلاق',
     pulledTemplate: 'تم السحب {chains}.',
   },
   stakeCard: {

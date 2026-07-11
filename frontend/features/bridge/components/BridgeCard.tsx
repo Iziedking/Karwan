@@ -11,6 +11,7 @@ import {
   APP_KIT_SOURCES,
   APP_KIT_SOURCE_KEYS,
   GAS_FAUCETS,
+  CIRCLE_SOURCE_KEYS,
   USDC_FAUCET,
   isAppKitOnlyChainKey,
   type SourceChainConfig,
@@ -631,6 +632,7 @@ export function BridgeCard({
             setOpen={setSourcePickerOpen}
             eyebrow={bc.eyebrow.sourceChain}
             copy={bc.sourceChain}
+            circlePath={depositPath}
           />
 
           {/* AMOUNT INPUT */}
@@ -1720,7 +1722,11 @@ function Web3FundHint({
         </button>
         <button
           type="button"
-          onClick={() => void copyAndOpen(GAS_FAUCETS[source.key], 'gas')}
+          onClick={() => {
+            const faucet = GAS_FAUCETS[source.key];
+            if (faucet) void copyAndOpen(faucet, 'gas');
+          }}
+          hidden={!GAS_FAUCETS[source.key]}
           disabled={!fundAddress}
           className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
           style={{
@@ -1987,6 +1993,7 @@ function SourceChainDropdown({
   setOpen,
   eyebrow,
   copy,
+  circlePath,
 }: {
   value: AnySourceChainKey;
   onChange: (next: AnySourceChainKey) => void;
@@ -1994,6 +2001,10 @@ function SourceChainDropdown({
   setOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
   eyebrow: string;
   copy: Messages['bridgeCard']['sourceChain'];
+  /// True when the burn will be signed by a backend Circle wallet. Six of the
+  /// CCTP chains have no Circle wallet (Circle cannot execute contracts there),
+  /// so they must be unpickable on this path rather than fail at submit.
+  circlePath: boolean;
 }) {
   type Option = {
     key: AnySourceChainKey;
@@ -2006,15 +2017,20 @@ function SourceChainDropdown({
   };
 
   const options: Option[] = useMemo(() => {
-    const cctp = (Object.values(SOURCE_CHAINS) as SourceChainConfig[]).map(
-      (c): Option => ({
+    const cctp = (Object.values(SOURCE_CHAINS) as SourceChainConfig[]).map((c): Option => {
+      // Web3-only chain on the Circle deposit path: no backend wallet can sign
+      // the burn there, so offer it but say why it is off.
+      const needsWallet = circlePath && !CIRCLE_SOURCE_KEYS.has(c.key);
+      return {
         key: c.key as AnySourceChainKey,
         name: c.name.replace(' Sepolia', ''),
         meta: copy.sepoliaDomainTemplate.replace('{domain}', String(c.domain)),
         iconKey: c.key,
-        disabled: false,
-      }),
-    );
+        disabled: needsWallet,
+        disabledTag: needsWallet ? copy.walletOnlyTag : undefined,
+        disabledTitle: needsWallet ? copy.walletOnlyTitle : undefined,
+      };
+    });
     // Solana routes through the backend Circle App Kit signer, so it's usable by
     // every account type (the backend provisions a Solana deposit address the
     // user funds). No longer gated to Circle-only.
@@ -2029,7 +2045,7 @@ function SourceChainDropdown({
       };
     });
     return [...cctp, ...appKit];
-  }, [copy]);
+  }, [copy, circlePath]);
 
   const active = options.find((o) => o.key === value) ?? options[0];
 

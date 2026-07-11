@@ -87,8 +87,14 @@ function BridgePageInner() {
           {/* Each column owns its rail: the selector card, then that rail's own
               panel beneath it. Opening both therefore lands the two panels side
               by side with no extra layout branching. */}
-          <div className="grid gap-6 lg:grid-cols-2 items-start">
-            <div>
+          {/* items-stretch + flex-1 on each card: whichever rail is taller sets
+              the height and the other matches, so the two never look ragged.
+              Gateway has no direction toggle, so when CCTP is open it renders an
+              invisible copy of that control row. Same markup, therefore exactly
+              the same height, so both cards start on the same line without a
+              magic-number spacer. */}
+          <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+            <div className="flex flex-col">
               <RailCard
                 tone="dark"
                 open={cctpOpen}
@@ -100,53 +106,27 @@ function BridgePageInner() {
                 blurb={c.cctp.blurb}
               />
               {cctpOpen && (
-                <div className="mt-6">
-                  <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-                    <div
-                      className="inline-flex p-1"
-                      style={{
-                        background: 'var(--lp-card)',
-                        border: '1px solid var(--lp-border-light)',
-                        borderRadius: 999,
-                      }}
-                    >
-                      <DirToggle
-                        active={direction === 'in'}
-                        onClick={() => setDirection('in')}
-                      >
-                        {t.directions.toArc}
-                      </DirToggle>
-                      <DirToggle
-                        active={direction === 'out'}
-                        onClick={() => setDirection('out')}
-                      >
-                        {t.directions.fromArc}
-                      </DirToggle>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setHistoryOpen(true)}
-                      className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 transition-colors hover:bg-[var(--lp-light)]"
-                      style={{
-                        background: 'transparent',
-                        color: 'var(--lp-dark)',
-                        border: '1px solid var(--lp-border-light)',
-                        borderRadius: 999,
-                      }}
-                    >
-                      {c.transferHistory}
-                    </button>
+                <div className="mt-6 flex flex-col flex-1">
+                  <BridgeControls
+                    direction={direction}
+                    setDirection={setDirection}
+                    onHistory={() => setHistoryOpen(true)}
+                    toArc={t.directions.toArc}
+                    fromArc={t.directions.fromArc}
+                    historyLabel={c.transferHistory}
+                  />
+                  <div className="flex-1 [&>*]:h-full">
+                    {direction === 'in' ? (
+                      <BridgeCard agents={agents ?? undefined} tour />
+                    ) : (
+                      <BridgeOutCard />
+                    )}
                   </div>
-                  {direction === 'in' ? (
-                    <BridgeCard agents={agents ?? undefined} tour />
-                  ) : (
-                    <BridgeOutCard />
-                  )}
                 </div>
               )}
             </div>
 
-            <div>
+            <div className="flex flex-col">
               <RailCard
                 tone="lime"
                 open={gatewayOpen}
@@ -157,7 +137,25 @@ function BridgePageInner() {
                 protocol={c.gateway.protocol}
                 blurb={c.gateway.blurb}
               />
-              {gatewayOpen && <GatewayBalanceCard agents={agents ?? undefined} />}
+              {gatewayOpen && (
+                <div className="mt-6 flex flex-col flex-1">
+                  {cctpOpen && (
+                    <div aria-hidden className="invisible hidden lg:block">
+                      <BridgeControls
+                        direction={direction}
+                        setDirection={() => {}}
+                        onHistory={() => {}}
+                        toArc={t.directions.toArc}
+                        fromArc={t.directions.fromArc}
+                        historyLabel={c.transferHistory}
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <GatewayBalanceCard agents={agents ?? undefined} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -165,6 +163,58 @@ function BridgePageInner() {
 
       <BridgeHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </FullBleed>
+  );
+}
+
+/// CCTP's own controls: which way money flows, and its transfer history. They
+/// belong to the bridge, not to Gateway, so they live inside the CCTP column.
+/// The Gateway column renders an invisible copy purely to match the height.
+function BridgeControls({
+  direction,
+  setDirection,
+  onHistory,
+  toArc,
+  fromArc,
+  historyLabel,
+}: {
+  direction: Direction;
+  setDirection: (d: Direction) => void;
+  onHistory: () => void;
+  toArc: string;
+  fromArc: string;
+  historyLabel: string;
+}) {
+  return (
+    <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
+      <div
+        className="inline-flex p-1"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderRadius: 999,
+        }}
+      >
+        <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
+          {toArc}
+        </DirToggle>
+        <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
+          {fromArc}
+        </DirToggle>
+      </div>
+      <button
+        type="button"
+        onClick={onHistory}
+        className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 transition-colors hover:bg-[var(--lp-light)]"
+        style={{
+          background: 'transparent',
+          color: 'var(--lp-dark)',
+          border: '1px solid var(--lp-border-light)',
+          borderRadius: 999,
+        }}
+      >
+        {historyLabel}
+      </button>
+    </div>
   );
 }
 

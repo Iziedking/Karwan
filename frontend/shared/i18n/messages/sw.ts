@@ -1669,7 +1669,9 @@ export const sw: Messages = {
     },
     sourceChain: {
       sepoliaDomainTemplate: 'Sepolia · d{domain}',
-      devnetAppKit: 'Devnet · App Kit',
+      devnetAppKit: 'Devnet · d5',
+      walletOnlyTag: 'Mkoba pekee',
+      walletOnlyTitle: 'Circle haiwezi kusaini kwenye mnyororo huu. Unganisha mkoba ili kudaraja.',
       circleOnlyTag: 'Circle pekee',
       solanaCircleOnlyTitle: 'Daraja la Solana hupita kwenye Circle App Kit. Ingia kwa akaunti ya Circle ili kulitumia.',
     },
@@ -1827,6 +1829,7 @@ export const sw: Messages = {
     moved: 'Imehamishiwa Arc.',
     moveFailed: 'Kuhamisha kumeshindwa.',
     byChain: 'Salio kwa mnyororo',
+    dismiss: 'Ondoa',
     pulledTemplate: 'Imetolewa {chains}.',
   },
   stakeCard: {
