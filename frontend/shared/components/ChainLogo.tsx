@@ -9,14 +9,39 @@ export type ChainKey =
   | 'arbitrum'
   | 'polygon'
   | 'solana'
+  | 'avalanche'
+  | 'unichain'
+  | 'sei'
+  | 'sonic'
+  | 'worldchain'
+  | 'hyperevm'
   | 'baseSepolia'
   | 'sepolia'
   | 'optimismSepolia'
   | 'arbitrumSepolia'
   | 'polygonAmoy'
-  | 'solanaDevnet';
+  | 'solanaDevnet'
+  | 'avalancheFuji'
+  | 'unichainSepolia'
+  | 'seiTestnet'
+  | 'sonicTestnet'
+  | 'worldchainSepolia'
+  | 'hyperevmTestnet';
 
-type BaseChain = 'arc' | 'base' | 'ethereum' | 'optimism' | 'arbitrum' | 'polygon' | 'solana';
+type BaseChain =
+  | 'arc'
+  | 'base'
+  | 'ethereum'
+  | 'optimism'
+  | 'arbitrum'
+  | 'polygon'
+  | 'solana'
+  | 'avalanche'
+  | 'unichain'
+  | 'sei'
+  | 'sonic'
+  | 'worldchain'
+  | 'hyperevm';
 
 function normalize(k: ChainKey): BaseChain {
   if (k === 'baseSepolia') return 'base';
@@ -25,6 +50,12 @@ function normalize(k: ChainKey): BaseChain {
   if (k === 'arbitrumSepolia') return 'arbitrum';
   if (k === 'polygonAmoy') return 'polygon';
   if (k === 'solanaDevnet') return 'solana';
+  if (k === 'avalancheFuji') return 'avalanche';
+  if (k === 'unichainSepolia') return 'unichain';
+  if (k === 'seiTestnet') return 'sei';
+  if (k === 'sonicTestnet') return 'sonic';
+  if (k === 'worldchainSepolia') return 'worldchain';
+  if (k === 'hyperevmTestnet') return 'hyperevm';
   return k;
 }
 
@@ -133,6 +164,73 @@ export function ChainLogo({
         <path d="M9 11 L24 11 L21 14 L6 14 Z" fill="#14F195" />
         <path d="M9 17.5 L24 17.5 L21 20.5 L6 20.5 Z" fill="#9945FF" />
         <path d="M9 24 L24 24 L21 27 L6 27 Z" fill="#14F195" />
+      </svg>,
+    );
+  }
+
+  if (c === 'avalanche') {
+    // Avalanche red with the white peak split by the brand's angled notch.
+    return tile(
+      '#E84142',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path d="M16 6.5 L26 24.5 L20.4 24.5 L16 16.6 Z" fill="#fff" />
+        <path d="M16 6.5 L6 24.5 L11.6 24.5 L16 16.6 Z" fill="#fff" />
+        <path d="M13.4 24.5 L16.6 19 L19.8 24.5 Z" fill="#E84142" />
+      </svg>,
+    );
+  }
+
+  if (c === 'unichain') {
+    return tile(
+      '#F50DB4',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path d="M16 6 A10 10 0 0 1 16 26 L16 6 Z" fill="#fff" fillOpacity="0.95" />
+        <circle cx="16" cy="16" r="10" stroke="#fff" strokeWidth="2" />
+      </svg>,
+    );
+  }
+
+  if (c === 'sei') {
+    return tile(
+      '#9E1F19',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path d="M6 20 L18 8 L26 8 L14 20 Z" fill="#fff" />
+        <path d="M9 24 L21 12 L26 12 L17 24 Z" fill="#fff" fillOpacity="0.55" />
+      </svg>,
+    );
+  }
+
+  if (c === 'sonic') {
+    return tile(
+      '#FE9A4D',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path d="M18 5 L9 18 L15 18 L13 27 L23 13 L17 13 Z" fill="#fff" />
+      </svg>,
+    );
+  }
+
+  if (c === 'worldchain') {
+    return tile(
+      '#0B0B0B',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <circle cx="16" cy="16" r="10" stroke="#fff" strokeWidth="2" />
+        <path d="M6.4 13.6 L25.6 13.6 M6.4 18.4 L25.6 18.4" stroke="#fff" strokeWidth="2" />
+      </svg>,
+    );
+  }
+
+  if (c === 'hyperevm') {
+    return tile(
+      '#072723',
+      <svg width={s} height={s} viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path
+          d="M6 18.5c2.6-6 5.2-6 7.8-2.4 2.6 3.6 5.2 3.6 7.8-2.4"
+          stroke="#97FCE4"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <circle cx="24.5" cy="12" r="1.8" fill="#97FCE4" />
       </svg>,
     );
   }

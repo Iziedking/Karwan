@@ -7,13 +7,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
-import {
-  SOURCE_CHAINS,
-  SOURCE_CHAIN_KEYS,
-  APPKIT_CHAIN,
-  APPKIT_ARC_CHAIN,
-  ARC_TESTNET,
-} from '../config';
+import { GATEWAY_CHAINS, APPKIT_ARC_CHAIN, type GatewayChainConfig } from '../config';
 
 /// Circle Gateway pooled balance + deposit.
 ///
@@ -39,30 +33,9 @@ const CARD_STYLE = {
   boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
 } as const;
 
-interface DepositChain {
-  key: ChainKey;
-  chainId: number;
-  usdc: `0x${string}`;
-  name: string;
-  appKit: string;
-}
+type DepositChain = GatewayChainConfig;
 
-const DEPOSIT_CHAINS: DepositChain[] = [
-  ...SOURCE_CHAIN_KEYS.map((k) => ({
-    key: k as ChainKey,
-    chainId: SOURCE_CHAINS[k].chainId,
-    usdc: SOURCE_CHAINS[k].usdc,
-    name: SOURCE_CHAINS[k].shortName,
-    appKit: APPKIT_CHAIN[k],
-  })),
-  {
-    key: 'arc' as ChainKey,
-    chainId: ARC_TESTNET.chainId,
-    usdc: ARC_TESTNET.usdc,
-    name: 'Arc',
-    appKit: APPKIT_ARC_CHAIN,
-  },
-];
+const DEPOSIT_CHAINS: DepositChain[] = GATEWAY_CHAINS;
 
 /// App Kit reports allocations by its own chain name ('Base_Sepolia'), which is
 /// not what we show users. Fall back to the raw name rather than dropping a

@@ -1785,6 +1785,22 @@ export const ar: Messages = {
       copied: 'تم النسخ',
     },
   },
+  bridgeChooser: {
+    poweredBy: 'مدعوم من CIRCLE',
+    transferHistory: 'سجل التحويلات',
+    cctp: {
+      tag: '[:إيداع أموال:]',
+      title: 'إيداع / سحب',
+      protocol: 'CCTP',
+      blurb: 'موّل محفظتك من أي سلسلة.',
+    },
+    gateway: {
+      tag: '[:الرصيد الموحّد:]',
+      title: 'رصيد موحّد عبر السلاسل',
+      protocol: 'GATEWAY',
+      blurb: 'موّل محفظتك ومحافظ وكلائك من رصيدك الموحّد.',
+    },
+  },
   gatewayCard: {
     tag: '[:الرصيد المجمّع:]',
     title: 'رصيد واحد، أي سلسلة',

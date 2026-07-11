@@ -6,6 +6,7 @@ import {
   polygonAmoy,
 } from 'viem/chains';
 import { arcTestnet } from '@/core/wagmi';
+import type { ChainKey } from '@/shared/components/ChainLogo';
 
 // CCTP V2 deploys the same canonical TokenMessenger + MessageTransmitter across
 // every testnet, so a chain is just chainId + domain + USDC. Verified against
@@ -174,6 +175,38 @@ export const APPKIT_CHAIN: Record<AnySourceChainKey, string> = {
   solanaDevnet: 'Solana_Devnet',
 };
 export const APPKIT_ARC_CHAIN = 'Arc_Testnet';
+
+/// Circle Gateway's chain set, which is WIDER than CCTP's. The bridge above
+/// still burns only from SOURCE_CHAINS; these are the chains a user can pool
+/// USDC from into their unified balance. Every field here (chain id, USDC
+/// address, App Kit name) was read out of the installed @circle-fin SDK's own
+/// chain records, not copied from docs. Solana Devnet is Gateway-supported but
+/// deliberately absent: Gateway keys accounts by address, so a Solana address
+/// is a SEPARATE depositor from the user's EOA, not the same pool.
+export interface GatewayChainConfig {
+  key: ChainKey;
+  chainId: number;
+  usdc: `0x${string}`;
+  name: string;
+  appKit: string;
+}
+
+export const GATEWAY_CHAINS: GatewayChainConfig[] = [
+  { key: 'sepolia', chainId: sepolia.id, usdc: SOURCE_CHAINS.sepolia.usdc, name: 'Ethereum', appKit: 'Ethereum_Sepolia' },
+  { key: 'baseSepolia', chainId: baseSepolia.id, usdc: SOURCE_CHAINS.baseSepolia.usdc, name: 'Base', appKit: 'Base_Sepolia' },
+  { key: 'optimismSepolia', chainId: optimismSepolia.id, usdc: SOURCE_CHAINS.optimismSepolia.usdc, name: 'Optimism', appKit: 'Optimism_Sepolia' },
+  { key: 'arbitrumSepolia', chainId: arbitrumSepolia.id, usdc: SOURCE_CHAINS.arbitrumSepolia.usdc, name: 'Arbitrum', appKit: 'Arbitrum_Sepolia' },
+  { key: 'polygonAmoy', chainId: polygonAmoy.id, usdc: SOURCE_CHAINS.polygonAmoy.usdc, name: 'Polygon', appKit: 'Polygon_Amoy_Testnet' },
+  { key: 'avalancheFuji', chainId: 43113, usdc: '0x5425890298aed601595a70ab815c96711a31bc65', name: 'Avalanche', appKit: 'Avalanche_Fuji' },
+  { key: 'unichainSepolia', chainId: 1301, usdc: '0x31d0220469e10c4E71834a79b1f276d740d3768F', name: 'Unichain', appKit: 'Unichain_Sepolia' },
+  { key: 'seiTestnet', chainId: 1328, usdc: '0x4fCF1784B31630811181f670Aea7A7bEF803eaED', name: 'Sei', appKit: 'Sei_Testnet' },
+  // Circle's Sonic_Testnet is 14601. viem's sonicTestnet (64165) and
+  // sonicBlazeTestnet (57054) are different chains; see core/wagmi.ts.
+  { key: 'sonicTestnet', chainId: 14601, usdc: '0x0BA304580ee7c9a980CF72e55f5Ed2E9fd30Bc51', name: 'Sonic', appKit: 'Sonic_Testnet' },
+  { key: 'worldchainSepolia', chainId: 4801, usdc: '0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88', name: 'World Chain', appKit: 'World_Chain_Sepolia' },
+  { key: 'hyperevmTestnet', chainId: 998, usdc: '0x2B3370eE501B4a559b57D449569354196457D8Ab', name: 'HyperEVM', appKit: 'HyperEVM_Testnet' },
+  { key: 'arc', chainId: arcTestnet.id, usdc: '0x3600000000000000000000000000000000000000', name: 'Arc', appKit: 'Arc_Testnet' },
+];
 
 export const ARC_TESTNET = {
   chainId: arcTestnet.id,

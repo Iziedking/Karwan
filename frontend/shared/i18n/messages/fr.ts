@@ -1785,6 +1785,22 @@ export const fr: Messages = {
       copied: 'Copié',
     },
   },
+  bridgeChooser: {
+    poweredBy: 'PROPULSÉ PAR CIRCLE',
+    transferHistory: 'Historique des transferts',
+    cctp: {
+      tag: '[:DÉPÔT:]',
+      title: 'Dépôt / Retrait',
+      protocol: 'CCTP',
+      blurb: 'Alimentez votre portefeuille depuis n\'importe quelle chaîne.',
+    },
+    gateway: {
+      tag: '[:SOLDE UNIFIÉ:]',
+      title: 'Solde unifié sur toutes les chaînes',
+      protocol: 'GATEWAY',
+      blurb: 'Alimentez votre portefeuille et vos agents depuis votre solde unifié.',
+    },
+  },
   gatewayCard: {
     tag: '[:SOLDE GROUPÉ:]',
     title: 'Un solde, toutes les chaînes',

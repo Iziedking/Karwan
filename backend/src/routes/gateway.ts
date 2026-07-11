@@ -17,16 +17,27 @@ import { sessionAddress } from '../auth/session.js';
 
 export const gatewayRoutes = new Hono();
 
-/// Pinning the chain list is load-bearing, not cosmetic: unrestricted the call
-/// fans out across every Gateway testnet (~4.9s). Our six settle in ~890ms cold
-/// and ~330ms warm. Solana Devnet is Gateway-supported but keyed by a Solana
-/// address, so an EVM depositor has nothing there.
+/// Every EVM chain Gateway supports on testnet. Chain count is NOT a cost here:
+/// measured warm, six chains and twelve both land around 330-370ms, and the
+/// ~4.9s seen on a first call is connection cold-start, not fan-out. So the list
+/// is pinned for determinism (we render a fixed set of chain marks), not for
+/// latency.
+///
+/// Solana Devnet is Gateway-supported but deliberately absent: Gateway keys
+/// accounts by address, so a Solana address is a SEPARATE depositor from the
+/// user's EOA rather than part of the same pool.
 const CHAINS = [
   'Ethereum_Sepolia',
   'Optimism_Sepolia',
   'Arbitrum_Sepolia',
   'Base_Sepolia',
   'Polygon_Amoy_Testnet',
+  'Avalanche_Fuji',
+  'Unichain_Sepolia',
+  'Sei_Testnet',
+  'Sonic_Testnet',
+  'World_Chain_Sepolia',
+  'HyperEVM_Testnet',
   'Arc_Testnet',
 ] as const;
 
@@ -38,6 +49,12 @@ const CHAIN_KEY: Record<string, string> = {
   Arbitrum_Sepolia: 'arbitrumSepolia',
   Base_Sepolia: 'baseSepolia',
   Polygon_Amoy_Testnet: 'polygonAmoy',
+  Avalanche_Fuji: 'avalancheFuji',
+  Unichain_Sepolia: 'unichainSepolia',
+  Sei_Testnet: 'seiTestnet',
+  Sonic_Testnet: 'sonicTestnet',
+  World_Chain_Sepolia: 'worldchainSepolia',
+  HyperEVM_Testnet: 'hyperevmTestnet',
   Arc_Testnet: 'arc',
 };
 

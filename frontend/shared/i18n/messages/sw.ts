@@ -1785,6 +1785,22 @@ export const sw: Messages = {
       copied: 'Imenakiliwa',
     },
   },
+  bridgeChooser: {
+    poweredBy: 'INAENDESHWA NA CIRCLE',
+    transferHistory: 'Historia ya uhamisho',
+    cctp: {
+      tag: '[:WEKA PESA:]',
+      title: 'Weka / Toa',
+      protocol: 'CCTP',
+      blurb: 'Weka pesa kwenye mkoba wako kutoka mnyororo wowote.',
+    },
+    gateway: {
+      tag: '[:SALIO MOJA:]',
+      title: 'Salio moja katika minyororo yote',
+      protocol: 'GATEWAY',
+      blurb: 'Weka pesa kwenye mkoba wako na mikoba ya mawakala kutoka salio lako moja.',
+    },
+  },
   gatewayCard: {
     tag: '[:SALIO LILILOKUSANYWA:]',
     title: 'Salio moja, mnyororo wowote',

@@ -1678,6 +1678,12 @@ interface MessagesShape {
       copied: string;
     };
   };
+  bridgeChooser: {
+    poweredBy: string;
+    transferHistory: string;
+    cctp: { tag: string; title: string; protocol: string; blurb: string };
+    gateway: { tag: string; title: string; protocol: string; blurb: string };
+  };
   gatewayCard: {
     tag: string;
     title: string;
@@ -5567,6 +5573,22 @@ export const en: MessagesShape = {
       requesting: 'Requesting',
       testUsdcSentTemplate: 'Test USDC sent to your wallet on {name}. Lands in about a minute, then bridge.',
       copied: 'Copied',
+    },
+  },
+  bridgeChooser: {
+    poweredBy: 'POWERED BY CIRCLE',
+    transferHistory: 'Transfer history',
+    cctp: {
+      tag: '[:ADD MONEY:]',
+      title: 'Top up / Withdraw',
+      protocol: 'CCTP',
+      blurb: 'Fund your wallet from any chain.',
+    },
+    gateway: {
+      tag: '[:UNIFIED BALANCE:]',
+      title: 'Unified balance across chains',
+      protocol: 'GATEWAY',
+      blurb: 'Fund your wallet and your agent wallets from your unified balance.',
     },
   },
   gatewayCard: {

@@ -1785,6 +1785,22 @@ export const hi: Messages = {
       copied: 'कॉपी किया गया',
     },
   },
+  bridgeChooser: {
+    poweredBy: 'CIRCLE द्वारा संचालित',
+    transferHistory: 'ट्रांसफर इतिहास',
+    cctp: {
+      tag: '[:पैसे जोड़ें:]',
+      title: 'टॉप-अप / निकासी',
+      protocol: 'CCTP',
+      blurb: 'किसी भी चेन से अपना वॉलेट फंड करें।',
+    },
+    gateway: {
+      tag: '[:एकीकृत बैलेंस:]',
+      title: 'सभी चेन पर एक बैलेंस',
+      protocol: 'GATEWAY',
+      blurb: 'अपने एकीकृत बैलेंस से अपना वॉलेट और अपने एजेंट वॉलेट फंड करें।',
+    },
+  },
   gatewayCard: {
     tag: '[:पूल्ड बैलेंस:]',
     title: 'एक बैलेंस, कोई भी चेन',
