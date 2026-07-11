@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -110,7 +111,8 @@ export function PostJobForm() {
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
-  const { activate, activating } = useActivation();
+  const { activate, activating, agents } = useActivation();
+  const buyerAgent = agents?.buyer;
   const { profile, loading: profileLoading } = useUserProfile();
   const { recordAction } = useGuide();
   // Initial values from URL query params. BriefComposer sets these after the
@@ -943,13 +945,25 @@ export function PostJobForm() {
             {t.errors.insufficientBalanceTitle}
           </p>
           <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">{error}</p>
-          <button
-            type="button"
-            onClick={() => window.location.assign('/bridge')}
-            className="mono text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--lp-dark)] underline-offset-2 hover:underline"
-          >
-            {t.errors.topUpCta}
-          </button>
+          {/* One click, straight from the pooled balance into the buyer agent.
+              No bridge, no chain switch, no gas. If the pool cannot cover it the
+              button opens the Gateway rail in a NEW TAB, so this half-filled
+              form survives. */}
+          {buyerAgent && typeof budget === 'number' ? (
+            <TopUpFromGateway
+              recipient={buyerAgent}
+              amount={budget}
+              onFunded={() => setInsufficientBalance(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => window.open('/bridge?rail=gateway', '_blank', 'noopener')}
+              className="mono text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--lp-dark)] underline-offset-2 hover:underline"
+            >
+              {t.errors.topUpCta}
+            </button>
+          )}
         </div>
       ) : (
         error && (

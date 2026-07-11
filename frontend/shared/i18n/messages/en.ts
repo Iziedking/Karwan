@@ -1683,8 +1683,17 @@ interface MessagesShape {
   bridgeChooser: {
     poweredBy: string;
     transferHistory: string;
-    cctp: { tag: string; title: string; protocol: string; blurb: string };
+    cctp: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
     gateway: { tag: string; title: string; protocol: string; blurb: string };
+  };
+  gatewayTopUp: {
+    cta: string;
+    fundPool: string;
+    moving: string;
+    done: string;
+    failed: string;
+    availableTemplate: string;
+    shortTemplate: string;
   };
   gatewayCard: {
     tag: string;
@@ -1704,6 +1713,9 @@ interface MessagesShape {
     connect: string;
     failed: string;
     moveTag: string;
+    moveTo: string;
+    toCustom: string;
+    moveCtaTemplate: string;
     toWallet: string;
     toBuyer: string;
     toSeller: string;
@@ -5589,13 +5601,23 @@ export const en: MessagesShape = {
       title: 'Top up / Withdraw',
       protocol: 'CCTP',
       blurb: 'Fund your wallet from any chain.',
+      nudge: 'Use CCTP for a one time fast transfer to any chain. Gateway pools instead, and spends from the pool.',
     },
     gateway: {
       tag: '[:UNIFIED BALANCE:]',
       title: 'Unified balance across chains',
       protocol: 'GATEWAY',
-      blurb: 'Fund your wallet and your agent wallets from your unified balance.',
+      blurb: 'Pool USDC from any chain. Spend it on any chain.',
     },
+  },
+  gatewayTopUp: {
+    cta: 'Top up from Gateway',
+    fundPool: 'Fund your balance',
+    moving: 'Moving',
+    done: 'Funded',
+    failed: 'Top up failed.',
+    availableTemplate: '{amount} pooled and ready.',
+    shortTemplate: 'You have {have} pooled. This needs {need}.',
   },
   gatewayCard: {
     tag: '[:POOLED BALANCE:]',
@@ -5615,6 +5637,9 @@ export const en: MessagesShape = {
     connect: 'Connect a wallet to pool USDC.',
     failed: 'Pooling failed.',
     moveTag: '[:MOVE TO ARC:]',
+    moveTo: 'Move to',
+    toCustom: 'Custom address',
+    moveCtaTemplate: 'Move to {chain}',
     toWallet: 'My wallet',
     toBuyer: 'Buyer agent',
     toSeller: 'Seller agent',

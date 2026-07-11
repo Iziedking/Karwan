@@ -7,7 +7,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
-import { GATEWAY_CHAINS, APPKIT_ARC_CHAIN, type GatewayChainConfig } from '../config';
+import { GATEWAY_CHAINS, type GatewayChainConfig } from '../config';
+import { loadGatewayKit } from '@/features/gateway/lib';
 
 /// Circle Gateway pooled balance + deposit.
 ///
@@ -211,28 +212,13 @@ function StatusLine({
 
 type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
 type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
-type Recipient = 'wallet' | 'buyer' | 'seller';
+/// Wallet or a pasted address. Agent wallets are deliberately absent: they are
+/// topped up in context (profile, deal, post-a-job), not from this page, and an
+/// agent address only means anything on Arc anyway, while this can send to any
+/// of the twelve chains.
+type Recipient = 'wallet' | 'custom';
 
-/// Gateway's EIP-712 domain is { name: 'GatewayWallet', version: '1' } with no
-/// chainId and no verifyingContract, and the signed payload is a BurnIntent[]
-/// set. So one signature authorises burns across several source chains at once:
-/// no chain switching, no source-chain gas. Paired with a forwarder destination
-/// (no destination adapter) the mint lands on Arc without Arc gas either. This
-/// is the capability CCTP cannot match, and the reason Gateway is here at all.
-async function loadKit(provider: unknown) {
-  const { AppKit } = await import('@circle-fin/app-kit');
-  const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
-  const adapter: unknown = await createViemAdapterFromProvider({
-    provider: provider as never,
-  });
-  return { kit: new AppKit(), adapter };
-}
-
-export function GatewayBalanceCard({
-  agents,
-}: {
-  agents?: { buyer?: string; seller?: string };
-}) {
+export function GatewayBalanceCard() {
   const t = useTranslations().gatewayCard;
   const auth = useAuth();
   const { address, chain, connector, isConnected } = useAccount();
@@ -240,9 +226,15 @@ export function GatewayBalanceCard({
 
   const [balance, setBalance] = useState<GatewayBalance | null>(null);
   const [source, setSource] = useState<DepositChain>(DEPOSIT_CHAINS[0]);
+  // Where a spend lands. Any of the twelve; Arc is the default because that is
+  // where Karwan settles, but Gateway can mint on all of them via the forwarder.
+  const [dest, setDest] = useState<DepositChain>(
+    DEPOSIT_CHAINS.find((c) => c.key === 'arc') ?? DEPOSIT_CHAINS[0],
+  );
   const [amount, setAmount] = useState('');
   const [moveAmount, setMoveAmount] = useState('');
   const [recipient, setRecipient] = useState<Recipient>('wallet');
+  const [customAddress, setCustomAddress] = useState('');
   const [movePhase, setMovePhase] = useState<MovePhase>('idle');
   const [moveError, setMoveError] = useState<string | null>(null);
   const [pulledFrom, setPulledFrom] = useState<string[] | null>(null);
@@ -291,7 +283,7 @@ export function GatewayBalanceCard({
 
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-      const { kit, adapter } = await loadKit(provider);
+      const { kit, adapter } = await loadGatewayKit(provider);
 
       // allowanceStrategy defaults to 'authorize' (EIP-2612 permit): one
       // signature, no separate approve tx. That only works because the signer
@@ -320,16 +312,18 @@ export function GatewayBalanceCard({
     }
   }
 
+  const trimmedCustom = customAddress.trim();
+  const customValid = /^0x[a-fA-F0-9]{40}$/.test(trimmedCustom);
   const recipientAddress =
-    recipient === 'buyer'
-      ? agents?.buyer
-      : recipient === 'seller'
-        ? agents?.seller
-        : auth.address;
+    recipient === 'custom' ? (customValid ? trimmedCustom : undefined) : auth.address;
 
-  /// Spend the pooled balance onto Arc. No chain switch and no source-chain gas:
-  /// the wallet signs one chain-agnostic burn intent set, and useForwarder hands
-  /// the Arc mint to Circle's relayer, so the recipient needs no Arc gas either.
+  /// Spend the pooled balance onto the chosen chain. No chain switch and no
+  /// source-chain gas: the wallet signs one chain-agnostic burn intent set, and
+  /// useForwarder hands the destination mint to Circle's relayer, so the
+  /// recipient needs no gas there either. Every one of the twelve reports
+  /// forwarderSupported.destination, which is what makes any of them a valid
+  /// target rather than only Arc.
+  ///
   /// `from` carries no allocations, which is deliberate: Gateway then decides
   /// which chains to draw from, pulling across several in one go if it must.
   async function move() {
@@ -340,12 +334,12 @@ export function GatewayBalanceCard({
       setMovePhase('moving');
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-      const { kit, adapter } = await loadKit(provider);
+      const { kit, adapter } = await loadGatewayKit(provider);
 
       const res = (await kit.unifiedBalance.spend({
         from: { adapter },
         to: {
-          chain: APPKIT_ARC_CHAIN,
+          chain: dest.appKit,
           recipientAddress,
           useForwarder: true,
         },
@@ -499,36 +493,64 @@ export function GatewayBalanceCard({
             {t.moveTag}
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          {/* Destination. Any of the twelve, not just Arc: every one reports
+              forwarderSupported.destination, so Circle's relayer can mint there
+              and the recipient needs no gas. */}
+          <div className="mt-3">
+            <ChainDropdown
+              value={dest}
+              onChange={setDest}
+              disabled={movePhase === 'moving'}
+              eyebrow={t.moveTo}
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {(
               [
-                ['wallet', t.toWallet, auth.address],
-                ['buyer', t.toBuyer, agents?.buyer],
-                ['seller', t.toSeller, agents?.seller],
-              ] as Array<[Recipient, string, string | undefined]>
-            )
-              .filter(([, , addr]) => !!addr)
-              .map(([key, label]) => {
-                const active = recipient === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setRecipient(key)}
-                    disabled={movePhase === 'moving'}
-                    aria-pressed={active}
-                    className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
-                    style={{
-                      background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-                      border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-                      borderRadius: 999,
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+                ['wallet', t.toWallet],
+                ['custom', t.toCustom],
+              ] as Array<[Recipient, string]>
+            ).map(([key, label]) => {
+              const active = recipient === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setRecipient(key)}
+                  disabled={movePhase === 'moving'}
+                  aria-pressed={active}
+                  className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
+                  style={{
+                    background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+                    border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+                    borderRadius: 999,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
+
+          {recipient === 'custom' && (
+            <input
+              type="text"
+              value={customAddress}
+              onChange={(e) => setCustomAddress(e.target.value)}
+              disabled={movePhase === 'moving'}
+              placeholder="0x..."
+              spellCheck={false}
+              className="mt-2 w-full px-3 py-2.5 text-[14px] mono outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
+              style={{
+                background: 'var(--lp-light)',
+                border: `1px solid ${
+                  trimmedCustom && !customValid ? '#b03d3a' : 'var(--lp-border-light)'
+                }`,
+                borderRadius: 10,
+              }}
+            />
+          )}
 
           <div className="mt-4 flex items-center justify-between gap-2">
             <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
@@ -568,6 +590,7 @@ export function GatewayBalanceCard({
             onClick={() => void move()}
             disabled={
               movePhase === 'moving' ||
+              !recipientAddress ||
               !(Number(moveAmount) > 0) ||
               Number(moveAmount) > Number(confirmed)
             }
@@ -579,7 +602,9 @@ export function GatewayBalanceCard({
               borderRadius: 12,
             }}
           >
-            {movePhase === 'moving' ? t.moving : t.moveCta}
+            {movePhase === 'moving'
+              ? t.moving
+              : t.moveCtaTemplate.replace('{chain}', dest.name)}
           </button>
 
           {movePhase === 'moved' && (

@@ -8,6 +8,7 @@ import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { PageTour } from '@/shared/guide/PageTour';
 import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { SellerOfferBanner } from '@/features/factoring/components/SellerOfferBanner';
@@ -2789,6 +2790,12 @@ function DealErrorNote({
   viewerIsBuyer: boolean;
   copy: Messages['directDealDetail']['errors'];
 }) {
+  // The buyer agent is the wallet that funds escrow, so it is the one a shortfall
+  // is about. Top it up from the pooled Gateway balance in place rather than
+  // sending the buyer off to /profile and back.
+  const { agents } = useActivation();
+  const buyerAgent = agents?.buyer;
+
   const wrap = (children: ReactNode) => (
     <div
       className="px-3.5 py-3 text-[12.5px] leading-snug"
@@ -2811,12 +2818,16 @@ function DealErrorNote({
       <div className="space-y-1.5">
         <p className="font-medium">{copy.insufficientBalanceTitle}</p>
         {viewerIsBuyer ? (
-          <p className="text-[11px] opacity-90">
-            {copy.insufficientBalanceBuyerPrefix}{' '}
-            <Link href="/profile" className="underline font-medium">
-              {copy.insufficientBalanceBuyerLink}
-            </Link>
-          </p>
+          buyerAgent ? (
+            <TopUpFromGateway recipient={buyerAgent} />
+          ) : (
+            <p className="text-[11px] opacity-90">
+              {copy.insufficientBalanceBuyerPrefix}{' '}
+              <Link href="/profile" className="underline font-medium">
+                {copy.insufficientBalanceBuyerLink}
+              </Link>
+            </p>
+          )
         ) : (
           <p className="text-[11px] opacity-90">
             {copy.insufficientBalanceSeller}
