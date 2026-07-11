@@ -95,14 +95,16 @@ export function RoleToggle({
         </div>
       )}
 
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      {/* block, not inline: the control below is inline-flex, so an inline
+          eyebrow would flow alongside it instead of sitting above it. */}
+      <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:{t.eyebrow}:]
       </span>
 
       <div
         role="radiogroup"
         aria-label={t.ariaGroup}
-        className="relative mt-2.5 inline-flex p-1 w-full max-w-[440px]"
+        className="relative mt-2.5 flex p-1 w-full max-w-[440px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
