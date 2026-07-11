@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
+import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 
 /// BridgeOutCard ships its own form, balance polling, and Solana branch, a
@@ -118,6 +119,11 @@ function BridgePageInner() {
           ) : (
             <BridgeOutCard />
           )}
+
+          {/* Gateway sits under the CCTP card, not in place of it. CCTP still
+              owns a single source chain to Arc; the pooled balance is for USDC
+              stranded across several chains. */}
+          <GatewayBalanceCard />
         </div>
       </Band>
 

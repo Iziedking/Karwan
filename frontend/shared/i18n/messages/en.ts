@@ -1678,6 +1678,24 @@ interface MessagesShape {
       copied: string;
     };
   };
+  gatewayCard: {
+    tag: string;
+    title: string;
+    confirmed: string;
+    pending: string;
+    empty: string;
+    poolFrom: string;
+    amount: string;
+    maxTemplate: string;
+    inWallet: string;
+    cta: string;
+    switchTemplate: string;
+    switching: string;
+    depositing: string;
+    pooled: string;
+    connect: string;
+    failed: string;
+  };
   stakeCard: {
     eyebrow: {
       stake: string;
@@ -5541,6 +5559,24 @@ export const en: MessagesShape = {
       testUsdcSentTemplate: 'Test USDC sent to your wallet on {name}. Lands in about a minute, then bridge.',
       copied: 'Copied',
     },
+  },
+  gatewayCard: {
+    tag: '[:POOLED BALANCE:]',
+    title: 'One balance, any chain',
+    confirmed: 'Confirmed',
+    pending: 'Pending',
+    empty: 'Nothing pooled yet.',
+    poolFrom: 'Pool from',
+    amount: 'Amount',
+    maxTemplate: 'Max {amount}',
+    inWallet: 'In wallet',
+    cta: 'Pool USDC',
+    switchTemplate: 'Switch to {chain}',
+    switching: 'Switching',
+    depositing: 'Pooling',
+    pooled: 'Pooled. Confirming now.',
+    connect: 'Connect a wallet to pool USDC.',
+    failed: 'Pooling failed.',
   },
   stakeCard: {
     eyebrow: {
