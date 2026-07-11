@@ -1802,6 +1802,15 @@ export const sw: Messages = {
     pooled: 'Imekusanywa. Inathibitisha.',
     connect: 'Unganisha mkoba ili kukusanya USDC.',
     failed: 'Kukusanya kumeshindwa.',
+    moveTag: '[:HAMISHIA ARC:]',
+    toWallet: 'Mkoba wangu',
+    toBuyer: 'Wakala wa mnunuzi',
+    toSeller: 'Wakala wa muuzaji',
+    moveCta: 'Hamishia Arc',
+    moving: 'Inahamisha',
+    moved: 'Imehamishiwa Arc.',
+    moveFailed: 'Kuhamisha kumeshindwa.',
+    pulledTemplate: 'Imetolewa {chains}.',
   },
   stakeCard: {
     eyebrow: {

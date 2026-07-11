@@ -1802,6 +1802,15 @@ export const hi: Messages = {
     pooled: 'पूल हो गया। पुष्टि हो रही है।',
     connect: 'USDC पूल करने के लिए वॉलेट कनेक्ट करें।',
     failed: 'पूल करना विफल रहा।',
+    moveTag: '[:ARC पर भेजें:]',
+    toWallet: 'मेरा वॉलेट',
+    toBuyer: 'खरीदार एजेंट',
+    toSeller: 'विक्रेता एजेंट',
+    moveCta: 'Arc पर भेजें',
+    moving: 'भेजा जा रहा है',
+    moved: 'Arc पर भेज दिया गया।',
+    moveFailed: 'भेजना विफल रहा।',
+    pulledTemplate: '{chains} से लिया गया।',
   },
   stakeCard: {
     eyebrow: {

@@ -64,9 +64,37 @@ const DEPOSIT_CHAINS: DepositChain[] = [
   },
 ];
 
-type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
+/// App Kit reports allocations by its own chain name ('Base_Sepolia'), which is
+/// not what we show users. Fall back to the raw name rather than dropping a
+/// chain we do not recognise.
+function chainLabel(appKitChain: string): string {
+  return DEPOSIT_CHAINS.find((c) => c.appKit === appKitChain)?.name ?? appKitChain;
+}
 
-export function GatewayBalanceCard() {
+type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
+type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
+type Recipient = 'wallet' | 'buyer' | 'seller';
+
+/// Gateway's EIP-712 domain is { name: 'GatewayWallet', version: '1' } with no
+/// chainId and no verifyingContract, and the signed payload is a BurnIntent[]
+/// set. So one signature authorises burns across several source chains at once:
+/// no chain switching, no source-chain gas. Paired with a forwarder destination
+/// (no destination adapter) the mint lands on Arc without Arc gas either. This
+/// is the capability CCTP cannot match, and the reason Gateway is here at all.
+async function loadKit(provider: unknown) {
+  const { AppKit } = await import('@circle-fin/app-kit');
+  const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
+  const adapter: unknown = await createViemAdapterFromProvider({
+    provider: provider as never,
+  });
+  return { kit: new AppKit(), adapter };
+}
+
+export function GatewayBalanceCard({
+  agents,
+}: {
+  agents?: { buyer?: string; seller?: string };
+}) {
   const t = useTranslations().gatewayCard;
   const auth = useAuth();
   const { address, chain, connector, isConnected } = useAccount();
@@ -75,6 +103,11 @@ export function GatewayBalanceCard() {
   const [balance, setBalance] = useState<GatewayBalance | null>(null);
   const [source, setSource] = useState<DepositChain>(DEPOSIT_CHAINS[0]);
   const [amount, setAmount] = useState('');
+  const [moveAmount, setMoveAmount] = useState('');
+  const [recipient, setRecipient] = useState<Recipient>('wallet');
+  const [movePhase, setMovePhase] = useState<MovePhase>('idle');
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const [pulledFrom, setPulledFrom] = useState<string[] | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -119,13 +152,7 @@ export function GatewayBalanceCard() {
 
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-
-      const { AppKit } = await import('@circle-fin/app-kit');
-      const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
-      const adapter: unknown = await createViemAdapterFromProvider({
-        provider: provider as never,
-      });
-      const kit = new AppKit();
+      const { kit, adapter } = await loadKit(provider);
 
       // allowanceStrategy defaults to 'authorize' (EIP-2612 permit): one
       // signature, no separate approve tx. That only works because the signer
@@ -151,6 +178,54 @@ export function GatewayBalanceCard() {
     } catch (err) {
       setPhase('error');
       setError(err instanceof Error ? err.message : t.failed);
+    }
+  }
+
+  const recipientAddress =
+    recipient === 'buyer'
+      ? agents?.buyer
+      : recipient === 'seller'
+        ? agents?.seller
+        : auth.address;
+
+  /// Spend the pooled balance onto Arc. No chain switch and no source-chain gas:
+  /// the wallet signs one chain-agnostic burn intent set, and useForwarder hands
+  /// the Arc mint to Circle's relayer, so the recipient needs no Arc gas either.
+  /// `from` carries no allocations, which is deliberate: Gateway then decides
+  /// which chains to draw from, pulling across several in one go if it must.
+  async function move() {
+    if (!connector || !recipientAddress) return;
+    setMoveError(null);
+    setPulledFrom(null);
+    try {
+      setMovePhase('moving');
+      const provider = await connector.getProvider();
+      if (!provider) throw new Error('Wallet provider unavailable');
+      const { kit, adapter } = await loadKit(provider);
+
+      const res = (await kit.unifiedBalance.spend({
+        from: { adapter },
+        to: {
+          chain: APPKIT_ARC_CHAIN,
+          recipientAddress,
+          useForwarder: true,
+        },
+        amount: String(Number(moveAmount)),
+        token: 'USDC',
+      } as never)) as { allocations?: Array<{ chain: string; amount: string }> };
+
+      setPulledFrom(
+        (res?.allocations ?? []).map(
+          (a) => `${formatUsdc(a.amount, { withSuffix: false })} ${chainLabel(a.chain)}`,
+        ),
+      );
+      await api.refreshGatewayBalance().catch(() => {});
+      setMovePhase('moved');
+      setMoveAmount('');
+      load();
+    } catch (err) {
+      setMovePhase('error');
+      setMoveError(err instanceof Error ? err.message : t.moveFailed);
     }
   }
 
@@ -305,6 +380,117 @@ export function GatewayBalanceCard() {
           </>
         )}
       </div>
+
+      {/* Spend. Only reachable once something is pooled, since there is nothing
+          to move otherwise. */}
+      {isConnected && Number(confirmed) > 0 && (
+        <div
+          className="mt-5 pt-5"
+          style={{ borderTop: '1px solid var(--lp-border-light)' }}
+        >
+          <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+            {t.moveTag}
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {(
+              [
+                ['wallet', t.toWallet, auth.address],
+                ['buyer', t.toBuyer, agents?.buyer],
+                ['seller', t.toSeller, agents?.seller],
+              ] as Array<[Recipient, string, string | undefined]>
+            )
+              .filter(([, , addr]) => !!addr)
+              .map(([key, label]) => {
+                const active = recipient === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setRecipient(key)}
+                    disabled={movePhase === 'moving'}
+                    aria-pressed={active}
+                    className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
+                    style={{
+                      background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+                      border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+                      borderRadius: 999,
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+              {t.amount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMoveAmount(confirmed)}
+              disabled={movePhase === 'moving'}
+              className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-50"
+            >
+              {t.maxTemplate.replace(
+                '{amount}',
+                formatUsdc(confirmed, { withSuffix: false }),
+              )}
+            </button>
+          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            value={moveAmount}
+            onChange={(e) => setMoveAmount(e.target.value)}
+            disabled={movePhase === 'moving'}
+            placeholder="0.00"
+            className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
+            style={{
+              background: 'var(--lp-light)',
+              border: '1px solid var(--lp-border-light)',
+              borderRadius: 10,
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => void move()}
+            disabled={
+              movePhase === 'moving' ||
+              !(Number(moveAmount) > 0) ||
+              Number(moveAmount) > Number(confirmed)
+            }
+            className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'var(--lp-dark)',
+              border: 'none',
+              borderRadius: 12,
+            }}
+          >
+            {movePhase === 'moving' ? t.moving : t.moveCta}
+          </button>
+
+          {movePhase === 'moved' && (
+            <p className="mt-3 text-[13px] text-[#0a7553]">
+              {t.moved}
+              {pulledFrom && pulledFrom.length > 0 && (
+                <>
+                  {' '}
+                  {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}
+                </>
+              )}
+            </p>
+          )}
+          {movePhase === 'error' && (
+            <p className="mt-3 text-[13px] text-[#b03d3a]">{moveError ?? t.moveFailed}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

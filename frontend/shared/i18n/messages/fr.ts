@@ -1802,6 +1802,15 @@ export const fr: Messages = {
     pooled: 'Groupé. Confirmation en cours.',
     connect: 'Connectez un portefeuille pour grouper USDC.',
     failed: 'Le groupement a échoué.',
+    moveTag: '[:DÉPLACER VERS ARC:]',
+    toWallet: 'Mon portefeuille',
+    toBuyer: 'Agent acheteur',
+    toSeller: 'Agent vendeur',
+    moveCta: 'Déplacer vers Arc',
+    moving: 'Déplacement',
+    moved: 'Déplacé vers Arc.',
+    moveFailed: 'Le déplacement a échoué.',
+    pulledTemplate: 'Tiré {chains}.',
   },
   stakeCard: {
     eyebrow: {

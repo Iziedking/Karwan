@@ -1802,6 +1802,15 @@ export const ar: Messages = {
     pooled: 'تم التجميع. جارٍ التأكيد.',
     connect: 'اربط محفظة لتجميع USDC.',
     failed: 'فشل التجميع.',
+    moveTag: '[:النقل إلى Arc:]',
+    toWallet: 'محفظتي',
+    toBuyer: 'وكيل الشراء',
+    toSeller: 'وكيل البيع',
+    moveCta: 'انقل إلى Arc',
+    moving: 'جارٍ النقل',
+    moved: 'تم النقل إلى Arc.',
+    moveFailed: 'فشل النقل.',
+    pulledTemplate: 'تم السحب {chains}.',
   },
   stakeCard: {
     eyebrow: {

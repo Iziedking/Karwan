@@ -123,7 +123,7 @@ function BridgePageInner() {
           {/* Gateway sits under the CCTP card, not in place of it. CCTP still
               owns a single source chain to Arc; the pooled balance is for USDC
               stranded across several chains. */}
-          <GatewayBalanceCard />
+          <GatewayBalanceCard agents={agents ?? undefined} />
         </div>
       </Band>
 

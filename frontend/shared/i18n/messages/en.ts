@@ -1695,6 +1695,15 @@ interface MessagesShape {
     pooled: string;
     connect: string;
     failed: string;
+    moveTag: string;
+    toWallet: string;
+    toBuyer: string;
+    toSeller: string;
+    moveCta: string;
+    moving: string;
+    moved: string;
+    moveFailed: string;
+    pulledTemplate: string;
   };
   stakeCard: {
     eyebrow: {
@@ -5577,6 +5586,15 @@ export const en: MessagesShape = {
     pooled: 'Pooled. Confirming now.',
     connect: 'Connect a wallet to pool USDC.',
     failed: 'Pooling failed.',
+    moveTag: '[:MOVE TO ARC:]',
+    toWallet: 'My wallet',
+    toBuyer: 'Buyer agent',
+    toSeller: 'Seller agent',
+    moveCta: 'Move to Arc',
+    moving: 'Moving',
+    moved: 'Moved to Arc.',
+    moveFailed: 'Move failed.',
+    pulledTemplate: 'Pulled {chains}.',
   },
   stakeCard: {
     eyebrow: {
