@@ -12,9 +12,21 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
-// Arc (settlement) first, then every CCTP source chain the bridge supports.
-// Each key doubles as the ChainLogo key, so the row map stays simple.
-type RowKey = 'arc' | keyof typeof SOURCE_CHAINS;
+// Arc (settlement) first, then the CCTP source chains we show a wallet balance
+// for. Each key doubles as the ChainLogo key, so the row map stays simple.
+//
+// Listed explicitly rather than derived from SOURCE_CHAINS. CCTP now also covers
+// Avalanche, Unichain, Sei, Sonic, World Chain and HyperEVM, but deriving from
+// it would silently add six more per-chain RPC reads to this panel on every
+// render, for chains a user almost never holds USDC on. Add a key here when a
+// chain earns a permanent row.
+type RowKey =
+  | 'arc'
+  | 'baseSepolia'
+  | 'sepolia'
+  | 'arbitrumSepolia'
+  | 'optimismSepolia'
+  | 'polygonAmoy';
 
 const ROW_KEYS: RowKey[] = [
   'arc',

@@ -7,13 +7,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
-import {
-  SOURCE_CHAINS,
-  SOURCE_CHAIN_KEYS,
-  APPKIT_CHAIN,
-  APPKIT_ARC_CHAIN,
-  ARC_TESTNET,
-} from '../config';
+import { GATEWAY_CHAINS, type GatewayChainConfig } from '../config';
+import { loadGatewayKit } from '@/features/gateway/lib';
 
 /// Circle Gateway pooled balance + deposit.
 ///
@@ -39,30 +34,9 @@ const CARD_STYLE = {
   boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
 } as const;
 
-interface DepositChain {
-  key: ChainKey;
-  chainId: number;
-  usdc: `0x${string}`;
-  name: string;
-  appKit: string;
-}
+type DepositChain = GatewayChainConfig;
 
-const DEPOSIT_CHAINS: DepositChain[] = [
-  ...SOURCE_CHAIN_KEYS.map((k) => ({
-    key: k as ChainKey,
-    chainId: SOURCE_CHAINS[k].chainId,
-    usdc: SOURCE_CHAINS[k].usdc,
-    name: SOURCE_CHAINS[k].shortName,
-    appKit: APPKIT_CHAIN[k],
-  })),
-  {
-    key: 'arc' as ChainKey,
-    chainId: ARC_TESTNET.chainId,
-    usdc: ARC_TESTNET.usdc,
-    name: 'Arc',
-    appKit: APPKIT_ARC_CHAIN,
-  },
-];
+const DEPOSIT_CHAINS: DepositChain[] = GATEWAY_CHAINS;
 
 /// App Kit reports allocations by its own chain name ('Base_Sepolia'), which is
 /// not what we show users. Fall back to the raw name rather than dropping a
@@ -71,30 +45,180 @@ function chainLabel(appKitChain: string): string {
   return DEPOSIT_CHAINS.find((c) => c.appKit === appKitChain)?.name ?? appKitChain;
 }
 
-type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
-type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
-type Recipient = 'wallet' | 'buyer' | 'seller';
+/// Chain picker, same shape as the CCTP card's source dropdown: one button that
+/// shows the active chain, an absolute list, and a click-outside catcher behind
+/// it. Twelve chains is well past what a chip row can carry.
+function ChainDropdown({
+  value,
+  onChange,
+  disabled,
+  eyebrow,
+}: {
+  value: DepositChain;
+  onChange: (next: DepositChain) => void;
+  disabled: boolean;
+  eyebrow: string;
+}) {
+  const [open, setOpen] = useState(false);
 
-/// Gateway's EIP-712 domain is { name: 'GatewayWallet', version: '1' } with no
-/// chainId and no verifyingContract, and the signed payload is a BurnIntent[]
-/// set. So one signature authorises burns across several source chains at once:
-/// no chain switching, no source-chain gas. Paired with a forwarder destination
-/// (no destination adapter) the mint lands on Arc without Arc gas either. This
-/// is the capability CCTP cannot match, and the reason Gateway is here at all.
-async function loadKit(provider: unknown) {
-  const { AppKit } = await import('@circle-fin/app-kit');
-  const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2');
-  const adapter: unknown = await createViemAdapterFromProvider({
-    provider: provider as never,
-  });
-  return { kit: new AppKit(), adapter };
+  return (
+    <div className="relative">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        {eyebrow}
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors disabled:opacity-50"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <span className="flex items-center gap-2.5 min-w-0">
+          <ChainLogo chain={value.key} size={26} />
+          <span className="block font-sans text-[14px] font-semibold tracking-tight text-[var(--lp-dark)] leading-tight">
+            {value.name}
+          </span>
+        </span>
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden
+          className={`text-[var(--lp-text-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <path
+            d="M3 6l5 5 5-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-10 cursor-default"
+            style={{ background: 'transparent' }}
+          />
+          <ul
+            role="listbox"
+            className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up max-h-[300px] overflow-y-auto"
+            style={{
+              background: 'var(--lp-card)',
+              border: '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 4,
+              boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
+            }}
+          >
+            {DEPOSIT_CHAINS.map((c) => {
+              const isActive = c.key === value.key;
+              return (
+                <li key={c.key}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      onChange(c);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start"
+                  >
+                    <ChainLogo chain={c.key} size={22} />
+                    <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
+                      {c.name}
+                    </span>
+                    {isActive && (
+                      <span
+                        aria-hidden
+                        className="ms-auto inline-block w-[6px] h-[6px]"
+                        style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
+  );
 }
 
-export function GatewayBalanceCard({
-  agents,
+/// A settled result the user can clear. Both outcomes stick around until
+/// dismissed rather than auto-fading: a pool or a move is a money event, and
+/// the txHash line is the only receipt shown in-app.
+function StatusLine({
+  tone,
+  onDismiss,
+  label,
+  children,
 }: {
-  agents?: { buyer?: string; seller?: string };
+  tone: 'ok' | 'bad';
+  onDismiss: () => void;
+  label: string;
+  children: React.ReactNode;
 }) {
+  return (
+    <div className="mt-3 flex items-start justify-between gap-2">
+      <p className="text-[13px]" style={{ color: tone === 'ok' ? '#0a7553' : '#b03d3a' }}>
+        {children}
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label={label}
+        title={label}
+        className="shrink-0 inline-flex items-center justify-center transition-colors hover:bg-[var(--lp-light)]"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          border: '1px solid var(--lp-border-light)',
+          color: 'var(--lp-text-sub)',
+        }}
+      >
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
+          <path
+            d="M1 1l8 8M9 1l-8 8"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+type Phase = 'idle' | 'switching' | 'depositing' | 'done' | 'error';
+type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
+/// Wallet or a pasted address. Agent wallets are deliberately absent: they are
+/// topped up in context (profile, deal, post-a-job), not from this page, and an
+/// agent address only means anything on Arc anyway, while this can send to any
+/// of the twelve chains.
+type Recipient = 'wallet' | 'custom';
+
+export function GatewayBalanceCard() {
   const t = useTranslations().gatewayCard;
   const auth = useAuth();
   const { address, chain, connector, isConnected } = useAccount();
@@ -102,12 +226,19 @@ export function GatewayBalanceCard({
 
   const [balance, setBalance] = useState<GatewayBalance | null>(null);
   const [source, setSource] = useState<DepositChain>(DEPOSIT_CHAINS[0]);
+  // Where a spend lands. Any of the twelve; Arc is the default because that is
+  // where Karwan settles, but Gateway can mint on all of them via the forwarder.
+  const [dest, setDest] = useState<DepositChain>(
+    DEPOSIT_CHAINS.find((c) => c.key === 'arc') ?? DEPOSIT_CHAINS[0],
+  );
   const [amount, setAmount] = useState('');
   const [moveAmount, setMoveAmount] = useState('');
   const [recipient, setRecipient] = useState<Recipient>('wallet');
+  const [customAddress, setCustomAddress] = useState('');
   const [movePhase, setMovePhase] = useState<MovePhase>('idle');
   const [moveError, setMoveError] = useState<string | null>(null);
   const [pulledFrom, setPulledFrom] = useState<string[] | null>(null);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -152,7 +283,7 @@ export function GatewayBalanceCard({
 
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-      const { kit, adapter } = await loadKit(provider);
+      const { kit, adapter } = await loadGatewayKit(provider);
 
       // allowanceStrategy defaults to 'authorize' (EIP-2612 permit): one
       // signature, no separate approve tx. That only works because the signer
@@ -181,16 +312,18 @@ export function GatewayBalanceCard({
     }
   }
 
+  const trimmedCustom = customAddress.trim();
+  const customValid = /^0x[a-fA-F0-9]{40}$/.test(trimmedCustom);
   const recipientAddress =
-    recipient === 'buyer'
-      ? agents?.buyer
-      : recipient === 'seller'
-        ? agents?.seller
-        : auth.address;
+    recipient === 'custom' ? (customValid ? trimmedCustom : undefined) : auth.address;
 
-  /// Spend the pooled balance onto Arc. No chain switch and no source-chain gas:
-  /// the wallet signs one chain-agnostic burn intent set, and useForwarder hands
-  /// the Arc mint to Circle's relayer, so the recipient needs no Arc gas either.
+  /// Spend the pooled balance onto the chosen chain. No chain switch and no
+  /// source-chain gas: the wallet signs one chain-agnostic burn intent set, and
+  /// useForwarder hands the destination mint to Circle's relayer, so the
+  /// recipient needs no gas there either. Every one of the twelve reports
+  /// forwarderSupported.destination, which is what makes any of them a valid
+  /// target rather than only Arc.
+  ///
   /// `from` carries no allocations, which is deliberate: Gateway then decides
   /// which chains to draw from, pulling across several in one go if it must.
   async function move() {
@@ -201,12 +334,12 @@ export function GatewayBalanceCard({
       setMovePhase('moving');
       const provider = await connector.getProvider();
       if (!provider) throw new Error('Wallet provider unavailable');
-      const { kit, adapter } = await loadKit(provider);
+      const { kit, adapter } = await loadGatewayKit(provider);
 
       const res = (await kit.unifiedBalance.spend({
         from: { adapter },
         to: {
-          chain: APPKIT_ARC_CHAIN,
+          chain: dest.appKit,
           recipientAddress,
           useForwarder: true,
         },
@@ -237,8 +370,10 @@ export function GatewayBalanceCard({
     (c) => Number(c.confirmed) > 0 || Number(c.pending) > 0,
   );
 
+  // No top margin and full height: the page owns the column spacing and stretches
+  // this card to match the CCTP one beside it.
   return (
-    <div className="mt-6 p-6" style={CARD_STYLE}>
+    <div className="p-6 h-full" style={CARD_STYLE}>
       <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
         {t.tag}
       </div>
@@ -262,24 +397,6 @@ export function GatewayBalanceCard({
         <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{t.empty}</p>
       )}
 
-      {perChain.length > 0 && (
-        <div className="mt-4 flex flex-col gap-1.5">
-          {perChain.map((c) => (
-            <div key={c.chain} className="flex items-center gap-2 text-[13px]">
-              <ChainLogo chain={c.key as ChainKey} size={14} />
-              <span className="tabular-nums">
-                {formatUsdc(c.confirmed, { withSuffix: false })}
-              </span>
-              {Number(c.pending) > 0 && (
-                <span className="mono text-[10px] uppercase tracking-[0.08em] text-[#b25425]">
-                  +{formatUsdc(c.pending, { withSuffix: false })} {t.pending}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
       <div
         className="mt-5 pt-5"
         style={{ borderTop: '1px solid var(--lp-border-light)' }}
@@ -288,32 +405,12 @@ export function GatewayBalanceCard({
           <p className="text-[13px] text-[var(--lp-text-sub)]">{t.connect}</p>
         ) : (
           <>
-            <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-              {t.poolFrom}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {DEPOSIT_CHAINS.map((c) => {
-                const active = c.key === source.key;
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => setSource(c)}
-                    disabled={busy}
-                    aria-pressed={active}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
-                    style={{
-                      background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-                      border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-                      borderRadius: 999,
-                    }}
-                  >
-                    <ChainLogo chain={c.key} size={13} />
-                    {c.name}
-                  </button>
-                );
-              })}
-            </div>
+            <ChainDropdown
+              value={source}
+              onChange={setSource}
+              disabled={busy}
+              eyebrow={t.poolFrom}
+            />
 
             <div className="mt-4 flex items-center justify-between gap-2">
               <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
@@ -372,10 +469,14 @@ export function GatewayBalanceCard({
             </button>
 
             {phase === 'done' && (
-              <p className="mt-3 text-[13px] text-[#0a7553]">{t.pooled}</p>
+              <StatusLine tone="ok" onDismiss={() => setPhase('idle')} label={t.dismiss}>
+                {t.pooled}
+              </StatusLine>
             )}
             {phase === 'error' && (
-              <p className="mt-3 text-[13px] text-[#b03d3a]">{error ?? t.failed}</p>
+              <StatusLine tone="bad" onDismiss={() => setPhase('idle')} label={t.dismiss}>
+                {error ?? t.failed}
+              </StatusLine>
             )}
           </>
         )}
@@ -392,36 +493,64 @@ export function GatewayBalanceCard({
             {t.moveTag}
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          {/* Destination. Any of the twelve, not just Arc: every one reports
+              forwarderSupported.destination, so Circle's relayer can mint there
+              and the recipient needs no gas. */}
+          <div className="mt-3">
+            <ChainDropdown
+              value={dest}
+              onChange={setDest}
+              disabled={movePhase === 'moving'}
+              eyebrow={t.moveTo}
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {(
               [
-                ['wallet', t.toWallet, auth.address],
-                ['buyer', t.toBuyer, agents?.buyer],
-                ['seller', t.toSeller, agents?.seller],
-              ] as Array<[Recipient, string, string | undefined]>
-            )
-              .filter(([, , addr]) => !!addr)
-              .map(([key, label]) => {
-                const active = recipient === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setRecipient(key)}
-                    disabled={movePhase === 'moving'}
-                    aria-pressed={active}
-                    className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
-                    style={{
-                      background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-                      border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-                      borderRadius: 999,
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+                ['wallet', t.toWallet],
+                ['custom', t.toCustom],
+              ] as Array<[Recipient, string]>
+            ).map(([key, label]) => {
+              const active = recipient === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setRecipient(key)}
+                  disabled={movePhase === 'moving'}
+                  aria-pressed={active}
+                  className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
+                  style={{
+                    background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+                    border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+                    borderRadius: 999,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
+
+          {recipient === 'custom' && (
+            <input
+              type="text"
+              value={customAddress}
+              onChange={(e) => setCustomAddress(e.target.value)}
+              disabled={movePhase === 'moving'}
+              placeholder="0x..."
+              spellCheck={false}
+              className="mt-2 w-full px-3 py-2.5 text-[14px] mono outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
+              style={{
+                background: 'var(--lp-light)',
+                border: `1px solid ${
+                  trimmedCustom && !customValid ? '#b03d3a' : 'var(--lp-border-light)'
+                }`,
+                borderRadius: 10,
+              }}
+            />
+          )}
 
           <div className="mt-4 flex items-center justify-between gap-2">
             <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
@@ -461,6 +590,7 @@ export function GatewayBalanceCard({
             onClick={() => void move()}
             disabled={
               movePhase === 'moving' ||
+              !recipientAddress ||
               !(Number(moveAmount) > 0) ||
               Number(moveAmount) > Number(confirmed)
             }
@@ -472,22 +602,77 @@ export function GatewayBalanceCard({
               borderRadius: 12,
             }}
           >
-            {movePhase === 'moving' ? t.moving : t.moveCta}
+            {movePhase === 'moving'
+              ? t.moving
+              : t.moveCtaTemplate.replace('{chain}', dest.name)}
           </button>
 
           {movePhase === 'moved' && (
-            <p className="mt-3 text-[13px] text-[#0a7553]">
+            <StatusLine tone="ok" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
               {t.moved}
               {pulledFrom && pulledFrom.length > 0 && (
-                <>
-                  {' '}
-                  {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}
-                </>
+                <> {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}</>
               )}
-            </p>
+            </StatusLine>
           )}
           {movePhase === 'error' && (
-            <p className="mt-3 text-[13px] text-[#b03d3a]">{moveError ?? t.moveFailed}</p>
+            <StatusLine tone="bad" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
+              {moveError ?? t.moveFailed}
+            </StatusLine>
+          )}
+        </div>
+      )}
+
+      {/* Where the balance actually sits, per chain. Collapsed by default and
+          parked at the bottom: the headline number is what the user came for,
+          and the split only matters once they want to know what Gateway will
+          draw from. */}
+      {perChain.length > 0 && (
+        <div
+          className="mt-5 pt-5"
+          style={{ borderTop: '1px solid var(--lp-border-light)' }}
+        >
+          <button
+            type="button"
+            onClick={() => setBreakdownOpen((v) => !v)}
+            aria-expanded={breakdownOpen}
+            className="w-full flex items-center justify-between gap-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            {t.byChain}
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+              className={`transition-transform ${breakdownOpen ? 'rotate-180' : ''}`}
+            >
+              <path
+                d="M3 6l5 5 5-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          {breakdownOpen && (
+            <div className="mt-3 flex flex-col gap-1.5">
+              {perChain.map((c) => (
+                <div key={c.chain} className="flex items-center gap-2 text-[13px]">
+                  <ChainLogo chain={c.key as ChainKey} size={14} />
+                  <span className="tabular-nums">
+                    {formatUsdc(c.confirmed, { withSuffix: false })}
+                  </span>
+                  {Number(c.pending) > 0 && (
+                    <span className="mono text-[10px] uppercase tracking-[0.08em] text-[#b25425]">
+                      +{formatUsdc(c.pending, { withSuffix: false })} {t.pending}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

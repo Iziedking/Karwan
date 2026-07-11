@@ -1563,6 +1563,8 @@ interface MessagesShape {
     sourceChain: {
       sepoliaDomainTemplate: string;
       devnetAppKit: string;
+      walletOnlyTag: string;
+      walletOnlyTitle: string;
       circleOnlyTag: string;
       solanaCircleOnlyTitle: string;
     };
@@ -1678,6 +1680,21 @@ interface MessagesShape {
       copied: string;
     };
   };
+  bridgeChooser: {
+    poweredBy: string;
+    transferHistory: string;
+    cctp: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
+    gateway: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
+  };
+  gatewayTopUp: {
+    cta: string;
+    fundPool: string;
+    moving: string;
+    done: string;
+    failed: string;
+    availableTemplate: string;
+    shortTemplate: string;
+  };
   gatewayCard: {
     tag: string;
     title: string;
@@ -1696,6 +1713,9 @@ interface MessagesShape {
     connect: string;
     failed: string;
     moveTag: string;
+    moveTo: string;
+    toCustom: string;
+    moveCtaTemplate: string;
     toWallet: string;
     toBuyer: string;
     toSeller: string;
@@ -1703,6 +1723,8 @@ interface MessagesShape {
     moving: string;
     moved: string;
     moveFailed: string;
+    byChain: string;
+    dismiss: string;
     pulledTemplate: string;
   };
   stakeCard: {
@@ -5453,7 +5475,9 @@ export const en: MessagesShape = {
     },
     sourceChain: {
       sepoliaDomainTemplate: 'Sepolia · d{domain}',
-      devnetAppKit: 'Devnet · App Kit',
+      devnetAppKit: 'Devnet · d5',
+      walletOnlyTag: 'Wallet only',
+      walletOnlyTitle: 'Circle cannot sign on this chain. Connect a wallet to bridge from it.',
       circleOnlyTag: 'Circle only',
       solanaCircleOnlyTitle: 'Solana bridge runs through Circle App Kit. Sign in with a Circle account to use it.',
     },
@@ -5569,6 +5593,33 @@ export const en: MessagesShape = {
       copied: 'Copied',
     },
   },
+  bridgeChooser: {
+    poweredBy: 'POWERED BY CIRCLE',
+    transferHistory: 'Transfer history',
+    cctp: {
+      tag: '[:ADD MONEY:]',
+      title: 'Fund | Withdraw',
+      protocol: 'CCTP',
+      blurb: 'Fund your wallet from any chain.',
+      nudge: 'Use CCTP for a one time fast transfer to any chain. Gateway pools instead, and spends from the pool.',
+    },
+    gateway: {
+      tag: '[:UNIFIED BALANCE:]',
+      title: 'Unified balance across chains',
+      protocol: 'GATEWAY',
+      blurb: 'Pool USDC from any chain. Spend it on any chain.',
+      nudge: 'Pool USDC from any chain into one balance, then spend it on any chain in a single signature. No gas anywhere.',
+    },
+  },
+  gatewayTopUp: {
+    cta: 'Top up from Gateway',
+    fundPool: 'Fund your balance',
+    moving: 'Moving',
+    done: 'Funded',
+    failed: 'Top up failed.',
+    availableTemplate: '{amount} pooled and ready.',
+    shortTemplate: 'You have {have} pooled. This needs {need}.',
+  },
   gatewayCard: {
     tag: '[:POOLED BALANCE:]',
     title: 'One balance, any chain',
@@ -5587,6 +5638,9 @@ export const en: MessagesShape = {
     connect: 'Connect a wallet to pool USDC.',
     failed: 'Pooling failed.',
     moveTag: '[:MOVE TO ARC:]',
+    moveTo: 'Move to',
+    toCustom: 'Custom address',
+    moveCtaTemplate: 'Move to {chain}',
     toWallet: 'My wallet',
     toBuyer: 'Buyer agent',
     toSeller: 'Seller agent',
@@ -5594,6 +5648,8 @@ export const en: MessagesShape = {
     moving: 'Moving',
     moved: 'Moved to Arc.',
     moveFailed: 'Move failed.',
+    byChain: 'Balance by chain',
+    dismiss: 'Dismiss',
     pulledTemplate: 'Pulled {chains}.',
   },
   stakeCard: {

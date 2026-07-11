@@ -356,8 +356,11 @@ function ProfilePageInner() {
             <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
               {t.accountType.body}
             </p>
+            {/* The role picker is one compact control now, not three cards, so
+                the card wraps to it instead of stretching a band of empty white
+                across the page. max-w-full keeps it in bounds on a phone. */}
             <div className="mt-8">
-              <PageCard>
+              <PageCard className="w-fit max-w-full">
                 <div className="p-6 md:p-8">
                   <RoleToggle profile={profile} onUpdate={setProfile} />
                 </div>

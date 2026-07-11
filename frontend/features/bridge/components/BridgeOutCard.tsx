@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { useBridges } from '../hooks/useBridge';
 import { useHiddenActivityBridgeIds } from './BridgeCard';
 import { BridgeActivityStrip } from './BridgeActivityStrip';
-import { SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '../config';
+import { SOURCE_CHAINS, WITHDRAW_DEST_KEYS, type CctpChainKey } from '../config';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -28,7 +29,9 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 /// Cash-out destinations. A CCTP chain routes through the burn/mint bridge; Arc
 /// is a same-chain send that settles instantly, so it gets its own path.
 type DestKey = CctpChainKey | 'arc';
-const DEST_KEYS: DestKey[] = ['arc', ...SOURCE_CHAIN_KEYS];
+// Every non-Arc CCTP chain. Circle's Forwarding Service submits the destination
+// mint, so no wallet is needed there and all eleven are reachable.
+const DEST_KEYS: DestKey[] = ['arc', ...WITHDRAW_DEST_KEYS];
 
 /// Bridge OUT (Arc -> chain). Sends the user's Arc USDC to another chain via
 /// CCTP: backend burns from the identity DCW on Arc, relays the mint on the
@@ -41,6 +44,7 @@ export function BridgeOutCard() {
   const verifyCopy = msgs.bridgeCard.recipient.verify;
   const auth = useAuth();
   const isCircle = auth.method === 'circle';
+  const { connector } = useAccount();
   const { bridges, startCircleOut, startWeb3Out, startArcSend, startWeb3ArcSend, isActive } =
     useBridges();
   /// Activity is a temporary, per-device view: dismissing a row hides it from
@@ -142,10 +146,17 @@ export function BridgeOutCard() {
       recipient: trimmed,
       userAddress: auth.address,
     };
-    // Circle accounts burn on the backend from their DCW; web3 users sign the
-    // Arc burn from their own wallet, then the backend relays the mint.
+    // Circle accounts burn on the backend from their Arc DCW; web3 users sign the
+    // Arc burn from their own wallet. Either way the burn goes through App Kit
+    // with the Forwarding Service, so CIRCLE mints on the destination and no
+    // wallet is needed there. That is what opens every chain as a destination.
     if (isCircle) startCircleOut(args);
-    else startWeb3Out(args);
+    else
+      startWeb3Out({
+        ...args,
+        getEvmProvider: () =>
+          connector?.getProvider() ?? Promise.reject(new Error('Wallet provider unavailable')),
+      });
     setAmount('');
   }
 

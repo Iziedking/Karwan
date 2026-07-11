@@ -1,4 +1,5 @@
 'use client';
+import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -272,11 +273,18 @@ export function WalletsPanel({ address }: { address?: string }) {
               onCopied={markCopied}
               copiedLabel={wp.copyAddress.copied}
               action={
-                <FaucetButton
-                  onClick={() => runFaucet('buyer')}
-                  busy={faucetBusy === 'buyer'}
-                  copy={wp.faucetButton}
-                />
+                <div className="space-y-2">
+                  <FaucetButton
+                    onClick={() => runFaucet('buyer')}
+                    busy={faucetBusy === 'buyer'}
+                    copy={wp.faucetButton}
+                  />
+                  {/* Fund the agent straight from the pooled balance. The agent
+                      is a Circle SCA, which Gateway rejects as a SIGNER but
+                      accepts as a RECIPIENT, so this works: the user's EOA signs
+                      and the agent receives. */}
+                  <TopUpFromGateway recipient={agents.buyer.address} />
+                </div>
               }
             />
             <Row
@@ -289,11 +297,14 @@ export function WalletsPanel({ address }: { address?: string }) {
               onCopied={markCopied}
               copiedLabel={wp.copyAddress.copied}
               action={
-                <FaucetButton
-                  onClick={() => runFaucet('seller')}
-                  busy={faucetBusy === 'seller'}
-                  copy={wp.faucetButton}
-                />
+                <div className="space-y-2">
+                  <FaucetButton
+                    onClick={() => runFaucet('seller')}
+                    busy={faucetBusy === 'seller'}
+                    copy={wp.faucetButton}
+                  />
+                  <TopUpFromGateway recipient={agents.seller.address} />
+                </div>
               }
             />
           </>
