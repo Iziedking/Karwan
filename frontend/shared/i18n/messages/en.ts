@@ -1684,7 +1684,7 @@ interface MessagesShape {
     poweredBy: string;
     transferHistory: string;
     cctp: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
-    gateway: { tag: string; title: string; protocol: string; blurb: string };
+    gateway: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
   };
   gatewayTopUp: {
     cta: string;
@@ -5598,7 +5598,7 @@ export const en: MessagesShape = {
     transferHistory: 'Transfer history',
     cctp: {
       tag: '[:ADD MONEY:]',
-      title: 'Top up / Withdraw',
+      title: 'Fund | Withdraw',
       protocol: 'CCTP',
       blurb: 'Fund your wallet from any chain.',
       nudge: 'Use CCTP for a one time fast transfer to any chain. Gateway pools instead, and spends from the pool.',
@@ -5608,6 +5608,7 @@ export const en: MessagesShape = {
       title: 'Unified balance across chains',
       protocol: 'GATEWAY',
       blurb: 'Pool USDC from any chain. Spend it on any chain.',
+      nudge: 'Pool USDC from any chain into one balance, then spend it on any chain in a single signature. No gas anywhere.',
     },
   },
   gatewayTopUp: {

@@ -1792,7 +1792,7 @@ export const ar: Messages = {
     transferHistory: 'سجل التحويلات',
     cctp: {
       tag: '[:إيداع أموال:]',
-      title: 'إيداع / سحب',
+      title: 'إيداع | سحب',
       protocol: 'CCTP',
       blurb: 'موّل محفظتك من أي سلسلة.',
       nudge: 'استخدم CCTP لتحويل سريع لمرة واحدة إلى أي سلسلة. أما Gateway فيجمّع الرصيد وينفق منه.',
@@ -1802,6 +1802,7 @@ export const ar: Messages = {
       title: 'رصيد موحّد عبر السلاسل',
       protocol: 'GATEWAY',
       blurb: 'اجمع USDC من أي سلسلة. أنفقه على أي سلسلة.',
+      nudge: 'اجمع USDC من أي سلسلة في رصيد واحد، ثم أنفقه على أي سلسلة بتوقيع واحد. بدون رسوم غاز.',
     },
   },
   gatewayTopUp: {

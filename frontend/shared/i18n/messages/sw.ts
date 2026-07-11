@@ -1792,7 +1792,7 @@ export const sw: Messages = {
     transferHistory: 'Historia ya uhamisho',
     cctp: {
       tag: '[:WEKA PESA:]',
-      title: 'Weka / Toa',
+      title: 'Weka | Toa',
       protocol: 'CCTP',
       blurb: 'Weka pesa kwenye mkoba wako kutoka mnyororo wowote.',
       nudge: 'Tumia CCTP kwa uhamisho wa haraka wa mara moja hadi mnyororo wowote. Gateway hukusanya salio na hutumia kutoka humo.',
@@ -1802,6 +1802,7 @@ export const sw: Messages = {
       title: 'Salio moja katika minyororo yote',
       protocol: 'GATEWAY',
       blurb: 'Kusanya USDC kutoka mnyororo wowote. Itumie kwenye mnyororo wowote.',
+      nudge: 'Kusanya USDC kutoka mnyororo wowote kuwa salio moja, kisha itumie kwenye mnyororo wowote kwa saini moja. Hakuna gesi popote.',
     },
   },
   gatewayTopUp: {

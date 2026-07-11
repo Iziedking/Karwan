@@ -1,13 +1,19 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/shared/utils/cn';
 import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Option = { value: UserRole; label: string; description: string };
 
+/// Role picker as one segmented control rather than three cards.
+///
+/// The lozenge slides between the three positions, and its resting place IS the
+/// saved role, so the control states the current answer instead of making the
+/// user hunt for a highlighted card. Ineligible roles stay pickable on purpose:
+/// choosing one routes to onboarding to collect the missing details, which is a
+/// path forward rather than a dead end.
 export function RoleToggle({
   profile,
   onUpdate,
@@ -27,6 +33,12 @@ export function RoleToggle({
   const [submitting, setSubmitting] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const activeIndex = Math.max(
+    0,
+    OPTIONS.findIndex((o) => o.value === profile.role),
+  );
+  const active = OPTIONS[activeIndex];
 
   function eligibilityFor(role: UserRole): { ok: boolean; reason?: string } {
     const wantsBuyer = role === 'buyer' || role === 'both';
@@ -62,6 +74,8 @@ export function RoleToggle({
     }
   }
 
+  const activeEligibility = eligibilityFor(active.value);
+
   return (
     <div>
       {error && (
@@ -80,9 +94,37 @@ export function RoleToggle({
           {error}
         </div>
       )}
-      <div className="grid sm:grid-cols-3 gap-3" role="radiogroup" aria-label={t.ariaGroup}>
+
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:{t.eyebrow}:]
+      </span>
+
+      <div
+        role="radiogroup"
+        aria-label={t.ariaGroup}
+        className="relative mt-2.5 inline-flex p-1 w-full max-w-[440px]"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderRadius: 999,
+        }}
+      >
+        {/* The lozenge. Absolutely positioned and translated by thirds, so the
+            selection glides to the next position instead of cutting to it. */}
+        <span
+          aria-hidden
+          className="absolute top-1 bottom-1 transition-transform duration-300 ease-out motion-reduce:transition-none"
+          style={{
+            width: 'calc(33.333% - 2.667px)',
+            left: 4,
+            borderRadius: 999,
+            background: 'var(--lp-accent)',
+            transform: `translateX(${activeIndex * 100}%)`,
+          }}
+        />
+
         {OPTIONS.map((opt) => {
-          const active = profile.role === opt.value;
+          const isActive = profile.role === opt.value;
           const eligibility = eligibilityFor(opt.value);
           const busy = submitting === opt.value;
           return (
@@ -90,63 +132,36 @@ export function RoleToggle({
               key={opt.value}
               type="button"
               role="radio"
-              aria-checked={active}
+              aria-checked={isActive}
               onClick={() => switchTo(opt.value)}
-              disabled={busy || active}
+              disabled={busy || isActive}
               title={!eligibility.ok ? eligibility.reason : undefined}
-              className={cn(
-                'group relative overflow-hidden text-start p-5 min-h-[112px] transition-all duration-200 text-[var(--lp-dark)]',
-                !active && eligibility.ok && 'hover:-translate-y-0.5',
-              )}
+              className="relative z-10 flex-1 px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors"
               style={{
-                background: active
-                  ? 'rgba(175, 201, 91,0.10)'
-                  : eligibility.ok
-                    ? 'var(--lp-card)'
-                    : 'var(--lp-light)',
-                border: active
-                  ? '1px solid var(--lp-accent)'
-                  : '1px solid var(--lp-border-light)',
-                opacity: !active && !eligibility.ok ? 0.55 : 1,
+                background: 'transparent',
+                color: isActive ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
+                opacity: !isActive && !eligibility.ok ? 0.55 : 1,
                 cursor: !eligibility.ok ? 'help' : undefined,
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
-                boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
               }}
             >
-              {active && (
-                <>
-                  <span
-                    aria-hidden
-                    className="absolute start-0 top-0 bottom-0 w-[3px]"
-                    style={{ background: 'var(--lp-accent)' }}
-                  />
-                  <span
-                    aria-hidden
-                    data-instrument-blink
-                    className="absolute top-3.5 end-3.5 inline-block w-[7px] h-[7px]"
-                    style={{
-                      background: 'var(--lp-accent)',
-                      animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                    }}
-                  />
-                </>
-              )}
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:{t.eyebrow}:]
-              </span>
-              <p className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-                {opt.label}
-              </p>
-              <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-                {busy ? t.saving : !eligibility.ok ? eligibility.reason : opt.description}
-              </p>
+              {opt.label}
             </button>
           );
         })}
       </div>
+
+      {/* One line, describing whatever is selected. The three cards each carried
+          their own copy; a single control needs a single caption. */}
+      <p
+        aria-live="polite"
+        className="mt-3 text-[13px] leading-snug text-[var(--lp-text-sub)]"
+      >
+        {submitting
+          ? t.saving
+          : !activeEligibility.ok
+            ? activeEligibility.reason
+            : active.description}
+      </p>
     </div>
   );
 }

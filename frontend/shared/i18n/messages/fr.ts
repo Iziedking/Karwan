@@ -1792,7 +1792,7 @@ export const fr: Messages = {
     transferHistory: 'Historique des transferts',
     cctp: {
       tag: '[:DÉPÔT:]',
-      title: 'Dépôt / Retrait',
+      title: 'Alimenter | Retirer',
       protocol: 'CCTP',
       blurb: 'Alimentez votre portefeuille depuis n\'importe quelle chaîne.',
       nudge: 'Utilisez CCTP pour un transfert rapide ponctuel vers n\'importe quelle chaîne. Gateway regroupe et dépense depuis le solde.',
@@ -1802,6 +1802,7 @@ export const fr: Messages = {
       title: 'Solde unifié sur toutes les chaînes',
       protocol: 'GATEWAY',
       blurb: 'Regroupez vos USDC de toutes les chaînes. Dépensez sur celle que vous voulez.',
+      nudge: 'Regroupez vos USDC de toutes les chaînes en un solde, puis dépensez sur la chaîne de votre choix en une signature. Sans frais de gas.',
     },
   },
   gatewayTopUp: {

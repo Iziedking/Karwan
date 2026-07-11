@@ -7,6 +7,7 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { LpHint } from '@/shared/components/LpHint';
 
 /// BridgeOutCard ships its own form, balance polling, and Solana branch, a
 /// chunky module that's never visible until the user toggles direction. Lazy
@@ -99,23 +100,6 @@ function BridgePageInner() {
       <Band tone="light" compact>
         <div className="max-w-xl">
           <RailSwitch rail={rail} onChange={setRail} copy={c} />
-
-          {/* Nudge, CCTP only. Gateway is the default and needs no defending;
-              CCTP does, because the user has just stepped off the better rail. */}
-          {!gateway && (
-            <div
-              className="mt-4 p-3 fade-up"
-              style={{
-                background: 'rgba(175, 201, 91, 0.10)',
-                borderInlineStart: '2px solid var(--lp-accent)',
-                borderRadius: 8,
-              }}
-            >
-              <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                {c.cctp.nudge}
-              </p>
-            </div>
-          )}
 
           {/* key on the rail so the card remounts and the fade-up actually
               replays on every switch instead of only the first. */}
@@ -223,8 +207,13 @@ function RailSwitch({
         <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           {gateway ? copy.gateway.tag : copy.cctp.tag}
         </span>
-        <h2 className="mt-2 text-[26px] leading-[1.1] font-extrabold uppercase tracking-tight text-[var(--lp-dark)]">
+        {/* The rail explanation rides on the title as a hint rather than a
+            standing banner: it is context you want once, not a permanent block
+            of prose above the form. LpHint opens on hover, tap and focus, so it
+            still works on touch. */}
+        <h2 className="mt-2 flex items-center gap-2 text-[26px] leading-[1.1] font-extrabold uppercase tracking-tight text-[var(--lp-dark)]">
           {gateway ? copy.gateway.title : copy.cctp.title}
+          <LpHint>{gateway ? copy.gateway.nudge : copy.cctp.nudge}</LpHint>
         </h2>
         <div className="mt-2 flex items-center gap-2">
           <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
