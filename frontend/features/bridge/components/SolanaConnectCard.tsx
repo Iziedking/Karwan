@@ -53,6 +53,16 @@ export function SolanaConnectCard({
       </div>
       <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">{copy.blurb}</p>
 
+      {/* A different Solana wallet has claimed window.solana. Say which one, so
+          the user can act, instead of showing "install Phantom" while Phantom is
+          sitting right there disabled, or worse, handing it the burn and letting
+          its confirm dialog hang. */}
+      {!wallet.available && wallet.conflictingWallet && (
+        <p className="mt-2 text-[12px] leading-snug" style={{ color: '#b25425' }}>
+          {copy.conflictTemplate.replace('{wallet}', wallet.conflictingWallet)}
+        </p>
+      )}
+
       {!wallet.available ? (
         <a
           href="https://phantom.com/"

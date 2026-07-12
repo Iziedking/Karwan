@@ -1650,6 +1650,7 @@ export const ar: Messages = {
     solana: {
       eyebrow: 'ادفع عبر سولانا',
       blurb: 'اربط محفظة سولانا ووقّع التحويل هناك. يصل USDC إلى Arc. بدون عنوان إيداع.',
+      conflictTemplate: '{wallet} يتولى Solana في هذا المتصفح. يحتاج Karwan إلى Phantom لهذا التحويل. أوقف الآخر أو ثبّت Phantom.',
       connect: 'اربط سولانا',
       connecting: 'جارٍ الربط…',
       install: 'ثبّت Phantom',

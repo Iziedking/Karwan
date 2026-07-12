@@ -1650,6 +1650,7 @@ export const hi: Messages = {
     solana: {
       eyebrow: 'SOLANA से भुगतान करें',
       blurb: 'अपना Solana वॉलेट कनेक्ट करें और वहीं ट्रांसफ़र साइन करें। आपका USDC Arc पर आता है। कोई डिपॉज़िट पता नहीं।',
+      conflictTemplate: 'इस ब्राउज़र में Solana को {wallet} संभाल रहा है। इस ट्रांसफर के लिए Karwan को Phantom चाहिए। दूसरा बंद करें, या Phantom इंस्टॉल करें।',
       connect: 'Solana कनेक्ट करें',
       connecting: 'कनेक्ट हो रहा है…',
       install: 'Phantom इंस्टॉल करें',

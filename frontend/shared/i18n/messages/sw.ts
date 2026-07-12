@@ -1650,6 +1650,7 @@ export const sw: Messages = {
     solana: {
       eyebrow: 'LIPA NA SOLANA',
       blurb: 'Unganisha pochi yako ya Solana na utie saini uhamisho hapo. USDC yako huingia kwenye Arc. Hakuna anwani ya amana.',
+      conflictTemplate: '{wallet} inashughulikia Solana kwenye kivinjari hiki. Karwan inahitaji Phantom kwa uhamisho huu. Zima nyingine, au sakinisha Phantom.',
       connect: 'Unganisha Solana',
       connecting: 'Inaunganisha…',
       install: 'Sakinisha Phantom',

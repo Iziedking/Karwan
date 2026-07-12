@@ -1650,6 +1650,7 @@ export const fr: Messages = {
     solana: {
       eyebrow: 'PAYER AVEC SOLANA',
       blurb: 'Connectez votre portefeuille Solana et signez le transfert. Votre USDC arrive sur Arc. Pas d\'adresse de dépôt.',
+      conflictTemplate: '{wallet} gère Solana dans ce navigateur. Karwan a besoin de Phantom pour ce transfert. Désactivez l’autre, ou installez Phantom.',
       connect: 'Connecter Solana',
       connecting: 'Connexion…',
       install: 'Installer Phantom',

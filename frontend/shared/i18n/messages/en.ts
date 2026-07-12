@@ -1543,6 +1543,7 @@ interface MessagesShape {
     solana: {
       eyebrow: string;
       blurb: string;
+      conflictTemplate: string;
       connect: string;
       connecting: string;
       install: string;
@@ -5474,6 +5475,7 @@ export const en: MessagesShape = {
     solana: {
       eyebrow: 'PAY WITH SOLANA',
       blurb: 'Connect your Solana wallet and sign the transfer there. Your USDC lands on Arc. No deposit address.',
+      conflictTemplate: '{wallet} is handling Solana in this browser. Karwan needs Phantom for this transfer. Turn the other one off, or install Phantom.',
       connect: 'Connect Solana wallet',
       connecting: 'Connecting…',
       install: 'Install Phantom',

@@ -1,31 +1,21 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { SOLANA_RPC_URL, SOLANA_USDC_MINT } from '../config';
+import { getPhantomProvider, getConflictingWalletName } from '../solanaProvider';
 
-/// Minimal shape of an injected Solana wallet provider (Phantom and compatible
-/// wallets expose this on `window.solana`). We deliberately avoid the full
-/// @solana/wallet-adapter stack for now: connect + balance need nothing more
-/// than this provider and a JSON-RPC call, so Slice A ships with zero new
-/// dependencies and no global provider to break SSR.
-interface SolanaProvider {
-  isPhantom?: boolean;
-  publicKey?: { toString(): string } | null;
-  isConnected?: boolean;
-  connect(opts?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: { toString(): string } }>;
-  disconnect(): Promise<void>;
-  on(event: string, handler: (...args: unknown[]) => void): void;
-  removeListener?(event: string, handler: (...args: unknown[]) => void): void;
-}
-
-function getProvider(): SolanaProvider | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as { solana?: SolanaProvider };
-  return w.solana ?? null;
-}
+/// Provider resolution lives in solanaProvider.ts: `window.solana` is a legacy
+/// alias any extension can claim, so it is never trusted without `isPhantom`.
+/// We avoid the full @solana/wallet-adapter stack: connect + balance need only
+/// the provider and a JSON-RPC call.
+const getProvider = getPhantomProvider;
 
 export interface SolanaWallet {
-  /// A Solana wallet extension is present in this browser.
+  /// Phantom is present in this browser.
   available: boolean;
+  /// A Solana wallet IS installed but it is not Phantom. The burn is built by
+  /// hand and only Phantom is known to sign it, so name the one we found rather
+  /// than handing it a transaction it will hang on.
+  conflictingWallet: string | null;
   address: string | null;
   connecting: boolean;
   /// SPL USDC balance as a decimal string, null until the first read.
@@ -76,6 +66,7 @@ async function readUsdcBalance(owner: string): Promise<string | null> {
 /// never collide.
 export function useSolanaWallet(): SolanaWallet {
   const [available, setAvailable] = useState(false);
+  const [conflictingWallet, setConflictingWallet] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
@@ -87,9 +78,11 @@ export function useSolanaWallet(): SolanaWallet {
     const provider = getProvider();
     if (!provider) {
       setAvailable(false);
+      setConflictingWallet(getConflictingWalletName());
       return;
     }
     setAvailable(true);
+    setConflictingWallet(null);
 
     const syncFrom = (pk: { toString(): string } | null | undefined) => {
       setAddress(pk ? pk.toString() : null);
@@ -146,7 +139,12 @@ export function useSolanaWallet(): SolanaWallet {
   const connect = useCallback(async () => {
     const provider = getProvider();
     if (!provider) {
-      setError('No Solana wallet found. Install Phantom to continue.');
+      const other = getConflictingWalletName();
+      setError(
+        other
+          ? `${other} is handling Solana in this browser. Karwan needs Phantom for this transfer. Turn the other one off, or install Phantom.`
+          : 'No Solana wallet found. Install Phantom to continue.',
+      );
       return;
     }
     setConnecting(true);
@@ -172,5 +170,5 @@ export function useSolanaWallet(): SolanaWallet {
     setAddress(null);
   }, []);
 
-  return { available, address, connecting, usdcBalance, connect, disconnect, error };
+  return { available, conflictingWallet, address, connecting, usdcBalance, connect, disconnect, error };
 }

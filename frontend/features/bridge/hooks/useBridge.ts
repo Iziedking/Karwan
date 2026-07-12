@@ -26,6 +26,7 @@ import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { getPhantomProvider, getConflictingWalletName } from '../solanaProvider';
 import { useGuide } from '@/shared/guide/GuideProvider';
 
 const USDC_DECIMALS = 6;
@@ -1205,8 +1206,18 @@ export function useBridges() {
           // works fine), and the existing backend relay mints on Arc, the same
           // pipeline the EVM web3 bridges use. SSE animates the record from
           // 'relaying' onward exactly like every other bridge.
-          const phantom = (window as unknown as { solana?: PhantomSolana }).solana;
-          if (!phantom) throw new Error('Connect your Solana wallet first');
+          // Resolve Phantom PROPERLY. Reading window.solana blindly is what
+          // handed this burn to sollet, whose confirm dialog hangs on a loading
+          // skeleton because it never decodes the transaction.
+          const phantom = getPhantomProvider() as PhantomSolana | null;
+          if (!phantom) {
+            const other = getConflictingWalletName();
+            throw new Error(
+              other
+                ? `${other} is handling Solana in this browser. Karwan needs Phantom for this transfer.`
+                : 'Connect your Solana wallet first',
+            );
+          }
           if (!phantom.publicKey) await phantom.connect();
           const ownerStr = phantom.publicKey?.toString();
           if (!ownerStr) throw new Error('Connect your Solana wallet first');
