@@ -102,3 +102,6 @@ arc_house/
 
 # private audit + redeploy planning
 audit/
+
+# hackathon submission documents — internal
+submission/

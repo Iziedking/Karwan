@@ -84,6 +84,10 @@ An agent ranks a seller on what they claim plus their settled-deal record. The n
 
 User funds move to user-held wallets, with agents funded only through a capped spend allowance, so the platform never custodies a principal. Staker deposits route to USYC so stakers earn yield directly.
 
+### The currency leg
+
+A Lagos supplier prices in naira and a Dubai buyer pays in dirhams, so today the FX sits outside the rail. Circle's StableFX is an RFQ engine with payment-versus-payment settlement on Arc, already covering USDC and EURC and expanding to local stablecoin pairs. It is the missing leg of a cross-border trade, and it settles on the chain Karwan is already on.
+
 ### Fiat rails
 
 On and off ramps through the Circle Payments Network, so a business funds a deal and cashes out in local currency through partner institutions without going through an exchange. The aim is onboarding and payout that feel like ordinary software, with the settlement layer kept out of sight.
@@ -120,9 +124,9 @@ Earlier contract generations stay registered so users with open positions can fi
 |---|---|
 | USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order custody, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
 | Developer-Controlled Wallets | An identity wallet and two agent wallets per user, provisioned on sign-in with an email or a passkey. No seed phrase. Web3 users can sign in with their own wallet through Sign-In with Ethereum instead. |
-| CCTP V2 with App Kit | USDC into and out of Arc across twelve chains, both directions. Outbound uses Circle's Forwarding Service to submit the destination mint. |
+| CCTP V2 with Bridge Kit | USDC into and out of Arc across twelve chains, both directions, through App Kit and the Circle Wallets adapter. Outbound uses Circle's Forwarding Service to submit the destination mint, so a supplier cashes out anywhere without holding that chain's gas token. |
 | Circle Gateway | One pooled USDC balance across twelve chains, spendable to any of them from a single signature. Also the settlement rail for x402, netting the agents' per-call payments into batched on-chain settlement. |
-| Gateway Nanopayments (x402) | Agents buy the data they negotiate with, a cent at a time. Karwan also sells five paid endpoints, including the credit passport and repayment behaviour. |
+| Nanopayments (x402) | Agents pay a cent per call to read a counterparty's full settled-deal record before they price a bid, so neither side negotiates on a public score alone. Karwan also sells five paid endpoints, including the credit passport and repayment behaviour. |
 | Hashnote USYC | On-chain yield on idle balances, sourced from tokenized Treasury bills. Real allowlisted USYC, marked to the live oracle. |
 
 ## How it is built

@@ -163,7 +163,7 @@ export default function HowItWorksPage() {
             role={t.stack.cctp}
           />
           <StackTile
-            name="App Kit"
+            name="App Kit and Bridge Kit"
             role={t.stack.appKit}
           />
           <StackTile

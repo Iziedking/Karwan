@@ -45,22 +45,29 @@ nothing to ask changed here.
 What worked:
 
 - USDC as the native gas asset removes the usual hold-a-separate-gas-token problem.
-  Funding an agent is one transfer.
+  Funding an agent is one transfer, and a business's balance and its ability to
+  transact are the same number. For an SME product this is the difference between
+  onboarding and abandonment.
+- The single-asset model is the right call. There is no wrapped USDC on Arc, so a
+  contract pairs against the ERC-20 address directly and there is no bridged-asset
+  ambiguity to explain to a trader.
 
 Friction:
 
-- The dual-decimal interface, 6 for ERC-20 and 18 for native, is a real footgun. We
-  sent a `parseUnits(amount, 6)` value through what we treated as an ERC-20 transfer
-  and it registered as effectively zero, because the amount was interpreted at
-  native 18-decimal precision. The fix was a native value transfer at 18 decimals.
-  Correct once you know it, but it cost a debugging session.
+- The dual-decimal interface, 6 for the ERC-20 and 18 for native, cost us a debugging
+  session. We sent a `parseUnits(amount, 6)` value through what we treated as an
+  ERC-20 transfer and it registered as effectively zero, because the amount was
+  interpreted at native 18-decimal precision. The Arc docs warn about this clearly and
+  in several places, so the gap was ours, not theirs. It is worth recording anyway,
+  because it is the one place where correct-looking code is wrong by a factor of a
+  trillion, and every team porting a contract to Arc will meet it.
 
 Asks:
 
-- A short, prominent note in the Arc USDC docs on which decimal precision each
-  interface expects, with a worked example of a direct transfer. The docs do warn
-  against mixing the two views; a copy-paste example of each would have saved the
-  session.
+- We now follow the Arc docs' own guidance and read and send exclusively through the
+  ERC-20 interface, which sidesteps the class of bug entirely. If there is one thing
+  to amplify for new builders, it is that recommendation: it is currently a note
+  inside a longer page, and it is the single sentence that prevents the mistake.
 
 ## CCTP V2 and App Kit
 
@@ -76,13 +83,14 @@ What worked:
   exactly our model: the user burns on the source chain, the backend relays the
   mint on Arc.
 
+- The Circle Wallets adapter for Bridge Kit (shipped 2025-11-17) removed a
+  hand-rolled signing path. Our agent and identity wallets are Circle SCAs, and
+  before the adapter existed we were building the burn as a user-signed transaction
+  ourselves. Adopting `@circle-fin/adapter-circle-wallets` deleted that code. This
+  is the single most useful thing Circle shipped for us during the build.
+
 Friction:
 
-- The Bridge Kit does not yet support Circle wallets (Developer-Controlled,
-  User-Controlled, or Modular). Our agents and identity wallets are Circle SCAs, so
-  the managed bridge path did not fit them directly, and we build the burn as a
-  user-signed transaction. This is the part that still needs a hand-rolled signing
-  path.
 - We ran CCTP Standard (slow) transfers, which wait for source-chain hard finality.
   Sandbox attestation latency was variable, roughly 10 to 19 minutes in our runs, in
   line with the documented finality windows. Our relay polls Iris for up to 25
@@ -106,14 +114,13 @@ What the Forwarding Service changed:
 
 Asks:
 
-- Circle wallet support in the Bridge Kit, so a project already on
-  Developer-Controlled Wallets can bridge without dropping to a hand-rolled signing
-  path.
 - An attestation-ready webhook. Both direct CCTP and the Forwarding Service surface
   the mint by polling `GET /v2/messages`; a push notification would remove the poll
-  loop.
-- One published matrix of chain support across CCTP, Circle Wallets, and Gateway.
-  Three lists that nearly agree are harder to build against than one list that does.
+  loop every integrator writes.
+- One published matrix of chain support across CCTP, Circle Wallets, Gateway, and
+  Bridge Kit, with a column for what each product can do on each chain. Three lists
+  that nearly agree are harder to build against than one list that does, and this
+  is the highest-leverage document Circle could publish.
 
 ## Gateway Nanopayments and x402
 
@@ -138,13 +145,12 @@ Friction:
 
 Asks:
 
-- A path for a Circle smart-contract wallet to authorize a Nanopayment directly,
-  without provisioning a separate EOA. A first-class SCA authorization type on
-  Gateway would let an agent pay from the same wallet it already uses to settle
-  deals.
 - A short reference that maps x402 roles (buyer, seller, facilitator) onto the
   Gateway pieces (Gateway Wallet balance, EIP-3009 authorization, batched
-  settlement), so a team new to both can wire the flow in one read.
+  settlement), so a team new to both can wire the flow in one read. Gateway's
+  `addDelegate` mechanism is the clean answer to the SCA signing constraint here,
+  and pointing at it from the x402 material would shorten the path for anyone
+  building agent payments on Circle wallets.
 
 ## Circle Gateway (unified balance)
 
@@ -156,41 +162,39 @@ What worked:
   source chains at once: no chain switching, no source-chain gas, no per-chain
   approval dance. Once we understood that, our entire fund-and-withdraw surface
   collapsed from a chain picker into one card with a pooled balance.
-- Gateway rejects smart contract accounts as signers but accepts them as recipients.
-  That asymmetry turned out to be exactly what we needed. The pooled balance lives on
-  the user's own EOA, and their Circle agent wallets, which are SCAs, receive from it.
-  A one-click agent top-up straight out of the pooled balance falls out of the design
-  for free.
+- Gateway requires an ECDSA signature on a burn intent, so an SCA cannot sign one
+  directly. Circle documents two ways through this: the `addDelegate` mechanism on
+  the wallet contract, which authorizes an EOA to sign on the SCA's behalf, and
+  EIP-7702 upgraded EOAs, which can still sign natively. We took a third path that
+  suited our topology: the pooled balance lives on the user's own EOA, and their
+  Circle agent wallets, which are SCAs, are the recipients. Gateway accepts SCAs as
+  recipients, so a one-click agent top-up straight out of the pooled balance falls
+  out of the design for free.
 - `getBalances` needs only an address. No adapter, no signer, no credentials. That
   makes the read a cacheable backend call, which is what let us put a live pooled
   balance on a page without dragging a wallet connection into it.
+- Fees are clearly documented: a 0.005 percent transfer fee plus gas, deducted from
+  the unified balance at burn, and the forwarding fee taken from each burn intent's
+  `maxFee`. We reserve for them with `estimateSpend` before offering a Max amount.
 
 Friction:
 
-- `getBalances` reports only what has been deposited into the Gateway contract, not
-  what the wallet holds. This is correct, and it is also the first thing every
-  integrator gets wrong, because "unified balance" reads as "all my USDC." An address
-  holding several hundred USDC on Base reads as a zero Gateway balance, and nothing in
-  the response says why. A field distinguishing "pooled" from "held on chain, not yet
-  deposited" would save every team the same afternoon.
-- The SCA-as-signer rejection is invisible until a burn intent fails. It is a
-  defensible constraint and it materially shapes the architecture of any app built on
-  Circle wallets, so it belongs in prose next to the deposit example, not discovered
-  at signing time.
-- There is no history endpoint. A transfer can be fetched by id, but there is no way
-  to list what an address has done. Any product that shows a user their own transfer
-  history has to keep a parallel ledger, which means the on-chain record and the
-  product record can drift.
-- A spend deducts a forwarding fee, so the full pooled balance is never quite
-  spendable. Our Max button has to call `estimateSpend` and reserve the fee, or the
-  transfer fails at the last step. Worth a line in the docs beside the balance read.
+- A funded wallet that has not deposited reads as a zero Gateway balance, with
+  nothing in the response to say why. The docs are explicit that a deposit is
+  required, so this is not a documentation gap. It is a response-shape gap: an
+  address holding several hundred USDC on Base returns exactly what an empty address
+  returns, and every integrator loses the same afternoon to it.
+- Gateway transfers can be fetched by id but not listed. Any product that shows a
+  user their own transfer history has to keep a parallel ledger, which means the
+  on-chain record and the product record can drift.
 
 Asks:
 
-- A list endpoint for Gateway transfers, so a product does not have to keep a shadow
-  ledger of its own users' activity.
-- A `pooled` versus `wallet` distinction in the balance response, or an explicit zero
-  reason. The current silent zero is the sharpest edge in an otherwise excellent API.
+- An explicit signal in the balance response distinguishing "pooled" from "held on
+  chain, not yet deposited". The silent zero is the sharpest edge in an otherwise
+  excellent API, and it is fixable at the API rather than in every app.
+- A list endpoint for Gateway transfers, so a product does not have to shadow-ledger
+  its own users' activity.
 
 ## USYC
 

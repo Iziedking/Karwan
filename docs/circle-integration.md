@@ -11,10 +11,16 @@ The settlement currency for everything. Escrow funding, milestone releases, the
 platform fee, and agent top-ups are all in USDC. On Arc, USDC is also the native
 gas asset, so the agent wallets spend USDC to send transactions.
 
-One thing to know about Arc's USDC: it has a dual interface. The ERC-20 view
-uses 6 decimals; the native gas view uses 18. Escrow accounting runs on the
-6-decimal ERC-20 interface. Funding an agent wallet directly is a native value
-transfer at 18 decimals.
+One thing to know about Arc's USDC: it has two interfaces over a single balance,
+not two tokens. The ERC-20 view uses 6 decimals, the native gas view uses 18, and
+a native send and an ERC-20 transfer move the same underlying money. Escrow
+accounting runs on the 6-decimal ERC-20 interface.
+
+Following Arc's own guidance, application code reads and sends exclusively through
+the ERC-20 interface. Mixing the two views is where the sharp edge is: a value that
+is correct at 6 decimals is wrong by a factor of a trillion at 18, and the ERC-20
+view also truncates, so a `balanceOf` of zero does not mean the native balance is
+zero.
 
 ### Developer-Controlled Wallets
 
@@ -80,19 +86,33 @@ Two design facts drove the architecture:
 - Gateway's EIP-712 signing domain carries no chain id and no verifying contract,
   and the payload is a set of burn intents. One signature therefore covers burns
   across several source chains at once.
-- Gateway accepts smart contract accounts as recipients but rejects them as
-  signers. The pooled balance has to sit on an account that can produce a raw
-  signature, so it lives on the user's own EOA. The agent wallets, which are
-  Circle SCAs, can still receive from it, which is what makes a one-click agent
-  top-up out of the pooled balance possible.
+- Gateway verifies burn intents statically, so it needs an ECDSA signature and
+  cannot accept an EIP-1271 signature from a smart contract account. Circle
+  documents two ways through this: the `addDelegate` method on the Gateway Wallet
+  contract, which authorizes an EOA to sign on an SCA's behalf, and EIP-7702
+  upgraded EOAs, which still sign natively. Karwan takes a third path that suits
+  its topology. The pooled balance lives on the user's own EOA, and the agent
+  wallets, which are Circle SCAs, are the recipients. Gateway accepts SCAs as
+  recipients, so a one-click agent top-up out of the pooled balance falls out of
+  the design for free.
 
-### App Kit
+Fees are documented and we reserve for them. A crosschain transfer costs 0.005
+percent plus gas, deducted from the unified balance at burn, and the forwarding
+fee is taken from each burn intent's `maxFee`. The Max button calls
+`estimateSpend` and holds back the fee, so a transfer never fails at the last
+step.
+
+### App Kit and Bridge Kit
 
 `@circle-fin/app-kit` is the unified SDK behind bridge and unified-balance.
 Karwan uses it on both sides: server-side in `backend/src/circle/bridge-kit.ts`
-for Circle-wallet users, where keys never leave the backend, and client-side for
-web3 users who sign with their own wallet. One SDK, fewer ways for the
-integration to drift as the next feature ships.
+through `@circle-fin/adapter-circle-wallets`, where keys never leave the backend,
+and client-side through `@circle-fin/adapter-viem-v2` for web3 users who sign with
+their own wallet.
+
+The Circle Wallets adapter matters more than it sounds. Karwan's agent and
+identity wallets are Circle SCAs, and before the adapter existed the burn had to
+be hand-rolled as a user-signed transaction. Adopting it deleted that path.
 
 ### USYC (Hashnote, via ERC-4626 Teller)
 
