@@ -1221,15 +1221,20 @@ export function useBridges() {
           if (!phantom.publicKey) await phantom.connect();
           const ownerStr = phantom.publicKey?.toString();
           if (!ownerStr) throw new Error('Connect your Solana wallet first');
-          const [{ buildDepositForBurnTx, confirmBurn }, { PublicKey }] = await Promise.all([
-            import('../solanaCctp'),
-            import('@solana/web3.js'),
-          ]);
+          const [{ buildDepositForBurnTx, confirmBurn, simulateBurn }, { PublicKey }] =
+            await Promise.all([import('../solanaCctp'), import('@solana/web3.js')]);
           const build = await buildDepositForBurnTx({
             owner: new PublicKey(ownerStr),
             amountUsdc: input.amountUsdc,
             mintRecipient: input.mintRecipient,
           });
+          // Ask the chain whether this can execute BEFORE opening Phantom.
+          // Phantom keeps Confirm disabled until its own simulation resolves, and
+          // on a transaction that cannot execute that never happens: the user
+          // gets an empty preview and a dead button with no reason given. Fail
+          // here instead, with the program logs.
+          await simulateBurn(build);
+
           let signature: string;
           if (phantom.signAndSendTransaction) {
             const r = await phantom.signAndSendTransaction(build.transaction);
@@ -1414,7 +1419,8 @@ export function useBridges() {
           // BurnExpiredError carries a complete, user-facing explanation
           // (definitively not landed, funds untouched, approve faster); show it
           // whole rather than truncating it through the generic prefix.
-          err instanceof Error && err.name === 'BurnExpiredError'
+          err instanceof Error &&
+          (err.name === 'BurnExpiredError' || err.name === 'BurnSimulationError')
             ? err.message
             : raw.includes('rejected') || raw.includes('denied') || raw.includes('user cancelled')
               ? 'Cancelled in your wallet'

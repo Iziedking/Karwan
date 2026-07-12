@@ -235,6 +235,14 @@ export const SOLANA_RPC_URL =
 export const SOLANA_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 // Public Solana devnet SOL faucet (blockhash/tx fees on Solana).
 export const SOLANA_GAS_FAUCET = 'https://faucet.solana.com/';
+
+/// The burn makes the user both the fee payer AND the rent payer for the
+/// MessageSent event account (see solanaCctp.ts), so they must hold SOL or the
+/// transaction cannot even be simulated: Phantom shows an empty preview with
+/// Confirm permanently greyed out, which reads as "the app is broken".
+/// ~0.002 SOL of rent + fee + priority, so gate a little above that.
+export const SOLANA_MIN_SOL = 0.005;
+
 export const SOLANA_EXPLORER_TX = (sig: string) =>
   `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
 

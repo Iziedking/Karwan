@@ -12,6 +12,7 @@ import {
   APP_KIT_SOURCE_KEYS,
   GAS_FAUCETS,
   CIRCLE_SOURCE_KEYS,
+  SOLANA_MIN_SOL,
   USDC_FAUCET,
   isAppKitOnlyChainKey,
   type SourceChainConfig,
@@ -460,9 +461,18 @@ export function BridgeCard({
   //   - canSwitch: connect-wallet path on the wrong EVM chain; switch first.
   //   - canBurn:   connect-wallet path on the right chain, amount + recipient set.
   //   - canBridgeCircle: deposit path, amount + recipient set (backend signs).
+  /// The burn makes the user the fee payer AND the rent payer for the
+  /// MessageSent event account, so with no SOL the transaction cannot even be
+  /// SIMULATED: Phantom opens, renders an empty preview, and leaves Confirm
+  /// greyed out forever. That dead dialog is indistinguishable from a broken
+  /// app, so refuse the burn here and say why, rather than handing Phantom a
+  /// transaction it can never let the user sign.
+  const solanaNeedsGas =
+    appKitPath && solana.solBalance !== null && solana.solBalance < SOLANA_MIN_SOL;
   const canBridgeSolana =
     appKitPath &&
     !!solana.address &&
+    !solanaNeedsGas &&
     typeof amount === 'number' &&
     amount > 0 &&
     !!mintRecipient &&

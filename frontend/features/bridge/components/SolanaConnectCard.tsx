@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
-import { USDC_FAUCET, SOLANA_GAS_FAUCET } from '../config';
+import { USDC_FAUCET, SOLANA_GAS_FAUCET, SOLANA_MIN_SOL } from '../config';
 import type { Messages } from '@/shared/i18n/messages/en';
 import type { SolanaWallet } from '../hooks/useSolanaWallet';
 
@@ -29,6 +29,7 @@ export function SolanaConnectCard({
   // Faucet helpers copy the connected Solana address, then open the faucet in a
   // new tab so the user pastes it there (mirrors the profile wallet faucets).
   const [copied, setCopied] = useState<'usdc' | 'gas' | null>(null);
+  const needsGas = wallet.solBalance !== null && wallet.solBalance < SOLANA_MIN_SOL;
   async function copyAndOpen(url: string, key: 'usdc' | 'gas') {
     if (wallet.address) {
       try {
@@ -118,8 +119,24 @@ export function SolanaConnectCard({
                   USDC
                 </span>
               </p>
+              {/* SOL was invisible here, and it is the balance that decides
+                  whether the transfer can happen at all. */}
+              <p
+                className="mt-1 mono text-[10px] tabular-nums uppercase tracking-[0.12em]"
+                style={{ color: needsGas ? '#b25425' : 'var(--lp-text-muted)' }}
+              >
+                {wallet.solBalance == null ? '—' : wallet.solBalance.toFixed(4)} SOL
+              </p>
             </div>
           </div>
+
+          {/* Without SOL the burn cannot be simulated, so Phantom opens with an
+              empty preview and Confirm greyed out. Say so before they get there. */}
+          {needsGas && (
+            <p className="mt-2.5 text-[12px] leading-snug" style={{ color: '#b25425' }}>
+              {copy.needsSol}
+            </p>
+          )}
           {/* Faucets: copy the connected address and open the faucet page, so
               the user pastes it there to claim devnet USDC (Circle) or SOL gas. */}
           <div className="mt-3 flex items-center gap-2 flex-wrap">

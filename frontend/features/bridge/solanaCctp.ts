@@ -179,6 +179,62 @@ export async function buildDepositForBurnTx(input: {
   return { transaction, eventKeypair, connection, blockhash, lastValidBlockHeight };
 }
 
+/// Simulate the burn BEFORE handing it to the wallet.
+///
+/// Phantom will not enable Confirm until its own simulation resolves. When the
+/// transaction cannot execute, that simulation never completes: the dialog opens
+/// with an empty balance-change preview and a permanently greyed-out Confirm
+/// button, and Phantom never tells the user why. From the outside it is
+/// indistinguishable from a broken app, and it is where this flow has been dying.
+///
+/// So run the simulation ourselves first. If the chain rejects it, we have the
+/// program logs, and we can say what is wrong instead of opening a dialog the
+/// user can never complete.
+///
+/// sigVerify is off: the owner has not signed yet, and we only care whether the
+/// instruction would execute.
+export async function simulateBurn(build: SolanaBurnBuild): Promise<void> {
+  let sim;
+  try {
+    sim = await build.connection.simulateTransaction(build.transaction);
+  } catch {
+    // The simulation call itself failed (RPC blip). Do not block the burn on it:
+    // this is a guard, not a gate.
+    return;
+  }
+  const err = sim.value.err;
+  if (!err) return;
+
+  const logs = sim.value.logs ?? [];
+  // Program logs carry the real reason. Surface the first line that names one,
+  // rather than the opaque {"InstructionError":[2,{"Custom":N}]} envelope.
+  const reason =
+    logs.find((l) => l.includes('Error:') || l.includes('failed:') || l.includes('insufficient')) ??
+    null;
+
+  if (typeof console !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.error('[solana.burn.simulate] rejected', { err, logs });
+  }
+
+  throw new BurnSimulationError(reason, JSON.stringify(err), logs);
+}
+
+/// The chain refused the burn before the user ever signed. Carries the program
+/// logs so a failure is diagnosable instead of a shrug.
+export class BurnSimulationError extends Error {
+  readonly logs: string[];
+  constructor(reason: string | null, rawErr: string, logs: string[]) {
+    super(
+      reason
+        ? `Solana refused this transfer: ${reason}`
+        : `Solana refused this transfer (${rawErr}). Nothing was sent.`,
+    );
+    this.name = 'BurnSimulationError';
+    this.logs = logs;
+  }
+}
+
 /// Thrown when the blockhash expired without the transaction landing. An
 /// expired blockhash can never be included later, so this is DEFINITIVE: no
 /// funds moved and a fresh attempt is safe.

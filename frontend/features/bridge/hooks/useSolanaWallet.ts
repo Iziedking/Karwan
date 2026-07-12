@@ -20,6 +20,9 @@ export interface SolanaWallet {
   connecting: boolean;
   /// SPL USDC balance as a decimal string, null until the first read.
   usdcBalance: string | null;
+  /// Native SOL, needed to pay the fee and the event-account rent. null until
+  /// the first read.
+  solBalance: number | null;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   error: string | null;
@@ -61,6 +64,25 @@ async function readUsdcBalance(owner: string): Promise<string | null> {
   }
 }
 
+/// Native SOL balance, in SOL. The burn pays a fee AND rent for the MessageSent
+/// account out of this, so a zero balance is not a cosmetic gap: the transaction
+/// cannot be simulated, and Phantom renders a dead confirm dialog.
+async function readSolBalance(owner: string): Promise<number | null> {
+  try {
+    const res = await fetch(SOLANA_RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [owner] }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { result?: { value?: number } };
+    const lamports = json.result?.value;
+    return typeof lamports === 'number' ? lamports / 1_000_000_000 : null;
+  } catch {
+    return null;
+  }
+}
+
 /// Connect + read balance for an injected Solana wallet. No signing here; the
 /// burn lands in Slice B. Kept isolated from wagmi so the two wallet worlds
 /// never collide.
@@ -70,6 +92,7 @@ export function useSolanaWallet(): SolanaWallet {
   const [address, setAddress] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
+  const [solBalance, setSolBalance] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Detect the provider, reconnect if the user already trusted this site, and
@@ -119,12 +142,16 @@ export function useSolanaWallet(): SolanaWallet {
   useEffect(() => {
     if (!address) {
       setUsdcBalance(null);
+      setSolBalance(null);
       return;
     }
     let cancelled = false;
     const load = () => {
       readUsdcBalance(address).then((b) => {
         if (!cancelled) setUsdcBalance(b);
+      });
+      readSolBalance(address).then((b) => {
+        if (!cancelled) setSolBalance(b);
       });
     };
     load();
@@ -170,5 +197,5 @@ export function useSolanaWallet(): SolanaWallet {
     setAddress(null);
   }, []);
 
-  return { available, conflictingWallet, address, connecting, usdcBalance, connect, disconnect, error };
+  return { available, conflictingWallet, address, connecting, usdcBalance, solBalance, connect, disconnect, error };
 }
