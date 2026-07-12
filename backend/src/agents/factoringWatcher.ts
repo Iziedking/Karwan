@@ -19,7 +19,7 @@
 /// dispute path pursues remediation against the seller's stake.
 
 import { parseUnits } from 'viem';
-import { listAllDeals } from '../db/deals.js';
+import { listAllDeals, getDeal, type DirectDeal } from '../db/deals.js';
 import { listAcceptedOffers, patchFactoringOffer, type FactoringOffer } from '../db/factoring.js';
 import { getUserByAddress } from '../db/users.js';
 import {
@@ -122,6 +122,77 @@ async function markDefaulted(offer: FactoringOffer, reason: string): Promise<voi
   );
 }
 
+/// Settle or default a single accepted offer against its deal. Shared by the
+/// periodic tick and the on-settlement fast path. Idempotent under the
+/// `processing` guard, so a tick and a settlement hook cannot double-submit the
+/// same repayment.
+async function processOffer(offer: FactoringOffer, deal: DirectDeal): Promise<void> {
+  if (processing.has(offer.id)) return;
+
+  // Buyer refunded the escrow after the seller took the advance. The seller was
+  // never paid by the escrow, so the repayment instrument has nothing to draw
+  // on. Default and let the dispute path pursue the seller's stake.
+  if (deal.cancelledAt && !deal.settledAt) {
+    processing.add(offer.id);
+    try {
+      await markDefaulted(offer, 'deal cancelled after factoring acceptance');
+    } finally {
+      processing.delete(offer.id);
+    }
+    return;
+  }
+
+  if (!deal.settledAt) return;
+
+  processing.add(offer.id);
+  try {
+    await settleOffer(offer);
+  } catch (err) {
+    const attempts = (offer.settleAttempts ?? 0) + 1;
+    const reason = (err as Error).message;
+    logger.warn(
+      { offerId: offer.id, attempts, err: reason },
+      'factoring watcher: repayment transfer failed; will retry',
+    );
+    if (attempts >= MAX_SETTLE_ATTEMPTS) {
+      await markDefaulted(
+        offer,
+        `repayment failed after ${attempts} attempts: ${reason}`,
+      ).catch(() => {});
+    } else {
+      await patchFactoringOffer(offer.id, {
+        settleAttempts: attempts,
+        lastSettleError: reason,
+      }).catch(() => {});
+    }
+  } finally {
+    processing.delete(offer.id);
+  }
+}
+
+/// Pull the factoring repayment the moment a deal settles, rather than waiting
+/// for the next poll tick. Called from the settlement paths in deals.ts, so the
+/// window between the seller receiving escrow funds and the repayment being
+/// pulled is as small as the runtime allows. Best-effort: any failure is caught
+/// here and the periodic tick remains the retry safety net.
+export async function settleFactoringForDeal(jobId: string): Promise<void> {
+  if (!config.KARWAN_INVOICE_REGISTRY_ADDR) return;
+  try {
+    const deal = await getDeal(jobId);
+    if (!deal) return;
+    const offers = await listAcceptedOffers();
+    const invoice = jobId.toLowerCase();
+    for (const offer of offers) {
+      if (offer.invoiceId.toLowerCase() === invoice) await processOffer(offer, deal);
+    }
+  } catch (err) {
+    logger.warn(
+      { jobId, err: (err as Error).message },
+      'factoring: immediate settle-on-deal failed; the periodic watcher will retry',
+    );
+  }
+}
+
 async function tick(): Promise<void> {
   let offers;
   try {
@@ -148,50 +219,9 @@ async function tick(): Promise<void> {
   const dealByJobId = new Map(deals.map((d) => [d.jobId.toLowerCase(), d]));
 
   for (const offer of offers) {
-    if (processing.has(offer.id)) continue;
     const deal = dealByJobId.get(offer.invoiceId.toLowerCase());
     if (!deal) continue;
-
-    // Buyer refunded the escrow after the seller took the advance. The
-    // seller was never paid by the escrow, so the repayment instrument
-    // has nothing to draw on. Default and let the dispute path pursue
-    // the seller's stake.
-    if (deal.cancelledAt && !deal.settledAt) {
-      processing.add(offer.id);
-      try {
-        await markDefaulted(offer, 'deal cancelled after factoring acceptance');
-      } finally {
-        processing.delete(offer.id);
-      }
-      continue;
-    }
-
-    if (!deal.settledAt) continue;
-
-    processing.add(offer.id);
-    try {
-      await settleOffer(offer);
-    } catch (err) {
-      const attempts = (offer.settleAttempts ?? 0) + 1;
-      const reason = (err as Error).message;
-      logger.warn(
-        { offerId: offer.id, attempts, err: reason },
-        'factoring watcher: repayment transfer failed; will retry',
-      );
-      if (attempts >= MAX_SETTLE_ATTEMPTS) {
-        await markDefaulted(
-          offer,
-          `repayment failed after ${attempts} attempts: ${reason}`,
-        ).catch(() => {});
-      } else {
-        await patchFactoringOffer(offer.id, {
-          settleAttempts: attempts,
-          lastSettleError: reason,
-        }).catch(() => {});
-      }
-    } finally {
-      processing.delete(offer.id);
-    }
+    await processOffer(offer, deal);
   }
 }
 

@@ -58,6 +58,8 @@ import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/d
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
+import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
+import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { isSessionSelf, viewerAddress, readSession } from '../auth/session.js';
@@ -1717,6 +1719,12 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     const settled = await finalizeIfSettled(jobId);
     if (settled) {
       await patchDeal(jobId, { settledAt: Date.now(), lastReleaseAt: Date.now() });
+      // The seller's escrow funds have just landed. Pull any factoring or PO
+      // repayment now, while the money is still in their wallet, rather than
+      // waiting up to a poll interval for the watcher. Fire-and-forget: both
+      // helpers catch internally and the periodic watchers remain the safety net.
+      void settleFactoringForDeal(jobId);
+      void settlePOFinancingForDeal(jobId);
     } else if (releasedIndex === 0) {
       // First milestone is out. Open the buyer's review window for the rest.
       const startedAt = Date.now();
@@ -2575,6 +2583,13 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
       cancellationProposal: undefined,
       ...(disputeLoser ? { disputeLoser } : {}),
     });
+    // A dispute that resolved in the seller's favour also lands funds in their
+    // wallet, so drive the financing repayment now. A refund resolution leaves
+    // the deal cancelled-not-settled, which the watchers read as a default.
+    if (isReleaseFromDispute) {
+      void settleFactoringForDeal(jobId);
+      void settlePOFinancingForDeal(jobId);
+    }
     bus.emitEvent({
       type: isReleaseFromDispute ? 'escrow.settled' : 'deal.cancelled',
       jobId,

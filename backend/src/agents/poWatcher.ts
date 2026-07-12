@@ -21,7 +21,12 @@
 
 import { parseUnits } from 'viem';
 import { publicClient } from '../chain/client.js';
-import { listOpenLines, patchPOLine, type POFinancingLine } from '../db/poFinancing.js';
+import {
+  listOpenLines,
+  getPOLineForInvoice,
+  patchPOLine,
+  type POFinancingLine,
+} from '../db/poFinancing.js';
 import { getDeal } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -228,6 +233,39 @@ async function handleLine(line: POFinancingLine): Promise<void> {
   }
 }
 
+/// Run one line through the release/repay state machine under the processing
+/// guard, so the tick and the on-settlement fast path cannot double-submit.
+async function runLine(line: POFinancingLine): Promise<void> {
+  if (processing.has(line.id)) return;
+  processing.add(line.id);
+  try {
+    await handleLine(line);
+  } catch (err) {
+    logger.warn(
+      { lineId: line.id, err: (err as Error).message },
+      'po watcher: line handling failed; will retry next tick',
+    );
+  } finally {
+    processing.delete(line.id);
+  }
+}
+
+/// Pull the PO repayment the moment its deal settles, instead of waiting for the
+/// next poll tick. Called from the settlement paths in deals.ts. Best-effort:
+/// any failure is contained here and the periodic tick remains the safety net.
+export async function settlePOFinancingForDeal(jobId: string): Promise<void> {
+  if (!config.KARWAN_PO_FINANCING_ADDR) return;
+  try {
+    const line = await getPOLineForInvoice(jobId);
+    if (line) await runLine(line);
+  } catch (err) {
+    logger.warn(
+      { jobId, err: (err as Error).message },
+      'po-financing: immediate settle-on-deal failed; the periodic watcher will retry',
+    );
+  }
+}
+
 async function tick(): Promise<void> {
   let lines: POFinancingLine[];
   try {
@@ -237,18 +275,7 @@ async function tick(): Promise<void> {
     return;
   }
   for (const line of lines) {
-    if (processing.has(line.id)) continue;
-    processing.add(line.id);
-    try {
-      await handleLine(line);
-    } catch (err) {
-      logger.warn(
-        { lineId: line.id, err: (err as Error).message },
-        'po watcher: line handling failed; will retry next tick',
-      );
-    } finally {
-      processing.delete(line.id);
-    }
+    await runLine(line);
   }
 }
 

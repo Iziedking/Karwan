@@ -13,6 +13,8 @@ import {
   OUTCOME_FAILED,
 } from '../chain/settlement.js';
 import { bus } from '../events.js';
+import { settleFactoringForDeal } from './factoringWatcher.js';
+import { settlePOFinancingForDeal } from './poWatcher.js';
 import { logger } from '../logger.js';
 
 /// Deal lifecycle tick. Each tick reads on-chain escrow state for every
@@ -333,6 +335,12 @@ async function tick() {
           lastReleaseAt: Date.now(),
           ...(settled ? { settledAt: Date.now() } : {}),
         });
+        if (settled) {
+          // Auto-release settled the deal: the seller has the funds, so pull the
+          // financing repayment immediately instead of on the next watcher tick.
+          void settleFactoringForDeal(deal.jobId);
+          void settlePOFinancingForDeal(deal.jobId);
+        }
         bus.emitEvent({
           type: 'deal.delay.auto_released',
           jobId: deal.jobId,
