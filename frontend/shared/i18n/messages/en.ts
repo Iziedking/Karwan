@@ -1544,6 +1544,7 @@ interface MessagesShape {
       eyebrow: string;
       blurb: string;
       conflictTemplate: string;
+      needsSol: string;
       connect: string;
       connecting: string;
       install: string;
@@ -3240,7 +3241,7 @@ interface MessagesShape {
     stack: {
       eyebrow: string; title: string;
       usdc: string; dcw: string; cctp: string; appKit: string;
-      gasStation: string; arc: string; usyc: string;
+      gateway: string; arc: string; usyc: string;
     };
     roadmap: {
       eyebrow: string; title: string; body: string;
@@ -5476,6 +5477,7 @@ export const en: MessagesShape = {
       eyebrow: 'PAY WITH SOLANA',
       blurb: 'Connect your Solana wallet and sign the transfer there. Your USDC lands on Arc. No deposit address.',
       conflictTemplate: '{wallet} is handling Solana in this browser. Karwan needs Phantom for this transfer. Turn the other one off, or install Phantom.',
+      needsSol: 'You need a little SOL to pay the Solana network fee. Get some free below, then try again.',
       connect: 'Connect Solana wallet',
       connecting: 'Connecting…',
       install: 'Install Phantom',
@@ -7047,10 +7049,10 @@ export const en: MessagesShape = {
   docsBridgePage: {
     eyebrow: 'TOP UP / WITHDRAW',
     title: 'Move USDC in and out of Arc',
-    intro: 'Deals settle in USDC on Arc. Top up to bring your USDC over from another chain and, after settlement, withdraw it back out to wherever you want it. The whole flow runs on Circle Cross-Chain Transfer Protocol, so your USDC is burned on the source chain and minted fresh on the destination. No wrapped tokens, no third-party liquidity pools.',
+    intro: 'Deals settle in USDC on Arc. Top up to bring your USDC over from another chain and, after settlement, withdraw it back out to wherever you want it. There are two rails on the page. Circle Gateway gives you one pooled balance across every supported chain, so you deposit once and then spend to any chain from a single signature. CCTP is the one-time transfer: your USDC is burned on the source chain and minted fresh on the destination. Either way there are no wrapped tokens and no third-party liquidity pools.',
     supportedChains: {
       heading: 'Supported chains',
-      body: 'Six chains today, in both directions. New chains come on as Circle rolls them out.',
+      body: 'Twelve chains, in both directions: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, and HyperEVM, plus Solana. New chains come on as Circle rolls them out.',
     },
     bringingIn: {
       heading: 'Bringing USDC to Arc',
@@ -7074,7 +7076,7 @@ export const en: MessagesShape = {
       body: 'Once your deal settles, the Cashout page lets you send your USDC where you want it. Two destinations:',
       options: {
         arcToArc: { label: 'Arc to Arc.', body: 'Send to any wallet on Arc. Instant, with fees in fractions of a cent.' },
-        crossChain: { label: 'Cross-chain.', body: 'Send to one of the six supported source chains. Your USDC is burned on Arc, attested by Circle, and minted on the destination. The progress card on the page shows burning, burned, attested, and minted in real time, so you never have to track a transaction hash on a block explorer.' },
+        crossChain: { label: 'Cross-chain.', body: 'Send to any of the twelve supported chains. Your USDC is burned on Arc, attested by Circle, and minted on the destination through Circle\'s Forwarding Service, so you never need that chain\'s gas token to receive it. The progress card shows burning, burned, attested, and minted in real time, so you never have to track a transaction hash on a block explorer.' },
       },
     },
     emailPasskey: {
@@ -7368,11 +7370,11 @@ export const en: MessagesShape = {
       title: 'What we use, and where',
       usdc: 'The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee, and KarwanVault staking principal.',
       dcw: 'Every agent runs on an SCA wallet on Arc Testnet. The buyer agent funds escrows and releases milestones; the seller agent bids and negotiates. Identity DCWs sign vault deposits and withdrawals for Circle-auth users with no wallet popup.',
-      cctp: 'Bidirectional USDC bridge across six chains today: Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus Solana Devnet. The user signs the burn, Karwan relays the mint on the destination, and the cashout page runs the same pipe in reverse.',
+      cctp: 'Bidirectional USDC bridge across twelve chains: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, and HyperEVM, plus Solana Devnet. Withdrawals run through Circle\'s Forwarding Service, so you cash out anywhere without holding that chain\'s gas token.',
       appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. Reuses our Developer-Controlled Wallets as the source so we add new cross-chain features without managing extra credentials.',
-      gasStation: 'Sponsors source-chain gas for our Circle wallet users on Base Sepolia and Ethereum Sepolia, so a non-crypto user only ever holds USDC. No buy ETH first detour.',
+      gateway: 'One pooled USDC balance across twelve chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas. It is also the rail that settles the agents\' per-call payments.',
       arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
-      usyc: 'Treasury reserves earn real Hashnote USYC on Arc Testnet via the standard ERC-4626 Teller interface. Live since 2026-06-06 after Circle whitelisted Treasury V3 on the Hashnote entitlements contract. The vault side (idle stake principal earning the same yield) is queued on the same support thread and flips live once Circle confirms the second whitelist.',
+      usyc: 'Treasury reserves earn real Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same path.',
     },
     roadmap: {
       eyebrow: 'Roadmap',

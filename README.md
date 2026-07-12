@@ -1,74 +1,75 @@
 # Karwan
 
-An agentic settlement layer on Arc. Two parties anywhere agree on a deal, the money sits in milestone escrow, and it releases as work is delivered. Agents handle the matching, negotiation, and settlement so neither side has to manage keys, watch the chain, or chase a counterparty.
+A settlement and credit layer for cross-border SME trade. Money sits in milestone escrow and releases against delivery. Every settled deal writes to a credit record that belongs to the business and travels with it, so a supplier finishes their first shipment with cash in hand and a credit file a financier can read.
 
-Built on the Circle stack. Live on Arc Testnet (chain 5042002).
+Built on the Circle stack. Live on Arc Testnet (chain 5042002), where USDC is the gas token.
 
 Live at [karwan.site](https://karwan.site). API at [api.karwan.site](https://api.karwan.site).
 
-## What Karwan is
+![Karwan architecture](./docs/diagrams/architecture.png)
 
-Karwan settles deals between people. The escrow primitive is the same whether a designer in Lagos sells a logo to a buyer in Berlin, or a supplier in Karachi ships cotton to a wholesaler in Dubai. What changes is the surface on top.
+## The problem
 
-Two surfaces sit on that primitive:
+A supplier in Lagos ships cotton to a buyer in Dubai. The goods leave in a week. The money arrives in ninety days, if it arrives. In between sits a correspondent banking chain that charges for every hop, a letter of credit most small exporters cannot get, and a working-capital hole the supplier funds out of pocket or not at all.
 
-- **P2P Trades** (live). Person-to-person, service-to-goods, any size. One person needs work or a product, another provides it, and the deal settles in USDC through milestone escrow.
-- **SME Trades** (next). The business-to-business and cross-border trade layer: invoice factoring, purchase-order financing, and a portable credit passport. It opens to financiers after the first pilot.
+The financing exists. It does not reach them. A bank underwrites against a credit file a first-time exporter does not have, and the trade record that would build one is scattered across invoices, emails, and bank statements no lender can verify.
 
-## What is live now
+Karwan gives that trade a settlement layer and a credit history at the same time. The trade is the underwriting.
 
-### A working P2P flow with two ways in
+## What is live
 
-You either know your counterparty or you do not. Both lead to the same escrow.
+### Milestone escrow for import and export settlement
 
-- **Direct deal.** Enter the counterparty's wallet, or just their email, then set the amount, terms, and deadline. The escrow funds, they sign in, accept, deliver, and you release in milestones.
-- **Agent matched.** Post a request for work you need, or an offer for what you sell. Your agent watches the market, scores both sides, and surfaces a proposal when it finds a fit. You approve, escrow funds, and the rest settles automatically.
+A deal splits into two to five milestones. The supplier marks a milestone delivered, the buyer reviews and releases that portion. The final milestone always needs an explicit buyer click and never releases on a timer. A missed deadline lets the buyer reclaim, and it counts against the supplier's record. A cancel or extension both sides agree to carries no penalty and refunds in full.
 
-An agent never opens an escrow without your approval. New and low-reputation counterparties route to human review rather than an automatic decline.
+The platform fee is 1.5 percent of the deal, split evenly between the two sides.
 
-### Safety built into delivery
+### Invoice factoring
 
-Work changes hands through links, and links are where scams hide. A SecurityAgent scans every delivery proof before the buyer sees it, and the same scan guards the in-app chat so a phishing or malware link cannot be sent to a counterparty in the first place. A flagged link pauses the deal's automatic release, notifies both sides, and routes them to resolve it together in chat. A confirmed bad link is a heavy hit to the sender's reputation. When a delivery is a file, it is shared through a link the agent can check rather than an unverified attachment.
+A financier advances against an invoice at a discount tied to the supplier's reputation tier. The supplier is paid early. On settlement the contract pulls the agreed repayment, so the financier does not chase it. Both legs move native USDC.
+
+### Purchase-order financing
+
+Working capital advanced against an accepted purchase order and held in contract custody. Proof of delivery is attested on chain by an allowlisted attester, and that attestation is what releases the capital to the supplier. A watcher drives release and repayment without a human in the loop.
+
+### The credit passport
+
+A public page per business at `/credit-passport/[address]`, built from settled deals, repayment behaviour, and counterparty concentration. Reputation is value-weighted and counts distinct settled counterparties, so volume with one repeat partner cannot inflate a score. It follows the wallet, not the platform.
+
+It is also a paid endpoint. Any lender can pay a fraction of a cent over x402 and read a verifiable settled-deal record without asking Karwan for permission. That is what makes it a passport rather than a profile.
 
 ### Agents that negotiate with market context
 
-The agent loop is more than a price matcher.
+An SME cannot afford to staff a sourcing desk. The agents do that work.
 
-- **Market research, shared.** Before negotiating, an agent can spend a fraction of a cent over Circle's x402 surface to pull a live market read on the deal: a web search plus a grounded price. The read is a general skill, so once one side researches an order, both agents negotiate against the same grounded number instead of guessing. The research credit is charged only to the buyer and seller who actually match.
-- **Proceed or pass, never a silent no.** When the best achievable price lands just outside your range, the agent surfaces it as a proceed-or-pass with the market reason attached, instead of declining behind your back. It always surfaces the best seller it found, never a weaker, pricier fallback. You decide, and nothing funds until you do.
-- **No match at your budget.** When the only fit is priced far past your budget and nothing cheaper exists, the deal stops pretending to negotiate. It tells you plainly, shows the closest price, and gives you one tap to raise your budget or bring back an offer you passed. The request stays open for a cheaper seller.
+- **Market research, shared.** Before negotiating, an agent spends a fraction of a cent over Circle's x402 surface to pull a live market read: a web search plus a grounded price. The read is shared, so both agents negotiate against the same number instead of guessing.
 - **Best fit first.** Ranking leads with skill and topical fit. Reputation only breaks ties between comparable matches, so a strong specialist is never buried under a higher-reputation generalist.
-- **Knows your repeat sellers.** Your buyer agent remembers the sellers you have closed clean deals with. A familiar, proven seller earns a small edge in ranking and a little more goodwill in negotiation, so the relationship counts, but it never beats a clearly better or cheaper newcomer and never pays above your cap. Skill, price, and reputation still come first.
-- **Overpay check.** If your budget sits well above the market read, the agent flags it as advisory, so you can proceed at your price or reopen closer to market. The agent never cancels on its own.
-- **Reliable agent reasoning.** The bid scoring, counter evaluation, and market read run on a model tuned for strict structured output, so a malformed response never stalls a live negotiation. The deterministic ranking stays the source of truth; the model writes the reasoning, not the decision.
+- **Proceed or pass, never a silent no.** When the best achievable price lands just outside the buyer's range, the agent surfaces it with the market reason attached instead of declining behind their back. Nothing funds until a human approves.
+- **Counterparty vetting.** A buyer agent pulls a seller's settled-deal record before scoring their bid. A seller agent pulls the buyer's funded-deal record before pricing. Each side pays for the read on the deals they actually match.
+- **Human approval always.** An agent never opens or funds an escrow without an explicit click. New and low-reputation counterparties route to human review, never an automatic decline.
 
-### In-app top up and withdraw across chains
+### Delivery safety
 
-USDC flows in from Base, Ethereum, Arbitrum, Optimism, and Polygon Sepolia, plus Solana Devnet. The backend relays the mint on Arc, so a user never has to hold an Arc gas asset. After settlement, the seller picks a destination chain and recipient on the cashout page. Arc-to-Arc transfers are instant; cross-chain cashout routes through CCTP V2 with an inline progress card.
+Work changes hands through links, and links are where fraud hides. A SecurityAgent scans every delivery proof before the buyer sees it, and guards the in-app chat so a phishing or malware link cannot be sent in the first place. A flagged link pauses the deal's automatic release, notifies both sides, and routes them to resolve it in chat. A confirmed bad link is a heavy hit to the sender's reputation.
+
+### USDC in and out, across twelve chains
+
+USDC moves into and out of Arc in both directions across twelve chains, including Solana. Outbound settlement uses Circle's Forwarding Service to submit the destination mint, so a supplier cashes out anywhere without ever holding that chain's gas token.
+
+Circle Gateway gives a business one pooled USDC balance across those chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas.
 
 ### Staking that doubles as deal insurance and earns yield
 
 A staker locks USDC into KarwanVault, and the same principal does two jobs.
 
-- **Deal insurance.** When a seller accepts a deal, the escrow reserves a portion of their free stake against it. A lost dispute slashes that reservation to the buyer. Trusted Match mode makes the reservation a precondition for matching rather than an option.
-- **Yield on idle balances.** Idle USDC routes into Hashnote USYC on Arc Testnet through KarwanTreasury, an ERC-4626 contract that subscribes to USYC and redeems on demand. Three balances feed it: platform-fee reserves in the treasury, idle staking principal in the vault, and, with the next contract release, escrow funds left idle during long-dated trades. The treasury holds real allowlisted USYC today.
-
-## SME Trades: the next layer
-
-The business-to-business path needs richer context than a P2P deal. A supplier negotiating a six-figure invoice cares about market medians, shipping rates, and a buyer's payment history in a way a freelancer pricing a logo does not. The SME layer is built and gated behind the SME Trades launch flag while it runs through pilot.
-
-- **Invoice factoring.** A financier pays a seller early at a discount tied to the seller's reputation tier. On settlement, the escrow routes funds to the financier. The seller gets paid early, the financier earns a spread, and the buyer pays the same amount they always would.
-- **Purchase-order financing.** Working capital advanced against an accepted purchase order, released to the supplier on verified proof of delivery.
-- **Credit passport.** A portable, on-chain record of completed deals, repayment behaviour, and counterparty concentration that travels with each business.
-- **Paid agent signals.** Through Circle's x402 nanopayment surface, agents pull outside data during negotiation for fractions of a cent: counterparty sanctions screening, market-rate medians, and credit checks against a passport.
+- **Deal insurance.** When a seller accepts a deal, the escrow reserves a portion of their free stake against it. A lost dispute slashes that reservation to the buyer.
+- **Yield on idle balances.** Idle USDC routes into Hashnote USYC on Arc through KarwanTreasury, an ERC-4626 contract that subscribes to USYC and redeems on demand, marked to the live on-chain oracle. The treasury holds real allowlisted USYC today.
 
 ## Roadmap
 
-Karwan is under active development. The near-term plan, in rough order.
+### The v2 contract bundle
 
-### The next contract release
-
-A new contract bundle is built and test-proven in the repository. It ships as one immutable release after its security review rather than a mid-cycle redeploy, so the live deployment stays stable while the new bundle is finished.
+A second contract generation is written, tested, and reviewed internally. It ships as one immutable release after review rather than a mid-cycle redeploy, so the live deployment stays stable while the bundle is finished. It lands in the coming weeks.
 
 - A contract-level guardian places bounded, auto-expiring holds and records delivery attestation across the escrow, vault, treasury, and financing contracts. It can pause a settlement but never move funds.
 - Arbiter dispute resolution with proportional splits, and a seller claim path after a review window.
@@ -77,40 +78,29 @@ A new contract bundle is built and test-proven in the repository. It ships as on
 
 ### Skill verification
 
-An agent ranks a seller on what they claim plus their settled-deal record. The next layer proves the claim, without Karwan running assessments itself.
-
-- Partners do the verifying. Karwan reads proofs from the platforms that already hold the evidence: GitHub for developers, business registries for traders, credential and portfolio sources for other trades.
-- Proofs are privacy-preserving. A seller proves a fact about a partner account through a zero-knowledge proof, so the account is never exposed and only a salted commitment lands on chain.
-- Attestations live on chain. A skill attestation carries a tier, an evidence commitment, and an expiry, and is revoked if a related dispute is lost.
-- Verification gates the bid. A seller verifies a skill before their agent can bid on it, prompted the moment a matching request appears. A seller with a real settled-deal history in a category is verified from that record.
-
-### SME Trades launch
-
-The invoice factoring and purchase-order financing rail is built and runs behind a launch flag through pilot, then opens to financiers. See SME Trades above for the detail.
+An agent ranks a seller on what they claim plus their settled-deal record. The next layer proves the claim, without Karwan running assessments itself. Partners do the verifying, Karwan reads the proofs. A seller proves a fact about a partner account through a zero-knowledge proof, so the account is never exposed and only a salted commitment lands on chain.
 
 ### Mainnet
 
-Before any mainnet launch, user funds move to user-held wallets, with agents funded only through a capped spend allowance, so the platform never custodies a principal. Staker deposits route to USYC so stakers earn yield directly, alongside the treasury USYC leg already live on testnet.
+User funds move to user-held wallets, with agents funded only through a capped spend allowance, so the platform never custodies a principal. Staker deposits route to USYC so stakers earn yield directly.
 
-### Wider reach
+### Fiat rails
 
-More source chains for top-up and cash-out as Circle's CCTP coverage grows, including the non-EVM ecosystems already on the way.
-
-Fiat on and off ramps through the Circle Payments Network, so a business can fund a deal and cash out in local currency through partner institutions without going through a crypto exchange. The aim is onboarding and payout that feel like ordinary software, with the settlement layer kept out of sight.
+On and off ramps through the Circle Payments Network, so a business funds a deal and cashes out in local currency through partner institutions without going through an exchange. The aim is onboarding and payout that feel like ordinary software, with the settlement layer kept out of sight.
 
 ## Contracts on Arc Testnet (chain 5042002)
 
 | Contract | Address |
 |---|---|
-| KarwanJobBoard | `0x35224C2234263B5506a9F7BfF4bb98e9FceD3FF3` |
 | KarwanEscrow | `0x48797C04EE342067A68f29Fbb19B577077d77301` |
+| KarwanInvoiceRegistry | `0x20a7CDf59b5f304De2b22a75e49f52353273E4E4` |
+| KarwanPOFinancing | `0xc91122Eb88613C98d58616cD8973883142F74Bb5` |
 | KarwanReputation | `0xBBAC748cA8C7a47e39Bd2AEaDbaa4e9f96ae4442` |
 | KarwanVault | `0x2d4506284B2D778365b4B295100EF099F35973c5` |
 | KarwanTreasury | `0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573` |
-| KarwanYieldDistributor | `0x9950b9a41A3e80930e451F2FEdaeb81e80195D03` |
-| KarwanInvoiceRegistry | `0x20a7CDf59b5f304De2b22a75e49f52353273E4E4` |
-| KarwanPOFinancing | `0xc91122Eb88613C98d58616cD8973883142F74Bb5` |
 | KarwanBusinessRegistry | `0xc64d347c9Fe451A3f1c8f4cF2d7a2E43D9AA771e` |
+| KarwanJobBoard | `0x35224C2234263B5506a9F7BfF4bb98e9FceD3FF3` |
+| KarwanYieldDistributor | `0x9950b9a41A3e80930e451F2FEdaeb81e80195D03` |
 | USDC | `0x3600000000000000000000000000000000000000` |
 
 Hashnote USYC on Arc Testnet, verified against Circle's published addresses.
@@ -124,31 +114,34 @@ Hashnote USYC on Arc Testnet, verified against Circle's published addresses.
 
 Earlier contract generations stay registered so users with open positions can find and exit them under `/legacy`. Nothing on a retired contract gets stuck.
 
-## How it is built
-
-Karwan runs on the Circle commerce stack end to end.
+## The Circle stack
 
 | Circle product | Role in Karwan |
 |---|---|
-| USDC on Arc | Settlement asset. Shares its address with the Arc gas token through a dual interface. |
-| Developer-Controlled Wallets | Identity wallets for email and passkey users, plus a buyer and seller agent wallet per active user. |
-| Gas Station | Sponsors the burn on Base and Ethereum Sepolia for the Circle-wallet deposit flow, where the backend signs from a provisioned Circle wallet. The default add-money flow signs from the user's own connected wallet, which pays its own source-chain gas. |
-| Cross-Chain Transfer Protocol V2 | Pulls USDC into Arc from five EVM testnets and Solana Devnet. The backend relays the destination side. |
-| App Kit | The SDK behind the bridge and cash-out flows, running server-side against the same Circle wallets. |
-| Gateway Nanopayments (x402) | Settles the agents' per-call market-intelligence payments on Arc, batched and gasless. Live in every deal, not only the SME layer. |
-| Hashnote USYC | On-chain yield on treasury idle reserves, sourced from tokenized Treasury bills. |
+| USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order custody, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
+| Developer-Controlled Wallets | An identity wallet and two agent wallets per user, provisioned on sign-in with an email or a passkey. No seed phrase. Web3 users can sign in with their own wallet through Sign-In with Ethereum instead. |
+| CCTP V2 with App Kit | USDC into and out of Arc across twelve chains, both directions. Outbound uses Circle's Forwarding Service to submit the destination mint. |
+| Circle Gateway | One pooled USDC balance across twelve chains, spendable to any of them from a single signature. Also the settlement rail for x402, netting the agents' per-call payments into batched on-chain settlement. |
+| Gateway Nanopayments (x402) | Agents buy the data they negotiate with, a cent at a time. Karwan also sells five paid endpoints, including the credit passport and repayment behaviour. |
+| Hashnote USYC | On-chain yield on idle balances, sourced from tokenized Treasury bills. Real allowlisted USYC, marked to the live oracle. |
 
-The agent layer wraps Circle wallets so neither side handles keys. Web3 users can sign in with their own wallet through Sign-In with Ethereum if they prefer.
+## How it is built
 
+A Next.js frontend and a Hono backend sit above the Circle SDKs. The backend holds no user funds: it provisions Circle wallets, relays what needs relaying, and runs the watchers that drive delivery, repayment, expiry, and yield. The contracts are the source of truth, and every settlement event links to Arcscan from the live activity feed at `/activity`.
+
+Contracts are Solidity, tested with Foundry: **362 tests passing across 28 suites**, including conservation and vault invariant suites and named attack suites for escrow timing, vault reentrancy, and reputation farming.
+
+```bash
+cd contracts && forge test
+```
 
 ## Docs
 
-- [docs/architecture.md](./docs/architecture.md). Components, both deal flows, the wallet model.
+- [docs/architecture.md](./docs/architecture.md). Components, the deal flows, the wallet model.
 - [docs/circle-integration.md](./docs/circle-integration.md). Each Circle product and where it lands in the code.
 - [docs/reputation-model.md](./docs/reputation-model.md). The composite score, tier breakpoints, and agent integration.
 - [docs/why-karwan.md](./docs/why-karwan.md). The longer design brief.
 - [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). Notes from building on Circle.
-
 
 ## License
 

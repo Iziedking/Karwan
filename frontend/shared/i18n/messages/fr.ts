@@ -1651,6 +1651,7 @@ export const fr: Messages = {
       eyebrow: 'PAYER AVEC SOLANA',
       blurb: 'Connectez votre portefeuille Solana et signez le transfert. Votre USDC arrive sur Arc. Pas d\'adresse de dépôt.',
       conflictTemplate: '{wallet} gère Solana dans ce navigateur. Karwan a besoin de Phantom pour ce transfert. Désactivez l’autre, ou installez Phantom.',
+      needsSol: 'Il vous faut un peu de SOL pour les frais de réseau Solana. Obtenez-en gratuitement ci-dessous, puis réessayez.',
       connect: 'Connecter Solana',
       connecting: 'Connexion…',
       install: 'Installer Phantom',
@@ -3172,7 +3173,7 @@ export const fr: Messages = {
     eyebrow: 'DÉPÔT / RETRAIT',
     title: 'Déplacer USDC vers et depuis Arc',
     intro: 'Les affaires se règlent en USDC sur Arc. Le dépôt amène votre USDC depuis une autre chaîne et, après règlement, le retrait le renvoie là où vous le souhaitez. Tout le flux fonctionne sur Circle Cross-Chain Transfer Protocol. Votre USDC est brûlé sur la chaîne source et frappé à neuf sur la destination. Aucun jeton enveloppé, aucun pool de liquidité tiers.',
-    supportedChains: { heading: 'Chaînes prises en charge', body: 'Six chaînes aujourd hui, dans les deux sens. De nouvelles chaînes arrivent au fur et à mesure que Circle les déploie.' },
+    supportedChains: { heading: 'Chaînes prises en charge', body: 'Douze chaînes, dans les deux sens: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain et HyperEVM, plus Solana. De nouvelles chaînes arrivent au fur et à mesure que Circle les déploie.' },
     bringingIn: {
       heading: 'Amener USDC sur Arc',
       steps: {
@@ -3189,7 +3190,7 @@ export const fr: Messages = {
       body: 'Une fois votre affaire réglée, la page Cashout vous permet d envoyer votre USDC où vous le souhaitez. Deux destinations:',
       options: {
         arcToArc: { label: 'Arc vers Arc.', body: 'Envoyez vers n importe quel portefeuille sur Arc. Instantané, avec des frais en fractions de centime.' },
-        crossChain: { label: 'Inter-chaînes.', body: 'Envoyez vers l une des six chaînes sources prises en charge. Votre USDC est brûlé sur Arc, attesté par Circle, et frappé sur la destination. La carte de progression sur la page indique en temps réel les états brûlure, brûlé, attesté et frappé, sans jamais avoir à suivre un hash de transaction sur un explorateur de blocs.' },
+        crossChain: { label: 'Inter-chaînes.', body: 'Envoyez vers l une des douze chaînes prises en charge. Votre USDC est brûlé sur Arc, attesté par Circle, et frappé sur la destination via le Forwarding Service de Circle, donc vous n avez jamais besoin du jeton de gaz de cette chaîne pour le recevoir. La carte de progression indique en temps réel les états brûlure, brûlé, attesté et frappé, sans jamais avoir à suivre un hash de transaction sur un explorateur de blocs.' },
       },
     },
     emailPasskey: { heading: 'Si vous vous connectez avec email ou passkey', body: 'Vous obtenez un portefeuille dédié sur chaque chaîne la première fois que vous y faites un dépôt. Envoyez USDC à l adresse de ce portefeuille et Karwan s occupe de la combustion pour vous. La page Dépôt / Retrait affiche l adresse et le solde.' },
@@ -3454,11 +3455,11 @@ export const fr: Messages = {
       eyebrow: 'Pile Circle', title: 'Ce que nous utilisons, et où',
       usdc: 'La devise dans laquelle nous réglons. Détient les montants des transactions, les soldes de séquestre, les paiements de jalons, les frais de plateforme et le principal mis en jeu dans KarwanVault.',
       dcw: 'Chaque agent tourne sur un portefeuille SCA sur Arc Testnet. L\'agent acheteur finance les séquestres et libère les jalons; l\'agent vendeur enchérit et négocie. Les DCW d\'identité signent dépôts et retraits de KarwanVault pour les utilisateurs Circle-auth sans popup de portefeuille.',
-      cctp: 'Pont USDC bidirectionnel sur six chaînes aujourd\'hui: Base, Ethereum, Arbitrum, Optimism et Polygon Sepolia, plus Solana Devnet. L\'utilisateur signe le burn, Karwan relaie le mint sur la destination, et la page de cashout fait tourner le même tuyau à l\'envers.',
+      cctp: 'Pont USDC bidirectionnel sur douze chaînes: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain et HyperEVM, plus Solana Devnet. Les retraits passent par le Forwarding Service de Circle, donc vous encaissez partout sans détenir le jeton de gaz de la chaîne d\'arrivée.',
       appKit: 'Le SDK unifié de Circle pour pont, swap, envoi et solde unifié. Réutilise nos Developer-Controlled Wallets comme source, ce qui permet d\'ajouter de nouvelles fonctions cross-chain sans gérer d\'identifiants supplémentaires.',
-      gasStation: 'Sponsorise le gaz source-chain pour nos utilisateurs de portefeuilles Circle sur Base Sepolia et Ethereum Sepolia, pour qu\'un utilisateur non crypto ne détienne jamais que des USDC. Pas de détour acheter de l\'ETH d\'abord.',
+      gateway: 'Un seul solde USDC mutualisé sur douze chaînes. Déposez une fois, puis dépensez vers n\'importe quelle chaîne avec une seule signature, sans changer de réseau et sans gaz sur la chaîne source. C\'est aussi le rail qui règle les paiements des agents, appel par appel.',
       arc: 'Chaîne 5042002. Les blocs finalisent en moins d\'une seconde. USDC est le jeton de gaz natif, et les registres d\'identité et de réputation ERC-8004 sont déjà déployés.',
-      usyc: 'Sur mainnet, le vault et la trésorerie routent les USDC inactifs via Hashnote USYC sur l\'interface ERC-4626 standard, pour que le principal verrouillé gagne le taux court sans toucher à la réputation. Le testnet tourne contre un adaptateur mock déterministe sur la même interface, pour que le chemin de démo fonctionne aujourd\'hui.',
+      usyc: 'Les réserves de la trésorerie gagnent de vrais Hashnote USYC sur Arc Testnet via l\'interface Teller ERC-4626 standard, valorisés sur l\'oracle on-chain en direct. Le principal de staking inactif passe par le même chemin.',
     },
     roadmap: {
       eyebrow: 'Feuille de route', title: 'À venir', body: 'Ce qui suit la build testnet actuelle.',

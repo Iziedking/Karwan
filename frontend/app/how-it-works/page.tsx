@@ -167,8 +167,8 @@ export default function HowItWorksPage() {
             role={t.stack.appKit}
           />
           <StackTile
-            name="Gas Station"
-            role={t.stack.gasStation}
+            name="Circle Gateway"
+            role={t.stack.gateway}
           />
           <StackTile
             name="Arc Testnet"

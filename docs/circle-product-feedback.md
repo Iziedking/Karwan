@@ -4,8 +4,8 @@ Developer notes from building Karwan on Circle's stack. Karwan runs an agentic
 settlement layer on Arc: buyer and seller agents negotiate a deal, pay each other
 and the platform for market intelligence per call, and settle in USDC through
 milestone escrow. The integration touches Developer-Controlled Wallets, USDC on
-Arc, CCTP V2 through App Kit, Gateway Nanopayments for x402, Gas Station, USYC,
-and the ERC-8004 identity registry.
+Arc, CCTP V2 through App Kit, Circle Gateway for unified balance and for x402
+settlement, USYC, and the ERC-8004 identity registry.
 
 Each section lists what worked, where we hit friction, and what would help. All
 observations are from Arc Testnet and the Circle sandbox.
@@ -83,16 +83,26 @@ Friction:
   the managed bridge path did not fit them directly, and we build the burn as a
   user-signed transaction. This is the part that still needs a hand-rolled signing
   path.
-- We relay the destination mint through our backend agent. Circle's newer Forwarding
-  Service now does that leg for you, and Arc is a supported destination: a forward
-  request in the burn hook data lets Circle broadcast the mint on Arc. We have not
-  moved to it yet, mostly because our burn is already hand-rolled for the wallet
-  reason above, and because the mint is still surfaced by polling Iris rather than a
-  push.
 - We ran CCTP Standard (slow) transfers, which wait for source-chain hard finality.
   Sandbox attestation latency was variable, roughly 10 to 19 minutes in our runs, in
   line with the documented finality windows. Our relay polls Iris for up to 25
   minutes before giving up.
+- The chain a CCTP burn can originate from and the chain a Circle wallet can sign on
+  are two different lists, and they are published separately. A CCTP burn is a
+  contract execution, so a Circle-wallet user cannot burn from a chain Circle has not
+  named, even though CCTP itself supports it. The failure surfaces at signing time,
+  which is late. We now mark those chains web3-only in config and reflect it in the
+  UI, but we found the boundary by hitting it.
+
+What the Forwarding Service changed:
+
+- Moving outbound settlement onto the Forwarding Service was the single highest-
+  leverage change in our bridge. Because Circle submits the destination mint, we no
+  longer need a funded wallet on each destination chain, and withdrawal coverage went
+  from a handful of chains to every chain CCTP reaches. A user cashes out to any of
+  them without ever holding that chain's gas token. This deserves more prominence in
+  the docs than it currently gets. It reads like an optimization and it is actually a
+  capability unlock.
 
 Asks:
 
@@ -102,6 +112,8 @@ Asks:
 - An attestation-ready webhook. Both direct CCTP and the Forwarding Service surface
   the mint by polling `GET /v2/messages`; a push notification would remove the poll
   loop.
+- One published matrix of chain support across CCTP, Circle Wallets, and Gateway.
+  Three lists that nearly agree are harder to build against than one list that does.
 
 ## Gateway Nanopayments and x402
 
@@ -134,29 +146,51 @@ Asks:
   Gateway pieces (Gateway Wallet balance, EIP-3009 authorization, batched
   settlement), so a team new to both can wire the flow in one read.
 
-## Gas Station
+## Circle Gateway (unified balance)
 
 What worked:
 
-- The testnet default policy meant no setup. On our Circle-wallet deposit path,
-  where the backend signs the burn from a provisioned SCA, the Gas Station policy
-  sponsored the gas on Base and Ethereum Sepolia, so that user held only USDC.
+- The burn-intent design is better than it first looks. The EIP-712 signing domain
+  carries no chain id and no verifying contract, and the payload is a set of burn
+  intents rather than one. So a single signature can cover burns across several
+  source chains at once: no chain switching, no source-chain gas, no per-chain
+  approval dance. Once we understood that, our entire fund-and-withdraw surface
+  collapsed from a chain picker into one card with a pooled balance.
+- Gateway rejects smart contract accounts as signers but accepts them as recipients.
+  That asymmetry turned out to be exactly what we needed. The pooled balance lives on
+  the user's own EOA, and their Circle agent wallets, which are SCAs, receive from it.
+  A one-click agent top-up straight out of the pooled balance falls out of the design
+  for free.
+- `getBalances` needs only an address. No adapter, no signer, no credentials. That
+  makes the read a cacheable backend call, which is what let us put a live pooled
+  balance on a page without dragging a wallet connection into it.
 
 Friction:
 
-- Gas Station sponsors Circle wallets, not external ones, which is expected but
-  worth stating plainly: our default add-money flow signs the burn in the user's
-  own connected wallet, so it falls outside sponsorship and the user pays the
-  source-chain gas. The two facts we would want a builder to see together are that
-  the Bridge Kit does not accept Circle wallets and that Gas Station only sponsors
-  Circle wallets, because together they push a bridge integration toward exactly
-  the external-wallet path that cannot be sponsored.
+- `getBalances` reports only what has been deposited into the Gateway contract, not
+  what the wallet holds. This is correct, and it is also the first thing every
+  integrator gets wrong, because "unified balance" reads as "all my USDC." An address
+  holding several hundred USDC on Base reads as a zero Gateway balance, and nothing in
+  the response says why. A field distinguishing "pooled" from "held on chain, not yet
+  deposited" would save every team the same afternoon.
+- The SCA-as-signer rejection is invisible until a burn intent fails. It is a
+  defensible constraint and it materially shapes the architecture of any app built on
+  Circle wallets, so it belongs in prose next to the deposit example, not discovered
+  at signing time.
+- There is no history endpoint. A transfer can be fetched by id, but there is no way
+  to list what an address has done. Any product that shows a user their own transfer
+  history has to keep a parallel ledger, which means the on-chain record and the
+  product record can drift.
+- A spend deducts a forwarding fee, so the full pooled balance is never quite
+  spendable. Our Max button has to call `estimateSpend` and reserve the fee, or the
+  transfer fails at the last step. Worth a line in the docs beside the balance read.
 
 Asks:
 
-- A clearer split in the dashboard between testnet and mainnet sponsorship metrics,
-  so a project running both does not read the totals together when scoping spend
-  caps.
+- A list endpoint for Gateway transfers, so a product does not have to keep a shadow
+  ledger of its own users' activity.
+- A `pooled` versus `wallet` distinction in the balance response, or an explicit zero
+  reason. The current silent zero is the sharpest edge in an otherwise excellent API.
 
 ## USYC
 

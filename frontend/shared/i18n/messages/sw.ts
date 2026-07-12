@@ -1651,6 +1651,7 @@ export const sw: Messages = {
       eyebrow: 'LIPA NA SOLANA',
       blurb: 'Unganisha pochi yako ya Solana na utie saini uhamisho hapo. USDC yako huingia kwenye Arc. Hakuna anwani ya amana.',
       conflictTemplate: '{wallet} inashughulikia Solana kwenye kivinjari hiki. Karwan inahitaji Phantom kwa uhamisho huu. Zima nyingine, au sakinisha Phantom.',
+      needsSol: 'Unahitaji SOL kidogo kulipa ada ya mtandao wa Solana. Pata bure hapa chini, kisha ujaribu tena.',
       connect: 'Unganisha Solana',
       connecting: 'Inaunganisha…',
       install: 'Sakinisha Phantom',
@@ -3172,7 +3173,7 @@ export const sw: Messages = {
     eyebrow: 'WEKA / TOA',
     title: 'Hamisha USDC kuingia na kutoka Arc',
     intro: 'Mikataba inalipwa kwa USDC kwenye Arc. Kuweka huleta USDC yako kutoka mnyororo mwingine na, baada ya malipo, kutoa huirudisha popote unapotaka. Mtiririko mzima unaendeshwa kwenye Circle Cross-Chain Transfer Protocol, hivyo USDC yako inachomwa kwenye mnyororo wa chanzo na inachapishwa upya kwenye mnyororo wa lengo. Hakuna tokeni zilizofungwa, hakuna mabwawa ya ukwasi ya watu wa tatu.',
-    supportedChains: { heading: 'Minyororo inayoungwa mkono', body: 'Minyororo sita leo, kwa pande zote mbili. Minyororo mipya inajumuishwa kadri Circle inavyoizindua.' },
+    supportedChains: { heading: 'Minyororo inayoungwa mkono', body: 'Minyororo kumi na miwili, kwa pande zote mbili: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, na HyperEVM, pamoja na Solana. Minyororo mipya inajumuishwa kadri Circle inavyoizindua.' },
     bringingIn: {
       heading: 'Kuleta USDC kwenye Arc',
       steps: {
@@ -3189,7 +3190,7 @@ export const sw: Messages = {
       body: 'Mara mkataba wako unapokamilika, ukurasa wa Cashout unakuwezesha kutuma USDC yako popote unapotaka. Maelekeo mawili:',
       options: {
         arcToArc: { label: 'Arc kwenda Arc.', body: 'Tuma kwenye pochi yoyote kwenye Arc. Papo hapo, na ada za sehemu ya senti.' },
-        crossChain: { label: 'Kati ya minyororo.', body: 'Tuma kwenye mojawapo ya minyororo sita ya chanzo inayoungwa mkono. USDC yako inachomwa kwenye Arc, inathibitishwa na Circle, na inachapishwa kwenye lengo. Kadi ya maendeleo kwenye ukurasa inaonyesha kuchomwa, imechomwa, imethibitishwa, na imechapishwa kwa wakati halisi, hivyo hutalazimika kufuatilia hashi ya muamala kwenye kichunguzi cha bloki.' },
+        crossChain: { label: 'Kati ya minyororo.', body: 'Tuma kwenye mnyororo wowote kati ya kumi na miwili inayoungwa mkono. USDC yako inachomwa kwenye Arc, inathibitishwa na Circle, na inachapishwa kwenye lengo kupitia Forwarding Service ya Circle, hivyo hauhitaji kamwe token ya gesi ya mnyororo huo ili kuipokea. Kadi ya maendeleo inaonyesha kuchomwa, imechomwa, imethibitishwa, na imechapishwa kwa wakati halisi, hivyo hutalazimika kufuatilia hashi ya muamala kwenye kichunguzi cha bloki.' },
       },
     },
     emailPasskey: { heading: 'Ikiwa unaingia na email au passkey', body: 'Unapata pochi maalum kwenye kila mnyororo mara ya kwanza unapoweka kutoka kwake. Tuma USDC kwenye anwani ya pochi hiyo na Karwan inashughulikia kuchomwa kwa niaba yako. Ukurasa wa Weka / Toa unaonyesha anwani na salio.' },
@@ -3454,11 +3455,11 @@ export const sw: Messages = {
       eyebrow: 'Mfumo wa Circle', title: 'Tunachokitumia, na wapi',
       usdc: 'Sarafu tunayolipia. Inashikilia viwango vya deal, mizani ya escrow, malipo ya hatua, ada ya jukwaa, na mtaji wa staking wa KarwanVault.',
       dcw: 'Kila wakala anaendesha mkoba wa SCA kwenye Arc Testnet. Wakala wa mnunuzi anafadhili escrow na anatoa hatua; wakala wa muuzaji anatoa bei na anazungumza. DCW za utambulisho zinasaini amana na utoaji wa vault kwa watumiaji wa Circle-auth bila popup ya mkoba.',
-      cctp: 'Daraja la USDC la pande mbili kwenye chenya sita leo: Base, Ethereum, Arbitrum, Optimism, na Polygon Sepolia, pamoja na Solana Devnet. Mtumiaji anasaini choma, Karwan inapeleka uchapaji kwenye lengwa, na ukurasa wa cashout unaendesha bomba lile lile kwa mwelekeo wa kinyume.',
+      cctp: 'Daraja la USDC la pande mbili kwenye chenya kumi na mbili: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, na HyperEVM, pamoja na Solana Devnet. Utoaji unapita kwenye Forwarding Service ya Circle, hivyo unatoa pesa kwenye chenya yoyote bila kushika token ya gesi ya chenya hiyo.',
       appKit: 'SDK iliyounganishwa ya Circle kwa daraja, ubadilishaji, kutuma, na salio iliyounganishwa. Inatumia tena Developer-Controlled Wallets zetu kama chanzo, hivyo tunaongeza vipengele vipya vya kuvuka mnyororo bila kusimamia stakabadhi za ziada.',
-      gasStation: 'Inadhamini gesi ya mnyororo wa chanzo kwa watumiaji wetu wa mkoba wa Circle kwenye Base Sepolia na Ethereum Sepolia, ili mtumiaji asiye wa crypto ashike USDC tu. Hakuna mzunguko wa nunua ETH kwanza.',
+      gateway: 'Salio moja la USDC lililokusanywa kwenye chenya kumi na mbili. Weka amana mara moja, kisha tumia kwenye chenya yoyote kwa saini moja, bila kubadilisha mtandao na bila gesi kwenye chenya ya chanzo. Pia ndiyo njia inayolipa malipo ya mawakala kila wanapoita huduma.',
       arc: 'Chenya 5042002. Vibao vinakamilika chini ya sekunde moja. USDC ni token asilia ya gesi, na rejista za utambulisho na sifa za ERC-8004 tayari zimewekwa.',
-      usyc: 'Kwenye mainnet, vault na treasury zinapeleka USDC iliyokaa wakati kupitia Hashnote USYC kupitia kiolesura cha kawaida cha ERC-4626, ili mtaji uliofungwa upate kiwango cha muda mfupi huku sifa ikibaki bila kubadilika. Testnet inakimbia dhidi ya kibadilishaji bandia cha uhakika kwenye kiolesura kile kile ili njia ya demo ifanye kazi leo.',
+      usyc: 'Akiba ya treasury inapata Hashnote USYC halisi kwenye Arc Testnet kupitia kiolesura cha kawaida cha Teller cha ERC-4626, ikipimwa kwa oracle hai iliyo kwenye mnyororo. Mtaji wa staking uliokaa unapita njia ile ile.',
     },
     roadmap: {
       eyebrow: 'Ramani ya safari', title: 'Kinachofuata', body: 'Kinachosafirishwa baada ya jenzi ya sasa ya testnet.',

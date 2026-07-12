@@ -37,52 +37,62 @@ the state is `COMPLETE` or a failure state.
 
 ### CCTP V2
 
-USDC moves into and out of Arc through CCTP V2. The bridge is bidirectional
-and runs across six chains today: Base, Ethereum, Arbitrum, Optimism, and
-Polygon Sepolia, plus Solana Devnet. Adding more is a config entry, not
-new integration code.
+USDC moves into and out of Arc through CCTP V2, in both directions, across
+twelve chains: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche,
+Unichain, Sei, Sonic, World Chain, and HyperEVM testnets, plus Solana Devnet.
+Adding another is a config entry, not new integration code.
 
-The ingress path: the user signs the burn on the source chain from their
-own wallet (or from their Circle DCW if they signed in via passkey or
-email). The backend polls Circle's IRIS attestation API, then relays
-`receiveMessage` on Arc with a relay wallet. The user never needs Arc gas
-to receive the mint.
+The ingress path: the user signs the burn on the source chain from their own
+wallet, or from their Circle DCW if they signed in with a passkey or an email.
+The backend polls Circle's IRIS attestation API, then relays `receiveMessage`
+on Arc. The user never needs Arc gas to receive the mint.
 
-The cashout path runs the same pipe in reverse. After a deal settles, the
-seller picks the destination chain on the cashout page. The backend burns
-on Arc, polls the attestation, relays the mint on the destination. An
-inline progress card on `/cashout/[jobId]` shows burning, burned, attested,
-minted as it happens.
+The withdrawal path runs the same pipe in reverse, and uses Circle's Forwarding
+Service to submit the destination mint. That is what makes every CCTP chain a
+valid destination: because the forwarder submits the mint, Karwan does not need
+a funded wallet on the destination chain, and the user never holds that chain's
+gas token. An inline progress card shows burning, burned, attested, and minted
+as it happens.
 
-CCTP V2 deploys the same canonical `TokenMessengerV2` and
-`MessageTransmitterV2` addresses across testnets, so only the source
-domain and USDC address vary per chain.
+CCTP V2 deploys the same canonical `TokenMessengerV2` and `MessageTransmitterV2`
+addresses across testnets, so only the source domain and USDC address vary per
+chain.
 
-### Gas Station
+One capability boundary is worth naming, because it shapes the code. A CCTP burn
+is a contract execution, and Circle wallets can only execute contracts on chains
+Circle has named. So a chain outside that list can be a withdrawal destination
+but never a source for a Circle-wallet user. Those chains are marked web3-only in
+`frontend/features/bridge/config.ts` and the UI reflects it rather than failing
+at signing time.
 
-Karwan has a Gas Station policy that sponsors the approve and burn on Base
-Sepolia and Ethereum Sepolia, but only on one of the two add-money paths. On the
-Circle-wallet deposit path (`startCircle`), the backend signs both transactions
-from a provisioned source-chain Circle DCW, and the Gas Station policy covers the
-gas, so that user holds only USDC. This path is gated behind
-`CIRCLE_GAS_STATION_ENABLED` and a per-chain whitelist.
+### Circle Gateway
 
-The default add-money path is different: the user signs the burn in their own
-connected wallet through App Kit and Circle's Forwarding Service. Gas Station does
-not sponsor an external wallet, so on that path the user pays the source-chain gas
-themselves, and the Arc mint is handled by the forwarder.
+Gateway gives a business one pooled USDC balance across the twelve chains above.
+Deposit once, then spend to any chain from a single signature, with no chain
+switching and no source-chain gas.
+
+The read is `kit.unifiedBalance.getBalances` in `backend/src/routes/gateway.ts`,
+session-scoped and cached. Deposit and spend run client-side in
+`frontend/features/gateway/lib.ts` through `@circle-fin/adapter-viem-v2`.
+
+Two design facts drove the architecture:
+
+- Gateway's EIP-712 signing domain carries no chain id and no verifying contract,
+  and the payload is a set of burn intents. One signature therefore covers burns
+  across several source chains at once.
+- Gateway accepts smart contract accounts as recipients but rejects them as
+  signers. The pooled balance has to sit on an account that can produce a raw
+  signature, so it lives on the user's own EOA. The agent wallets, which are
+  Circle SCAs, can still receive from it, which is what makes a one-click agent
+  top-up out of the pooled balance possible.
 
 ### App Kit
 
-`@circle-fin/app-kit` is the unified SDK that covers bridge, swap, send,
-and unified-balance reads behind one entry point. Karwan uses App Kit for
-the cashout bridge-out flow and reaches the same surface for the unified
-balance reads on the profile holdings panel. The mainnet path for vault
-yield routes through the same SDK. Less code, fewer ways for the
-integration to drift as we ship the next feature.
-
-We use App Kit server-side, not in the browser, so user keys never leave
-the backend.
+`@circle-fin/app-kit` is the unified SDK behind bridge and unified-balance.
+Karwan uses it on both sides: server-side in `backend/src/circle/bridge-kit.ts`
+for Circle-wallet users, where keys never leave the backend, and client-side for
+web3 users who sign with their own wallet. One SDK, fewer ways for the
+integration to drift as the next feature ships.
 
 ### USYC (Hashnote, via ERC-4626 Teller)
 

@@ -1,0 +1,288 @@
+<title>Karwan — Ignyte Track 2 Submission</title>
+<style>
+  :root {
+    --ink: #0A0A0B;
+    --paper: #FFFFFF;
+    --muted: #5F5F58;
+    --rule: #E2E0D8;
+    --wash: #F6F5F0;
+    --lime: #D8FF3D;
+    --olive: #7E9433;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.6pt;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 40px 72px;
+  }
+
+  h1 { font-size: 30pt; font-weight: 800; letter-spacing: -0.8px; margin: 0 0 6px; line-height: 1.1; }
+  h2 {
+    font-size: 9pt; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--olive); margin: 44px 0 14px; padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  h3 { font-size: 12pt; font-weight: 700; margin: 26px 0 6px; letter-spacing: -0.2px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+  strong { font-weight: 700; }
+
+  .lede { font-size: 12.5pt; line-height: 1.55; color: var(--ink); margin: 0 0 22px; }
+  .sub { color: var(--muted); }
+
+  .tag {
+    display: inline-block; background: var(--ink); color: var(--lime);
+    font-size: 8.5pt; font-weight: 700; letter-spacing: 1.2px;
+    padding: 5px 11px; margin-bottom: 20px;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: 9.8pt; }
+  th {
+    text-align: left; font-size: 8pt; font-weight: 700; letter-spacing: 0.9px;
+    text-transform: uppercase; color: var(--muted);
+    border-bottom: 1.5px solid var(--ink); padding: 0 12px 7px 0;
+  }
+  td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td:last-child, th:last-child { padding-right: 0; }
+  .mono { font-family: "SF Mono", "Consolas", monospace; font-size: 8.4pt; letter-spacing: -0.2px; }
+
+  .facts { background: var(--wash); border-left: 3px solid var(--lime); padding: 16px 20px; margin: 0 0 8px; }
+  .facts table { margin: 0; font-size: 9.8pt; }
+  .facts td { border: 0; padding: 4px 12px 4px 0; }
+  .facts td:first-child { color: var(--muted); width: 148px; }
+
+  .callout { border: 1.5px solid var(--ink); padding: 18px 20px; margin: 22px 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  ul { margin: 0 0 14px; padding-left: 18px; }
+  li { margin-bottom: 6px; }
+
+  .diagram { width: 100%; margin: 10px 0 6px; border: 1px solid var(--rule); }
+  .caption { font-size: 8.8pt; color: var(--muted); margin: 0 0 8px; }
+
+  .check { color: var(--olive); font-weight: 700; }
+
+  footer {
+    margin-top: 52px; padding-top: 16px; border-top: 1.5px solid var(--ink);
+    font-size: 8.8pt; color: var(--muted);
+    display: flex; justify-content: space-between;
+  }
+
+  @media print {
+    body { font-size: 10pt; }
+    .page { padding: 0; max-width: none; }
+    h2 { page-break-after: avoid; }
+    h3 { page-break-after: avoid; }
+    table, .facts, .callout, .diagram { page-break-inside: avoid; }
+    .break { page-break-before: always; }
+    a { text-decoration: none; }
+  }
+  @page { margin: 16mm 15mm; }
+</style>
+
+<div class="page">
+
+  <div class="tag">IGNYTE · TRACK 2 · SME TRADE FINANCE AND WORKING CAPITAL</div>
+
+  <h1>Karwan</h1>
+  <p class="lede">Milestone escrow, invoice factoring, purchase-order financing, and a portable credit passport for cross-border SME trade. Built on the Circle stack, live on Arc.</p>
+
+  <div class="facts">
+    <table>
+      <tr><td>Track</td><td><strong>Track 2.</strong> Best SME Trade Finance and Working Capital Workflow</td></tr>
+      <tr><td>Live product</td><td><a href="https://karwan.site">karwan.site</a> · API at <a href="https://api.karwan.site">api.karwan.site</a></td></tr>
+      <tr><td>Repository</td><td><a href="https://github.com/Iziedking/Karwan">github.com/Iziedking/Karwan</a></td></tr>
+      <tr><td>Demo video</td><td><a href="#">[ VIDEO LINK ]</a></td></tr>
+      <tr><td>Network</td><td>Arc Testnet, chain 5042002. USDC is the gas token.</td></tr>
+      <tr><td>Circle account</td><td>iziedking17@gmail.com</td></tr>
+    </table>
+  </div>
+
+  <h2>The problem</h2>
+
+  <p>A supplier in Lagos ships cotton to a buyer in Dubai. The goods leave in a week. The money arrives in ninety days, if it arrives. In between sits a correspondent banking chain that charges for every hop, a letter of credit most small exporters cannot get, and a working-capital hole the supplier funds out of pocket or not at all.</p>
+
+  <p>The financing exists. It just does not reach them. A bank underwrites against a credit file that a first-time exporter does not have, and the trade record that would build one is scattered across invoices, emails, and bank statements that no lender can verify. So the smallest firms, the ones for whom ninety days is the difference between growing and closing, pay the most for capital or go without it.</p>
+
+  <p><strong>Karwan gives that trade a settlement layer and a credit history at the same time.</strong> The money sits in escrow and releases against delivery. Every settled deal, every repayment, every dispute writes to a public record that belongs to the business and travels with it. The trade is the underwriting. A supplier finishes their first shipment with cash in hand and a credit file a financier can read, and the second deal is cheaper to fund than the first.</p>
+
+  <h2>What is live</h2>
+
+  <p>The track brief names four example builds. Karwan ships all four, on chain, on Arc, in one product where they compose into a single flow rather than four demos.</p>
+
+  <table>
+    <tr>
+      <th style="width:34%">Track 2 example build</th>
+      <th style="width:38%">In Karwan</th>
+      <th>Where</th>
+    </tr>
+    <tr>
+      <td><strong>Stablecoin escrow for import and export settlement, milestone-based release</strong></td>
+      <td><span class="check">Live.</span> A deal splits into two to five milestones. The supplier marks a milestone delivered, the buyer reviews and releases that portion. The final milestone always needs an explicit buyer click and never releases on a timer. A missed deadline lets the buyer reclaim, and it counts against the supplier's record.</td>
+      <td><span class="mono">KarwanEscrow</span><br><span class="sub">Any deal page</span></td>
+    </tr>
+    <tr>
+      <td><strong>Invoice factoring and receivables financing with automated repayment</strong></td>
+      <td><span class="check">Live.</span> A financier advances against an invoice at a discount tied to the supplier's reputation tier. The supplier is paid early. On settlement the contract pulls the agreed repayment, so the financier does not chase it. Both legs move native USDC.</td>
+      <td><span class="mono">KarwanInvoiceRegistry</span><br><span class="sub">Financier desk</span></td>
+    </tr>
+    <tr>
+      <td><strong>Purchase-order financing with proof-of-delivery triggers</strong></td>
+      <td><span class="check">Live.</span> Working capital advanced against an accepted purchase order and held in contract custody. Proof of delivery is attested on chain by an allowlisted attester, and that attestation is what releases the capital to the supplier. A watcher drives release and repayment without a human in the loop.</td>
+      <td><span class="mono">KarwanPOFinancing</span><br><span class="sub">Financier desk</span></td>
+    </tr>
+    <tr>
+      <td><strong>SME credit passport from verifiable transaction history and repayment behaviour</strong></td>
+      <td><span class="check">Live.</span> A public page per business, built from settled deals, repayment behaviour, and counterparty concentration. Reputation is value-weighted and counts distinct settled counterparties, so volume with one repeat partner cannot inflate a score. It follows the wallet, not the platform.</td>
+      <td><span class="mono">KarwanReputation</span> (ERC-8004)<br><span class="sub">/credit-passport/[address]</span></td>
+    </tr>
+  </table>
+
+  <p>Underneath all four is one primitive. Factoring, purchase-order financing, and the credit passport are not separate products bolted together. They read from the same escrow and write to the same reputation contract, which is why a supplier's first settled milestone already improves the price of their next advance.</p>
+
+  <h2>Circle on Arc</h2>
+
+  <p>The brief recommends four Circle tools and lists one gated tool. Karwan runs all five in production paths, not demonstrations.</p>
+
+  <table>
+    <tr>
+      <th style="width:27%">Product</th>
+      <th>How Karwan uses it</th>
+    </tr>
+    <tr>
+      <td><strong>USDC</strong><br><span class="sub">Recommended</span></td>
+      <td>The settlement asset for escrow, milestone release, factoring advances, purchase-order custody, repayment, staking, and platform fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money.</td>
+    </tr>
+    <tr>
+      <td><strong>Circle Wallets</strong><br><span class="sub">Recommended</span></td>
+      <td>Developer-Controlled Wallets give every user an identity wallet and two agent wallets, provisioned on sign-in with an email or a passkey. An SME onboards without a seed phrase and without knowing a chain is involved. Web3 users can sign in with their own wallet instead, through Sign-In with Ethereum.</td>
+    </tr>
+    <tr>
+      <td><strong>CCTP V2 with Bridge Kit</strong><br><span class="sub">Recommended</span></td>
+      <td>USDC moves into and out of Arc across twelve chains, in both directions. Outbound settlement uses Circle's Forwarding Service to submit the destination mint, so a supplier cashes out to any supported chain without ever holding that chain's gas token. Solana Devnet is supported alongside the EVM chains.</td>
+    </tr>
+    <tr>
+      <td><strong>Circle Gateway</strong><br><span class="sub">Recommended</span></td>
+      <td>Two roles. It gives a business one pooled USDC balance across twelve chains, deposited once and spent to any of them from a single signature, with no chain switching and no source-chain gas. It is also the settlement rail for x402, netting the agents' per-call payments into batched on-chain settlement.</td>
+    </tr>
+    <tr>
+      <td><strong>Hashnote USYC</strong><br><span class="sub">Gated and advanced</span></td>
+      <td>Idle balances earn yield instead of sitting still. <span class="mono">KarwanTreasury</span> is an ERC-4626 vault that subscribes to real allowlisted USYC on Arc through the Hashnote Teller and redeems on demand, marked to the live on-chain oracle. Platform-fee reserves and idle staking principal route through it today.</td>
+    </tr>
+    <tr>
+      <td><strong>x402 nanopayments</strong><br><span class="sub">Beyond the brief</span></td>
+      <td>Karwan is both a buyer and a seller. Its agents pay a cent per call to pull a counterparty's settled-deal record before pricing a bid, and pay for live market research so both sides negotiate against the same grounded number. Karwan also sells five paid endpoints, including the credit passport and repayment behaviour, so an outside underwriter can price Karwan credit without asking Karwan for permission.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <p><strong>The credit passport is the reason x402 matters here.</strong> A credit file nobody outside the platform can read is a marketing page. Karwan's is a paid, machine-callable endpoint on Arc: any lender, anywhere, pays a cent and gets a verifiable settled-deal record and repayment history. That is what makes it a passport rather than a profile.</p>
+  </div>
+
+  <h2>Architecture</h2>
+
+  <img class="diagram" src="../docs/diagrams/architecture.png" alt="Karwan architecture on Arc">
+  <p class="caption">Parties sign in without keys. Agents negotiate and settle. The Circle stack carries the money. Arc holds the record.</p>
+
+  <p>A Next.js frontend and a Hono backend sit above the Circle SDKs. The backend holds no user funds: it provisions Circle wallets, relays what needs relaying, and runs the watchers that drive delivery, repayment, expiry, and yield. The contracts are the source of truth, and every settlement event links to Arcscan from the live activity feed.</p>
+
+  <h3>What the agents actually do</h3>
+  <p>They do the work an SME cannot afford a person to do. A buyer agent sources suppliers, scores them on fit before reputation, and negotiates within a cap the buyer sets. A seller agent prices and counters, and vets the buyer's funding record before quoting. A security agent scans every delivery proof and every chat link, because in trade the fraud arrives as a link. No agent ever opens or funds an escrow without an explicit human approval, and a low-reputation counterparty routes to a human decision rather than an automatic decline.</p>
+
+  <h2>Engineering</h2>
+
+  <div class="facts">
+    <table>
+      <tr><td>Contract tests</td><td><strong>362 passing, 0 failing</strong>, across 28 Foundry suites</td></tr>
+      <tr><td>Coverage</td><td>Includes conservation and vault invariant suites, and named attack suites for escrow timing, vault reentrancy, and reputation farming</td></tr>
+      <tr><td>Commits</td><td>696 total, 336 in the last four weeks</td></tr>
+      <tr><td>Deployed</td><td>Nine contracts live and verified on Arc Testnet</td></tr>
+    </table>
+  </div>
+
+  <p>Karwan is not a prototype assembled for a deadline. It has been in continuous development since May, it is deployed, and people other than its author have used it.</p>
+
+  <h3>The v2 contract bundle</h3>
+  <p>A second contract generation is written, tested, and reviewed internally, and it ships as one immutable release rather than a mid-cycle redeploy, so the live deployment stays stable while the bundle is finished. It adds a contract-level guardian that can place bounded, auto-expiring holds and record delivery attestation but can never move funds, arbiter dispute resolution with proportional splits, consented on-chain deal clocks with a capped extension flow, and reputation hardened against farming by weighting standing on distinct settled counterparties. The tests above are the v2 suite. The upgrade lands in the coming weeks.</p>
+
+  <h2>Contracts on Arc Testnet</h2>
+
+  <table>
+    <tr><th style="width:38%">Contract</th><th>Address</th></tr>
+    <tr><td>KarwanEscrow</td><td class="mono">0x48797C04EE342067A68f29Fbb19B577077d77301</td></tr>
+    <tr><td>KarwanInvoiceRegistry</td><td class="mono">0x20a7CDf59b5f304De2b22a75e49f52353273E4E4</td></tr>
+    <tr><td>KarwanPOFinancing</td><td class="mono">0xc91122Eb88613C98d58616cD8973883142F74Bb5</td></tr>
+    <tr><td>KarwanReputation</td><td class="mono">0xBBAC748cA8C7a47e39Bd2AEaDbaa4e9f96ae4442</td></tr>
+    <tr><td>KarwanVault</td><td class="mono">0x2d4506284B2D778365b4B295100EF099F35973c5</td></tr>
+    <tr><td>KarwanTreasury</td><td class="mono">0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573</td></tr>
+    <tr><td>KarwanBusinessRegistry</td><td class="mono">0xc64d347c9Fe451A3f1c8f4cF2d7a2E43D9AA771e</td></tr>
+    <tr><td>KarwanJobBoard</td><td class="mono">0x35224C2234263B5506a9F7BfF4bb98e9FceD3FF3</td></tr>
+    <tr><td>KarwanYieldDistributor</td><td class="mono">0x9950b9a41A3e80930e451F2FEdaeb81e80195D03</td></tr>
+    <tr><td>USDC</td><td class="mono">0x3600000000000000000000000000000000000000</td></tr>
+  </table>
+
+  <p class="caption">Hashnote USYC on Arc Testnet: token <span class="mono">0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C</span>, Teller <span class="mono">0x9fdF14c5B14173D74C08Af27AebFf39240dC105A</span>, oracle <span class="mono">0x52b56c7642E71dc54714d879127d97cd0B3D4581</span>. Retired contract generations stay registered so any open position remains exitable. Nothing gets stranded.</p>
+
+  <h2>Verify it yourself</h2>
+
+  <p>Nothing here needs to be taken on trust.</p>
+
+  <ul>
+    <li><strong>Open a credit passport.</strong> <span class="mono">karwan.site/credit-passport/[address]</span> renders from chain state. The same data is available as a paid x402 endpoint.</li>
+    <li><strong>Watch the network feed.</strong> <span class="mono">karwan.site/activity</span> lists settlement events, each linking to the transaction on Arcscan.</li>
+    <li><strong>Read the escrow.</strong> Every milestone release, factoring advance, and purchase-order repayment is a transaction against a published address in the table above.</li>
+    <li><strong>Check the yield.</strong> <span class="mono">karwan.site/treasury</span> shows reserves marked against the live Hashnote oracle, not a mock.</li>
+    <li><strong>Run the tests.</strong> <span class="mono">cd contracts && forge test</span>. 362 pass.</li>
+  </ul>
+
+  <h2>Feedback on building with Circle</h2>
+
+  <h3>What worked</h3>
+  <p><strong>USDC as gas on Arc removes the single worst onboarding step in crypto commerce.</strong> An SME does not have to acquire a second, volatile asset before it can move its own money. Every other chain we support needed a gas story. Arc needed none, and the product is materially simpler for it.</p>
+  <p><strong>Developer-Controlled Wallets let us delete the seed phrase from the product.</strong> A trader signs in with an email and has a working wallet. This is the difference between a demo and something an exporter in Kano will actually use.</p>
+  <p><strong>Gateway's burn-intent design is better than it first appears.</strong> Because the signing domain carries no chain id and the payload is a set of burn intents, one signature can cover burns across several source chains at once. No chain switching, no source-chain gas. Once we understood that, the whole fund-and-withdraw surface collapsed into one card.</p>
+  <p><strong>The CCTP Forwarding Service quietly unlocked outbound settlement everywhere.</strong> Because the destination mint is submitted for us, we did not need a wallet on each destination chain, and withdrawal coverage went from a handful of chains to every chain CCTP reaches.</p>
+
+  <h3>Friction worth fixing</h3>
+  <p><strong>Gateway reports only what has been deposited into the Gateway contract, not what is in the wallet.</strong> This is correct, and it is also the first thing every developer gets wrong, because "unified balance" reads as "all my USDC." An address holding several hundred USDC on Base reads as a zero Gateway balance, with nothing in the response to say why. A field distinguishing "pooled" from "held on chain, not deposited" would save every integrator the same afternoon.</p>
+  <p><strong>Gateway accepts smart contract accounts as recipients but rejects them as signers.</strong> That asymmetry is defensible, and it is also invisible until a burn intent fails. It shaped our architecture: the pooled balance had to live on the user's own EOA. Stating it plainly in the Gateway docs, next to the deposit example, would be worth a paragraph.</p>
+  <p><strong>Gateway has no history endpoint.</strong> A transfer can be fetched by id, but there is no way to list what an address has done. Any product showing a user their own transfer history has to keep a parallel ledger, which means the on-chain record and the product record can drift.</p>
+  <p><strong>Circle Wallets cannot execute contracts on chains Circle has not named.</strong> A CCTP burn is a contract execution, so a chain outside Circle's supported list can be a destination but never a source for a Circle-wallet user. This is a reasonable boundary that is easy to trip over, because the CCTP chain list and the Circle Wallets chain list are published separately and are not the same list. One table showing both would prevent a whole class of bug.</p>
+  <p><strong>The USDC decimal split on Arc is a live footgun.</strong> Native USDC gas is denominated at 18 decimals while the ERC-20 is 6. Both are correct and the reason is clear once you know it, but a value that is right in one context is off by a factor of a trillion in the other, and nothing in the tooling warns you.</p>
+
+  <h3>Asks</h3>
+  <ul>
+    <li>A Gateway list endpoint, so a product does not have to keep a shadow ledger of its own users' transfers.</li>
+    <li>A single published matrix of chain support across CCTP, Circle Wallets, and Gateway. Three lists that nearly agree is harder to build against than one list that does.</li>
+    <li>Bridge Kit support for Circle Wallets as a signer, which would let a fully embedded user bridge without us relaying.</li>
+  </ul>
+
+  <h2>Where this goes</h2>
+
+  <p>Trade finance is a real business, not a hackathon genre. The near-term plan, in order.</p>
+
+  <ul>
+    <li><strong>The v2 contract bundle</strong> ships as one immutable release: guardian holds, arbiter disputes, on-chain deal clocks, farming-resistant reputation.</li>
+    <li><strong>Skill and capability verification</strong> through partners who already hold the evidence, proved with zero-knowledge proofs so a business proves a fact without exposing the account behind it.</li>
+    <li><strong>Mainnet</strong>, with user funds held in user-owned wallets and agents funded only through a capped spend allowance, so the platform never custodies principal.</li>
+    <li><strong>Fiat rails</strong> through the Circle Payments Network, so a business funds a deal and cashes out in naira, shillings, rupees, or dirhams without touching an exchange. The settlement layer disappears, which is the point.</li>
+  </ul>
+
+  <p>The corridors Karwan serves first are the ones the caravan routes served: Africa, the Gulf, and South Asia. The name is not decoration. It is the thesis.</p>
+
+  <footer>
+    <span><strong>Karwan</strong> · Ignyte Track 2</span>
+    <span>karwan.site</span>
+  </footer>
+
+</div>

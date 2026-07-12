@@ -14,7 +14,9 @@
   chain events by polling the RPC over HTTP, so a dropped websocket never
   silently stops them.
 - **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury`, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002), plus `KarwanInvoiceRegistry`, `KarwanPOFinancing`, and `KarwanBusinessRegistry` for the SME layer. USDC is the native gas asset. The treasury subscribes idle USDC into Hashnote USYC through an ERC-4626 Teller. Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
-- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2 through App Kit, Gas Station, Hashnote USYC, and x402 settled through Circle Gateway Nanopayments. See [circle-integration.md](./circle-integration.md).
+- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2 through App Kit, Circle Gateway unified balance, Hashnote USYC, and x402 settled through Gateway Nanopayments. See [circle-integration.md](./circle-integration.md).
+
+![Karwan architecture](./diagrams/architecture.png)
 - **Storage.** Postgres (via Drizzle) for profile and direct-deal metadata,
   with a flat-file fallback that mirrors the same shape for fast cold
   starts. The chain is the source of truth for everything financial;
@@ -253,9 +255,9 @@ formula, tier breakpoints, and agent integration are in
 ## SME Trades
 
 The SME layer extends the same escrow primitive to business-to-business and
-cross-border trade finance. It is built and gated behind a launch flag while
-it runs through pilot, so the surfaces below stay off the P2P deal view until
-the flag is set.
+cross-border trade finance. It is live for verified business accounts, and the
+surfaces below stay off the P2P deal view so a person-to-person trade is not
+cluttered with trade-finance controls it will never use.
 
 - **Trade context.** A deal can carry Incoterms, payment terms, counterparty
   company details, and document hashes anchored on `KarwanInvoiceRegistry`.

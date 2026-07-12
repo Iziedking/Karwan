@@ -81,8 +81,12 @@ by area rather than by date.
 - Durable, resumable bridge state. A transfer that is interrupted resumes from its
   last attested step, and a mint that lands without a returned hash still settles
   to done rather than reading as failed.
-- Gas Station sponsors the source-chain burn for Circle Wallet users, so a
-  first-time user moves USDC without holding a separate gas token.
+- Circle Gateway gives a business one pooled USDC balance across twelve chains.
+  Deposit once, then spend to any chain from a single signature, with no chain
+  switching and no source-chain gas.
+- Withdrawal to every CCTP chain through Circle's Forwarding Service, which submits
+  the destination mint, so a user cashes out anywhere without holding that chain's
+  gas token.
 
 ### Staking, insurance, and treasury yield
 
