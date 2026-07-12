@@ -476,6 +476,20 @@ export function useBridges() {
   const bridgesRef = useRef(bridges);
   bridgesRef.current = bridges;
 
+  /// `retry` is declared above `startAppKitBridge` but needs to call it: a Solana
+  /// source can only be re-driven by the App Kit starter, never by runFlow (the
+  /// EVM signer path). Hold it in a ref rather than reorder ~400 lines.
+  const startAppKitRef = useRef<
+    | ((input: {
+        sourceChainKey: AnySourceChainKey;
+        amountUsdc: number;
+        mintRecipient: `0x${string}`;
+        getEvmProvider?: () => Promise<unknown>;
+        reuseId?: string;
+      }) => Promise<void>)
+    | null
+  >(null);
+
   // Hydrate from localStorage once the user's identity address is known.
   useEffect(() => {
     if (!identityAddress) {
@@ -649,7 +663,7 @@ export function useBridges() {
         patch(record.id, (b) => ({
           ...b,
           phase: 'error',
-          error: 'This source is signed by Circle on the backend. Use the App Kit bridge.',
+          error: 'That did not go through. Nothing was charged. Try again.',
         }));
         return;
       }
@@ -984,6 +998,23 @@ export function useBridges() {
         }
         return;
       }
+      // Solana is signed through the App Kit starter (really a hand-built CCTP
+      // burn, see startAppKitBridge), NOT runFlow, which only knows the EVM
+      // wagmi signer. Sending it to runFlow was the bug: the record bounced
+      // straight back out with an internal note about App Kit, so a Solana
+      // bridge could never be retried at all. Safe to rerun the whole flow here
+      // because the burnTxHash guard above already diverted anything that landed
+      // on chain to recheck, so this cannot double-burn.
+      if (isAppKitOnlyChainKey(cur.sourceChainKey) && startAppKitRef.current) {
+        await startAppKitRef.current({
+          sourceChainKey: cur.sourceChainKey,
+          amountUsdc: Number(cur.amountUsdc),
+          mintRecipient: cur.mintRecipient,
+          reuseId: id,
+        });
+        return;
+      }
+
       const now = Date.now();
       const fresh: BridgeRecord = {
         ...cur,
@@ -1135,9 +1166,17 @@ export function useBridges() {
       /// EVM only: returns the connected wallet's EIP-1193 provider for the
       /// viem adapter. Solana reads window.solana directly.
       getEvmProvider?: () => Promise<unknown>;
+      /// Re-drive an EXISTING record instead of opening a new one. Retry uses
+      /// this so "retry from start" reruns the flow on the same card rather than
+      /// stacking a second row for the same transfer. Safe only because a retry
+      /// is refused once a burn has landed (see `retry`), so this can never
+      /// re-burn.
+      reuseId?: string;
     }) => {
       const isSolana = isAppKitOnlyChainKey(input.sourceChainKey);
-      const id = `${input.sourceChainKey}-appkit-${input.mintRecipient}-${Date.now()}`;
+      const id =
+        input.reuseId ??
+        `${input.sourceChainKey}-appkit-${input.mintRecipient}-${Date.now()}`;
       const now = Date.now();
       const record: BridgeRecord = {
         id,
@@ -1149,7 +1188,11 @@ export function useBridges() {
         startedAt: now,
         updatedAt: now,
       };
-      setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      if (input.reuseId) {
+        patch(id, () => record);
+      } else {
+        setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      }
       try {
         if (isSolana) {
           // Manual CCTP V2 burn, NOT App Kit. Circle's Solana adapter builds a
@@ -1366,12 +1409,15 @@ export function useBridges() {
               ? 'Cancelled in your wallet'
               : raw.includes('insufficient') || raw.includes('not enough')
                 ? 'Not enough USDC for this transfer.'
-                : `Transfer could not complete. ${errorToString(err).slice(0, 140)}`;
+                : 'That did not go through. Nothing was charged. Try again.';
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
     [patch, recordAction],
   );
+
+  // retry() is declared above and needs this; see startAppKitRef.
+  startAppKitRef.current = startAppKitBridge;
 
   /// Instant Arc-to-Arc send (cash out to an Arc wallet). One backend transfer,
   /// no CCTP, settles synchronously. Stored as an 'out' record with the
