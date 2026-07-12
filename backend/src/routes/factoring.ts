@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { readSession } from '../auth/session.js';
 import { getProfile } from '../db/profiles.js';
-import { isApprovedFinancier } from '../profile/financier.js';
+import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
 import {
   createFactoringOffer,
   getFactoringOffer,
@@ -114,6 +114,11 @@ export const factoringRoutes = new Hono();
 /// and where delivery is still pending. The /financier dashboard pulls
 /// from here.
 factoringRoutes.get('/available', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if (!isApprovedFinancier(await getProfile(session.address))) {
+    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
+  }
   const sector = c.req.query('sector');
   const region = c.req.query('region');
   const deals = await listAllDeals();
@@ -146,7 +151,7 @@ factoringRoutes.get('/available', async (c) => {
       } catch {
         sellerTier = 'new';
       }
-      return { ...d, sellerTier };
+      return { ...financierSafeDeal(d), sellerTier };
     }),
   );
   return c.json({ deals: withTier });
@@ -349,7 +354,11 @@ factoringRoutes.get('/mine', async (c) => {
 /// the full offer book (every financier's terms against every invoice) is
 /// not a public dataset.
 factoringRoutes.get('/open', async (c) => {
-  if (!readSession(c)) return c.json({ error: 'not authenticated' }, 401);
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if (!isApprovedFinancier(await getProfile(session.address))) {
+    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
+  }
   const offers = await listOpenOffers();
   return c.json({ offers });
 });

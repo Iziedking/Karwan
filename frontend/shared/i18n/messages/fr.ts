@@ -3459,7 +3459,7 @@ export const fr: Messages = {
       appKit: 'Le SDK unifié de Circle pour pont, swap, envoi et solde unifié. L\'adaptateur Circle Wallets signe directement depuis nos Developer-Controlled Wallets, donc un utilisateur email ou passkey traverse les chaînes sans jamais voir de popup de portefeuille, et les utilisateurs web3 signent avec le leur via le même SDK.',
       gateway: 'Un seul solde USDC mutualisé sur douze chaînes. Déposez une fois, puis dépensez vers n\'importe quelle chaîne avec une seule signature, sans changer de réseau et sans gaz sur la chaîne source. C\'est aussi le rail qui règle les paiements des agents, appel par appel.',
       arc: 'Chaîne 5042002. Les blocs finalisent en moins d\'une seconde. USDC est le jeton de gaz natif, et les registres d\'identité et de réputation ERC-8004 sont déjà déployés.',
-      usyc: 'Les réserves de la trésorerie gagnent de vrais Hashnote USYC sur Arc Testnet via l\'interface Teller ERC-4626 standard, valorisés sur l\'oracle on-chain en direct. Le principal de staking inactif passe par le même chemin.',
+      usyc: 'Le capital commercial est inactif par nature, et l\'argent qui dort devrait rapporter. La trésorerie détient de vrais Hashnote USYC autorisés sur Arc Testnet via l\'interface Teller ERC-4626 standard, valorisés sur l\'oracle on-chain en direct. Le principal de staking inactif passe par le même chemin opéré, et avec la version v2 les fonds en séquestre laissés inactifs sur des échanges longs rapportent aussi.',
     },
     roadmap: {
       eyebrow: 'Feuille de route', title: 'À venir', body: 'Ce qui suit la build testnet actuelle.',

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { parseUnits } from 'viem';
 import { readSession } from '../auth/session.js';
 import { getProfile } from '../db/profiles.js';
-import { isApprovedFinancier } from '../profile/financier.js';
+import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
 import {
   createPOLine,
   getPOLine,
@@ -74,6 +74,11 @@ export const poFinancingRoutes = new Hono();
 /// GET /api/po-financing/available: deals open to PO financing.
 /// Accepted invoices without an existing PO line and not yet delivered.
 poFinancingRoutes.get('/available', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if (!isApprovedFinancier(await getProfile(session.address))) {
+    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
+  }
   const sector = c.req.query('sector');
   const region = c.req.query('region');
   const deals = await listAllDeals();
@@ -96,7 +101,7 @@ poFinancingRoutes.get('/available', async (c) => {
     if (region && d.counterpartyCompany?.region !== region) return false;
     return true;
   });
-  return c.json({ deals: filtered });
+  return c.json({ deals: filtered.map(financierSafeDeal) });
 });
 
 /// POST /api/po-financing/fund: financier records that they funded a
@@ -356,6 +361,9 @@ poFinancingRoutes.post('/release', async (c) => {
   if (!config.KARWAN_PO_FINANCING_ADDR) {
     return c.json({ error: 'po financing contract not configured' }, 503);
   }
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
   let body;
   try {
     body = releaseBodySchema.parse(await c.req.json());
@@ -367,6 +375,15 @@ poFinancingRoutes.post('/release', async (c) => {
   if (!line) return c.json({ error: 'unknown line' }, 404);
   if (line.state !== 'funded') {
     return c.json({ error: `cannot release line in state ${line.state}` }, 409);
+  }
+
+  // Only the two parties to the line may record its release. Without this any
+  // caller could flip a funded line to released, which desyncs the mirror,
+  // blocks the financier's own reclaim path (it requires state 'funded'), and
+  // fires a false po.released event.
+  const caller = session.address.toLowerCase();
+  if (caller !== line.financier && caller !== line.seller) {
+    return c.json({ error: 'caller is not a party to this line' }, 403);
   }
 
   const now = Date.now();
@@ -535,16 +552,30 @@ poFinancingRoutes.get('/mine', async (c) => {
   return c.json({ asFinancier, asSeller });
 });
 
-/// GET /api/po-financing/open: lines in non-terminal state. Used by the
-/// timeout watcher.
+/// GET /api/po-financing/open: lines in non-terminal state. The timeout watcher
+/// reads listOpenLines() in-process, so this HTTP surface is only the financier
+/// desk's view of the live book and is gated as such.
 poFinancingRoutes.get('/open', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if (!isApprovedFinancier(await getProfile(session.address))) {
+    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
+  }
   const lines = await listOpenLines();
   return c.json({ lines });
 });
 
-/// GET /api/po-financing/line/:id: fetch a single line.
+/// GET /api/po-financing/line/:id: fetch a single line. Party-scoped: a line
+/// carries both wallets and the private financing terms, so only its financier
+/// or seller may read it.
 poFinancingRoutes.get('/line/:id', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
   const line = await getPOLine(c.req.param('id'));
   if (!line) return c.json({ error: 'unknown line' }, 404);
+  const caller = session.address.toLowerCase();
+  if (caller !== line.financier && caller !== line.seller) {
+    return c.json({ error: 'caller is not a party to this line' }, 403);
+  }
   return c.json({ line });
 });

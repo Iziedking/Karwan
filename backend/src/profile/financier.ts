@@ -1,5 +1,6 @@
 import { formatUnits } from 'viem';
 import { getProfile, type UserProfile } from '../db/profiles.js';
+import type { DirectDeal } from '../db/deals.js';
 import { loadInputs } from '../reputation/signals.js';
 import { compute } from '../reputation/engine.js';
 import { TIER_BREAKPOINTS } from '../reputation/config.js';
@@ -17,6 +18,27 @@ import { logger } from '../logger.js';
 export type FinancierStatus = 'none' | 'applied' | 'approved' | 'rejected';
 
 const MS_PER_DAY = 86_400_000;
+
+/// Fields a financier browsing the desk has no business seeing. Circle agent
+/// wallet IDs are infrastructure identifiers; marketRead and passportPulls are
+/// the two parties' paid, private intelligence on each other. The desk needs the
+/// deal's commercial shape (amount, terms, counterparty, tier), not these.
+const FINANCIER_HIDDEN_FIELDS = [
+  'buyerAgentWalletId',
+  'sellerAgentWalletId',
+  'marketRead',
+  'passportPulls',
+] as const;
+
+/// Project a deal down to what a financier may see on the desk. A denylist, not
+/// an allowlist, so a newly added deal field is not silently exposed only if we
+/// remember to add it: any new field defaults to visible, and anything sensitive
+/// must be named here. Keep this list in step with the deal shape.
+export function financierSafeDeal(deal: DirectDeal): Omit<DirectDeal, (typeof FINANCIER_HIDDEN_FIELDS)[number]> {
+  const out = { ...deal };
+  for (const f of FINANCIER_HIDDEN_FIELDS) delete out[f];
+  return out;
+}
 
 /// Whether this profile may post factoring offers / fund PO lines right now.
 export function isApprovedFinancier(

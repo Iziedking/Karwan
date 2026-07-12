@@ -16,6 +16,15 @@ The financing exists. It does not reach them. A bank underwrites against a credi
 
 Karwan gives that trade a settlement layer and a credit history at the same time. The trade is the underwriting.
 
+## One primitive, two surfaces
+
+The escrow underneath does not care who is trading. It is the same whether a supplier in Karachi ships cotton to a wholesaler in Dubai, or a designer in Lagos sells a logo to a buyer in Berlin. Two parties agree, the money waits, the work lands, the money moves. What changes is the surface on top.
+
+- **SME Trades.** The business-to-business and cross-border layer, and the one this repository leads with: invoice factoring, purchase-order financing, and a portable credit passport. A trade that used to need a bank now needs a counterparty.
+- **P2P Trades.** Person to person, services or goods, any size. A freelancer, a small seller, a one-off deal between two people who found each other. Same escrow, same reputation, none of the trade-finance machinery they would never use.
+
+Both are live. The sections below describe the trade-finance layer, because that is where the money problem is hardest, but every settlement guarantee applies equally to the person selling a logo.
+
 ## What is live
 
 ### Milestone escrow for import and export settlement
@@ -42,10 +51,10 @@ It is also a paid endpoint. Any lender can pay a fraction of a cent over x402 an
 
 An SME cannot afford to staff a sourcing desk. The agents do that work.
 
-- **Market research, shared.** Before negotiating, an agent spends a fraction of a cent over Circle's x402 surface to pull a live market read: a web search plus a grounded price. The read is shared, so both agents negotiate against the same number instead of guessing.
+- **Market research, bought from outside.** Before negotiating, a neutral platform agent pays a genuinely independent provider **on Base mainnet, in real USDC**, over the standard x402 exact-EVM scheme, for a live web search. It grounds a market read on the results: current demand, a price note, and a fair-price estimate. Because it is an ordinary payment on a real network, the receipt resolves on the Base explorer. The read is shared with both sides, so both agents negotiate against the same outside number instead of against each other's guesses.
 - **Best fit first.** Ranking leads with skill and topical fit. Reputation only breaks ties between comparable matches, so a strong specialist is never buried under a higher-reputation generalist.
 - **Proceed or pass, never a silent no.** When the best achievable price lands just outside the buyer's range, the agent surfaces it with the market reason attached instead of declining behind their back. Nothing funds until a human approves.
-- **Counterparty vetting.** A buyer agent pulls a seller's settled-deal record before scoring their bid. A seller agent pulls the buyer's funded-deal record before pricing. Each side pays for the read on the deals they actually match.
+- **Counterparty vetting.** A buyer agent pulls a seller's full settled-deal record before scoring their bid, and a seller agent pulls the buyer's funded-deal record before pricing: deals completed clean, deals on time, disputes, lifetime volume. Far beyond a public score. These reads settle on Arc through Circle Gateway, which nets thousands of sub-cent payments into batched on-chain settlement, because paying gas on each one would make the idea uneconomic. Each side pays only on the deals they actually match.
 - **Human approval always.** An agent never opens or funds an escrow without an explicit click. New and low-reputation counterparties route to human review, never an automatic decline.
 
 ### Delivery safety
@@ -58,12 +67,43 @@ USDC moves into and out of Arc in both directions across twelve chains, includin
 
 Circle Gateway gives a business one pooled USDC balance across those chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas.
 
-### Staking that doubles as deal insurance and earns yield
+### Staking that doubles as deal insurance, and earns while it does
 
-A staker locks USDC into KarwanVault, and the same principal does two jobs.
+A staker locks USDC into KarwanVault, and the same principal does two jobs at once. When a seller accepts a deal, the escrow reserves a portion of their free stake against it, and a lost dispute slashes that reservation to the buyer. Trust becomes something a trader can post, not just claim.
 
-- **Deal insurance.** When a seller accepts a deal, the escrow reserves a portion of their free stake against it. A lost dispute slashes that reservation to the buyer.
-- **Yield on idle balances.** Idle USDC routes into Hashnote USYC on Arc through KarwanTreasury, an ERC-4626 contract that subscribes to USYC and redeems on demand, marked to the live on-chain oracle. The treasury holds real allowlisted USYC today.
+Collateral is normally dead money: it sits there proving you are good for it, and earns nothing for the privilege. Here it does not sit. Staked capital routes into USYC while it backs your deals, so you never choose between posting collateral and putting money to work.
+
+### Every idle route is plugged into USYC
+
+Trade capital is idle by nature. Ninety-day payment terms mean money sits in escrow, sits as collateral, sits in a treasury, and money that sits is why working capital is expensive. So no idle balance in Karwan is allowed to sit still. Every route is plugged into Hashnote USYC, tokenized Treasury bills, on Arc.
+
+`KarwanTreasury` is an ERC-4626 contract that subscribes to USYC through the Hashnote Teller and redeems on demand, marked to the live on-chain oracle. Three routes feed it:
+
+| Route into USYC | Status |
+|---|---|
+| **Staked capital**, in the vault. A trader's collateral, working while it backs their deals. | **Live**, and the largest position. Routed through an entitled operator address. |
+| **Platform fee reserves**, in the treasury. Karwan's own balance sheet. | **Live.** The treasury holds real allowlisted USYC today. |
+| **Escrowed funds**, during long-dated trades. A buyer's money, earning while it waits for delivery. | **Ships with v2.** Built, and covered by a stateful invariant suite. |
+
+USYC is permissioned, so holding it at all is the proof the integration is real: an unentitled address simply cannot. Circle allowlisted two Karwan addresses on Arc Testnet, the treasury contract and the operator that routes staked capital, because the Hashnote Teller checks entitlement against the **direct caller**, not the beneficiary. A vault subscribe reverts `NotPermissioned` for exactly this reason, so `withdrawForYield` hands USDC to the entitled operator, which subscribes and holds the position while the vault tracks it through `outForYield`.
+
+Live position at the time of writing:
+
+| | |
+|---|---|
+| Total USYC held | **3,994.60 USDC** across the vault and treasury |
+| Yield earned | **45.08 USDC**, marked to the on-chain oracle |
+| Staked capital | 3,507.60 USYC, worth 3,965.75 USDC against a 3,924.00 cost basis |
+| Fee reserves | 25.52 USYC, worth 28.85 USDC |
+| Instrument | USYC at 1.1306, up 13.06 percent on par |
+
+Yield is measured against USDC actually paid, not against par. USYC already traded above a dollar when Karwan subscribed, so the naive value-minus-shares measure would count appreciation that accrued before Karwan held the token. Reproduce the whole report against the live chain:
+
+```bash
+cd backend && npm run usyc:prove
+```
+
+The escrow route is the hardest of the three, because a buyer's escrowed money is exactly the capital that should be working and exactly the capital you must never gamble with. So escrow funds route **through** the treasury rather than holding USYC themselves. The escrow's books stay pure USDC and always pull back exactly what was swept, so principal is guaranteed regardless of the token's price, and the treasury, which holds the upside, absorbs any shortfall. The buyer's money earns while it waits, and the buyer never carries the risk.
 
 ## Roadmap
 
@@ -71,6 +111,7 @@ A staker locks USDC into KarwanVault, and the same principal does two jobs.
 
 A second contract generation is written, tested, and reviewed internally. It ships as one immutable release after review rather than a mid-cycle redeploy, so the live deployment stays stable while the bundle is finished. It lands in the coming weeks.
 
+- **Escrow idle funds earn USYC.** Escrow sweeps its idle float into the treasury, which wraps it into USYC, and pulls it back before every payout. The escrow holds only USDC and always recovers exactly what it swept, so principal is guaranteed regardless of the token's price. Covered by a stateful invariant suite that ran 128,000 randomized calls without breaking the liability-always-covered invariant.
 - A contract-level guardian places bounded, auto-expiring holds and records delivery attestation across the escrow, vault, treasury, and financing contracts. It can pause a settlement but never move funds.
 - Arbiter dispute resolution with proportional splits, and a seller claim path after a review window.
 - Deal timing on chain: consented per-deal clocks, a capped seller-appeal extension flow, and a match window.

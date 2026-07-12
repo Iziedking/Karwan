@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1080" width="1440" height="1080" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1360" width="1440" height="1360" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
   <defs>
     <marker id="arw" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
       <path d="M0,0 L8,4 L0,8 z" fill="#0A0A0B"/>
@@ -8,7 +8,7 @@
     </marker>
   </defs>
 
-  <rect width="1440" height="1080" fill="#FAFAF7"/>
+  <rect width="1440" height="1360" fill="#FAFAF7"/>
 
   <!-- header -->
   <text x="60" y="62" font-size="30" font-weight="800" fill="#0A0A0B" letter-spacing="-0.5">Karwan</text>
@@ -81,8 +81,8 @@
 
   <line x1="1180" y1="516" x2="1180" y2="572" stroke="#E6E4DC" stroke-width="1"/>
   <text x="1204" y="530" font-size="13.5" font-weight="700" fill="#0A0A0B">x402 client</text>
-  <text x="1204" y="551" font-size="12" fill="#6B6B63">Agents buy the data</text>
-  <text x="1204" y="572" font-size="12" fill="#6B6B63">they negotiate with</text>
+  <text x="1204" y="551" font-size="12" fill="#6B6B63">Buys counterparty records</text>
+  <text x="1204" y="572" font-size="12" fill="#6B6B63">and outside market data</text>
 
   <line x1="720" y1="588" x2="720" y2="622" stroke="#0A0A0B" stroke-width="1.5" marker-end="url(#arw)"/>
 
@@ -156,14 +156,53 @@
 
   <text x="84" y="962" font-size="11.5" fill="#6B6B63">Also live: KarwanJobBoard, KarwanBusinessRegistry, KarwanYieldDistributor. Every address is published and verified on Arcscan.</text>
 
-  <!-- yield out -->
-  <line x1="1250" y1="972" x2="1250" y2="1004" stroke="#6B6B63" stroke-width="1.5" marker-end="url(#arwl)"/>
-  <rect x="1064" y="1010" width="292" height="42" fill="#FFFFFF" stroke="#9DB84B" stroke-width="1.5"/>
-  <text x="1210" y="1030" font-size="13" font-weight="700" fill="#0A0A0B" text-anchor="middle">Hashnote USYC</text>
-  <text x="1210" y="1046" font-size="11.5" fill="#6B6B63" text-anchor="middle">Tokenized Treasury bills, live on Arc</text>
+  <!-- LAYER 6: YIELD -->
+  <text x="60" y="1012" font-size="11" font-weight="700" fill="#9DB84B" letter-spacing="1.6">06 · IDLE CAPITAL EARNS  (USYC, the gated tool)</text>
+  <rect x="60" y="1026" width="1320" height="112" fill="#FFFFFF" stroke="#0A0A0B" stroke-width="1.5"/>
+
+  <!-- three sources -->
+  <rect x="84" y="1048" width="232" height="30" fill="#F4F4F1" stroke="#E6E4DC" stroke-width="1"/>
+  <text x="200" y="1068" font-size="12" font-weight="700" fill="#0A0A0B" text-anchor="middle">Platform fee reserves</text>
+  <text x="200" y="1094" font-size="11" fill="#6B6B63" text-anchor="middle">Treasury · live</text>
+
+  <rect x="84" y="1104" width="232" height="0" fill="none"/>
+  <rect x="332" y="1048" width="232" height="30" fill="#F4F4F1" stroke="#E6E4DC" stroke-width="1"/>
+  <text x="448" y="1068" font-size="12" font-weight="700" fill="#0A0A0B" text-anchor="middle">Staking principal</text>
+  <text x="448" y="1094" font-size="11" fill="#6B6B63" text-anchor="middle">Vault · operator-mediated</text>
+
+  <rect x="580" y="1048" width="232" height="30" fill="#F4F4F1" stroke="#E6E4DC" stroke-width="1"/>
+  <text x="696" y="1068" font-size="12" font-weight="700" fill="#0A0A0B" text-anchor="middle">Idle escrow float</text>
+  <text x="696" y="1094" font-size="11" fill="#6B6B63" text-anchor="middle">Escrow · ships with v2</text>
+
+  <!-- arrow into treasury -->
+  <line x1="828" y1="1063" x2="872" y2="1063" stroke="#0A0A0B" stroke-width="1.5" marker-end="url(#arw)"/>
+
+  <rect x="884" y="1046" width="200" height="34" fill="#0A0A0B"/>
+  <text x="984" y="1068" font-size="12.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">KarwanTreasury</text>
+  <text x="984" y="1096" font-size="11" fill="#6B6B63" text-anchor="middle">ERC-4626 · Hashnote Teller</text>
+
+  <line x1="1096" y1="1063" x2="1140" y2="1063" stroke="#0A0A0B" stroke-width="1.5" marker-end="url(#arw)"/>
+
+  <rect x="1152" y="1046" width="204" height="34" fill="#D8FF3D" stroke="#0A0A0B" stroke-width="1.5"/>
+  <text x="1254" y="1068" font-size="12.5" font-weight="700" fill="#0A0A0B" text-anchor="middle">Hashnote USYC</text>
+  <text x="1254" y="1096" font-size="11" fill="#6B6B63" text-anchor="middle">Tokenized T-bills · allowlisted</text>
+
+  <text x="84" y="1124" font-size="11.5" fill="#6B6B63">Ninety-day trade terms mean capital sits idle. The treasury holds real allowlisted USYC on Arc today, marked to the live on-chain oracle. USYC is permissioned, so holding it is itself the proof.</text>
+
+  <!-- LAYER 7: agent payments, two x402 rails -->
+  <text x="60" y="1176" font-size="11" font-weight="700" fill="#9DB84B" letter-spacing="1.6">07 · AGENTS BUY WHAT THEY NEGOTIATE WITH  (x402)</text>
+  <rect x="60" y="1190" width="1320" height="76" fill="#FFFFFF" stroke="#0A0A0B" stroke-width="1.5"/>
+
+  <rect x="84" y="1210" width="4" height="40" fill="#D8FF3D"/>
+  <text x="102" y="1226" font-size="12.5" font-weight="700" fill="#0A0A0B">On Arc, through Circle Gateway</text>
+  <text x="102" y="1246" font-size="11.5" fill="#6B6B63">The counterparty's full settled-deal record, before a bid is scored. Sub-cent reads, netted into batched settlement.</text>
+
+  <rect x="740" y="1210" width="4" height="40" fill="#0A0A0B"/>
+  <text x="758" y="1226" font-size="12.5" font-weight="700" fill="#0A0A0B">On Base mainnet, to an independent provider</text>
+  <text x="758" y="1246" font-size="11.5" fill="#6B6B63">Live market research, paid in real USDC. The receipt resolves on the Base explorer.</text>
 
   <!-- money rail -->
-  <rect x="60" y="1010" width="960" height="42" fill="#F4F4F1" stroke="#E6E4DC" stroke-width="1.5"/>
-  <text x="84" y="1029" font-size="12" font-weight="700" fill="#0A0A0B">USDC IN AND OUT</text>
-  <text x="84" y="1046" font-size="11.5" fill="#6B6B63">Ethereum · Base · Arbitrum · Optimism · Polygon · Avalanche · Unichain · Sei · Sonic · World Chain · HyperEVM · Solana</text>
+  <rect x="60" y="1290" width="1320" height="42" fill="#F4F4F1" stroke="#E6E4DC" stroke-width="1.5"/>
+  <text x="84" y="1309" font-size="12" font-weight="700" fill="#0A0A0B">USDC IN AND OUT</text>
+  <text x="84" y="1326" font-size="11.5" fill="#6B6B63">Ethereum · Base · Arbitrum · Optimism · Polygon · Avalanche · Unichain · Sei · Sonic · World Chain · HyperEVM · Solana</text>
 </svg>

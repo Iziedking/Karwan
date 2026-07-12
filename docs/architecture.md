@@ -168,6 +168,57 @@ sits below the reservation requirement.
 The dispute path is symmetric. Either side can settle a `Disputed` deal
 through `releaseFromDispute`, so disputed deals are not a one-way trapdoor.
 
+## Idle capital and USYC
+
+Trade capital is idle by nature. Ninety-day payment terms mean money sits in
+escrow, in a treasury, or in a supplier's account doing nothing, and that dead
+time is a large part of why working capital costs what it does. So idle balances
+route into Hashnote USYC, tokenized Treasury bills, on Arc.
+
+`KarwanTreasury` is an ERC-4626 contract that subscribes to USYC through the
+Hashnote Teller and redeems on demand, marking its holdings to the on-chain
+oracle in `totalReserves()`. Three balances feed it:
+
+| Balance | Status |
+|---|---|
+| Platform fee reserves, in the treasury | Live. The treasury holds real allowlisted USYC. |
+| Idle staking principal, in the vault | Live, through an operator-mediated Teller path. |
+| Escrow funds idle during long-dated trades | Ships with the v2 release. |
+
+USYC is a permissioned Reg-S token, so holding it at all is the integration
+proof: an unentitled address cannot. Reproduce the report against the live chain
+with `cd backend && npm run usyc:prove` (read-only, no keys).
+
+The Teller checks entitlement against the **direct caller**, not the beneficiary.
+The vault contract is not itself entitled, so a vault subscribe reverts
+`NotPermissioned`. The wrap is therefore operator-mediated: `withdrawForYield`
+hands USDC to the entitled operator, which subscribes and holds the USYC, and the
+vault tracks the position through `outForYield`.
+
+### The escrow leg, and why it routes through the treasury
+
+A buyer's escrowed money is exactly the capital that should be working, and
+exactly the capital you must never gamble with. So in v2 the escrow holds no USYC
+itself. It sweeps idle float above a `coverageFloor` into the treasury, which
+wraps it, and pulls the gap back before every payout leg.
+
+The escrow's books stay pure USDC. `escrowedTotal` tracks the liability and
+`atTreasury` tracks what is parked, under the invariant:
+
+```
+balanceOf(escrow) + atTreasury >= escrowedTotal
+```
+
+Because the escrow always recovers exactly what it swept, **principal is
+guaranteed regardless of the token's price**. The treasury, which holds the
+upside, absorbs any shortfall by unwrapping at par. If the treasury cannot serve
+a pullback, the payout reverts as a whole rather than paying out short: money is
+delayed, never lost.
+
+The contract ships inert (`yieldBackstop` unset) and a keeper enables it at
+cutover. The invariant is covered by a stateful suite that ran 128,000 randomized
+calls against escrow and treasury together with zero reverts.
+
 ## Cashout
 
 After settlement, the seller hits `/cashout/[jobId]`. The page exposes both

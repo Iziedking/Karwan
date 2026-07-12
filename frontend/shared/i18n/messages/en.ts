@@ -7374,7 +7374,7 @@ export const en: MessagesShape = {
       appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. The Circle Wallets adapter signs straight from our Developer-Controlled Wallets, so an email or passkey user bridges without ever seeing a wallet popup, and web3 users sign with their own wallet through the same SDK.',
       gateway: 'One pooled USDC balance across twelve chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas. It is also the rail that settles the agents\' per-call payments.',
       arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
-      usyc: 'Treasury reserves earn real Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same path.',
+      usyc: 'Trade capital is idle by nature, and money that sits should earn. The treasury holds real allowlisted Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same operator-mediated path, and with the v2 release escrow funds left idle during long-dated trades earn too.',
     },
     roadmap: {
       eyebrow: 'Roadmap',

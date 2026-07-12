@@ -114,9 +114,6 @@ What the Forwarding Service changed:
 
 Asks:
 
-- An attestation-ready webhook. Both direct CCTP and the Forwarding Service surface
-  the mint by polling `GET /v2/messages`; a push notification would remove the poll
-  loop every integrator writes.
 - One published matrix of chain support across CCTP, Circle Wallets, Gateway, and
   Bridge Kit, with a column for what each product can do on each chain. Three lists
   that nearly agree are harder to build against than one list that does, and this
@@ -203,30 +200,44 @@ What worked:
 - The ERC-4626 subscribe and redeem interface matched what our vault and treasury
   contracts needed. We wrote the integration once and pointed it at the Teller.
 - Entitlement on Arc Testnet came through a Circle Support ticket within the
-  documented window. The treasury now holds real, allowlisted USYC, and
-  `totalReserves()` reconciles liquid USDC plus USYC marked to the onchain oracle.
-  Holding the permissioned token at all is the proof the integration is real.
+  documented window. The treasury holds real, allowlisted USYC, and `totalReserves()`
+  reconciles liquid USDC plus USYC marked to the onchain oracle. Holding the
+  permissioned token at all is the proof the integration is real, because an
+  unentitled address cannot.
+- The Arc Testnet oracle now tracks the real instrument closely. As of 2026-07-12 it
+  is at round 71, $1.130616, matching the live Hashnote feed exactly, having climbed
+  1.79 percent over 203 days (about 3.21 percent APR of genuine T-bill accrual). Run
+  `npm run usyc:prove` to reproduce the whole report against the live chain.
 
 Friction:
 
-- The Arc Testnet USYC price oracle has been frozen at one round since February, so
-  a marked-to-oracle balance does not move day over day on testnet, even though the
-  live instrument keeps accruing. Our reserves widget reads the live Hashnote feed
-  for display and falls back to the onchain oracle, flagging when the onchain value
-  is stale. Without that fallback, a yield readout on testnet sits flat and reads as
-  broken.
+- The oracle was frozen at one round from February until recently, so a
+  marked-to-oracle balance did not move day over day on testnet even though the live
+  instrument kept accruing. It is advancing again now. We built the reserves widget
+  to read the live Hashnote feed and fall back to the onchain oracle, flagging when
+  the onchain value is stale, and that fallback is the only reason a yield readout
+  did not sit flat and read as broken during that window. A documented freshness
+  guarantee for the testnet oracle would let builders skip that defensive work.
 - The first vault subscribe reverted `NotPermissioned` even after allowlisting,
   because the vault contract itself was not the entitled address; the entitled
   operator has to mediate the deposit. Clear once traced, but the revert gave no
   hint that the caller, not the wallet, was the gated party.
+- Marking yield as value-minus-shares is wrong once the token trades above par, and
+  it is the obvious thing to write. USYC was already near $1.13 when we subscribed,
+  so that formula counted appreciation that accrued before we ever held the token,
+  and it overstated our yield by roughly a hundred times. The correct measure is
+  value minus the USDC actually paid. A worked cost-basis example in the USYC docs
+  would stop every integrator from shipping the same flattering bug.
 
 Asks:
 
-- Keep the Arc Testnet USYC oracle advancing, or document that it is intentionally
-  static on testnet, so builders do not treat a flat yield readout as a bug.
+- A documented freshness expectation for the Arc Testnet USYC oracle, so builders
+  know whether a flat readout is a bug or the environment.
 - A note in the USYC docs that the Teller entitlement is checked against the direct
   caller, so a contract subscribing on a user's behalf needs its own entitlement or
   an operator-mediated path.
+- A cost-basis worked example, so nobody ships value-minus-shares as their yield
+  number.
 
 ## Arc Testnet
 

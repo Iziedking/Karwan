@@ -3459,7 +3459,7 @@ export const sw: Messages = {
       appKit: 'SDK iliyounganishwa ya Circle kwa daraja, ubadilishaji, kutuma, na salio iliyounganishwa. Kiunganishi cha Circle Wallets kinasaini moja kwa moja kutoka Developer-Controlled Wallets zetu, hivyo mtumiaji wa barua pepe au passkey anavuka minyororo bila kuona dirisha la mkoba, na watumiaji wa web3 wanasaini kwa mkoba wao kupitia SDK ile ile.',
       gateway: 'Salio moja la USDC lililokusanywa kwenye chenya kumi na mbili. Weka amana mara moja, kisha tumia kwenye chenya yoyote kwa saini moja, bila kubadilisha mtandao na bila gesi kwenye chenya ya chanzo. Pia ndiyo njia inayolipa malipo ya mawakala kila wanapoita huduma.',
       arc: 'Chenya 5042002. Vibao vinakamilika chini ya sekunde moja. USDC ni token asilia ya gesi, na rejista za utambulisho na sifa za ERC-8004 tayari zimewekwa.',
-      usyc: 'Akiba ya treasury inapata Hashnote USYC halisi kwenye Arc Testnet kupitia kiolesura cha kawaida cha Teller cha ERC-4626, ikipimwa kwa oracle hai iliyo kwenye mnyororo. Mtaji wa staking uliokaa unapita njia ile ile.',
+      usyc: 'Mtaji wa biashara hukaa bila kazi kwa asili, na pesa inayokaa inapaswa kuzalisha. Treasury inashika USYC halisi iliyoidhinishwa ya Hashnote kwenye Arc Testnet kupitia kiolesura cha kawaida cha Teller cha ERC-4626, ikipimwa kwa oracle hai iliyo kwenye mnyororo. Mtaji wa staking uliokaa unapita njia ile ile inayosimamiwa na opereta, na kwa toleo la v2 fedha za escrow zinazokaa kwenye biashara ndefu nazo zitazalisha.',
     },
     roadmap: {
       eyebrow: 'Ramani ya safari', title: 'Kinachofuata', body: 'Kinachosafirishwa baada ya jenzi ya sasa ya testnet.',

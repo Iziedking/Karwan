@@ -137,19 +137,42 @@ allowlisted USYC today.
 
 ### x402 and Gateway Nanopayments
 
-Agents pay for market intelligence per call over x402. The platform runs both
-sides of the rail: it sells its own underwriting signals (credit passport,
-repayment behaviour, counterparty concentration) over x402, and its agents pay
-external providers for research.
+Karwan is a buyer and a seller of nanopayments, on and off its own platform. There
+are **two distinct rails**, and they answer different questions.
 
-Internal payments settle through Circle Gateway Nanopayments on Arc. A buyer agent
-funds a Gateway Wallet deposit, then signs an offchain EIP-3009 authorization with
-zero gas, which Gateway verifies and batches onchain. Circle wallets are smart
-accounts and the EIP-3009 signature needs a private key, so each user gets a
-lightweight x402 EOA that signs while the agent wallet funds the deposit. External
-research runs on the standard x402 exact-EVM scheme on Base. Every payment emits an
-`agent.paid` event, and `GET /api/x402` lists the internal paid endpoints and their
-prices.
+**Rail 1, on Arc: who is this counterparty?** Before scoring a bid or pricing a
+quote, an agent pays 0.01 USDC to pull the counterparty's full settled-deal record
+(deals completed clean, deals on time, disputes, lifetime volume). These settle
+through Circle Gateway Nanopayments. The agent funds a Gateway Wallet deposit, then
+signs an offchain EIP-3009 authorization with zero gas, which Gateway verifies and
+batches onchain. Sub-cent reads are only economic because they are netted; paying
+gas on each one would kill the idea.
+
+Gateway verifies EOA-signed authorizations and Circle wallets are smart accounts,
+so each user gets a lightweight x402 EOA that signs while the agent's Circle wallet
+funds the deposit. Gateway's `addDelegate` is the first-class alternative to this.
+
+**Rail 2, on Base mainnet: what is this actually worth?** A settled-deal record says
+nothing about whether a price is fair. So a neutral platform agent pays a genuinely
+independent provider, in real USDC on Base mainnet, over the standard x402
+**exact-EVM** scheme (EIP-3009 against Base USDC's own domain, not Gateway
+batching), for a live web search. It grounds a market read on the results: current
+demand, a price note, and a fair-price estimate the agents negotiate against.
+
+The payer is a plain EOA that only ever signs; the seller's facilitator submits on
+chain and pays the gas. Because it is an ordinary payment on a real network, the
+receipt resolves on the Base explorer like any other transaction.
+
+The second rail is not Karwan paying Karwan on a chain Karwan controls. It is an
+autonomous agent discovering a priced endpoint it did not know about, paying a third
+party in real money on a public network, and getting usable data back. That is the
+whole promise of machine-to-machine payments, exercised rather than described.
+
+**Karwan as seller.** The platform also exposes five paid endpoints of its own over
+x402 (credit passport, repayment behaviour, counterparty concentration, document
+anchors, skill demand), so an outside underwriter can price Karwan credit without
+asking Karwan for permission. Every payment emits an `agent.paid` event, and
+`GET /api/x402` lists the paid endpoints and their prices.
 
 ## Wallet topology
 
