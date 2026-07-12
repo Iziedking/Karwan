@@ -174,19 +174,26 @@ Earlier contract generations stay registered so users with open positions can fi
 
 A Next.js frontend and a Hono backend sit above the Circle SDKs. The backend holds no user funds: it provisions Circle wallets, relays what needs relaying, and runs the watchers that drive delivery, repayment, expiry, and yield. The contracts are the source of truth, and every settlement event links to Arcscan from the live activity feed at `/activity`.
 
-Contracts are Solidity, tested with Foundry: **362 tests passing across 28 suites**, including conservation and vault invariant suites and named attack suites for escrow timing, vault reentrancy, and reputation farming.
+Contracts are Solidity, tested with Foundry: **375 tests passing across 29 suites**, including conservation and vault invariant suites, named attack suites for escrow timing, vault reentrancy, and reputation farming, and an exploit-first acceptance suite for the trade-finance v2 design.
 
 ```bash
 cd contracts && forge test
 ```
 
-## Docs
+## Documentation
 
-- [docs/architecture.md](./docs/architecture.md). Components, the deal flows, the wallet model.
-- [docs/circle-integration.md](./docs/circle-integration.md). Each Circle product and where it lands in the code.
-- [docs/reputation-model.md](./docs/reputation-model.md). The composite score, tier breakpoints, and agent integration.
-- [docs/why-karwan.md](./docs/why-karwan.md). The longer design brief.
-- [docs/circle-product-feedback.md](./docs/circle-product-feedback.md). Notes from building on Circle.
+Start here.
+
+- **[SETUP.md](./SETUP.md)** — how to clone, configure, and run the project, and how the Circle wallets are provisioned.
+- **[CIRCLE.md](./CIRCLE.md)** — how each Circle tool is integrated: the package, the file, the call, the gotcha.
+
+Deeper reference.
+
+- [docs/architecture.md](./docs/architecture.md) — components, the deal flows, the wallet model, and the diagram.
+- [docs/circle-integration.md](./docs/circle-integration.md) — the longer per-product integration notes.
+- [docs/circle-product-feedback.md](./docs/circle-product-feedback.md) — why we chose each product, what worked, what to improve.
+- [docs/reputation-model.md](./docs/reputation-model.md) — the composite score, tier breakpoints, and agent integration.
+- [docs/why-karwan.md](./docs/why-karwan.md) — the longer design brief.
 
 ## License
 
