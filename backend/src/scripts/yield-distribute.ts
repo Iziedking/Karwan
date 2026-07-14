@@ -18,9 +18,15 @@
 /// operator to a hardened wallet (Circle DCW or hardware-signed multisig)
 /// and refactor this script to call through that signing surface instead.
 ///
-/// Cron on the host (daily 09:00 UTC):
+/// Cron on the host (daily 09:00 UTC). The script compiles to dist/ with the
+/// rest of the backend; there is no standalone .mjs under scripts/ any more.
 ///   0 9 * * * cd ~/karwan && docker compose exec -T karwan-api \
 ///     node dist/scripts/yield-distribute.js >> /var/log/karwan/yield.log 2>&1
+///
+/// If a run is missed, do NOT catch up by passing --force N times: this script
+/// prices accrual off the vault's CURRENT positions, so that overpays anyone
+/// who staked during the gap. Use yield-backfill.ts, which replays each missed
+/// day against the vault state at that day's 09:00 block.
 ///
 /// Required env (set in .env, picked up via docker compose env_file):
 ///   ARC_TESTNET_RPC_URL                Arc Testnet RPC endpoint
@@ -62,7 +68,12 @@ const DRY_RUN = FLAGS.has('--dry-run');
 const FORCE = FLAGS.has('--force');
 const QUIET = FLAGS.has('--quiet');
 
-const STATE_PATH = resolve(process.cwd(), 'backend', 'data', 'yieldDistribution.json');
+/// Must match the path ops/heartbeats.ts reads, and must land inside the
+/// host-mounted data dir (compose maps ./data -> /app/backend/data, and the
+/// container's cwd is /app/backend). An extra 'backend' segment here writes to
+/// an unmounted path: the daily lock is then lost on every container roll and
+/// the diagnostics page never sees the run.
+const STATE_PATH = resolve(process.cwd(), 'data', 'yieldDistribution.json');
 const ARC_CHAIN_ID = 5042002;
 const USDC_DECIMALS = 6;
 const POSITION_STATE_ACTIVE = 1;
