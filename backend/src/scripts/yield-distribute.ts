@@ -54,13 +54,13 @@
 import {
   createPublicClient,
   createWalletClient,
-  http,
   formatUnits,
   type Address,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import { arcChain as buildArcChain, arcRpcUrls, arcTransport } from './arcRpc.js';
 import 'dotenv/config';
 
 const FLAGS = new Set(process.argv.slice(2));
@@ -74,11 +74,10 @@ const QUIET = FLAGS.has('--quiet');
 /// an unmounted path: the daily lock is then lost on every container roll and
 /// the diagnostics page never sees the run.
 const STATE_PATH = resolve(process.cwd(), 'data', 'yieldDistribution.json');
-const ARC_CHAIN_ID = 5042002;
 const USDC_DECIMALS = 6;
 const POSITION_STATE_ACTIVE = 1;
 
-const RPC_URL = process.env.ARC_TESTNET_RPC_URL;
+const RPC_URLS = arcRpcUrls();
 const VAULT = process.env.KARWAN_VAULT_ADDR as Address | undefined;
 const DISTRIBUTOR = process.env.KARWAN_YIELD_DISTRIBUTOR_ADDR as Address | undefined;
 const USDC = (process.env.USDC_ADDR ?? '0x3600000000000000000000000000000000000000') as Address;
@@ -92,8 +91,8 @@ if (FUNDING_MODE !== 'operator' && FUNDING_MODE !== 'vault') {
   process.exit(1);
 }
 
-if (!RPC_URL || !VAULT || !DISTRIBUTOR) {
-  console.error('missing ARC_TESTNET_RPC_URL / KARWAN_VAULT_ADDR / KARWAN_YIELD_DISTRIBUTOR_ADDR');
+if (!VAULT || !DISTRIBUTOR) {
+  console.error('missing KARWAN_VAULT_ADDR / KARWAN_YIELD_DISTRIBUTOR_ADDR');
   process.exit(1);
 }
 if (!DRY_RUN && !PK) {
@@ -101,17 +100,13 @@ if (!DRY_RUN && !PK) {
   process.exit(1);
 }
 
-const arcChain = {
-  id: ARC_CHAIN_ID,
-  name: 'Arc Testnet',
-  nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 },
-  rpcUrls: { default: { http: [RPC_URL] } },
-} as const;
+const arcChain = buildArcChain(RPC_URLS);
+const transport = arcTransport(RPC_URLS);
 
-const publicClient = createPublicClient({ chain: arcChain, transport: http(RPC_URL) });
+const publicClient = createPublicClient({ chain: arcChain, transport });
 const account = PK ? privateKeyToAccount(PK) : null;
 const walletClient = account
-  ? createWalletClient({ account, chain: arcChain, transport: http(RPC_URL) })
+  ? createWalletClient({ account, chain: arcChain, transport })
   : null;
 
 const vaultAbi = [

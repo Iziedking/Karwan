@@ -25,7 +25,6 @@
 import {
   createPublicClient,
   createWalletClient,
-  http,
   formatUnits,
   parseAbi,
   type Address,
@@ -34,6 +33,7 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import { arcChain as buildArcChain, arcRpcUrls, arcTransport } from './arcRpc.js';
 import 'dotenv/config';
 
 const ARGS = process.argv.slice(2);
@@ -51,12 +51,11 @@ const TO_DAY = argValue('--to');
 const STATE_PATH = resolve(process.cwd(), 'data', 'yieldBackfill.json');
 const DISTRIBUTION_STATE_PATH = resolve(process.cwd(), 'data', 'yieldDistribution.json');
 
-const ARC_CHAIN_ID = 5042002;
 const USDC_DECIMALS = 6;
 const POSITION_STATE_ACTIVE = 1;
 const CRON_HOUR_UTC = 9;
 
-const RPC_URL = process.env.ARC_TESTNET_RPC_URL;
+const RPC_URLS = arcRpcUrls();
 const VAULT = process.env.KARWAN_VAULT_ADDR as Address | undefined;
 const DISTRIBUTOR = process.env.KARWAN_YIELD_DISTRIBUTOR_ADDR as Address | undefined;
 const USDC = (process.env.USDC_ADDR ?? '0x3600000000000000000000000000000000000000') as Address;
@@ -64,8 +63,8 @@ const PK = process.env.OPERATOR_PRIVATE_KEY as `0x${string}` | undefined;
 const DAILY_APY_BPS = BigInt(process.env.USER_DAILY_APY_BPS ?? '14');
 const BUFFER_BPS = BigInt(process.env.YIELD_BUFFER_BPS ?? '500');
 
-if (!RPC_URL || !VAULT || !DISTRIBUTOR) {
-  console.error('missing ARC_TESTNET_RPC_URL / KARWAN_VAULT_ADDR / KARWAN_YIELD_DISTRIBUTOR_ADDR');
+if (!VAULT || !DISTRIBUTOR) {
+  console.error('missing KARWAN_VAULT_ADDR / KARWAN_YIELD_DISTRIBUTOR_ADDR');
   process.exit(1);
 }
 if (!FROM_DAY || !TO_DAY || !/^\d{4}-\d{2}-\d{2}$/.test(FROM_DAY) || !/^\d{4}-\d{2}-\d{2}$/.test(TO_DAY)) {
@@ -77,17 +76,15 @@ if (EXECUTE && !PK) {
   process.exit(1);
 }
 
-const arcChain = {
-  id: ARC_CHAIN_ID,
-  name: 'Arc Testnet',
-  nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 },
-  rpcUrls: { default: { http: [RPC_URL] } },
-} as const;
+const arcChain = buildArcChain(RPC_URLS);
+const transport = arcTransport(RPC_URLS);
 
-const publicClient: PublicClient = createPublicClient({ chain: arcChain, transport: http(RPC_URL) });
+/// The replay needs historical eth_call. Every RPC in the pool must be an
+/// archive node; the public Arc endpoint is, and is the last-resort entry.
+const publicClient: PublicClient = createPublicClient({ chain: arcChain, transport });
 const account = PK ? privateKeyToAccount(PK) : null;
 const walletClient = account
-  ? createWalletClient({ account, chain: arcChain, transport: http(RPC_URL) })
+  ? createWalletClient({ account, chain: arcChain, transport })
   : null;
 
 const vaultAbi = parseAbi([
