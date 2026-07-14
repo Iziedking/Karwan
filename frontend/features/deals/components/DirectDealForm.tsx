@@ -15,6 +15,12 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
+/// A Paytag handle, with or without the leading @. Kept deliberately narrow so
+/// a half-typed address never gets mistaken for a handle and fired at the API.
+const PAYTAG_RE = /^@?[a-zA-Z0-9_-]{1,32}$/;
+/// P2P rollout flag. Must match the backend's PAYTAG_ENABLED; when the backend
+/// is off it rejects the handle anyway, this just keeps the field honest.
+const PAYTAG_ENABLED = process.env.NEXT_PUBLIC_PAYTAG_ENABLED === '1';
 
 // SME trade-finance constants. Hoisted per Vercel `rendering-hoist-jsx`.
 type TradeType = 'service' | 'goods' | 'mixed';
@@ -158,6 +164,64 @@ export function DirectDealForm() {
   const sameWallet =
     sellerValid && address && seller.trim().toLowerCase() === address.toLowerCase();
 
+  /// The counterparty field takes a wallet address OR a Paytag handle, the way
+  /// a wallet takes an ENS name: you paste whatever they handed you. Paytag is
+  /// P2P only, so it is offered only when this deal would NOT land in the
+  /// finance lane (a business trading goods/mixed). A handle is a nickname that
+  /// anyone can claim, and the finance lane moves credit against a verified
+  /// business, so it keeps demanding a real address.
+  const paytagAllowed = PAYTAG_ENABLED && !(isBusiness && tradeType !== 'service');
+  const sellerLooksLikePaytag =
+    paytagAllowed &&
+    counterpartyMode === 'wallet' &&
+    !sellerValid &&
+    PAYTAG_RE.test(seller.trim());
+
+  const [paytagHit, setPaytagHit] = useState<{ handle: string; maskedAddress: string } | null>(
+    null,
+  );
+  const [paytagMissing, setPaytagMissing] = useState(false);
+  const [paytagLooking, setPaytagLooking] = useState(false);
+
+  // Debounced so the lookup fires when they stop typing, not per keystroke.
+  const paytagQuery = sellerLooksLikePaytag ? seller.trim().replace(/^@/, '').toLowerCase() : null;
+  useEffect(() => {
+    if (!paytagQuery) {
+      setPaytagHit(null);
+      setPaytagMissing(false);
+      setPaytagLooking(false);
+      return;
+    }
+    let live = true;
+    setPaytagLooking(true);
+    const t = setTimeout(() => {
+      api
+        .resolvePaytag(paytagQuery)
+        .then((r) => {
+          if (!live) return;
+          if (r.found && r.handle && r.maskedAddress) {
+            setPaytagHit({ handle: r.handle, maskedAddress: r.maskedAddress });
+            setPaytagMissing(false);
+          } else {
+            setPaytagHit(null);
+            setPaytagMissing(true);
+          }
+        })
+        .catch(() => {
+          if (!live) return;
+          setPaytagHit(null);
+          setPaytagMissing(true);
+        })
+        .finally(() => {
+          if (live) setPaytagLooking(false);
+        });
+    }, 350);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [paytagQuery]);
+
   // Look the counterparty up once per address. Seeding overwrites the company
   // fields because the partner's own card is more authoritative than anything
   // the buyer would type about them; edits after the lookup stick, since the
@@ -194,7 +258,9 @@ export function DirectDealForm() {
     counterpartyEmail.trim().length > 3 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(counterpartyEmail.trim());
   const counterpartyValid =
-    counterpartyMode === 'wallet' ? sellerValid && !sameWallet : emailValid;
+    counterpartyMode === 'wallet'
+      ? (sellerValid && !sameWallet) || !!paytagHit
+      : emailValid;
   const amountValid = typeof amount === 'number' && amount > 0;
   // Single-input deadline with a min/hr/day unit toggle. Bounds per unit
   // mirror the buyer brief form so behaviour is identical across surfaces.
@@ -260,7 +326,9 @@ export function DirectDealForm() {
       const r = await api.createDirectDeal({
         buyerAddress: address!,
         ...(counterpartyMode === 'wallet'
-          ? { sellerAddress: seller.trim() }
+          ? paytagHit
+            ? { sellerPaytag: paytagHit.handle }
+            : { sellerAddress: seller.trim() }
           : { sellerEmail: counterpartyEmail.trim().toLowerCase() }),
         dealAmountUsdc: amount as number,
         deadlineDays: submitDays,
@@ -395,20 +463,47 @@ export function DirectDealForm() {
         </div>
         {counterpartyMode === 'wallet' ? (
           <FormLabel
-            label={dd.counterparty.walletLabel}
-            hint={dd.counterparty.walletHint}
+            label={paytagAllowed ? dd.counterparty.walletOrPaytagLabel : dd.counterparty.walletLabel}
+            hint={paytagAllowed ? dd.counterparty.walletOrPaytagHint : dd.counterparty.walletHint}
           >
             <input
               type="text"
               value={seller}
               onChange={(e) => setSeller(e.target.value)}
-              placeholder={dd.counterparty.walletPlaceholder}
+              placeholder={
+                paytagAllowed
+                  ? dd.counterparty.walletOrPaytagPlaceholder
+                  : dd.counterparty.walletPlaceholder
+              }
               disabled={submitting}
               className="form-input form-input-mono"
             />
-            {seller.length > 0 && !sellerValid && (
+            {paytagLooking && (
+              <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
+                {dd.counterparty.paytagLooking}
+              </span>
+            )}
+            {paytagHit && (
+              <div className="mt-2 space-y-1">
+                <p className="mono text-[12px] text-[var(--lp-dark)]">
+                  <span style={{ color: 'var(--lp-accent)' }}>@{paytagHit.handle}</span>
+                  <span className="text-[var(--lp-text-muted)]"> · {paytagHit.maskedAddress}</span>
+                </p>
+                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  {dd.counterparty.paytagNotVerified}
+                </p>
+              </div>
+            )}
+            {paytagMissing && !paytagLooking && (
               <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
-                {dd.counterparty.walletInvalid}
+                {dd.counterparty.paytagNotFound}
+              </span>
+            )}
+            {seller.length > 0 && !sellerValid && !sellerLooksLikePaytag && (
+              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+                {paytagAllowed
+                  ? dd.counterparty.walletOrPaytagInvalid
+                  : dd.counterparty.walletInvalid}
               </span>
             )}
             {sameWallet && (

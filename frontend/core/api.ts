@@ -394,6 +394,10 @@ export interface DirectDeal {
   jobId: string;
   buyer: string;
   seller: string;
+  /// Paytag handle the buyer named this counterparty by, when they used one.
+  /// A display label. `seller` is the address it resolved to at creation and is
+  /// what every payout and dispute path acts on.
+  sellerPaytag?: string;
   dealAmountUsdc: string;
   /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
   /// 100 - firstReleasePct]; kept in sync with milestonePcts[0] when present.
@@ -1983,6 +1987,10 @@ export const api = {
     /// in the response, and leaves the deal's seller as a sentinel until claim.
     sellerAddress?: string;
     sellerEmail?: string;
+    /// Paytag handle (P2P only). The backend resolves it to an address at
+    /// creation and pins that address on the deal; the handle is kept as a
+    /// label. Handles are transferable, so nothing re-resolves it later.
+    sellerPaytag?: string;
     dealAmountUsdc: number;
     deadlineDays: number;
     deadlineHours?: number;
@@ -2684,6 +2692,17 @@ export const api = {
   },
   getPartner: (address: string) =>
     json<{ partner: Partner }>(`/api/partners/${address}`),
+
+  /// Look up a Paytag handle before opening a deal, so a typo fails at the
+  /// input instead of at creation. Returns the address MASKED: the counterparty
+  /// handed over a handle precisely so their address stays off the screen.
+  resolvePaytag: (handle: string) =>
+    json<{
+      enabled: boolean;
+      found: boolean;
+      handle?: string;
+      maskedAddress?: string;
+    }>(`/api/paytag/resolve?handle=${encodeURIComponent(handle)}`),
 
   // Circle Gateway pooled balance for the signed-in address. This is USDC
   // locked in the GatewayWallet contract, NOT wallet USDC: it reads zero until

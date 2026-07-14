@@ -438,6 +438,22 @@ const envSchema = z.object({
     z.boolean(),
   ),
 
+  // --- Paytag (@handle counterparties) ---
+  // Lets a P2P buyer name their counterparty by Paytag handle instead of an
+  // email or a raw address. P2P ONLY: the finance lane (SME) still requires a
+  // verified-business counterparty, and a handle is not a verification.
+  // Defaults OFF; flip after the P2P rollout is judged.
+  PAYTAG_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  // Paytag's ERC-721 registry on Arc. Read permissionlessly via our own Arc
+  // client, so no API key and no account with them is required.
+  PAYTAG_REGISTRY_ADDR: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/)
+    .optional(),
+  // Keyless REST fallback for handles that exist in their database but are not
+  // minted on the chain we run on. Resolution is a public GET (no auth).
+  PAYTAG_API_BASE: z.string().url().optional(),
+
   // --- Agentic-workflow rollout flags (audit/AGENTIC_WORKFLOW_REVIEW.md) ---
   // Each gates one behavior change in the "live market intelligence reaches the
   // decision" work and DEFAULTS OFF, so the agent path is byte-for-byte its

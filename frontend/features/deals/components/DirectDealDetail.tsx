@@ -694,6 +694,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               <PartyRow
                 role={dd.parties.seller}
                 address={deal.seller}
+                paytag={deal.sellerPaytag}
                 you={viewerIsSeller}
                 youLabel={dd.parties.youSuffix}
                 showReputation
@@ -1354,12 +1355,17 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
 function PartyRow({
   role,
   address,
+  paytag,
   you,
   youLabel,
   showReputation,
 }: {
   role: string;
   address: string;
+  /// Paytag handle this party was named by, when the buyer used one. Leads the
+  /// row; the address stays masked underneath. The handle is a label only, so
+  /// reputation and every action still key off the address.
+  paytag?: string;
   you: boolean;
   youLabel: string;
   showReputation?: boolean;
@@ -1371,9 +1377,18 @@ function PartyRow({
           {role}
           {you && <span style={{ color: 'var(--lp-accent)' }}> · {youLabel}</span>}
         </p>
-        <p className="mt-1 mono text-[13px] text-[var(--lp-dark)] tabular-nums">
-          {shortAddress(address)}
-        </p>
+        {paytag ? (
+          <>
+            <p className="mt-1 mono text-[13px] text-[var(--lp-dark)]">@{paytag}</p>
+            <p className="mono text-[11px] text-[var(--lp-text-muted)] tabular-nums">
+              {shortAddress(address)}
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 mono text-[13px] text-[var(--lp-dark)] tabular-nums">
+            {shortAddress(address)}
+          </p>
+        )}
       </div>
       {showReputation && <ReputationBadge address={address} size="sm" withDetail />}
     </div>

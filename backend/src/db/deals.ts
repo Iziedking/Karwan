@@ -30,6 +30,14 @@ export interface DirectDeal {
   // buyer agent; this is who the deal belongs to for dashboards and auth checks.
   buyer: string;
   seller: string;
+  /// Paytag handle the buyer used to name this counterparty, if they used one.
+  /// A DISPLAY LABEL ONLY. `seller` above is the address the handle resolved to
+  /// at creation, and it is what every payout, release, and dispute path acts
+  /// on. Paytag handles are ERC-721 tokens and can be transferred, so the handle
+  /// is never re-resolved after this point: doing so would let a counterparty
+  /// sell the handle mid-deal and redirect the money. The handle is also not a
+  /// verification, so it never gates anything.
+  sellerPaytag?: string;
   // Per-user agent wallets bound to this deal at creation. The buyer agent funds
   // the escrow and signs releases; the seller agent is named as the on-chain
   // seller and receives payouts, and signs a seller appeal. Optional so deals

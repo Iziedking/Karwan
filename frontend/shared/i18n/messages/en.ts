@@ -798,6 +798,13 @@ interface MessagesShape {
       walletPlaceholder: string;
       walletInvalid: string;
       walletSelfWarning: string;
+      walletOrPaytagLabel: string;
+      walletOrPaytagHint: string;
+      walletOrPaytagPlaceholder: string;
+      walletOrPaytagInvalid: string;
+      paytagLooking: string;
+      paytagNotFound: string;
+      paytagNotVerified: string;
       emailLabel: string;
       emailHint: string;
       emailPlaceholder: string;
@@ -4661,6 +4668,13 @@ export const en: MessagesShape = {
       walletPlaceholder: '0x...',
       walletInvalid: 'Not a valid 20-byte address.',
       walletSelfWarning: 'Seller must differ from your wallet.',
+      walletOrPaytagLabel: 'Seller address or paytag',
+      walletOrPaytagHint: 'Their wallet, or the paytag they gave you. Easier to remember than an address, and it keeps their email private.',
+      walletOrPaytagPlaceholder: '0x... or @handle',
+      walletOrPaytagInvalid: 'Not a valid address or paytag.',
+      paytagLooking: 'Looking up...',
+      paytagNotFound: 'No one holds that paytag. Check it with them, or use their address.',
+      paytagNotVerified: 'A paytag is a name, not a check. Anyone can claim one.',
       emailLabel: 'Seller email',
       emailHint: 'We email them a one-shot link. The deal sits idle until they claim. Nothing funds before then.',
       emailPlaceholder: 'them@work.com',

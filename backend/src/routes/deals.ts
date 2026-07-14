@@ -53,6 +53,7 @@ import {
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
+import { resolvePaytag } from '../paytag/resolve.js';
 import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
@@ -92,6 +93,15 @@ const createSchema = z
     /// shareable URL; no escrow funding happens before the recipient claims.
     sellerAddress: addrSchema.optional(),
     sellerEmail: z.string().email().toLowerCase().optional(),
+    /// Paytag handle (P2P only). Resolved to an address here, at creation, and
+    /// that address is what the deal settles against forever. Handles are
+    /// transferable ERC-721s, so a lazily-resolved handle would let the
+    /// counterparty redirect the money mid-deal.
+    sellerPaytag: z
+      .string()
+      .trim()
+      .regex(/^@?[a-zA-Z0-9_-]{1,32}$/, 'expected a paytag handle like @sarah')
+      .optional(),
     dealAmountUsdc: z.number().positive(),
     // Optional delivery deadline. When omitted (or both fields = 0) the deal
     // is open-ended, the seller has no time pressure and the buyer can't
@@ -153,8 +163,11 @@ const createSchema = z
     { message: 'when set, deadline must be at least 1 hour', path: ['deadlineHours'] },
   )
   .refine(
-    (b) => !!b.sellerAddress !== !!b.sellerEmail,
-    { message: 'provide exactly one of sellerAddress or sellerEmail', path: ['sellerAddress'] },
+    (b) => [b.sellerAddress, b.sellerEmail, b.sellerPaytag].filter(Boolean).length === 1,
+    {
+      message: 'provide exactly one of sellerAddress, sellerEmail or sellerPaytag',
+      path: ['sellerAddress'],
+    },
   );
 
 /// Pre-accept edit. Mirrors the create schema but every field is optional and
@@ -273,13 +286,57 @@ dealsRoutes.post('/direct', async (c) => {
     inviteUrl = `${base}/invite/${token}`;
   }
 
-  const sellerAddress = body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS;
+  // Paytag mode: resolve the handle NOW and pin the address onto the deal. From
+  // here on the deal is an address deal that happens to remember a label. The
+  // handle is never resolved again, because it is a transferable ERC-721 and a
+  // late resolve would let the seller move it and redirect the payout.
+  let sellerPaytag: string | undefined;
+  let resolvedPaytagAddress: string | undefined;
+  if (body.sellerPaytag) {
+    if (!config.PAYTAG_ENABLED) {
+      return c.json({ error: 'paytag counterparties are not enabled', code: 'paytag_disabled' }, 409);
+    }
+    const hit = await resolvePaytag(body.sellerPaytag);
+    if (!hit) {
+      return c.json(
+        {
+          error: 'that paytag could not be found',
+          detail: 'Check the handle with your counterparty, or name them by wallet address instead.',
+          code: 'paytag_unresolved',
+        },
+        404,
+      );
+    }
+    if (hit.address.toLowerCase() === body.buyerAddress.toLowerCase()) {
+      return c.json({ error: 'buyer and seller must be different wallets' }, 400);
+    }
+    sellerPaytag = hit.handle;
+    resolvedPaytagAddress = hit.address;
+  }
+
+  const sellerAddress = resolvedPaytagAddress ?? body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS;
 
   // Stamp the match lane from the creator's account type plus the trade nature.
   // A finance-lane direct deal (SME/B2B) is between verified businesses on both
   // sides: a known counterparty is checked now, a pending invited one at accept.
   const creatorAccountType = await accountTypeOf(body.buyerAddress);
   const tradeLane = deriveLane(creatorAccountType, body.tradeType);
+
+  // P2P only, for now. A handle is a nickname, not a verification: anyone can
+  // claim any unclaimed name. The finance lane moves real credit against a
+  // verified business, so it keeps demanding one and will not take a handle.
+  if (tradeLane === 'finance' && sellerPaytag) {
+    return c.json(
+      {
+        error: 'finance-lane deals cannot name the counterparty by paytag',
+        detail:
+          'SME trade-finance deals are between verified businesses. Name the counterparty by wallet address.',
+        code: 'paytag_not_in_finance_lane',
+      },
+      409,
+    );
+  }
+
   if (tradeLane === 'finance' && body.sellerAddress) {
     const sellerType = await accountTypeOf(body.sellerAddress);
     if (sellerType !== 'business') {
@@ -298,6 +355,7 @@ dealsRoutes.post('/direct', async (c) => {
     jobId,
     buyer: body.buyerAddress,
     seller: sellerAddress,
+    sellerPaytag,
     buyerAgentWalletId: buyerAgents.buyerWalletId,
     buyerAgentAddress: buyerAgents.buyerAddress,
     dealAmountUsdc: body.dealAmountUsdc.toString(),
