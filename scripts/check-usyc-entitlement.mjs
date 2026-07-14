@@ -26,19 +26,19 @@
  *   node scripts/check-usyc-entitlement.mjs
  *
  * Env vars (sourced from backend/.env or repo .env):
- *   ARC_TESTNET_RPC_URL       — required
+ *   ARC_TESTNET_RPC_URL       — optional; falls back to the public Arc endpoint
  *   KARWAN_VAULT_ADDR         — required, the Gen 4 KarwanVault address
  *   KARWAN_TREASURY_USYC_ADDR   — required, the new Treasury wired to real USYC
  *   USYC_ENTITLEMENTS_ADDR    — optional, defaults to the Arc Testnet address
  */
 
-import { createPublicClient, http, keccak256, toBytes } from 'viem';
+import { createPublicClient, keccak256, toBytes } from 'viem';
+import { arcChain, arcRpcUrls, arcTransport } from './arcRpc.mjs';
 import 'dotenv/config';
 
-const ARC_CHAIN_ID = 5042002;
 const ENTITLEMENTS_ARC_TESTNET = '0xcc205224862c7641930c87679e98999d23c26113';
 
-const RPC_URL = process.env.ARC_TESTNET_RPC_URL;
+const RPC_URLS = arcRpcUrls();
 const VAULT = process.env.KARWAN_VAULT_ADDR;
 /// Accept either the new key or the old one so the script keeps working
 /// against a VPS .env that has not been migrated yet.
@@ -47,23 +47,14 @@ const TREASURY =
 const ENTITLEMENTS =
   process.env.USYC_ENTITLEMENTS_ADDR || ENTITLEMENTS_ARC_TESTNET;
 
-if (!RPC_URL) {
-  console.error('missing ARC_TESTNET_RPC_URL');
-  process.exit(1);
-}
 if (!VAULT || !TREASURY) {
   console.error('missing KARWAN_VAULT_ADDR or KARWAN_TREASURY_USYC_ADDR');
   process.exit(1);
 }
 
-const arc = {
-  id: ARC_CHAIN_ID,
-  name: 'Arc Testnet',
-  nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 },
-  rpcUrls: { default: { http: [RPC_URL] } },
-};
+const arc = arcChain(RPC_URLS);
 
-const client = createPublicClient({ chain: arc, transport: http(RPC_URL) });
+const client = createPublicClient({ chain: arc, transport: arcTransport(RPC_URLS) });
 
 /// Candidate entitlement-view shapes. The first one that returns without a
 /// revert is the active interface. Hashnote evolved this surface over the
@@ -216,7 +207,7 @@ async function run() {
   console.log('USYC Entitlement Check — Arc Testnet');
   console.log('─'.repeat(60));
   console.log(`entitlements contract: ${ENTITLEMENTS}`);
-  console.log(`RPC:                   ${RPC_URL}`);
+  console.log(`RPC:                   ${RPC_URLS[0]}`);
 
   try {
     const code = await client.getBytecode({ address: ENTITLEMENTS });

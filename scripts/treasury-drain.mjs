@@ -20,7 +20,10 @@
  * override. --dry-run prints the plan without broadcasting.
  *
  * Env vars:
- *   ARC_TESTNET_RPC_URL                   Arc Testnet RPC endpoint
+ *   ARC_TESTNET_RPC_URL                   primary RPC. Optional: with none set,
+ *                                         and as a fallback whenever the primary
+ *                                         errors, the public Arc endpoint is used.
+ *   ARC_TESTNET_RPC_URLS                  comma-separated extra fallbacks
  *   KARWAN_TREASURY_CONTRACT_ADDR         The legacy fee-sink treasury
  *   KARWAN_TREASURY_USYC_ADDR             V4 treasury (real USYC)
  *   USDC_ADDR                             defaults to Arc Testnet USDC
@@ -45,12 +48,12 @@
 import {
   createPublicClient,
   createWalletClient,
-  http,
   formatUnits,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import { arcChain, arcRpcUrls, arcTransport } from './arcRpc.mjs';
 import 'dotenv/config';
 
 const FLAGS = new Set(process.argv.slice(2));
@@ -59,10 +62,9 @@ const FORCE = FLAGS.has('--force');
 const QUIET = FLAGS.has('--quiet');
 
 const STATE_PATH = resolve(process.cwd(), 'data', 'treasuryDrain.json');
-const ARC_CHAIN_ID = 5042002;
 const USDC_DECIMALS = 6;
 
-const RPC_URL = process.env.ARC_TESTNET_RPC_URL;
+const RPC_URLS = arcRpcUrls();
 const OLD_TREASURY = process.env.KARWAN_TREASURY_CONTRACT_ADDR;
 const USYC_TREASURY =
   process.env.KARWAN_TREASURY_USYC_ADDR ?? process.env.KARWAN_TREASURY_V3_ADDR;
@@ -70,9 +72,9 @@ const USDC = process.env.USDC_ADDR || '0x360000000000000000000000000000000000000
 const PK = process.env.OPERATOR_PRIVATE_KEY;
 const MIN_DRAIN = BigInt(process.env.MIN_DRAIN_USDC || '1000000');
 
-if (!RPC_URL || !OLD_TREASURY || !USYC_TREASURY) {
+if (!OLD_TREASURY || !USYC_TREASURY) {
   console.error(
-    'missing ARC_TESTNET_RPC_URL / KARWAN_TREASURY_CONTRACT_ADDR / KARWAN_TREASURY_USYC_ADDR',
+    'missing KARWAN_TREASURY_CONTRACT_ADDR / KARWAN_TREASURY_USYC_ADDR',
   );
   process.exit(1);
 }
@@ -81,17 +83,13 @@ if (!DRY_RUN && !PK) {
   process.exit(1);
 }
 
-const arc = {
-  id: ARC_CHAIN_ID,
-  name: 'Arc Testnet',
-  nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 },
-  rpcUrls: { default: { http: [RPC_URL] } },
-};
+const arc = arcChain(RPC_URLS);
+const transport = arcTransport(RPC_URLS);
 
-const publicClient = createPublicClient({ chain: arc, transport: http(RPC_URL) });
+const publicClient = createPublicClient({ chain: arc, transport });
 const account = PK ? privateKeyToAccount(PK) : null;
 const walletClient = account
-  ? createWalletClient({ account, chain: arc, transport: http(RPC_URL) })
+  ? createWalletClient({ account, chain: arc, transport })
   : null;
 
 const treasuryAbi = [
