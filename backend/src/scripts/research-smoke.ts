@@ -28,12 +28,27 @@ async function main(): Promise<void> {
   console.log('paidUsd:', exa.paidUsd, '| payer:', exa.payer, '| txHash:', exa.txHash ?? '(not echoed)');
   for (const r of exa.data.results ?? []) console.log('  -', r.title, '·', r.url);
 
-  console.log('\n--- step 2: full researchMarket (Exa + LLM synthesis) ---');
+  console.log('\n--- step 2: full researchMarket (three-angle sweep + verified synthesis) ---');
   const read = await researchMarket(keywords);
+  console.log('angles run:', read.anglesRun?.join(', ') ?? '(legacy read)');
   console.log('demand:', read.demand);
   console.log('summary:', read.summary);
   console.log('priceNote:', read.priceNote);
+  console.log('priceConfidence:', read.priceConfidence);
+  if (read.priceBandUsdc) {
+    const b = read.priceBandUsdc;
+    console.log(`price band: ${b.low} — ${b.high} USDC (mid ${b.mid})`);
+  } else {
+    console.log('price band: (no verified price observations)');
+  }
+  for (const o of read.priceObservations ?? []) {
+    console.log(`  · ${o.amountUsdc} USDC (${o.unit}) [src ${o.sourceIndex}] "${o.quote.slice(0, 90)}"`);
+  }
   console.log('highlights:', read.highlights);
+  console.log(
+    'sources:',
+    read.sources.map((s) => `${s.title.slice(0, 50)}${s.publishedDate ? ` (${s.publishedDate})` : ''}`),
+  );
   console.log('paidUsd:', read.paidUsd, '| cached:', read.cached, '| sources:', read.sources.length);
 }
 

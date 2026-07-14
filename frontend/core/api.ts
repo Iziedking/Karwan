@@ -538,8 +538,18 @@ export interface DirectDeal {
     summary: string;
     demand: 'hot' | 'steady' | 'soft';
     priceNote: string;
+    fairPriceUsdc?: number;
+    priceConfidence?: 'grounded' | 'rough' | 'none';
+    priceBandUsdc?: { low: number; mid: number; high: number };
+    priceObservations?: {
+      amountUsdc: number;
+      unit: string;
+      quote: string;
+      sourceIndex: number;
+    }[];
     highlights: string[];
-    sources: { title: string; url: string }[];
+    sources: { title: string; url: string; publishedDate?: string }[];
+    anglesRun?: string[];
     amountUsd: number;
     txHash?: string;
     payer?: string;
@@ -688,8 +698,18 @@ export interface MatchProposal {
     summary: string;
     demand: 'hot' | 'steady' | 'soft';
     priceNote: string;
+    fairPriceUsdc?: number;
+    priceConfidence?: 'grounded' | 'rough' | 'none';
+    priceBandUsdc?: { low: number; mid: number; high: number };
+    priceObservations?: {
+      amountUsdc: number;
+      unit: string;
+      quote: string;
+      sourceIndex: number;
+    }[];
     highlights: string[];
-    sources: { title: string; url: string }[];
+    sources: { title: string; url: string; publishedDate?: string }[];
+    anglesRun?: string[];
     amountUsd: number;
     /// On-chain settlement tx (Base) for the research payment, when echoed.
     txHash?: string;
@@ -1078,8 +1098,16 @@ export interface ApiMarketRead {
   priceNote: string;
   fairPriceUsdc?: number;
   priceConfidence?: 'grounded' | 'rough' | 'none';
+  priceBandUsdc?: { low: number; mid: number; high: number };
+  priceObservations?: {
+    amountUsdc: number;
+    unit: string;
+    quote: string;
+    sourceIndex: number;
+  }[];
   highlights: string[];
-  sources: { title: string; url: string }[];
+  sources: { title: string; url: string; publishedDate?: string }[];
+  anglesRun?: string[];
   paidUsd: number;
   payer?: string;
   txHash?: string;

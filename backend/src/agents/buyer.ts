@@ -2611,8 +2611,16 @@ async function proposeMatch(
               demand: marketRead.demand,
               priceNote: marketRead.priceNote,
               fairPriceUsdc: marketRead.fairPriceUsdc,
+              ...(marketRead.priceConfidence
+                ? { priceConfidence: marketRead.priceConfidence }
+                : {}),
+              ...(marketRead.priceBandUsdc ? { priceBandUsdc: marketRead.priceBandUsdc } : {}),
+              ...(marketRead.priceObservations
+                ? { priceObservations: marketRead.priceObservations }
+                : {}),
               highlights: marketRead.highlights,
               sources: marketRead.sources,
+              ...(marketRead.anglesRun ? { anglesRun: marketRead.anglesRun } : {}),
               amountUsd: marketRead.paidUsd,
               txHash: marketRead.txHash,
               payer: marketRead.payer,

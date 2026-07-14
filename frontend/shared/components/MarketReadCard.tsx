@@ -10,13 +10,29 @@ export interface MarketReadData {
   demand: 'hot' | 'steady' | 'soft';
   priceNote: string;
   fairPriceUsdc?: number;
+  /// Mechanical confidence: 'grounded' = at least two price quotes verified
+  /// in code against distinct sources. Absent on legacy reads.
+  priceConfidence?: 'grounded' | 'rough' | 'none';
+  /// Market price band computed from the verified observations.
+  priceBandUsdc?: { low: number; mid: number; high: number };
+  /// Price points that survived quote verification, each citing its source.
+  priceObservations?: {
+    amountUsdc: number;
+    unit: string;
+    quote: string;
+    sourceIndex: number;
+  }[];
   highlights: string[];
-  sources: { title: string; url: string }[];
+  sources: { title: string; url: string; publishedDate?: string }[];
+  /// Research angles the sweep ran (pricing/demand/landscape).
+  anglesRun?: string[];
   amountUsd: number;
   txHash?: string;
   payer?: string;
   researchedAt: number;
 }
+
+const usdcFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 const TONES: Record<MarketReadData['demand'], { fg: string; bg: string }> = {
   hot: { fg: '#4f8a3f', bg: 'rgba(79,138,63,0.14)' },
@@ -71,14 +87,22 @@ export function MarketReadCard({
           [:MARKET READ:]
         </span>
         <div className="flex items-center gap-2">
-          {mr.fairPriceUsdc != null && (
+          {mr.priceBandUsdc && mr.priceBandUsdc.low !== mr.priceBandUsdc.high ? (
             <span
-              className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)]"
+              className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
               style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
             >
-              market ~${mr.fairPriceUsdc.toFixed(0)}
+              market {usdcFmt.format(mr.priceBandUsdc.low)} to{' '}
+              {usdcFmt.format(mr.priceBandUsdc.high)} USDC
             </span>
-          )}
+          ) : mr.fairPriceUsdc != null ? (
+            <span
+              className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 text-[var(--lp-text-sub)] tabular-nums"
+              style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 3 }}
+            >
+              market ~{usdcFmt.format(mr.fairPriceUsdc)} USDC
+            </span>
+          ) : null}
           <span
             className="mono text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5"
             style={{ color: tone.fg, background: `${tone.fg}26`, borderRadius: 3 }}
@@ -104,8 +128,48 @@ export function MarketReadCard({
           ))}
         </ul>
       )}
+      {(mr.priceObservations?.length ?? 0) > 0 && (
+        <div className="mt-2.5">
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:PRICES FOUND IN SOURCES:]
+          </p>
+          <ul className="mt-1.5 space-y-1.5">
+            {mr.priceObservations!.slice(0, 4).map((o, i) => {
+              const src = mr.sources[o.sourceIndex];
+              return (
+                <li key={`${o.sourceIndex}-${i}`} className="text-[11px] leading-snug">
+                  <span className="mono font-bold text-[var(--lp-dark)] tabular-nums">
+                    {usdcFmt.format(o.amountUsdc)} USDC
+                  </span>
+                  <span className="mono text-[10px] text-[var(--lp-text-muted)]"> · {o.unit}</span>
+                  <span className="text-[var(--lp-text-sub)] italic"> “{o.quote.length > 110 ? `${o.quote.slice(0, 110)}…` : o.quote}”</span>
+                  {src && (
+                    <a
+                      href={src.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mono text-[10px] underline underline-offset-2 hover:opacity-80 ms-1"
+                      style={{ color: tone.fg }}
+                    >
+                      source ↗
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-1 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            {mr.priceConfidence === 'grounded'
+              ? 'each price checked word for word against its source'
+              : 'one sourced price found. treat the number as a hint'}
+          </p>
+        </div>
+      )}
       <div className="mt-2.5 flex items-center gap-3 flex-wrap mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        <span>agent paid ${mr.amountUsd} to research · Base</span>
+        <span>
+          agent paid ${mr.amountUsd} to research
+          {(mr.anglesRun?.length ?? 0) > 1 ? ` · ${mr.anglesRun!.length}-angle search` : ''} · Base
+        </span>
         {/^0x[0-9a-fA-F]{64}$/.test(mr.txHash ?? '') ? (
           <a
             href={`https://basescan.org/tx/${mr.txHash}`}
@@ -127,7 +191,19 @@ export function MarketReadCard({
             view payer ↗
           </a>
         ) : null}
-        {mr.sources.length > 0 && <span>{mr.sources.length} sources</span>}
+        {mr.sources.length > 0 && (
+          <span>
+            {mr.sources.length} sources
+            {(() => {
+              const dates = mr.sources
+                .map((s) => s.publishedDate)
+                .filter((d): d is string => !!d)
+                .sort();
+              const latest = dates[dates.length - 1];
+              return latest ? ` · latest ${latest.slice(0, 7)}` : '';
+            })()}
+          </span>
+        )}
       </div>
     </div>
   );

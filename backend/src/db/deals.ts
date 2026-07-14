@@ -74,8 +74,22 @@ export interface DirectDeal {
     demand: 'hot' | 'steady' | 'soft';
     priceNote: string;
     fairPriceUsdc?: number;
+    /// Mechanical: grounded = ≥2 code-verified price quotes from distinct
+    /// sources, rough = 1, none = 0. Never the model grading itself.
+    priceConfidence?: 'grounded' | 'rough' | 'none';
+    /// Market band computed in code from the verified observations.
+    priceBandUsdc?: { low: number; mid: number; high: number };
+    /// Price points that survived quote-verification, each citing its source.
+    priceObservations?: {
+      amountUsdc: number;
+      unit: string;
+      quote: string;
+      sourceIndex: number;
+    }[];
     highlights: string[];
-    sources: { title: string; url: string }[];
+    sources: { title: string; url: string; publishedDate?: string }[];
+    /// Which sweep angles ran (pricing/demand/landscape).
+    anglesRun?: string[];
     amountUsd: number;
     txHash?: string;
     payer?: string;

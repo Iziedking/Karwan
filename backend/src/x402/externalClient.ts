@@ -14,10 +14,10 @@ import { logger } from '../logger.js';
 /// usdc-contract-addresses). The external x402 payer holds this and nothing
 /// else — it signs EIP-3009 authorizations; the facilitator pays gas.
 const BASE_USDC_ADDR = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
-/// Rough per-call cost of an external paid read (Exa web search over x402).
+/// Rough cost of one full market read (the three-angle Exa sweep over x402).
 /// Used to translate the payer's balance into "how many more reads can it fund"
 /// for the admin health probe. Deliberately conservative.
-const EXTERNAL_CALL_COST_USD = 0.01;
+const EXTERNAL_CALL_COST_USD = 0.03;
 /// Warn when the payer can fund fewer than this many more reads. Below it, the
 /// whole live-market-intelligence layer is about to silently go dark.
 const PAYER_MIN_CALLS = 20;
@@ -226,6 +226,21 @@ interface ExaResponse {
   results?: ExaResult[];
 }
 
+/// One price point pulled from the evidence and VERIFIED in code: the quote is
+/// checked verbatim against the source text before the observation is kept, so
+/// a price the model invented never reaches the band or the agents. This is
+/// what makes the read auditable — every number points at the sentence it came
+/// from.
+export interface PriceObservation {
+  amountUsdc: number;
+  /// What the amount prices: 'project', 'hourly', 'monthly', 'per-unit', ...
+  unit: string;
+  /// The verbatim sentence fragment the price came from.
+  quote: string;
+  /// Which source (index into `sources`) carries the quote.
+  sourceIndex: number;
+}
+
 export interface MarketRead {
   keywords: string[];
   /// One-paragraph market read synthesised from the live web results.
@@ -237,18 +252,28 @@ export interface MarketRead {
   /// Best-effort fair market price for a typical deal of this type, in USDC, or
   /// undefined when the evidence gives no basis. The number both agents compare
   /// the buyer's budget against: too far above it = overpriced, below it =
-  /// underpriced. Estimated from market evidence only, never from the budget.
+  /// underpriced. Set to the band's midpoint — computed in code from verified
+  /// observations, never taken from the model's gestalt.
   fairPriceUsdc?: number;
-  /// How much to trust fairPriceUsdc. The agents only act on the price (overpay
-  /// advisory, near-miss justification) when it is 'grounded' — backed by the
-  /// web evidence. 'rough' and 'none' are treated as no-price: behave as if
-  /// there were no market reference. This is the guard against acting on a
-  /// hallucinated number.
+  /// How much to trust fairPriceUsdc. MECHANICAL, not self-assessed: 'grounded'
+  /// = at least two code-verified price observations from distinct sources;
+  /// 'rough' = exactly one; 'none' = zero. The agents only act on the price
+  /// when it is 'grounded'.
   priceConfidence?: 'grounded' | 'rough' | 'none';
+  /// The market price band computed in code from the verified observations:
+  /// low = cheapest observed, high = dearest, mid = median. Present only when
+  /// at least one observation survived verification.
+  priceBandUsdc?: { low: number; mid: number; high: number };
+  /// The verified price points behind the band, each quoting its source.
+  priceObservations?: PriceObservation[];
   /// A few concrete bullets pulled from the sources.
   highlights: string[];
-  /// The sources the read was built from (title + url).
-  sources: { title: string; url: string }[];
+  /// The sources the read was built from, merged across the sweep's angles and
+  /// deduped by domain so five hits on one site can't fake a consensus.
+  sources: { title: string; url: string; publishedDate?: string }[];
+  /// Which research angles ran ('pricing' | 'demand' | 'landscape'). Fewer than
+  /// three means part of the sweep failed and the read is thinner than usual.
+  anglesRun?: string[];
   paidUsd: number;
   payer: string;
   txHash?: string;
@@ -301,16 +326,118 @@ const readSchema = z.object({
   summary: z.string(),
   demand: z.enum(['hot', 'steady', 'soft']),
   priceNote: z.string(),
-  fairPriceUsdc: z
-    .number()
-    .nonnegative()
-    .nullable()
-    .describe('Fair market price in USDC for a typical deal of this type, or null if no basis'),
-  priceConfidence: z
-    .enum(['grounded', 'rough', 'none'])
-    .describe('grounded = price backed by the evidence; rough = weak guess; none = no basis'),
-  highlights: z.array(z.string()).max(5),
+  priceObservations: z
+    .array(
+      z.object({
+        amountUsdc: z.number().nonnegative(),
+        unit: z
+          .string()
+          .describe("what the amount prices: 'project', 'hourly', 'monthly', 'per-unit', ..."),
+        comparable: z
+          .boolean()
+          .describe('true only when this price is comparable to a whole deal of this type'),
+        quote: z
+          .string()
+          .max(200)
+          .describe('VERBATIM sentence fragment from the evidence that contains this price'),
+        sourceIndex: z.number().int().nonnegative().describe('index of the [n] source quoted'),
+      }),
+    )
+    .max(8)
+    .describe('every explicit price found in the evidence; empty if none'),
+  highlights: z.array(z.string()).max(6),
 });
+
+/// The three intents the sweep searches separately. One blended query returns
+/// blended mediocrity: a page that quotes rates rarely also carries a demand
+/// outlook, and a "who are the players" page rarely carries either. Each angle
+/// pays its own Exa call and the results merge below.
+const SWEEP_ANGLES: { angle: string; query: (kw: string, context?: string) => string }[] = [
+  {
+    angle: 'pricing',
+    query: (kw, ctx) =>
+      `Typical prices, rates and cost figures for ${kw} in 2025-2026. How much does it cost, rate cards, quoted project prices.${ctx ? ` Context: ${ctx}.` : ''}`,
+  },
+  {
+    angle: 'demand',
+    query: (kw, ctx) =>
+      `Current market demand, growth outlook and buying trends for ${kw}.${ctx ? ` Context: ${ctx}.` : ''}`,
+  },
+  {
+    angle: 'landscape',
+    query: (kw, ctx) =>
+      `Notable suppliers, providers, buyers and competition for ${kw} right now.${ctx ? ` Context: ${ctx}.` : ''}`,
+  },
+];
+
+/// Only evidence published inside this window feeds the read. A 2019 rate card
+/// is worse than none: it anchors the band with authority it no longer has.
+const EVIDENCE_MAX_AGE_MS = 18 * 30 * 24 * 60 * 60 * 1000; // ~18 months
+
+/// A model quote survives only if it actually appears in the source it cites,
+/// compared with whitespace and case flattened so line wraps in the excerpt
+/// don't fail an honest quote.
+function quoteAppearsIn(quote: string, text: string): boolean {
+  const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+  const q = norm(quote);
+  return q.length >= 8 && norm(text).includes(q);
+}
+
+function median(nums: number[]): number {
+  const s = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+}
+
+/// What the model claims it found, before verification.
+export interface RawPriceObservation {
+  amountUsdc: number;
+  unit: string;
+  comparable: boolean;
+  quote: string;
+  sourceIndex: number;
+}
+
+/// The reliability core, pure and separately testable: check every claimed
+/// price quote against the source it cites, keep only deal-comparable
+/// survivors, then derive the band and the confidence mechanically. The model
+/// never grades itself — 'grounded' means two independent sources verifiably
+/// carry a price.
+export function verifyPriceObservations(
+  raw: RawPriceObservation[],
+  sourceTexts: string[],
+): {
+  verified: PriceObservation[];
+  priceConfidence: 'grounded' | 'rough' | 'none';
+  priceBandUsdc?: { low: number; mid: number; high: number };
+} {
+  const verified: PriceObservation[] = [];
+  for (const o of raw) {
+    const text = sourceTexts[o.sourceIndex];
+    if (!text || o.amountUsdc <= 0) continue;
+    if (!o.comparable) continue;
+    if (!quoteAppearsIn(o.quote, text)) continue;
+    verified.push({
+      amountUsdc: o.amountUsdc,
+      unit: o.unit.slice(0, 24),
+      quote: o.quote.slice(0, 200),
+      sourceIndex: o.sourceIndex,
+    });
+  }
+  const distinctSources = new Set(verified.map((o) => o.sourceIndex)).size;
+  const priceConfidence: 'grounded' | 'rough' | 'none' =
+    distinctSources >= 2 ? 'grounded' : verified.length >= 1 ? 'rough' : 'none';
+  const amounts = verified.map((o) => o.amountUsdc);
+  const priceBandUsdc =
+    amounts.length > 0
+      ? {
+          low: Math.min(...amounts),
+          mid: Math.round(median(amounts) * 100) / 100,
+          high: Math.max(...amounts),
+        }
+      : undefined;
+  return { verified, priceConfidence, ...(priceBandUsdc ? { priceBandUsdc } : {}) };
+}
 
 /// Pay Exa for live web results on the deal's keywords, then synthesise a
 /// market read with the platform LLM. Throws on any failure; callers treat the
@@ -350,36 +477,94 @@ export async function researchMarket(
   }
 }
 
-/// The actual paid call + synthesis. Only ever runs once per keyword set at a
-/// time (guarded by researchInFlight); the caller that triggers it is the one
-/// charged (cached:false), everyone else awaiting it is served cached:true.
+/// The actual paid sweep + verified synthesis. Only ever runs once per keyword
+/// set at a time (guarded by researchInFlight); the caller that triggers it is
+/// the one charged (cached:false), everyone else awaiting it is served
+/// cached:true.
+///
+/// Three paid Exa calls run in parallel, one per intent (pricing, demand,
+/// landscape). A failed angle just thins the read; only a fully-failed sweep
+/// throws. Results merge deduped by URL and capped at two per domain. The LLM
+/// then extracts explicit price observations with verbatim quotes, each quote
+/// is re-checked against its source IN CODE, and the price band is computed
+/// from the survivors — so the number the agents anchor to traces to sentences
+/// that verifiably exist.
 async function doResearchMarket(
   cleaned: string[],
   key: string,
   context?: string,
 ): Promise<MarketRead> {
-  const query =
-    `Current market demand, pricing and notable suppliers or buyers for: ${cleaned.join(', ')}.` +
-    (context ? ` Context: ${context}.` : '');
+  const kw = cleaned.join(', ');
+  const freshCutoff = new Date(Date.now() - EVIDENCE_MAX_AGE_MS).toISOString().slice(0, 10);
 
-  const { data, paidUsd, payer, txHash } = await payExternal<ExaResponse>(EXA_SEARCH_URL, {
-    method: 'POST',
-    body: {
-      query,
-      numResults: 5,
-      type: 'auto',
-      contents: { text: { maxCharacters: 600 } },
-    },
-  });
+  const settled = await Promise.allSettled(
+    SWEEP_ANGLES.map((a) =>
+      payExternal<ExaResponse>(EXA_SEARCH_URL, {
+        method: 'POST',
+        body: {
+          query: a.query(kw, context),
+          numResults: 5,
+          type: 'auto',
+          startPublishedDate: freshCutoff,
+          contents: { text: { maxCharacters: 1200 } },
+        },
+      }).then((r) => ({ angle: a.angle, ...r })),
+    ),
+  );
 
-  const results = (data.results ?? []).filter((r) => r.url);
-  const sources = results
-    .map((r) => ({ title: (r.title ?? r.url ?? '').slice(0, 140), url: r.url! }))
-    .slice(0, 5);
-  const evidence = results
-    .map((r, i) => `[${i + 1}] ${r.title ?? ''}\n${(r.text ?? '').replace(/\s+/g, ' ').trim()}`)
+  const okCalls = settled.filter(
+    (s): s is PromiseFulfilledResult<{ angle: string } & ExternalPayResult<ExaResponse>> =>
+      s.status === 'fulfilled',
+  );
+  if (okCalls.length === 0) {
+    const first = settled[0] as PromiseRejectedResult;
+    throw new Error(`market sweep failed on every angle: ${String(first.reason).slice(0, 200)}`);
+  }
+  for (const s of settled) {
+    if (s.status === 'rejected') {
+      logger.warn({ keywords: cleaned, err: String(s.reason).slice(0, 200) }, 'sweep angle failed');
+    }
+  }
+
+  const anglesRun = okCalls.map((c) => c.value.angle);
+  const paidUsd = okCalls.reduce((acc, c) => acc + c.value.paidUsd, 0);
+  const payer = okCalls[0]!.value.payer;
+  const txHash = okCalls.find((c) => c.value.txHash)?.value.txHash;
+
+  // Merge across angles: dedupe by URL, at most two results per domain so one
+  // site's five hits can't pose as market consensus. Cap ten sources.
+  const seenUrls = new Set<string>();
+  const perDomain = new Map<string, number>();
+  const merged: ExaResult[] = [];
+  for (const call of okCalls) {
+    for (const r of call.value.data.results ?? []) {
+      if (!r.url || seenUrls.has(r.url)) continue;
+      let domain = '';
+      try {
+        domain = new URL(r.url).hostname.replace(/^www\./, '');
+      } catch {
+        continue;
+      }
+      const n = perDomain.get(domain) ?? 0;
+      if (n >= 2) continue;
+      seenUrls.add(r.url);
+      perDomain.set(domain, n + 1);
+      merged.push(r);
+      if (merged.length >= 10) break;
+    }
+    if (merged.length >= 10) break;
+  }
+
+  const sources = merged.map((r) => ({
+    title: (r.title ?? r.url ?? '').slice(0, 140),
+    url: r.url!,
+    ...(r.publishedDate ? { publishedDate: r.publishedDate.slice(0, 10) } : {}),
+  }));
+  const sourceTexts = merged.map((r) => (r.text ?? '').replace(/\s+/g, ' ').trim());
+  const evidence = merged
+    .map((r, i) => `[${i}] ${r.title ?? ''}${r.publishedDate ? ` (${r.publishedDate.slice(0, 10)})` : ''}\n${sourceTexts[i]}`)
     .join('\n\n')
-    .slice(0, 4000);
+    .slice(0, 12_000);
 
   const synth = await withLlmRetry(`marketRead(${key})`, () =>
     generateObject({
@@ -388,21 +573,32 @@ async function doResearchMarket(
       prompt: [
         'You are a trade-desk analyst. Using only the web excerpts below, write a',
         'concise market read for a B2B trade deal on these keywords:',
-        cleaned.join(', '),
+        kw,
         context ? `Deal context: ${context}` : '',
         '',
-        'Web results:',
+        'Web results (each starts with its [index]):',
         evidence || '(no usable excerpts returned)',
         '',
-        'Return: a one-paragraph summary (<=60 words); demand as hot/steady/soft;',
-        'a one-line price/leverage note for the side negotiating this deal;',
-        'fairPriceUsdc as a realistic market price in USDC for a typical deal of',
-        'this type drawn ONLY from the evidence (null if the excerpts give no real',
-        'basis for a price — do not invent one); priceConfidence as grounded only',
-        'when the price is genuinely supported by the results, else rough or none;',
-        'and up to 4 short factual highlights drawn from the results. No preamble.',
+        'Return: a one-paragraph summary (<=70 words); demand as hot/steady/soft;',
+        'a one-line price/leverage note for the side negotiating this deal; up to',
+        '6 short factual highlights drawn from the results; and priceObservations:',
+        'EVERY explicit price, rate or cost figure that appears in the excerpts,',
+        'each with the amount converted to USDC (treat USD 1:1), the unit it',
+        "prices, comparable=true only when it prices a whole deal of this type",
+        '(not an hourly rate against a project deal), the VERBATIM quote from the',
+        'excerpt containing the figure, and the [index] of the source quoted.',
+        'Copy quotes exactly — they are verified against the sources and invented',
+        'quotes are discarded. No preamble.',
       ].join('\n'),
     }),
+  );
+
+  // Code-side verification: an observation survives only if its quote really
+  // appears in the source it cites. This is the wall between "the model says
+  // the market price is X" and "source [2] verifiably says X".
+  const { verified, priceConfidence, priceBandUsdc } = verifyPriceObservations(
+    synth.object.priceObservations,
+    sourceTexts,
   );
 
   const read: MarketRead = {
@@ -410,13 +606,13 @@ async function doResearchMarket(
     summary: synth.object.summary,
     demand: synth.object.demand,
     priceNote: synth.object.priceNote,
-    fairPriceUsdc:
-      synth.object.priceConfidence === 'grounded' && synth.object.fairPriceUsdc
-        ? synth.object.fairPriceUsdc
-        : undefined,
-    priceConfidence: synth.object.priceConfidence,
-    highlights: synth.object.highlights.slice(0, 4),
+    fairPriceUsdc: priceConfidence === 'grounded' ? priceBandUsdc?.mid : undefined,
+    priceConfidence,
+    ...(priceBandUsdc ? { priceBandUsdc } : {}),
+    ...(verified.length > 0 ? { priceObservations: verified } : {}),
+    highlights: synth.object.highlights.slice(0, 6),
     sources,
+    anglesRun,
     paidUsd,
     payer,
     txHash,
@@ -425,8 +621,16 @@ async function doResearchMarket(
   };
   researchCache.set(key, read);
   logger.info(
-    { keywords: cleaned, demand: read.demand, paidUsd, sources: sources.length },
-    'x402: market researched via Exa',
+    {
+      keywords: cleaned,
+      demand: read.demand,
+      paidUsd,
+      sources: sources.length,
+      angles: anglesRun.length,
+      verifiedPrices: verified.length,
+      priceConfidence,
+    },
+    'x402: market researched via Exa sweep',
   );
   return read;
 }
