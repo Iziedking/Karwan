@@ -444,15 +444,18 @@ const envSchema = z.object({
   // verified-business counterparty, and a handle is not a verification.
   // Defaults OFF; flip after the P2P rollout is judged.
   PAYTAG_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
-  // Paytag's ERC-721 registry on Arc. Read permissionlessly via our own Arc
-  // client, so no API key and no account with them is required.
+  // Paytag's ERC-721 registry on Arc ("Payee Identity Protocol"). Read
+  // permissionlessly via our own Arc client, so no API key and no account with
+  // them is required. A public constant, not a secret: defaulted so PAYTAG_ENABLED
+  // is the only switch an operator has to set. Override to point at another
+  // deployment (e.g. Arc mainnet).
   PAYTAG_REGISTRY_ADDR: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/)
-    .optional(),
+    .default('0xdeDC4abF8788dc0DE36567D92b04da3Fb9d803F7'),
   // Keyless REST fallback for handles that exist in their database but are not
   // minted on the chain we run on. Resolution is a public GET (no auth).
-  PAYTAG_API_BASE: z.string().url().optional(),
+  PAYTAG_API_BASE: z.string().url().default('https://www.usepaytag.xyz'),
 
   // --- Agentic-workflow rollout flags (audit/AGENTIC_WORKFLOW_REVIEW.md) ---
   // Each gates one behavior change in the "live market intelligence reaches the

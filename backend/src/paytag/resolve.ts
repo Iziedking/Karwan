@@ -62,11 +62,9 @@ export function maskAddress(addr: string): string {
 }
 
 async function resolveOnChain(handle: string): Promise<Address | null> {
-  const registry = config.PAYTAG_REGISTRY_ADDR;
-  if (!registry) return null;
   try {
     const addr = (await publicClient.readContract({
-      address: registry as Address,
+      address: config.PAYTAG_REGISTRY_ADDR as Address,
       abi: registryAbi,
       functionName: 'resolve',
       args: [handle],
@@ -80,8 +78,7 @@ async function resolveOnChain(handle: string): Promise<Address | null> {
 }
 
 async function resolveViaApi(handle: string): Promise<Address | null> {
-  const base = config.PAYTAG_API_BASE?.replace(/\/$/, '');
-  if (!base) return null;
+  const base = config.PAYTAG_API_BASE.replace(/\/$/, '');
   try {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 5_000);
