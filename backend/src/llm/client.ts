@@ -72,9 +72,14 @@ function fallbackChain(models: Array<LM | null>): LM {
 }
 
 /// General agent-loop model for cheap, high-volume calls (intake parsing,
-/// keyword extraction). Stays on OpenRouter (Gemini) to keep cost down; the
-/// quality-critical models below route through Conduit/Sonnet.
-export const llmModel = openrouterModel;
+/// keyword extraction). OpenRouter (Gemini) primary to keep cost down, direct
+/// Anthropic Haiku as the fallback: without it, an out-of-credit OpenRouter
+/// killed intake and keyword extraction outright while every other chain kept
+/// running — the cheapest calls were the only ones with no second provider.
+export const llmModel = fallbackChain([
+  openrouterModel,
+  anthropic?.(config.FAST_LLM_MODEL) ?? null,
+]);
 
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
 /// Conduit (Sonnet) primary, direct Anthropic fallback, OpenRouter last.

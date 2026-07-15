@@ -28,7 +28,7 @@ async function main(): Promise<void> {
   console.log('paidUsd:', exa.paidUsd, '| payer:', exa.payer, '| txHash:', exa.txHash ?? '(not echoed)');
   for (const r of exa.data.results ?? []) console.log('  -', r.title, '·', r.url);
 
-  console.log('\n--- step 2: full researchMarket (three-angle sweep + verified synthesis) ---');
+  console.log('\n--- step 2: full researchMarket (multi-angle sweep + verified synthesis) ---');
   const read = await researchMarket(keywords);
   console.log('angles run:', read.anglesRun?.join(', ') ?? '(legacy read)');
   console.log('demand:', read.demand);

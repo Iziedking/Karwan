@@ -360,6 +360,10 @@ const envSchema = z.object({
 
   OPENROUTER_API_KEY: optionalString,
   LLM_MODEL: z.string().default('google/gemini-2.5-flash-lite'),
+  // Direct-Anthropic fallback for the cheap high-volume calls (intake parsing,
+  // keyword extraction) when OpenRouter is down or out of credit. Without it
+  // those calls had no second provider while every quality chain did.
+  FAST_LLM_MODEL: z.string().default('claude-haiku-4-5'),
   // Model for release-gating checks where structured-output reliability matters
   // more than cost (the deliverable-meets-requirement verdict). Native Anthropic
   // id (not the OpenRouter `anthropic/...` form) since it runs through the

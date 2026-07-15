@@ -14,10 +14,11 @@ import { logger } from '../logger.js';
 /// usdc-contract-addresses). The external x402 payer holds this and nothing
 /// else — it signs EIP-3009 authorizations; the facilitator pays gas.
 const BASE_USDC_ADDR = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
-/// Rough cost of one full market read (the three-angle Exa sweep over x402).
-/// Used to translate the payer's balance into "how many more reads can it fund"
-/// for the admin health probe. Deliberately conservative.
-const EXTERNAL_CALL_COST_USD = 0.03;
+/// Rough cost of one full market read (the four-angle Exa sweep over x402,
+/// ~$0.007 per angle). Used to translate the payer's balance into "how many
+/// more reads can it fund" for the admin health probe. Deliberately
+/// conservative.
+const EXTERNAL_CALL_COST_USD = 0.035;
 /// Warn when the payer can fund fewer than this many more reads. Below it, the
 /// whole live-market-intelligence layer is about to silently go dark.
 const PAYER_MIN_CALLS = 20;
@@ -348,15 +349,34 @@ const readSchema = z.object({
   highlights: z.array(z.string()).max(6),
 });
 
-/// The three intents the sweep searches separately. One blended query returns
+/// The intents the sweep searches separately. One blended query returns
 /// blended mediocrity: a page that quotes rates rarely also carries a demand
 /// outlook, and a "who are the players" page rarely carries either. Each angle
 /// pays its own Exa call and the results merge below.
-const SWEEP_ANGLES: { angle: string; query: (kw: string, context?: string) => string }[] = [
+///
+/// The marketplace angle is pinned to Upwork + Fiverr: on person-to-person and
+/// business-to-person work they are the deepest live rate references there
+/// are. Their rate pages are living pages that often carry no publish date, so
+/// this angle skips the freshness filter (dateFilter: false) — a date cutoff
+/// would wrongly exclude exactly the pages it exists to find. On goods-type
+/// keywords it simply returns little and thins out of the merge.
+const SWEEP_ANGLES: {
+  angle: string;
+  query: (kw: string, context?: string) => string;
+  includeDomains?: string[];
+  dateFilter?: boolean;
+}[] = [
   {
     angle: 'pricing',
     query: (kw, ctx) =>
       `Typical prices, rates and cost figures for ${kw} in 2025-2026. How much does it cost, rate cards, quoted project prices.${ctx ? ` Context: ${ctx}.` : ''}`,
+  },
+  {
+    angle: 'marketplace-rates',
+    query: (kw, ctx) =>
+      `Freelancer hourly rates, fixed project prices and gig pricing for ${kw} on Upwork and Fiverr.${ctx ? ` Context: ${ctx}.` : ''}`,
+    includeDomains: ['upwork.com', 'fiverr.com'],
+    dateFilter: false,
   },
   {
     angle: 'demand',
@@ -505,7 +525,8 @@ async function doResearchMarket(
           query: a.query(kw, context),
           numResults: 5,
           type: 'auto',
-          startPublishedDate: freshCutoff,
+          ...(a.dateFilter === false ? {} : { startPublishedDate: freshCutoff }),
+          ...(a.includeDomains ? { includeDomains: a.includeDomains } : {}),
           contents: { text: { maxCharacters: 1200 } },
         },
       }).then((r) => ({ angle: a.angle, ...r })),
@@ -585,10 +606,14 @@ async function doResearchMarket(
         'EVERY explicit price, rate or cost figure that appears in the excerpts,',
         'each with the amount converted to USDC (treat USD 1:1), the unit it',
         "prices, comparable=true only when it prices a whole deal of this type",
-        '(not an hourly rate against a project deal), the VERBATIM quote from the',
-        'excerpt containing the figure, and the [index] of the source quoted.',
-        'Copy quotes exactly — they are verified against the sources and invented',
-        'quotes are discarded. No preamble.',
+        '(not an hourly rate against a project deal), the quote, and the [index]',
+        'of the source quoted.',
+        'QUOTE RULE: copy the quote CHARACTER FOR CHARACTER from the excerpt,',
+        'including $ signs, commas and punctuation. Do not paraphrase, shorten',
+        'inner words, or normalize numbers — each quote is string-matched against',
+        'the source and any quote that does not appear verbatim is discarded.',
+        'When a source gives a price range, quote the whole range verbatim and',
+        'set amountUsdc to the midpoint of the range. No preamble.',
       ].join('\n'),
     }),
   );
