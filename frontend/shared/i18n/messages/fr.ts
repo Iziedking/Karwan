@@ -841,7 +841,6 @@ export const fr: Messages = {
       walletOrPaytagInvalid: 'Adresse ou paytag invalide.',
       paytagLooking: 'Recherche...',
       paytagNotFound: 'Personne ne détient ce paytag. Vérifiez avec lui, ou utilisez son adresse.',
-      paytagNotVerified: 'Un paytag est un nom, pas une vérification. Tout le monde peut en créer un.',
       emailLabel: 'Email du vendeur',
       emailHint: 'Nous lui envoyons un lien à usage unique. Le deal reste en pause jusqu’à sa réclamation. Aucun financement avant.',
       emailPlaceholder: 'them@work.com',

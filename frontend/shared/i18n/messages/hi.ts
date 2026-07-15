@@ -841,7 +841,6 @@ export const hi: Messages = {
       walletOrPaytagInvalid: 'मान्य पता या paytag नहीं है।',
       paytagLooking: 'खोज रहे हैं...',
       paytagNotFound: 'यह paytag किसी का नहीं है। उनसे जाँच लें, या उनका पता इस्तेमाल करें।',
-      paytagNotVerified: 'paytag एक नाम है, जाँच नहीं। इसे कोई भी ले सकता है।',
       emailLabel: 'विक्रेता का ईमेल',
       emailHint: 'हम उन्हें एक-बार वाला लिंक भेजते हैं। दावा होने तक डील निष्क्रिय रहती है। उससे पहले कुछ भी फंड नहीं होता।',
       emailPlaceholder: 'them@work.com',

@@ -804,7 +804,6 @@ interface MessagesShape {
       walletOrPaytagInvalid: string;
       paytagLooking: string;
       paytagNotFound: string;
-      paytagNotVerified: string;
       emailLabel: string;
       emailHint: string;
       emailPlaceholder: string;
@@ -4674,7 +4673,6 @@ export const en: MessagesShape = {
       walletOrPaytagInvalid: 'Not a valid address or paytag.',
       paytagLooking: 'Looking up...',
       paytagNotFound: 'No one holds that paytag. Check it with them, or use their address.',
-      paytagNotVerified: 'A paytag is a name, not a check. Anyone can claim one.',
       emailLabel: 'Seller email',
       emailHint: 'We email them a one-shot link. The deal sits idle until they claim. Nothing funds before then.',
       emailPlaceholder: 'them@work.com',

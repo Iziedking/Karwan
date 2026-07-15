@@ -484,15 +484,10 @@ export function DirectDealForm() {
               </span>
             )}
             {paytagHit && (
-              <div className="mt-2 space-y-1">
-                <p className="mono text-[12px] text-[var(--lp-dark)]">
-                  <span style={{ color: 'var(--lp-accent)' }}>@{paytagHit.handle}</span>
-                  <span className="text-[var(--lp-text-muted)]"> · {paytagHit.maskedAddress}</span>
-                </p>
-                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  {dd.counterparty.paytagNotVerified}
-                </p>
-              </div>
+              <p className="mt-2 mono text-[12px] text-[var(--lp-dark)]">
+                <span style={{ color: 'var(--lp-accent)' }}>@{paytagHit.handle}</span>
+                <span className="text-[var(--lp-text-muted)]"> · {paytagHit.maskedAddress}</span>
+              </p>
             )}
             {paytagMissing && !paytagLooking && (
               <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">

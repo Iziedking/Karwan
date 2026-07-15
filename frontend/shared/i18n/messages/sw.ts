@@ -841,7 +841,6 @@ export const sw: Messages = {
       walletOrPaytagInvalid: 'Si anwani wala paytag halali.',
       paytagLooking: 'Inatafuta...',
       paytagNotFound: 'Hakuna mtu mwenye paytag hiyo. Thibitisha naye, au tumia anwani yake.',
-      paytagNotVerified: 'Paytag ni jina, si uthibitisho. Mtu yeyote anaweza kuidai.',
       emailLabel: 'Barua pepe ya muuzaji',
       emailHint: 'Tunamtumia kiungo cha matumizi moja. Biashara inakaa kimya hadi adai. Hakuna fedha inayowekwa kabla.',
       emailPlaceholder: 'them@work.com',

@@ -841,7 +841,6 @@ export const ar: Messages = {
       walletOrPaytagInvalid: 'عنوان أو paytag غير صالح.',
       paytagLooking: 'جارٍ البحث...',
       paytagNotFound: 'لا أحد يملك هذا الـ paytag. تحقق منه معه، أو استخدم عنوانه.',
-      paytagNotVerified: 'الـ paytag اسم وليس تحققاً. يمكن لأي شخص أن يطلبه.',
       emailLabel: 'بريد البائع',
       emailHint: 'نرسل له رابطاً لمرة واحدة. تبقى الصفقة معلّقة حتى يستلمه. لا تموَّل قبل ذلك.',
       emailPlaceholder: 'them@work.com',
