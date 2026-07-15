@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -846,16 +846,24 @@ function Reveal({
 // scrolling so it never lingers.
 function ScrollCue({ label }: { label: string }) {
   const reduce = useReducedMotion();
-  // It is pinned to the hero, so it scrolls out of view with the hero on its
-  // own. No eager scroll-fade: the cue stays put while the hero is on screen
-  // (the old 60px fade made it vanish on the slightest scroll).
+  // The cue is absolutely pinned to the hero's bottom, so as the hero scrolls
+  // up it would otherwise slide under the sticky tab strip and clip mid-glyph.
+  // Fade it out over the first stretch of scroll — a dead zone up front so it
+  // does not vanish on the slightest nudge, fully gone well before it reaches
+  // the strip.
+  const { scrollY } = useScroll();
+  const scrollFade = useTransform(scrollY, [0, 48, 200], [1, 1, 0]);
   return (
     <motion.div
       aria-hidden
+      style={{ opacity: scrollFade }}
+      className="pointer-events-none"
+    >
+    <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: ease.out, delay: 0.3 }}
-      className="pointer-events-none flex flex-col items-center gap-2.5"
+      className="flex flex-col items-center gap-2.5"
     >
       <span
         className="relative inline-flex justify-center"
@@ -876,6 +884,7 @@ function ScrollCue({ label }: { label: string }) {
       <span className="mono text-[10px] uppercase tracking-[0.2em] text-[var(--lp-text-muted)]">
         {label}
       </span>
+    </motion.div>
     </motion.div>
   );
 }

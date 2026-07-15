@@ -17,7 +17,8 @@ const SUB = '#8a8a90';
 /// without needing labels for that part of the motion.
 const PATH = [
   { x: 60, y: 100, label: 'BUYER' },   // 0 → Buyer agent
-  { x: 180, y: 165, label: 'ESCROW' }, // 1 → Escrow pill
+  { x: 180, y: 148, label: 'ESCROW' }, // 1 → rests on the drop-line just ABOVE
+                                       //     the pill, never over its label
   { x: 300, y: 100, label: 'SELLER' }, // 2 → Seller agent
 ] as const;
 

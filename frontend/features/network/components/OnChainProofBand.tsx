@@ -5,7 +5,6 @@ import {
   Band,
   SectionTag,
   HeroHeadline,
-  Punc,
   Accent,
   BigStatTile,
 } from '@/shared/components/Bands';
@@ -86,8 +85,7 @@ export function OnChainProofBand() {
             {t.sectionTag}
           </SectionTag>
           <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-            {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>
-            <Punc>.</Punc>
+            {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>.
           </HeroHeadline>
           <p className="mt-6 text-pretty text-[15px] leading-relaxed text-white/65 max-w-[44ch]">
             {t.description}

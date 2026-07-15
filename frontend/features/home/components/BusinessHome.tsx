@@ -150,8 +150,7 @@ export function BusinessHome({
         <SectionTag>{bh.analytics.sectionTag}</SectionTag>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           {bh.analytics.headlinePrefix}
-          <Accent>{bh.analytics.headlineAccent}</Accent>
-          <Punc>.</Punc>
+          <Accent>{bh.analytics.headlineAccent}</Accent>.
         </HeroHeadline>
         <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
           {bh.analytics.description}
@@ -194,8 +193,7 @@ export function BusinessHome({
               {ah.liveNetwork.headlineTop}
               <br />
               {ah.liveNetwork.headlineBottomPrefix}
-              <Accent>{ah.liveNetwork.headlineBottomAccent}</Accent>
-              <Punc>.</Punc>
+              <Accent>{ah.liveNetwork.headlineBottomAccent}</Accent>.
             </HeroHeadline>
           </div>
           <Link
@@ -236,8 +234,7 @@ export function BusinessHome({
         <SectionTag>{bh.history.sectionTag}</SectionTag>
         <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
           {bh.history.headlinePrefix}
-          <Accent>{bh.history.headlineAccent}</Accent>
-          <Punc>.</Punc>
+          <Accent>{bh.history.headlineAccent}</Accent>.
         </HeroHeadline>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
@@ -418,12 +415,19 @@ function VolumeChart({
     );
   }
 
-  const maxV = Math.max(...series.map((p) => p.v), 1);
-  const n = series.length;
+  // Cumulative volume starts at zero. When the first datapoint already carries
+  // a balance — the common early case, a couple of settlements landing close
+  // together — the raw series is a flat plateau pinned to the top edge and
+  // reads as an empty ceiling line. Prepend a zero origin so the curve visibly
+  // ramps up from the baseline, and give the peak 18% headroom so it never
+  // touches the top.
+  const pts = series[0]!.v > 0 ? [{ t: series[0]!.t, v: 0 }, ...series] : series;
+  const maxV = Math.max(...pts.map((p) => p.v), 1) * 1.18;
+  const n = pts.length;
   const x = (i: number) => (n === 1 ? W / 2 : PAD + (i / (n - 1)) * (W - PAD * 2));
   const y = (v: number) => H - PAD - (v / maxV) * (H - PAD * 2);
 
-  const linePts = series.map((p, i) => `${x(i)},${y(p.v)}`);
+  const linePts = pts.map((p, i) => `${x(i)},${y(p.v)}`);
   const areaPath = `M ${x(0)},${H - PAD} L ${linePts.join(' L ')} L ${x(n - 1)},${H - PAD} Z`;
   const linePath = `M ${linePts.join(' L ')}`;
 
@@ -458,7 +462,7 @@ function VolumeChart({
         vectorEffect="non-scaling-stroke"
       />
       {n <= 24 &&
-        series.map((p, i) => (
+        pts.map((p, i) => (
           <circle key={i} cx={x(i)} cy={y(p.v)} r={2.5} fill="var(--lp-dark)" />
         ))}
     </svg>
