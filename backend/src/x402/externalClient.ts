@@ -444,10 +444,30 @@ export function verifyPriceObservations(
       sourceIndex: o.sourceIndex,
     });
   }
-  const distinctSources = new Set(verified.map((o) => o.sourceIndex)).size;
+  // The band prices ONE unit. A verified monthly retainer and a verified
+  // per-project price are both true, but averaging them makes a number that
+  // means neither — so the band (and the confidence describing it) come only
+  // from the dominant unit, preferring 'project' on ties since that is the
+  // shape of a deal. Every verified observation still ships for display.
+  const unitCounts = new Map<string, number>();
+  for (const o of verified) {
+    const u = o.unit.toLowerCase();
+    unitCounts.set(u, (unitCounts.get(u) ?? 0) + 1);
+  }
+  let dominantUnit = '';
+  let bestCount = -1;
+  for (const [u, n] of unitCounts) {
+    if (n > bestCount || (n === bestCount && u === 'project')) {
+      dominantUnit = u;
+      bestCount = n;
+    }
+  }
+  const banded = verified.filter((o) => o.unit.toLowerCase() === dominantUnit);
+
+  const distinctSources = new Set(banded.map((o) => o.sourceIndex)).size;
   const priceConfidence: 'grounded' | 'rough' | 'none' =
-    distinctSources >= 2 ? 'grounded' : verified.length >= 1 ? 'rough' : 'none';
-  const amounts = verified.map((o) => o.amountUsdc);
+    distinctSources >= 2 ? 'grounded' : banded.length >= 1 ? 'rough' : 'none';
+  const amounts = banded.map((o) => o.amountUsdc);
   const priceBandUsdc =
     amounts.length > 0
       ? {

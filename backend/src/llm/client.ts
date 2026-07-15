@@ -18,20 +18,23 @@ type LM = LanguageModelV3;
 
 // Conduit gateway: Anthropic-compatible at {base}/v1 with x-api-key auth, so the
 // AI SDK Anthropic provider drives it by pointing baseURL at Conduit. One model
-// per configured Conduit key (free-tier accounts), tried in order, so a rate
-// limit on one rolls to the next before the direct Anthropic fallback. Empty
-// when no Conduit key is set.
+// per configured Conduit key (free-tier accounts), tried in order. Sits BEHIND
+// the direct Anthropic key in every chain: the funded key is the reliable hop,
+// Conduit absorbs overflow when it errors or rate-limits. Empty when no
+// Conduit key is set. NOTE: Conduit failures log as provider
+// 'anthropic.messages' (same wire protocol) — tell them apart by baseURL, not
+// the provider name.
 const conduitBaseUrl = `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1`;
 const conduitModels: LM[] = conduitApiKeys().map((apiKey) =>
   createAnthropic({ apiKey, baseURL: conduitBaseUrl })(config.CONDUIT_MODEL),
 );
 
 /// Wrap an ordered list of models so a call tries each in turn, dropping to the
-/// next on any error. Conduit is primary, the direct Anthropic key is the
-/// fallback (until it is funded), and the OpenRouter model is the last resort.
-/// withLlmRetry still wraps each call site, so a total wipeout lands on the
-/// agent's deterministic path. The chain also means a Conduit hiccup keeps the
-/// agents on a live LLM (OpenRouter) instead of falling back to deterministic.
+/// next on any error. The direct Anthropic key (Haiku) is primary, Conduit the
+/// fallback, and the OpenRouter model the last resort. withLlmRetry still
+/// wraps each call site, so a total wipeout lands on the agent's deterministic
+/// path. The chain means one provider's outage keeps the agents on a live LLM
+/// instead of falling back to deterministic.
 function fallbackChain(models: Array<LM | null>): LM {
   const chain = models.filter((m): m is LM => m !== null);
   const primary = chain[0] ?? openrouterModel;
@@ -82,27 +85,30 @@ export const llmModel = fallbackChain([
 ]);
 
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
-/// Conduit (Sonnet) primary, direct Anthropic fallback, OpenRouter last.
+/// Direct Anthropic (Haiku) primary, Conduit fallback, OpenRouter last. The
+/// funded direct key goes first: with dead Conduit keys ahead of it, every
+/// quality call burned seconds failing through them before reaching a live
+/// provider.
 export const verifierModel = fallbackChain([
-  ...conduitModels,
   anthropic?.(config.VERIFIER_LLM_MODEL) ?? null,
+  ...conduitModels,
   openrouterModel,
 ]);
 
 /// Agent-to-agent negotiation loop (bid scoring, counters, accept/decline,
-/// near-miss reasoning) on both sides. Conduit primary, Anthropic fallback,
-/// OpenRouter last, so a live negotiation never drops to deterministic just
-/// because one provider is down or out of credit.
+/// near-miss reasoning) on both sides. Anthropic (Haiku) primary, Conduit
+/// fallback, OpenRouter last, so a live negotiation never drops to
+/// deterministic just because one provider is down or out of credit.
 export const negotiationModel = fallbackChain([
-  ...conduitModels,
   anthropic?.(config.NEGOTIATION_LLM_MODEL) ?? null,
+  ...conduitModels,
   openrouterModel,
 ]);
 
 /// Paid market-research synthesis (per-deal market read + demand score over Exa
-/// excerpts). Conduit primary, Anthropic fallback, OpenRouter last.
+/// excerpts). Anthropic (Haiku) primary, Conduit fallback, OpenRouter last.
 export const researchModel = fallbackChain([
-  ...conduitModels,
   anthropic?.(config.RESEARCH_LLM_MODEL) ?? null,
+  ...conduitModels,
   openrouterModel,
 ]);

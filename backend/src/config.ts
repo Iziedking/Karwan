@@ -399,7 +399,10 @@ const envSchema = z.object({
   CONDUIT_API_KEY_2: optionalString,
   CONDUIT_API_KEY_3: optionalString,
   CONDUIT_BASE_URL: z.string().default('https://conduit.ozdoev.net'),
-  CONDUIT_MODEL: z.string().default('claude-sonnet-4-6'),
+  // Haiku across the board: the direct Anthropic hops already run Haiku, and a
+  // fallback that silently upgrades to Sonnet would make the expensive call on
+  // exactly the requests that already failed once.
+  CONDUIT_MODEL: z.string().default('claude-haiku-4-5'),
 
   // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to mint).
   CCTP_MESSAGE_TRANSMITTER_ADDR: z

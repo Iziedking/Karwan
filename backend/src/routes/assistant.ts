@@ -33,17 +33,31 @@ interface Provider {
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
-/// The ordered provider chain. Conduit first when its key is set, then Anthropic,
-/// then OpenRouter as the last-resort fallback. Empty when nothing is configured
-/// (assistant disabled).
+/// The ordered provider chain. Direct Anthropic first (the funded, reliable
+/// key), then the Conduit keys as fallbacks, then OpenRouter as the last
+/// resort. Empty when nothing is configured (assistant disabled).
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
+  if (config.ANTHROPIC_API_KEY) {
+    list.push({
+      name: 'anthropic',
+      url: 'https://api.anthropic.com/v1/messages',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': config.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      model: config.ASSISTANT_MODEL,
+      kind: 'anthropic',
+    });
+  }
   // Conduit's Anthropic-compatible endpoint mirrors Anthropic exactly:
   // POST {base}/v1/messages with x-api-key (the sk-cdt-... key) and
   // anthropic-version, same request + response body. (Bearer auth is only the
   // separate OpenAI-compatible /api/v1 route, which we do not use.) Each
-  // configured Conduit key is its own provider, tried in order, so a rate limit
-  // on one rolls to the next before Anthropic.
+  // configured Conduit key is its own fallback provider, tried in order after
+  // the direct key, so a rate limit on Anthropic rolls through them before
+  // OpenRouter.
   const conduitKeys = conduitApiKeys();
   conduitKeys.forEach((key, i) => {
     list.push({
@@ -58,19 +72,6 @@ export function assistantProviders(): Provider[] {
       kind: 'anthropic',
     });
   });
-  if (config.ANTHROPIC_API_KEY) {
-    list.push({
-      name: 'anthropic',
-      url: 'https://api.anthropic.com/v1/messages',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': config.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      model: config.ASSISTANT_MODEL,
-      kind: 'anthropic',
-    });
-  }
   // OpenRouter last: keeps the assistant answering if BOTH Conduit and Anthropic
   // are down or out of credit. OpenAI-compatible endpoint, so the system prompt
   // rides as the first message (no separate `system` field) and the reply is
