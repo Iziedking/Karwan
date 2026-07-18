@@ -41,9 +41,15 @@ export function GlobalLoadingSplash() {
 
   // Publish whether the splash is covering the screen so other root overlays
   // (the Terms gate) can hold until it lifts, instead of popping over the logo.
+  // Driven by `mounted`, NOT `active`: `active` flips false at the START of the
+  // 340ms fade-out, but the splash stays painted (and at z-9999, above the gate)
+  // for the whole fade. Publishing off `active` un-gated the Terms modal mid-fade
+  // — it appeared, then the loader faded off over it, reading as "terms first,
+  // then loader". `mounted` stays true until the splash is fully gone, so the
+  // handoff is clean: loader fully lifts, THEN the gate shows.
   useEffect(() => {
-    setSplashActive(active);
-  }, [active]);
+    setSplashActive(mounted);
+  }, [mounted]);
 
   // Show on the initial load + every PAGE-ROUTE change (skip landing). A switch
   // within the same section (admin tabs, /deals -> /deals/[id], /profile ->
