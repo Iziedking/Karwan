@@ -20,6 +20,7 @@ const NAV = [
   { href: '/admin/events', label: 'Events' },
   { href: '/admin/payments', label: 'Payments' },
   { href: '/admin/diagnostics', label: 'Diagnostics' },
+  { href: '/admin/errors', label: 'Errors' },
   { href: '/admin/treasury', label: 'Treasury' },
   { href: '/admin/usyc', label: 'USYC' },
   { href: '/admin/feedback', label: 'Feedback' },

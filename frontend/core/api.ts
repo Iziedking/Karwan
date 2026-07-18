@@ -1064,6 +1064,17 @@ export interface AdminEventEntry {
   };
 }
 
+/// The Phase-C supervisor's read-first diagnosis of a captured backend error.
+export interface SupervisorDiagnosis {
+  summary: string;
+  likelyCause: string;
+  suggestedFix: string;
+  severity: 'info' | 'warning' | 'critical';
+  confidence: 'low' | 'medium' | 'high';
+  target: { scope: string; message: string; ts: number };
+  model: string;
+}
+
 export interface AdminTicketRow {
   id: string;
   address: string | null;
@@ -1497,6 +1508,36 @@ export const api = {
       headers: adminHeaders(),
     });
   },
+  /// Captured backend errors, each with the proactive supervisor's cached
+  /// diagnosis attached (null when proactive mode is off or it hasn't been
+  /// diagnosed yet), plus the supervisor stats block.
+  adminErrors: (limit = 50) =>
+    json<{
+      errors: Array<{
+        scope: string;
+        message: string;
+        stack?: string;
+        context?: Record<string, unknown>;
+        ts: number;
+        diagnosis: SupervisorDiagnosis | null;
+      }>;
+      supervisor: {
+        diagnosed: number;
+        deduped: number;
+        rateLimited: number;
+        failed: number;
+        skipped: number;
+        cached: number;
+      };
+    }>(`/api/admin/errors?limit=${limit}`, { headers: adminHeaders() }),
+  /// On-demand diagnosis of a captured error (0 = newest). Not subject to the
+  /// proactive rate cap, so it always works when an Anthropic key is set.
+  adminDiagnose: (index = 0) =>
+    json<{ diagnosis: SupervisorDiagnosis }>('/api/admin/diagnose', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ index }),
+    }),
   postJob: (
     body: {
       posterAddress: string;
