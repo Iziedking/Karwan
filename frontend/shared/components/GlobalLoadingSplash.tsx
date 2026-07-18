@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
 import { setSplashActive } from '@/shared/utils/splashSignal';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 // Layout effect on the client (runs before the browser paints), plain effect on
 // the server (where layout effects no-op + warn). Used so the splash arms and
@@ -40,11 +41,39 @@ function sectionOf(path: string): string {
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
   const isFetching = useIsFetching();
+  const { isAuthenticated } = useAuth();
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
   const startRef = useRef(0);
   const prevPathRef = useRef<string | null>(null);
+  const prevAuthedRef = useRef(false);
+  const timersRef = useRef<{
+    cap?: ReturnType<typeof setTimeout>;
+    stall?: ReturnType<typeof setTimeout>;
+  }>({});
+
+  // Raise the splash: cover the screen and arm the cap + stall timers. Shared by
+  // the navigation trigger and the sign-in trigger. Timers live in a ref so a
+  // re-arm (or unmount) can clear the previous ones.
+  const arm = useCallback(() => {
+    setActive(true);
+    setStalled(false);
+    setMounted(true);
+    startRef.current = Date.now();
+    if (timersRef.current.cap) clearTimeout(timersRef.current.cap);
+    if (timersRef.current.stall) clearTimeout(timersRef.current.stall);
+    timersRef.current.cap = setTimeout(() => setActive(false), MAX_MS);
+    timersRef.current.stall = setTimeout(() => setStalled(true), STALL_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (timersRef.current.cap) clearTimeout(timersRef.current.cap);
+      if (timersRef.current.stall) clearTimeout(timersRef.current.stall);
+    },
+    [],
+  );
 
   // Publish whether the splash is covering the screen so other root overlays
   // (the Terms gate) can hold until it lifts, instead of popping over the logo.
@@ -84,17 +113,24 @@ export function GlobalLoadingSplash() {
     if (prev !== null && sectionOf(prev) === sectionOf(pathname)) {
       return;
     }
-    setActive(true);
-    setStalled(false);
-    setMounted(true);
-    startRef.current = Date.now();
-    const cap = setTimeout(() => setActive(false), MAX_MS);
-    const stall = setTimeout(() => setStalled(true), STALL_MS);
-    return () => {
-      clearTimeout(cap);
-      clearTimeout(stall);
-    };
+    arm();
   }, [pathname]);
+
+  // Sign-in trigger: raise the splash on the unauthenticated -> authenticated
+  // flip (SIWE / login completing). SIWE on the onboarding connect step does NOT
+  // navigate, so nothing armed the splash and the Terms gate slammed in the
+  // instant auth flipped, before any loader. Arming here gives SIWE -> splash ->
+  // terms: the splash covers while the session-gated Terms status resolves, then
+  // lifts to reveal the gate. Layout effect so the flag flips before paint; skip
+  // on landing (a wallet connecting there must stay calm).
+  useIsoLayoutEffect(() => {
+    const was = prevAuthedRef.current;
+    prevAuthedRef.current = isAuthenticated;
+    if (!was && isAuthenticated && !isLandingRoute(pathname)) {
+      arm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Hide as soon as the incoming page's data has settled (nothing fetching)
   // past the MIN floor. Re-arms automatically if a new fetch starts before the

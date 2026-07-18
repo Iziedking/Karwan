@@ -13,6 +13,26 @@ function termsAcceptanceMessage(address: string, version: number): string {
   return `Karwan Terms of Use\n\nI accept version ${version}.\n\nWallet: ${address.toLowerCase()}`;
 }
 
+/// Map a raw accept error to a short, human line. The wallet's rejection error
+/// ("User rejected the request. Version: viem@x") and other low-level messages
+/// must never reach the user verbatim.
+function cleanAcceptError(err: unknown): string {
+  const e = err as { name?: string; code?: number; message?: string; shortMessage?: string; detail?: unknown };
+  const raw = `${e?.shortMessage ?? ''} ${e?.message ?? ''}`.toLowerCase();
+  if (
+    e?.name === 'UserRejectedRequestError' ||
+    e?.code === 4001 ||
+    raw.includes('rejected') ||
+    raw.includes('denied')
+  ) {
+    return 'Signing was cancelled. Approve the signature in your wallet to accept the terms.';
+  }
+  // The backend returns clean, human detail for known cases (stale version, a
+  // signature that did not verify); surface that when present.
+  if (typeof e?.detail === 'string' && e.detail.trim()) return e.detail;
+  return 'Could not record your acceptance. Please try again.';
+}
+
 interface TermsState {
   loading: boolean;
   currentVersion: number | null;
@@ -73,11 +93,7 @@ export function useTerms(): TermsState {
         acceptedVersion: currentVersion,
       });
     } catch (err) {
-      const message =
-        (err as { detail?: unknown }).detail
-          ? String((err as { detail?: unknown }).detail)
-          : (err as Error).message;
-      setError(message);
+      setError(cleanAcceptError(err));
       throw err;
     }
   }, [currentVersion, qc, auth.address, auth.method, signMessageAsync]);
