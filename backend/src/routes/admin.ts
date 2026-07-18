@@ -29,7 +29,12 @@ import { eventHistoryCount, adminQueryEvents } from '../events.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
-import { diagnoseError, supervisorEnabled } from '../llm/supervisor.js';
+import {
+  diagnoseError,
+  supervisorEnabled,
+  getDiagnosisFor,
+  proactiveSupervisorStats,
+} from '../llm/supervisor.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
@@ -724,7 +729,11 @@ adminRoutes.get('/events/backfill/status', (c) => {
 adminRoutes.get('/errors', (c) => {
   const limitParam = c.req.query('limit');
   const limit = Math.min(100, Math.max(1, Number(limitParam ?? 50) || 50));
-  return c.json({ errors: recentErrors(limit) });
+  // Attach the proactive supervisor's cached diagnosis to each error when one
+  // exists (matched by distinct-error key, so repeats share a read). `null` when
+  // proactive mode is off or the error hasn't been diagnosed yet.
+  const errors = recentErrors(limit).map((e) => ({ ...e, diagnosis: getDiagnosisFor(e) ?? null }));
+  return c.json({ errors, supervisor: proactiveSupervisorStats() });
 });
 
 /// Phase-C supervisor: a read-first Claude diagnosis of a captured error, using

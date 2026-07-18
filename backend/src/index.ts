@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger as appLogger } from './logger.js';
 import { installProcessErrorHandlers } from './errorTracker.js';
+import { startProactiveSupervisor } from './llm/supervisor.js';
 import { config } from './config.js';
 import { publicClient } from './chain/client.js';
 import { invalidateEscrowCache } from './chain/contracts.js';
@@ -235,6 +236,11 @@ stopFns.push(
     }
   }),
 );
+
+// Phase-C proactive supervisor: auto-diagnose captured errors as they land.
+// No-op unless SUPERVISOR_PROACTIVE_ENABLED is set and an Anthropic key exists;
+// self-guards on cost via dedup + an hourly rate cap.
+stopFns.push(startProactiveSupervisor());
 
 function bootAgents() {
   if (process.env.SKIP_AGENTS === '1') {

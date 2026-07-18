@@ -390,6 +390,15 @@ const envSchema = z.object({
   // Haiku by default per the house rule; bump to a Sonnet id here if a sharper
   // supervisor is worth the cost. Supervisor is disabled when no Anthropic key.
   SUPERVISOR_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  // Proactive supervisor: when on, every captured backend error is auto-diagnosed
+  // as it lands instead of only on-demand via POST /api/admin/diagnose. OFF by
+  // default because each diagnosis is a paid Anthropic call — turn it on once the
+  // on-demand diagnoses look reliable. Guardrails below cap the cost.
+  SUPERVISOR_PROACTIVE_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  // Rate cap for proactive mode: at most this many diagnoses per rolling hour, so
+  // an error storm can't run up the bill. Distinct errors past the cap are dropped
+  // (counted, not diagnosed); repeats are already collapsed by dedup before this.
+  SUPERVISOR_MAX_DIAGNOSES_PER_HOUR: z.coerce.number().int().min(1).max(500).default(30),
 
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.

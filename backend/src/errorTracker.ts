@@ -102,6 +102,20 @@ function pushBuffer(entry: CapturedError) {
   }
 }
 
+/// Local subscriber registry so a consumer (the Phase-C supervisor) can react to
+/// every captured error with the FULL CapturedError — stack + context included —
+/// which the `system.error` bus event drops. Kept here rather than importing the
+/// supervisor so this low-level module stays dependency-free and off the LLM
+/// path. Handlers are best-effort: a throwing handler is swallowed and never
+/// breaks error reporting.
+type ErrorHandler = (e: CapturedError) => void;
+const errorHandlers = new Set<ErrorHandler>();
+
+export function subscribeErrors(handler: ErrorHandler): () => void {
+  errorHandlers.add(handler);
+  return () => errorHandlers.delete(handler);
+}
+
 /// Returns up to `limit` most recent captured errors, newest first. Used by
 /// the admin route to surface backend health without grepping logs.
 export function recentErrors(limit = 50): CapturedError[] {
@@ -157,6 +171,13 @@ export function reportError(
     });
   } catch {
     /* event bus is best-effort; never throw out of error reporting */
+  }
+  for (const handler of errorHandlers) {
+    try {
+      handler(entry);
+    } catch {
+      /* a subscriber must never break error reporting */
+    }
   }
   forwardToSentry(scope, err, context);
 }
