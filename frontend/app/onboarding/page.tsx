@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTerms } from '@/shared/hooks/useTerms';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { api, ApiError, type UserRole } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
@@ -66,6 +67,7 @@ function OnboardingInner() {
   // and a present profile means "you've already onboarded, go home."
   const editMode = search.get('edit') === '1';
   const auth = useAuth();
+  const terms = useTerms();
   const address = auth.address ?? undefined;
   const isConnected = auth.isAuthenticated;
   const [loginOpen, setLoginOpen] = useState(false);
@@ -349,6 +351,14 @@ function OnboardingInner() {
   // redirect to /app fires. New users hit this for a single fetch round-trip
   // (usually <100ms) then the form renders.
   if (profileGate) {
+    return <OnboardingShell />;
+  }
+
+  // Terms gate the wizard: a signed-in user who has not accepted the current
+  // terms sees only the shell here while the global Terms modal (which holds
+  // until the splash lifts) covers the screen. The wizard reveals once terms is
+  // accepted, so onboarding literally only shows after acceptance.
+  if (isConnected && terms.needsAcceptance) {
     return <OnboardingShell />;
   }
 

@@ -2134,10 +2134,10 @@ export const api = {
     json<{ currentVersion: number; acceptedVersion: number | null }>(
       `/api/terms/status${address ? `?address=${address}` : ''}`,
     ),
-  acceptTerms: (version: number) =>
+  acceptTerms: (version: number, signature?: string) =>
     json<{ ok: true; version: number }>(`/api/terms/accept`, {
       method: 'POST',
-      body: JSON.stringify({ version }),
+      body: JSON.stringify(signature ? { version, signature } : { version }),
     }),
   directDeals: (address: string) =>
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),

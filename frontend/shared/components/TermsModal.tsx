@@ -47,14 +47,9 @@ export function TermsModal() {
   // The landing routes are decoupled from account state: the Terms gate never
   // shows there, even after a wallet account switch flips the connected user.
   if (isLandingRoute(pathname)) return null;
-  // Onboarding is its own guided setup flow. Like the coachmark tours (see
-  // isNoTourRoute, which also lists /onboarding), the Terms modal must not pop
-  // over it — signing in mid-onboarding otherwise slams the gate over the
-  // language/profile step. Terms fires when the user finishes onboarding and
-  // lands on /app or /profile, a navigation that plays the splash, so the
-  // handoff is splash -> terms, never terms-over-setup.
-  if (pathname?.startsWith('/onboarding')) return null;
   if (!isAuthenticated) return null;
+  // Splash-first, always: the gate holds until the brand loader has fully lifted
+  // so the sequence reads SIWE -> splash -> terms, never terms before the splash.
   if (splashActive) return null;
   if (terms.loading) return null;
   if (!terms.needsAcceptance) return null;

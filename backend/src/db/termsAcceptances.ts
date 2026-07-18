@@ -17,6 +17,10 @@ export interface TermsAcceptance {
   ip?: string;
   /// Optional. User agent string at acceptance time. Same opt-in shape.
   userAgent?: string;
+  /// The wallet signature over the canonical acceptance message, for web3
+  /// users. The cryptographic proof they consented. Absent for circle
+  /// (passkey/OTP) users, whose authenticated click is the consent.
+  signature?: string;
 }
 
 const store = new Map<string, TermsAcceptance>();

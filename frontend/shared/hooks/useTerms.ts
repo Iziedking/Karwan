@@ -1,9 +1,17 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSignMessage } from 'wagmi';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { useAuth } from './useAuth';
+
+/// The exact text a web3 user signs to accept the terms. MUST byte-for-byte
+/// match the backend builder in routes/terms.ts termsAcceptanceMessage, or the
+/// signature won't verify. Address lowercased so both sides build one string.
+function termsAcceptanceMessage(address: string, version: number): string {
+  return `Karwan Terms of Use\n\nI accept version ${version}.\n\nWallet: ${address.toLowerCase()}`;
+}
 
 interface TermsState {
   loading: boolean;
@@ -24,6 +32,7 @@ interface TermsState {
 export function useTerms(): TermsState {
   const auth = useAuth();
   const qc = useQueryClient();
+  const { signMessageAsync } = useSignMessage();
   const enabled = auth.isAuthenticated && !!auth.address;
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +56,18 @@ export function useTerms(): TermsState {
     if (currentVersion == null) return;
     setError(null);
     try {
-      await api.acceptTerms(currentVersion);
+      // Web3 users sign the canonical acceptance message with their wallet — the
+      // same signer they SIWE'd with — and the backend verifies it. Circle
+      // (passkey/OTP) users have no EOA to sign, so their authenticated click is
+      // the consent and no signature is sent. The backend enforces this split by
+      // session method, so a web3 session can't accept without a valid signature.
+      let signature: string | undefined;
+      if (auth.method === 'web3' && auth.address) {
+        signature = await signMessageAsync({
+          message: termsAcceptanceMessage(auth.address, currentVersion),
+        });
+      }
+      await api.acceptTerms(currentVersion, signature);
       qc.setQueryData(qk.terms(auth.address), {
         currentVersion,
         acceptedVersion: currentVersion,
@@ -60,7 +80,7 @@ export function useTerms(): TermsState {
       setError(message);
       throw err;
     }
-  }, [currentVersion, qc, auth.address]);
+  }, [currentVersion, qc, auth.address, auth.method, signMessageAsync]);
 
   const needsAcceptance =
     auth.isAuthenticated &&
