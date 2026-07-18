@@ -358,7 +358,12 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 /// also lives in the footer).
 function FloatingActions() {
   const { currentTour, startTour, hasActive } = useGuide();
+  const pathname = usePathname();
   if (hasActive) return null;
+  // Never surface the Tour pill on a setup/public flow. currentTour is normally
+  // null there (the page registers no tour), but a stale registration from the
+  // previous page can linger for a navigation frame; this makes it unconditional.
+  const showTour = !!currentTour && !isNoTourRoute(pathname);
 
   // On mobile the labels are hidden and the pill collapses to an icon-only
   // round button so it stops covering hero copy at the bottom of the fold.
@@ -375,7 +380,7 @@ function FloatingActions() {
 
   return (
     <>
-      {currentTour && (
+      {showTour && currentTour && (
         <button
           type="button"
           onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
