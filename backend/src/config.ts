@@ -383,6 +383,13 @@ const envSchema = z.object({
   // score). Native Anthropic Haiku for a sharper read that feeds negotiation.
   // Falls back to the OpenRouter model when no Anthropic key is set.
   RESEARCH_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  // Model for the Phase-C supervisor: the read-first "general intelligence" that
+  // explains captured backend errors + the event context around them. Runs on
+  // the DIRECT Anthropic key ONLY (no Conduit / OpenRouter hop) because its input
+  // is aggregated deal data + errors, which must never reach a third-party proxy.
+  // Haiku by default per the house rule; bump to a Sonnet id here if a sharper
+  // supervisor is worth the cost. Supervisor is disabled when no Anthropic key.
+  SUPERVISOR_LLM_MODEL: z.string().default('claude-haiku-4-5'),
 
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.

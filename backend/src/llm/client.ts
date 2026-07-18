@@ -112,3 +112,13 @@ export const researchModel = fallbackChain([
   openrouterModel,
   ...conduitModels,
 ]);
+
+/// Phase-C supervisor model. Deliberately NOT a fallbackChain: the supervisor
+/// reads captured errors plus the aggregated event context around them, so its
+/// prompts carry deal data (parties, amounts, briefs). That must never reach a
+/// third-party proxy, so this is the DIRECT Anthropic key ONLY — no Conduit, no
+/// OpenRouter. It is null when no Anthropic key is set, and callers MUST treat
+/// null as "supervisor disabled" rather than routing elsewhere. This is the one
+/// model export that is allowed to be unavailable instead of degrading to a
+/// proxy, precisely because the privacy boundary matters more than uptime here.
+export const supervisorModel: LM | null = anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null;

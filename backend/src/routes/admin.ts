@@ -29,6 +29,7 @@ import { eventHistoryCount, adminQueryEvents } from '../events.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
 import { deleteNearMissInvolvingAddress } from '../db/nearMiss.js';
 import { recentErrors } from '../errorTracker.js';
+import { diagnoseError, supervisorEnabled } from '../llm/supervisor.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
@@ -724,6 +725,39 @@ adminRoutes.get('/errors', (c) => {
   const limitParam = c.req.query('limit');
   const limit = Math.min(100, Math.max(1, Number(limitParam ?? 50) || 50));
   return c.json({ errors: recentErrors(limit) });
+});
+
+/// Phase-C supervisor: a read-first Claude diagnosis of a captured error, using
+/// the error cluster + recent event trail as context. `index` selects which
+/// captured error (0 = newest, the default). Read-only: it explains and proposes
+/// a fix, it does not act. Runs on the direct Anthropic key only (deal data never
+/// leaves to a proxy); 503 when no ANTHROPIC_API_KEY is set.
+const diagnoseSchema = z.object({ index: z.number().int().min(0).max(99).optional() });
+adminRoutes.post('/diagnose', async (c) => {
+  if (!supervisorEnabled()) {
+    return c.json({ error: 'supervisor disabled', detail: 'set ANTHROPIC_API_KEY to enable it' }, 503);
+  }
+  let index = 0;
+  try {
+    const raw = await c.req.json().catch(() => ({}));
+    index = diagnoseSchema.parse(raw).index ?? 0;
+  } catch {
+    return c.json({ error: 'bad body', detail: 'index must be an integer 0-99' }, 400);
+  }
+  const errors = recentErrors(index + 1);
+  const target = errors[index];
+  if (!target) {
+    return c.json({ error: 'no such error', detail: `only ${errors.length} error(s) captured` }, 404);
+  }
+  try {
+    const diagnosis = await diagnoseError(target);
+    if (!diagnosis) {
+      return c.json({ error: 'supervisor disabled', detail: 'no model available' }, 503);
+    }
+    return c.json({ diagnosis });
+  } catch (err) {
+    return c.json({ error: 'diagnosis failed', detail: (err as Error).message }, 502);
+  }
 });
 
 /// Diagnostic: full reputation read for one address. Surfaces the three
