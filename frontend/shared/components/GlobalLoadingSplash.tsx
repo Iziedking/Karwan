@@ -1,9 +1,16 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
 import { setSplashActive } from '@/shared/utils/splashSignal';
+
+// Layout effect on the client (runs before the browser paints), plain effect on
+// the server (where layout effects no-op + warn). Used so the splash arms and
+// publishes splashActive BEFORE the navigated route paints — otherwise a
+// post-paint effect leaves one frame where splashActive is still false from the
+// prior route and the Terms gate paints in that gap.
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /// Branded route-transition loader. Shows the Karwan logo (the lime mark in a
 /// dark square) on the initial load and on EVERY navigation into a non-landing
@@ -46,8 +53,10 @@ export function GlobalLoadingSplash() {
   // for the whole fade. Publishing off `active` un-gated the Terms modal mid-fade
   // — it appeared, then the loader faded off over it, reading as "terms first,
   // then loader". `mounted` stays true until the splash is fully gone, so the
-  // handoff is clean: loader fully lifts, THEN the gate shows.
-  useEffect(() => {
+  // handoff is clean: loader fully lifts, THEN the gate shows. Runs as a layout
+  // effect so the flag flips BEFORE paint on a navigation — a post-paint effect
+  // let the Terms gate paint one frame before the splash covered it.
+  useIsoLayoutEffect(() => {
     setSplashActive(mounted);
   }, [mounted]);
 
@@ -56,7 +65,13 @@ export function GlobalLoadingSplash() {
   // /profile/edit) is a sub-view, not a page route, so the branded splash stays
   // down and the section just swaps its content. Arm the cap and stall timers;
   // the data-settled effect below hides it earlier.
-  useEffect(() => {
+  //
+  // Layout effect so arming happens BEFORE the navigated route paints. As a
+  // post-paint effect, a navigation into a non-landing route (e.g. sign-in ->
+  // /onboarding) left one painted frame where the splash hadn't armed yet and
+  // splashActive was still false, so the Terms gate flashed in before the splash
+  // covered it — "terms, then splash, then terms". Arming pre-paint closes it.
+  useIsoLayoutEffect(() => {
     if (isLandingRoute(pathname)) {
       setActive(false);
       prevPathRef.current = pathname;
