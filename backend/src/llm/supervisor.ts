@@ -120,7 +120,8 @@ export async function diagnoseError(target: CapturedError): Promise<SupervisorDi
 // rolling hourly rate cap so an error storm of *distinct* errors is bounded.
 // ---------------------------------------------------------------------------
 
-const RATE_WINDOW_MS = 60 * 60 * 1000; // one hour
+/// Rolling rate window, in ms, from config: 1h default, 24h daily, 168h weekly.
+const RATE_WINDOW_MS = config.SUPERVISOR_RATE_WINDOW_HOURS * 60 * 60 * 1000;
 /// Cap on the stored diagnoses + dedup keys. Doubles as the dedup memory: once a
 /// distinct error is diagnosed it stays cached (so repeats skip the model) until
 /// evicted, which also bounds memory.
@@ -144,7 +145,7 @@ const stats = { diagnosed: 0, deduped: 0, rateLimited: 0, failed: 0, skipped: 0 
 function withinRateBudget(): boolean {
   const cutoff = Date.now() - RATE_WINDOW_MS;
   while (callTimestamps.length && callTimestamps[0]! < cutoff) callTimestamps.shift();
-  return callTimestamps.length < config.SUPERVISOR_MAX_DIAGNOSES_PER_HOUR;
+  return callTimestamps.length < config.SUPERVISOR_MAX_DIAGNOSES_PER_WINDOW;
 }
 
 function store(key: string, d: SupervisorDiagnosis): void {
@@ -242,7 +243,10 @@ export function startProactiveSupervisor(): () => void {
     return () => {};
   }
   logger.info(
-    { maxPerHour: config.SUPERVISOR_MAX_DIAGNOSES_PER_HOUR },
+    {
+      cap: config.SUPERVISOR_MAX_DIAGNOSES_PER_WINDOW,
+      windowHours: config.SUPERVISOR_RATE_WINDOW_HOURS,
+    },
     'proactive supervisor started: auto-diagnosing captured errors',
   );
   return subscribeErrors(onCapturedError);

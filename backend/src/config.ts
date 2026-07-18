@@ -395,10 +395,14 @@ const envSchema = z.object({
   // default because each diagnosis is a paid Anthropic call — turn it on once the
   // on-demand diagnoses look reliable. Guardrails below cap the cost.
   SUPERVISOR_PROACTIVE_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
-  // Rate cap for proactive mode: at most this many diagnoses per rolling hour, so
-  // an error storm can't run up the bill. Distinct errors past the cap are dropped
-  // (counted, not diagnosed); repeats are already collapsed by dedup before this.
-  SUPERVISOR_MAX_DIAGNOSES_PER_HOUR: z.coerce.number().int().min(1).max(500).default(30),
+  // Rate cap for proactive mode: at most this many diagnoses per rolling window,
+  // so an error storm can't run up the bill. Distinct errors past the cap are
+  // dropped (counted, not diagnosed); repeats are already collapsed by dedup.
+  SUPERVISOR_MAX_DIAGNOSES_PER_WINDOW: z.coerce.number().int().min(1).max(2000).default(30),
+  // Length of that rolling window, in hours. 1 = hourly (default), 24 = daily,
+  // 168 = weekly. Pair with the cap above: e.g. 200/window + 168h = "at most 200
+  // diagnoses per week". Fractional hours are allowed (0.5 = 30 min).
+  SUPERVISOR_RATE_WINDOW_HOURS: z.coerce.number().positive().max(720).default(1),
 
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.
