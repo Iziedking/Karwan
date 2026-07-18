@@ -12,6 +12,7 @@ import {
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
+import { isLandingRoute } from '@/shared/utils/routes';
 import Link from 'next/link';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
@@ -360,6 +361,8 @@ function FloatingActions() {
   const { currentTour, startTour, hasActive } = useGuide();
   const pathname = usePathname();
   if (hasActive) return null;
+  // Landing/marketing pages stay clean: no Ask, no Feedback, no Tour pill there.
+  if (isLandingRoute(pathname)) return null;
   // Never surface the Tour pill on a setup/public flow. currentTour is normally
   // null there (the page registers no tour), but a stale registration from the
   // previous page can linger for a navigation frame; this makes it unconditional.

@@ -1,9 +1,11 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { api, ApiError } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { isLandingRoute } from '@/shared/utils/routes';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -34,6 +36,7 @@ const SUPPORT_STORAGE_KEY = 'karwan.support.convo';
 /// visible above the live thread so the operator's context is the user's too.
 export function AssistantWidget() {
   const t = useTranslations().assistant;
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
@@ -230,6 +233,10 @@ export function AssistantWidget() {
 
   const isLive = convoId !== null;
   const showHandoffButton = handoffEnabled === true && !isLive && humanSuggested;
+
+  // The Ask launcher never shows on the landing/marketing pages. Hooks above all
+  // run so its poll state stays intact when the user enters the app.
+  if (isLandingRoute(pathname)) return null;
 
   return (
     <>
