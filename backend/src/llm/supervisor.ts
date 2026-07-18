@@ -114,6 +114,74 @@ export async function diagnoseError(target: CapturedError): Promise<SupervisorDi
 }
 
 // ---------------------------------------------------------------------------
+// User-facing diagnosis: turn a cryptic revert on a user's OWN action into plain
+// guidance. Deliberately SEPARATE from diagnoseError: it never pulls the error
+// ring or the event bus (those aggregate across users/deals), so nothing but the
+// caller's own error string reaches the model. Output is the sanitized pair
+// {summary, suggestedFix} only — no scope, stack, likelyCause, severity, or model
+// leak to the user. The route enforces auth + deal party-membership before this
+// is ever called; this function just produces safe prose.
+// ---------------------------------------------------------------------------
+
+const LOCALE_NAMES: Record<string, string> = {
+  en: 'English',
+  fr: 'French',
+  ar: 'Arabic',
+  hi: 'Hindi',
+  sw: 'Swahili',
+};
+
+const userDiagnosisSchema = z.object({
+  summary: z
+    .string()
+    .describe('One or two plain sentences addressed to the user as "you": what went wrong. No internal names, contract addresses, code, or stack traces.'),
+  suggestedFix: z
+    .string()
+    .describe('What the user can do next, concrete and friendly. If it is a platform/backend issue they cannot fix themselves, say it is on our side and to try again shortly.'),
+});
+
+export interface UserDiagnosis {
+  summary: string;
+  suggestedFix: string;
+}
+
+/// Diagnose a single failed user action for the user themselves. `action` is a
+/// short label ("release", "bridge", "fund"); `errorMessage` is the raw error
+/// they hit. Returns null when the supervisor is disabled (no Anthropic key).
+export async function diagnoseUserError(input: {
+  action: string;
+  errorMessage: string;
+  locale?: string;
+}): Promise<UserDiagnosis | null> {
+  const model = supervisorModel;
+  if (!model) return null;
+
+  const language = LOCALE_NAMES[input.locale ?? 'en'] ?? 'English';
+  const prompt = [
+    'You help a Karwan user understand why an action just failed. Karwan is a',
+    'cross-border settlement app: USDC in milestone escrow on Arc, autonomous',
+    'buyer/seller agents, bridging via CCTP.',
+    '',
+    `The user tried to: ${input.action}`,
+    `The system returned this error: ${input.errorMessage}`,
+    '',
+    'Rules:',
+    `- Write BOTH fields in ${language}.`,
+    '- Speak to the user directly as "you". Plain, calm, and short.',
+    '- Never expose internal detail: no contract addresses, function names, stack',
+    '  traces, scopes, or raw error codes. Translate them into what they mean.',
+    '- If the user genuinely cannot fix it (a backend or network fault), say it is',
+    '  on our side and to try again shortly, rather than inventing steps for them.',
+    '- No em dashes.',
+  ].join('\n');
+
+  const { object } = await withLlmRetry('supervisor.userDiagnose', () =>
+    generateObject({ model, schema: userDiagnosisSchema, prompt }),
+  );
+  return { summary: object.summary, suggestedFix: object.suggestedFix };
+}
+
+// ---------------------------------------------------------------------------
 // Proactive mode: auto-diagnose captured errors as they land, guarded so it
 // can't run up cost. Three guardrails: (1) a config flag (off by default),
 // (2) dedup so a repeating error is diagnosed once, not every time, (3) a

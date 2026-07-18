@@ -1570,6 +1570,19 @@ export const api = {
       '/api/milestones/release',
       { method: 'POST', body: JSON.stringify({ jobId, totalMilestones }) },
     ),
+  /// Plain-language explanation of a failed user action. Party-gated + rate-
+  /// limited server-side; returns {summary, suggestedFix} only. Pass the deal's
+  /// jobId when the failure was on a deal so the backend can verify membership.
+  diagnose: (input: {
+    action: string;
+    errorMessage: string;
+    jobId?: string;
+    locale?: string;
+  }) =>
+    json<{ diagnosis: { summary: string; suggestedFix: string } }>('/api/diagnose', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
   balances: () => json<{ wallets: BalanceRow[]; fetchedAt: number }>('/api/balances'),
   getProfile: (address: string) =>
     json<{ profile: UserProfile | null }>(`/api/profile?address=${address}`),

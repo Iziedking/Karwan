@@ -2919,6 +2919,13 @@ interface MessagesShape {
     button: { released: string; releasing: string; release: string };
     progress: { confirmed: string; settled: string };
   };
+  errorHelp: {
+    explainCta: string;
+    explaining: string;
+    whatHappened: string;
+    whatToDo: string;
+    failed: string;
+  };
   languagePicker: {
     languageLabels: { en: string; ar: string; fr: string; hi: string; sw: string };
   };
@@ -6920,6 +6927,13 @@ export const en: MessagesShape = {
       confirmed: '{count} of {total} confirmed on chain.',
       settled: 'All milestones released. Escrow settled.',
     },
+  },
+  errorHelp: {
+    explainCta: 'Explain this error',
+    explaining: 'Reading…',
+    whatHappened: 'What happened',
+    whatToDo: 'What you can do',
+    failed: 'Could not load an explanation.',
   },
   languagePicker: {
     languageLabels: { en: 'English', ar: 'Arabic', fr: 'French', hi: 'Hindi', sw: 'Swahili' },

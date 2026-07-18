@@ -3065,6 +3065,13 @@ export const hi: Messages = {
       settled: 'सभी माइलस्टोन जारी हो गए. एस्क्रो सेटल हो गया.',
     },
   },
+  errorHelp: {
+    explainCta: 'इस त्रुटि को समझाएँ',
+    explaining: 'पढ़ रहे हैं…',
+    whatHappened: 'क्या हुआ',
+    whatToDo: 'आप क्या कर सकते हैं',
+    failed: 'स्पष्टीकरण लोड नहीं हो सका.',
+  },
   languagePicker: {
     languageLabels: { en: 'अंग्रेज़ी', ar: 'अरबी', fr: 'फ़्रेंच', hi: 'हिन्दी', sw: 'स्वाहिली' },
   },

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/core/api';
 import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { FailureHelp } from '@/shared/components/FailureHelp';
 
 export function ReleaseMilestonesButton({
   jobId,
@@ -84,7 +85,12 @@ export function ReleaseMilestonesButton({
       {settled && (
         <p className="text-[12px] text-[var(--color-positive)]">{rm.progress.settled}</p>
       )}
-      {error && <p className="text-xs text-[var(--color-critical)] mono">{error}</p>}
+      {error && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-[var(--color-critical)] mono">{error}</p>
+          <FailureHelp error={error} action="release" jobId={jobId} />
+        </div>
+      )}
     </div>
   );
 }

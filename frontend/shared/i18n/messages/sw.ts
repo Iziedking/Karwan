@@ -3065,6 +3065,13 @@ export const sw: Messages = {
       settled: 'Hatua zote zimetolewa. Escrow imekamilika.',
     },
   },
+  errorHelp: {
+    explainCta: 'Eleza hitilafu hii',
+    explaining: 'Inasoma…',
+    whatHappened: 'Nini kilitokea',
+    whatToDo: 'Unachoweza kufanya',
+    failed: 'Imeshindwa kupakia maelezo.',
+  },
   languagePicker: {
     languageLabels: { en: 'Kiingereza', ar: 'Kiarabu', fr: 'Kifaransa', hi: 'Kihindi', sw: 'Kiswahili' },
   },

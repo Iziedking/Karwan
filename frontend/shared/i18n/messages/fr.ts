@@ -3065,6 +3065,13 @@ export const fr: Messages = {
       settled: 'Tous les jalons libérés. Séquestre soldé.',
     },
   },
+  errorHelp: {
+    explainCta: 'Expliquer cette erreur',
+    explaining: 'Lecture…',
+    whatHappened: 'Ce qui s\'est passé',
+    whatToDo: 'Ce que vous pouvez faire',
+    failed: 'Impossible de charger une explication.',
+  },
   languagePicker: {
     languageLabels: { en: 'Anglais', ar: 'Arabe', fr: 'Français', hi: 'Hindi', sw: 'Swahili' },
   },

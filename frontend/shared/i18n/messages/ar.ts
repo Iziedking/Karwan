@@ -3065,6 +3065,13 @@ export const ar: Messages = {
       settled: 'تم الإفراج عن جميع المراحل. تمت تسوية الضمان.',
     },
   },
+  errorHelp: {
+    explainCta: 'اشرح هذا الخطأ',
+    explaining: 'جارٍ القراءة…',
+    whatHappened: 'ما الذي حدث',
+    whatToDo: 'ما الذي يمكنك فعله',
+    failed: 'تعذّر تحميل الشرح.',
+  },
   languagePicker: {
     languageLabels: { en: 'الإنجليزية', ar: 'العربية', fr: 'الفرنسية', hi: 'الهندية', sw: 'السواحيلية' },
   },
