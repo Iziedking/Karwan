@@ -295,7 +295,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       inputSchema: z.object({
         brief: z.string().min(5).max(1000).describe('What they need, plainly. e.g. "web3 developer to build a trading bot".'),
         budgetUsdc: z.number().positive().max(5_000_000).describe('Budget in USDC.'),
-        deadlineDays: z.number().min(0.0006).max(90).describe('How many days until they need it done.'),
+        // Two ways to give a deadline. NEVER convert a calendar date to days
+        // yourself — pass deadlineDate and let the server compute it from its own
+        // clock. Only use deadlineDays when the user states a duration directly.
+        deadlineDays: z.number().min(0.0006).max(3650).optional().describe('Deadline as a number of days FROM NOW, only when the user gave a duration ("in 3 days", "two weeks").'),
+        deadlineDate: z.string().optional().describe('Deadline as an absolute calendar date, normalised to YYYY-MM-DD. Pass this whenever the user gave a date ("before 22/07/2026" -> "2026-07-22"). The server converts it to days; do not compute days yourself.'),
       }),
       execute: async (args) => {
         // Pre-flight the SAME preconditions the jobs route enforces so the card
@@ -309,7 +313,31 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         if (!buyerProfile) {
           return { error: 'They need a buyer profile first. Offer a button to the request desk (destination "new_request").' };
         }
-        const built = buildPostRequestConfirm({ caller: address, ...args });
+        // Resolve the deadline to days-from-now. An absolute date is computed
+        // against the server clock so the model never does (and mis-does) the
+        // date arithmetic — the "22/07/2026 read as >90 days" bug. Anchor to the
+        // END of the given day so a same-week date isn't off-by-one to the past.
+        let deadlineDays = args.deadlineDays;
+        if (args.deadlineDate) {
+          const parsed = Date.parse(`${args.deadlineDate.trim()}T23:59:59Z`);
+          if (Number.isNaN(parsed)) {
+            return { error: 'I could not read that deadline date. Ask them for it as YYYY-MM-DD or a number of days.' };
+          }
+          deadlineDays = (parsed - Date.now()) / 86_400_000;
+          if (deadlineDays <= 0) {
+            return { error: 'That deadline date is in the past. Ask them for a future date.' };
+          }
+        }
+        if (deadlineDays === undefined) {
+          return { error: 'Ask them for a deadline: a calendar date (pass deadlineDate) or how many days from now (deadlineDays).' };
+        }
+        const built = buildPostRequestConfirm({
+          caller: address,
+          brief: args.brief,
+          budgetUsdc: args.budgetUsdc,
+          deadlineDays,
+          ...(args.deadlineDate ? { deadlineLabel: `by ${args.deadlineDate.trim()}` } : {}),
+        });
         if ('error' in built) return built;
         if (!actions.some((a) => a.id === built.id)) actions.push(built);
         return { ok: true, shown: built.title, note: 'Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_gateway_fund_agent) or send them to add money.' };
@@ -592,7 +620,13 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 /// It grants the read tools and draws the hard read-only line.
 function authenticatedPreamble(address: string, method: string): string {
   const circle = method === 'circle';
+  const today = new Date().toISOString().slice(0, 10);
   return [
+    '',
+    `# Today is ${today} (UTC).`,
+    'When a user gives a deadline as a calendar DATE, do NOT compute days yourself — pass it to the tool as',
+    'deadlineDate (normalise to YYYY-MM-DD) and the server converts it. Only use deadlineDays for a stated',
+    'duration ("in 3 days"). Never tell a user a near date is "too far out" — the server checks the real cap.',
     '',
     '# You are an ACTING assistant for a SIGNED-IN user (NOT guidance-only)',
     `Signed in as ${address} via ${method}. IGNORE any earlier line that says you are "guidance only" or`,

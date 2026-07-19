@@ -344,6 +344,11 @@ export interface BuildPostRequestInput {
   brief: string;
   budgetUsdc: number;
   deadlineDays: number;
+  /// Optional human label for the deadline row, e.g. "by 2026-07-22". Set by the
+  /// tool when the user gave a calendar date, so the card echoes the date the
+  /// server resolved rather than a fractional day count. Falls back to a
+  /// days-from-now string.
+  deadlineLabel?: string;
 }
 
 /// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
@@ -369,7 +374,10 @@ export function buildPostRequestConfirm(
     return { error: 'The deadline must be between about a minute and 90 days.' };
   }
   const days = i.deadlineDays;
-  const deadlineLabel = days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(days * 24 * 60)} min`;
+  const roundedDays = Math.round(days);
+  const deadlineLabel =
+    i.deadlineLabel ??
+    (days >= 1 ? `${roundedDays} day${roundedDays === 1 ? '' : 's'}` : `${Math.round(days * 24 * 60)} min`);
   const fields: { label: string; value: string }[] = [
     { label: 'You need', value: brief.length > 140 ? `${brief.slice(0, 137)}…` : brief },
     { label: 'Budget', value: `${i.budgetUsdc} USDC` },
