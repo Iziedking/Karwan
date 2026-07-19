@@ -956,6 +956,21 @@ export class ApiError extends Error {
   }
 }
 
+/// A structured action the authenticated assistant can attach to a reply, so the
+/// chat can render a prominent control instead of an inline link. Stage 2 has one
+/// variant, `navigate` (route to an in-app screen). Mirrors the backend
+/// `AssistantAction` union in backend/src/assistant/actions.ts; keep them in sync.
+export interface AssistantNavigateAction {
+  kind: 'navigate';
+  id: string;
+  label: string;
+  /// Always a validated internal path (starts with a single '/'). The renderer
+  /// still guards before navigating.
+  href: string;
+  description?: string;
+}
+export type AssistantAction = AssistantNavigateAction;
+
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
@@ -2806,7 +2821,7 @@ export const api = {
 
   // In-app support assistant. Sends the recent turns and gets one reply back.
   assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
-    json<{ reply: string }>('/api/assistant/chat', {
+    json<{ reply: string; actions?: AssistantAction[] }>('/api/assistant/chat', {
       method: 'POST',
       body: JSON.stringify({ messages }),
     }),

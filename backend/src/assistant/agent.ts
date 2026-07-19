@@ -25,6 +25,7 @@ import { readUsdcBalance } from '../chain/contracts.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
+import { buildNavigateAction, NAVIGATE_DESTINATIONS, type AssistantAction } from './actions.js';
 import { logger } from '../logger.js';
 
 const USDC_DECIMALS = 6;
@@ -78,11 +79,11 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
 
 // --- tools ------------------------------------------------------------------
 
-/// Build the read tool set bound to one caller. Every tool reads only `address`'s
-/// own data. Tools return plain objects (including `{ error }`) rather than
-/// throwing, so the model can explain a failure to the user instead of the loop
-/// aborting.
-function buildTools(address: string) {
+/// Build the tool set bound to one caller. Read tools read only `address`'s own
+/// data; `propose_navigation` pushes a validated navigate action into `actions`.
+/// Tools return plain objects (including `{ error }`) rather than throwing, so the
+/// model can explain a failure to the user instead of the loop aborting.
+function buildTools(address: string, actions: AssistantAction[]) {
   return {
     get_my_balance: tool({
       description:
@@ -165,6 +166,47 @@ function buildTools(address: string) {
         }
       },
     }),
+
+    propose_navigation: tool({
+      description:
+        'Show the user a prominent button that takes them straight to the in-app screen for something they want to DO but that you cannot execute yet: add money / top up, open a direct deal, post a request or an offer, withdraw proceeds, get test USDC, open one of their own deals, browse the market, find partners, view a credit passport, or stake. Prefer this over only describing where to go. You may call it more than once. Keep the label short and specific.',
+      inputSchema: z.object({
+        destination: z.enum(NAVIGATE_DESTINATIONS).describe('Which screen to send them to.'),
+        jobId: z.string().max(120).optional().describe('Required for open_deal: the deal id.'),
+        address: z
+          .string()
+          .max(60)
+          .optional()
+          .describe('Required for credit_passport: the 0x business address.'),
+        rail: z
+          .enum(['gateway', 'cctp'])
+          .optional()
+          .describe('Optional for add_money: which top-up rail. Defaults to the pooled Gateway rail.'),
+        label: z.string().max(60).optional().describe('Short, specific button text. Defaults to a sensible label.'),
+        description: z.string().max(120).optional().describe('Optional one-line hint under the button.'),
+      }),
+      execute: async (args) => {
+        // open_deal only ever links a deal the caller is actually a party to, so
+        // the assistant never offers to open someone else's deal.
+        if (args.destination === 'open_deal') {
+          if (!args.jobId) return { error: 'open_deal needs a jobId.' };
+          try {
+            const deal = await getDeal(args.jobId);
+            if (!deal || !canViewDeal(deal, address)) {
+              return { error: 'That deal is not one of yours, so I will not link it.' };
+            }
+          } catch (err) {
+            logger.warn({ err: (err as Error).message }, 'assistant propose_navigation deal check failed');
+            return { error: 'Could not verify that deal right now.' };
+          }
+        }
+        const built = buildNavigateAction(args);
+        if ('error' in built) return built;
+        // Dedup by href so one reply never shows the same button twice.
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.label };
+      },
+    }),
   };
 }
 
@@ -182,26 +224,28 @@ function authenticatedPreamble(address: string, method: string): string {
     '- When they ask about their balance, their deals, or a specific deal, CALL A TOOL and',
     '  answer from what it returns. Never invent a balance, an amount, a status, or a deal id.',
     '- If a tool returns an error or nothing, say so plainly. Do not paper over it with a guess.',
-    '- You can READ but you cannot yet ACT. You cannot move money, fund, release, cancel, top up,',
-    '  bridge, or change anything on their account. If they ask you to DO one of those, say that',
-    '  acting from chat is coming soon and point them to the page that does it today (e.g. the',
-    '  deal page for release, the Profile for withdraw and top up).',
-    '- Amounts are USDC on Arc testnet. Keep replies plain and short, with in-app links where useful.',
+    '- You can READ but you cannot yet EXECUTE. You cannot move money, fund, release, cancel, top up,',
+    '  bridge, or sign anything from chat. But when they want to DO one of those, do not just describe',
+    '  the page: call propose_navigation to show them a button that opens the right screen, where they',
+    '  finish it themselves with their own confirmation. Add one short line of context with the button.',
+    '- Amounts are USDC on Arc testnet. Keep replies plain and short.',
   ].join('\n');
 }
 
-/// Run the authenticated tool-calling loop and return the assistant's reply text.
-/// Throws on model failure/timeout so the route can fall back to the anonymous
-/// knowledge-only path. Bounded to a few tool steps so one turn is cheap.
+/// Run the authenticated tool-calling loop and return the assistant's reply plus
+/// any navigate actions it surfaced (rendered as buttons in the chat). Throws on
+/// model failure/timeout so the route can fall back to the anonymous knowledge-
+/// only path. Bounded to a few tool steps so one turn is cheap.
 export async function runAssistantAgent(input: {
   address: string;
   method: string;
   messages: AssistantChatMessage[];
-}): Promise<string> {
+}): Promise<{ text: string; actions: AssistantAction[] }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
   const system = KARWAN_ASSISTANT_SYSTEM + '\n' + authenticatedPreamble(input.address, input.method);
+  const actions: AssistantAction[] = [];
 
   const { text } = await withLlmTimeout(
     'assistant.agent',
@@ -209,14 +253,14 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: buildTools(input.address),
-      // Allow a few reasoning+tool rounds (e.g. list deals, then read one), then
-      // force a final text answer. Keeps a single turn to a handful of calls.
+      tools: buildTools(input.address, actions),
+      // Allow a few reasoning+tool rounds (e.g. list deals, then read one, then
+      // propose a button), then force a final text answer. A handful of calls max.
       stopWhen: stepCountIs(5),
       maxOutputTokens: 700,
     }),
     30_000,
   );
 
-  return text.trim();
+  return { text: text.trim(), actions };
 }

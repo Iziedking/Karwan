@@ -1,8 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { api, ApiError } from '@/core/api';
+import { usePathname, useRouter } from 'next/navigation';
+import { api, ApiError, type AssistantAction } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { isLandingRoute } from '@/shared/utils/routes';
@@ -10,6 +10,8 @@ import { isLandingRoute } from '@/shared/utils/routes';
 interface Turn {
   role: 'user' | 'assistant';
   content: string;
+  /// Navigate buttons the authenticated assistant attached to this reply.
+  actions?: AssistantAction[];
 }
 
 interface LiveMsg {
@@ -196,12 +198,12 @@ export function AssistantWidget() {
     setError(null);
     setLoading(true);
     try {
-      const { reply } = await api.assistantChat(next);
+      const { reply, actions } = await api.assistantChat(next);
       // The assistant appends [[HUMAN]] only when it judges the issue needs a
       // person. Strip the marker from what we show and reveal the handoff.
       const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
       const clean = reply.replace(/\[\[HUMAN\]\]/gi, '').trim();
-      setTurns([...next, { role: 'assistant', content: clean }]);
+      setTurns([...next, { role: 'assistant', content: clean, actions }]);
       if (needsHuman) setHumanSuggested(true);
     } catch (e) {
       // Map the backend's error codes to a human line instead of showing the
@@ -309,13 +311,18 @@ export function AssistantWidget() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             <Bubble role="assistant">{t.greeting}</Bubble>
             {turns.map((m, i) => (
-              <Bubble key={i} role={m.role}>
-                {m.role === 'assistant' ? (
-                  <RichText text={m.content} onNavigate={() => setOpen(false)} />
-                ) : (
-                  m.content
+              <div key={i} className="space-y-2">
+                <Bubble role={m.role}>
+                  {m.role === 'assistant' ? (
+                    <RichText text={m.content} onNavigate={() => setOpen(false)} />
+                  ) : (
+                    m.content
+                  )}
+                </Bubble>
+                {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
+                  <ActionButtons actions={m.actions} onNavigate={() => setOpen(false)} />
                 )}
-              </Bubble>
+              </div>
             ))}
             {isLive && (
               <>
@@ -437,6 +444,55 @@ export function AssistantWidget() {
         </div>
       )}
     </>
+  );
+}
+
+/// The navigate buttons the authenticated assistant attaches to a reply. Each
+/// routes to a validated in-app path and closes the panel. The href is already
+/// allowlist-built on the backend, but the click still guards for a single-slash
+/// internal path so a malformed value can never trigger an external navigation.
+function ActionButtons({
+  actions,
+  onNavigate,
+}: {
+  actions: AssistantAction[];
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const go = (href: string) => {
+    if (!href.startsWith('/') || href.startsWith('//')) return;
+    onNavigate();
+    router.push(href);
+  };
+  return (
+    <div className="flex flex-col gap-2 ps-1">
+      {actions.map((a) => (
+        <button
+          key={a.id}
+          type="button"
+          onClick={() => go(a.href)}
+          className="group w-full text-start px-3.5 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] hover:brightness-105 transition"
+          style={{
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 3,
+          }}
+        >
+          <span className="flex items-center justify-between gap-2">
+            <span className="mono text-[11px] uppercase tracking-[0.1em] font-bold">{a.label}</span>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform">
+              <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          {a.description && (
+            <span className="block mt-0.5 text-[11px] leading-snug font-medium opacity-80">
+              {a.description}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
   );
 }
 

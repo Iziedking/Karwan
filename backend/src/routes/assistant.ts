@@ -297,12 +297,12 @@ assistantRoutes.post(
   const session = readSession(c);
   if (session && assistantAgentEnabled()) {
     try {
-      const reply = await runAssistantAgent({
+      const { text, actions } = await runAssistantAgent({
         address: session.address.toLowerCase(),
         method: session.method,
         messages,
       });
-      if (reply) return c.json({ reply });
+      if (text) return c.json({ reply: text, actions });
       logger.warn('assistant: agent path returned empty, falling back to knowledge path');
     } catch (e) {
       logger.error(
