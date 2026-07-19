@@ -54,7 +54,6 @@ export function SiteFooter() {
               <p className="text-pretty text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
                 {t.tagline}
               </p>
-              <SectionTag>{t.builtFor}</SectionTag>
               <NewsletterSignup />
             </div>
 
@@ -137,15 +136,6 @@ export function SiteFooter() {
 }
 
 /* ---- pieces ---- */
-
-function SectionTag({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.16em] text-[var(--lp-text-sub)]">
-      <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-      [:{children}:]
-    </span>
-  );
-}
 
 /// Newsletter opt-in. This is a marketing subscription, deliberately separate
 /// from a user's verified contact email: subscribing here only adds the address

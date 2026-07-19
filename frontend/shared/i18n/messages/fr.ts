@@ -2605,7 +2605,7 @@ export const fr: Messages = {
       tag: 'OUVRIR UN DEAL',
       srLabel: 'Commencer',
       title: 'Ouvrez votre premier deal en environ une minute.',
-      body: 'Direct ou piloté par agent, à vous de voir. Chaque étape est une vraie transaction on-chain. Règlement en minutes, pas en semaines.',
+      body: 'Direct ou piloté par agent, à vous de voir. Règlement en minutes, pas en semaines.',
       ctaPrimary: "Lancer l'app ↓",
       ctaSecondary: 'Lire comment ça marche →',
     },

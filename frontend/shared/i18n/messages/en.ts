@@ -6453,7 +6453,7 @@ export const en: MessagesShape = {
       tag: 'OPEN A DEAL',
       srLabel: 'Get started',
       title: 'Open your first deal in about a minute.',
-      body: 'Direct or agent-run, your call. Every step is a real on-chain transaction. Settlement in minutes, not weeks.',
+      body: 'Direct or agent-run, your call. Settlement in minutes, not weeks.',
       ctaPrimary: 'Launch app ↓',
       ctaSecondary: 'Read how it works →',
     },

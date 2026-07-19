@@ -3,8 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
-import { setSplashActive } from '@/shared/utils/splashSignal';
-import { useAuth } from '@/shared/hooks/useAuth';
+import { setSplashActive, subscribeSplashRequest } from '@/shared/utils/splashSignal';
 
 // Layout effect on the client (runs before the browser paints), plain effect on
 // the server (where layout effects no-op + warn). Used so the splash arms and
@@ -41,13 +40,11 @@ function sectionOf(path: string): string {
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
   const isFetching = useIsFetching();
-  const { isAuthenticated } = useAuth();
   const [active, setActive] = useState(() => !isLandingRoute(pathname));
   const [stalled, setStalled] = useState(false);
   const [mounted, setMounted] = useState(() => !isLandingRoute(pathname));
   const startRef = useRef(0);
   const prevPathRef = useRef<string | null>(null);
-  const prevAuthedRef = useRef(false);
   const timersRef = useRef<{
     cap?: ReturnType<typeof setTimeout>;
     stall?: ReturnType<typeof setTimeout>;
@@ -117,23 +114,15 @@ export function GlobalLoadingSplash() {
     arm();
   }, [pathname]);
 
-  // Sign-in trigger (the ONE splash per sign-in): raise the splash on the
-  // unauthenticated -> authenticated flip, i.e. when the backend SESSION is set
-  // (not at wallet-connect or SIWE-verify, which land earlier). That is exactly
-  // when the Terms status query becomes enabled, so the splash covers its fetch
-  // and lifts to reveal the gate: SIWE/login -> splash -> terms. Doing it on the
-  // session flip (rather than an earlier imperative trigger fired at SIWE-verify)
-  // is what avoids a premature first splash that lifts before the session lands
-  // and then a second one for the terms fetch. Layout effect so the flag flips
-  // before paint; skip on landing (a wallet connecting there must stay calm).
-  useIsoLayoutEffect(() => {
-    const was = prevAuthedRef.current;
-    prevAuthedRef.current = isAuthenticated;
-    if (!was && isAuthenticated && !isLandingRoute(pathname)) {
-      arm();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  // Sign-in trigger (the ONE splash per sign-in): emitAuthChanged fires
+  // requestSplash SYNCHRONOUSLY at the sign-in moment, before any useAuth
+  // instance's async refresh flips isAuthenticated. Arming off isAuthenticated
+  // here was unreliable: this component and the Terms gate hold SEPARATE useAuth
+  // instances that flip at different times, so the gate's instance could flip
+  // first and paint terms before this one armed. Arming on the shared event fixes
+  // that. The splash then holds via the data-settled effect until the terms-status
+  // fetch resolves, and lifts to reveal the gate.
+  useEffect(() => subscribeSplashRequest(arm), [arm]);
 
   // Hide as soon as the incoming page's data has settled (nothing fetching)
   // past the MIN floor. Re-arms automatically if a new fetch starts before the

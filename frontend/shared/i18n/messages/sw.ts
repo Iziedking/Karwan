@@ -2605,7 +2605,7 @@ export const sw: Messages = {
       tag: 'FUNGUA MAKUBALIANO',
       srLabel: 'Anza',
       title: 'Fungua makubaliano yako ya kwanza ndani ya dakika moja hivi.',
-      body: 'Moja kwa moja au kupitia wakala, uamuzi ni wako. Kila hatua ni muamala halisi wa on-chain. Malipo kwa dakika, si majuma.',
+      body: 'Moja kwa moja au kupitia wakala, uamuzi ni wako. Malipo kwa dakika, si majuma.',
       ctaPrimary: 'Fungua app ↓',
       ctaSecondary: 'Soma jinsi inavyofanya kazi →',
     },

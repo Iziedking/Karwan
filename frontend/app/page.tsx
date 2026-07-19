@@ -121,9 +121,6 @@ export default function HomePage() {
                 {lp.hero.ctaSecondary}
               </CTAPill>
             </div>
-            <p className="mono text-[12px] text-[var(--lp-text-sub)]">
-              {lp.hero.footnote}
-            </p>
           </motion.div>
           <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">
             <HeroFlow />

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, setApiCaller, type UserProfile } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { clearPersistedCache } from '@/core/queryPersister';
+import { requestSplash } from '@/shared/utils/splashSignal';
 
 export type AuthMethod = 'web3' | 'circle';
 
@@ -41,6 +42,11 @@ export const AUTH_CHANGED_EVENT = 'karwan:auth-changed';
 /// refresh and pull the new session.
 export function emitAuthChanged(opts?: { signedOut?: boolean }) {
   if (typeof window === 'undefined') return;
+  // Sign-in: raise the brand splash NOW, synchronously, before any useAuth
+  // instance's async refresh flips isAuthenticated. This is the one moment that
+  // precedes every instance, so the splash always covers before the Terms gate
+  // (a separate instance) can paint. Not on sign-out.
+  if (!opts?.signedOut) requestSplash();
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, { detail: opts }));
 }
 
