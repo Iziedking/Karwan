@@ -11,6 +11,7 @@ import {
 } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { isLandingRoute } from '@/shared/utils/routes';
 
 interface Turn {
@@ -46,6 +47,8 @@ export function AssistantWidget() {
   const t = useTranslations().assistant;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const auth = useAuth();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -281,7 +284,12 @@ export function AssistantWidget() {
 
       {open && (
         <div
-          className="fixed z-[70] inset-x-0 bottom-0 sm:inset-x-auto sm:end-5 sm:bottom-5 sm:w-[380px] flex flex-col bg-[var(--lp-card)] border border-[var(--lp-border-light)] shadow-[0_24px_64px_-20px_rgba(0,0,0,0.45)] h-[72vh] sm:h-[540px] max-h-[calc(100vh-1rem)]"
+          className={
+            'fixed z-[70] inset-x-0 bottom-0 sm:inset-x-auto sm:end-5 sm:bottom-5 flex flex-col bg-[var(--lp-card)] border border-[var(--lp-border-light)] shadow-[0_24px_64px_-20px_rgba(0,0,0,0.45)] max-h-[calc(100vh-1rem)] transition-[width,height] duration-200 ' +
+            (expanded
+              ? 'h-[86vh] sm:w-[560px] sm:h-[760px]'
+              : 'h-[76vh] sm:w-[440px] sm:h-[640px]')
+          }
           style={{
             borderTopLeftRadius: 18,
             borderTopRightRadius: 18,
@@ -301,20 +309,38 @@ export function AssistantWidget() {
                 {t.subtitle}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-              className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-black/[0.05] transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-label={expanded ? 'Shrink' : 'Expand'}
+                className="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-black/[0.05] transition-colors"
+              >
+                {expanded ? (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                    <path d="M6 2v4H2M10 14v-4h4M2 10h4v4M14 6h-4V2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                    <path d="M2 6V2h4M14 10v4h-4M2 10v4h4M14 6V2h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] hover:bg-black/[0.05] transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">
             <Bubble role="assistant">{t.greeting}</Bubble>
             {turns.map((m, i) => (
               <div key={i} className="space-y-2">
@@ -439,7 +465,11 @@ export function AssistantWidget() {
                     {t.send}
                   </button>
                 </div>
-                {!isLive && (
+                {/* Guidance disclaimer is only true for signed-OUT visitors (the
+                    assistant holds no tools for them). Once signed in it CAN act
+                    (each action still gated by a confirm card), so the line would
+                    be wrong — hide it. */}
+                {!isLive && !auth.isAuthenticated && (
                   <p className="mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] mt-2 leading-snug">
                     {t.disclaimer}
                   </p>
@@ -660,11 +690,11 @@ function ConfirmCard({
       {action.summary && (
         <p className="text-[12px] leading-snug text-[var(--lp-text-sub)] mt-1">{action.summary}</p>
       )}
-      <dl className="mt-2 space-y-1">
+      <dl className="mt-2 space-y-1.5">
         {action.fields.map((f, i) => (
           <div key={i} className="flex items-baseline justify-between gap-3">
-            <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
-            <dd className="text-[12px] text-[var(--lp-dark)] text-end">{f.value}</dd>
+            <dt className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
+            <dd className="min-w-0 text-[12px] text-[var(--lp-dark)] text-end break-all tabular-nums">{f.value}</dd>
           </div>
         ))}
       </dl>
@@ -708,8 +738,8 @@ function Bubble({ role, children }: { role: 'user' | 'assistant'; children: Reac
       <div
         className={
           isUser
-            ? 'max-w-[85%] px-3.5 py-2.5 text-[13.5px] leading-relaxed bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-            : 'max-w-[88%] px-3.5 py-2.5 text-[13.5px] leading-relaxed bg-[var(--lp-bg)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]'
+            ? 'max-w-[85%] min-w-0 break-words px-3.5 py-2.5 text-[13.5px] leading-relaxed bg-[var(--lp-dark)] text-[var(--lp-bg)]'
+            : 'max-w-[88%] min-w-0 break-words px-3.5 py-2.5 text-[13.5px] leading-relaxed bg-[var(--lp-bg)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]'
         }
         style={{
           borderTopLeftRadius: 12,
