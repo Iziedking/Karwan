@@ -10,8 +10,10 @@ const NO_CHROME_PREFIXES = ['/invite/'];
 
 // These pages render their own contextual back link inside the hero (role-aware:
 // back to /buyer vs /seller), so they opt out of the global back lane to avoid
-// two stacked back controls.
-const OWN_BACK_PREFIXES = ['/jobs/', '/deals/'];
+// two stacked back controls. Onboarding has per-step back buttons plus a
+// browser-back history trap that walks the wizard, so the global lane is both
+// redundant and off-flow there.
+const OWN_BACK_PREFIXES = ['/jobs/', '/deals/', '/onboarding'];
 
 // Pages whose first band is LIGHT (cream), where a dark lane would seam. The
 // lane and its button switch to the light treatment for these. Everything else
