@@ -17,7 +17,7 @@
 
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
-import { formatUnits, type Address } from 'viem';
+import { formatUnits, parseUnits, type Address } from 'viem';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import { KARWAN_ASSISTANT_SYSTEM } from './knowledge.js';
@@ -31,6 +31,7 @@ import {
   buildNavigateAction,
   buildPostOfferConfirm,
   buildReleaseConfirm,
+  buildWithdrawConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
 } from './actions.js';
@@ -307,6 +308,58 @@ function buildTools(address: string, actions: AssistantAction[]) {
         return { ok: true, shown: built.title };
       },
     }),
+
+    propose_withdraw: tool({
+      description:
+        "Prepare a confirm card to WITHDRAW USDC from one of the user's OWN agent wallets to an external Arc address. Proceeds from deals they SELL land in their seller agent; buyer-side refunds land in their buyer agent. This moves real USDC and cannot be undone, so it only shows a card they must approve. Use it when they clearly want to withdraw or cash out and have given an amount and a destination 0x address.",
+      inputSchema: z.object({
+        agent: z
+          .enum(['buyer', 'seller'])
+          .describe('Which agent wallet to withdraw from. Sale proceeds are in the seller agent; buyer refunds in the buyer agent.'),
+        toAddress: z.string().min(1).max(60).describe('Destination Arc address, a full 0x-prefixed 20-byte address.'),
+        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to withdraw.'),
+      }),
+      execute: async ({ agent, toAddress, amountUsdc }) => {
+        const to = toAddress.trim();
+        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+          return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
+        }
+        const wallets = await getAgentWallets(address).catch(() => null);
+        if (!wallets) {
+          return { error: 'They have not activated their agent wallets yet. Offer a button to their profile (destination "profile").' };
+        }
+        const agentAddress = agent === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+        let balanceWei: bigint;
+        try {
+          balanceWei = await readUsdcBalance(agentAddress);
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_withdraw balance read failed');
+          return { error: 'Could not read the agent wallet balance right now. Try again shortly.' };
+        }
+        let amountWei: bigint;
+        try {
+          amountWei = parseUnits(amountUsdc.toString(), USDC_DECIMALS);
+        } catch {
+          return { error: 'That amount is not a valid USDC value.' };
+        }
+        if (amountWei <= 0n) return { error: 'The amount must be greater than 0.' };
+        if (amountWei > balanceWei) {
+          return {
+            error: `Their ${agent} agent wallet holds only ${formatUnits(balanceWei, USDC_DECIMALS)} USDC, less than ${amountUsdc}. Tell them the available balance and suggest a smaller amount.`,
+          };
+        }
+        const built = buildWithdrawConfirm({
+          caller: address,
+          agent,
+          toAddress: to,
+          amountUsdc,
+          balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
+        });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
   };
 }
 
@@ -331,10 +384,14 @@ function authenticatedPreamble(address: string, method: string): string {
     '    2. RELEASE a milestone payment on a deal they are the BUYER on: call propose_release with the',
     '       jobId when they clearly want to pay out, release, or approve a delivery. This pays the',
     '       seller real USDC and is FINAL. Only the buyer can release, and only after delivery.',
-    '- You cannot yet EXECUTE anything else: no funding, cancelling, topping up, bridging, withdrawing,',
-    '  or signing from chat, and no posting a REQUEST for work they need (that funds an auction). For',
-    '  those, call propose_navigation to show a button to the right screen, where they finish it',
-    '  themselves. Do not just describe the page. Add one short line of context with the button.',
+    '    3. WITHDRAW USDC from one of their own agent wallets to an external address: call',
+    '       propose_withdraw when they want to withdraw or cash out and have given an amount and a',
+    '       destination 0x address. Sale proceeds are in the seller agent, refunds in the buyer agent.',
+    '       This moves real USDC and is FINAL. Always confirm the destination address is theirs.',
+    '- You cannot yet EXECUTE anything else: no cancelling, topping up, bridging, or signing from chat,',
+    '  and no posting a REQUEST for work they need (that funds an auction). For those, call',
+    '  propose_navigation to show a button to the right screen, where they finish it themselves. Do',
+    '  not just describe the page. Add one short line of context with the button.',
     '- Amounts are USDC on Arc testnet. Keep replies plain and short.',
   ].join('\n');
 }

@@ -978,7 +978,7 @@ export interface AssistantNavigateAction {
 export interface AssistantConfirmAction {
   kind: 'confirm';
   id: string;
-  intent: 'post_offer' | 'release_milestone';
+  intent: 'post_offer' | 'release_milestone' | 'withdraw_proceeds';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

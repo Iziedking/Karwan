@@ -533,6 +533,10 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
     await api.releaseDirectDeal(p.jobId, p.caller);
     return { successText: 'Payment released.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
   }
+  if (action.intent === 'withdraw_proceeds') {
+    await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
+    return { successText: 'Withdrawal sent.', viewHref: '/profile#agents', viewLabel: 'View your wallets' };
+  }
   throw new Error('Unknown action');
 }
 
@@ -550,7 +554,12 @@ function ConfirmCard({
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>('idle');
   const [errMsg, setErrMsg] = useState('');
   const [result, setResult] = useState<ConfirmResult | null>(null);
-  const busyLabel = action.intent === 'release_milestone' ? 'Releasing…' : 'Posting…';
+  const busyLabel =
+    action.intent === 'release_milestone'
+      ? 'Releasing…'
+      : action.intent === 'withdraw_proceeds'
+        ? 'Withdrawing…'
+        : 'Posting…';
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;

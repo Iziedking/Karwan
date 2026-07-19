@@ -53,6 +53,16 @@ export interface ReleaseMilestonePayload {
   caller: string;
 }
 
+export interface WithdrawPayload {
+  /// Always the caller's own session address, set by the backend. The withdraw
+  /// route re-checks isSessionSelf, so a tampered address can't pull someone
+  /// else's funds.
+  address: string;
+  agent: 'buyer' | 'seller';
+  toAddress: string;
+  amountUsdc: number;
+}
+
 interface ConfirmActionBase {
   kind: 'confirm';
   id: string;
@@ -77,9 +87,13 @@ export interface ReleaseConfirm extends ConfirmActionBase {
   intent: 'release_milestone';
   payload: ReleaseMilestonePayload;
 }
+export interface WithdrawConfirm extends ConfirmActionBase {
+  intent: 'withdraw_proceeds';
+  payload: WithdrawPayload;
+}
 
 /// Discriminated on `intent`, which also tells the frontend which route to call.
-export type ConfirmAction = PostOfferConfirm | ReleaseConfirm;
+export type ConfirmAction = PostOfferConfirm | ReleaseConfirm | WithdrawConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -291,6 +305,48 @@ export function buildReleaseConfirm(i: BuildReleaseInput): ReleaseConfirm {
     fields,
     payload: { jobId: i.jobId, caller: i.caller },
     confirmLabel: 'Release payment',
+    cancelLabel: 'Not now',
+  };
+}
+
+export interface BuildWithdrawInput {
+  /// The authenticated caller, backend-set — never the model.
+  caller: string;
+  agent: 'buyer' | 'seller';
+  toAddress: string;
+  amountUsdc: number;
+  /// Pre-formatted USDC string computed by the caller from the on-chain balance.
+  balanceAfterUsdc: string;
+}
+
+/// Build a withdraw confirm card, or an `{ error }`. Shows the FULL destination
+/// address so the user can verify it (a typo'd address loses funds). Re-validates
+/// the address; the withdraw route re-checks isSessionSelf on the caller. Never throws.
+export function buildWithdrawConfirm(i: BuildWithdrawInput): WithdrawConfirm | { error: string } {
+  const to = i.toAddress?.trim() ?? '';
+  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+    return { error: 'That destination address is not a valid 0x address.' };
+  }
+  if (!(i.amountUsdc > 0)) {
+    return { error: 'The withdrawal amount must be greater than 0.' };
+  }
+  const dest = to.toLowerCase();
+  const fields: { label: string; value: string }[] = [
+    { label: 'From', value: `Your ${i.agent} agent wallet` },
+    { label: 'Amount', value: `${i.amountUsdc} USDC` },
+    { label: 'To', value: dest },
+    { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
+  ];
+  return {
+    kind: 'confirm',
+    id: `withdraw:${i.agent}:${dest}:${i.amountUsdc}`,
+    intent: 'withdraw_proceeds',
+    title: 'Withdraw USDC',
+    summary: `Send ${i.amountUsdc} USDC from your ${i.agent} agent wallet on Arc.`,
+    warning: 'This sends USDC to the address shown and cannot be undone. Check the address carefully.',
+    fields,
+    payload: { address: i.caller, agent: i.agent, toAddress: dest, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Withdraw',
     cancelLabel: 'Not now',
   };
 }
