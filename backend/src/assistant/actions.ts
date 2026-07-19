@@ -75,6 +75,17 @@ export interface CashOutPayload {
   sourceKind: 'identity';
 }
 
+/// Both Gateway routes derive the caller from the session, so no address in the
+/// payload. gateway_deposit adds USDC from the identity wallet to the user's
+/// unified balance; gateway_fund_agent moves it from the balance to an agent.
+export interface GatewayDepositPayload {
+  amountUsdc: number;
+}
+export interface GatewayFundAgentPayload {
+  agent: 'buyer' | 'seller';
+  amountUsdc: number;
+}
+
 interface ConfirmActionBase {
   kind: 'confirm';
   id: string;
@@ -107,9 +118,23 @@ export interface CashOutConfirm extends ConfirmActionBase {
   intent: 'cash_out';
   payload: CashOutPayload;
 }
+export interface GatewayDepositConfirm extends ConfirmActionBase {
+  intent: 'gateway_deposit';
+  payload: GatewayDepositPayload;
+}
+export interface GatewayFundAgentConfirm extends ConfirmActionBase {
+  intent: 'gateway_fund_agent';
+  payload: GatewayFundAgentPayload;
+}
 
 /// Discriminated on `intent`, which also tells the frontend which route to call.
-export type ConfirmAction = PostOfferConfirm | ReleaseConfirm | WithdrawConfirm | CashOutConfirm;
+export type ConfirmAction =
+  | PostOfferConfirm
+  | ReleaseConfirm
+  | WithdrawConfirm
+  | CashOutConfirm
+  | GatewayDepositConfirm
+  | GatewayFundAgentConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -419,6 +444,58 @@ export function buildCashOutConfirm(i: BuildCashOutInput): CashOutConfirm | { er
       sourceKind: 'identity',
     },
     confirmLabel: 'Cash out',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Build a gateway-deposit confirm card (add USDC from the identity wallet to the
+/// user's unified balance). No stark warning: the balance is theirs and stays
+/// spendable (fund an agent, or cash out). Never throws.
+export function buildGatewayDepositConfirm(i: {
+  amountUsdc: number;
+  balanceAfterUsdc: string;
+}): GatewayDepositConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  return {
+    kind: 'confirm',
+    id: `gateway_deposit:${i.amountUsdc}`,
+    intent: 'gateway_deposit',
+    title: 'Add to your balance',
+    summary: `Move ${i.amountUsdc} USDC from your wallet into your unified balance, ready to fund your agents.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: 'Your wallet' },
+      { label: 'To', value: 'Your unified balance' },
+      { label: 'Wallet after', value: `${i.balanceAfterUsdc} USDC` },
+    ],
+    payload: { amountUsdc: i.amountUsdc },
+    confirmLabel: 'Add to balance',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Build a gateway-fund-agent confirm card (move USDC from the unified balance to
+/// one of the user's agent wallets). Never throws.
+export function buildGatewayFundAgentConfirm(i: {
+  agent: 'buyer' | 'seller';
+  amountUsdc: number;
+  balanceAfterUsdc: string;
+}): GatewayFundAgentConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  return {
+    kind: 'confirm',
+    id: `gateway_fund_agent:${i.agent}:${i.amountUsdc}`,
+    intent: 'gateway_fund_agent',
+    title: `Fund your ${i.agent} agent`,
+    summary: `Move ${i.amountUsdc} USDC from your unified balance to your ${i.agent} agent wallet so it can trade.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: 'Your unified balance' },
+      { label: 'To', value: `Your ${i.agent} agent wallet` },
+      { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
+    ],
+    payload: { agent: i.agent, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Fund agent',
     cancelLabel: 'Not now',
   };
 }

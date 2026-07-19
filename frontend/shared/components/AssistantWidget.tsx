@@ -564,6 +564,16 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       viewLabel: 'Track it',
     };
   }
+  if (action.intent === 'gateway_deposit') {
+    const p = action.payload as { amountUsdc: number };
+    await api.gatewayDeposit(p.amountUsdc);
+    return { successText: 'Added to your balance.', viewHref: '/profile', viewLabel: 'View your wallets' };
+  }
+  if (action.intent === 'gateway_fund_agent') {
+    const p = action.payload as { agent: 'buyer' | 'seller'; amountUsdc: number };
+    await api.gatewayFundAgent(p.agent, p.amountUsdc);
+    return { successText: `Your ${p.agent} agent is funded.`, viewHref: '/profile', viewLabel: 'View your wallets' };
+  }
   throw new Error('Unknown action');
 }
 
@@ -588,7 +598,11 @@ function ConfirmCard({
         ? 'Withdrawing…'
         : action.intent === 'cash_out'
           ? 'Cashing out…'
-          : 'Posting…';
+          : action.intent === 'gateway_deposit'
+            ? 'Adding…'
+            : action.intent === 'gateway_fund_agent'
+              ? 'Funding…'
+              : 'Posting…';
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;

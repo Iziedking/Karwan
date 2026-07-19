@@ -978,7 +978,13 @@ export interface AssistantNavigateAction {
 export interface AssistantConfirmAction {
   kind: 'confirm';
   id: string;
-  intent: 'post_offer' | 'release_milestone' | 'withdraw_proceeds' | 'cash_out';
+  intent:
+    | 'post_offer'
+    | 'release_milestone'
+    | 'withdraw_proceeds'
+    | 'cash_out'
+    | 'gateway_deposit'
+    | 'gateway_fund_agent';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
@@ -2830,6 +2836,24 @@ export const api = {
   // not keep serving the pre-deposit zero.
   refreshGatewayBalance: () =>
     json<{ ok: true }>('/api/gateway/refresh', { method: 'POST' }),
+  // The user's unified balance (available USD on Arc), owned by their dedicated
+  // Gateway EOA. Null gatewayAddress means they never deposited.
+  gatewayUnified: () =>
+    json<{ available: string; gatewayAddress: string | null }>('/api/gateway/unified'),
+  // Deposit from the identity wallet into the unified balance. Circle-only,
+  // backend-signed. Session-scoped, no address argument.
+  gatewayDeposit: (amountUsdc: number) =>
+    json<{ ok: true; depositTxHash: string; gatewayAddress: string; amountUsd: number }>(
+      '/api/gateway/deposit',
+      { method: 'POST', body: JSON.stringify({ amountUsdc }) },
+    ),
+  // Fund a buyer/seller agent wallet from the unified balance (same-chain Arc
+  // spend, backend-signed). Session-scoped.
+  gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number) =>
+    json<{ ok: true; agent: 'buyer' | 'seller'; recipientAddress: string; amountUsd: number; transferId?: string }>(
+      '/api/gateway/fund-agent',
+      { method: 'POST', body: JSON.stringify({ agent, amountUsdc }) },
+    ),
 
   // Recent events for a job (public, durable ring snapshot). Used to seed the
   // live x402 agent-payments panel before SSE takes over.

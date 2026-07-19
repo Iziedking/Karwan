@@ -26,6 +26,7 @@ import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { resolveSellerProfile } from '../agents/agent-registry.js';
+import { readUserGatewayBalance } from '../gateway/balance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
 import {
   buildNavigateAction,
@@ -33,6 +34,8 @@ import {
   buildReleaseConfirm,
   buildWithdrawConfirm,
   buildCashOutConfirm,
+  buildGatewayDepositConfirm,
+  buildGatewayFundAgentConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
 } from './actions.js';
@@ -108,19 +111,36 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
   return {
     get_my_balance: tool({
       description:
-        "Read the signed-in user's own wallet balance on Arc testnet: their USDC and their native gas balance. Use this whenever they ask what their balance is, how much USDC they have, or whether they can afford something. Never guess a balance.",
+        "Read the signed-in user's full money picture on Arc testnet: their sign-in wallet (USDC + native gas), their buyer and seller agent wallets (USDC + address), and their unified balance if they have one. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [usdc, gas] = await Promise.all([
+          const [usdc, gas, record, unified] = await Promise.all([
             readUsdcBalance(address),
             publicClient.getBalance({ address: address as Address }),
+            getAgentWallets(address).catch(() => null),
+            readUserGatewayBalance(address).catch(() => null),
+          ]);
+          const agentBal = async (addr?: string) =>
+            addr ? formatUnits(await readUsdcBalance(addr), USDC_DECIMALS) : null;
+          const [buyerUsdc, sellerUsdc] = await Promise.all([
+            agentBal(record?.buyerAddress),
+            agentBal(record?.sellerAddress),
           ]);
           return {
-            address,
-            usdc: formatUnits(usdc, USDC_DECIMALS),
-            gas: formatUnits(gas, NATIVE_DECIMALS),
-            note: 'This is the wallet you sign in with. Proceeds from deals you sell land in your seller agent wallet on the Profile, not here.',
+            wallet: {
+              address,
+              usdc: formatUnits(usdc, USDC_DECIMALS),
+              gas: formatUnits(gas, NATIVE_DECIMALS),
+            },
+            buyerAgent: record?.buyerAddress
+              ? { address: record.buyerAddress, usdc: buyerUsdc }
+              : null,
+            sellerAgent: record?.sellerAddress
+              ? { address: record.sellerAddress, usdc: sellerUsdc }
+              : null,
+            unifiedBalance: unified ? unified.available.toFixed(2) : null,
+            note: 'Agents trade from the agent wallets. Sale proceeds land in the seller agent; refunds in the buyer agent. The unified balance is a pooled USDC balance you can use to fund either agent.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -429,6 +449,68 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         return { ok: true, shown: built.title };
       },
     }),
+
+    propose_gateway_deposit: tool({
+      description:
+        "Prepare a confirm card to ADD USDC to the user's unified balance (a pooled USDC balance they can use to fund their agent wallets). Use when they want to add money to their balance / top up their unified balance and have given an amount. Available for email/passkey accounts only; the backend moves it from their sign-in wallet.",
+      inputSchema: z.object({
+        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to add to the unified balance.'),
+      }),
+      execute: async ({ amountUsdc }) => {
+        if (method !== 'circle') {
+          return { error: 'A unified balance is for email/passkey accounts. This user holds their own wallet, so tell them (warmly) that they are in full control, and to trade hands-free they just fund their buyer and seller agent wallets directly from their wallet. Offer a button to their profile (destination "profile") where the agent addresses and funding live.' };
+        }
+        let balanceWei: bigint;
+        try {
+          balanceWei = await readUsdcBalance(address);
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_gateway_deposit balance read failed');
+          return { error: 'Could not read your wallet balance right now. Try again shortly.' };
+        }
+        let amountWei: bigint;
+        try {
+          amountWei = parseUnits(amountUsdc.toString(), USDC_DECIMALS);
+        } catch {
+          return { error: 'That amount is not a valid USDC value.' };
+        }
+        if (amountWei > balanceWei) {
+          return { error: `Your wallet holds only ${formatUnits(balanceWei, USDC_DECIMALS)} USDC, less than ${amountUsdc}. Suggest a smaller amount or adding money first.` };
+        }
+        const built = buildGatewayDepositConfirm({
+          amountUsdc,
+          balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
+        });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
+
+    propose_gateway_fund_agent: tool({
+      description:
+        "Prepare a confirm card to FUND one of the user's agent wallets from their unified balance, so the agent can trade. Use when they want to fund / top up their buyer or seller agent from their balance and have given an amount. Requires a funded unified balance.",
+      inputSchema: z.object({
+        agent: z.enum(['buyer', 'seller']).describe('Which agent wallet to fund.'),
+        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to move from the unified balance to the agent.'),
+      }),
+      execute: async ({ agent, amountUsdc }) => {
+        const unified = await readUserGatewayBalance(address).catch(() => null);
+        if (!unified || unified.available <= 0) {
+          return { error: 'They have no unified balance yet. Suggest adding money to their balance first with propose_gateway_deposit (or, for a web3 wallet, funding the agent directly).' };
+        }
+        if (unified.available < amountUsdc) {
+          return { error: `Their unified balance is ${unified.available.toFixed(2)} USDC, less than ${amountUsdc}. Suggest a smaller amount or adding money first.` };
+        }
+        const built = buildGatewayFundAgentConfirm({
+          agent,
+          amountUsdc,
+          balanceAfterUsdc: (unified.available - amountUsdc).toFixed(2),
+        });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
   };
 }
 
@@ -460,10 +542,18 @@ function authenticatedPreamble(address: string, method: string): string {
     '    4. CASH OUT USDC from Arc to ANOTHER chain (Base, Arbitrum, Optimism, Ethereum, Polygon):',
     '       call propose_cash_out when they want to bridge out / cash out to another chain and have',
     '       given an amount, a chain, and a 0x address. This bridges real USDC off Arc and is FINAL.',
-    '- You cannot yet EXECUTE anything else: no cancelling, topping up (adding money onto Arc), or',
-    '  posting a REQUEST for work they need (that funds an auction). For those, call propose_navigation',
-    '  to show a button to the right screen, where they finish it themselves. Do not just describe the',
-    '  page. Add one short line of context with the button.',
+    '    5. ADD to their unified balance: call propose_gateway_deposit when they want to add money to',
+    '       their pooled balance. Then FUND an agent from it: call propose_gateway_fund_agent when they',
+    '       want to move USDC from that balance to their buyer or seller agent so it can trade. These',
+    '       stay inside their own wallets and are how they set their agents up to work hands-free.',
+    '- The unified balance is a pooled USDC balance the user tops up once, then uses to fund either',
+    '  agent for any activity. Email/passkey users can do all of this from chat with no wallet popup.',
+    '- Web3 users hold their own keys: they keep full custody, and for hands-free trading they fund their',
+    '  buyer and seller agent wallets directly from their own wallet, once. Frame this warmly and',
+    '  respectfully as control, never as a limitation, and point them to their profile to do it.',
+    '- You cannot yet EXECUTE anything else: no cancelling, or posting a REQUEST for work they need',
+    '  (that funds an auction). For those, call propose_navigation to show a button to the right screen,',
+    '  where they finish it themselves. Do not just describe the page. Add one short line with the button.',
     '- Amounts are USDC on Arc testnet. Keep replies plain and short.',
   ].join('\n');
 }
