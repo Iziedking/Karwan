@@ -2840,12 +2840,13 @@ export const api = {
   // Gateway EOA. Null gatewayAddress means they never deposited.
   gatewayUnified: () =>
     json<{ available: string; gatewayAddress: string | null }>('/api/gateway/unified'),
-  // Deposit from the identity wallet into the unified balance. Circle-only,
-  // backend-signed. Session-scoped, no address argument.
-  gatewayDeposit: (amountUsdc: number) =>
-    json<{ ok: true; depositTxHash: string; gatewayAddress: string; amountUsd: number }>(
+  // Deposit into the unified balance from one of the user's own wallets. 'identity'
+  // (default) is Circle-only; 'buyer'/'seller' agent wallets work for every account
+  // type (the web3 path). Backend-signed. Session-scoped.
+  gatewayDeposit: (amountUsdc: number, source?: 'identity' | 'buyer' | 'seller') =>
+    json<{ ok: true; depositTxHash: string; gatewayAddress: string; amountUsd: number; source: string }>(
       '/api/gateway/deposit',
-      { method: 'POST', body: JSON.stringify({ amountUsdc }) },
+      { method: 'POST', body: JSON.stringify({ amountUsdc, ...(source ? { source } : {}) }) },
     ),
   // Fund a buyer/seller agent wallet from the unified balance (same-chain Arc
   // spend, backend-signed). Session-scoped.
@@ -2853,6 +2854,17 @@ export const api = {
     json<{ ok: true; agent: 'buyer' | 'seller'; recipientAddress: string; amountUsd: number; transferId?: string }>(
       '/api/gateway/fund-agent',
       { method: 'POST', body: JSON.stringify({ agent, amountUsdc }) },
+    ),
+  // Cash out from the unified balance to another chain (cross-chain Gateway spend,
+  // backend-signed). Works for every account type. Session-scoped.
+  gatewayCashOut: (
+    destChainKey: 'baseSepolia' | 'arbitrumSepolia' | 'optimismSepolia' | 'sepolia' | 'polygonAmoy',
+    recipient: string,
+    amountUsdc: number,
+  ) =>
+    json<{ ok: true; destChainKey: string; recipientAddress: string; amountUsd: number; transferId?: string }>(
+      '/api/gateway/cash-out',
+      { method: 'POST', body: JSON.stringify({ destChainKey, recipient, amountUsdc }) },
     ),
 
   // Recent events for a job (public, durable ring snapshot). Used to seed the

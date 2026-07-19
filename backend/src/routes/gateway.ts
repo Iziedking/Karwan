@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { AppKit } from '@circle-fin/app-kit';
 import { sessionAddress } from '../auth/session.js';
 import { getUserByAddress } from '../db/users.js';
-import { depositIdentityToGateway, readUserGatewayBalance } from '../gateway/balance.js';
-import { fundAgentFromGateway } from '../gateway/spend.js';
+import { depositToGateway, readUserGatewayBalance } from '../gateway/balance.js';
+import { fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
 
 /// Circle Gateway unified balance (read side).
@@ -149,6 +149,9 @@ gatewayRoutes.post('/refresh', async (c) => {
 
 const depositSchema = z.object({
   amountUsdc: z.number().positive().max(5_000_000),
+  /// Which of the user's own wallets funds the deposit. 'identity' is Circle-only;
+  /// 'buyer'/'seller' agent wallets work for every account type (the web3 path).
+  source: z.enum(['identity', 'buyer', 'seller']).optional(),
 });
 
 // One deposit at a time per user, so a double-click can't fire two approves.
@@ -168,21 +171,10 @@ gatewayRoutes.get('/unified', async (c) => {
   }
 });
 
-/// Deposit USDC from the caller's identity wallet into their unified balance.
+/// Deposit USDC from one of the caller's own wallets into their unified balance.
 gatewayRoutes.post('/deposit', async (c) => {
   const address = sessionAddress(c);
   if (!address) return c.json({ error: 'unauthorized' }, 401);
-  // Circle-only: the backend signs the identity SCA. Web3 users self-custody
-  // their identity EOA and would fund a Gateway balance from their own wallet.
-  if (!getUserByAddress(address)) {
-    return c.json(
-      {
-        error: 'Depositing to your unified balance is available for email/passkey accounts.',
-        code: 'web3_unsupported',
-      },
-      409,
-    );
-  }
 
   let body;
   try {
@@ -190,13 +182,25 @@ gatewayRoutes.post('/deposit', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  const source = body.source ?? 'identity';
+  // The identity source signs the identity SCA, which only Circle accounts have.
+  // Agent sources are Circle DCWs for everyone, so the web3 path uses those.
+  if (source === 'identity' && !getUserByAddress(address)) {
+    return c.json(
+      {
+        error: 'Depositing from your sign-in wallet is available for email/passkey accounts. Fund an agent wallet and deposit from there instead.',
+        code: 'web3_identity_unsupported',
+      },
+      409,
+    );
+  }
 
   if (depositInFlight.has(address)) {
     return c.json({ error: 'a deposit is already in progress', code: 'in_flight' }, 409);
   }
   depositInFlight.add(address);
   try {
-    const result = await depositIdentityToGateway(address, body.amountUsdc);
+    const result = await depositToGateway(address, body.amountUsdc, source);
     cache.delete(address); // bust the read cache so the new balance shows on next poll
     return c.json({ ok: true, ...result });
   } catch (err) {
@@ -239,6 +243,41 @@ gatewayRoutes.post('/fund-agent', async (c) => {
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway fund-agent failed');
     return c.json({ error: 'transfer failed', detail: (err as Error).message }, 502);
+  } finally {
+    spendInFlight.delete(address);
+  }
+});
+
+const cashOutSchema = z.object({
+  destChainKey: z.enum(['baseSepolia', 'arbitrumSepolia', 'optimismSepolia', 'sepolia', 'polygonAmoy']),
+  recipient: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  amountUsdc: z.number().positive().max(5_000_000),
+});
+
+/// Cash out from the caller's unified balance to another chain (cross-chain
+/// Gateway spend). Works for every account type — the Gateway EOA signs.
+gatewayRoutes.post('/cash-out', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+
+  let body;
+  try {
+    body = cashOutSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  if (spendInFlight.has(address)) {
+    return c.json({ error: 'a transfer is already in progress', code: 'in_flight' }, 409);
+  }
+  spendInFlight.add(address);
+  try {
+    const result = await cashOutFromGateway(address, body.destChainKey, body.recipient, body.amountUsdc);
+    cache.delete(address);
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    logger.warn({ address, err: (err as Error).message }, 'gateway cash-out failed');
+    return c.json({ error: 'cash-out failed', detail: (err as Error).message }, 502);
   } finally {
     spendInFlight.delete(address);
   }

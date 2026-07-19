@@ -11,6 +11,7 @@ import { shortAddress } from '@/shared/utils/format';
 import { RoleToggle } from '@/features/profile/components/RoleToggle';
 import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
 import { AgentWithdrawCard } from '@/features/profile/components/AgentWithdrawCard';
+import { UnifiedBalanceCard } from '@/features/profile/components/UnifiedBalanceCard';
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { WalletsPanel } from '@/features/balances/components/WalletsPanel';
@@ -566,6 +567,9 @@ function ProfilePageInner() {
                   defaultAgent={defaultAgent}
                 />
               )}
+            </div>
+            <div className="mt-5 max-w-[640px]">
+              <UnifiedBalanceCard />
             </div>
             <div className="mt-5 max-w-[640px]">
               <AgentResearchCard />
