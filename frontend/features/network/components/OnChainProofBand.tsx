@@ -181,7 +181,7 @@ export function OnChainProofBand() {
           loading={!stats}
         />
         <SmallStat
-          label="Yield payouts"
+          label={t.smallStats.yieldPayouts}
           value={stats?.totals.yieldClaims ?? 0}
           loading={!stats}
         />
