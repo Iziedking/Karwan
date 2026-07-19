@@ -214,8 +214,8 @@ export function DealsFeed() {
           })}
         </ul>
         {pageCount > 1 && (
-          <div className="px-6 md:px-8 py-5 flex items-center justify-between gap-4 border-t border-[var(--lp-border-light)]">
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
+          <div className="px-5 md:px-8 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-[var(--lp-border-light)]">
+            <p className="min-w-0 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
               {tr.pager.pageOf
                 .replace('{page}', String(safePage + 1))
                 .replace('{total}', String(pageCount))}
@@ -225,7 +225,7 @@ export function DealsFeed() {
                 String(shown.length),
               )}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="shrink-0 flex items-center gap-2">
               <PagerButton
                 direction="prev"
                 disabled={!canPrev}
