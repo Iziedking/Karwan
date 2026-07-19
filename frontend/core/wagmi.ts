@@ -28,6 +28,17 @@ import {
 // the app keep their `@/core/wagmi` import path; no functional change.
 export { arcTestnet };
 
+/// Arc Testnet RPC pool, primary first. A dedicated endpoint (QuickNode) leads
+/// when NEXT_PUBLIC_ARC_RPC_URL is set, with the public RPC as the fallback so a
+/// dedicated-endpoint hiccup never takes the app off-chain. NEXT_PUBLIC_ is
+/// inlined into the client bundle, so the dedicated URL is PUBLIC — restrict it
+/// to the app's domains via the provider's endpoint security (referrer/origin
+/// allowlist), or it can be lifted and its quota drained.
+export const ARC_RPC_URLS: string[] = [
+  process.env.NEXT_PUBLIC_ARC_RPC_URL,
+  'https://rpc.testnet.arc.network',
+].filter((u): u is string => !!u && u.length > 0);
+
 const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? 'karwan-demo';
 
 // Hardened RPC pools for the source chains. The default viem URLs
@@ -116,7 +127,7 @@ export const wagmiConfig = createConfig({
   ],
   connectors,
   transports: {
-    [arcTestnet.id]: http('https://rpc.testnet.arc.network'),
+    [arcTestnet.id]: fallback(ARC_RPC_URLS.map((url) => http(url))),
     [baseSepolia.id]: fallback(BASE_SEPOLIA_RPCS.map((url) => http(url))),
     [sepolia.id]: fallback(SEPOLIA_RPCS.map((url) => http(url))),
     [optimismSepolia.id]: fallback(OP_SEPOLIA_RPCS.map((url) => http(url))),
