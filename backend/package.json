@@ -11,6 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
   "solana:bridge-smoke": "tsx --env-file=../.env src/scripts/solana-bridge-smoke.ts",
+  "solana:wallet": "tsx --env-file=../.env src/scripts/solana-provision-wallet.ts",
+  "arc-solana-smoke": "tsx --env-file=../.env src/scripts/arc-to-solana-smoke.ts",
     "eval:agentic": "tsx --env-file=../.env src/scripts/eval-agentic.ts",
     "abis:sync": "tsx --env-file=../.env src/scripts/sync-abis.ts",
     "entity-secret:register": "tsx --env-file=../.env src/scripts/register-entity-secret.ts",
