@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { AppKit } from '@circle-fin/app-kit';
 import { sessionAddress } from '../auth/session.js';
+import { getUserByAddress } from '../db/users.js';
+import { depositIdentityToGateway, readUserGatewayBalance } from '../gateway/balance.js';
+import { logger } from '../logger.js';
 
 /// Circle Gateway unified balance (read side).
 ///
@@ -135,4 +139,69 @@ gatewayRoutes.post('/refresh', async (c) => {
   if (!address) return c.json({ error: 'unauthorized' }, 401);
   cache.delete(address);
   return c.json({ ok: true });
+});
+
+// --- Unified-balance WRITE side (autonomy Stage 2: deposit + read) ------------
+// Deposit into the user's own Gateway balance (owned by a dedicated EOA DCW), and
+// read it back. Backend-signed from the identity SCA, so Circle-only. Not yet
+// surfaced in the product: the balance becomes spendable in Stage 3.
+
+const depositSchema = z.object({
+  amountUsdc: z.number().positive().max(5_000_000),
+});
+
+// One deposit at a time per user, so a double-click can't fire two approves.
+const depositInFlight = new Set<string>();
+
+/// The user's unified Gateway balance (available USD on Arc). Session-scoped.
+gatewayRoutes.get('/unified', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+  try {
+    const bal = await readUserGatewayBalance(address);
+    if (!bal) return c.json({ available: '0', gatewayAddress: null });
+    return c.json({ available: bal.available.toString(), gatewayAddress: bal.gatewayAddress });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'gateway_unavailable';
+    return c.json({ error: 'gateway_unavailable', message }, 502);
+  }
+});
+
+/// Deposit USDC from the caller's identity wallet into their unified balance.
+gatewayRoutes.post('/deposit', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+  // Circle-only: the backend signs the identity SCA. Web3 users self-custody
+  // their identity EOA and would fund a Gateway balance from their own wallet.
+  if (!getUserByAddress(address)) {
+    return c.json(
+      {
+        error: 'Depositing to your unified balance is available for email/passkey accounts.',
+        code: 'web3_unsupported',
+      },
+      409,
+    );
+  }
+
+  let body;
+  try {
+    body = depositSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  if (depositInFlight.has(address)) {
+    return c.json({ error: 'a deposit is already in progress', code: 'in_flight' }, 409);
+  }
+  depositInFlight.add(address);
+  try {
+    const result = await depositIdentityToGateway(address, body.amountUsdc);
+    cache.delete(address); // bust the read cache so the new balance shows on next poll
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    logger.warn({ address, err: (err as Error).message }, 'gateway deposit failed');
+    return c.json({ error: 'deposit failed', detail: (err as Error).message }, 502);
+  } finally {
+    depositInFlight.delete(address);
+  }
 });
