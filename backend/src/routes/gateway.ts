@@ -4,6 +4,7 @@ import { AppKit } from '@circle-fin/app-kit';
 import { sessionAddress } from '../auth/session.js';
 import { getUserByAddress } from '../db/users.js';
 import { depositIdentityToGateway, readUserGatewayBalance } from '../gateway/balance.js';
+import { fundAgentFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
 
 /// Circle Gateway unified balance (read side).
@@ -203,5 +204,42 @@ gatewayRoutes.post('/deposit', async (c) => {
     return c.json({ error: 'deposit failed', detail: (err as Error).message }, 502);
   } finally {
     depositInFlight.delete(address);
+  }
+});
+
+const fundAgentSchema = z.object({
+  agent: z.enum(['buyer', 'seller']),
+  amountUsdc: z.number().positive().max(5_000_000),
+});
+
+// One spend at a time per user, so a double-click can't fire two burn intents.
+const spendInFlight = new Set<string>();
+
+/// Fund one of the caller's agent wallets from their unified Gateway balance.
+/// Same-chain Arc spend, backend-signed by the caller's Gateway EOA (no delegate).
+gatewayRoutes.post('/fund-agent', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+
+  let body;
+  try {
+    body = fundAgentSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+
+  if (spendInFlight.has(address)) {
+    return c.json({ error: 'a transfer is already in progress', code: 'in_flight' }, 409);
+  }
+  spendInFlight.add(address);
+  try {
+    const result = await fundAgentFromGateway(address, body.agent, body.amountUsdc);
+    cache.delete(address); // unified balance dropped; bust the read cache
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    logger.warn({ address, err: (err as Error).message }, 'gateway fund-agent failed');
+    return c.json({ error: 'transfer failed', detail: (err as Error).message }, 502);
+  } finally {
+    spendInFlight.delete(address);
   }
 });
