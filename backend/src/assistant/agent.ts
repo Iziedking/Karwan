@@ -24,8 +24,15 @@ import { KARWAN_ASSISTANT_SYSTEM } from './knowledge.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
+import { getAgentWallets } from '../db/agentWallets.js';
+import { resolveSellerProfile } from '../agents/agent-registry.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
-import { buildNavigateAction, NAVIGATE_DESTINATIONS, type AssistantAction } from './actions.js';
+import {
+  buildNavigateAction,
+  buildPostOfferConfirm,
+  NAVIGATE_DESTINATIONS,
+  type AssistantAction,
+} from './actions.js';
 import { logger } from '../logger.js';
 
 const USDC_DECIMALS = 6;
@@ -207,6 +214,40 @@ function buildTools(address: string, actions: AssistantAction[]) {
         return { ok: true, shown: built.label };
       },
     }),
+
+    propose_post_offer: tool({
+      description:
+        "Prepare a confirm card to post the user's standing OFFER to supply work or goods (a listing on the marketplace). This does NOT post it: it shows the user a card they must approve, then it posts as themselves. Use it when they clearly want to advertise what they sell and have given a title, a short description, and an asking price in USDC. Nothing moves money and the offer can be cancelled later. Do NOT use this for posting a REQUEST for work they need (that funds an auction) — send them to the request desk with propose_navigation instead.",
+      inputSchema: z.object({
+        title: z.string().min(3).max(120).describe('Short offer title, e.g. "Arabic-English contract translation".'),
+        description: z.string().min(5).max(500).describe('What they supply, plainly. One or two sentences.'),
+        askingPriceUsdc: z.number().positive().max(5_000_000).describe('Asking price in USDC.'),
+        negotiationMaxDecreasePct: z
+          .number()
+          .min(0)
+          .max(50)
+          .optional()
+          .describe('Optional: how far, in percent, their agent may auto-negotiate below the asking price.'),
+        ttlDays: z.number().min(0.0006).max(90).optional().describe('Optional: how many days the offer stays open. Defaults to 30.'),
+      }),
+      execute: async (args) => {
+        // Pre-flight the SAME preconditions the listings route enforces, so the
+        // assistant never shows a confirm card that would 409 on submit. When a
+        // precondition is missing, guide the model to send them to set it up.
+        const agents = await getAgentWallets(address).catch(() => null);
+        if (!agents) {
+          return { error: 'They must activate their agent wallets first. Offer a button to their profile (destination "profile").' };
+        }
+        const sellerProfile = await resolveSellerProfile(agents.sellerAddress).catch(() => null);
+        if (!sellerProfile) {
+          return { error: 'They need a seller profile first. Offer a button to the seller desk (destination "new_offer").' };
+        }
+        const built = buildPostOfferConfirm({ caller: address, ...args });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
   };
 }
 
@@ -224,10 +265,14 @@ function authenticatedPreamble(address: string, method: string): string {
     '- When they ask about their balance, their deals, or a specific deal, CALL A TOOL and',
     '  answer from what it returns. Never invent a balance, an amount, a status, or a deal id.',
     '- If a tool returns an error or nothing, say so plainly. Do not paper over it with a guess.',
-    '- You can READ but you cannot yet EXECUTE. You cannot move money, fund, release, cancel, top up,',
-    '  bridge, or sign anything from chat. But when they want to DO one of those, do not just describe',
-    '  the page: call propose_navigation to show them a button that opens the right screen, where they',
-    '  finish it themselves with their own confirmation. Add one short line of context with the button.',
+    '- You can READ, and you can PREPARE one thing for them to approve: posting a standing OFFER to',
+    '  supply work or goods. When they want to do that and have given a title, a short description, and',
+    '  an asking price, call propose_post_offer to show a confirm card. It does not post until they tap',
+    '  Confirm, and it posts as them. It moves no money and the offer can be cancelled later.',
+    '- You cannot yet EXECUTE anything else: no moving money, funding, releasing, cancelling, topping up,',
+    '  bridging, or signing from chat, and no posting a REQUEST for work they need (that funds an',
+    '  auction). For those, call propose_navigation to show a button to the right screen, where they',
+    '  finish it themselves. Do not just describe the page. Add one short line of context with the button.',
     '- Amounts are USDC on Arc testnet. Keep replies plain and short.',
   ].join('\n');
 }

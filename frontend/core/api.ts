@@ -969,7 +969,23 @@ export interface AssistantNavigateAction {
   href: string;
   description?: string;
 }
-export type AssistantAction = AssistantNavigateAction;
+
+/// A propose->confirm card. The user must tap Confirm; the widget then calls the
+/// same session-gated route the UI uses. Stage 3 has one intent, `post_offer`
+/// (off-chain, no funds move). `payload` is the validated body for that route.
+export interface AssistantConfirmAction {
+  kind: 'confirm';
+  id: string;
+  intent: 'post_offer';
+  title: string;
+  summary?: string;
+  fields: { label: string; value: string }[];
+  payload: Record<string, unknown>;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+export type AssistantAction = AssistantNavigateAction | AssistantConfirmAction;
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {

@@ -25,10 +25,45 @@ export interface NavigateAction {
   description?: string;
 }
 
-/// Stage 2 has one variant. Stage 3 adds a `confirm` variant (a propose->confirm
-/// card for a reversible write) to this same union; the envelope + renderer carry
-/// it unchanged.
-export type AssistantAction = NavigateAction;
+/// A propose->confirm card for a reversible write. The assistant PREPARES the
+/// action and the user must tap Confirm; the frontend then calls the SAME
+/// session-gated route the UI uses. The backend never executes here — it only
+/// hands back a validated payload the user has to approve. Stage 3 ships one
+/// intent, `post_offer` (post a standing offer; off-chain, no funds move, fully
+/// cancelable). Later intents (post_request, fund, release, ...) extend `intent`
+/// and `ConfirmPayload` on this same shape.
+export interface PostOfferPayload {
+  /// Always the caller's own session address, set by the backend, never the
+  /// model. The listings route re-checks isSessionSelf, so a tampered payload
+  /// still can't post as anyone else.
+  sellerUser: string;
+  title: string;
+  description: string;
+  askingPriceUsdc: number;
+  negotiationMaxDecreasePct?: number;
+  ttlDays?: number;
+}
+
+export interface ConfirmAction {
+  kind: 'confirm';
+  id: string;
+  /// Discriminates which existing route the frontend calls on confirm.
+  intent: 'post_offer';
+  /// Card heading, e.g. "Post this offer".
+  title: string;
+  /// One line under the heading (here, the offer description).
+  summary?: string;
+  /// Read-only rows the card shows so the user sees exactly what will happen.
+  fields: { label: string; value: string }[];
+  /// The validated body passed to the intent's route on confirm.
+  payload: PostOfferPayload;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+/// Stage 2 shipped `navigate`; Stage 3 adds `confirm`. The envelope + renderer
+/// carry the union unchanged as new variants land.
+export type AssistantAction = NavigateAction | ConfirmAction;
 
 /// The destinations the assistant may send a user to. Mirrors the route list in
 /// the knowledge base; keep the two in sync. No /admin, /legacy, or any route
@@ -127,4 +162,72 @@ export function buildNavigateAction(input: BuildNavigateInput): NavigateAction |
   const label = (input.label?.trim() || spec.label).slice(0, 60);
   const description = input.description?.trim().slice(0, 120) || undefined;
   return { kind: 'navigate', id: href, label, href, description };
+}
+
+export interface BuildPostOfferInput {
+  /// The authenticated caller. The backend passes the session address; the model
+  /// never supplies this, so the offer always posts as the signed-in user.
+  caller: string;
+  title: string;
+  description: string;
+  askingPriceUsdc: number;
+  negotiationMaxDecreasePct?: number;
+  ttlDays?: number;
+}
+
+/// Build a validated post-offer confirm card, or an `{ error }` the tool hands
+/// back to the model so it can fix the inputs. Ranges MIRROR the listings route's
+/// createSchema (title 3-120, description 5-500, price >0 and <=5,000,000, pct
+/// 0-50, ttl ~1min-90d); the route re-validates on confirm, so this is a friendly
+/// first pass, not the security boundary. Never throws.
+export function buildPostOfferConfirm(input: BuildPostOfferInput): ConfirmAction | { error: string } {
+  const title = input.title?.trim() ?? '';
+  const description = input.description?.trim() ?? '';
+  if (title.length < 3 || title.length > 120) {
+    return { error: 'The offer title must be between 3 and 120 characters.' };
+  }
+  if (description.length < 5 || description.length > 500) {
+    return { error: 'The offer description must be between 5 and 500 characters.' };
+  }
+  if (!(input.askingPriceUsdc > 0) || input.askingPriceUsdc > 5_000_000) {
+    return { error: 'The asking price must be greater than 0 and at most 5,000,000 USDC.' };
+  }
+  const pct = input.negotiationMaxDecreasePct;
+  if (pct !== undefined && (pct < 0 || pct > 50)) {
+    return { error: 'The negotiation flexibility must be between 0 and 50 percent.' };
+  }
+  const ttl = input.ttlDays;
+  if (ttl !== undefined && (ttl < 0.0006 || ttl > 90)) {
+    return { error: 'The listing window must be between about a minute and 90 days.' };
+  }
+
+  const fields: { label: string; value: string }[] = [
+    { label: 'Title', value: title },
+    { label: 'Asking price', value: `${input.askingPriceUsdc} USDC` },
+  ];
+  if (pct !== undefined) fields.push({ label: 'Auto-negotiate', value: `down to ${pct}% below asking` });
+  if (ttl !== undefined) {
+    fields.push({ label: 'Open for', value: ttl >= 1 ? `${ttl} day${ttl === 1 ? '' : 's'}` : `${Math.round(ttl * 24 * 60)} min` });
+  }
+
+  const payload: PostOfferPayload = {
+    sellerUser: input.caller,
+    title,
+    description,
+    askingPriceUsdc: input.askingPriceUsdc,
+    ...(pct !== undefined ? { negotiationMaxDecreasePct: pct } : {}),
+    ...(ttl !== undefined ? { ttlDays: ttl } : {}),
+  };
+
+  return {
+    kind: 'confirm',
+    id: `post_offer:${title.toLowerCase().slice(0, 40)}:${input.askingPriceUsdc}`,
+    intent: 'post_offer',
+    title: 'Post this offer',
+    summary: description,
+    fields,
+    payload,
+    confirmLabel: 'Post offer',
+    cancelLabel: 'Not now',
+  };
 }

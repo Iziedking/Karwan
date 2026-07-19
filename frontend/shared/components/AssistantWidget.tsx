@@ -2,7 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { api, ApiError, type AssistantAction } from '@/core/api';
+import {
+  api,
+  ApiError,
+  type AssistantAction,
+  type AssistantNavigateAction,
+  type AssistantConfirmAction,
+} from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { isLandingRoute } from '@/shared/utils/routes';
@@ -447,10 +453,9 @@ export function AssistantWidget() {
   );
 }
 
-/// The navigate buttons the authenticated assistant attaches to a reply. Each
-/// routes to a validated in-app path and closes the panel. The href is already
-/// allowlist-built on the backend, but the click still guards for a single-slash
-/// internal path so a malformed value can never trigger an external navigation.
+/// Renders the structured actions the authenticated assistant attached to a
+/// reply, dispatching by kind: a navigate button routes to a screen, a confirm
+/// card proposes a reversible write the user must approve.
 function ActionButtons({
   actions,
   onNavigate,
@@ -458,40 +463,153 @@ function ActionButtons({
   actions: AssistantAction[];
   onNavigate: () => void;
 }) {
+  return (
+    <div className="flex flex-col gap-2 ps-1">
+      {actions.map((a) =>
+        a.kind === 'confirm' ? (
+          <ConfirmCard key={a.id} action={a} onNavigate={onNavigate} />
+        ) : (
+          <NavigateButton key={a.id} action={a} onNavigate={onNavigate} />
+        ),
+      )}
+    </div>
+  );
+}
+
+/// A navigate button. The href is allowlist-built on the backend, but the click
+/// still guards for a single-slash internal path so a malformed value can never
+/// trigger an external navigation.
+function NavigateButton({
+  action,
+  onNavigate,
+}: {
+  action: AssistantNavigateAction;
+  onNavigate: () => void;
+}) {
   const router = useRouter();
-  const go = (href: string) => {
+  const go = () => {
+    const href = action.href;
     if (!href.startsWith('/') || href.startsWith('//')) return;
     onNavigate();
     router.push(href);
   };
   return (
-    <div className="flex flex-col gap-2 ps-1">
-      {actions.map((a) => (
+    <button
+      type="button"
+      onClick={go}
+      className="group w-full text-start px-3.5 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] hover:brightness-105 transition"
+      style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 3 }}
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="mono text-[11px] uppercase tracking-[0.1em] font-bold">{action.label}</span>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform">
+          <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      {action.description && (
+        <span className="block mt-0.5 text-[11px] leading-snug font-medium opacity-80">{action.description}</span>
+      )}
+    </button>
+  );
+}
+
+/// Run a confirm action against the SAME session-gated route the UI uses. Stage 3
+/// has one intent, post_offer. Returns where the user can go to see the result.
+async function runConfirmIntent(action: AssistantConfirmAction): Promise<{ viewHref: string }> {
+  if (action.intent === 'post_offer') {
+    await api.postListing(action.payload as Parameters<typeof api.postListing>[0]);
+    return { viewHref: '/market' };
+  }
+  throw new Error('Unknown action');
+}
+
+/// A propose->confirm card for a reversible write. Nothing happens until the user
+/// taps Confirm; then it calls the intent's existing route. The card is
+/// single-shot: once posted it collapses to a success line so it can't re-submit.
+function ConfirmCard({
+  action,
+  onNavigate,
+}: {
+  action: AssistantConfirmAction;
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>('idle');
+  const [errMsg, setErrMsg] = useState('');
+  const [viewHref, setViewHref] = useState<string | null>(null);
+
+  async function confirm() {
+    if (status === 'running' || status === 'done') return;
+    setStatus('running');
+    setErrMsg('');
+    try {
+      const { viewHref: href } = await runConfirmIntent(action);
+      setViewHref(href);
+      setStatus('done');
+    } catch (e) {
+      setErrMsg(e instanceof ApiError ? e.message : 'Could not complete that. Try again.');
+      setStatus('error');
+    }
+  }
+
+  if (status === 'dismissed') return null;
+
+  if (status === 'done') {
+    return (
+      <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
+        <p className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-accent)]">Done</p>
+        <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">Your offer is live.</p>
+        {viewHref && (
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate();
+              router.push(viewHref);
+            }}
+            className="mt-2 mono text-[10px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+          >
+            View on the market
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
+      <p className="font-sans text-[13px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
+      {action.summary && (
+        <p className="text-[12px] leading-snug text-[var(--lp-text-sub)] mt-1">{action.summary}</p>
+      )}
+      <dl className="mt-2 space-y-1">
+        {action.fields.map((f, i) => (
+          <div key={i} className="flex items-baseline justify-between gap-3">
+            <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
+            <dd className="text-[12px] text-[var(--lp-dark)] text-end">{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {status === 'error' && <p className="mono text-[10px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
+      <div className="flex gap-2 mt-3">
         <button
-          key={a.id}
           type="button"
-          onClick={() => go(a.href)}
-          className="group w-full text-start px-3.5 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] hover:brightness-105 transition"
-          style={{
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
-          }}
+          onClick={confirm}
+          disabled={status === 'running'}
+          className="flex-1 mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
+          style={{ borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 10, borderBottomRightRadius: 3 }}
         >
-          <span className="flex items-center justify-between gap-2">
-            <span className="mono text-[11px] uppercase tracking-[0.1em] font-bold">{a.label}</span>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform">
-              <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-          {a.description && (
-            <span className="block mt-0.5 text-[11px] leading-snug font-medium opacity-80">
-              {a.description}
-            </span>
-          )}
+          {status === 'running' ? 'Posting…' : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
         </button>
-      ))}
+        <button
+          type="button"
+          onClick={() => setStatus('dismissed')}
+          disabled={status === 'running'}
+          className="mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
+          style={{ borderRadius: 10 }}
+        >
+          {action.cancelLabel ?? 'Not now'}
+        </button>
+      </div>
     </div>
   );
 }
