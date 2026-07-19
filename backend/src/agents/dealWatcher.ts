@@ -13,6 +13,7 @@ import {
   recordReputation,
   ESCROW_ACCEPTED,
   ESCROW_DISPUTED,
+  ESCROW_REFUNDED,
   OUTCOME_FAILED,
 } from '../chain/settlement.js';
 import { bus } from '../events.js';
@@ -71,6 +72,23 @@ async function clearBlocked(jobId: string, parties: { buyer: string; seller: str
   logger.info({ jobId }, 'auto-release resumed');
 }
 
+/// The chain says this dispute already ended out-of-band (manual arbiter call,
+/// accepted proposal). Sync the record with the OUTCOME the chain reports: a
+/// Refunded escrow reads as a dispute-refund cancel, anything else as settled —
+/// stamping settledAt on a refunded deal would show "settled" for money that
+/// went back to the buyer.
+async function syncResolvedElsewhere(deal: DirectDeal, chainState: number) {
+  if (chainState === ESCROW_REFUNDED) {
+    await patchDeal(deal.jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: 'refund-from-dispute',
+      cancelReason: 'dispute resolved on chain outside the watcher',
+    });
+  } else {
+    await patchDeal(deal.jobId, { settledAt: Date.now() });
+  }
+}
+
 /// Backstop for a dispute whose counterparty went silent. A dispute can only
 /// leave the Disputed state two ways: the other side accepts a proposal (they
 /// have to click), or the arbiter resolve()s it (a manual admin action). If
@@ -81,16 +99,61 @@ async function clearBlocked(jobId: string, parties: { buyer: string; seller: str
 /// buyer is refunded. No-ops unless a security-council wallet is configured.
 async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
   if (!config.ESCROW_V2B_ENABLED || !config.SECURITY_COUNCIL_WALLET_ID) return;
-  if (!deal.disputedAt || now < deal.disputedAt + config.DEAL_DISPUTE_TIMEOUT_MS) return;
+  // A pending proposal means someone is actively negotiating an exit — that is
+  // not a silent counterparty. Let the handshake play out; the clock resumes
+  // when the proposal is accepted (deal closes) or declined (field cleared).
+  if (deal.cancellationProposal) return;
   if (processing.has(deal.jobId)) return;
+  if (!deal.disputedAt) {
+    // Legacy dispute recorded before disputedAt existed: without a stamp the
+    // timeout could never fire, silently defeating this backstop. Backfill from
+    // the on-chain clock (v2b exposes disputedAt) or the nearest off-chain
+    // milestone; the next tick evaluates the timeout against it.
+    processing.add(deal.jobId);
+    try {
+      const account = await readEscrow(deal.jobId);
+      if (account.state !== ESCROW_DISPUTED) {
+        await syncResolvedElsewhere(deal, account.state);
+        return;
+      }
+      const chainMs = account.disputedAt ? Number(account.disputedAt) * 1000 : 0;
+      const backfill = chainMs > 0 ? chainMs : (deal.deliveredAt ?? deal.acceptedAt ?? now);
+      await patchDeal(deal.jobId, { disputedAt: backfill });
+      logger.info({ jobId: deal.jobId, backfill }, 'legacy dispute missing disputedAt; backfilled');
+    } catch (err) {
+      logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'disputedAt backfill failed');
+    } finally {
+      processing.delete(deal.jobId);
+    }
+    return;
+  }
+  if (now < deal.disputedAt + config.DEAL_DISPUTE_TIMEOUT_MS) return;
+  // A buyer who disputed delivered work was engaged, not silent — paying the
+  // seller 100% on a timer would expropriate them for merely not capitulating.
+  // Surface it to the human arbiter (once) instead of resolving.
+  if (deal.disputedBy === 'buyer' && deal.delivered) {
+    if (!deal.disputeTimeoutAlertedAt) {
+      await patchDeal(deal.jobId, { disputeTimeoutAlertedAt: now });
+      bus.emitEvent({
+        type: 'deal.dispute.needs_arbiter',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: { buyer: deal.buyer, seller: deal.seller, disputedAt: deal.disputedAt },
+      });
+      logger.info(
+        { jobId: deal.jobId },
+        'buyer-disputed delivery passed the dispute window; flagged for the arbiter',
+      );
+    }
+    return;
+  }
   processing.add(deal.jobId);
   try {
     // The off-chain `disputed` flag can lag a manual resolve or an accepted
     // proposal, so confirm the chain is still Disputed before signing.
     const account = await readEscrow(deal.jobId);
     if (account.state !== ESCROW_DISPUTED) {
-      // Already settled elsewhere; sync the record so it stops being revisited.
-      await patchDeal(deal.jobId, { settledAt: Date.now() });
+      await syncResolvedElsewhere(deal, account.state);
       return;
     }
     const sellerBps = deal.delivered ? 10000 : 0;

@@ -171,6 +171,15 @@ export interface DirectDeal {
   // Seller filed an appeal; escrow is moved to Disputed on chain.
   disputed?: boolean;
   disputedAt?: number;
+  /// Which party raised the dispute. Drives the timeout policy: a buyer who
+  /// actively disputed delivered work must not lose 100% to the seller on a
+  /// timer — that case escalates to the human arbiter instead. Absent on deals
+  /// disputed before this field existed.
+  disputedBy?: 'buyer' | 'seller';
+  /// Stamped when the dispute timeout elapsed on a buyer-disputed delivery and
+  /// the watcher alerted the arbiter instead of auto-resolving. Once, not
+  /// every tick.
+  disputeTimeoutAlertedAt?: number;
   // Buyer reclaimed funds because the seller never delivered by the deadline.
   // The escrow is moved Disputed then Refunded on chain.
   cancelledAt?: number;

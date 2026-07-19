@@ -2217,7 +2217,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     /// inner userOp reverted, so the off-chain `disputed=true` patch below only
     /// runs when the chain actually moved to Disputed.
     const disputeTxHash = await disputeEscrow(jobId, signerWalletId, reasonHash);
-    await patchDeal(jobId, { disputed: true, disputedAt: Date.now() });
+    await patchDeal(jobId, { disputed: true, disputedAt: Date.now(), disputedBy: callerRole });
     bus.emitEvent({
       type: 'deal.disputed',
       jobId,

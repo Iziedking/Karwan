@@ -62,6 +62,7 @@ export type KarwanEventType =
   | 'deal.auto_released'
   | 'deal.disputed'
   | 'deal.dispute.auto_resolved'
+  | 'deal.dispute.needs_arbiter'
   | 'deal.cancelled'
   | 'deal.cancel.proposed'
   | 'deal.cancel.declined'
