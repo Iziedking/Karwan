@@ -36,6 +36,7 @@ import {
   buildCashOutConfirm,
   buildGatewayDepositConfirm,
   buildGatewayFundAgentConfirm,
+  buildGatewayCashOutConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
 } from './actions.js';
@@ -511,6 +512,43 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         return { ok: true, shown: built.title };
       },
     }),
+
+    propose_gateway_cash_out: tool({
+      description:
+        "Prepare a confirm card to CASH OUT USDC from the user's UNIFIED BALANCE to another blockchain (Base, Arbitrum, Optimism, Ethereum, Polygon). Use when they want to cash out or send USDC from their unified balance to another chain and have given an amount, a chain, and a 0x address. This is distinct from propose_cash_out (which sends from their Arc wallet); use THIS when the money should come from their unified balance. Works for every account type. Requires a funded unified balance.",
+      inputSchema: z.object({
+        destChain: z
+          .enum(['base', 'arbitrum', 'optimism', 'ethereum', 'polygon'])
+          .describe('Destination chain to bridge the USDC to.'),
+        toAddress: z.string().min(1).max(60).describe('Destination address on that chain, a full 0x address.'),
+        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to cash out.'),
+      }),
+      execute: async ({ destChain, toAddress, amountUsdc }) => {
+        const to = toAddress.trim();
+        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+          return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
+        }
+        const chain = CASH_OUT_CHAINS[destChain];
+        if (!chain) return { error: 'That chain is not supported for cash-out.' };
+        const unified = await readUserGatewayBalance(address).catch(() => null);
+        if (!unified || unified.available <= 0) {
+          return { error: 'They have no unified balance yet. Suggest adding money to it first with propose_gateway_deposit.' };
+        }
+        if (unified.available < amountUsdc) {
+          return { error: `Their unified balance is ${unified.available.toFixed(2)} USDC, less than ${amountUsdc}. Suggest a smaller amount or adding money first.` };
+        }
+        const built = buildGatewayCashOutConfirm({
+          destChainKey: chain.key,
+          destChainLabel: chain.label,
+          recipient: to,
+          amountUsdc,
+          balanceAfterUsdc: (unified.available - amountUsdc).toFixed(2),
+        });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
   };
 }
 
@@ -543,9 +581,11 @@ function authenticatedPreamble(address: string, method: string): string {
     '       call propose_cash_out when they want to bridge out / cash out to another chain and have',
     '       given an amount, a chain, and a 0x address. This bridges real USDC off Arc and is FINAL.',
     '    5. ADD to their unified balance: call propose_gateway_deposit when they want to add money to',
-    '       their pooled balance. Then FUND an agent from it: call propose_gateway_fund_agent when they',
-    '       want to move USDC from that balance to their buyer or seller agent so it can trade. These',
-    '       stay inside their own wallets and are how they set their agents up to work hands-free.',
+    '       their pooled balance. FUND an agent from it: call propose_gateway_fund_agent to move USDC',
+    '       from that balance to their buyer or seller agent so it can trade. CASH OUT from it to another',
+    '       chain: call propose_gateway_cash_out. If they want to cash out and HAVE a unified balance,',
+    '       prefer propose_gateway_cash_out (works for everyone); otherwise use propose_cash_out (from',
+    '       their Arc wallet). These are how they set their agents up to work hands-free.',
     '- The unified balance is a pooled USDC balance the user tops up once, then uses to fund either',
     '  agent for any activity. Email/passkey users can do all of this from chat with no wallet popup.',
     '- Web3 users hold their own keys: they keep full custody, and for hands-free trading they fund their',

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The user's unified Gateway balance: a pooled USDC balance they top up once,
 /// then use to fund either agent for any activity, or cash out to another chain.
@@ -37,6 +38,7 @@ const CHAINS: { key: 'baseSepolia' | 'arbitrumSepolia' | 'optimismSepolia' | 'se
 
 export function UnifiedBalanceCard() {
   const auth = useAuth();
+  const t = useTranslations().unifiedBalanceCard;
   const isCircleUser = auth.method === 'circle';
 
   const [available, setAvailable] = useState<string | null>(null);
@@ -94,14 +96,16 @@ export function UnifiedBalanceCard() {
   }
 
   const modes: { key: Mode; label: string }[] = [
-    { key: 'add', label: 'Add' },
-    { key: 'fund', label: 'Fund agent' },
-    { key: 'cashout', label: 'Cash out' },
+    { key: 'add', label: t.modes.add },
+    { key: 'fund', label: t.modes.fund },
+    { key: 'cashout', label: t.modes.cashout },
   ];
+  const sourceLabel = (s: 'identity' | 'buyer' | 'seller') =>
+    s === 'identity' ? t.sourceWallet : s === 'buyer' ? t.agents.buyer : t.agents.seller;
 
   return (
     <section style={CARD_STYLE} className="p-6 md:p-8 h-full min-w-0 flex flex-col overflow-hidden">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Unified balance</span>
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">{t.eyebrow}</span>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="font-sans text-[34px] font-extrabold tracking-[-0.025em] tabular-nums leading-none text-[var(--lp-dark)]">
           {available === null ? '—' : Number(available).toFixed(2)}
@@ -109,7 +113,7 @@ export function UnifiedBalanceCard() {
         <span className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">USDC</span>
       </div>
       <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        One balance. Fund either agent, or cash out anywhere.
+        {t.tagline}
       </p>
 
       {/* mode switch */}
@@ -142,10 +146,10 @@ export function UnifiedBalanceCard() {
       <form onSubmit={submit} className="mt-5 flex flex-1 flex-col gap-4">
         {/* add: source */}
         {mode === 'add' && (
-          <Field label="From">
+          <Field label={t.fromLabel}>
             <div className="grid grid-cols-3 gap-2">
               {(isCircleUser ? (['identity', 'buyer', 'seller'] as const) : (['buyer', 'seller'] as const)).map((s) => (
-                <Pill key={s} active={source === s} onClick={() => setSource(s)} label={s === 'identity' ? 'Wallet' : `${s} agent`} />
+                <Pill key={s} active={source === s} onClick={() => setSource(s)} label={sourceLabel(s)} />
               ))}
             </div>
           </Field>
@@ -153,10 +157,10 @@ export function UnifiedBalanceCard() {
 
         {/* fund: agent */}
         {mode === 'fund' && (
-          <Field label="To agent">
+          <Field label={t.toAgentLabel}>
             <div className="grid grid-cols-2 gap-2">
               {(['buyer', 'seller'] as const).map((a) => (
-                <Pill key={a} active={agent === a} onClick={() => setAgent(a)} label={`${a} agent`} />
+                <Pill key={a} active={agent === a} onClick={() => setAgent(a)} label={a === 'buyer' ? t.agents.buyer : t.agents.seller} />
               ))}
             </div>
           </Field>
@@ -165,7 +169,7 @@ export function UnifiedBalanceCard() {
         {/* cashout: chain + recipient */}
         {mode === 'cashout' && (
           <>
-            <Field label="To chain">
+            <Field label={t.toChainLabel}>
               <div className="grid grid-cols-3 gap-2">
                 {CHAINS.map((ch) => (
                   <Pill key={ch.key} active={chain === ch.key} onClick={() => setChain(ch.key)} label={ch.label} />
@@ -173,7 +177,7 @@ export function UnifiedBalanceCard() {
               </div>
             </Field>
             <label className="block space-y-2">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Destination address</span>
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">{t.destinationLabel}</span>
               <input
                 type="text"
                 value={recipient}
@@ -184,7 +188,7 @@ export function UnifiedBalanceCard() {
               />
               {recipient.length > 0 && !recipientValid && (
                 <span className="mono text-[10px] uppercase tracking-[0.12em]" style={{ color: CRITICAL }}>
-                  Enter a valid 0x address
+                  {t.invalidAddress}
                 </span>
               )}
             </label>
@@ -193,7 +197,7 @@ export function UnifiedBalanceCard() {
 
         {/* amount */}
         <div className="p-5" style={{ background: 'var(--lp-light)', border: '1px solid var(--lp-border-light)', borderRadius: 12 }}>
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Amount</span>
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">{t.amountLabel}</span>
           <div className="mt-2 flex items-baseline gap-3">
             <input
               type="number"
@@ -222,17 +226,17 @@ export function UnifiedBalanceCard() {
             </svg>
           )}
           {phase === 'sending'
-            ? 'Working…'
+            ? t.submit.working
             : mode === 'add'
-              ? 'Add to balance'
+              ? t.submit.add
               : mode === 'fund'
-                ? `Fund ${agent} agent`
-                : 'Cash out'}
+                ? t.submit.fund
+                : t.submit.cashout}
         </button>
 
         {phase === 'done' && (
           <p className="mono text-[11px] uppercase tracking-[0.12em] font-bold" style={{ color: POSITIVE }}>
-            {mode === 'add' ? 'Added to your balance.' : mode === 'fund' ? 'Agent funded.' : 'Cash out started.'}
+            {mode === 'add' ? t.success.added : mode === 'fund' ? t.success.funded : t.success.cashedOut}
           </p>
         )}
         {phase === 'error' && error && (

@@ -85,6 +85,11 @@ export interface GatewayFundAgentPayload {
   agent: 'buyer' | 'seller';
   amountUsdc: number;
 }
+export interface GatewayCashOutPayload {
+  destChainKey: string;
+  recipient: string;
+  amountUsdc: number;
+}
 
 interface ConfirmActionBase {
   kind: 'confirm';
@@ -126,6 +131,10 @@ export interface GatewayFundAgentConfirm extends ConfirmActionBase {
   intent: 'gateway_fund_agent';
   payload: GatewayFundAgentPayload;
 }
+export interface GatewayCashOutConfirm extends ConfirmActionBase {
+  intent: 'gateway_cash_out';
+  payload: GatewayCashOutPayload;
+}
 
 /// Discriminated on `intent`, which also tells the frontend which route to call.
 export type ConfirmAction =
@@ -134,7 +143,8 @@ export type ConfirmAction =
   | WithdrawConfirm
   | CashOutConfirm
   | GatewayDepositConfirm
-  | GatewayFundAgentConfirm;
+  | GatewayFundAgentConfirm
+  | GatewayCashOutConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -496,6 +506,41 @@ export function buildGatewayFundAgentConfirm(i: {
     ],
     payload: { agent: i.agent, amountUsdc: i.amountUsdc },
     confirmLabel: 'Fund agent',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Build a gateway-cash-out confirm card (spend from the unified balance to
+/// another chain). Cross-chain, so a small Gateway fee applies. Shows the full
+/// destination address. Never throws.
+export function buildGatewayCashOutConfirm(i: {
+  destChainKey: string;
+  destChainLabel: string;
+  recipient: string;
+  amountUsdc: number;
+  balanceAfterUsdc: string;
+}): GatewayCashOutConfirm | { error: string } {
+  const to = i.recipient?.trim() ?? '';
+  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+    return { error: 'That destination address is not a valid 0x address.' };
+  }
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  const dest = to.toLowerCase();
+  return {
+    kind: 'confirm',
+    id: `gateway_cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}`,
+    intent: 'gateway_cash_out',
+    title: 'Cash out from your balance',
+    summary: `Send ${i.amountUsdc} USDC from your unified balance to ${i.destChainLabel}.`,
+    warning: 'This bridges USDC to another chain and cannot be undone. Check the address and chain.',
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'To chain', value: i.destChainLabel },
+      { label: 'To address', value: dest },
+      { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
+    ],
+    payload: { destChainKey: i.destChainKey, recipient: dest, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Cash out',
     cancelLabel: 'Not now',
   };
 }

@@ -984,7 +984,8 @@ export interface AssistantConfirmAction {
     | 'withdraw_proceeds'
     | 'cash_out'
     | 'gateway_deposit'
-    | 'gateway_fund_agent';
+    | 'gateway_fund_agent'
+    | 'gateway_cash_out';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

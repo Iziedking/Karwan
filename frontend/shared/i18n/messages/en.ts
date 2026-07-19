@@ -1533,6 +1533,21 @@ interface MessagesShape {
       failedTag: string;
     };
   };
+  unifiedBalanceCard: {
+    eyebrow: string;
+    tagline: string;
+    modes: { add: string; fund: string; cashout: string };
+    fromLabel: string;
+    toAgentLabel: string;
+    toChainLabel: string;
+    sourceWallet: string;
+    agents: { buyer: string; seller: string };
+    amountLabel: string;
+    destinationLabel: string;
+    invalidAddress: string;
+    submit: { add: string; fund: string; cashout: string; working: string };
+    success: { added: string; funded: string; cashedOut: string };
+  };
   bridgeCard: {
     title: string;
     cctpV2: string;
@@ -5478,6 +5493,21 @@ export const en: MessagesShape = {
       invalidAddress: 'Not a valid 20-byte address.',
       failedTag: 'CASH OUT FAILED',
     },
+  },
+  unifiedBalanceCard: {
+    eyebrow: 'Unified balance',
+    tagline: 'One balance. Fund either agent, or cash out anywhere.',
+    modes: { add: 'Add', fund: 'Fund agent', cashout: 'Cash out' },
+    fromLabel: 'From',
+    toAgentLabel: 'To agent',
+    toChainLabel: 'To chain',
+    sourceWallet: 'Wallet',
+    agents: { buyer: 'Buyer agent', seller: 'Seller agent' },
+    amountLabel: 'Amount',
+    destinationLabel: 'Destination address',
+    invalidAddress: 'Enter a valid 0x address',
+    submit: { add: 'Add to balance', fund: 'Fund agent', cashout: 'Cash out', working: 'Working…' },
+    success: { added: 'Added to your balance.', funded: 'Agent funded.', cashedOut: 'Cash out started.' },
   },
   bridgeCard: {
     title: 'Top up / Withdraw',
