@@ -1654,6 +1654,8 @@ export const ar: Messages = {
     invalidAddress: 'أدخل عنوان 0x صالحًا',
     submit: { add: 'إضافة إلى الرصيد', fund: 'تمويل وكيل', cashout: 'سحب', working: 'جارٍ…' },
     success: { added: 'تمت الإضافة إلى رصيدك.', funded: 'تم تمويل الوكيل.', cashedOut: 'بدأ السحب.' },
+    sweepCta: 'نقل USDC من المحفظة',
+    sweepDone: 'تم النقل إلى رصيدك.',
   },
   bridgeCard: {
     title: 'إيداع / سحب',

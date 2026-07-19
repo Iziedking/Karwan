@@ -1654,6 +1654,8 @@ export const sw: Messages = {
     invalidAddress: 'Weka anwani sahihi ya 0x',
     submit: { add: 'Ongeza kwenye salio', fund: 'Fadhili wakala', cashout: 'Toa pesa', working: 'Inaendelea…' },
     success: { added: 'Imeongezwa kwenye salio lako.', funded: 'Wakala amefadhiliwa.', cashedOut: 'Utoaji umeanza.' },
+    sweepCta: 'Hamisha USDC ya pochi ndani',
+    sweepDone: 'Imehamishwa kwenye salio lako.',
   },
   bridgeCard: {
     title: 'Weka / Toa',

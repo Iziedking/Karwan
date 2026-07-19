@@ -1547,6 +1547,8 @@ interface MessagesShape {
     invalidAddress: string;
     submit: { add: string; fund: string; cashout: string; working: string };
     success: { added: string; funded: string; cashedOut: string };
+    sweepCta: string;
+    sweepDone: string;
   };
   bridgeCard: {
     title: string;
@@ -5508,6 +5510,8 @@ export const en: MessagesShape = {
     invalidAddress: 'Enter a valid 0x address',
     submit: { add: 'Add to balance', fund: 'Fund agent', cashout: 'Cash out', working: 'Working…' },
     success: { added: 'Added to your balance.', funded: 'Agent funded.', cashedOut: 'Cash out started.' },
+    sweepCta: 'Move all wallet USDC in',
+    sweepDone: 'Swept into your balance.',
   },
   bridgeCard: {
     title: 'Top up / Withdraw',

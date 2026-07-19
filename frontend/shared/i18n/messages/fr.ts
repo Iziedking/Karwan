@@ -1654,6 +1654,8 @@ export const fr: Messages = {
     invalidAddress: 'Saisissez une adresse 0x valide',
     submit: { add: 'Ajouter au solde', fund: 'Financer un agent', cashout: 'Retirer', working: 'En cours…' },
     success: { added: 'Ajouté à votre solde.', funded: 'Agent financé.', cashedOut: 'Retrait lancé.' },
+    sweepCta: 'Transférer les USDC du portefeuille',
+    sweepDone: 'Transféré dans votre solde.',
   },
   bridgeCard: {
     title: 'Dépôt / Retrait',

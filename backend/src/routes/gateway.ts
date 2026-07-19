@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { AppKit } from '@circle-fin/app-kit';
 import { sessionAddress } from '../auth/session.js';
 import { getUserByAddress } from '../db/users.js';
-import { depositToGateway, readUserGatewayBalance } from '../gateway/balance.js';
+import { depositToGateway, readUserGatewayBalance, sweepToUnifiedBalance } from '../gateway/balance.js';
 import { fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
 
@@ -206,6 +206,35 @@ gatewayRoutes.post('/deposit', async (c) => {
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway deposit failed');
     return c.json({ error: 'deposit failed', detail: (err as Error).message }, 502);
+  } finally {
+    depositInFlight.delete(address);
+  }
+});
+
+/// Sweep loose identity-wallet USDC into the unified balance. The "into the
+/// unified balance" step after a top-up (incl. a Solana top-up, which mints to
+/// the identity wallet). Self-healing: safe to call anytime; a no-op when there
+/// is nothing to sweep. Circle-only.
+gatewayRoutes.post('/sweep', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+  if (!getUserByAddress(address)) {
+    return c.json(
+      { error: 'Sweeping into your unified balance is available for email/passkey accounts.', code: 'web3_unsupported' },
+      409,
+    );
+  }
+  if (depositInFlight.has(address)) {
+    return c.json({ error: 'a deposit is already in progress', code: 'in_flight' }, 409);
+  }
+  depositInFlight.add(address);
+  try {
+    const result = await sweepToUnifiedBalance(address);
+    cache.delete(address);
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    logger.warn({ address, err: (err as Error).message }, 'gateway sweep failed');
+    return c.json({ error: 'sweep failed', detail: (err as Error).message }, 502);
   } finally {
     depositInFlight.delete(address);
   }

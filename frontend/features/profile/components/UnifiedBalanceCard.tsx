@@ -63,6 +63,23 @@ export function UnifiedBalanceCard() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
 
+  const [sweeping, setSweeping] = useState(false);
+  const [sweptMsg, setSweptMsg] = useState(false);
+  async function sweep() {
+    if (sweeping) return;
+    setSweeping(true);
+    try {
+      await api.gatewaySweep();
+      setSweptMsg(true);
+      loadBalance();
+      setTimeout(() => setSweptMsg(false), 3000);
+    } catch (err) {
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
+    } finally {
+      setSweeping(false);
+    }
+  }
+
   const amountValid = typeof amount === 'number' && amount > 0;
   const recipientValid = ADDR_RE.test(recipient.trim());
   const canSubmit =
@@ -146,13 +163,27 @@ export function UnifiedBalanceCard() {
       <form onSubmit={submit} className="mt-5 flex flex-1 flex-col gap-4">
         {/* add: source */}
         {mode === 'add' && (
-          <Field label={t.fromLabel}>
-            <div className="grid grid-cols-3 gap-2">
-              {(isCircleUser ? (['identity', 'buyer', 'seller'] as const) : (['buyer', 'seller'] as const)).map((s) => (
-                <Pill key={s} active={source === s} onClick={() => setSource(s)} label={sourceLabel(s)} />
-              ))}
-            </div>
-          </Field>
+          <>
+            <Field label={t.fromLabel}>
+              <div className="grid grid-cols-3 gap-2">
+                {(isCircleUser ? (['identity', 'buyer', 'seller'] as const) : (['buyer', 'seller'] as const)).map((s) => (
+                  <Pill key={s} active={source === s} onClick={() => setSource(s)} label={sourceLabel(s)} />
+                ))}
+              </div>
+            </Field>
+            {/* Sweep: move all loose wallet USDC into the balance — the "into
+                balance" step after a top-up (incl. Solana). Circle accounts only. */}
+            {isCircleUser && (
+              <button
+                type="button"
+                onClick={sweep}
+                disabled={sweeping}
+                className="self-start mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition-colors underline-offset-2 hover:underline"
+              >
+                {sweptMsg ? t.sweepDone : sweeping ? t.submit.working : t.sweepCta}
+              </button>
+            )}
+          </>
         )}
 
         {/* fund: agent */}

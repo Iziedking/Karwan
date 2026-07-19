@@ -167,6 +167,30 @@ export async function depositToGateway(
   return { depositTxHash: deposit.txHash, gatewayAddress: gateway.address, amountUsd, source };
 }
 
+/// Sweep loose USDC from the user's identity wallet into their unified Gateway
+/// balance. This is the "into the unified balance" step for a Solana (or any)
+/// top-up: the bridge mints native USDC to the identity wallet (which has Arc
+/// gas), then this deposits it into the Gateway pool. Self-healing + idempotent:
+/// if a top-up landed but wasn't deposited (async hook missed, tab closed), a
+/// later sweep recovers it. Deposits the FULL current identity USDC balance.
+/// Circle-only (the identity DCW signs). Returns the swept amount (0 if nothing
+/// to sweep). Reuses depositToGateway, so no new gas surface.
+export async function sweepToUnifiedBalance(
+  userAddress: string,
+): Promise<{ swept: number; gatewayAddress: string | null }> {
+  const key = userAddress.toLowerCase();
+  const record = await getAgentWallets(key);
+  if (!record) throw new Error('no agent wallets on record; activate first');
+  if (!getUserByAddress(key)) {
+    throw new Error('sweeping into your unified balance is available for email/passkey accounts');
+  }
+  const balWei = await readUsdcBalance(key);
+  const balUsd = Number(formatUnits(balWei, USDC_DECIMALS));
+  if (balUsd <= 0) return { swept: 0, gatewayAddress: record.gatewayWallet?.address ?? null };
+  const res = await depositToGateway(userAddress, balUsd, 'identity');
+  return { swept: balUsd, gatewayAddress: res.gatewayAddress };
+}
+
 /// Read the user's unified Gateway balance (available USD on Arc), or null when
 /// they have no Gateway EOA yet (never deposited).
 export async function readUserGatewayBalance(

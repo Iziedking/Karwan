@@ -1654,6 +1654,8 @@ export const hi: Messages = {
     invalidAddress: 'मान्य 0x पता दर्ज करें',
     submit: { add: 'बैलेंस में जोड़ें', fund: 'एजेंट फंड करें', cashout: 'कैश आउट', working: 'हो रहा है…' },
     success: { added: 'आपके बैलेंस में जोड़ा गया।', funded: 'एजेंट को फंड किया गया।', cashedOut: 'कैश आउट शुरू हुआ।' },
+    sweepCta: 'वॉलेट USDC अंदर लाएं',
+    sweepDone: 'आपके बैलेंस में लाया गया।',
   },
   bridgeCard: {
     title: 'टॉप-अप / निकासी',

@@ -2851,6 +2851,12 @@ export const api = {
       '/api/gateway/deposit',
       { method: 'POST', body: JSON.stringify({ amountUsdc, ...(source ? { source } : {}) }) },
     ),
+  // Sweep loose identity-wallet USDC into the unified balance (the "into balance"
+  // step after a top-up, incl. Solana). Self-healing, session-scoped, Circle-only.
+  gatewaySweep: () =>
+    json<{ ok: true; swept: number; gatewayAddress: string | null }>('/api/gateway/sweep', {
+      method: 'POST',
+    }),
   // Fund a buyer/seller agent wallet from the unified balance (same-chain Arc
   // spend, backend-signed). Session-scoped.
   gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number) =>
