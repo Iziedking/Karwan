@@ -46,6 +46,16 @@ export interface PostOfferPayload {
   ttlDays?: number;
 }
 
+export interface PostRequestPayload {
+  /// Always the caller's own session address, set by the backend, never the
+  /// model. The jobs route re-checks isSessionSelf, so a tampered payload still
+  /// can't post as anyone else. This is the poster (buyer) user address.
+  posterAddress: string;
+  brief: string;
+  budgetUsdc: number;
+  deadlineDays: number;
+}
+
 export interface ReleaseMilestonePayload {
   jobId: string;
   /// Always the caller's own session address (the buyer), set by the backend. The
@@ -111,6 +121,10 @@ export interface PostOfferConfirm extends ConfirmActionBase {
   intent: 'post_offer';
   payload: PostOfferPayload;
 }
+export interface PostRequestConfirm extends ConfirmActionBase {
+  intent: 'post_request';
+  payload: PostRequestPayload;
+}
 export interface ReleaseConfirm extends ConfirmActionBase {
   intent: 'release_milestone';
   payload: ReleaseMilestonePayload;
@@ -139,6 +153,7 @@ export interface GatewayCashOutConfirm extends ConfirmActionBase {
 /// Discriminated on `intent`, which also tells the frontend which route to call.
 export type ConfirmAction =
   | PostOfferConfirm
+  | PostRequestConfirm
   | ReleaseConfirm
   | WithdrawConfirm
   | CashOutConfirm
@@ -317,6 +332,59 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
     fields,
     payload,
     confirmLabel: 'Post offer',
+    cancelLabel: 'Not now',
+  };
+}
+
+export interface BuildPostRequestInput {
+  /// The authenticated caller (the buyer). The backend passes the session
+  /// address; the model never supplies this, so the request always posts as the
+  /// signed-in user. The jobs route re-checks isSessionSelf.
+  caller: string;
+  brief: string;
+  budgetUsdc: number;
+  deadlineDays: number;
+}
+
+/// Build a post-request (buyer desk) confirm card, or an `{ error }` the tool
+/// hands back to the model. This is the agent-mediated path: the user posts what
+/// they need and their buyer agent runs the auction — matches candidates, scores
+/// them on skill + reputation, and brings proposals back to approve. Posting is
+/// an on-chain write signed by the buyer agent; it does NOT spend the budget
+/// (funds stay in the buyer agent until the user approves a match), so no stark
+/// warning. Ranges mirror the jobs route (brief 5-1000, budget >0 and
+/// <=5,000,000, deadline ~1min-90d); the route re-validates on confirm and also
+/// requires an activated buyer profile + a funded buyer agent. Never throws.
+export function buildPostRequestConfirm(
+  i: BuildPostRequestInput,
+): PostRequestConfirm | { error: string } {
+  const brief = i.brief?.trim() ?? '';
+  if (brief.length < 5 || brief.length > 1000) {
+    return { error: 'The request needs a short description between 5 and 1000 characters.' };
+  }
+  if (!(i.budgetUsdc > 0) || i.budgetUsdc > 5_000_000) {
+    return { error: 'The budget must be greater than 0 and at most 5,000,000 USDC.' };
+  }
+  if (!(i.deadlineDays > 0) || i.deadlineDays > 90) {
+    return { error: 'The deadline must be between about a minute and 90 days.' };
+  }
+  const days = i.deadlineDays;
+  const deadlineLabel = days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(days * 24 * 60)} min`;
+  const fields: { label: string; value: string }[] = [
+    { label: 'You need', value: brief.length > 140 ? `${brief.slice(0, 137)}…` : brief },
+    { label: 'Budget', value: `${i.budgetUsdc} USDC` },
+    { label: 'Deadline', value: deadlineLabel },
+    { label: 'Matching', value: 'Your agent finds and scores developers' },
+  ];
+  return {
+    kind: 'confirm',
+    id: `post_request:${brief.toLowerCase().slice(0, 40)}:${i.budgetUsdc}`,
+    intent: 'post_request',
+    title: 'Post this request',
+    summary: 'Your buyer agent runs the auction: it matches developers, scores them on skill and reputation, and brings you proposals to approve. Nothing is paid until you approve a match.',
+    fields,
+    payload: { posterAddress: i.caller, brief, budgetUsdc: i.budgetUsdc, deadlineDays: i.deadlineDays },
+    confirmLabel: 'Post request',
     cancelLabel: 'Not now',
   };
 }

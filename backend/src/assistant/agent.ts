@@ -25,12 +25,13 @@ import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
-import { resolveSellerProfile } from '../agents/agent-registry.js';
+import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readUserGatewayBalance } from '../gateway/balance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
 import {
   buildNavigateAction,
   buildPostOfferConfirm,
+  buildPostRequestConfirm,
   buildReleaseConfirm,
   buildWithdrawConfirm,
   buildCashOutConfirm,
@@ -285,6 +286,33 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         if ('error' in built) return built;
         if (!actions.some((a) => a.id === built.id)) actions.push(built);
         return { ok: true, shown: built.title };
+      },
+    }),
+
+    propose_post_request: tool({
+      description:
+        "Prepare a confirm card to post the user's REQUEST for work or goods they NEED (the agent-mediated path, aka the buyer desk). Use this when they want the platform to find someone for them — e.g. \"find me a developer\", \"I need X built\", \"let the platform look for one\" — and they have given what they need, a budget in USDC, and a deadline. On confirm it posts as themselves; their buyer agent then runs an auction, matches candidates, scores them on skill + reputation, and brings proposals back for them to approve. Nothing is paid until they approve a match. Do NOT use propose_post_offer for this (that advertises what they SELL); this is for what they want to BUY.",
+      inputSchema: z.object({
+        brief: z.string().min(5).max(1000).describe('What they need, plainly. e.g. "web3 developer to build a trading bot".'),
+        budgetUsdc: z.number().positive().max(5_000_000).describe('Budget in USDC.'),
+        deadlineDays: z.number().min(0.0006).max(90).describe('How many days until they need it done.'),
+      }),
+      execute: async (args) => {
+        // Pre-flight the SAME preconditions the jobs route enforces so the card
+        // never 409s on submit. Activation + buyer profile are cheap store reads;
+        // the buyer-agent balance check stays on the route (its 409 is specific).
+        const agents = await getAgentWallets(address).catch(() => null);
+        if (!agents) {
+          return { error: 'They must activate their agent wallets first. Offer a button to their profile (destination "profile").' };
+        }
+        const buyerProfile = await resolveBuyerProfileForUser(address).catch(() => null);
+        if (!buyerProfile) {
+          return { error: 'They need a buyer profile first. Offer a button to the request desk (destination "new_request").' };
+        }
+        const built = buildPostRequestConfirm({ caller: address, ...args });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title, note: 'Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_gateway_fund_agent) or send them to add money.' };
       },
     }),
 
@@ -590,7 +618,10 @@ function authenticatedPreamble(address: string, method: string): string {
     '## What you can do (each via a confirm card):',
     '- READ (always read before stating a number; never guess): get_my_balance (full money picture — the',
     '  sign-in wallet, both agent wallets, and the unified balance), list_my_deals, get_deal_status, explain_error.',
-    '- Post a standing OFFER: propose_post_offer(title, description, price). No money, cancelable.',
+    '- Post a standing OFFER (what they SELL): propose_post_offer(title, description, price). No money, cancelable.',
+    '- Post a REQUEST (what they NEED — the agent-mediated deal): propose_post_request(brief, budget, deadlineDays).',
+    '  Use this the moment they say "find me a developer", "let the platform look for one", "I need X built".',
+    '  Their buyer agent then runs the auction and brings proposals to approve; nothing is paid until they approve.',
     '- RELEASE a milestone to the seller (buyer only, after delivery): propose_release(jobId). FINAL.',
     '- WITHDRAW from an agent wallet to an Arc 0x address: propose_withdraw(agent, toAddress, amount). FINAL.',
     '- CASH OUT from the Arc wallet to another chain (Base/Arbitrum/Optimism/Ethereum/Polygon/SOLANA):',
@@ -598,8 +629,8 @@ function authenticatedPreamble(address: string, method: string): string {
     '- UNIFIED BALANCE (the pooled USDC that funds agents hands-free): add to it (propose_gateway_deposit),',
     '  fund an agent from it (propose_gateway_fund_agent), cash it out to another chain (propose_gateway_cash_out).',
     '  Prefer propose_gateway_cash_out when they already have a unified balance.',
-    '- NAVIGATE (propose_navigation) for things chat cannot do yet: top up USDC onto Arc, post a REQUEST that',
-    '  funds an auction, settings. Show a button; do not just describe the page.',
+    '- NAVIGATE (propose_navigation) for things chat cannot do yet: top up USDC onto Arc, settings, faucet.',
+    '  Show a button; do not just describe the page.',
     '',
     circle
       ? '## This is a Circle (email/passkey) account: the backend signs EVERYTHING. No wallet popup ever. Just prepare the card.'

@@ -980,6 +980,7 @@ export interface AssistantConfirmAction {
   id: string;
   intent:
     | 'post_offer'
+    | 'post_request'
     | 'release_milestone'
     | 'withdraw_proceeds'
     | 'cash_out'

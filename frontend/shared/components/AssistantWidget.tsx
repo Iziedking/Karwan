@@ -566,6 +566,21 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
     await api.postListing(action.payload as Parameters<typeof api.postListing>[0]);
     return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
   }
+  if (action.intent === 'post_request') {
+    const p = action.payload as { posterAddress: string; brief: string; budgetUsdc: number; deadlineDays: number };
+    const r = await api.postJob({
+      posterAddress: p.posterAddress,
+      brief: p.brief,
+      budgetUsdc: p.budgetUsdc,
+      deadlineDays: p.deadlineDays,
+    });
+    return {
+      successText: 'Request posted. Your agent is finding developers now.',
+      viewHref: `/jobs/${r.jobId}`,
+      viewLabel: 'Track matching',
+      txHash: r.txHash,
+    };
+  }
   if (action.intent === 'release_milestone') {
     const p = action.payload as { jobId: string; caller: string };
     const r = await api.releaseDirectDeal(p.jobId, p.caller);
