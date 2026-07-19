@@ -122,3 +122,12 @@ export const researchModel = fallbackChain([
 /// model export that is allowed to be unavailable instead of degrading to a
 /// proxy, precisely because the privacy boundary matters more than uptime here.
 export const supervisorModel: LM | null = anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null;
+
+/// Authenticated assistant model. Same reasoning as supervisorModel, same
+/// invariant: the authenticated assistant runs a tool-calling loop that reads the
+/// signed-in user's OWN balance and deals, so its prompt + tool results carry
+/// private account data. That must never reach a third-party proxy, so this is
+/// the DIRECT Anthropic key ONLY — NOT a fallbackChain, no Conduit, no OpenRouter.
+/// Null when no Anthropic key: callers fall back to the anonymous, knowledge-only
+/// provider chain (which never sees private data), never to a proxy for this input.
+export const assistantAgentModel: LM | null = anthropic?.(config.ASSISTANT_AGENT_LLM_MODEL) ?? null;
