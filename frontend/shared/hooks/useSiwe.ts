@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation';
 import { useAccount, useChainId, useSignMessage } from 'wagmi';
 import { api } from '@/core/api';
 import { isLandingRoute } from '@/shared/utils/routes';
-import { requestSplash } from '@/shared/utils/splashSignal';
 import { emitAuthChanged } from './useAuth';
 
 /// Sign-In With Ethereum bridge.
@@ -72,12 +71,6 @@ export function useSiwe(): {
       await api.siweVerify(target, signature);
       stateRef.current.signedAddress = target.toLowerCase();
       stateRef.current.state = 'idle';
-      // Raise the splash the instant SIWE verifies, BEFORE the session refresh +
-      // terms-status round-trips fire, so the loader covers that whole gap and
-      // the Terms gate can only appear once the splash lifts. This is the fix for
-      // "terms shows before the splash": the session-state flip the splash also
-      // watches lands later, leaving a window this closes.
-      requestSplash();
       emitAuthChanged();
     } catch (err) {
       stateRef.current.state = 'error';

@@ -43,6 +43,12 @@ export function TopNav() {
   // individual.
   const biz = isBusinessAccount(profile);
   const showAppChrome = isApp && isAuthenticated;
+  // Onboarding is a focused setup flow: strip the nav rail and the control
+  // cluster down to just the connected wallet + balance chip, so nothing invites
+  // the user away mid-signup. The full chrome returns once they finish and land
+  // in the app.
+  const isOnboarding = pathname.startsWith('/onboarding');
+  const showFullChrome = showAppChrome && !isOnboarding;
 
   const tradesActive =
     pathname.startsWith('/p2p') ||
@@ -63,7 +69,7 @@ export function TopNav() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
         {/* LEFT. mobile toggle + logo */}
         <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
-          {showAppChrome && (
+          {showFullChrome && (
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -114,7 +120,7 @@ export function TopNav() {
             full app surface until the user has actually signed in so the
             shell stays minimal while the SignInGate is the only thing on
             the page. */}
-        {showAppChrome && (
+        {showFullChrome && (
           <nav
             className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
           >
@@ -184,25 +190,31 @@ export function TopNav() {
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {showAppChrome ? (
-            <>
-              <div className="hidden md:inline-flex">
-                <LiveDot />
-              </div>
-              <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
-                <NotificationBell />
-                <QuickControls
-                  isAuthenticated={isAuthenticated}
-                  settingsActive={pathname.startsWith('/settings')}
-                />
-              </div>
-              {/* Mobile keeps only the bell up top. Settings moves into the menu
-                  footer (below) so the wallet pill isn't squeezed off-screen. */}
-              <div className="md:hidden inline-flex items-center gap-0.5">
-                <NotificationBell />
-              </div>
+            isOnboarding ? (
+              // Onboarding: only the connected wallet + balance chip. No live dot,
+              // bell, settings, or profile — nothing to pull the user off setup.
               <ConnectWalletButton />
-              <ProfileAvatar />
-            </>
+            ) : (
+              <>
+                <div className="hidden md:inline-flex">
+                  <LiveDot />
+                </div>
+                <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
+                  <NotificationBell />
+                  <QuickControls
+                    isAuthenticated={isAuthenticated}
+                    settingsActive={pathname.startsWith('/settings')}
+                  />
+                </div>
+                {/* Mobile keeps only the bell up top. Settings moves into the menu
+                    footer (below) so the wallet pill isn't squeezed off-screen. */}
+                <div className="md:hidden inline-flex items-center gap-0.5">
+                  <NotificationBell />
+                </div>
+                <ConnectWalletButton />
+                <ProfileAvatar />
+              </>
+            )
           ) : isApp ? (
             // Signed-out app chrome: just the Sign in button. Don't tease the
             // app surface (nav rail, balance, bell, settings) before the user
@@ -233,7 +245,7 @@ export function TopNav() {
         </div>
       </div>
 
-      {showAppChrome && menuOpen && (
+      {showFullChrome && menuOpen && (
         <div
           className="md:hidden absolute start-0 end-0 top-full bg-[var(--color-surface)] border-b border-[var(--color-line)] shadow-sm fade-up"
           onClick={() => setMenuOpen(false)}

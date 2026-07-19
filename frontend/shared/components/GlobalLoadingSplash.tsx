@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
-import { setSplashActive, subscribeSplashRequest } from '@/shared/utils/splashSignal';
+import { setSplashActive } from '@/shared/utils/splashSignal';
 import { useAuth } from '@/shared/hooks/useAuth';
 
 // Layout effect on the client (runs before the browser paints), plain effect on
@@ -75,11 +75,6 @@ export function GlobalLoadingSplash() {
     [],
   );
 
-  // Imperative sign-in trigger: useSiwe (and email login) fire requestSplash the
-  // instant a sign-in completes — before the async session/terms round-trips —
-  // so the splash is already up when those resolve and the Terms gate resolves.
-  // This is the precise trigger; the isAuthenticated effect below is the backstop.
-  useEffect(() => subscribeSplashRequest(arm), [arm]);
 
   // Publish whether the splash is covering the screen so other root overlays
   // (the Terms gate) can hold until it lifts, instead of popping over the logo.
@@ -122,13 +117,15 @@ export function GlobalLoadingSplash() {
     arm();
   }, [pathname]);
 
-  // Sign-in trigger: raise the splash on the unauthenticated -> authenticated
-  // flip (SIWE / login completing). SIWE on the onboarding connect step does NOT
-  // navigate, so nothing armed the splash and the Terms gate slammed in the
-  // instant auth flipped, before any loader. Arming here gives SIWE -> splash ->
-  // terms: the splash covers while the session-gated Terms status resolves, then
-  // lifts to reveal the gate. Layout effect so the flag flips before paint; skip
-  // on landing (a wallet connecting there must stay calm).
+  // Sign-in trigger (the ONE splash per sign-in): raise the splash on the
+  // unauthenticated -> authenticated flip, i.e. when the backend SESSION is set
+  // (not at wallet-connect or SIWE-verify, which land earlier). That is exactly
+  // when the Terms status query becomes enabled, so the splash covers its fetch
+  // and lifts to reveal the gate: SIWE/login -> splash -> terms. Doing it on the
+  // session flip (rather than an earlier imperative trigger fired at SIWE-verify)
+  // is what avoids a premature first splash that lifts before the session lands
+  // and then a second one for the terms fetch. Layout effect so the flag flips
+  // before paint; skip on landing (a wallet connecting there must stay calm).
   useIsoLayoutEffect(() => {
     const was = prevAuthedRef.current;
     prevAuthedRef.current = isAuthenticated;
