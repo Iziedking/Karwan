@@ -508,6 +508,13 @@ activationRoutes.post('/withdraw', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
+  // Session gate: only the wallet owner may pull funds OUT of their agent wallet.
+  // Without this, any caller could drain any user's agent balance to an arbitrary
+  // toAddress by naming the victim's (public) address. Matches the /agent-names
+  // gate; all users (web3 via SIWE, Circle via passkey) carry a session now.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only withdraw from your own agent wallet.', code: 'forbidden' }, 403);
+  }
 
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) {
@@ -598,6 +605,11 @@ activationRoutes.post('/fund-agent', async (c) => {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
   const userAddress = body.address.toLowerCase();
+  // Session gate, same as /withdraw: only the owner may move their identity
+  // wallet's funds into their agent.
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only fund your own agent wallet.', code: 'forbidden' }, 403);
+  }
 
   const user = getUserByAddress(userAddress);
   if (!user) {
