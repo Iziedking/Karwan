@@ -343,7 +343,20 @@ export const APP_KIT_DEST_CHAINS: Record<string, BridgeChain> = {
   sonicTestnet: BridgeChain.Sonic_Testnet,
   worldchainSepolia: BridgeChain.World_Chain_Sepolia,
   hyperevmTestnet: BridgeChain.HyperEVM_Testnet,
+  // Solana Devnet: verified end-to-end (Arc DCW burn -> forwarder mint on Solana).
+  // App Kit auto-derives the recipient's USDC ATA from the base58 owner address,
+  // so `recipient` here is the base58 OWNER, not the ATA. The recipient must
+  // already hold a USDC ATA (defensive: fund/verify before relying on brand-new
+  // recipients — App Kit creating a missing ATA is unverified).
+  solanaDevnet: BridgeChain.Solana_Devnet,
 };
+
+/// True for destination keys whose recipient is a base58 Solana address rather
+/// than a 0x EVM address. Type-guard so callers can narrow away 'solanaDevnet'
+/// (Solana out-bridges go through App Kit, not the hand-rolled startOutRelay).
+export function isSolanaDestKey(destChainKey: string): destChainKey is 'solanaDevnet' {
+  return destChainKey === 'solanaDevnet';
+}
 
 export interface AppKitBridgeOutInput {
   bridgeId: string;

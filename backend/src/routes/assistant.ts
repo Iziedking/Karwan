@@ -4,11 +4,20 @@ import { config, conduitApiKeys } from '../config.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { readSession } from '../auth/session.js';
+import { assistantAgentEnabled, runAssistantAgent } from '../assistant/agent.js';
 
-/// In-app support assistant. A thin proxy to a Claude model, grounded in the
-/// Karwan knowledge base. It answers questions about the product and hands users
-/// direct in-app links. It holds no tools and cannot act on an account; it is
-/// guidance only.
+/// In-app support assistant. Grounded in the Karwan knowledge base; answers
+/// product questions and hands users direct in-app links.
+///
+/// Two paths on one route:
+///  - Anonymous / signed-out: a thin proxy over the provider chain below. Holds
+///    no tools, sees no account data, pure product guidance.
+///  - Signed-in: an authenticated tool-calling loop (assistant/agent.ts) that can
+///    READ the caller's own balance and deals and answer from real numbers. Still
+///    read-only — no tool moves money. Runs on the direct-Anthropic model only
+///    (privacy). A failure here falls back to the anonymous path so the user is
+///    never stranded.
 ///
 /// Provider chain: the Conduit gateway (Claude Sonnet) is preferred when
 /// configured, then the direct Anthropic key, then OpenRouter as the last-resort
@@ -278,6 +287,29 @@ assistantRoutes.post(
   }
   if (messages.length === 0) {
     return c.json({ error: 'no user message' }, 400);
+  }
+
+  // Signed-in path: run the authenticated tool-calling loop so the assistant can
+  // read this user's own balance and deals and answer from real numbers. Bound to
+  // the cryptographically-verified session address, never a client param. On any
+  // failure, fall through to the anonymous provider chain so the user still gets
+  // an answer (just without account lookups).
+  const session = readSession(c);
+  if (session && assistantAgentEnabled()) {
+    try {
+      const { text, actions } = await runAssistantAgent({
+        address: session.address.toLowerCase(),
+        method: session.method,
+        messages,
+      });
+      if (text) return c.json({ reply: text, actions });
+      logger.warn('assistant: agent path returned empty, falling back to knowledge path');
+    } catch (e) {
+      logger.error(
+        { err: (e as Error).message },
+        'assistant: agent path failed, falling back to knowledge path',
+      );
+    }
   }
 
   // Try each provider in order. The first that answers wins; a failure or

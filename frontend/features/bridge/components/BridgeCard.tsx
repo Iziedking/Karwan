@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { formatUnits, isAddress } from 'viem';
@@ -295,6 +295,17 @@ export function BridgeCard({
   /// users can opt into the deposit-address fallback, which is the only path
   /// that provisions a per-chain DCW (and the one that used to hang on load).
   const [depositMode, setDepositMode] = useState(false);
+  // Circle (email/passkey) users have no browser wallet, so "connect a wallet"
+  // is friction we don't need: default them to the no-connect deposit path, where
+  // the backend bridges from a provisioned Circle DCW. One-shot once auth
+  // resolves; a later manual toggle (use a wallet instead) still wins. Web3 users
+  // keep the connect-wallet default.
+  const depositModeInit = useRef(false);
+  useEffect(() => {
+    if (depositModeInit.current || !auth.method) return;
+    depositModeInit.current = true;
+    if (auth.method === 'circle') setDepositMode(true);
+  }, [auth.method]);
 
   /// The selected recipient address, resolved per kind. For Custom we feed
   /// the raw input through viem's checksum to keep the on-chain payload
@@ -351,7 +362,10 @@ export function BridgeCard({
     // the default connect-wallet flow never touches bridgeWalletStatus, so a
     // slow Circle wallet-creation call can't stall a user who never asked for
     // a deposit address.
-    if (!isCircleUser || !auth.address || !depositMode) {
+    // Circle users default to the deposit path, so provision + poll the source
+    // DCW for them whenever they're on an EVM source (not gated on the manual
+    // depositMode toggle any more). Web3 users never hit this branch.
+    if (!isCircleUser || !auth.address) {
       setCircleWallet(null);
       return;
     }
@@ -389,7 +403,7 @@ export function BridgeCard({
       cancelled = true;
       clearInterval(id);
     };
-  }, [isCircleUser, auth.address, sourceKey, depositMode]);
+  }, [isCircleUser, auth.address, sourceKey]);
 
   // Resolve EVM source config when we're on a CCTP chain; null when the
   // selected source is App-Kit-only (Solana Devnet). The wagmi balance hook
@@ -413,10 +427,12 @@ export function BridgeCard({
   const appKitPath = sourceIsAppKitOnly;
   const walletConnected = isConnected && !!web3Address;
   const walletPath = !appKitPath && walletConnected && !depositMode;
-  const depositPath = !appKitPath && depositMode && isCircleUser;
-  // No path picked yet: prompt the user to connect a wallet (EVM only; Solana
-  // funds a deposit address instead).
-  const needsConnect = !appKitPath && !walletConnected && !depositMode;
+  // Circle users default to the deposit path even before the depositMode init
+  // effect flips (so the card never flashes a connect prompt while auth loads).
+  const depositPath = !appKitPath && isCircleUser && (depositMode || !walletConnected);
+  // Connect-wallet prompt is web3-only now. Circle users are never asked to
+  // connect: they always have the no-connect deposit path above.
+  const needsConnect = !appKitPath && !walletConnected && !depositMode && !isCircleUser;
 
   // Pre-warm the App Kit chunks once a bridge is plausible (Solana selected or
   // a wallet connected), so the dynamic import in startAppKitBridge is already

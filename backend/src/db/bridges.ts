@@ -29,8 +29,10 @@ export interface BridgeRelay {
   /// legacy behaviour). 'out' = Arc -> another chain (burn on Arc, mint on the
   /// destination). Absent is treated as 'in'.
   direction?: 'in' | 'out';
-  /// For 'out' bridges: the destination CCTP chain the mint lands on.
-  destChainKey?: CctpChainKey;
+  /// For 'out' bridges: the destination chain the mint lands on. A CCTP EVM key,
+  /// or 'solanaDevnet' (Solana is an App Kit forwarder destination, not a CCTP
+  /// source key, so it is added explicitly).
+  destChainKey?: CctpChainKey | 'solanaDevnet';
   /// The session identity that created this bridge. For an 'in' bridge this
   /// equals `mintRecipient` (the user's own Arc address), but for an 'out'
   /// bridge `mintRecipient` is the destination-chain recipient, so ownership

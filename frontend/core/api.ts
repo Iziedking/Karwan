@@ -956,6 +956,48 @@ export class ApiError extends Error {
   }
 }
 
+/// A structured action the authenticated assistant can attach to a reply, so the
+/// chat can render a prominent control instead of an inline link. Stage 2 has one
+/// variant, `navigate` (route to an in-app screen). Mirrors the backend
+/// `AssistantAction` union in backend/src/assistant/actions.ts; keep them in sync.
+export interface AssistantNavigateAction {
+  kind: 'navigate';
+  id: string;
+  label: string;
+  /// Always a validated internal path (starts with a single '/'). The renderer
+  /// still guards before navigating.
+  href: string;
+  description?: string;
+}
+
+/// A propose->confirm card. The user must tap Confirm; the widget then calls the
+/// same session-gated route the UI uses. Intents: `post_offer` (off-chain, no
+/// funds move) and `release_milestone` (pays the seller real USDC from escrow,
+/// irreversible — carries `warning`). `payload` is the validated body for the
+/// intent's route. Mirrors the backend union; keep in sync.
+export interface AssistantConfirmAction {
+  kind: 'confirm';
+  id: string;
+  intent:
+    | 'post_offer'
+    | 'release_milestone'
+    | 'withdraw_proceeds'
+    | 'cash_out'
+    | 'gateway_deposit'
+    | 'gateway_fund_agent'
+    | 'gateway_cash_out';
+  title: string;
+  summary?: string;
+  /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
+  warning?: string;
+  fields: { label: string; value: string }[];
+  payload: Record<string, unknown>;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+export type AssistantAction = AssistantNavigateAction | AssistantConfirmAction;
+
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
@@ -2420,7 +2462,9 @@ export const api = {
   bridgeOut: (input: {
     bridgeId: string;
     address: string;
-    destChainKey: BridgeChainKey;
+    // EVM CCTP chains, or 'solanaDevnet' (verified Arc->Solana bridge-out). For
+    // Solana, `recipient` is a base58 owner address, not 0x.
+    destChainKey: BridgeChainKey | 'solanaDevnet';
     amountUsdc: number;
     recipient: string;
     /// Source wallet on Arc that will burn. Defaults to 'identity' on the
@@ -2795,6 +2839,42 @@ export const api = {
   // not keep serving the pre-deposit zero.
   refreshGatewayBalance: () =>
     json<{ ok: true }>('/api/gateway/refresh', { method: 'POST' }),
+  // The user's unified balance (available USD on Arc), owned by their dedicated
+  // Gateway EOA. Null gatewayAddress means they never deposited.
+  gatewayUnified: () =>
+    json<{ available: string; gatewayAddress: string | null }>('/api/gateway/unified'),
+  // Deposit into the unified balance from one of the user's own wallets. 'identity'
+  // (default) is Circle-only; 'buyer'/'seller' agent wallets work for every account
+  // type (the web3 path). Backend-signed. Session-scoped.
+  gatewayDeposit: (amountUsdc: number, source?: 'identity' | 'buyer' | 'seller') =>
+    json<{ ok: true; depositTxHash: string; gatewayAddress: string; amountUsd: number; source: string }>(
+      '/api/gateway/deposit',
+      { method: 'POST', body: JSON.stringify({ amountUsdc, ...(source ? { source } : {}) }) },
+    ),
+  // Sweep loose identity-wallet USDC into the unified balance (the "into balance"
+  // step after a top-up, incl. Solana). Self-healing, session-scoped, Circle-only.
+  gatewaySweep: () =>
+    json<{ ok: true; swept: number; gatewayAddress: string | null }>('/api/gateway/sweep', {
+      method: 'POST',
+    }),
+  // Fund a buyer/seller agent wallet from the unified balance (same-chain Arc
+  // spend, backend-signed). Session-scoped.
+  gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number) =>
+    json<{ ok: true; agent: 'buyer' | 'seller'; recipientAddress: string; amountUsd: number; transferId?: string }>(
+      '/api/gateway/fund-agent',
+      { method: 'POST', body: JSON.stringify({ agent, amountUsdc }) },
+    ),
+  // Cash out from the unified balance to another chain (cross-chain Gateway spend,
+  // backend-signed). Works for every account type. Session-scoped.
+  gatewayCashOut: (
+    destChainKey: 'baseSepolia' | 'arbitrumSepolia' | 'optimismSepolia' | 'sepolia' | 'polygonAmoy',
+    recipient: string,
+    amountUsdc: number,
+  ) =>
+    json<{ ok: true; destChainKey: string; recipientAddress: string; amountUsd: number; transferId?: string }>(
+      '/api/gateway/cash-out',
+      { method: 'POST', body: JSON.stringify({ destChainKey, recipient, amountUsdc }) },
+    ),
 
   // Recent events for a job (public, durable ring snapshot). Used to seed the
   // live x402 agent-payments panel before SSE takes over.
@@ -2806,7 +2886,7 @@ export const api = {
 
   // In-app support assistant. Sends the recent turns and gets one reply back.
   assistantChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
-    json<{ reply: string }>('/api/assistant/chat', {
+    json<{ reply: string; actions?: AssistantAction[] }>('/api/assistant/chat', {
       method: 'POST',
       body: JSON.stringify({ messages }),
     }),

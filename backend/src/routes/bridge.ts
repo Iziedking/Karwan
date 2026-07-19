@@ -21,6 +21,7 @@ import {
   APP_KIT_SOURCE_CHAIN_KEYS,
   bridgeInToArcViaAppKit,
   bridgeOutFromArcViaAppKit,
+  isSolanaDestKey,
 } from '../circle/bridge-kit.js';
 import { usdc as ARC_USDC, readUsdcBalance } from '../chain/contracts.js';
 import {
@@ -420,7 +421,9 @@ export async function resumePendingBridges(): Promise<void> {
     // the destination mint relay (the Arc burn is synchronous, so a record stuck
     // pre-burn after a restart has no on-chain effect and is left to retry).
     if (b.direction === 'out') {
-      if (b.sourceTxHash && b.destChainKey && b.bridgeWalletId) {
+      // Solana out-bridges are App Kit-managed (not startOutRelay); skip them here
+      // — this also narrows destChainKey to a CctpChainKey for the relay.
+      if (b.sourceTxHash && b.destChainKey && !isSolanaDestKey(b.destChainKey) && b.bridgeWalletId) {
         startOutRelay({
           bridgeId: b.bridgeId,
           destChainKey: b.destChainKey,
@@ -883,6 +886,20 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   // running the inbound mint path below (which would try to receiveMessage on
   // Arc with a message destined elsewhere).
   if (record.direction === 'out') {
+    // Solana out-bridges are managed by App Kit's kit.bridge (not the hand-rolled
+    // startOutRelay), so there is no relay to re-arm here — mirror the App Kit
+    // resume guard used for the in-direction App Kit bridges.
+    if (record.destChainKey && isSolanaDestKey(record.destChainKey)) {
+      return c.json(
+        {
+          error: 'this bridge is managed by App Kit',
+          detail:
+            'Solana bridges run through kit.bridge; wait for the in-flight transfer to settle, then verify the mint on Solscan.',
+          code: 'APPKIT_MANAGED',
+        },
+        409,
+      );
+    }
     if (!record.sourceTxHash || !record.destChainKey || !record.bridgeWalletId) {
       return c.json(
         {
@@ -1761,20 +1778,42 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
 // the Arc burn. Web3 users sign the Arc burn themselves and would post the burn
 // txHash to a relay endpoint (a thin follow-up that reuses startOutRelay).
 
-const bridgeOutSchema = z.object({
-  bridgeId: z.string().min(1),
-  address: z.string().startsWith('0x'),
-  destChainKey: z.enum(CCTP_CHAIN_KEYS),
-  amountUsdc: z.number().positive(),
-  /// Where the minted USDC lands on the destination chain.
-  recipient: z.string().startsWith('0x'),
-  /// Optional: which Karwan wallet on Arc burns. Defaults to the identity
-  /// wallet (the standard /bridge surface). The cashout page passes
-  /// 'sellerAgent' with a `sourceJobId` so the deal's seller-agent wallet
-  /// burns instead, that's where released escrow USDC actually lives.
-  sourceKind: z.enum(['identity', 'sellerAgent', 'buyerAgent']).optional(),
-  sourceJobId: z.string().min(1).optional(),
-});
+/// Base58 (no 0/O/I/l) sanity check for a Solana address, 32-44 chars.
+const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+const bridgeOutSchema = z
+  .object({
+    bridgeId: z.string().min(1),
+    address: z.string().startsWith('0x'),
+    // Solana Devnet is a valid destination alongside the CCTP EVM chains — the
+    // App Kit forwarder mints there (verified). It is NOT a CCTP source key, so
+    // it is added explicitly here rather than in CCTP_CHAIN_KEYS.
+    destChainKey: z.enum([...CCTP_CHAIN_KEYS, 'solanaDevnet'] as const),
+    amountUsdc: z.number().positive(),
+    /// Where the minted USDC lands. A 0x EVM address, or a base58 Solana OWNER
+    /// address (App Kit derives its USDC ATA). Validated per destination below.
+    recipient: z.string().min(1),
+    /// Optional: which Karwan wallet on Arc burns. Defaults to the identity
+    /// wallet (the standard /bridge surface). The cashout page passes
+    /// 'sellerAgent' with a `sourceJobId` so the deal's seller-agent wallet
+    /// burns instead, that's where released escrow USDC actually lives.
+    sourceKind: z.enum(['identity', 'sellerAgent', 'buyerAgent']).optional(),
+    sourceJobId: z.string().min(1).optional(),
+  })
+  .superRefine((val, ctx) => {
+    const ok = isSolanaDestKey(val.destChainKey)
+      ? SOLANA_ADDR_RE.test(val.recipient)
+      : /^0x[0-9a-fA-F]{40}$/.test(val.recipient);
+    if (!ok) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['recipient'],
+        message: isSolanaDestKey(val.destChainKey)
+          ? 'recipient must be a base58 Solana address'
+          : 'recipient must be a 0x address',
+      });
+    }
+  });
 
 const outInFlight = new Set<string>();
 

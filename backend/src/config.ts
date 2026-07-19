@@ -414,6 +414,12 @@ const envSchema = z.object({
   // low-cost model. Assistant is disabled gracefully if the key is absent.
   ANTHROPIC_API_KEY: optionalString,
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
+  // The AUTHENTICATED assistant runs a tool-calling loop that can read the
+  // signed-in user's OWN data (balance, deals). Because that data is private, it
+  // runs on the DIRECT Anthropic key ONLY — same privacy boundary as the
+  // supervisor, never a Conduit / OpenRouter hop. Null (feature off) when no key.
+  // The anonymous, knowledge-only /chat path keeps its provider chain.
+  ASSISTANT_AGENT_LLM_MODEL: z.string().default('claude-haiku-4-5'),
   // Conduit LLM gateway, Anthropic-compatible at its root. When set, the
   // assistant prefers it (Claude Sonnet) and falls back to the direct
   // ANTHROPIC_API_KEY. Auth is a Bearer token (sk-cdt-...). Same /v1/messages

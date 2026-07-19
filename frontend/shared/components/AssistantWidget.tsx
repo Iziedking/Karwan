@@ -1,8 +1,14 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { api, ApiError } from '@/core/api';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  api,
+  ApiError,
+  type AssistantAction,
+  type AssistantNavigateAction,
+  type AssistantConfirmAction,
+} from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { isLandingRoute } from '@/shared/utils/routes';
@@ -10,6 +16,8 @@ import { isLandingRoute } from '@/shared/utils/routes';
 interface Turn {
   role: 'user' | 'assistant';
   content: string;
+  /// Navigate buttons the authenticated assistant attached to this reply.
+  actions?: AssistantAction[];
 }
 
 interface LiveMsg {
@@ -196,12 +204,12 @@ export function AssistantWidget() {
     setError(null);
     setLoading(true);
     try {
-      const { reply } = await api.assistantChat(next);
+      const { reply, actions } = await api.assistantChat(next);
       // The assistant appends [[HUMAN]] only when it judges the issue needs a
       // person. Strip the marker from what we show and reveal the handoff.
       const needsHuman = /\[\[HUMAN\]\]/i.test(reply);
       const clean = reply.replace(/\[\[HUMAN\]\]/gi, '').trim();
-      setTurns([...next, { role: 'assistant', content: clean }]);
+      setTurns([...next, { role: 'assistant', content: clean, actions }]);
       if (needsHuman) setHumanSuggested(true);
     } catch (e) {
       // Map the backend's error codes to a human line instead of showing the
@@ -309,13 +317,18 @@ export function AssistantWidget() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             <Bubble role="assistant">{t.greeting}</Bubble>
             {turns.map((m, i) => (
-              <Bubble key={i} role={m.role}>
-                {m.role === 'assistant' ? (
-                  <RichText text={m.content} onNavigate={() => setOpen(false)} />
-                ) : (
-                  m.content
+              <div key={i} className="space-y-2">
+                <Bubble role={m.role}>
+                  {m.role === 'assistant' ? (
+                    <RichText text={m.content} onNavigate={() => setOpen(false)} />
+                  ) : (
+                    m.content
+                  )}
+                </Bubble>
+                {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
+                  <ActionButtons actions={m.actions} onNavigate={() => setOpen(false)} />
                 )}
-              </Bubble>
+              </div>
             ))}
             {isLive && (
               <>
@@ -437,6 +450,254 @@ export function AssistantWidget() {
         </div>
       )}
     </>
+  );
+}
+
+/// Renders the structured actions the authenticated assistant attached to a
+/// reply, dispatching by kind: a navigate button routes to a screen, a confirm
+/// card proposes a reversible write the user must approve.
+function ActionButtons({
+  actions,
+  onNavigate,
+}: {
+  actions: AssistantAction[];
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 ps-1">
+      {actions.map((a) =>
+        a.kind === 'confirm' ? (
+          <ConfirmCard key={a.id} action={a} onNavigate={onNavigate} />
+        ) : (
+          <NavigateButton key={a.id} action={a} onNavigate={onNavigate} />
+        ),
+      )}
+    </div>
+  );
+}
+
+/// A navigate button. The href is allowlist-built on the backend, but the click
+/// still guards for a single-slash internal path so a malformed value can never
+/// trigger an external navigation.
+function NavigateButton({
+  action,
+  onNavigate,
+}: {
+  action: AssistantNavigateAction;
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const go = () => {
+    const href = action.href;
+    if (!href.startsWith('/') || href.startsWith('//')) return;
+    onNavigate();
+    router.push(href);
+  };
+  return (
+    <button
+      type="button"
+      onClick={go}
+      className="group w-full text-start px-3.5 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] hover:brightness-105 transition"
+      style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 3 }}
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="mono text-[11px] uppercase tracking-[0.1em] font-bold">{action.label}</span>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform">
+          <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      {action.description && (
+        <span className="block mt-0.5 text-[11px] leading-snug font-medium opacity-80">{action.description}</span>
+      )}
+    </button>
+  );
+}
+
+interface ConfirmResult {
+  successText: string;
+  viewHref: string;
+  viewLabel: string;
+}
+
+/// Run a confirm action against the SAME session-gated route the UI uses. Each
+/// intent maps to one existing api method; nothing here signs — for release the
+/// backend's buyer-agent Circle wallet signs, gated by the session. Returns what
+/// to show on success.
+async function runConfirmIntent(action: AssistantConfirmAction): Promise<ConfirmResult> {
+  if (action.intent === 'post_offer') {
+    await api.postListing(action.payload as Parameters<typeof api.postListing>[0]);
+    return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
+  }
+  if (action.intent === 'release_milestone') {
+    const p = action.payload as { jobId: string; caller: string };
+    await api.releaseDirectDeal(p.jobId, p.caller);
+    return { successText: 'Payment released.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+  }
+  if (action.intent === 'withdraw_proceeds') {
+    await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
+    return { successText: 'Withdrawal sent.', viewHref: '/profile#agents', viewLabel: 'View your wallets' };
+  }
+  if (action.intent === 'cash_out') {
+    const p = action.payload as {
+      address: string;
+      destChainKey: string;
+      amountUsdc: number;
+      recipient: string;
+      sourceKind: 'identity';
+    };
+    // Fresh bridge id per attempt, matching the other bridge surfaces.
+    const bridgeId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `cashout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await api.bridgeOut({
+      bridgeId,
+      address: p.address,
+      destChainKey: p.destChainKey as Parameters<typeof api.bridgeOut>[0]['destChainKey'],
+      amountUsdc: p.amountUsdc,
+      recipient: p.recipient,
+      sourceKind: p.sourceKind,
+    });
+    return {
+      successText: 'Cash out started. It lands on the destination chain in a few minutes.',
+      viewHref: '/bridge',
+      viewLabel: 'Track it',
+    };
+  }
+  if (action.intent === 'gateway_deposit') {
+    const p = action.payload as { amountUsdc: number };
+    await api.gatewayDeposit(p.amountUsdc);
+    return { successText: 'Added to your balance.', viewHref: '/profile', viewLabel: 'View your wallets' };
+  }
+  if (action.intent === 'gateway_fund_agent') {
+    const p = action.payload as { agent: 'buyer' | 'seller'; amountUsdc: number };
+    await api.gatewayFundAgent(p.agent, p.amountUsdc);
+    return { successText: `Your ${p.agent} agent is funded.`, viewHref: '/profile', viewLabel: 'View your wallets' };
+  }
+  if (action.intent === 'gateway_cash_out') {
+    const p = action.payload as { destChainKey: string; recipient: string; amountUsdc: number };
+    await api.gatewayCashOut(
+      p.destChainKey as Parameters<typeof api.gatewayCashOut>[0],
+      p.recipient,
+      p.amountUsdc,
+    );
+    return {
+      successText: 'Cash out started. It lands on the destination chain shortly.',
+      viewHref: '/bridge',
+      viewLabel: 'Track it',
+    };
+  }
+  throw new Error('Unknown action');
+}
+
+/// A propose->confirm card for a reversible write. Nothing happens until the user
+/// taps Confirm; then it calls the intent's existing route. The card is
+/// single-shot: once posted it collapses to a success line so it can't re-submit.
+function ConfirmCard({
+  action,
+  onNavigate,
+}: {
+  action: AssistantConfirmAction;
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>('idle');
+  const [errMsg, setErrMsg] = useState('');
+  const [result, setResult] = useState<ConfirmResult | null>(null);
+  const busyLabel =
+    action.intent === 'release_milestone'
+      ? 'Releasing…'
+      : action.intent === 'withdraw_proceeds'
+        ? 'Withdrawing…'
+        : action.intent === 'cash_out'
+          ? 'Cashing out…'
+          : action.intent === 'gateway_deposit'
+            ? 'Adding…'
+            : action.intent === 'gateway_fund_agent'
+              ? 'Funding…'
+              : action.intent === 'gateway_cash_out'
+                ? 'Cashing out…'
+                : 'Posting…';
+
+  async function confirm() {
+    if (status === 'running' || status === 'done') return;
+    setStatus('running');
+    setErrMsg('');
+    try {
+      const r = await runConfirmIntent(action);
+      setResult(r);
+      setStatus('done');
+    } catch (e) {
+      setErrMsg(e instanceof ApiError ? e.message : 'Could not complete that. Try again.');
+      setStatus('error');
+    }
+  }
+
+  if (status === 'dismissed') return null;
+
+  if (status === 'done' && result) {
+    return (
+      <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
+        <p className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-accent)]">Done</p>
+        <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate();
+            router.push(result.viewHref);
+          }}
+          className="mt-2 mono text-[10px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+        >
+          {result.viewLabel}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
+      <p className="font-sans text-[13px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">{action.title}</p>
+      {action.summary && (
+        <p className="text-[12px] leading-snug text-[var(--lp-text-sub)] mt-1">{action.summary}</p>
+      )}
+      <dl className="mt-2 space-y-1">
+        {action.fields.map((f, i) => (
+          <div key={i} className="flex items-baseline justify-between gap-3">
+            <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{f.label}</dt>
+            <dd className="text-[12px] text-[var(--lp-dark)] text-end">{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {action.warning && (
+        <p className="flex items-start gap-1.5 mono text-[10px] leading-snug text-[var(--lp-critical)] mt-2.5">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 mt-px">
+            <path d="M8 1.5l6.5 11.5H1.5L8 1.5zm0 4.2v3.4m0 1.7v.1" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          </svg>
+          <span>{action.warning}</span>
+        </p>
+      )}
+      {status === 'error' && <p className="mono text-[10px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
+      <div className="flex gap-2 mt-3">
+        <button
+          type="button"
+          onClick={confirm}
+          disabled={status === 'running'}
+          className="flex-1 mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
+          style={{ borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 10, borderBottomRightRadius: 3 }}
+        >
+          {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatus('dismissed')}
+          disabled={status === 'running'}
+          className="mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
+          style={{ borderRadius: 10 }}
+        >
+          {action.cancelLabel ?? 'Not now'}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -41,6 +41,13 @@ export interface AgentWallets {
   /// linkable receipt every subsequent payment draws down from. Refreshed each
   /// time ensureGatewayFunding tops the deposit up.
   x402LastDeposit?: { txHash: string; at: number };
+  /// Dedicated EOA DCW that OWNS the user's unified Gateway balance, kept
+  /// separate from the internal x402 payment float. Gateway rejects EIP-1271
+  /// signatures, so the depositor/signer must be an EOA; USDC deposited here
+  /// (via depositFor from the user's identity or agent SCAs) forms one
+  /// cross-chain balance the backend can later spend to fund agent wallets or
+  /// cash out, with no user signature. Lazy-provisioned on first deposit.
+  gatewayWallet?: { walletId: string; address: string };
 }
 
 export async function getAgentWallets(userAddress: string): Promise<AgentWallets | null> {
@@ -224,6 +231,32 @@ export async function updateX402Wallet(
   const next: AgentWallets = {
     ...existing,
     x402Wallet: { walletId: x402Wallet.walletId, address: x402Wallet.address.toLowerCase() },
+  };
+  if (pgEnabled) {
+    await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
+    invalidateAgentWalletCaches();
+    return next;
+  }
+  const store = loadFile();
+  store[key] = next;
+  saveFile(store);
+  invalidateAgentWalletCaches();
+  return next;
+}
+
+/// Attach the lazily-provisioned Gateway balance EOA to an existing record,
+/// preserving every other field. Same preserve-everything pattern as
+/// updateX402Wallet. Returns null if the user has no agents.
+export async function updateGatewayWallet(
+  userAddress: string,
+  gatewayWallet: { walletId: string; address: string },
+): Promise<AgentWallets | null> {
+  const key = userAddress.toLowerCase();
+  const existing = await getAgentWallets(key);
+  if (!existing) return null;
+  const next: AgentWallets = {
+    ...existing,
+    gatewayWallet: { walletId: gatewayWallet.walletId, address: gatewayWallet.address.toLowerCase() },
   };
   if (pgEnabled) {
     await db().update(agentWallets).set({ data: next }).where(eq(agentWallets.userAddress, key));
