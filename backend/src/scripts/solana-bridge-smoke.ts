@@ -75,7 +75,9 @@ async function main() {
 
     const secs = ((Date.now() - started) / 1000).toFixed(1);
     console.log(`\nResult (after ${secs}s):`);
-    console.log(JSON.stringify(result, null, 2));
+    // The success result carries BigInt gas values, which JSON.stringify can't
+    // serialize by default — coerce them to strings.
+    console.log(JSON.stringify(result, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 
     if (result.state === 'error') {
       const failed = result.steps?.find?.((s) => s.state === 'error');

@@ -83,13 +83,20 @@ async function main() {
 
     const secs = ((Date.now() - started) / 1000).toFixed(1);
     console.log(`\nResult (after ${secs}s):`);
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
 
     if (result.state === 'error') {
       const failed = result.steps?.find?.((s) => s.state === 'error');
+      const msg = JSON.stringify(failed?.error ?? '');
       console.error(`\nFAILED at step: ${failed?.name ?? 'unknown'}`);
-      console.error('If the error mentions a missing ATA / token account, Arc->Solana needs an');
-      console.error('explicit recipient-ATA creation step before we wire it into production.');
+      if (/wallet not found/i.test(msg)) {
+        console.error('"Wallet not found" = the Arc SOURCE address is not a Circle DCW the entity can sign');
+        console.error('from. Re-run with one of your agent-wallet addresses (always Circle DCWs), not a web3');
+        console.error('identity EOA. This failed on the Arc side, so the Solana ATA question is still untested.');
+      } else if (/ata|token account|account.*not.*found/i.test(msg)) {
+        console.error('The error mentions a missing ATA / token account: Arc->Solana needs an explicit');
+        console.error('recipient-ATA creation step (Gas Station create-solana-ata) before we wire it.');
+      }
       process.exit(1);
     }
     console.log('\nSUCCESS — App Kit handles Arc->Solana (incl. the recipient ATA). Safe to wire.');
