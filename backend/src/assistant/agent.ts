@@ -32,9 +32,21 @@ import {
   buildPostOfferConfirm,
   buildReleaseConfirm,
   buildWithdrawConfirm,
+  buildCashOutConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
 } from './actions.js';
+
+/// Friendly chain names the model may pick for a cash-out, mapped to the CCTP
+/// chain keys the bridge-out route expects. Testnet keys because Karwan is on Arc
+/// Testnet. Kept to the well-supported set (mirrors CircleBridgeChainKey).
+const CASH_OUT_CHAINS: Record<string, { key: string; label: string }> = {
+  base: { key: 'baseSepolia', label: 'Base' },
+  arbitrum: { key: 'arbitrumSepolia', label: 'Arbitrum' },
+  optimism: { key: 'optimismSepolia', label: 'Optimism' },
+  ethereum: { key: 'sepolia', label: 'Ethereum' },
+  polygon: { key: 'polygonAmoy', label: 'Polygon' },
+};
 import { logger } from '../logger.js';
 
 const USDC_DECIMALS = 6;
@@ -92,7 +104,7 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
 /// data; `propose_navigation` pushes a validated navigate action into `actions`.
 /// Tools return plain objects (including `{ error }`) rather than throwing, so the
 /// model can explain a failure to the user instead of the loop aborting.
-function buildTools(address: string, actions: AssistantAction[]) {
+function buildTools(address: string, method: string, actions: AssistantAction[]) {
   return {
     get_my_balance: tool({
       description:
@@ -360,6 +372,63 @@ function buildTools(address: string, actions: AssistantAction[]) {
         return { ok: true, shown: built.title };
       },
     }),
+
+    propose_cash_out: tool({
+      description:
+        "Prepare a confirm card to CASH OUT USDC from the user's Arc wallet to another blockchain (bridge out via CCTP): move USDC off Arc to Base, Arbitrum, Optimism, Ethereum, or Polygon. Use when they want to cash out / bridge out / send USDC to another chain and have given an amount, a chain, and a 0x destination address. This moves real USDC across chains and cannot be undone.",
+      inputSchema: z.object({
+        destChain: z
+          .enum(['base', 'arbitrum', 'optimism', 'ethereum', 'polygon'])
+          .describe('Destination chain to bridge the USDC to.'),
+        toAddress: z.string().min(1).max(60).describe('Destination address on that chain, a full 0x address.'),
+        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to cash out.'),
+      }),
+      execute: async ({ destChain, toAddress, amountUsdc }) => {
+        // Backend-signed cash-out burns from the user's Arc identity DCW, which
+        // only exists for Circle (email/passkey) accounts. Web3 users hold their
+        // Arc USDC on their own EOA and must sign the burn themselves, so route
+        // them to the bridge screen instead of showing an in-chat card.
+        if (method !== 'circle') {
+          return { error: 'Cashing out from chat is available for email/passkey accounts. This user signed in with a web3 wallet, so they sign the bridge themselves. Send them to the bridge screen with propose_navigation (destination "cash_out").' };
+        }
+        const to = toAddress.trim();
+        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+          return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
+        }
+        const chain = CASH_OUT_CHAINS[destChain];
+        if (!chain) return { error: 'That chain is not supported for cash-out.' };
+        let balanceWei: bigint;
+        try {
+          balanceWei = await readUsdcBalance(address);
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_cash_out balance read failed');
+          return { error: 'Could not read your Arc balance right now. Try again shortly.' };
+        }
+        let amountWei: bigint;
+        try {
+          amountWei = parseUnits(amountUsdc.toString(), USDC_DECIMALS);
+        } catch {
+          return { error: 'That amount is not a valid USDC value.' };
+        }
+        if (amountWei <= 0n) return { error: 'The amount must be greater than 0.' };
+        if (amountWei > balanceWei) {
+          return {
+            error: `Your Arc wallet holds only ${formatUnits(balanceWei, USDC_DECIMALS)} USDC, less than ${amountUsdc}. Tell them the available balance and suggest a smaller amount.`,
+          };
+        }
+        const built = buildCashOutConfirm({
+          caller: address,
+          destChainKey: chain.key,
+          destChainLabel: chain.label,
+          recipient: to,
+          amountUsdc,
+          balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
+        });
+        if ('error' in built) return built;
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
   };
 }
 
@@ -384,14 +453,17 @@ function authenticatedPreamble(address: string, method: string): string {
     '    2. RELEASE a milestone payment on a deal they are the BUYER on: call propose_release with the',
     '       jobId when they clearly want to pay out, release, or approve a delivery. This pays the',
     '       seller real USDC and is FINAL. Only the buyer can release, and only after delivery.',
-    '    3. WITHDRAW USDC from one of their own agent wallets to an external address: call',
-    '       propose_withdraw when they want to withdraw or cash out and have given an amount and a',
+    '    3. WITHDRAW USDC from one of their own agent wallets to an external Arc address: call',
+    '       propose_withdraw when they want to withdraw on Arc and have given an amount and a',
     '       destination 0x address. Sale proceeds are in the seller agent, refunds in the buyer agent.',
     '       This moves real USDC and is FINAL. Always confirm the destination address is theirs.',
-    '- You cannot yet EXECUTE anything else: no cancelling, topping up, bridging, or signing from chat,',
-    '  and no posting a REQUEST for work they need (that funds an auction). For those, call',
-    '  propose_navigation to show a button to the right screen, where they finish it themselves. Do',
-    '  not just describe the page. Add one short line of context with the button.',
+    '    4. CASH OUT USDC from Arc to ANOTHER chain (Base, Arbitrum, Optimism, Ethereum, Polygon):',
+    '       call propose_cash_out when they want to bridge out / cash out to another chain and have',
+    '       given an amount, a chain, and a 0x address. This bridges real USDC off Arc and is FINAL.',
+    '- You cannot yet EXECUTE anything else: no cancelling, topping up (adding money onto Arc), or',
+    '  posting a REQUEST for work they need (that funds an auction). For those, call propose_navigation',
+    '  to show a button to the right screen, where they finish it themselves. Do not just describe the',
+    '  page. Add one short line of context with the button.',
     '- Amounts are USDC on Arc testnet. Keep replies plain and short.',
   ].join('\n');
 }
@@ -417,7 +489,7 @@ export async function runAssistantAgent(input: {
       model,
       system,
       messages: input.messages,
-      tools: buildTools(input.address, actions),
+      tools: buildTools(input.address, input.method, actions),
       // Allow a few reasoning+tool rounds (e.g. list deals, then read one, then
       // propose a button), then force a final text answer. A handful of calls max.
       stopWhen: stepCountIs(5),

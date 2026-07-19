@@ -537,6 +537,33 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
     await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
     return { successText: 'Withdrawal sent.', viewHref: '/profile#agents', viewLabel: 'View your wallets' };
   }
+  if (action.intent === 'cash_out') {
+    const p = action.payload as {
+      address: string;
+      destChainKey: string;
+      amountUsdc: number;
+      recipient: string;
+      sourceKind: 'identity';
+    };
+    // Fresh bridge id per attempt, matching the other bridge surfaces.
+    const bridgeId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `cashout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await api.bridgeOut({
+      bridgeId,
+      address: p.address,
+      destChainKey: p.destChainKey as Parameters<typeof api.bridgeOut>[0]['destChainKey'],
+      amountUsdc: p.amountUsdc,
+      recipient: p.recipient,
+      sourceKind: p.sourceKind,
+    });
+    return {
+      successText: 'Cash out started. It lands on the destination chain in a few minutes.',
+      viewHref: '/bridge',
+      viewLabel: 'Track it',
+    };
+  }
   throw new Error('Unknown action');
 }
 
@@ -559,7 +586,9 @@ function ConfirmCard({
       ? 'Releasing…'
       : action.intent === 'withdraw_proceeds'
         ? 'Withdrawing…'
-        : 'Posting…';
+        : action.intent === 'cash_out'
+          ? 'Cashing out…'
+          : 'Posting…';
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;
