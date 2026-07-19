@@ -389,7 +389,7 @@ export const sw: Messages = {
     subtitle: 'Uliza chochote kuhusu Karwan',
     placeholder: 'Uliza swali...',
     send: 'Tuma',
-    greeting: 'Habari. Naweza kueleza jinsi Karwan inavyofanya kazi na kukuelekeza kwenye ukurasa sahihi. Unataka kufanya nini?',
+    greeting: 'Habari. Niulize chochote, au niambie tu unachotaka kufanya.',
     error: 'Hitilafu imetokea. Tafadhali jaribu tena.',
     disclaimer: 'Mwongozo tu. Msaidizi hawezi kuhamisha fedha au kutenda kwenye akaunti yako.',
   },

@@ -4226,7 +4226,7 @@ export const en: MessagesShape = {
     subtitle: 'Ask anything about Karwan',
     placeholder: 'Ask a question...',
     send: 'Send',
-    greeting: 'Hi. I can explain how Karwan works and point you to the right page. What do you want to do?',
+    greeting: 'Hi. Ask me anything, or just tell me what to do.',
     error: 'Something went wrong. Please try again.',
     disclaimer: 'Guidance only. The assistant cannot move funds or act on your account.',
     humanButton: 'Talk to a human',
