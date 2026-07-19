@@ -1793,6 +1793,8 @@ export const hi: Messages = {
       gas: 'गैस',
       sponsored: 'प्रायोजित',
       gasSponsoredNote: 'यहाँ ETH की ज़रूरत नहीं। Karwan इस बर्न के लिए गैस प्रायोजित करता है, इसलिए आप केवल USDC फंड करते हैं।',
+      covered: 'कवर किया गया',
+      gasCoveredNote: 'ETH की ज़रूरत नहीं। Karwan आपके डिपॉज़िट वॉलेट से नेटवर्क शुल्क वहन करता है, इसलिए आप केवल USDC भेजते हैं।',
       addressLabel: 'आपका स्रोत-चेन Circle पता',
       provisioning: 'प्रावधान हो रहा है…',
       copy: 'कॉपी',

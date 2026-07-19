@@ -1793,6 +1793,8 @@ export const ar: Messages = {
       gas: 'الغاز',
       sponsored: 'مكفول',
       gasSponsoredNote: 'لا حاجة إلى ETH هنا. يكفل Karwan رسوم الغاز لهذا الحرق، فأنت تموّل USDC فقط.',
+      covered: 'مُغطّى',
+      gasCoveredNote: 'لا حاجة إلى ETH. يغطّي Karwan رسوم الشبكة من محفظة الإيداع الخاصة بك، فأنت ترسل USDC فقط.',
       addressLabel: 'عنوانك على سلسلة المصدر في Circle',
       provisioning: 'جارٍ التوفير…',
       copy: 'نسخ',

@@ -211,8 +211,9 @@ export function isAppKitOnlyChainKey(k: string): k is AppKitOnlyChainKey {
 }
 
 // Native-gas testnet faucets per source chain. Only web3 users need these (they
-// pay their own source-chain burn gas); Circle users are sponsored by Gas
-// Station. USDC for any chain comes from faucet.circle.com.
+// pay their own source-chain burn gas). Circle users don't pay gas: on Gas-
+// Station chains (CIRCLE_GAS_SPONSORED_KEYS) the paymaster covers it, on the rest
+// Karwan funds the deposit wallet. USDC for any chain comes from faucet.circle.com.
 /// Partial on purpose. The six chains added alongside Gateway have no faucet URL
 /// here because none was verified, and a "Claim gas" button that opens a guessed
 /// or dead link is worse than no button. BridgeCard hides the button when a
@@ -268,9 +269,10 @@ export const APPKIT_CHAIN: Record<AnySourceChainKey, string> = {
   hyperevmTestnet: 'HyperEVM_Testnet',
 };
 
-/// Chains a Circle (email/passkey) account can bridge from. The other six are
-/// web3-only: Circle's wallets cannot execute a contract there, and a CCTP burn
-/// is a contract execution, so no backend wallet can sign it. Mirrors
+/// Chains a Circle (email/passkey) account can bridge from. The remaining four
+/// (Sei, Sonic, World Chain, HyperEVM) are web3-only: Circle exposes them only as
+/// "Other EVMs" (EOA signing, no contract execution), and a CCTP burn is a
+/// contract execution, so no backend wallet can sign it. Mirrors
 /// supportsCircleWallet() on the backend. The picker uses this to disable those
 /// chains for Circle users rather than letting them pick a dead end.
 export const CIRCLE_SOURCE_KEYS: ReadonlySet<string> = new Set([
@@ -279,7 +281,21 @@ export const CIRCLE_SOURCE_KEYS: ReadonlySet<string> = new Set([
   'arbitrumSepolia',
   'baseSepolia',
   'polygonAmoy',
+  'avalancheFuji',
+  'unichainSepolia',
   'solanaDevnet',
+]);
+
+/// Source chains whose burn gas is actually sponsored by a Circle Gas Station
+/// policy — mirrors the backend CIRCLE_GAS_STATION_SPONSORED_CHAINS env. On these
+/// the source send is fully gasless via the paymaster. On the other Circle source
+/// chains Karwan still covers the fee by funding the deposit wallet's native gas,
+/// but there's no Gas Station policy, so the banner shows a "covered", not
+/// "sponsored", claim to avoid implying a sponsorship that isn't configured.
+/// Keep this in sync with the backend env.
+export const CIRCLE_GAS_SPONSORED_KEYS: ReadonlySet<string> = new Set([
+  'sepolia',
+  'baseSepolia',
 ]);
 
 /// Chains we can withdraw TO: every non-Arc CCTP chain.

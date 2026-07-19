@@ -1793,6 +1793,8 @@ export const sw: Messages = {
       gas: 'Gesi',
       sponsored: 'Imedhaminiwa',
       gasSponsoredNote: 'Hakuna ETH inayohitajika hapa. Karwan hudhamini gesi kwa choma hili, kwa hiyo unafadhili USDC tu.',
+      covered: 'Imegharamiwa',
+      gasCoveredNote: 'Hakuna ETH inayohitajika. Karwan hugharamia ada ya mtandao kutoka pochi yako ya amana, kwa hiyo unatuma USDC tu.',
       addressLabel: 'Anwani yako ya Circle ya mnyororo wa chanzo',
       provisioning: 'inatolewa…',
       copy: 'NAKILI',

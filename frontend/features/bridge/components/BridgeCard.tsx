@@ -12,6 +12,7 @@ import {
   APP_KIT_SOURCE_KEYS,
   GAS_FAUCETS,
   CIRCLE_SOURCE_KEYS,
+  CIRCLE_GAS_SPONSORED_KEYS,
   SOLANA_MIN_SOL,
   USDC_FAUCET,
   isAppKitOnlyChainKey,
@@ -639,6 +640,7 @@ export function BridgeCard({
           <CircleSourceFundBanner
             sourceChainKey={sourceKey as CctpChainKey}
             wallet={circleWallet}
+            gasSponsored={CIRCLE_GAS_SPONSORED_KEYS.has(sourceKey)}
             copy={bc.circleFund}
           />
         )}
@@ -1476,10 +1478,16 @@ function PhaseChip({
 function CircleSourceFundBanner({
   sourceChainKey,
   wallet,
+  gasSponsored,
   copy,
 }: {
   sourceChainKey: SourceChainConfig['key'];
   wallet: { address: string; usdcBalance: string | null; gasBalance: string | null } | null;
+  /// Whether this source chain has a Circle Gas Station policy (paymaster). When
+  /// false Karwan still covers the fee by funding the deposit wallet, but the
+  /// banner says "covered" not "sponsored" so it can't imply a policy that isn't
+  /// configured for the chain.
+  gasSponsored: boolean;
   copy: Messages['bridgeCard']['circleFund'];
 }) {
   const [copied, setCopied] = useState(false);
@@ -1593,12 +1601,12 @@ function CircleSourceFundBanner({
               className="mt-0.5 mono text-[11px] uppercase tracking-[0.12em] leading-none"
               style={{ color: TONE_HEX.positive }}
             >
-              {copy.sponsored}
+              {gasSponsored ? copy.sponsored : copy.covered}
             </p>
           </div>
         </div>
         <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">
-          {copy.gasSponsoredNote}
+          {gasSponsored ? copy.gasSponsoredNote : copy.gasCoveredNote}
         </p>
 
         {/* ADDRESS + ACTIONS */}

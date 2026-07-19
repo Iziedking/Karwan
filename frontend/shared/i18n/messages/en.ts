@@ -1686,6 +1686,8 @@ interface MessagesShape {
       gas: string;
       sponsored: string;
       gasSponsoredNote: string;
+      covered: string;
+      gasCoveredNote: string;
       addressLabel: string;
       provisioning: string;
       copy: string;
@@ -5649,6 +5651,8 @@ export const en: MessagesShape = {
       gas: 'Gas',
       sponsored: 'Sponsored',
       gasSponsoredNote: 'No ETH needed. Karwan covers the network fee, so you only send USDC.',
+      covered: 'Covered',
+      gasCoveredNote: 'No ETH needed. Karwan covers the network fee from your deposit wallet, so you only send USDC.',
       addressLabel: 'Your deposit address',
       provisioning: 'setting up…',
       copy: 'COPY',

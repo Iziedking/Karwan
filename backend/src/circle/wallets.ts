@@ -36,6 +36,13 @@ export const ETH_SEPOLIA_BLOCKCHAIN = 'ETH-SEPOLIA' as const;
 export const OP_SEPOLIA_BLOCKCHAIN = 'OP-SEPOLIA' as const;
 export const ARB_SEPOLIA_BLOCKCHAIN = 'ARB-SEPOLIA' as const;
 export const POLYGON_AMOY_BLOCKCHAIN = 'MATIC-AMOY' as const;
+/// Circle names both of these with full SCA + contract-execution support (per
+/// developers.circle.com/w3s/supported-blockchains-and-currencies), so the
+/// backend CAN sign a CCTP burn from a DCW here — unlike Sei/Sonic/World Chain/
+/// HyperEVM, which Circle only exposes as "Other EVMs" (EOA signing, no contract
+/// execution).
+export const AVAX_FUJI_BLOCKCHAIN = 'AVAX-FUJI' as const;
+export const UNI_SEPOLIA_BLOCKCHAIN = 'UNI-SEPOLIA' as const;
 /// Solana Devnet bridge wallet. Provisioned for the App Kit path only; the
 /// hand-rolled CCTP pipeline is EVM-only and cannot bridge from Solana.
 /// Circle SCAs are EVM-only per the use-developer-controlled-wallets skill,
@@ -47,6 +54,8 @@ export type BridgeBlockchain =
   | typeof OP_SEPOLIA_BLOCKCHAIN
   | typeof ARB_SEPOLIA_BLOCKCHAIN
   | typeof POLYGON_AMOY_BLOCKCHAIN
+  | typeof AVAX_FUJI_BLOCKCHAIN
+  | typeof UNI_SEPOLIA_BLOCKCHAIN
   | typeof SOL_DEVNET_BLOCKCHAIN;
 
 export interface ProvisionedAgentWallets {

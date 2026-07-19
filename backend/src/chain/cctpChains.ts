@@ -17,6 +17,8 @@ import {
   OP_SEPOLIA_BLOCKCHAIN,
   ARB_SEPOLIA_BLOCKCHAIN,
   POLYGON_AMOY_BLOCKCHAIN,
+  AVAX_FUJI_BLOCKCHAIN,
+  UNI_SEPOLIA_BLOCKCHAIN,
   type BridgeBlockchain,
 } from '../circle/wallets.js';
 
@@ -154,10 +156,11 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
   // explorers come from the installed @circle-fin SDK's chain records; the
   // canonical TokenMessenger was verified byte-identical on all six.
   //
-  // None carries a circleBlockchain: they are web3-only. Circle's DCWs cannot
-  // execute contracts on non-named EVM chains, and a CCTP burn is a contract
-  // execution. Avalanche and Unichain ARE named by Circle and could gain a code
-  // later; Sei, Sonic, World Chain and HyperEVM never can.
+  // Avalanche Fuji and Unichain Sepolia ARE named by Circle with full SCA +
+  // contract-execution support, so a backend DCW CAN sign the CCTP burn — they
+  // carry a circleBlockchain and are Circle source chains. Sei, Sonic, World
+  // Chain and HyperEVM stay web3-only: Circle exposes them only as "Other EVMs"
+  // (EOA signing, no contract execution), and a CCTP burn is a contract call.
   avalancheFuji: {
     key: 'avalancheFuji',
     name: 'Avalanche Fuji',
@@ -166,6 +169,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     usdc: '0x5425890298aed601595a70ab815c96711a31bc65',
     nativeSymbol: 'AVAX',
     viemChain: avalancheFuji,
+    circleBlockchain: AVAX_FUJI_BLOCKCHAIN,
     explorerTx: (h) => `https://subnets-test.avax.network/c-chain/tx/${h}`,
   },
   unichainSepolia: {
@@ -176,6 +180,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     usdc: '0x31d0220469e10c4E71834a79b1f276d740d3768F',
     nativeSymbol: 'ETH',
     viemChain: unichainSepolia,
+    circleBlockchain: UNI_SEPOLIA_BLOCKCHAIN,
     explorerTx: (h) => `https://unichain-sepolia.blockscout.com/tx/${h}`,
   },
   seiTestnet: {
