@@ -10,6 +10,7 @@ import {
   type AssistantConfirmAction,
 } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
+import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { isLandingRoute } from '@/shared/utils/routes';
@@ -547,6 +548,13 @@ interface ConfirmResult {
   successText: string;
   viewHref: string;
   viewLabel: string;
+  /// On-chain Arc tx hash for the settled move, shown as a verifiable receipt
+  /// linking to the Arc explorer. Present for the intents that settle in one
+  /// Arc tx (release, withdraw, deposit).
+  txHash?: string;
+  /// Gateway transfer reference when the spend has no single Arc tx hash to
+  /// link (unified-balance spends return a transferId, not a tx hash).
+  refId?: string;
 }
 
 /// Run a confirm action against the SAME session-gated route the UI uses. Each
@@ -560,12 +568,12 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
   }
   if (action.intent === 'release_milestone') {
     const p = action.payload as { jobId: string; caller: string };
-    await api.releaseDirectDeal(p.jobId, p.caller);
-    return { successText: 'Payment released.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
+    const r = await api.releaseDirectDeal(p.jobId, p.caller);
+    return { successText: 'Payment released.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal', txHash: r.txHash };
   }
   if (action.intent === 'withdraw_proceeds') {
-    await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
-    return { successText: 'Withdrawal sent.', viewHref: '/profile#agents', viewLabel: 'View your wallets' };
+    const r = await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
+    return { successText: 'Withdrawal sent.', viewHref: '/profile#agents', viewLabel: 'View your wallets', txHash: r.txHash };
   }
   if (action.intent === 'cash_out') {
     const p = action.payload as {
@@ -596,17 +604,17 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
   }
   if (action.intent === 'gateway_deposit') {
     const p = action.payload as { amountUsdc: number };
-    await api.gatewayDeposit(p.amountUsdc);
-    return { successText: 'Added to your balance.', viewHref: '/profile', viewLabel: 'View your wallets' };
+    const r = await api.gatewayDeposit(p.amountUsdc);
+    return { successText: 'Added to your balance.', viewHref: '/profile', viewLabel: 'View your wallets', txHash: r.depositTxHash };
   }
   if (action.intent === 'gateway_fund_agent') {
     const p = action.payload as { agent: 'buyer' | 'seller'; amountUsdc: number };
-    await api.gatewayFundAgent(p.agent, p.amountUsdc);
-    return { successText: `Your ${p.agent} agent is funded.`, viewHref: '/profile', viewLabel: 'View your wallets' };
+    const r = await api.gatewayFundAgent(p.agent, p.amountUsdc);
+    return { successText: `Your ${p.agent} agent is funded.`, viewHref: '/profile', viewLabel: 'View your wallets', refId: r.transferId };
   }
   if (action.intent === 'gateway_cash_out') {
     const p = action.payload as { destChainKey: string; recipient: string; amountUsdc: number };
-    await api.gatewayCashOut(
+    const r = await api.gatewayCashOut(
       p.destChainKey as Parameters<typeof api.gatewayCashOut>[0],
       p.recipient,
       p.amountUsdc,
@@ -615,6 +623,7 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       successText: 'Cash out started. It lands on the destination chain shortly.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
+      refId: r.transferId,
     };
   }
   throw new Error('Unknown action');
@@ -670,6 +679,27 @@ function ConfirmCard({
       <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
         <p className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-accent)]">Done</p>
         <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
+        {result.txHash ? (
+          <a
+            href={ARC_EXPLORER_TX(result.txHash)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 flex items-baseline justify-between gap-3 group"
+            title={result.txHash}
+          >
+            <span className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Receipt</span>
+            <span className="min-w-0 mono text-[11px] text-[var(--lp-dark)] tabular-nums truncate underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 group-hover:opacity-80">
+              {result.txHash.slice(0, 8)}…{result.txHash.slice(-6)} ↗
+            </span>
+          </a>
+        ) : result.refId ? (
+          <div className="mt-2 flex items-baseline justify-between gap-3" title={result.refId}>
+            <span className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Transfer ref</span>
+            <span className="min-w-0 mono text-[11px] text-[var(--lp-dark)] tabular-nums truncate">
+              {result.refId.slice(0, 8)}…{result.refId.slice(-6)}
+            </span>
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => {
