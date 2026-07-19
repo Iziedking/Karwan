@@ -44,12 +44,16 @@ import {
 /// Friendly chain names the model may pick for a cash-out, mapped to the CCTP
 /// chain keys the bridge-out route expects. Testnet keys because Karwan is on Arc
 /// Testnet. Kept to the well-supported set (mirrors CircleBridgeChainKey).
-const CASH_OUT_CHAINS: Record<string, { key: string; label: string }> = {
+const CASH_OUT_CHAINS: Record<string, { key: string; label: string; solana?: boolean }> = {
   base: { key: 'baseSepolia', label: 'Base' },
   arbitrum: { key: 'arbitrumSepolia', label: 'Arbitrum' },
   optimism: { key: 'optimismSepolia', label: 'Optimism' },
   ethereum: { key: 'sepolia', label: 'Ethereum' },
   polygon: { key: 'polygonAmoy', label: 'Polygon' },
+  // Solana Devnet: verified end-to-end via the bridge-out path (App Kit derives
+  // the recipient ATA from the base58 owner). Only on cash_out (bridge-out), NOT
+  // gateway_cash_out (Gateway spend to Solana is unproven).
+  solana: { key: 'solanaDevnet', label: 'Solana', solana: true },
 };
 import { logger } from '../logger.js';
 
@@ -396,12 +400,12 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     propose_cash_out: tool({
       description:
-        "Prepare a confirm card to CASH OUT USDC from the user's Arc wallet to another blockchain (bridge out via CCTP): move USDC off Arc to Base, Arbitrum, Optimism, Ethereum, or Polygon. Use when they want to cash out / bridge out / send USDC to another chain and have given an amount, a chain, and a 0x destination address. This moves real USDC across chains and cannot be undone.",
+        "Prepare a confirm card to CASH OUT USDC from the user's Arc wallet to another blockchain (bridge out): move USDC off Arc to Base, Arbitrum, Optimism, Ethereum, Polygon, or Solana. Use when they want to cash out / bridge out / send USDC to another chain and have given an amount, a chain, and a destination address (0x for EVM chains, a base58 address for Solana). This moves real USDC across chains and cannot be undone.",
       inputSchema: z.object({
         destChain: z
-          .enum(['base', 'arbitrum', 'optimism', 'ethereum', 'polygon'])
+          .enum(['base', 'arbitrum', 'optimism', 'ethereum', 'polygon', 'solana'])
           .describe('Destination chain to bridge the USDC to.'),
-        toAddress: z.string().min(1).max(60).describe('Destination address on that chain, a full 0x address.'),
+        toAddress: z.string().min(1).max(60).describe('Destination address: a 0x address for EVM chains, or a base58 address for Solana.'),
         amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to cash out.'),
       }),
       execute: async ({ destChain, toAddress, amountUsdc }) => {
@@ -412,12 +416,16 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         if (method !== 'circle') {
           return { error: 'Cashing out from chat is available for email/passkey accounts. This user signed in with a web3 wallet, so they sign the bridge themselves. Send them to the bridge screen with propose_navigation (destination "cash_out").' };
         }
-        const to = toAddress.trim();
-        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
-          return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
-        }
         const chain = CASH_OUT_CHAINS[destChain];
         if (!chain) return { error: 'That chain is not supported for cash-out.' };
+        const to = toAddress.trim();
+        if (chain.solana) {
+          if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(to)) {
+            return { error: 'That is not a valid Solana address. Ask them to paste their base58 Solana address.' };
+          }
+        } else if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+          return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
+        }
         let balanceWei: bigint;
         try {
           balanceWei = await readUsdcBalance(address);
@@ -577,9 +585,10 @@ function authenticatedPreamble(address: string, method: string): string {
     '       propose_withdraw when they want to withdraw on Arc and have given an amount and a',
     '       destination 0x address. Sale proceeds are in the seller agent, refunds in the buyer agent.',
     '       This moves real USDC and is FINAL. Always confirm the destination address is theirs.',
-    '    4. CASH OUT USDC from Arc to ANOTHER chain (Base, Arbitrum, Optimism, Ethereum, Polygon):',
-    '       call propose_cash_out when they want to bridge out / cash out to another chain and have',
-    '       given an amount, a chain, and a 0x address. This bridges real USDC off Arc and is FINAL.',
+    '    4. CASH OUT USDC from Arc to ANOTHER chain (Base, Arbitrum, Optimism, Ethereum, Polygon, or',
+    '       SOLANA): call propose_cash_out when they want to bridge out / cash out and have given an',
+    '       amount, a chain, and a destination address (0x for EVM, a base58 address for Solana). This',
+    '       bridges real USDC off Arc and is FINAL.',
     '    5. ADD to their unified balance: call propose_gateway_deposit when they want to add money to',
     '       their pooled balance. FUND an agent from it: call propose_gateway_fund_agent to move USDC',
     '       from that balance to their buyer or seller agent so it can trade. CASH OUT from it to another',

@@ -2462,7 +2462,9 @@ export const api = {
   bridgeOut: (input: {
     bridgeId: string;
     address: string;
-    destChainKey: BridgeChainKey;
+    // EVM CCTP chains, or 'solanaDevnet' (verified Arc->Solana bridge-out). For
+    // Solana, `recipient` is a base58 owner address, not 0x.
+    destChainKey: BridgeChainKey | 'solanaDevnet';
     amountUsdc: number;
     recipient: string;
     /// Source wallet on Arc that will burn. Defaults to 'identity' on the

@@ -425,13 +425,19 @@ export interface BuildCashOutInput {
 /// accounts. Never throws.
 export function buildCashOutConfirm(i: BuildCashOutInput): CashOutConfirm | { error: string } {
   const to = i.recipient?.trim() ?? '';
-  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+  // Solana recipients are base58 (case-sensitive — do NOT lowercase); EVM are 0x.
+  const isSolana = i.destChainKey === 'solanaDevnet';
+  if (isSolana) {
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(to)) {
+      return { error: 'That is not a valid Solana address.' };
+    }
+  } else if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
     return { error: 'That destination address is not a valid 0x address.' };
   }
   if (!(i.amountUsdc > 0)) {
     return { error: 'The cash-out amount must be greater than 0.' };
   }
-  const dest = to.toLowerCase();
+  const dest = isSolana ? to : to.toLowerCase();
   const fields: { label: string; value: string }[] = [
     { label: 'Amount', value: `${i.amountUsdc} USDC` },
     { label: 'To chain', value: i.destChainLabel },
