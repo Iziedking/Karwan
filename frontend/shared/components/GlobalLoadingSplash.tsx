@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { usePathname } from 'next/navigation';
 import { useIsFetching } from '@tanstack/react-query';
 import { isLandingRoute } from '@/shared/utils/routes';
-import { setSplashActive } from '@/shared/utils/splashSignal';
+import { setSplashActive, subscribeSplashRequest } from '@/shared/utils/splashSignal';
 import { useAuth } from '@/shared/hooks/useAuth';
 
 // Layout effect on the client (runs before the browser paints), plain effect on
@@ -74,6 +74,12 @@ export function GlobalLoadingSplash() {
     },
     [],
   );
+
+  // Imperative sign-in trigger: useSiwe (and email login) fire requestSplash the
+  // instant a sign-in completes — before the async session/terms round-trips —
+  // so the splash is already up when those resolve and the Terms gate resolves.
+  // This is the precise trigger; the isAuthenticated effect below is the backstop.
+  useEffect(() => subscribeSplashRequest(arm), [arm]);
 
   // Publish whether the splash is covering the screen so other root overlays
   // (the Terms gate) can hold until it lifts, instead of popping over the logo.

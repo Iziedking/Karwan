@@ -82,7 +82,7 @@ export function TermsModal() {
       style={{ background: 'rgba(10, 10, 11, 0.78)' }}
     >
       <div
-        className="relative w-full max-w-[560px] max-h-[88vh] bg-[var(--lp-card)] flex flex-col overflow-hidden"
+        className="relative w-full max-w-[560px] max-h-[70vh] bg-[var(--lp-card)] flex flex-col overflow-hidden"
         style={{
           border: '1px solid var(--lp-border-light)',
           borderTopLeftRadius: 18,
