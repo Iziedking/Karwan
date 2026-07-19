@@ -2115,9 +2115,16 @@ function ActionPanel({
           <CTAPill onClick={onRaiseDelayAppeal} disabled={busy}>
             {busy ? copy.awaitingFinalRelease.raiseAppealBusy : copy.awaitingFinalRelease.raiseAppealCta}
           </CTAPill>
-          <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
-            {copy.awaitingFinalRelease.openDisputeCta}
-          </CTAPill>
+          {/* Opening a dispute freezes the escrow and switches off the seller's
+              own auto-release, so against a silent buyer it only wedges their
+              money. Offer it only once the buyer has actively pushed back on a
+              delay appeal, a genuine contest that warrants arbiter escalation.
+              The watcher auto-resolves any dispute that then stalls. */}
+          {deal.delayAppealRespondedAt && (
+            <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
+              {copy.awaitingFinalRelease.openDisputeCta}
+            </CTAPill>
+          )}
         </div>
       )}
     </div>

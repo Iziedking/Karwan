@@ -1,6 +1,7 @@
+import { keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
-import { listAllDeals, patchDeal } from '../db/deals.js';
+import { listAllDeals, patchDeal, type DirectDeal } from '../db/deals.js';
 import { readEscrow } from '../chain/contracts.js';
 import {
   releaseMilestone,
@@ -8,8 +9,10 @@ import {
   disputeEscrow,
   refundEscrow,
   reclaimAfterDeadline,
+  resolveDispute,
   recordReputation,
   ESCROW_ACCEPTED,
+  ESCROW_DISPUTED,
   OUTCOME_FAILED,
 } from '../chain/settlement.js';
 import { bus } from '../events.js';
@@ -68,6 +71,65 @@ async function clearBlocked(jobId: string, parties: { buyer: string; seller: str
   logger.info({ jobId }, 'auto-release resumed');
 }
 
+/// Backstop for a dispute whose counterparty went silent. A dispute can only
+/// leave the Disputed state two ways: the other side accepts a proposal (they
+/// have to click), or the arbiter resolve()s it (a manual admin action). If
+/// neither happens the escrow is frozen forever. Once a dispute is older than
+/// DEAL_DISPUTE_TIMEOUT_MS, resolve it automatically via the same arbiter path
+/// the admin console uses: the seller keeps the unreleased funds if they
+/// delivered (the reported case — real work, buyer vanished), otherwise the
+/// buyer is refunded. No-ops unless a security-council wallet is configured.
+async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
+  if (!config.ESCROW_V2B_ENABLED || !config.SECURITY_COUNCIL_WALLET_ID) return;
+  if (!deal.disputedAt || now < deal.disputedAt + config.DEAL_DISPUTE_TIMEOUT_MS) return;
+  if (processing.has(deal.jobId)) return;
+  processing.add(deal.jobId);
+  try {
+    // The off-chain `disputed` flag can lag a manual resolve or an accepted
+    // proposal, so confirm the chain is still Disputed before signing.
+    const account = await readEscrow(deal.jobId);
+    if (account.state !== ESCROW_DISPUTED) {
+      // Already settled elsewhere; sync the record so it stops being revisited.
+      await patchDeal(deal.jobId, { settledAt: Date.now() });
+      return;
+    }
+    const sellerBps = deal.delivered ? 10000 : 0;
+    const reason = deal.delivered
+      ? 'auto-arbiter: seller delivered and the buyer went silent past the dispute window'
+      : 'auto-arbiter: no delivery and the buyer went silent past the dispute window';
+    const txHash = await resolveDispute(deal.jobId, sellerBps, keccak256(toBytes(reason)));
+    await patchDeal(deal.jobId, {
+      settledAt: Date.now(),
+      cancelKind: 'resolved',
+      cancelReason: reason,
+      resolvedSellerBps: sellerBps,
+      disputeLoser: sellerBps >= 5000 ? 'buyer' : 'seller',
+    });
+    // Seller got paid: pull any financing repayment now instead of next tick.
+    if (sellerBps > 0) {
+      void settleFactoringForDeal(deal.jobId);
+      void settlePOFinancingForDeal(deal.jobId);
+    }
+    bus.emitEvent({
+      type: 'deal.dispute.auto_resolved',
+      jobId: deal.jobId,
+      actor: 'platform',
+      payload: { buyer: deal.buyer, seller: deal.seller, sellerBps, reason, txHash },
+    });
+    logger.info(
+      { jobId: deal.jobId, sellerBps, txHash },
+      'dispute timeout passed with a silent counterparty, auto-resolved via arbiter',
+    );
+  } catch (err) {
+    logger.warn(
+      { jobId: deal.jobId, err: (err as Error).message },
+      'dispute auto-resolve failed',
+    );
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
 /// One pass over direct deals.
 ///
 /// Auto-release covers the first milestone and any intermediate one, on the
@@ -83,7 +145,16 @@ async function clearBlocked(jobId: string, parties: { buyer: string; seller: str
 async function tick() {
   const now = Date.now();
   for (const deal of await listAllDeals()) {
-    if (deal.disputed || deal.cancelledAt || deal.settledAt) continue;
+    if (deal.cancelledAt || deal.settledAt) continue;
+    // A disputed deal is otherwise invisible to every auto-release path below.
+    // Left alone, a dispute whose counterparty goes silent never resolves (the
+    // propose/accept exit needs their click; the arbiter is a manual admin
+    // action). Hand it to the dispute-timeout resolver so money is never stuck,
+    // then skip the release ladder, which does not apply to a disputed escrow.
+    if (deal.disputed) {
+      await maybeAutoResolveDispute(deal, now);
+      continue;
+    }
     // Acceptance window expiry. Seller never accepted in time. Mark cancelled
     // with kind 'pre-accept' so reputation isn't touched on either side; the
     // buyer is freed up to open a fresh deal elsewhere.

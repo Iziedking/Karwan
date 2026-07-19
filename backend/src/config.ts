@@ -276,6 +276,16 @@ const envSchema = z.object({
   // 24h default; lower it for demos via env.
   DEAL_DEADLINE_RECLAIM_GRACE_MS: z.coerce.number().int().positive().default(86_400_000),
 
+  // A dispute with a silent counterparty could sit forever: the propose/accept
+  // exit needs the other side to click accept, and the arbiter resolve() is a
+  // manual admin action. To guarantee money is never permanently stuck, the
+  // watcher auto-resolves any dispute older than this via the arbiter path —
+  // to the seller if they delivered (buyer went silent on real work), else a
+  // refund to the buyer. 7-day default gives an engaged party ample room to
+  // propose a split first; lower it for demos via env. Requires
+  // SECURITY_COUNCIL_WALLET_ID to be configured, else the watcher no-ops.
+  DEAL_DISPUTE_TIMEOUT_MS: z.coerce.number().int().positive().default(604_800_000),
+
   // Financier application eligibility. Anyone can apply to fund factoring / PO
   // lines in the SME rail, but must meet a real bar: minimum account tenure on
   // Karwan, a non-zero stake, and reputation at least COLD. AUTO_APPROVE grants
