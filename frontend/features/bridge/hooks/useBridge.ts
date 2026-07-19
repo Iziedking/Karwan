@@ -588,13 +588,17 @@ export function useBridges() {
           next = { ...cur, phase: 'minting', error: undefined, updatedAt: Date.now() };
         } else if (e.type === 'bridge.minted') {
           const txHash = e.payload?.txHash as `0x${string}` | undefined;
-          // Only flip to 'done' when we have a real on-chain mint tx hash.
-          // Without one we can't prove the USDC actually landed on Arc.
-          if (txHash) {
+          // `alreadyMinted` means the backend checked the CCTP MessageTransmitter
+          // on Arc and found the nonce already consumed — Circle's fast-transfer
+          // forwarder minted first. The USDC HAS landed; we just don't hold the
+          // Arc mint tx (it wasn't our relay). Treat it as done and let the burn
+          // tx stand in as the receipt, instead of hanging in 'minting' forever.
+          const alreadyMinted = e.payload?.alreadyMinted === true;
+          if (txHash || alreadyMinted) {
             next = {
               ...cur,
               phase: 'done',
-              mintTxHash: txHash,
+              ...(txHash ? { mintTxHash: txHash } : {}),
               // The mint landed; drop any leftover error from an earlier
               // recheck attempt so we don't show BRIDGED + a stale error banner.
               error: undefined,
@@ -605,9 +609,9 @@ export function useBridges() {
               recordAction('bridge');
             }
           } else {
-            // Stay in 'minting' so the user keeps the live indicator and the
-            // "Recheck on chain" path remains active. The recheck button is
-            // gated on STUCK_AFTER_MS in the UI; this is intentional.
+            // No tx hash and no already-minted confirmation: stay in 'minting'
+            // so the user keeps the live indicator and the "Recheck on chain"
+            // path remains active (gated on STUCK_AFTER_MS in the UI).
             next = { ...cur, phase: 'minting', updatedAt: Date.now() };
           }
         } else if (e.type === 'bridge.error') {
