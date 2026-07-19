@@ -286,16 +286,22 @@ export const CIRCLE_SOURCE_KEYS: ReadonlySet<string> = new Set([
   'solanaDevnet',
 ]);
 
-/// Source chains whose burn gas is actually sponsored by a Circle Gas Station
-/// policy — mirrors the backend CIRCLE_GAS_STATION_SPONSORED_CHAINS env. On these
-/// the source send is fully gasless via the paymaster. On the other Circle source
-/// chains Karwan still covers the fee by funding the deposit wallet's native gas,
-/// but there's no Gas Station policy, so the banner shows a "covered", not
-/// "sponsored", claim to avoid implying a sponsorship that isn't configured.
-/// Keep this in sync with the backend env.
+/// Source chains whose burn gas is sponsored by a Circle Gas Station policy —
+/// mirrors the backend CIRCLE_GAS_STATION_SPONSORED_CHAINS env. All of these have
+/// an Active default policy in the Circle console, so the source send is fully
+/// gasless via the paymaster and the banner shows "Sponsored". If a Circle source
+/// chain is ever added WITHOUT a policy, leave it out here and the banner falls
+/// back to "Covered" (Karwan funds the deposit wallet's gas instead). Keep this in
+/// sync with the backend env.
 export const CIRCLE_GAS_SPONSORED_KEYS: ReadonlySet<string> = new Set([
   'sepolia',
+  'optimismSepolia',
+  'arbitrumSepolia',
   'baseSepolia',
+  'polygonAmoy',
+  'avalancheFuji',
+  'unichainSepolia',
+  'solanaDevnet',
 ]);
 
 /// Chains we can withdraw TO: every non-Arc CCTP chain.
