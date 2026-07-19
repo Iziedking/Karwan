@@ -29,9 +29,11 @@ const SERIES_DAYS = 30;
 const CACHE_TTL_MS = 60_000;
 /// Minimum gap between background rebuilds. Without this, stale-while-revalidate
 /// kicked a fresh full scan on nearly every 60s poll, so the scanner ran
-/// back-to-back forever. The stats don't move fast on testnet, so a 15-minute
-/// floor is plenty and slashes RPC usage. Env-overridable.
-const REFRESH_FLOOR_MS = Number(process.env.NETWORK_STATS_REFRESH_FLOOR_MS ?? 15 * 60_000);
+/// back-to-back forever. A 5-minute floor keeps the home band within a few
+/// minutes of chain (the staking page reads live, so a wider gap reads as
+/// "not syncing") while still sitting well above the 60s serve-TTL so scans
+/// never run back-to-back. Env-overridable.
+const REFRESH_FLOOR_MS = Number(process.env.NETWORK_STATS_REFRESH_FLOOR_MS ?? 5 * 60_000);
 /// Full re-seed cadence. The incremental scanner only sweeps NEW blocks each
 /// refresh; a periodic full reseed self-heals any window the RPC silently
 /// dropped (Arc returns empty on wide getLogs) so cumulative counts can't drift.
