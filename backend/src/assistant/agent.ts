@@ -38,6 +38,7 @@ import {
   buildGatewayDepositConfirm,
   buildGatewayFundAgentConfirm,
   buildGatewayCashOutConfirm,
+  hasEquivalentConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
 } from './actions.js';
@@ -284,7 +285,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         }
         const built = buildPostOfferConfirm({ caller: address, ...args });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),
@@ -293,7 +294,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       description:
         "Prepare a confirm card to post the user's REQUEST for work or goods they NEED (the agent-mediated path, aka the buyer desk). Use this when they want the platform to find someone for them — e.g. \"find me a developer\", \"I need X built\", \"let the platform look for one\" — and they have given what they need, a budget in USDC, and a deadline. On confirm it posts as themselves; their buyer agent then runs an auction, matches candidates, scores them on skill + reputation, and brings proposals back for them to approve. Nothing is paid until they approve a match. Do NOT use propose_post_offer for this (that advertises what they SELL); this is for what they want to BUY.",
       inputSchema: z.object({
-        brief: z.string().min(5).max(1000).describe('What they need, plainly. e.g. "web3 developer to build a trading bot".'),
+        brief: z.string().min(5).max(500).describe('What they need, plainly. e.g. "web3 developer to build a trading bot". Max 500 characters.'),
         budgetUsdc: z.number().positive().max(5_000_000).describe('Budget in USDC.'),
         // Two ways to give a deadline. NEVER convert a calendar date to days
         // yourself — pass deadlineDate and let the server compute it from its own
@@ -339,7 +340,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           ...(args.deadlineDate ? { deadlineLabel: `by ${args.deadlineDate.trim()}` } : {}),
         });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title, note: 'Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_gateway_fund_agent) or send them to add money.' };
       },
     }),
@@ -397,7 +398,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           remainingUsdc: formatUnits(remainingWei, USDC_DECIMALS),
           isFinal: idx + 1 >= total,
         });
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),
@@ -449,7 +450,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
         });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),
@@ -510,7 +511,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
         });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),
@@ -546,7 +547,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
         });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),
@@ -572,7 +573,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           balanceAfterUsdc: (unified.available - amountUsdc).toFixed(2),
         });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),
@@ -609,7 +610,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           balanceAfterUsdc: (unified.available - amountUsdc).toFixed(2),
         });
         if ('error' in built) return built;
-        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
         return { ok: true, shown: built.title };
       },
     }),

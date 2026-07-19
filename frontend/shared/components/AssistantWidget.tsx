@@ -74,6 +74,20 @@ export function AssistantWidget() {
     }
   }, [open, turns, live, loading, liveClosed]);
 
+  // Account switch on the same tab (sign-out does not reload the page): the
+  // transcript and the confirm-outcome store belong to the previous identity —
+  // balances, deals, and tx receipts must never carry over to the next user.
+  const prevAddressRef = useRef<string | null>(null);
+  useEffect(() => {
+    const next = auth.address?.toLowerCase() ?? null;
+    if (prevAddressRef.current !== null && prevAddressRef.current !== next) {
+      confirmOutcomes.clear();
+      setTurns([]);
+      setError(null);
+    }
+    prevAddressRef.current = next;
+  }, [auth.address]);
+
   // Probe once whether a human operator channel is wired. The handoff button
   // only appears when it is.
   useEffect(() => {
@@ -544,14 +558,18 @@ function NavigateButton({
   );
 }
 
-/// Confirm outcomes persisted for the page session, keyed by action.id. The chat
+/// Confirm outcomes persisted for the page session, keyed by action.id (ids are
+/// server-nonced, so two separately proposed actions never collide). The chat
 /// panel unmounts its cards when it closes (and the "view" button closes it on
 /// the way out), which would otherwise reset a completed card back to its
 /// confirmable state on the next open — re-showing the button (a double-submit:
 /// a second post is a DUPLICATE deal) and dropping the receipt. Recording the
 /// outcome here, outside the component tree, makes 'done' and 'dismissed' survive
-/// remounts and navigation, so a card that already ran can never run again.
-const confirmOutcomes = new Map<string, ConfirmResult | 'dismissed'>();
+/// remounts and navigation, so a card that already ran can never run again. The
+/// 'running' sentinel closes the remaining race: two mounted cards for the same
+/// id can't both fire, because confirm() re-checks the store before executing.
+/// Cleared on account change so one user's outcomes never leak to the next.
+const confirmOutcomes = new Map<string, ConfirmResult | 'dismissed' | 'running'>();
 
 interface ConfirmResult {
   successText: string;
@@ -581,7 +599,10 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       posterAddress: p.posterAddress,
       brief: p.brief,
       budgetUsdc: p.budgetUsdc,
-      deadlineDays: p.deadlineDays,
+      // deadlineDays is often fractional (server-computed from a calendar
+      // date); the route's deadlineDays field is integer-only, so always send
+      // the seconds shape, clamped to the route's own bounds (60s..90d).
+      deadlineSeconds: Math.min(90 * 86_400, Math.max(60, Math.round(p.deadlineDays * 86_400))),
     });
     return {
       successText: 'Request posted. Your agent is finding developers now.',
@@ -607,11 +628,12 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       recipient: string;
       sourceKind: 'identity';
     };
-    // Fresh bridge id per attempt, matching the other bridge surfaces.
-    const bridgeId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `cashout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // Deterministic bridge id per CARD (action ids are server-nonced, so this is
+    // unique per proposed cash-out but STABLE across retries). If the first POST
+    // reaches the backend and only the response is lost, "Try again" re-submits
+    // under the same id and the backend's per-bridgeId idempotency absorbs it —
+    // a fresh id per attempt could double-burn.
+    const bridgeId = `chat-${action.id.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120);
     await api.bridgeOut({
       bridgeId,
       address: p.address,
@@ -666,14 +688,16 @@ function ConfirmCard({
   const router = useRouter();
   // Seed from the durable store so a card that already ran (or was dismissed)
   // stays in that state across panel close/open and navigation — never reverting
-  // to a re-submittable button.
+  // to a re-submittable button. A stale 'running' (in-flight when the panel
+  // unmounted) seeds as idle; the confirm() store re-check still blocks a
+  // second execution while the original request is genuinely in flight.
   const persisted = confirmOutcomes.get(action.id);
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>(
-    persisted === 'dismissed' ? 'dismissed' : persisted ? 'done' : 'idle',
+    persisted === 'dismissed' ? 'dismissed' : persisted && persisted !== 'running' ? 'done' : 'idle',
   );
   const [errMsg, setErrMsg] = useState('');
   const [result, setResult] = useState<ConfirmResult | null>(
-    persisted && persisted !== 'dismissed' ? persisted : null,
+    persisted && persisted !== 'dismissed' && persisted !== 'running' ? persisted : null,
   );
   const busyLabel =
     action.intent === 'release_milestone'
@@ -692,6 +716,17 @@ function ConfirmCard({
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;
+    // Re-check the durable store: another mounted card with this id may have
+    // already run (or be running). Adopt its outcome instead of executing the
+    // intent a second time — this is the double-submit guard for money moves.
+    const existing = confirmOutcomes.get(action.id);
+    if (existing === 'running') return;
+    if (existing && existing !== 'dismissed') {
+      setResult(existing);
+      setStatus('done');
+      return;
+    }
+    confirmOutcomes.set(action.id, 'running');
     setStatus('running');
     setErrMsg('');
     try {
@@ -700,6 +735,8 @@ function ConfirmCard({
       setResult(r);
       setStatus('done');
     } catch (e) {
+      // Clear the sentinel so a genuine failure stays retryable.
+      confirmOutcomes.delete(action.id);
       setErrMsg(e instanceof ApiError ? e.message : 'Could not complete that. Try again.');
       setStatus('error');
     }

@@ -244,6 +244,28 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   feedback: { label: 'Send feedback', build: () => '/feedback' },
 };
 
+/// Uniqueness suffix for confirm-card ids. The frontend keeps a durable
+/// done/dismissed store keyed by id, so two SEPARATELY proposed actions must
+/// never share one — a second "add 100 USDC" card with a reused id would mount
+/// pre-completed, show the old receipt, and never execute (or render nothing at
+/// all if the first was dismissed). Within-reply dedupe compares intent+payload
+/// instead (hasEquivalentConfirm below).
+function confirmNonce(): string {
+  return `${Date.now().toString(36)}${Math.floor(Math.random() * 46_656).toString(36)}`;
+}
+
+/// True when this reply already carries an equivalent confirm action (same
+/// intent, identical payload) — the model called the same tool twice in one
+/// turn. Ids can't be compared for this any more because each carries a nonce.
+export function hasEquivalentConfirm(actions: AssistantAction[], candidate: ConfirmAction): boolean {
+  return actions.some(
+    (a) =>
+      a.kind === 'confirm' &&
+      a.intent === candidate.intent &&
+      JSON.stringify(a.payload) === JSON.stringify(candidate.payload),
+  );
+}
+
 export interface BuildNavigateInput {
   destination: NavigateDestination;
   jobId?: string;
@@ -325,7 +347,7 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConf
 
   return {
     kind: 'confirm',
-    id: `post_offer:${title.toLowerCase().slice(0, 40)}:${input.askingPriceUsdc}`,
+    id: `post_offer:${title.toLowerCase().slice(0, 40)}:${input.askingPriceUsdc}:${confirmNonce()}`,
     intent: 'post_offer',
     title: 'Post this offer',
     summary: description,
@@ -364,8 +386,10 @@ export function buildPostRequestConfirm(
   i: BuildPostRequestInput,
 ): PostRequestConfirm | { error: string } {
   const brief = i.brief?.trim() ?? '';
-  if (brief.length < 5 || brief.length > 1000) {
-    return { error: 'The request needs a short description between 5 and 1000 characters.' };
+  // 500 mirrors the jobs route's brief cap — a longer brief would pass here
+  // and then 400 at Confirm.
+  if (brief.length < 5 || brief.length > 500) {
+    return { error: 'The request needs a short description between 5 and 500 characters.' };
   }
   if (!(i.budgetUsdc > 0) || i.budgetUsdc > 5_000_000) {
     return { error: 'The budget must be greater than 0 and at most 5,000,000 USDC.' };
@@ -386,7 +410,7 @@ export function buildPostRequestConfirm(
   ];
   return {
     kind: 'confirm',
-    id: `post_request:${brief.toLowerCase().slice(0, 40)}:${i.budgetUsdc}`,
+    id: `post_request:${brief.toLowerCase().slice(0, 40)}:${i.budgetUsdc}:${confirmNonce()}`,
     intent: 'post_request',
     title: 'Post this request',
     summary: 'Your buyer agent runs the auction: it matches developers, scores them on skill and reputation, and brings you proposals to approve. Nothing is paid until you approve a match.',
@@ -428,7 +452,7 @@ export function buildReleaseConfirm(i: BuildReleaseInput): ReleaseConfirm {
   ];
   return {
     kind: 'confirm',
-    id: `release:${i.jobId}:${i.milestoneNumber}`,
+    id: `release:${i.jobId}:${i.milestoneNumber}:${confirmNonce()}`,
     intent: 'release_milestone',
     title: i.isFinal ? 'Release the final payment' : 'Release this milestone',
     summary: `Pay the seller for milestone ${i.milestoneNumber} of ${i.totalMilestones}.`,
@@ -470,7 +494,7 @@ export function buildWithdrawConfirm(i: BuildWithdrawInput): WithdrawConfirm | {
   ];
   return {
     kind: 'confirm',
-    id: `withdraw:${i.agent}:${dest}:${i.amountUsdc}`,
+    id: `withdraw:${i.agent}:${dest}:${i.amountUsdc}:${confirmNonce()}`,
     intent: 'withdraw_proceeds',
     title: 'Withdraw USDC',
     summary: `Send ${i.amountUsdc} USDC from your ${i.agent} agent wallet on Arc.`,
@@ -522,7 +546,7 @@ export function buildCashOutConfirm(i: BuildCashOutInput): CashOutConfirm | { er
   ];
   return {
     kind: 'confirm',
-    id: `cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}`,
+    id: `cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}:${confirmNonce()}`,
     intent: 'cash_out',
     title: 'Cash out to another chain',
     summary: `Send ${i.amountUsdc} USDC from your Arc wallet to ${i.destChainLabel}.`,
@@ -550,7 +574,7 @@ export function buildGatewayDepositConfirm(i: {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   return {
     kind: 'confirm',
-    id: `gateway_deposit:${i.amountUsdc}`,
+    id: `gateway_deposit:${i.amountUsdc}:${confirmNonce()}`,
     intent: 'gateway_deposit',
     title: 'Add to your balance',
     summary: `Move ${i.amountUsdc} USDC from your wallet into your unified balance, ready to fund your agents.`,
@@ -576,7 +600,7 @@ export function buildGatewayFundAgentConfirm(i: {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   return {
     kind: 'confirm',
-    id: `gateway_fund_agent:${i.agent}:${i.amountUsdc}`,
+    id: `gateway_fund_agent:${i.agent}:${i.amountUsdc}:${confirmNonce()}`,
     intent: 'gateway_fund_agent',
     title: `Fund your ${i.agent} agent`,
     summary: `Move ${i.amountUsdc} USDC from your unified balance to your ${i.agent} agent wallet so it can trade.`,
@@ -610,7 +634,7 @@ export function buildGatewayCashOutConfirm(i: {
   const dest = to.toLowerCase();
   return {
     kind: 'confirm',
-    id: `gateway_cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}`,
+    id: `gateway_cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}:${confirmNonce()}`,
     intent: 'gateway_cash_out',
     title: 'Cash out from your balance',
     summary: `Send ${i.amountUsdc} USDC from your unified balance to ${i.destChainLabel}.`,
