@@ -2761,7 +2761,7 @@ export const fr: Messages = {
       tag: 'BIENTÔT',
       titleBefore: 'Encaissez en',
       titleAccent: 'monnaie locale',
-      body: 'Off-ramp direct vers NGN, KES, INR, AED et plus. Propulsé par Circle.',
+      body: 'Off-ramp direct vers NGN, KES, INR, AED et plus.',
       tileLabel: 'Off-ramp',
       comingSoon: 'Bientôt disponible',
     },
@@ -3205,7 +3205,7 @@ export const fr: Messages = {
     eyebrow: 'DÉPÔT / RETRAIT',
     title: 'Déplacer USDC vers et depuis Arc',
     intro: 'Les affaires se règlent en USDC sur Arc. Le dépôt amène votre USDC depuis une autre chaîne et, après règlement, le retrait le renvoie là où vous le souhaitez. Tout le flux fonctionne sur Circle Cross-Chain Transfer Protocol. Votre USDC est brûlé sur la chaîne source et frappé à neuf sur la destination. Aucun jeton enveloppé, aucun pool de liquidité tiers.',
-    supportedChains: { heading: 'Chaînes prises en charge', body: 'Douze chaînes, dans les deux sens: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain et HyperEVM, plus Solana. De nouvelles chaînes arrivent au fur et à mesure que Circle les déploie.' },
+    supportedChains: { heading: 'Chaînes prises en charge', body: 'Douze chaînes alimentent Arc: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain et HyperEVM, plus Solana. Le retrait atteint les onze chaînes EVM, et Solana via l\'assistant. De nouvelles chaînes arrivent au fur et à mesure que Circle les déploie.' },
     bringingIn: {
       heading: 'Amener USDC sur Arc',
       steps: {
@@ -3807,7 +3807,7 @@ export const fr: Messages = {
     smallStats: {
       milestoneReleases: 'Libérations d’étapes',
       reputationRecords: 'Records de réputation',
-      vaultClaims: 'Retraits du vault',
+      yieldPayouts: 'Paiements de rendement',
       feesCollected: 'Frais collectés (USDC)',
     },
     sourceContracts: {

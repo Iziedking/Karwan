@@ -2761,7 +2761,7 @@ export const ar: Messages = {
       tag: 'قريبًا',
       titleBefore: 'صرف الأموال إلى',
       titleAccent: 'العملة المحلية',
-      body: 'صرف مباشر إلى NGN وKES وINR وAED وأكثر. مُشغَّل بواسطة Circle.',
+      body: 'صرف مباشر إلى NGN وKES وINR وAED وأكثر.',
       tileLabel: 'صرف الأموال',
       comingSoon: 'قريبًا',
     },
@@ -3205,7 +3205,7 @@ export const ar: Messages = {
     eyebrow: 'إيداع / سحب',
     title: 'انقل USDC إلى Arc ومنه',
     intro: 'تتم تسوية الصفقات بـ USDC على Arc. يجلب الإيداع USDC من سلسلة أخرى، وبعد التسوية يعيده السحب إلى حيث تريد. يعمل التدفق بالكامل على Circle Cross-Chain Transfer Protocol، فيُحرق USDC على السلسلة المصدر ويُسك من جديد على الوجهة. لا توجد رموز ملفوفة ولا برك سيولة من أطراف ثالثة.',
-    supportedChains: { heading: 'السلاسل المدعومة', body: 'اثنتا عشرة سلسلة في كلا الاتجاهين: Ethereum وBase وArbitrum وOptimism وPolygon وAvalanche وUnichain وSei وSonic وWorld Chain وHyperEVM، بالإضافة إلى Solana. تُضاف سلاسل جديدة كلما أطلقتها Circle.' },
+    supportedChains: { heading: 'السلاسل المدعومة', body: 'اثنتا عشرة سلسلة تغذّي Arc: Ethereum وBase وArbitrum وOptimism وPolygon وAvalanche وUnichain وSei وSonic وWorld Chain وHyperEVM، بالإضافة إلى Solana. يصل السحب إلى سلاسل EVM الإحدى عشرة، وإلى Solana عبر المساعد. تُضاف سلاسل جديدة كلما أطلقتها Circle.' },
     bringingIn: {
       heading: 'إحضار USDC إلى Arc',
       steps: {
@@ -3807,7 +3807,7 @@ export const ar: Messages = {
     smallStats: {
       milestoneReleases: 'إطلاقات المعالم',
       reputationRecords: 'سجلات السمعة',
-      vaultClaims: 'مطالبات الخزنة',
+      yieldPayouts: 'دفعات العائد',
       feesCollected: 'الرسوم المحصّلة (USDC)',
     },
     sourceContracts: {

@@ -2761,7 +2761,7 @@ export const hi: Messages = {
       tag: 'जल्द आ रहा है',
       titleBefore: 'कैश आउट करें',
       titleAccent: 'स्थानीय मुद्रा में',
-      body: 'NGN, KES, INR, AED और अधिक के लिए सीधा ऑफ-रैम्प. Circle द्वारा संचालित.',
+      body: 'NGN, KES, INR, AED और अधिक के लिए सीधा ऑफ-रैम्प.',
       tileLabel: 'ऑफ-रैम्प',
       comingSoon: 'जल्द आ रहा है',
     },
@@ -3205,7 +3205,7 @@ export const hi: Messages = {
     eyebrow: 'टॉप-अप / निकासी',
     title: 'USDC को Arc पर लाएँ और बाहर भेजें',
     intro: 'सौदे Arc पर USDC में निपटते हैं. टॉप-अप आपके USDC को किसी अन्य चेन से लाता है और निपटान के बाद निकासी उसे वहीं भेजती है जहाँ आप चाहें. पूरा प्रवाह Circle Cross-Chain Transfer Protocol पर चलता है, इसलिए आपका USDC स्रोत चेन पर जलाया जाता है और गंतव्य पर नया मिंट किया जाता है. न रैप्ड टोकन, न तीसरे पक्ष की लिक्विडिटी पूल.',
-    supportedChains: { heading: 'समर्थित चेन', body: 'बारह चेन, दोनों दिशाओं में: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, और HyperEVM, साथ ही Solana. जैसे ही Circle नई चेन लॉन्च करता है, वे जुड़ती जाती हैं.' },
+    supportedChains: { heading: 'समर्थित चेन', body: 'बारह चेन Arc में टॉप-अप करती हैं: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, और HyperEVM, साथ ही Solana. कैश-आउट ग्यारह EVM चेन तक पहुँचता है, और Solana असिस्टेंट के ज़रिए. जैसे ही Circle नई चेन लॉन्च करता है, वे जुड़ती जाती हैं.' },
     bringingIn: {
       heading: 'USDC को Arc पर लाना',
       steps: {
@@ -3807,7 +3807,7 @@ export const hi: Messages = {
     smallStats: {
       milestoneReleases: 'माइलस्टोन रिलीज़',
       reputationRecords: 'प्रतिष्ठा रिकॉर्ड',
-      vaultClaims: 'वॉल्ट दावे',
+      yieldPayouts: 'यील्ड भुगतान',
       feesCollected: 'जुटाई फीस (USDC)',
     },
     sourceContracts: {

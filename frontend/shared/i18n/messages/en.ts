@@ -3583,7 +3583,7 @@ interface MessagesShape {
     smallStats: {
       milestoneReleases: string;
       reputationRecords: string;
-      vaultClaims: string;
+      yieldPayouts: string;
       feesCollected: string;
     };
     sourceContracts: {
@@ -6633,7 +6633,7 @@ export const en: MessagesShape = {
       tag: 'COMING SOON',
       titleBefore: 'Cash out to',
       titleAccent: 'local currency',
-      body: 'Direct off-ramp to NGN, KES, INR, AED and more. Powered by Circle.',
+      body: 'Direct off-ramp to NGN, KES, INR, AED and more.',
       tileLabel: 'Off-ramp',
       comingSoon: 'Coming soon',
     },
@@ -7116,7 +7116,7 @@ export const en: MessagesShape = {
     intro: 'Deals settle in USDC on Arc. Top up to bring your USDC over from another chain and, after settlement, withdraw it back out to wherever you want it. There are two rails on the page. Circle Gateway gives you one pooled balance across every supported chain, so you deposit once and then spend to any chain from a single signature. CCTP is the one-time transfer: your USDC is burned on the source chain and minted fresh on the destination. Either way there are no wrapped tokens and no third-party liquidity pools.',
     supportedChains: {
       heading: 'Supported chains',
-      body: 'Twelve chains, in both directions: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, and HyperEVM, plus Solana. New chains come on as Circle rolls them out.',
+      body: 'Twelve chains top up Arc: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, and HyperEVM, plus Solana. Cash out reaches the eleven EVM chains, and Solana through the assistant. New chains come on as Circle rolls them out.',
     },
     bringingIn: {
       heading: 'Bringing USDC to Arc',
@@ -7758,7 +7758,7 @@ export const en: MessagesShape = {
     smallStats: {
       milestoneReleases: 'Milestone releases',
       reputationRecords: 'Reputation records',
-      vaultClaims: 'Vault claims',
+      yieldPayouts: 'Yield payouts',
       feesCollected: 'Fees collected (USDC)',
     },
     sourceContracts: {

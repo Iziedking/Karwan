@@ -2761,7 +2761,7 @@ export const sw: Messages = {
       tag: 'INAKUJA KARIBUNI',
       titleBefore: 'Toa fedha kwa',
       titleAccent: 'sarafu ya ndani',
-      body: 'Off-ramp ya moja kwa moja kwenda NGN, KES, INR, AED na nyingine. Inaendeshwa na Circle.',
+      body: 'Off-ramp ya moja kwa moja kwenda NGN, KES, INR, AED na nyingine.',
       tileLabel: 'Off-ramp',
       comingSoon: 'Inakuja karibuni',
     },
@@ -3205,7 +3205,7 @@ export const sw: Messages = {
     eyebrow: 'WEKA / TOA',
     title: 'Hamisha USDC kuingia na kutoka Arc',
     intro: 'Mikataba inalipwa kwa USDC kwenye Arc. Kuweka huleta USDC yako kutoka mnyororo mwingine na, baada ya malipo, kutoa huirudisha popote unapotaka. Mtiririko mzima unaendeshwa kwenye Circle Cross-Chain Transfer Protocol, hivyo USDC yako inachomwa kwenye mnyororo wa chanzo na inachapishwa upya kwenye mnyororo wa lengo. Hakuna tokeni zilizofungwa, hakuna mabwawa ya ukwasi ya watu wa tatu.',
-    supportedChains: { heading: 'Minyororo inayoungwa mkono', body: 'Minyororo kumi na miwili, kwa pande zote mbili: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, na HyperEVM, pamoja na Solana. Minyororo mipya inajumuishwa kadri Circle inavyoizindua.' },
+    supportedChains: { heading: 'Minyororo inayoungwa mkono', body: 'Minyororo kumi na miwili inaongeza kwenye Arc: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, na HyperEVM, pamoja na Solana. Kutoa fedha kunafikia minyororo kumi na moja ya EVM, na Solana kupitia msaidizi. Minyororo mipya inajumuishwa kadri Circle inavyoizindua.' },
     bringingIn: {
       heading: 'Kuleta USDC kwenye Arc',
       steps: {
@@ -3807,7 +3807,7 @@ export const sw: Messages = {
     smallStats: {
       milestoneReleases: 'Utoaji wa hatua',
       reputationRecords: 'Rekodi za sifa',
-      vaultClaims: 'Madai ya vault',
+      yieldPayouts: 'Malipo ya faida',
       feesCollected: 'Ada zilizokusanywa (USDC)',
     },
     sourceContracts: {
