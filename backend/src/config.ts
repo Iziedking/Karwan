@@ -18,6 +18,12 @@ const envSchema = z.object({
   ///   ARC_TESTNET_RPC_URLS=https://primary.example,https://backup.example
   ARC_TESTNET_RPC_URLS: z.string().optional(),
   ARC_TESTNET_WSS_URL: z.string().default('wss://rpc.testnet.arc.network'),
+  /// Optional comma-separated fallback WSS URLs. Same shape as
+  /// ARC_TESTNET_RPC_URLS: the ws client rotates to the next endpoint when the
+  /// primary websocket errors or drops, so a dedicated-endpoint blip doesn't
+  /// strand the event watchers. Example:
+  ///   ARC_TESTNET_WSS_URLS=wss://rpc.testnet.arc.network
+  ARC_TESTNET_WSS_URLS: z.string().optional(),
   ARC_TESTNET_EXPLORER_URL: z.string().url().default('https://testnet.arcscan.app'),
 
   IDENTITY_REGISTRY_ADDR: z
