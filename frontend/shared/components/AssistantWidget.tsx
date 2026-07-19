@@ -544,6 +544,15 @@ function NavigateButton({
   );
 }
 
+/// Confirm outcomes persisted for the page session, keyed by action.id. The chat
+/// panel unmounts its cards when it closes (and the "view" button closes it on
+/// the way out), which would otherwise reset a completed card back to its
+/// confirmable state on the next open — re-showing the button (a double-submit:
+/// a second post is a DUPLICATE deal) and dropping the receipt. Recording the
+/// outcome here, outside the component tree, makes 'done' and 'dismissed' survive
+/// remounts and navigation, so a card that already ran can never run again.
+const confirmOutcomes = new Map<string, ConfirmResult | 'dismissed'>();
+
 interface ConfirmResult {
   successText: string;
   viewHref: string;
@@ -655,9 +664,17 @@ function ConfirmCard({
   onNavigate: () => void;
 }) {
   const router = useRouter();
-  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>('idle');
+  // Seed from the durable store so a card that already ran (or was dismissed)
+  // stays in that state across panel close/open and navigation — never reverting
+  // to a re-submittable button.
+  const persisted = confirmOutcomes.get(action.id);
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>(
+    persisted === 'dismissed' ? 'dismissed' : persisted ? 'done' : 'idle',
+  );
   const [errMsg, setErrMsg] = useState('');
-  const [result, setResult] = useState<ConfirmResult | null>(null);
+  const [result, setResult] = useState<ConfirmResult | null>(
+    persisted && persisted !== 'dismissed' ? persisted : null,
+  );
   const busyLabel =
     action.intent === 'release_milestone'
       ? 'Releasing…'
@@ -679,6 +696,7 @@ function ConfirmCard({
     setErrMsg('');
     try {
       const r = await runConfirmIntent(action);
+      confirmOutcomes.set(action.id, r);
       setResult(r);
       setStatus('done');
     } catch (e) {
@@ -764,7 +782,10 @@ function ConfirmCard({
         </button>
         <button
           type="button"
-          onClick={() => setStatus('dismissed')}
+          onClick={() => {
+            confirmOutcomes.set(action.id, 'dismissed');
+            setStatus('dismissed');
+          }}
           disabled={status === 'running'}
           className="mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 border border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-60 transition"
           style={{ borderRadius: 10 }}
