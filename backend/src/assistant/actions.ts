@@ -25,13 +25,15 @@ export interface NavigateAction {
   description?: string;
 }
 
-/// A propose->confirm card for a reversible write. The assistant PREPARES the
-/// action and the user must tap Confirm; the frontend then calls the SAME
-/// session-gated route the UI uses. The backend never executes here — it only
-/// hands back a validated payload the user has to approve. Stage 3 ships one
-/// intent, `post_offer` (post a standing offer; off-chain, no funds move, fully
-/// cancelable). Later intents (post_request, fund, release, ...) extend `intent`
-/// and `ConfirmPayload` on this same shape.
+/// A propose->confirm card for a write. The assistant PREPARES the action and the
+/// user must tap Confirm; the frontend then calls the SAME session-gated route the
+/// UI uses. The backend never executes here — it only hands back a validated
+/// payload the user has to approve. Intents so far:
+///   - post_offer       (Stage 3): post a standing offer. Off-chain, no funds move, cancelable.
+///   - release_milestone (Stage 4): pay the seller a milestone from escrow. Real USDC,
+///                        IRREVERSIBLE, so the card carries a `warning`. Still not a wallet
+///                        signature: the buyer agent's Circle wallet signs on the backend, gated
+///                        by the buyer's session + explicit Confirm — the human-approval invariant.
 export interface PostOfferPayload {
   /// Always the caller's own session address, set by the backend, never the
   /// model. The listings route re-checks isSessionSelf, so a tampered payload
@@ -44,24 +46,42 @@ export interface PostOfferPayload {
   ttlDays?: number;
 }
 
-export interface ConfirmAction {
+export interface ReleaseMilestonePayload {
+  jobId: string;
+  /// Always the caller's own session address (the buyer), set by the backend. The
+  /// release route re-checks isSessionSelf AND caller === deal.buyer.
+  caller: string;
+}
+
+interface ConfirmActionBase {
   kind: 'confirm';
   id: string;
-  /// Discriminates which existing route the frontend calls on confirm.
-  intent: 'post_offer';
   /// Card heading, e.g. "Post this offer".
   title: string;
-  /// One line under the heading (here, the offer description).
+  /// One line under the heading.
   summary?: string;
+  /// A stark, red-flagged line for irreversible/money-moving actions. Absent on
+  /// harmless ones like post_offer.
+  warning?: string;
   /// Read-only rows the card shows so the user sees exactly what will happen.
   fields: { label: string; value: string }[];
-  /// The validated body passed to the intent's route on confirm.
-  payload: PostOfferPayload;
   confirmLabel?: string;
   cancelLabel?: string;
 }
 
-/// Stage 2 shipped `navigate`; Stage 3 adds `confirm`. The envelope + renderer
+export interface PostOfferConfirm extends ConfirmActionBase {
+  intent: 'post_offer';
+  payload: PostOfferPayload;
+}
+export interface ReleaseConfirm extends ConfirmActionBase {
+  intent: 'release_milestone';
+  payload: ReleaseMilestonePayload;
+}
+
+/// Discriminated on `intent`, which also tells the frontend which route to call.
+export type ConfirmAction = PostOfferConfirm | ReleaseConfirm;
+
+/// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
 export type AssistantAction = NavigateAction | ConfirmAction;
 
@@ -180,7 +200,7 @@ export interface BuildPostOfferInput {
 /// createSchema (title 3-120, description 5-500, price >0 and <=5,000,000, pct
 /// 0-50, ttl ~1min-90d); the route re-validates on confirm, so this is a friendly
 /// first pass, not the security boundary. Never throws.
-export function buildPostOfferConfirm(input: BuildPostOfferInput): ConfirmAction | { error: string } {
+export function buildPostOfferConfirm(input: BuildPostOfferInput): PostOfferConfirm | { error: string } {
   const title = input.title?.trim() ?? '';
   const description = input.description?.trim() ?? '';
   if (title.length < 3 || title.length > 120) {
@@ -228,6 +248,49 @@ export function buildPostOfferConfirm(input: BuildPostOfferInput): ConfirmAction
     fields,
     payload,
     confirmLabel: 'Post offer',
+    cancelLabel: 'Not now',
+  };
+}
+
+export interface BuildReleaseInput {
+  /// The authenticated caller (the buyer), backend-set — never the model.
+  caller: string;
+  jobId: string;
+  /// Display label for the seller (paytag or address).
+  counterparty: string;
+  /// 1-based index of the milestone being released, and the total count.
+  milestoneNumber: number;
+  totalMilestones: number;
+  /// Pre-formatted USDC strings computed by the caller from the on-chain escrow,
+  /// so this stays a pure builder with no chain/bigint math.
+  amountUsdc: string;
+  remainingUsdc: string;
+  isFinal: boolean;
+}
+
+/// Build a release-milestone confirm card. Pure: the tool reads the escrow, does
+/// the amount math, and passes formatted values in. Always carries the
+/// irreversible `warning`. There is no failure path here — the tool validates
+/// releasability before calling this.
+export function buildReleaseConfirm(i: BuildReleaseInput): ReleaseConfirm {
+  const fields: { label: string; value: string }[] = [
+    { label: 'To', value: i.counterparty },
+    { label: 'Milestone', value: `${i.milestoneNumber} of ${i.totalMilestones}` },
+    { label: 'Releasing now', value: `${i.amountUsdc} USDC` },
+    i.isFinal
+      ? { label: 'After this', value: 'Deal complete' }
+      : { label: 'Left in escrow', value: `${i.remainingUsdc} USDC` },
+  ];
+  return {
+    kind: 'confirm',
+    id: `release:${i.jobId}:${i.milestoneNumber}`,
+    intent: 'release_milestone',
+    title: i.isFinal ? 'Release the final payment' : 'Release this milestone',
+    summary: `Pay the seller for milestone ${i.milestoneNumber} of ${i.totalMilestones}.`,
+    warning: 'Payouts are final. This cannot be undone.',
+    fields,
+    payload: { jobId: i.jobId, caller: i.caller },
+    confirmLabel: 'Release payment',
     cancelLabel: 'Not now',
   };
 }

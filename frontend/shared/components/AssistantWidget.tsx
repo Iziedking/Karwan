@@ -513,12 +513,25 @@ function NavigateButton({
   );
 }
 
-/// Run a confirm action against the SAME session-gated route the UI uses. Stage 3
-/// has one intent, post_offer. Returns where the user can go to see the result.
-async function runConfirmIntent(action: AssistantConfirmAction): Promise<{ viewHref: string }> {
+interface ConfirmResult {
+  successText: string;
+  viewHref: string;
+  viewLabel: string;
+}
+
+/// Run a confirm action against the SAME session-gated route the UI uses. Each
+/// intent maps to one existing api method; nothing here signs — for release the
+/// backend's buyer-agent Circle wallet signs, gated by the session. Returns what
+/// to show on success.
+async function runConfirmIntent(action: AssistantConfirmAction): Promise<ConfirmResult> {
   if (action.intent === 'post_offer') {
     await api.postListing(action.payload as Parameters<typeof api.postListing>[0]);
-    return { viewHref: '/market' };
+    return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
+  }
+  if (action.intent === 'release_milestone') {
+    const p = action.payload as { jobId: string; caller: string };
+    await api.releaseDirectDeal(p.jobId, p.caller);
+    return { successText: 'Payment released.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal' };
   }
   throw new Error('Unknown action');
 }
@@ -536,15 +549,16 @@ function ConfirmCard({
   const router = useRouter();
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error' | 'dismissed'>('idle');
   const [errMsg, setErrMsg] = useState('');
-  const [viewHref, setViewHref] = useState<string | null>(null);
+  const [result, setResult] = useState<ConfirmResult | null>(null);
+  const busyLabel = action.intent === 'release_milestone' ? 'Releasing…' : 'Posting…';
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;
     setStatus('running');
     setErrMsg('');
     try {
-      const { viewHref: href } = await runConfirmIntent(action);
-      setViewHref(href);
+      const r = await runConfirmIntent(action);
+      setResult(r);
       setStatus('done');
     } catch (e) {
       setErrMsg(e instanceof ApiError ? e.message : 'Could not complete that. Try again.');
@@ -554,23 +568,21 @@ function ConfirmCard({
 
   if (status === 'dismissed') return null;
 
-  if (status === 'done') {
+  if (status === 'done' && result) {
     return (
       <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
         <p className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-accent)]">Done</p>
-        <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">Your offer is live.</p>
-        {viewHref && (
-          <button
-            type="button"
-            onClick={() => {
-              onNavigate();
-              router.push(viewHref);
-            }}
-            className="mt-2 mono text-[10px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
-          >
-            View on the market
-          </button>
-        )}
+        <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate();
+            router.push(result.viewHref);
+          }}
+          className="mt-2 mono text-[10px] uppercase tracking-[0.1em] font-bold text-[var(--lp-dark)] underline decoration-[var(--lp-accent)] decoration-2 underline-offset-2 hover:opacity-80"
+        >
+          {result.viewLabel}
+        </button>
       </div>
     );
   }
@@ -589,6 +601,14 @@ function ConfirmCard({
           </div>
         ))}
       </dl>
+      {action.warning && (
+        <p className="flex items-start gap-1.5 mono text-[10px] leading-snug text-[var(--lp-critical)] mt-2.5">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden className="shrink-0 mt-px">
+            <path d="M8 1.5l6.5 11.5H1.5L8 1.5zm0 4.2v3.4m0 1.7v.1" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          </svg>
+          <span>{action.warning}</span>
+        </p>
+      )}
       {status === 'error' && <p className="mono text-[10px] text-[var(--lp-critical)] mt-2">{errMsg}</p>}
       <div className="flex gap-2 mt-3">
         <button
@@ -598,7 +618,7 @@ function ConfirmCard({
           className="flex-1 mono text-[10px] uppercase tracking-[0.1em] font-bold px-3 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] disabled:opacity-60 hover:brightness-105 transition"
           style={{ borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 10, borderBottomRightRadius: 3 }}
         >
-          {status === 'running' ? 'Posting…' : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
+          {status === 'running' ? busyLabel : status === 'error' ? 'Try again' : action.confirmLabel ?? 'Confirm'}
         </button>
         <button
           type="button"

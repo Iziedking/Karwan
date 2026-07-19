@@ -971,14 +971,18 @@ export interface AssistantNavigateAction {
 }
 
 /// A propose->confirm card. The user must tap Confirm; the widget then calls the
-/// same session-gated route the UI uses. Stage 3 has one intent, `post_offer`
-/// (off-chain, no funds move). `payload` is the validated body for that route.
+/// same session-gated route the UI uses. Intents: `post_offer` (off-chain, no
+/// funds move) and `release_milestone` (pays the seller real USDC from escrow,
+/// irreversible — carries `warning`). `payload` is the validated body for the
+/// intent's route. Mirrors the backend union; keep in sync.
 export interface AssistantConfirmAction {
   kind: 'confirm';
   id: string;
-  intent: 'post_offer';
+  intent: 'post_offer' | 'release_milestone';
   title: string;
   summary?: string;
+  /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
+  warning?: string;
   fields: { label: string; value: string }[];
   payload: Record<string, unknown>;
   confirmLabel?: string;

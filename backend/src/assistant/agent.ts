@@ -21,7 +21,7 @@ import { formatUnits, type Address } from 'viem';
 import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import { KARWAN_ASSISTANT_SYSTEM } from './knowledge.js';
-import { readUsdcBalance } from '../chain/contracts.js';
+import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -30,6 +30,7 @@ import { diagnoseUserError } from '../llm/supervisor.js';
 import {
   buildNavigateAction,
   buildPostOfferConfirm,
+  buildReleaseConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
 } from './actions.js';
@@ -248,6 +249,64 @@ function buildTools(address: string, actions: AssistantAction[]) {
         return { ok: true, shown: built.title };
       },
     }),
+
+    propose_release: tool({
+      description:
+        "Prepare a confirm card to RELEASE a milestone payment to the seller on one of the buyer's own deals. This pays the seller real USDC from escrow and CANNOT be undone, so it only shows a card the buyer must approve; it never releases on its own. Use it when the buyer clearly wants to pay out, release, or approve a delivery on a specific deal. Only the buyer can release, and only after the seller has marked the work delivered.",
+      inputSchema: z.object({
+        jobId: z.string().min(1).max(120).describe('The deal id to release the next milestone on.'),
+      }),
+      execute: async ({ jobId }) => {
+        const deal = await getDeal(jobId).catch(() => null);
+        if (!deal) return { error: `No deal found with id ${jobId}.` };
+        if (deal.buyer !== address) {
+          return deal.seller === address
+            ? { error: 'Only the buyer can release a payment. On this deal you are the seller, so you receive it, you do not release it.' }
+            : { error: 'That deal is not one of yours, so I cannot release it.' };
+        }
+        if (deal.cancelledAt) return { error: 'That deal was cancelled, so there is nothing to release.' };
+        if (deal.settledAt) return { error: 'That deal is already fully settled.' };
+        if (deal.disputed) return { error: 'That deal is in dispute, so releasing is paused until it resolves.' };
+        if (!deal.delivered) {
+          return { error: 'The seller has not marked the work delivered yet, so there is nothing to release. Offer a button to open the deal (destination "open_deal").' };
+        }
+        if (deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious') {
+          return { error: 'Karwan flagged the delivery link and is holding it for review. Release is paused until it clears.' };
+        }
+        if (!deal.buyerAgentWalletId) {
+          return { error: 'This deal has no buyer agent wallet on record, so it cannot be released from here.' };
+        }
+        let escrow;
+        try {
+          escrow = await readEscrow(jobId);
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_release escrow read failed');
+          return { error: "Could not read this deal's escrow right now. Try again shortly." };
+        }
+        const total = escrow.milestonePcts.length;
+        const idx = escrow.milestonesReleased; // next milestone to release, 0-based
+        if (total === 0) return { error: "Could not read this deal's milestones. Open the deal to release it." };
+        if (idx >= total) return { error: 'Every milestone on this deal is already released.' };
+        const pct = escrow.milestonePcts[idx] ?? 0;
+        if (pct <= 0) return { error: 'Could not determine the next milestone amount for this deal.' };
+
+        const amountWei = (escrow.dealAmount * BigInt(pct)) / 100n;
+        const releasedAfter = escrow.released + amountWei;
+        const remainingWei = escrow.dealAmount > releasedAfter ? escrow.dealAmount - releasedAfter : 0n;
+        const built = buildReleaseConfirm({
+          caller: address,
+          jobId,
+          counterparty: deal.sellerPaytag ?? deal.seller,
+          milestoneNumber: idx + 1,
+          totalMilestones: total,
+          amountUsdc: formatUnits(amountWei, USDC_DECIMALS),
+          remainingUsdc: formatUnits(remainingWei, USDC_DECIMALS),
+          isFinal: idx + 1 >= total,
+        });
+        if (!actions.some((a) => a.id === built.id)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
   };
 }
 
@@ -265,14 +324,17 @@ function authenticatedPreamble(address: string, method: string): string {
     '- When they ask about their balance, their deals, or a specific deal, CALL A TOOL and',
     '  answer from what it returns. Never invent a balance, an amount, a status, or a deal id.',
     '- If a tool returns an error or nothing, say so plainly. Do not paper over it with a guess.',
-    '- You can READ, and you can PREPARE one thing for them to approve: posting a standing OFFER to',
-    '  supply work or goods. When they want to do that and have given a title, a short description, and',
-    '  an asking price, call propose_post_offer to show a confirm card. It does not post until they tap',
-    '  Confirm, and it posts as them. It moves no money and the offer can be cancelled later.',
-    '- You cannot yet EXECUTE anything else: no moving money, funding, releasing, cancelling, topping up,',
-    '  bridging, or signing from chat, and no posting a REQUEST for work they need (that funds an',
-    '  auction). For those, call propose_navigation to show a button to the right screen, where they',
-    '  finish it themselves. Do not just describe the page. Add one short line of context with the button.',
+    '- You can READ, and you can PREPARE two things for them to approve, each as a confirm card that',
+    '  does nothing until they tap Confirm:',
+    '    1. Post a standing OFFER to supply work or goods: call propose_post_offer once they have given',
+    '       a title, a short description, and an asking price. It moves no money and is cancelable.',
+    '    2. RELEASE a milestone payment on a deal they are the BUYER on: call propose_release with the',
+    '       jobId when they clearly want to pay out, release, or approve a delivery. This pays the',
+    '       seller real USDC and is FINAL. Only the buyer can release, and only after delivery.',
+    '- You cannot yet EXECUTE anything else: no funding, cancelling, topping up, bridging, withdrawing,',
+    '  or signing from chat, and no posting a REQUEST for work they need (that funds an auction). For',
+    '  those, call propose_navigation to show a button to the right screen, where they finish it',
+    '  themselves. Do not just describe the page. Add one short line of context with the button.',
     '- Amounts are USDC on Arc testnet. Keep replies plain and short.',
   ].join('\n');
 }
