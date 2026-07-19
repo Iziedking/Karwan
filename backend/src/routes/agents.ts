@@ -6,6 +6,7 @@ import { getBuyerSnapshot } from '../agents/buyer.js';
 import { getSellerSnapshot, abandonBid } from '../agents/seller.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { sessionAddress } from '../auth/session.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { llmModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
@@ -218,7 +219,12 @@ function buildExtractPrompt(
   ].join('\n');
 }
 
-agentsRoutes.post('/extract-deal', async (c) => {
+/// Paid LLM call — rate-limited like assistant/chat so an anonymous flood can't
+/// drive the model bill (this was the one billed endpoint left open).
+agentsRoutes.post(
+  '/extract-deal',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'extract-deal' }),
+  async (c) => {
   let body: unknown;
   try {
     body = await c.req.json();
@@ -268,7 +274,8 @@ agentsRoutes.post('/extract-deal', async (c) => {
       502,
     );
   }
-});
+  },
+);
 
 /// Scan free-text for the first plausible counterparty hint, either an
 /// Ethereum address (0x + 40 hex chars) or an email. Wallet match is

@@ -16,6 +16,7 @@ import { getLegacyWindow } from '../chain/legacyWindow.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
 import { listDealsForAddress, patchDeal, type DirectDeal } from '../db/deals.js';
+import { isSessionSelf } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
@@ -211,6 +212,15 @@ async function loadDealForLegacyAction(
   | { ok: true; deal: DirectDeal; walletId: string; generation: LegacyGeneration }
   | { ok: false; response: Response }
 > {
+  // Party membership alone is not enough: the session must OWN the claimed
+  // address, or anyone knowing a jobId + a party address could force-drive
+  // that party's legacy escrow (forced release/refund). Mirrors deals.ts.
+  if (!isSessionSelf(c, body.address)) {
+    return {
+      ok: false,
+      response: c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403),
+    };
+  }
   const a = body.address.toLowerCase();
   const deals = await listDealsForAddress(a);
   const deal = deals.find((d) => d.jobId.toLowerCase() === jobId.toLowerCase());

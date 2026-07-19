@@ -16,6 +16,7 @@ import {
 } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf } from '../auth/session.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
@@ -181,7 +182,10 @@ const dripBridgeSchema = z.object({
   // Which CCTP chain's bridge wallet to refuel. Defaults to Base Sepolia.
   chain: z.enum(CCTP_CHAIN_KEYS).optional(),
 });
-activationRoutes.post('/drip-bridge', async (c) => {
+activationRoutes.post(
+  '/drip-bridge',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 10, name: 'drip-bridge' }),
+  async (c) => {
   let body;
   try {
     body = dripBridgeSchema.parse(await c.req.json());
@@ -254,7 +258,10 @@ const faucetSchema = z.object({
   address: addrSchema,
   target: z.enum(['identity', 'buyer', 'seller']),
 });
-activationRoutes.post('/faucet', async (c) => {
+activationRoutes.post(
+  '/faucet',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 10, name: 'faucet' }),
+  async (c) => {
   let body;
   try {
     body = faucetSchema.parse(await c.req.json());
@@ -300,7 +307,10 @@ const fundSourceSchema = z.object({
   address: addrSchema,
   chain: z.enum(CCTP_CHAIN_KEYS),
 });
-activationRoutes.post('/fund-source', async (c) => {
+activationRoutes.post(
+  '/fund-source',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 10, name: 'fund-source' }),
+  async (c) => {
   let body;
   try {
     body = fundSourceSchema.parse(await c.req.json());
@@ -351,6 +361,12 @@ activationRoutes.post('/activate', async (c) => {
     body = activateSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Activation provisions Circle wallets and seeds operator float — only the
+  // signed-in owner may trigger it for their own address (sign-in always
+  // precedes activation, so a session exists here).
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only activate your own account.', code: 'forbidden' }, 403);
   }
   const userAddress = body.address.toLowerCase();
 

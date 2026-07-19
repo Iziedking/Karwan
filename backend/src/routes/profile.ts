@@ -239,7 +239,10 @@ function verifyEmailHtml(code: string): string {
 async function sendVerifyEmail(email: string, code: string): Promise<boolean> {
   const client = resendClient();
   if (!client) {
-    logger.info({ email, code }, '[EMAIL-VERIFY] code (no RESEND_API_KEY, log-only)');
+    // Dev-only: live OTPs must never land in production logs (mirrors auth.ts).
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info({ email, code }, '[EMAIL-VERIFY] code (no RESEND_API_KEY, log-only)');
+    }
     return false;
   }
   try {
@@ -387,6 +390,9 @@ profileRoutes.post('/x-handle', async (c) => {
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only edit your own profile.', code: 'forbidden' }, 403);
+  }
   const existing = await getProfile(body.address);
   if (!existing) return c.json({ error: 'profile not found' }, 404);
   const normalised = body.handle ? body.handle.replace(/^@/, '') : undefined;
@@ -423,10 +429,11 @@ profileRoutes.delete('/', async (c) => {
   const addr = address.toLowerCase();
   const force = c.req.query('force') === 'true';
 
-  // Destructive: a signed-in Circle session may only delete its own account.
-  const session = readSession(c);
-  if (session && session.address.toLowerCase() !== addr) {
-    return c.json({ error: 'address does not match the signed-in account' }, 403);
+  // Destructive: only the signed-in owner may delete their own account. The
+  // positive gate matters — the old `session && mismatch` shape let a caller
+  // with NO session delete any address.
+  if (!isSessionSelf(c, addr)) {
+    return c.json({ error: 'You can only delete your own account.', code: 'forbidden' }, 403);
   }
 
   // Warn (don't hard-block) when agent wallets still hold funds: deleting does

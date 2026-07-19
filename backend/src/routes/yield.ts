@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
+import { isSessionSelf } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 
@@ -506,6 +507,12 @@ yieldRoutes.post('/claim', async (c) => {
     return c.json({ error: 'invalid body', detail: parsed.error.flatten() }, 400);
   }
   const { address } = parsed.data;
+  // The claim signs from the user's custodial wallet on operator-sponsored gas;
+  // only the owner may trigger it (funds always go to the owner regardless, but
+  // an open trigger burns sponsored gas and disturbs accrual timing).
+  if (!isSessionSelf(c, address)) {
+    return c.json({ error: 'You can only claim as your own wallet.', code: 'forbidden' }, 403);
+  }
   const user = await getUserByAddress(address);
   if (!user?.circleIdentityWalletId) {
     return c.json(
