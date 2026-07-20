@@ -449,6 +449,9 @@ export interface DirectDeal {
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;
   firstAutoReleased?: boolean;
+  /// Approval-to-onchain-verified duration of the most recent buyer release,
+  /// ms. Rendered as the settlement-speed receipt on the deal page.
+  lastSettleMs?: number;
   disputed?: boolean;
   disputedAt?: number;
   cancelledAt?: number;
@@ -2204,10 +2207,20 @@ export const api = {
       },
     ),
   releaseDirectDeal: (jobId: string, caller: string) =>
-    json<{ accepted: boolean; jobId: string; txHash: string; settled: boolean }>(
+    json<{ accepted: boolean; jobId: string; txHash: string; settled: boolean; settledInMs?: number }>(
       `/api/deals/direct/${jobId}/release`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  /// Published dispute/recovery timelines, read from the live platform config
+  /// (the same values the watcher enforces). Renders on /docs/disputes.
+  disputePolicy: () =>
+    json<{
+      reviewWindowMs: number;
+      delayAppealGraceMs: number;
+      delayAppealResponseMs: number;
+      deadlineReclaimGraceMs: number;
+      disputeTimeoutMs: number;
+    }>('/api/network/dispute-policy'),
   /// v2b seller claim: after the buyer's review window elapses on a marked
   /// delivery, the seller forces the next milestone payout. The contract
   /// enforces the window; a too-early call returns 502 (ReviewWindowOpen) and a

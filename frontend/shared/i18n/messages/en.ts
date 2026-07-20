@@ -1995,6 +1995,7 @@ interface MessagesShape {
         autoReleased: string;
         normal: string;
         cashoutTemplate: string;
+        settleTimeEyebrow: string;
       };
       cancelled: {
         preAccept: string;
@@ -2987,6 +2988,7 @@ interface MessagesShape {
         overview: { label: string; blurb: string };
         agents: { label: string; blurb: string };
         deals: { label: string; blurb: string };
+        disputes: { label: string; blurb: string };
         reputation: { label: string; blurb: string };
         bridge: { label: string; blurb: string };
         roadmap: { label: string; blurb: string };
@@ -2995,6 +2997,39 @@ interface MessagesShape {
     };
     pager: { previous: string; next: string };
     figure: { videoComingSoon: string; screenshotComingSoon: string };
+  };
+  docsDisputesPage: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    policy: {
+      liveTag: string;
+      reviewWindow: string;
+      appealGrace: string;
+      buyerResponse: string;
+      reclaimGrace: string;
+      disputeTimeout: string;
+      note: string;
+    };
+    buyerSilent: {
+      heading: string;
+      s1: { label: string; body: string };
+      s2: { label: string; body: string };
+      s3: { label: string; body: string };
+    };
+    sellerLate: {
+      heading: string;
+      s1: { label: string; body: string };
+      s2: { label: string; body: string };
+    };
+    disputed: {
+      heading: string;
+      intro: string;
+      s1: { label: string; body: string };
+      s2: { label: string; body: string };
+      s3: { label: string; body: string };
+    };
+    callout: { title: string; body: string };
   };
   docsIndexPage: {
     eyebrow: string;
@@ -5974,6 +6009,7 @@ export const en: MessagesShape = {
         autoReleased: 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.',
         normal: 'Settled. The seller has been paid in full and reputation is recorded on chain.',
         cashoutTemplate: 'Cash out {amount} USDC →',
+        settleTimeEyebrow: 'settled on chain in',
       },
       cancelled: {
         preAccept: 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.',
@@ -7023,6 +7059,7 @@ export const en: MessagesShape = {
         overview: { label: 'Overview', blurb: 'What Karwan is and how the pieces fit.' },
         agents: { label: 'Agents', blurb: 'How the buyer and seller agents negotiate.' },
         deals: { label: 'Deals & Escrow', blurb: 'Both deal flows, milestones, settlement.' },
+        disputes: { label: 'Disputes', blurb: 'Published timelines for every recovery path.' },
         reputation: { label: 'Reputation & Stake', blurb: 'The composite score and the vault.' },
         bridge: { label: 'Top up / Withdraw', blurb: 'Cross-chain USDC with CCTP V2.' },
         roadmap: { label: 'Roadmap', blurb: 'Strong functionality shipping next.' },
@@ -7031,6 +7068,39 @@ export const en: MessagesShape = {
     },
     pager: { previous: 'Previous', next: 'Next' },
     figure: { videoComingSoon: 'video coming soon', screenshotComingSoon: 'screenshot coming soon' },
+  },
+  docsDisputesPage: {
+    eyebrow: 'DISPUTES',
+    title: 'Dispute process and timelines',
+    intro: 'Every recovery path runs on a published clock, enforced by the escrow contract and the platform watcher, not by support tickets. The values below are read live from the platform config: the numbers you see are the numbers the watcher enforces.',
+    policy: {
+      liveTag: 'LIVE POLICY',
+      reviewWindow: 'First review window',
+      appealGrace: 'Delay appeal opens',
+      buyerResponse: 'Buyer response window',
+      reclaimGrace: 'Reclaim grace',
+      disputeTimeout: 'Dispute backstop',
+      note: 'Read from platform config at page load. Testnet values are short by design.',
+    },
+    buyerSilent: {
+      heading: 'If the buyer goes quiet',
+      s1: { label: 'Auto-release starts.', body: 'After delivery, the first milestone releases on its own once the review window of {reviewWindow} passes with no action. The final milestone never auto-releases on a silent timer.' },
+      s2: { label: 'Raise a delay appeal.', body: 'Opens {appealGrace} after the last release. The buyer gets {buyerResponse} to respond.' },
+      s3: { label: 'The platform settles.', body: 'No response inside the window and the final milestone releases to the seller. No ticket, no human in the loop.' },
+    },
+    sellerLate: {
+      heading: 'If the seller misses the deadline',
+      s1: { label: 'The buyer is alerted.', body: 'The moment the deadline passes without delivery, with one-click reclaim or extend.' },
+      s2: { label: 'Auto-reclaim.', body: 'Still no delivery after {reclaimGrace} of grace and the escrow returns to the buyer in full. The miss lands on the seller reputation record.' },
+    },
+    disputed: {
+      heading: 'If a deal is disputed',
+      intro: 'A dispute freezes the escrow on chain. Neither side can move the money, and neither can Karwan outside the paths below.',
+      s1: { label: 'Settle it between you.', body: 'Either side proposes a release or a refund. One click from the other side and the funds move instantly.' },
+      s2: { label: 'Arbiter ruling.', body: 'The security council splits the escrow by percentage, on chain. The ruling text and the split are public on the deal record.' },
+      s3: { label: 'The backstop.', body: 'A dispute with a silent counterparty auto-resolves after {disputeTimeout}. Delivered work pays the seller, no delivery refunds the buyer. A buyer who contested delivered work goes to the arbiter, never to a timer.' },
+    },
+    callout: { title: 'Nothing freezes forever', body: 'Funds sit in the escrow contract, not with Karwan. Every hold has a clock, every clock has an exit, and every exit is visible on Arc.' },
   },
   docsIndexPage: {
     eyebrow: 'OVERVIEW',

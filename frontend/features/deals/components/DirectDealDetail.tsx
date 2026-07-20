@@ -1510,6 +1510,15 @@ function ProgressTrack({
   );
 }
 
+/// Settlement-speed readout: sub-10s keeps a decimal ("8.4s"), under two
+/// minutes rounds to seconds, anything longer reads minutes+seconds. Mono
+/// instrument formatting, locale-neutral units.
+function fmtSettleTime(ms: number): string {
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 120_000) return `${Math.round(ms / 1000)}s`;
+  return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
+}
+
 function fmtCountdown(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const days = Math.floor(total / 86_400);
@@ -1608,6 +1617,17 @@ function ActionPanel({
                 ? copy.settled.autoReleased
                 : copy.settled.normal}
           </Body>
+        )}
+        {/* Settlement-speed receipt: approval to on-chain verification, from the
+            release route's own measurement. Seconds, where marketplaces hold
+            cleared funds for days. The number is the argument. */}
+        {!resolved && deal.lastSettleMs != null && (
+          <p className="mono text-[11px] uppercase tracking-[0.14em] text-white/45">
+            [:{copy.settled.settleTimeEyebrow}:]{' '}
+            <span className="tabular-nums font-semibold" style={{ color: 'var(--lp-accent)' }}>
+              {fmtSettleTime(deal.lastSettleMs)}
+            </span>
+          </p>
         )}
         {viewerIsSeller && (!resolved || sellerBps > 0) && (
           <Link href={`/cashout/${deal.jobId}`}>

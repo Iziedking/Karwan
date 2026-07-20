@@ -168,6 +168,11 @@ export interface DirectDeal {
   reviewExtensionCount?: number;
   // True once the first milestone was auto-released because the buyer stalled.
   firstAutoReleased?: boolean;
+  /// How long the most recent buyer release took from approval to on-chain
+  /// verification, in ms. The settlement-speed receipt: seconds on Arc where
+  /// marketplaces hold cleared funds for days. Set by the release route only
+  /// (auto-releases have no human approval moment to measure from).
+  lastSettleMs?: number;
   // Seller filed an appeal; escrow is moved to Disputed on chain.
   disputed?: boolean;
   disputedAt?: number;

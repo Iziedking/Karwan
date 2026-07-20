@@ -614,7 +614,17 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
   if (action.intent === 'release_milestone') {
     const p = action.payload as { jobId: string; caller: string };
     const r = await api.releaseDirectDeal(p.jobId, p.caller);
-    return { successText: 'Payment released.', viewHref: `/deals/${p.jobId}`, viewLabel: 'Open the deal', txHash: r.txHash };
+    // Settlement-speed line: the route measures approval-to-verified itself.
+    const settleLine =
+      r.settledInMs != null
+        ? ` Settled on chain in ${r.settledInMs < 10_000 ? (r.settledInMs / 1000).toFixed(1) : Math.round(r.settledInMs / 1000)}s.`
+        : '';
+    return {
+      successText: `Payment released.${settleLine}`,
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+      txHash: r.txHash,
+    };
   }
   if (action.intent === 'withdraw_proceeds') {
     const r = await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);

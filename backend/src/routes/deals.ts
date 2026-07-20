@@ -1773,10 +1773,16 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   inFlight.add(jobId);
   try {
     const releasedIndex = account.milestonesReleased;
+    // Approval-to-verified duration. releaseMilestone re-reads escrow state
+    // after the tx lands, so the stamp means "money verifiably moved on Arc",
+    // not "request submitted". Persisted per deal and returned to the client:
+    // seconds, where marketplaces hold cleared funds for days.
+    const releaseStartedAt = Date.now();
     const txHash = await releaseMilestone(jobId, releasedIndex, deal.buyerAgentWalletId);
+    const settledInMs = Date.now() - releaseStartedAt;
     const settled = await finalizeIfSettled(jobId);
     if (settled) {
-      await patchDeal(jobId, { settledAt: Date.now(), lastReleaseAt: Date.now() });
+      await patchDeal(jobId, { settledAt: Date.now(), lastReleaseAt: Date.now(), lastSettleMs: settledInMs });
       // The seller's escrow funds have just landed. Pull any factoring or PO
       // repayment now, while the money is still in their wallet, rather than
       // waiting up to a poll interval for the watcher. Fire-and-forget: both
@@ -1786,7 +1792,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     } else if (releasedIndex === 0) {
       // First milestone is out. Open the buyer's review window for the rest.
       const startedAt = Date.now();
-      await patchDeal(jobId, { reviewWindowStartedAt: startedAt, lastReleaseAt: startedAt });
+      await patchDeal(jobId, { reviewWindowStartedAt: startedAt, lastReleaseAt: startedAt, lastSettleMs: settledInMs });
       bus.emitEvent({
         type: 'deal.review.started',
         jobId,
@@ -1800,9 +1806,9 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       });
     } else {
       // Intermediate milestone on a 3+ part deal. Anchors the next window.
-      await patchDeal(jobId, { lastReleaseAt: Date.now() });
+      await patchDeal(jobId, { lastReleaseAt: Date.now(), lastSettleMs: settledInMs });
     }
-    return c.json({ accepted: true, jobId, txHash, settled }, 200);
+    return c.json({ accepted: true, jobId, txHash, settled, settledInMs }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'release failed');
