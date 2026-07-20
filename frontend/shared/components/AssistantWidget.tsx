@@ -584,6 +584,24 @@ interface ConfirmResult {
   refId?: string;
 }
 
+/// Poll a just-started bridge for its source-side burn hash. The bridge-out
+/// route accepts (202) and signs the Arc burn in the background, so the hash
+/// exists a beat later. Bounded so a slow burn never hangs the card: returns
+/// null and the caller falls back to "track it on /bridge".
+async function pollBurnTxHash(bridgeId: string): Promise<string | undefined> {
+  for (let i = 0; i < 6; i++) {
+    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const s = await api.bridgeStatus(bridgeId);
+      if (s.sourceTxHash) return s.sourceTxHash;
+      if (s.status === 'error') return undefined;
+    } catch {
+      // Record not visible yet, or a transient read failure. Keep waiting.
+    }
+  }
+  return undefined;
+}
+
 /// Run a confirm action against the SAME session-gated route the UI uses. Each
 /// intent maps to one existing api method; nothing here signs — for release the
 /// backend's buyer-agent Circle wallet signs, gated by the session. Returns what
@@ -652,10 +670,18 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       recipient: p.recipient,
       sourceKind: p.sourceKind,
     });
+    // The route returns 202 and burns in the background, so there is no hash to
+    // show yet. Wait briefly for the Arc burn to land so the card carries a real
+    // verifiable receipt like every other intent. If it hasn't landed in time
+    // the cash-out is still running fine — the card just points at /bridge.
+    const burnTxHash = await pollBurnTxHash(bridgeId);
     return {
-      successText: 'Cash out started. It lands on the destination chain in a few minutes.',
+      successText: burnTxHash
+        ? 'Cash out started. The Arc burn is confirmed; the destination mint follows in a few minutes.'
+        : 'Cash out started. It lands on the destination chain in a few minutes.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
+      ...(burnTxHash ? { txHash: burnTxHash } : {}),
     };
   }
   if (action.intent === 'gateway_deposit') {

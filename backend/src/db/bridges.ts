@@ -176,16 +176,25 @@ export async function listPendingBridges(): Promise<BridgeRelay[]> {
   return (await loadAllBridges()).filter(isPending);
 }
 
-/// Bridge records whose source-chain DCW is one of the given wallet addresses.
-/// Powers the per-user bridge list so a user (or operator) can see the status of
-/// every Circle bridge they've started. Newest first.
+/// Bridge records belonging to the given user. Matches EITHER `owner` (the
+/// session identity that started the bridge) OR `bridgeWalletAddress` (the
+/// wallet that signs the burn). Both are needed: bridge-INs are only keyed by
+/// the source-chain DCW, while an agent-sourced bridge-OUT burns from an AGENT
+/// wallet whose address is in neither the caller's identity nor their
+/// bridgeWallets — matching on bridgeWalletAddress alone silently dropped
+/// those from history, so a real cash-out looked like it never happened.
+/// Newest first.
 export async function listBridgesForWallets(
   walletAddresses: string[],
 ): Promise<BridgeRelay[]> {
   const set = new Set(walletAddresses.map((a) => a.toLowerCase()));
   const all = await loadAllBridges();
   return all
-    .filter((b) => b.bridgeWalletAddress && set.has(b.bridgeWalletAddress.toLowerCase()))
+    .filter(
+      (b) =>
+        (b.owner && set.has(b.owner.toLowerCase())) ||
+        (b.bridgeWalletAddress && set.has(b.bridgeWalletAddress.toLowerCase())),
+    )
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
