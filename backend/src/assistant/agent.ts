@@ -38,6 +38,8 @@ import { getSellerSnapshot } from '../agents/seller.js';
 import { listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
 import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
 import { getProfile } from '../db/profiles.js';
+import { readSourceUsdcBalance } from '../chain/cctpClients.js';
+import type { CctpChainKey } from '../chain/cctpChains.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readUserGatewayBalance } from '../gateway/balance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
@@ -48,6 +50,16 @@ import {
   buildReleaseConfirm,
   buildWithdrawConfirm,
   buildCashOutConfirm,
+  buildTopUpConfirm,
+  buildApproveMatchConfirm,
+  buildDeclineMatchConfirm,
+  buildAcceptDealConfirm,
+  buildMarkDeliveredConfirm,
+  buildCancelRequestConfirm,
+  buildCancelListingConfirm,
+  buildStakeConfirm,
+  buildClaimYieldConfirm,
+  buildFundAgentDirectConfirm,
   buildGatewayDepositConfirm,
   buildGatewayFundAgentConfirm,
   buildGatewayCashOutConfirm,
@@ -71,6 +83,27 @@ const CASH_OUT_CHAINS: Record<string, { key: string; label: string; solana?: boo
   solana: { key: 'solanaDevnet', label: 'Solana', solana: true },
 };
 import { logger } from '../logger.js';
+
+/// Chains a Circle account can be topped up FROM without signing anything: the
+/// backend holds a per-user deposit DCW on each, so it signs the burn itself.
+/// Keyed by the plain name the model uses. `circleBlockchain` matches the key
+/// under `bridgeWallets`; `key` is the CCTP chain key the bridge route wants.
+const TOP_UP_CHAINS = {
+  base: { key: 'baseSepolia', label: 'Base', circleBlockchain: 'BASE-SEPOLIA' },
+  ethereum: { key: 'sepolia', label: 'Ethereum', circleBlockchain: 'ETH-SEPOLIA' },
+  optimism: { key: 'optimismSepolia', label: 'Optimism', circleBlockchain: 'OP-SEPOLIA' },
+  arbitrum: { key: 'arbitrumSepolia', label: 'Arbitrum', circleBlockchain: 'ARB-SEPOLIA' },
+  polygon: { key: 'polygonAmoy', label: 'Polygon', circleBlockchain: 'MATIC-AMOY' },
+  avalanche: { key: 'avalancheFuji', label: 'Avalanche', circleBlockchain: 'AVAX-FUJI' },
+  unichain: { key: 'unichainSepolia', label: 'Unichain', circleBlockchain: 'UNI-SEPOLIA' },
+} as const satisfies Record<
+  string,
+  { key: CctpChainKey; label: string; circleBlockchain: string }
+>;
+const TOP_UP_CHAIN_NAMES = Object.keys(TOP_UP_CHAINS) as [
+  keyof typeof TOP_UP_CHAINS,
+  ...(keyof typeof TOP_UP_CHAINS)[],
+];
 
 const USDC_DECIMALS = 6;
 const NATIVE_DECIMALS = arcTestnet.nativeCurrency.decimals;
@@ -619,6 +652,382 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    check_top_up_sources: tool({
+      description:
+        "Check what USDC is already sitting in the user's own deposit wallets on other chains (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain) — the wallets Karwan holds for them, whose addresses are shown as 'your deposit address'. Call this BEFORE proposing a top-up, and whenever they say 'move X from <chain> to Arc' or ask why their money hasn't arrived. Money in one of these wallets can be moved to Arc with no action from them at all; money in an outside wallet (their own MetaMask, an exchange) has to be sent to the deposit address first, because Karwan cannot touch a wallet it does not hold.",
+      inputSchema: z.object({
+        chain: z
+          .enum(TOP_UP_CHAIN_NAMES)
+          .optional()
+          .describe('Limit to one chain. Omit to check all of them.'),
+      }),
+      execute: async ({ chain }) => {
+        try {
+          const record = await getAgentWallets(address).catch(() => null);
+          if (!record) {
+            return { error: 'They must activate their wallets first. Offer a button to their profile (destination "profile").' };
+          }
+          const names = chain ? [chain] : [...TOP_UP_CHAIN_NAMES];
+          const rows = await Promise.all(
+            names.map(async (name) => {
+              const cfg = TOP_UP_CHAINS[name];
+              const wallet = record.bridgeWallets?.[cfg.circleBlockchain];
+              if (!wallet) {
+                return { chain: cfg.label, depositAddress: null, usdc: null };
+              }
+              return {
+                chain: cfg.label,
+                depositAddress: wallet.address,
+                usdc: await readSourceUsdcBalance(cfg.key, wallet.address),
+              };
+            }),
+          );
+          const funded = rows.filter((r) => r.usdc !== null && Number(r.usdc) > 0);
+          return {
+            wallets: rows,
+            note: funded.length
+              ? 'Chains with a balance can be moved to Arc right now with propose_top_up — no signing, no wallet popup. Do that instead of sending them to a page.'
+              : 'No USDC waiting in any deposit wallet. To bring money in from an outside wallet or exchange, they send USDC to the deposit address for that chain (give them the address for the chain they named), and once it lands you can move it to Arc for them. If a deposit address is null, send them to top_up to have it created.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant check_top_up_sources failed');
+          return { error: 'Could not read the deposit wallets right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_top_up: tool({
+      description:
+        "Prepare a confirm card that moves USDC from the user's deposit wallet on another chain over to Arc. Karwan's backend signs the whole bridge, so a Circle (email) account never signs anything. ONLY call this after check_top_up_sources shows that deposit wallet actually holds the amount. Use it for 'move 20 USDC from Base to Arc', 'bring my money over', 'top me up'. Never send an email user to the bridge page for this — do it for them.",
+      inputSchema: z.object({
+        chain: z.enum(TOP_UP_CHAIN_NAMES).describe('Which chain the USDC is coming from.'),
+        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to move.'),
+        to: z
+          .enum(['wallet', 'buyerAgent', 'sellerAgent'])
+          .optional()
+          .describe("Where it lands on Arc. Defaults to their main wallet; use an agent only if they asked to fund that agent."),
+      }),
+      execute: async ({ chain, amountUsdc, to }) => {
+        try {
+          if (method !== 'circle') {
+            return { error: 'Backend-signed top-up is for email/passkey accounts. This user signs their own source-chain burn, so send them to the bridge screen with propose_navigation (destination "top_up") and frame it as them keeping custody.' };
+          }
+          const record = await getAgentWallets(address).catch(() => null);
+          if (!record) {
+            return { error: 'They must activate their wallets first. Offer a button to their profile (destination "profile").' };
+          }
+          const cfg = TOP_UP_CHAINS[chain];
+          const wallet = record.bridgeWallets?.[cfg.circleBlockchain];
+          if (!wallet) {
+            return { error: `They have no ${cfg.label} deposit wallet yet. Send them to top_up with propose_navigation so it gets created, then they can fund it.` };
+          }
+          // Never propose moving money that isn't there: the route would fail
+          // at the burn and the user would think Karwan lost it.
+          const balance = await readSourceUsdcBalance(cfg.key, wallet.address);
+          if (balance === null) {
+            return { error: `Could not read their ${cfg.label} balance right now. Ask them to try again in a moment.` };
+          }
+          if (Number(balance) < amountUsdc) {
+            return {
+              error: `Their ${cfg.label} deposit wallet holds ${balance} USDC, less than the ${amountUsdc} they asked to move. Tell them the real balance, and that money in an outside wallet has to be sent to their ${cfg.label} deposit address (${wallet.address}) first — Karwan can only move what sits in a wallet it holds for them.`,
+            };
+          }
+          const mintRecipient =
+            to === 'buyerAgent'
+              ? record.buyerAddress
+              : to === 'sellerAgent'
+                ? record.sellerAddress
+                : address;
+          const destinationLabel =
+            to === 'buyerAgent'
+              ? 'Your buyer agent on Arc'
+              : to === 'sellerAgent'
+                ? 'Your seller agent on Arc'
+                : 'Your Arc wallet';
+          const built = buildTopUpConfirm({
+            caller: address,
+            sourceChainKey: cfg.key,
+            sourceChainLabel: cfg.label,
+            amountUsdc,
+            mintRecipient,
+            destinationLabel,
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_top_up failed');
+          return { error: 'Could not prepare that top-up right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_match_decision: tool({
+      description:
+        "Prepare a confirm card to APPROVE or DECLINE a match the user's agent negotiated. Approving funds the escrow and starts the deal; declining costs nothing and the agent keeps looking. Use whenever they say 'approve it', 'accept that match', 'go ahead with them', 'turn it down', 'decline'. Call whats_pending first if you are not sure which proposal they mean. Only works on a proposal that is genuinely waiting on THEM.",
+      inputSchema: z.object({
+        jobId: z.string().min(1).max(120).describe('The job id of the proposal.'),
+        decision: z.enum(['approve', 'decline']).describe('What they want to do.'),
+        reason: z.string().max(400).optional().describe('Optional short reason, decline only.'),
+      }),
+      execute: async ({ jobId, decision, reason }) => {
+        try {
+          const proposals = await listMatchProposalsForUser(address);
+          const p = proposals.find((x) => x.jobId === jobId);
+          if (!p) return { error: `No match proposal found on ${jobId} for this account.` };
+          if (p.approvedAt) return { error: 'That match was already approved. It is a live deal now — use list_my_deals.' };
+          if (p.declinedAt) return { error: 'That match was already declined.' };
+          const isBuyer = p.buyerUser === address;
+          const awaiting = p.awaitingParty ?? 'seller';
+          if (awaiting !== (isBuyer ? 'buyer' : 'seller')) {
+            return { error: `That proposal is waiting on the ${awaiting}, not on them. Tell them it is not their turn yet.` };
+          }
+          const price = p.raisedPriceUsdc ?? p.agreedPriceUsdc;
+          const counterpartyLabel = isBuyer ? p.sellerUser : p.buyerUser;
+          if (decision === 'decline') {
+            const built = buildDeclineMatchConfirm({
+              caller: address,
+              jobId,
+              counterpartyLabel,
+              priceUsdc: price,
+              ...(reason ? { reason } : {}),
+            });
+            if ('error' in built) return built;
+            if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+            return { ok: true, shown: built.title };
+          }
+          const built = buildApproveMatchConfirm({
+            caller: address,
+            jobId,
+            counterpartyLabel,
+            priceUsdc: price,
+            ...(p.fundedAmountUsdc ? { fundedAmountUsdc: p.fundedAmountUsdc } : {}),
+            deadlineLabel: p.deadlineUnix
+              ? new Date(p.deadlineUnix * 1000).toISOString().slice(0, 10)
+              : 'as agreed',
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          // Surfaced, not blocking: the route enforces funding itself, but
+          // warning up front beats a failed confirm.
+          return {
+            ok: true,
+            shown: built.title,
+            ...(p.fundable === false
+              ? { warnUser: `Their buyer agent holds ${p.agentBalanceUsdc ?? '0'} USDC but the escrow needs ${p.fundedAmountUsdc ?? price}. Tell them they need about ${p.topUpNeededUsdc ?? 'more'} USDC more, and offer to fund the agent (propose_fund_agent) first.` }
+              : {}),
+            ...(p.riskFlag ? { warnUser: `Risk flag on this match: ${p.riskFlag}. ${p.riskNote ?? ''}` } : {}),
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_match_decision failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_accept_deal: tool({
+      description:
+        "Prepare a confirm card for the SELLER to accept a direct deal that is waiting on them. Accepting funds the escrow on chain and reserves part of their stake against the deal. Use for 'accept the deal', 'take that job', 'yes to that offer'.",
+      inputSchema: z.object({
+        jobId: z.string().min(1).max(120).describe('The deal id to accept.'),
+      }),
+      execute: async ({ jobId }) => {
+        try {
+          const deal = await getDeal(jobId);
+          if (!deal) return { error: `No deal found with id ${jobId}.` };
+          if (!canViewDeal(deal, address)) return { error: 'That deal is not one of theirs.' };
+          if (deal.seller !== address) {
+            return { error: 'Only the seller accepts a deal. They are the buyer on this one.' };
+          }
+          if (deal.acceptedAt) return { error: 'They already accepted that deal. It is in progress.' };
+          if (deal.cancelledAt) return { error: 'That deal was cancelled.' };
+          const built = buildAcceptDealConfirm({
+            caller: address,
+            jobId,
+            amountUsdc: deal.dealAmountUsdc,
+            counterpartyLabel: deal.buyer,
+            deadlineLabel: deal.deadlineUnix
+              ? new Date(deal.deadlineUnix * 1000).toISOString().slice(0, 10)
+              : 'as agreed',
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_accept_deal failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_mark_delivered: tool({
+      description:
+        "Prepare a confirm card for the SELLER to mark a deal delivered, which starts the buyer's review window and puts the payment in reach. Use for 'I finished the work', 'mark it delivered', 'I've sent it'.",
+      inputSchema: z.object({
+        jobId: z.string().min(1).max(120).describe('The deal id.'),
+        note: z
+          .string()
+          .max(300)
+          .optional()
+          .describe('Optional short note to the buyer about what was delivered.'),
+      }),
+      execute: async ({ jobId, note }) => {
+        try {
+          const deal = await getDeal(jobId);
+          if (!deal) return { error: `No deal found with id ${jobId}.` };
+          if (!canViewDeal(deal, address)) return { error: 'That deal is not one of theirs.' };
+          if (deal.seller !== address) {
+            return { error: 'Only the seller marks work delivered. They are the buyer on this one — they RELEASE payment instead (propose_release).' };
+          }
+          if (!deal.acceptedAt) return { error: 'They have not accepted that deal yet, so there is nothing to deliver. Offer propose_accept_deal.' };
+          if (deal.delivered) return { error: 'That deal is already marked delivered; the buyer is reviewing.' };
+          const built = buildMarkDeliveredConfirm({
+            caller: address,
+            jobId,
+            amountUsdc: deal.dealAmountUsdc,
+            ...(note ? { deliveryProof: note } : {}),
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_mark_delivered failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_take_down: tool({
+      description:
+        "Prepare a confirm card to take one of the user's own market posts down: an OFFER they are selling (pass listingId) or a REQUEST their buyer agent is running (pass jobId). Use for 'cancel my request', 'take my offer down', 'remove that listing'. Call get_my_market_activity first if you need the id.",
+      inputSchema: z.object({
+        listingId: z.string().max(120).optional().describe('The offer id, for an offer.'),
+        jobId: z.string().max(120).optional().describe('The request id, for a request.'),
+      }),
+      execute: async ({ listingId, jobId }) => {
+        try {
+          if (listingId) {
+            const mine = listListingsForSeller(address).find((l) => l.id === listingId);
+            if (!mine) return { error: 'That offer is not one of theirs.' };
+            if (mine.cancelledAt) return { error: 'That offer is already taken down.' };
+            if (mine.matchedAt) return { error: 'That offer already matched into a deal, so it cannot be taken down.' };
+            const built = buildCancelListingConfirm({ caller: address, listingId, title: mine.title });
+            if ('error' in built) return built;
+            if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+            return { ok: true, shown: built.title };
+          }
+          if (jobId) {
+            const record = await getAgentWallets(address).catch(() => null);
+            const job = record?.buyerAddress
+              ? getBuyerSnapshot(record.buyerAddress).jobs.find((j) => j.jobId === jobId)
+              : undefined;
+            if (!job) return { error: 'That request is not one of theirs.' };
+            if (job.finalized) return { error: 'That request already matched, so it cannot be cancelled. They can cancel the DEAL instead, which has its own rules.' };
+            if (job.cancelledAt) return { error: 'That request is already cancelled.' };
+            const built = buildCancelRequestConfirm({ caller: address, jobId, budgetUsdc: job.budgetUsdc });
+            if ('error' in built) return built;
+            if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+            return { ok: true, shown: built.title };
+          }
+          return { error: 'Ask them which one they mean: an offer they are selling, or a request they posted.' };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_take_down failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_stake: tool({
+      description:
+        "Prepare a confirm card to stake USDC into the vault, which earns yield and raises their reputation score. Use for 'stake 50 USDC', 'I want to earn yield', 'how do I raise my reputation' (after explaining, offer the card).",
+      inputSchema: z.object({
+        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to stake.'),
+      }),
+      execute: async ({ amountUsdc }) => {
+        try {
+          if (method !== 'circle') {
+            return { error: 'Staking moves their own identity wallet, which they self-custody, so they sign it themselves. Send them to the stake screen with propose_navigation (destination "stake") and frame it as them keeping custody.' };
+          }
+          const balance = Number(formatUnits(await readUsdcBalance(address), USDC_DECIMALS));
+          if (balance < amountUsdc) {
+            return { error: `Their wallet holds ${balance.toFixed(2)} USDC, less than the ${amountUsdc} they want to stake. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
+          }
+          const built = buildStakeConfirm({
+            caller: address,
+            amountUsdc,
+            walletAfterUsdc: (balance - amountUsdc).toFixed(2),
+            cooldownLabel: '7 day',
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_stake failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_claim_yield: tool({
+      description:
+        "Prepare a confirm card to claim the user's accrued staking yield into their wallet. Use for 'claim my yield', 'collect my earnings', or proactively when get_my_stake or whats_pending shows claimable yield.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          if (method !== 'circle') {
+            return { error: 'Claiming yield moves their own identity wallet, so they sign it themselves. Send them to the stake screen with propose_navigation (destination "stake").' };
+          }
+          const snap = await readStakerYield(address);
+          if (!snap.configured || !(Number(snap.claimableUsdc) > 0)) {
+            return { error: 'They have no yield to claim right now. Yield is credited daily on staked USDC.' };
+          }
+          const built = buildClaimYieldConfirm({ caller: address, claimableUsdc: snap.claimableUsdc });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_claim_yield failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    propose_fund_agent: tool({
+      description:
+        "Prepare a confirm card to move USDC from the user's main wallet into their buyer or seller agent wallet, so the agent can bid and fund deals. Use for 'fund my buyer agent', 'my agent has no money', or when a match cannot be approved because the buyer agent is short. This is the DIRECT wallet-to-agent move; use propose_gateway_fund_agent only when the money is in their unified balance instead.",
+      inputSchema: z.object({
+        agent: z.enum(['buyer', 'seller']).describe('Which agent to fund.'),
+        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to move.'),
+      }),
+      execute: async ({ agent, amountUsdc }) => {
+        try {
+          if (method !== 'circle') {
+            return { error: 'Funding an agent from their own wallet needs their signature (they self-custody it). Send them to their profile with propose_navigation (destination "profile"). Note: they CAN fund an agent from their unified balance without signing — propose_gateway_fund_agent — if they have one.' };
+          }
+          const record = await getAgentWallets(address).catch(() => null);
+          if (!record) {
+            return { error: 'They must activate their agent wallets first. Offer a button to their profile (destination "profile").' };
+          }
+          const balance = Number(formatUnits(await readUsdcBalance(address), USDC_DECIMALS));
+          if (balance < amountUsdc) {
+            return { error: `Their wallet holds ${balance.toFixed(2)} USDC, less than the ${amountUsdc} they want to move. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
+          }
+          const built = buildFundAgentDirectConfirm({
+            caller: address,
+            agent,
+            amountUsdc,
+            walletAfterUsdc: (balance - amountUsdc).toFixed(2),
+          });
+          if ('error' in built) return built;
+          if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+          return { ok: true, shown: built.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_fund_agent failed');
+          return { error: 'Could not prepare that right now. Try again shortly.' };
+        }
+      },
+    }),
+
     explain_error: tool({
       description:
         'Turn a cryptic error the user hit into a plain-language explanation with a next step. Pass the short action they were doing (e.g. "release", "fund", "bridge") and the raw error text they saw.',
@@ -1065,9 +1474,27 @@ function authenticatedPreamble(address: string, method: string): string {
     'Open offers, requests, agent bids -> get_my_market_activity. Factoring + PO financing -> get_my_financing.',
     'Past money moves, bridges, matches -> recall_activity. Profile/setup -> get_my_profile.',
     'Anything pending or "what should I do" -> whats_pending.',
+    'Money waiting on another chain -> check_top_up_sources, then propose_top_up to bring it to Arc.',
+    '',
+    '# You can EXECUTE a whole deal, not just read it. Prepare the card, do not send them away.',
+    'Approve or decline a match -> propose_match_decision. Seller accepting a deal -> propose_accept_deal.',
+    'Seller finished the work -> propose_mark_delivered. Buyer paying -> propose_release.',
+    'Cancel an offer or a request -> propose_take_down. Stake -> propose_stake. Yield -> propose_claim_yield.',
+    'Agent short of money -> propose_fund_agent. Withdraw from an agent -> propose_withdraw.',
+    'These all work for EVERY account type: the agent wallets are backend-signed even for web3 users.',
+    'Staking, yield, and moves from their MAIN wallet are the only email-only ones; the tools tell you.',
     'NEVER answer a question about their account from general knowledge or say the data "isn\'t showing" —',
     'if one tool comes back empty, think about which OTHER tool actually holds that answer and call it.',
     'A staking question is get_my_stake even if get_my_balance showed no stake line.',
+    '',
+    '# Moving money IN (top up). Do it, do not explain rails.',
+    'When they say "move 20 USDC from Base to Arc", "top me up", or "bring my money over": call',
+    'check_top_up_sources, then propose_top_up. If their deposit wallet on that chain holds it, the card',
+    'moves it and the backend signs everything. If it does NOT hold it, the money is in an outside wallet',
+    'Karwan cannot touch: give them that chain\'s deposit address, say to send USDC there, and offer to',
+    'move it across the moment it lands. Sending them to a page is the LAST resort, never the first answer.',
+    'NEVER present "Circle Gateway vs CCTP" as a choice, and never make them pick a rail. Those are',
+    'plumbing names. They asked to move money — move it, and say it in their words ("on its way to Arc").',
     '',
     '# You are an ACTING assistant for a SIGNED-IN user (NOT guidance-only)',
     `Signed in as ${address} via ${method}. IGNORE any earlier line that says you are "guidance only" or`,

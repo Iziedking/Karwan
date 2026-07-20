@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { createPublicClient, http, formatUnits, parseUnits, type PublicClient } from 'viem';
+import { formatUnits, parseUnits, type PublicClient } from 'viem';
 import { config } from '../config.js';
 import { executeContractCall, submitContractCall, getTxState } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
@@ -39,15 +39,7 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
 
-/// Lightweight public clients per CCTP chain for source/destination balance and
-/// allowance reads. Created once and reused (viem's HTTP client allocates a
-/// fetch pool). Keyed by chain key so any registered chain works.
-const sourceClients = Object.fromEntries(
-  CCTP_CHAIN_KEYS.map((k) => [
-    k,
-    createPublicClient({ chain: CCTP_CHAINS[k].viemChain, transport: http() }),
-  ]),
-) as Record<CctpChainKey, PublicClient>;
+import { sourceClients } from '../chain/cctpClients.js';
 
 const erc20BalanceOfAbi = [
   {

@@ -85,6 +85,65 @@ export interface CashOutPayload {
   sourceKind: 'identity';
 }
 
+/// The deal- and job-lifecycle intents. Every one of these routes re-checks
+/// that the session IS `caller`, and all are backend-signed from Circle DCWs
+/// for EVERY account type (the agent wallets are DCWs even for web3 users), so
+/// the assistant can carry a user through a whole deal without a wallet popup.
+export interface ApproveMatchPayload {
+  jobId: string;
+  caller: string;
+}
+export interface DeclineMatchPayload {
+  jobId: string;
+  caller: string;
+  reason?: string;
+}
+export interface AcceptDealPayload {
+  jobId: string;
+  caller: string;
+}
+export interface MarkDeliveredPayload {
+  jobId: string;
+  caller: string;
+  deliveryProof?: string;
+}
+export interface CancelRequestPayload {
+  jobId: string;
+  caller: string;
+}
+export interface CancelListingPayload {
+  listingId: string;
+  caller: string;
+}
+
+/// Staking and yield are Circle-account only: they move the user's IDENTITY
+/// wallet, which web3 users self-custody. The tools gate on `method` before
+/// building either card.
+export interface StakePayload {
+  address: string;
+  amountUsdc: number;
+}
+export interface ClaimYieldPayload {
+  address: string;
+}
+export interface FundAgentDirectPayload {
+  address: string;
+  agent: 'buyer' | 'seller';
+  amountUsdc: number;
+}
+
+export interface TopUpPayload {
+  /// Always the caller's own session address, set by the backend. The
+  /// circle-bridge route re-checks isSessionSelf. The burn is signed from the
+  /// user's own source-chain Circle DCW (their deposit wallet), so this only
+  /// moves USDC that already sits in a wallet Karwan holds for them — never
+  /// funds from an outside wallet, which the backend cannot touch.
+  address: string;
+  sourceChainKey: string;
+  amountUsdc: number;
+  mintRecipient: string;
+}
+
 /// Both Gateway routes derive the caller from the session, so no address in the
 /// payload. gateway_deposit adds USDC from the identity wallet to the user's
 /// unified balance; gateway_fund_agent moves it from the balance to an agent.
@@ -137,6 +196,46 @@ export interface CashOutConfirm extends ConfirmActionBase {
   intent: 'cash_out';
   payload: CashOutPayload;
 }
+export interface TopUpConfirm extends ConfirmActionBase {
+  intent: 'top_up_to_arc';
+  payload: TopUpPayload;
+}
+export interface ApproveMatchConfirm extends ConfirmActionBase {
+  intent: 'approve_match';
+  payload: ApproveMatchPayload;
+}
+export interface DeclineMatchConfirm extends ConfirmActionBase {
+  intent: 'decline_match';
+  payload: DeclineMatchPayload;
+}
+export interface AcceptDealConfirm extends ConfirmActionBase {
+  intent: 'accept_deal';
+  payload: AcceptDealPayload;
+}
+export interface MarkDeliveredConfirm extends ConfirmActionBase {
+  intent: 'mark_delivered';
+  payload: MarkDeliveredPayload;
+}
+export interface CancelRequestConfirm extends ConfirmActionBase {
+  intent: 'cancel_request';
+  payload: CancelRequestPayload;
+}
+export interface CancelListingConfirm extends ConfirmActionBase {
+  intent: 'cancel_listing';
+  payload: CancelListingPayload;
+}
+export interface StakeConfirm extends ConfirmActionBase {
+  intent: 'stake_usdc';
+  payload: StakePayload;
+}
+export interface ClaimYieldConfirm extends ConfirmActionBase {
+  intent: 'claim_yield';
+  payload: ClaimYieldPayload;
+}
+export interface FundAgentDirectConfirm extends ConfirmActionBase {
+  intent: 'fund_agent_direct';
+  payload: FundAgentDirectPayload;
+}
 export interface GatewayDepositConfirm extends ConfirmActionBase {
   intent: 'gateway_deposit';
   payload: GatewayDepositPayload;
@@ -157,6 +256,16 @@ export type ConfirmAction =
   | ReleaseConfirm
   | WithdrawConfirm
   | CashOutConfirm
+  | TopUpConfirm
+  | ApproveMatchConfirm
+  | DeclineMatchConfirm
+  | AcceptDealConfirm
+  | MarkDeliveredConfirm
+  | CancelRequestConfirm
+  | CancelListingConfirm
+  | StakeConfirm
+  | ClaimYieldConfirm
+  | FundAgentDirectConfirm
   | GatewayDepositConfirm
   | GatewayFundAgentConfirm
   | GatewayCashOutConfirm;
@@ -560,6 +669,289 @@ export function buildCashOutConfirm(i: BuildCashOutInput): CashOutConfirm | { er
       sourceKind: 'identity',
     },
     confirmLabel: 'Cash out',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Build a top-up confirm card: bridge USDC that is already sitting in the
+/// user's own source-chain deposit wallet (a Circle DCW Karwan holds for them)
+/// over to Arc. Fully backend-signed, so a Circle account never touches a
+/// wallet popup. The caller must have verified the deposit wallet actually
+/// holds the amount — this only formats the card. Never throws.
+export function buildTopUpConfirm(i: {
+  caller: string;
+  sourceChainKey: string;
+  sourceChainLabel: string;
+  amountUsdc: number;
+  /// Where the USDC lands on Arc. The user's own Arc address, or one of their
+  /// agent wallets when they asked to fund an agent in the same step.
+  mintRecipient: string;
+  destinationLabel: string;
+}): TopUpConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  if (!/^0x[0-9a-fA-F]{40}$/.test(i.mintRecipient)) {
+    return { error: 'The Arc destination address is not valid.' };
+  }
+  return {
+    kind: 'confirm',
+    id: `top_up_to_arc:${i.sourceChainKey}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'top_up_to_arc',
+    title: `Move ${i.amountUsdc} USDC to Arc`,
+    summary: `Bring ${i.amountUsdc} USDC from your ${i.sourceChainLabel} wallet over to Arc. I sign it for you.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: `Your ${i.sourceChainLabel} wallet` },
+      { label: 'To', value: i.destinationLabel },
+      { label: 'Takes', value: 'A few minutes' },
+    ],
+    payload: {
+      address: i.caller,
+      sourceChainKey: i.sourceChainKey,
+      amountUsdc: i.amountUsdc,
+      mintRecipient: i.mintRecipient.toLowerCase(),
+    },
+    confirmLabel: 'Move to Arc',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Approve the match the user's agent negotiated. This FUNDS the escrow, so it
+/// spends real money and carries the stark warning. Never throws.
+export function buildApproveMatchConfirm(i: {
+  caller: string;
+  jobId: string;
+  counterpartyLabel: string;
+  priceUsdc: string;
+  fundedAmountUsdc?: string;
+  deadlineLabel: string;
+}): ApproveMatchConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the job id for the match.' };
+  const fields = [
+    { label: 'Price', value: `${i.priceUsdc} USDC` },
+    { label: 'Counterparty', value: i.counterpartyLabel },
+    { label: 'Deadline', value: i.deadlineLabel },
+  ];
+  if (i.fundedAmountUsdc) {
+    fields.push({ label: 'Escrow pulls', value: `${i.fundedAmountUsdc} USDC` });
+  }
+  return {
+    kind: 'confirm',
+    id: `approve_match:${i.jobId}:${confirmNonce()}`,
+    intent: 'approve_match',
+    title: 'Approve this match',
+    summary: `Accept ${i.counterpartyLabel} at ${i.priceUsdc} USDC and start the deal.`,
+    warning: 'This funds the escrow from your buyer agent. The money is committed until the work is delivered or the deal is cancelled.',
+    fields,
+    payload: { jobId: i.jobId, caller: i.caller },
+    confirmLabel: 'Approve and fund',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Decline the proposed match. No money moves; the agent keeps looking.
+export function buildDeclineMatchConfirm(i: {
+  caller: string;
+  jobId: string;
+  counterpartyLabel: string;
+  priceUsdc: string;
+  reason?: string;
+}): DeclineMatchConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the job id for the match.' };
+  return {
+    kind: 'confirm',
+    id: `decline_match:${i.jobId}:${confirmNonce()}`,
+    intent: 'decline_match',
+    title: 'Decline this match',
+    summary: `Turn down ${i.counterpartyLabel} at ${i.priceUsdc} USDC. Nothing is charged and your agent keeps looking.`,
+    fields: [
+      { label: 'Price', value: `${i.priceUsdc} USDC` },
+      { label: 'Counterparty', value: i.counterpartyLabel },
+      ...(i.reason ? [{ label: 'Reason', value: i.reason }] : []),
+    ],
+    payload: {
+      jobId: i.jobId,
+      caller: i.caller,
+      ...(i.reason ? { reason: i.reason } : {}),
+    },
+    confirmLabel: 'Decline',
+    cancelLabel: 'Keep it open',
+  };
+}
+
+/// Seller accepts a direct deal. The backend funds the escrow and calls
+/// acceptEscrow, which RESERVES part of their stake against the deal.
+export function buildAcceptDealConfirm(i: {
+  caller: string;
+  jobId: string;
+  amountUsdc: string;
+  counterpartyLabel: string;
+  deadlineLabel: string;
+}): AcceptDealConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the deal id.' };
+  return {
+    kind: 'confirm',
+    id: `accept_deal:${i.jobId}:${confirmNonce()}`,
+    intent: 'accept_deal',
+    title: 'Accept this deal',
+    summary: `Take on ${i.counterpartyLabel}'s ${i.amountUsdc} USDC deal and start the clock.`,
+    warning: 'Accepting reserves part of your stake against this deal and commits you to the deadline. Missing it lets the buyer reclaim, which costs reputation.',
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'Buyer', value: i.counterpartyLabel },
+      { label: 'Deliver by', value: i.deadlineLabel },
+    ],
+    payload: { jobId: i.jobId, caller: i.caller },
+    confirmLabel: 'Accept deal',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Seller marks the work delivered, which starts the buyer's review window.
+export function buildMarkDeliveredConfirm(i: {
+  caller: string;
+  jobId: string;
+  amountUsdc: string;
+  deliveryProof?: string;
+}): MarkDeliveredConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the deal id.' };
+  return {
+    kind: 'confirm',
+    id: `mark_delivered:${i.jobId}:${confirmNonce()}`,
+    intent: 'mark_delivered',
+    title: 'Mark as delivered',
+    summary: `Tell the buyer the work on this ${i.amountUsdc} USDC deal is done. Their review window starts now.`,
+    fields: [
+      { label: 'Deal', value: i.jobId.slice(0, 10) },
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      ...(i.deliveryProof ? [{ label: 'Note to buyer', value: i.deliveryProof }] : []),
+    ],
+    payload: {
+      jobId: i.jobId,
+      caller: i.caller,
+      ...(i.deliveryProof ? { deliveryProof: i.deliveryProof } : {}),
+    },
+    confirmLabel: 'Mark delivered',
+    cancelLabel: 'Not yet',
+  };
+}
+
+/// Cancel an open request (buyer brief) that has not matched yet.
+export function buildCancelRequestConfirm(i: {
+  caller: string;
+  jobId: string;
+  budgetUsdc: string;
+}): CancelRequestConfirm | { error: string } {
+  if (!i.jobId) return { error: 'Missing the request id.' };
+  return {
+    kind: 'confirm',
+    id: `cancel_request:${i.jobId}:${confirmNonce()}`,
+    intent: 'cancel_request',
+    title: 'Cancel this request',
+    summary: 'Take your request off the market. Your agent stops bidding on it.',
+    fields: [
+      { label: 'Request', value: i.jobId.slice(0, 10) },
+      { label: 'Budget', value: `${i.budgetUsdc} USDC` },
+    ],
+    payload: { jobId: i.jobId, caller: i.caller },
+    confirmLabel: 'Cancel request',
+    cancelLabel: 'Keep it live',
+  };
+}
+
+/// Cancel a live listing (seller offer).
+export function buildCancelListingConfirm(i: {
+  caller: string;
+  listingId: string;
+  title: string;
+}): CancelListingConfirm | { error: string } {
+  if (!i.listingId) return { error: 'Missing the offer id.' };
+  return {
+    kind: 'confirm',
+    id: `cancel_listing:${i.listingId}:${confirmNonce()}`,
+    intent: 'cancel_listing',
+    title: 'Take down this offer',
+    summary: 'Remove your offer from the market. You can post it again any time.',
+    fields: [{ label: 'Offer', value: i.title }],
+    payload: { listingId: i.listingId, caller: i.caller },
+    confirmLabel: 'Take it down',
+    cancelLabel: 'Leave it up',
+  };
+}
+
+/// Stake USDC into the vault. Locks the money behind a cooldown, so it warns.
+export function buildStakeConfirm(i: {
+  caller: string;
+  amountUsdc: number;
+  walletAfterUsdc: string;
+  cooldownLabel: string;
+}): StakeConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The stake amount must be greater than 0.' };
+  return {
+    kind: 'confirm',
+    id: `stake_usdc:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'stake_usdc',
+    title: 'Stake USDC',
+    summary: `Lock ${i.amountUsdc} USDC in the stake vault to earn yield and build reputation.`,
+    warning: `Staked USDC is not instantly spendable. Unstaking takes a ${i.cooldownLabel} cooldown, and stake reserved against an open deal cannot be withdrawn until that deal settles.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: 'Your wallet' },
+      { label: 'Wallet after', value: `${i.walletAfterUsdc} USDC` },
+      { label: 'Unstake takes', value: i.cooldownLabel },
+    ],
+    payload: { address: i.caller, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Stake',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Claim accrued staking yield into the user's wallet. Purely additive.
+export function buildClaimYieldConfirm(i: {
+  caller: string;
+  claimableUsdc: string;
+}): ClaimYieldConfirm | { error: string } {
+  if (!(Number(i.claimableUsdc) > 0)) {
+    return { error: 'They have no yield to claim right now.' };
+  }
+  return {
+    kind: 'confirm',
+    id: `claim_yield:${i.claimableUsdc}:${confirmNonce()}`,
+    intent: 'claim_yield',
+    title: 'Claim your yield',
+    summary: `Move ${i.claimableUsdc} USDC of earned yield into your wallet.`,
+    fields: [
+      { label: 'Amount', value: `${i.claimableUsdc} USDC` },
+      { label: 'To', value: 'Your wallet' },
+    ],
+    payload: { address: i.caller },
+    confirmLabel: 'Claim',
+    cancelLabel: 'Later',
+  };
+}
+
+/// Move USDC straight from the identity wallet into an agent wallet. Distinct
+/// from gateway_fund_agent, which spends the unified balance instead.
+export function buildFundAgentDirectConfirm(i: {
+  caller: string;
+  agent: 'buyer' | 'seller';
+  amountUsdc: number;
+  walletAfterUsdc: string;
+}): FundAgentDirectConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  return {
+    kind: 'confirm',
+    id: `fund_agent_direct:${i.agent}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'fund_agent_direct',
+    title: `Fund your ${i.agent} agent`,
+    summary: `Move ${i.amountUsdc} USDC from your wallet to your ${i.agent} agent so it can trade.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: 'Your wallet' },
+      { label: 'To', value: `Your ${i.agent} agent` },
+      { label: 'Wallet after', value: `${i.walletAfterUsdc} USDC` },
+    ],
+    payload: { address: i.caller, agent: i.agent, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Fund agent',
     cancelLabel: 'Not now',
   };
 }

@@ -588,8 +588,8 @@ interface ConfirmResult {
 /// route accepts (202) and signs the Arc burn in the background, so the hash
 /// exists a beat later. Bounded so a slow burn never hangs the card: returns
 /// null and the caller falls back to "track it on /bridge".
-async function pollBurnTxHash(bridgeId: string): Promise<string | undefined> {
-  for (let i = 0; i < 6; i++) {
+async function pollBurnTxHash(bridgeId: string, attempts = 6): Promise<string | undefined> {
+  for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, 1500));
     try {
       const s = await api.bridgeStatus(bridgeId);
@@ -684,6 +684,122 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       ...(burnTxHash ? { txHash: burnTxHash } : {}),
     };
   }
+  if (action.intent === 'approve_match') {
+    const p = action.payload as { jobId: string; caller: string };
+    const r = await api.approveMatch(p.jobId, p.caller);
+    return {
+      successText: 'Match approved. The deal is funded and live.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+      txHash: r.txHash,
+    };
+  }
+  if (action.intent === 'decline_match') {
+    const p = action.payload as { jobId: string; caller: string; reason?: string };
+    await api.declineMatch(p.jobId, p.caller, p.reason);
+    return {
+      successText: 'Declined. Your agent keeps looking.',
+      viewHref: `/jobs/${p.jobId}`,
+      viewLabel: 'View the request',
+    };
+  }
+  if (action.intent === 'accept_deal') {
+    const p = action.payload as { jobId: string; caller: string };
+    await api.acceptDirectDeal(p.jobId, p.caller);
+    return {
+      successText: 'Deal accepted. The escrow is funded and the clock is running.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+    };
+  }
+  if (action.intent === 'mark_delivered') {
+    const p = action.payload as { jobId: string; caller: string; deliveryProof?: string };
+    await api.markDelivered(p.jobId, p.caller, p.deliveryProof);
+    return {
+      successText: 'Marked delivered. The buyer has been notified to review and release.',
+      viewHref: `/deals/${p.jobId}`,
+      viewLabel: 'Open the deal',
+    };
+  }
+  if (action.intent === 'cancel_request') {
+    const p = action.payload as { jobId: string; caller: string };
+    await api.cancelBrief(p.jobId, p.caller);
+    return {
+      successText: 'Request cancelled.',
+      viewHref: '/jobs',
+      viewLabel: 'Your requests',
+    };
+  }
+  if (action.intent === 'cancel_listing') {
+    const p = action.payload as { listingId: string; caller: string };
+    await api.cancelListing(p.listingId, p.caller);
+    return {
+      successText: 'Offer taken down.',
+      viewHref: '/market',
+      viewLabel: 'The market',
+    };
+  }
+  if (action.intent === 'stake_usdc') {
+    const p = action.payload as { address: string; amountUsdc: number };
+    const r = await api.vaultDeposit({ address: p.address, amountUsdc: p.amountUsdc });
+    return {
+      successText: 'Staked. It starts earning yield from the next daily credit.',
+      viewHref: '/stake',
+      viewLabel: 'Your stake',
+      txHash: r.depositTxHash,
+    };
+  }
+  if (action.intent === 'claim_yield') {
+    const p = action.payload as { address: string };
+    const r = await api.yieldClaim({ address: p.address });
+    return {
+      successText: 'Yield claimed. It is in your wallet.',
+      viewHref: '/stake',
+      viewLabel: 'Your stake',
+      ...(r.txHash ? { txHash: r.txHash } : {}),
+    };
+  }
+  if (action.intent === 'fund_agent_direct') {
+    const p = action.payload as {
+      address: string;
+      agent: 'buyer' | 'seller';
+      amountUsdc: number;
+    };
+    const r = await api.fundAgent({ address: p.address, agent: p.agent, amountUsdc: p.amountUsdc });
+    return {
+      successText: `Your ${p.agent} agent is funded.`,
+      viewHref: '/profile#agents',
+      viewLabel: 'Your wallets',
+      txHash: r.txHash,
+    };
+  }
+  if (action.intent === 'top_up_to_arc') {
+    const p = action.payload as {
+      address: string;
+      sourceChainKey: string;
+      amountUsdc: number;
+      mintRecipient: string;
+    };
+    const bridgeId = `chat-${action.id.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120);
+    await api.bridgeCircle({
+      bridgeId,
+      address: p.address,
+      sourceChainKey: p.sourceChainKey as Parameters<typeof api.bridgeCircle>[0]['sourceChainKey'],
+      amountUsdc: p.amountUsdc,
+      mintRecipient: p.mintRecipient,
+    });
+    // Same async shape as cash-out, but the source pipeline runs approve THEN
+    // burn, so allow longer before falling back to the no-hash copy.
+    const burnTxHash = await pollBurnTxHash(bridgeId, 10);
+    return {
+      successText: burnTxHash
+        ? 'On its way. The burn is confirmed; your USDC lands on Arc in a few minutes.'
+        : 'On its way. Your USDC lands on Arc in a few minutes.',
+      viewHref: '/bridge',
+      viewLabel: 'Track it',
+      ...(burnTxHash ? { txHash: burnTxHash } : {}),
+    };
+  }
   if (action.intent === 'gateway_deposit') {
     const p = action.payload as { amountUsdc: number };
     const r = await api.gatewayDeposit(p.amountUsdc);
@@ -742,7 +858,25 @@ function ConfirmCard({
         ? 'Withdrawing…'
         : action.intent === 'cash_out'
           ? 'Cashing out…'
-          : action.intent === 'gateway_deposit'
+          : action.intent === 'top_up_to_arc'
+            ? 'Moving…'
+            : action.intent === 'approve_match'
+              ? 'Approving…'
+              : action.intent === 'decline_match'
+                ? 'Declining…'
+                : action.intent === 'accept_deal'
+                  ? 'Accepting…'
+                  : action.intent === 'mark_delivered'
+                    ? 'Marking…'
+                    : action.intent === 'cancel_request' || action.intent === 'cancel_listing'
+                      ? 'Cancelling…'
+                      : action.intent === 'stake_usdc'
+                        ? 'Staking…'
+                        : action.intent === 'claim_yield'
+                          ? 'Claiming…'
+                          : action.intent === 'fund_agent_direct'
+                            ? 'Funding…'
+                            : action.intent === 'gateway_deposit'
             ? 'Adding…'
             : action.intent === 'gateway_fund_agent'
               ? 'Funding…'
