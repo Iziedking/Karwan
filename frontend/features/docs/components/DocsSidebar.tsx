@@ -5,7 +5,7 @@ import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export interface DocsSection {
-  key: 'overview' | 'agents' | 'deals' | 'reputation' | 'bridge' | 'roadmap' | 'faq';
+  key: 'overview' | 'agents' | 'deals' | 'disputes' | 'reputation' | 'bridge' | 'roadmap' | 'faq';
   href: string;
 }
 
@@ -16,6 +16,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
   { key: 'overview', href: '/docs' },
   { key: 'agents', href: '/docs/agents' },
   { key: 'deals', href: '/docs/deals' },
+  { key: 'disputes', href: '/docs/disputes' },
   { key: 'reputation', href: '/docs/reputation' },
   { key: 'bridge', href: '/docs/bridge' },
   { key: 'roadmap', href: '/docs/roadmap' },
