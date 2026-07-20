@@ -29,6 +29,12 @@ export interface AgentWallets {
   /// Lets the backend sign the CCTP burn from the source-chain DCW so
   /// Circle-auth users can bridge end-to-end without a web3 wallet.
   bridgeWallets?: Record<string, { walletId: string; address: string }>;
+  /// Deposit wallets SUPERSEDED by the address-unification backfill, keyed the
+  /// same way. Never deleted: these are real Circle wallets that may still hold
+  /// USDC a user sent before the switch, and their walletId is the only way to
+  /// move those funds. A bridge from one of these keeps working; they simply
+  /// stop being the address we advertise.
+  legacyBridgeWallets?: Record<string, { walletId: string; address: string }[]>;
   /// Dedicated EOA DCW for x402 payment authorizations on Arc. Gateway
   /// verifies authorizations statically offchain and rejects EIP-1271
   /// signatures, so the agent SCAs can't sign payments themselves; this
