@@ -1518,26 +1518,14 @@ function CircleSourceFundBanner({
   gasSponsored: boolean;
   copy: Messages['bridgeCard']['circleFund'];
 }) {
-  const [copied, setCopied] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const address = wallet?.address ?? null;
-  async function copyAddress() {
-    if (!address) return;
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch {
-      // ignore. clipboard can fail in unfocused tabs.
-    }
-  }
 
   // In-app USDC top-up straight to this source-chain Circle wallet, so the user
   // never leaves the page. USDC only: Circle users don't need native gas here
   // (Gas Station sponsors the burn) and Circle's faucet declines native to these
   // wallets. Rate limits surface as a clear line, not a silent no-op.
-  const CIRCLE_FAUCET = 'https://faucet.circle.com/';
   async function claimUsdc() {
     if (!address) return;
     setClaiming(true);
@@ -1636,49 +1624,27 @@ function CircleSourceFundBanner({
         {/* No explainer paragraph here. The SPONSORED tag above already says
             it; a sentence repeating it is one more thing to read past. */}
 
-        {/* ADDRESS + ACTIONS */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              {copy.addressLabel}
-            </p>
-            <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
-              {address ?? copy.provisioning}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={copyAddress}
-              disabled={!address}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
-              style={{
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
-                color: copied ? TONE_HEX.positive : undefined,
-              }}
-            >
-              {copied ? copy.copied : copy.copy}
-            </button>
-            <button
-              type="button"
-              onClick={claimUsdc}
-              disabled={!address || claiming}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2 py-1 disabled:opacity-50"
-              style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--lp-band-dark)',
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
-              }}
-            >
-              {claiming ? copy.requesting : copy.getUsdc}
-            </button>
-          </div>
+        {/* ADD FUNDS. The deposit wallet is the user's own unified address now,
+            so there is no separate address to surface or copy. On testnet this
+            drips test USDC straight to it; on mainnet the funds arrive through
+            the normal add-money flow to the same wallet. */}
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={claimUsdc}
+            disabled={!address || claiming}
+            className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'var(--lp-band-dark)',
+              borderTopLeftRadius: 6,
+              borderTopRightRadius: 6,
+              borderBottomLeftRadius: 6,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {claiming ? copy.requesting : copy.getUsdc}
+          </button>
         </div>
         {note && (
           <p
@@ -1688,17 +1654,6 @@ function CircleSourceFundBanner({
             {note.text}
           </p>
         )}
-        <div className="mt-1.5">
-          <a
-            href={CIRCLE_FAUCET}
-            target="_blank"
-            rel="noreferrer"
-            className="mono text-[9px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-          >
-            {copy.circleFaucet}
-            <ExternalIcon />
-          </a>
-        </div>
       </div>
     </div>
   );
