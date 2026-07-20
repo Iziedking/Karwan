@@ -101,6 +101,26 @@ async function main() {
   }[] = [];
   const perUserChains: number[] = [];
 
+  // Every address we know of, mapped to the user(s) and role(s) claiming it.
+  // Circle derives addresses from a per-chain index counter in one shared
+  // wallet set, so the same address CAN legitimately be issued to different
+  // users on different chains. That is invisible until you look for it, and it
+  // breaks any code that treats an address as an identity — so name it here.
+  const claims = new Map<string, Set<string>>();
+  const claim = (addr: string | undefined, who: string) => {
+    if (!addr) return;
+    const k = addr.toLowerCase();
+    const s = claims.get(k) ?? new Set<string>();
+    s.add(who);
+    claims.set(k, s);
+  };
+  for (const rec of all) {
+    claim(rec.userAddress, `${rec.userAddress} (identity)`);
+    for (const [chain, w] of Object.entries(rec.bridgeWallets ?? {})) {
+      claim(w.address, `${rec.userAddress} (deposit:${chain})`);
+    }
+  }
+
   // Pass 1: the counting, which is pure local work over the records.
   const toRead: { user: string; chain: string; key: CctpChainKey; address: string }[] = [];
   for (const rec of all) {
@@ -130,22 +150,31 @@ async function main() {
   // stalled endpoint with nothing on screen to say so.
   const CONCURRENCY = 8;
   const READ_TIMEOUT_MS = 12_000;
+  const RETRY_TIMEOUT_MS = 40_000;
   let done = 0;
-  let timedOut = 0;
-  const withTimeout = async (p: Promise<string | null>): Promise<string | null> => {
+  const stillUnknown: typeof toRead = [];
+  const withTimeout = async (
+    p: Promise<string | null>,
+    ms: number,
+  ): Promise<string | null | 'TIMEOUT'> => {
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<'TIMEOUT'>((res) => {
-      timer = setTimeout(() => res('TIMEOUT'), READ_TIMEOUT_MS);
+      timer = setTimeout(() => res('TIMEOUT'), ms);
     });
     try {
-      const r = await Promise.race([p, timeout]);
-      if (r === 'TIMEOUT') {
-        timedOut++;
-        return null;
-      }
-      return r;
+      return await Promise.race([p, timeout]);
     } finally {
       if (timer) clearTimeout(timer);
+    }
+  };
+
+  const record = (t: (typeof toRead)[number], bal: string | null | 'TIMEOUT') => {
+    if (bal === 'TIMEOUT') {
+      stillUnknown.push(t);
+      return;
+    }
+    if (bal !== null && Number(bal) > 0) {
+      funded.push({ user: t.user, chain: t.chain, address: t.address, usdc: bal });
     }
   };
 
@@ -153,22 +182,34 @@ async function main() {
   for (let i = 0; i < toRead.length; i += CONCURRENCY) {
     const batch = toRead.slice(i, i + CONCURRENCY);
     const balances = await Promise.all(
-      batch.map((t) => withTimeout(readSourceUsdcBalance(t.key, t.address))),
+      batch.map((t) => withTimeout(readSourceUsdcBalance(t.key, t.address), READ_TIMEOUT_MS)),
     );
-    batch.forEach((t, j) => {
-      const bal = balances[j] ?? null;
-      if (bal !== null && Number(bal) > 0) {
-        funded.push({ user: t.user, chain: t.chain, address: t.address, usdc: bal });
-      }
-    });
+    batch.forEach((t, j) => record(t, balances[j] ?? null));
     done += batch.length;
     process.stdout.write(`\r  ${done}/${toRead.length} read…`);
   }
   console.log('');
-  if (timedOut > 0) {
+
+  // Retry pass. A timed-out read is an UNKNOWN balance, and an unknown balance
+  // is exactly the thing that could get stranded by a migration, so chase it
+  // rather than shipping the gap. Serial and patient: there are only a handful,
+  // and the public testnet RPCs that time out are the ones under load.
+  if (stillUnknown.length > 0) {
+    const retry = [...stillUnknown];
+    stillUnknown.length = 0;
+    console.log(`  Retrying ${retry.length} slow read(s) with a longer timeout…`);
+    for (const t of retry) {
+      record(t, await withTimeout(readSourceUsdcBalance(t.key, t.address), RETRY_TIMEOUT_MS));
+    }
+  }
+  if (stillUnknown.length > 0) {
     console.log(
-      `  NOTE: ${timedOut} read(s) timed out and are counted as "unknown", not as zero.`,
+      `\n  NOTE: ${stillUnknown.length} balance(s) could NOT be read even on retry:`,
     );
+    for (const t of stillUnknown) {
+      console.log(`    ${t.chain.padEnd(16)} ${t.address}  (user ${t.user})`);
+    }
+    console.log('  Treat these as UNKNOWN, never as empty.');
   }
 
   // Only meaningful against the real store; a dump carries no users table.
@@ -195,11 +236,31 @@ async function main() {
     console.log(`    ${chain.padEnd(16)} ${n}`);
   }
 
+  const shared = [...claims.entries()]
+    .map(([address, who]) => ({ address, who: [...who] }))
+    .filter((c) => new Set(c.who.map((w) => w.split(' ')[0])).size > 1);
+
+  console.log('\n=== ADDRESSES CLAIMED BY MORE THAN ONE USER ===\n');
+  if (shared.length === 0) {
+    console.log('  None. Every address maps to exactly one account.\n');
+  } else {
+    console.log(
+      `  ${shared.length} address(es) are shared across accounts. This is Circle's\n` +
+        '  per-chain index counter, not corruption, but any code that resolves a\n' +
+        '  user FROM an address can mis-attribute. Chain-scope those lookups.\n',
+    );
+    for (const c of shared) {
+      console.log(`    ${c.address}`);
+      for (const w of c.who) console.log(`      claimed by ${w}`);
+    }
+    console.log('');
+  }
+
   console.log('\n=== THE NUMBER THAT MATTERS: old addresses holding USDC ===\n');
-  if (funded.length === 0 && timedOut > 0) {
+  if (funded.length === 0 && stillUnknown.length > 0) {
     // A timed-out read is not evidence of an empty wallet. Say so rather than
     // let silence read as an all-clear.
-    console.log(`  No balances found, BUT ${timedOut} read(s) timed out.`);
+    console.log(`  No balances found, BUT ${stillUnknown.length} balance(s) are UNKNOWN.`);
     console.log('  => INCONCLUSIVE. Re-run before treating this as a clean cutover.\n');
   } else if (funded.length === 0) {
     console.log('  None. Every existing deposit wallet is empty.');
