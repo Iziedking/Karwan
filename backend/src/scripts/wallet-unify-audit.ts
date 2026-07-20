@@ -101,6 +101,8 @@ async function main() {
   }[] = [];
   const perUserChains: number[] = [];
 
+  // Pass 1: the counting, which is pure local work over the records.
+  const toRead: { user: string; chain: string; key: CctpChainKey; address: string }[] = [];
   for (const rec of all) {
     const bridges = Object.entries(rec.bridgeWallets ?? {});
     const evm = bridges.filter(([chain]) => chain !== 'SOL-DEVNET');
@@ -118,12 +120,55 @@ async function main() {
     for (const [chain, w] of evm) {
       chainCounts.set(chain, (chainCounts.get(chain) ?? 0) + 1);
       const key = CIRCLE_TO_KEY[chain];
-      if (!key) continue;
-      const bal = await readSourceUsdcBalance(key, w.address);
-      if (bal !== null && Number(bal) > 0) {
-        funded.push({ user: rec.userAddress, chain, address: w.address, usdc: bal });
-      }
+      if (key) toRead.push({ user: rec.userAddress, chain, key, address: w.address });
     }
+  }
+
+  // Pass 2: the balance reads. These hit public testnet RPCs, which are the slow
+  // and flaky part, so they run in bounded parallel with a per-read timeout and
+  // visible progress. Serial + untimed reads could hang the whole audit on one
+  // stalled endpoint with nothing on screen to say so.
+  const CONCURRENCY = 8;
+  const READ_TIMEOUT_MS = 12_000;
+  let done = 0;
+  let timedOut = 0;
+  const withTimeout = async (p: Promise<string | null>): Promise<string | null> => {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<'TIMEOUT'>((res) => {
+      timer = setTimeout(() => res('TIMEOUT'), READ_TIMEOUT_MS);
+    });
+    try {
+      const r = await Promise.race([p, timeout]);
+      if (r === 'TIMEOUT') {
+        timedOut++;
+        return null;
+      }
+      return r;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+
+  console.log(`\n  Reading ${toRead.length} on-chain balance(s)…`);
+  for (let i = 0; i < toRead.length; i += CONCURRENCY) {
+    const batch = toRead.slice(i, i + CONCURRENCY);
+    const balances = await Promise.all(
+      batch.map((t) => withTimeout(readSourceUsdcBalance(t.key, t.address))),
+    );
+    batch.forEach((t, j) => {
+      const bal = balances[j] ?? null;
+      if (bal !== null && Number(bal) > 0) {
+        funded.push({ user: t.user, chain: t.chain, address: t.address, usdc: bal });
+      }
+    });
+    done += batch.length;
+    process.stdout.write(`\r  ${done}/${toRead.length} read…`);
+  }
+  console.log('');
+  if (timedOut > 0) {
+    console.log(
+      `  NOTE: ${timedOut} read(s) timed out and are counted as "unknown", not as zero.`,
+    );
   }
 
   // Only meaningful against the real store; a dump carries no users table.
@@ -151,7 +196,12 @@ async function main() {
   }
 
   console.log('\n=== THE NUMBER THAT MATTERS: old addresses holding USDC ===\n');
-  if (funded.length === 0) {
+  if (funded.length === 0 && timedOut > 0) {
+    // A timed-out read is not evidence of an empty wallet. Say so rather than
+    // let silence read as an all-clear.
+    console.log(`  No balances found, BUT ${timedOut} read(s) timed out.`);
+    console.log('  => INCONCLUSIVE. Re-run before treating this as a clean cutover.\n');
+  } else if (funded.length === 0) {
     console.log('  None. Every existing deposit wallet is empty.');
     console.log('  => Nothing can be stranded. The migration is safe to run as a');
     console.log('     straight cutover; old addresses need no ongoing monitoring.\n');
