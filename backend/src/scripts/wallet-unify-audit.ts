@@ -27,25 +27,57 @@ for (const k of CCTP_CHAIN_KEYS) {
   if (circle) CIRCLE_TO_KEY[circle] = k;
 }
 
+/// Records to audit. Normally read from the database; with `--from-json <path>`
+/// read from a psql dump instead, so the audit can run from a laptop against a
+/// VPS whose Postgres isn't reachable from outside. The dump shape is whatever
+/// the documented one-liner produces: [{ "u": "0x…", "b": { "BASE-SEPOLIA":
+/// { "walletId": "…", "address": "0x…" } } }, …]
+async function loadRecords(): Promise<
+  { userAddress: string; bridgeWallets?: Record<string, { walletId: string; address: string }> }[]
+> {
+  const flag = process.argv.indexOf('--from-json');
+  const path = flag === -1 ? undefined : process.argv[flag + 1];
+  if (!path) throw new Error('--from-json needs a file path');
+  const { readFileSync } = await import('node:fs');
+  const raw = JSON.parse(readFileSync(path, 'utf8')) as { u: string; b: unknown }[];
+  return raw.map((r) => ({
+    userAddress: String(r.u).toLowerCase(),
+    ...(r.b && typeof r.b === 'object'
+      ? { bridgeWallets: r.b as Record<string, { walletId: string; address: string }> }
+      : {}),
+  }));
+}
+
 async function main() {
+  const fromJson = process.argv.includes('--from-json');
   // Refuse to run against a store that clearly isn't the real one. Without this
   // the audit reads an empty local flat file and prints a confident "nothing can
   // be stranded" — the most dangerous possible wrong answer, because it green-
   // lights a cutover on evidence that was never collected.
-  if (!pgEnabled) {
+  if (!fromJson && !pgEnabled) {
     console.error(
       '\n  REFUSING TO RUN: DATABASE_URL is not set, so this would read the local\n' +
         '  flat-file store, not the real one. An empty result here means "no data\n' +
         '  loaded", NOT "no users at risk".\n\n' +
-        '  Run it where the data lives:\n' +
-        '    DATABASE_URL=<prod url> npm run wallets:unify-audit\n' +
-        '  or on the server, against the same env the backend uses.\n',
+        '  Run it where the data lives, either:\n' +
+        '    - on the VPS:  docker compose exec karwan-api node dist/scripts/wallet-unify-audit.js\n' +
+        '    - or from a dump: npm run wallets:unify-audit -- --from-json ./dump.json\n',
     );
     process.exit(2);
   }
-  await ensureSchema().catch(() => {});
-  await initUsersStore().catch(() => {});
-  const all = await listAllAgentWallets();
+
+  let all: {
+    userAddress: string;
+    bridgeWallets?: Record<string, { walletId: string; address: string }>;
+  }[];
+  if (fromJson) {
+    all = await loadRecords();
+    console.log(`\n  (reading ${all.length} record(s) from dump, not from the database)`);
+  } else {
+    await ensureSchema().catch(() => {});
+    await initUsersStore().catch(() => {});
+    all = await listAllAgentWallets();
+  }
 
   if (all.length === 0) {
     console.error(
@@ -94,11 +126,16 @@ async function main() {
     }
   }
 
-  const circleUsers = all.filter((r) => !!getUserByAddress(r.userAddress)).length;
+  // Only meaningful against the real store; a dump carries no users table.
+  const circleUsers = fromJson
+    ? null
+    : all.filter((r) => !!getUserByAddress(r.userAddress)).length;
 
   console.log('\n=== WALLET UNIFICATION AUDIT (read-only) ===\n');
   console.log(`  Accounts with agent wallets      ${all.length}`);
-  console.log(`  ...of which email/Circle accounts ${circleUsers}`);
+  if (circleUsers !== null) {
+    console.log(`  ...of which email/Circle accounts ${circleUsers}`);
+  }
   console.log(`  Accounts with EVM deposit wallets ${usersWithDeposits}`);
   console.log(`  Total EVM deposit wallets         ${totalDepositWallets}`);
   console.log(`  Already on one unified address    ${alreadyUnified}`);
