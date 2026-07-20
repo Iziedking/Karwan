@@ -10,7 +10,7 @@ import {
   getBridge,
   patchBridge,
   listPendingBridges,
-  listBridgesForWallets,
+  listBridgesForUser,
 } from '../db/bridges.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
@@ -184,14 +184,15 @@ bridgeRoutes.get('/list', async (c) => {
     return c.json({ error: 'sign in as this address to read bridge history' }, 403);
   }
   const wallets = await getAgentWallets(address.toLowerCase());
-  // Include the user's own address: App Kit forwarder bridges are recorded with
-  // bridgeWalletAddress = the signed-in user (they have no Circle source DCW),
-  // so this is how those show up in history alongside the DCW-sourced bridges.
-  const bridgeAddrs = [
-    address.toLowerCase(),
-    ...Object.values(wallets?.bridgeWallets ?? {}).map((w) => w.address),
-  ];
-  const records = await listBridgesForWallets(bridgeAddrs);
+  // The caller's identity is passed as `owner`, NOT merged into the address
+  // list: deposit-wallet addresses can collide with another user's identity
+  // address (Circle's per-chain index counter), and matching on that leaked
+  // one user's history to another. App Kit forwarder bridges still resolve,
+  // via mintRecipient.
+  const records = await listBridgesForUser({
+    owner: address.toLowerCase(),
+    sourceWallets: Object.values(wallets?.bridgeWallets ?? {}).map((w) => w.address),
+  });
   return c.json({
     bridges: records.map((b) => ({
       bridgeId: b.bridgeId,

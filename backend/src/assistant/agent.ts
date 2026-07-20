@@ -26,7 +26,7 @@ import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { listActivityForAddress } from '../db/activityLog.js';
-import { listBridgesForWallets } from '../db/bridges.js';
+import { listBridgesForUser } from '../db/bridges.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { activeStakeSummary } from '../reputation/stake.js';
 import { readStakerYield } from '../routes/yield.js';
@@ -268,13 +268,15 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             getAgentWallets(address).catch(() => null),
             listMatchProposalsForUser(address),
           ]);
-          // Same address set the bridge-history page uses: the user's own
-          // address (App Kit forwarder bridges) plus their source-chain DCWs.
-          const bridgeAddrs = [
-            address,
-            ...Object.values(walletsRec?.bridgeWallets ?? {}).map((w) => w.address),
-          ];
-          const bridgeRows = (await listBridgesForWallets(bridgeAddrs))
+          // Same ownership rule the bridge-history route uses. Identity goes in
+          // as `owner`, never merged into the address list: deposit addresses
+          // can collide with another user's identity address.
+          const bridgeRows = (
+            await listBridgesForUser({
+              owner: address,
+              sourceWallets: Object.values(walletsRec?.bridgeWallets ?? {}).map((w) => w.address),
+            })
+          )
             .filter((b) => b.createdAt >= since)
             .slice(0, 20);
           const moneyMoves = ledger.map((e) => ({
@@ -518,11 +520,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             }
           }
 
-          const bridgeAddrs = [
-            address,
-            ...Object.values(record?.bridgeWallets ?? {}).map((w) => w.address),
-          ];
-          for (const b of await listBridgesForWallets(bridgeAddrs)) {
+          const userBridges = await listBridgesForUser({
+            owner: address,
+            sourceWallets: Object.values(record?.bridgeWallets ?? {}).map((w) => w.address),
+          });
+          for (const b of userBridges) {
             if (b.status === 'minted' || b.status === 'error') continue;
             inFlight.push(
               `Bridge of ${b.amountUsdc} USDC is still ${b.status} (track it on /bridge).`,

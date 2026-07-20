@@ -176,25 +176,39 @@ export async function listPendingBridges(): Promise<BridgeRelay[]> {
   return (await loadAllBridges()).filter(isPending);
 }
 
-/// Bridge records belonging to the given user. Matches EITHER `owner` (the
-/// session identity that started the bridge) OR `bridgeWalletAddress` (the
-/// wallet that signs the burn). Both are needed: bridge-INs are only keyed by
-/// the source-chain DCW, while an agent-sourced bridge-OUT burns from an AGENT
-/// wallet whose address is in neither the caller's identity nor their
-/// bridgeWallets — matching on bridgeWalletAddress alone silently dropped
-/// those from history, so a real cash-out looked like it never happened.
-/// Newest first.
-export async function listBridgesForWallets(
-  walletAddresses: string[],
-): Promise<BridgeRelay[]> {
-  const set = new Set(walletAddresses.map((a) => a.toLowerCase()));
+/// Bridge records belonging to one user. Newest first.
+///
+/// Ownership is decided in a strict order, because addresses are NOT a safe
+/// identity key here. Circle derives wallet addresses from a per-chain index
+/// counter in the shared wallet set, so the same address can legitimately be
+/// handed to DIFFERENT users on DIFFERENT chains — an audit of live data found
+/// one user's Base deposit wallet sitting at another user's Arc identity
+/// address. Matching any record whose `bridgeWalletAddress` appeared in a set
+/// that included the caller's own identity therefore leaked one user's bridge
+/// history to another.
+///
+///   1. `owner` set (every bridge-OUT): authoritative, must equal the caller.
+///   2. otherwise `mintRecipient`: a bridge-IN always mints to the caller's own
+///      Arc address, so this identifies the owner without touching addresses
+///      that can collide.
+///   3. otherwise the signing wallet, but ONLY against the caller's own
+///      provisioned source DCWs — never their identity address, which is the
+///      collision surface.
+export async function listBridgesForUser(input: {
+  /// The caller's verified session address.
+  owner: string;
+  /// The caller's own per-chain deposit DCW addresses.
+  sourceWallets: string[];
+}): Promise<BridgeRelay[]> {
+  const owner = input.owner.toLowerCase();
+  const sourceWallets = new Set(input.sourceWallets.map((a) => a.toLowerCase()));
   const all = await loadAllBridges();
   return all
-    .filter(
-      (b) =>
-        (b.owner && set.has(b.owner.toLowerCase())) ||
-        (b.bridgeWalletAddress && set.has(b.bridgeWalletAddress.toLowerCase())),
-    )
+    .filter((b) => {
+      if (b.owner) return b.owner.toLowerCase() === owner;
+      if (b.mintRecipient && b.mintRecipient.toLowerCase() === owner) return true;
+      return !!b.bridgeWalletAddress && sourceWallets.has(b.bridgeWalletAddress.toLowerCase());
+    })
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
