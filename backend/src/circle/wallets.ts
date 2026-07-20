@@ -1,6 +1,7 @@
 import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-controlled-wallets';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { getUserByAddress } from '../db/users.js';
 
 /// Idempotency note. The DCW SDK auto-generates a fresh UUID v4 idempotency key
 /// per request when `idempotencyKey` is not supplied (see WithIdempotencyKey in
@@ -180,14 +181,77 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   });
 }
 
+/// Provision the user's deposit wallet on `blockchain`.
+///
+/// PREFERRED PATH — derive from `anchorWalletId` (the user's signup/identity
+/// wallet). Circle addresses are derived from an INDEX in the shared wallet
+/// set, and `createWallets` advances that index PER CHAIN independently. Doing
+/// that lazily, one chain at a time, hands the same index to different users on
+/// different chains: a live audit found 18 addresses shared across accounts,
+/// two of them holding funds under two different owners at once. Deriving from
+/// the user's own anchor pins ONE index per USER instead, so every chain gets
+/// the SAME address for that user and no two users can ever collide.
+///
+/// Falls back to `createWallets` only when there is no anchor to derive from,
+/// or on Solana — derive is EVM-only, and a Solana address can never match an
+/// EVM one anyway (different curve).
 export async function provisionUserBridgeWallet(
   userAddress: string,
   blockchain: BridgeBlockchain,
+  anchorWalletId?: string,
 ): Promise<ProvisionedBridgeWallet> {
   if (!config.CIRCLE_WALLET_SET_ID) {
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
   }
   const refId = userAddress.toLowerCase();
+  // Resolve the anchor here rather than at each of the seven call sites, so
+  // every path that lazily provisions a deposit wallet gets the derived,
+  // collision-free address without needing to know about any of this.
+  const anchor = anchorWalletId ?? getUserByAddress(refId)?.circleIdentityWalletId;
+
+  if (anchor && blockchain !== SOL_DEVNET_BLOCKCHAIN) {
+    try {
+      const derived = await withTimeout(
+        circleWalletsClient().deriveWallet({
+          id: anchor,
+          blockchain: blockchain as Parameters<
+            ReturnType<typeof circleWalletsClient>['deriveWallet']
+          >[0]['blockchain'],
+          metadata: { name: `karwan-deposit-${blockchain.toLowerCase()}`, refId },
+        }),
+        CREATE_WALLET_TIMEOUT_MS,
+        `Circle deriveWallet(${blockchain})`,
+      );
+      const w = derived.data?.wallet;
+      if (w?.id && w.address) {
+        // The whole point is that the derived address EQUALS the user's own
+        // identity address. If Circle ever returns something else, say so
+        // loudly rather than quietly writing another divergent address.
+        if (w.address.toLowerCase() !== refId) {
+          logger.warn(
+            { userAddress, blockchain, derived: w.address },
+            'derived deposit address does NOT match the identity address; unification assumption broken',
+          );
+        }
+        logger.info(
+          { userAddress, blockchain, address: w.address },
+          'deposit wallet derived from identity anchor (one address per user)',
+        );
+        return { walletId: w.id, address: w.address, blockchain };
+      }
+      logger.warn(
+        { userAddress, blockchain },
+        'deriveWallet returned no wallet; falling back to createWallets',
+      );
+    } catch (err) {
+      // Never block a user's bridge on the derive path. A fresh wallet still
+      // works; it just keeps the old per-chain address for that user.
+      logger.warn(
+        { userAddress, blockchain, err: (err as Error).message },
+        'deriveWallet failed; falling back to createWallets',
+      );
+    }
+  }
   // Circle SCAs are EVM-only. Solana wallets must be provisioned as EOA;
   // Circle returns 400 with a clear error if SCA is requested on SOL-DEVNET.
   const accountType: 'SCA' | 'EOA' =
