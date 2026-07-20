@@ -248,3 +248,29 @@ export function cctpChainByDomain(domain: number): CctpChain | null {
 export function addressToBytes32(address: string): `0x${string}` {
   return `0x${'0'.repeat(24)}${address.slice(2).toLowerCase()}` as `0x${string}`;
 }
+
+/// Map a Circle DCW blockchain enum ('BASE-SEPOLIA') to the chain key used on
+/// bridge records ('baseSepolia'). Needed because a user's deposit wallets are
+/// stored keyed by Circle's enum while bridge records store our key, and
+/// ownership checks must compare BOTH address and chain — an address alone is
+/// not unique across chains in a shared Circle wallet set.
+export function chainKeyForCircleBlockchain(circleBlockchain: string): string | null {
+  if (circleBlockchain === 'SOL-DEVNET') return 'solanaDevnet';
+  const match = CCTP_CHAIN_KEYS.find(
+    (k) => CCTP_CHAINS[k].circleBlockchain === circleBlockchain,
+  );
+  return match ?? null;
+}
+
+/// A user's deposit wallets re-keyed by bridge-record chain key, ready for
+/// listBridgesForUser.
+export function depositWalletsByChainKey(
+  bridgeWallets: Record<string, { address: string }> | undefined,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [circleChain, w] of Object.entries(bridgeWallets ?? {})) {
+    const key = chainKeyForCircleBlockchain(circleChain);
+    if (key) out[key] = w.address;
+  }
+  return out;
+}

@@ -734,6 +734,18 @@ async function callLegacyVaultFn(
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
 
+  // These sign requestWithdraw / cancelWithdraw / claim from the NAMED user's
+  // Circle identity wallet, so the session must BE that user. Without this,
+  // anyone could drive a stranger's vault positions (start or cancel their
+  // cooldown, force a claim) by naming their address. The v2 vault routes gate
+  // this correctly; the legacy backport missed it.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json(
+      { error: 'You can only act on your own vault positions.', code: 'forbidden' },
+      403,
+    );
+  }
+
   const genIndex = body.generation ?? 1;
   const generation = legacyGenerations.find((g) => g.index === genIndex);
   if (!generation || !generation.vault || !generation.vaultAddress) {

@@ -39,7 +39,7 @@ import { listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
 import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
 import { getProfile } from '../db/profiles.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
-import type { CctpChainKey } from '../chain/cctpChains.js';
+import { depositWalletsByChainKey, type CctpChainKey } from '../chain/cctpChains.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readUserGatewayBalance } from '../gateway/balance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
@@ -274,7 +274,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           const bridgeRows = (
             await listBridgesForUser({
               owner: address,
-              sourceWallets: Object.values(walletsRec?.bridgeWallets ?? {}).map((w) => w.address),
+              sourceWalletsByChain: depositWalletsByChainKey(walletsRec?.bridgeWallets),
             })
           )
             .filter((b) => b.createdAt >= since)
@@ -522,7 +522,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
           const userBridges = await listBridgesForUser({
             owner: address,
-            sourceWallets: Object.values(record?.bridgeWallets ?? {}).map((w) => w.address),
+            sourceWalletsByChain: depositWalletsByChainKey(record?.bridgeWallets),
           });
           for (const b of userBridges) {
             if (b.status === 'minted' || b.status === 'error') continue;

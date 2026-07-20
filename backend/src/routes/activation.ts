@@ -104,6 +104,12 @@ activationRoutes.get('/status', async (c) => {
   if (!address) return c.json({ error: 'address query param required' }, 400);
   const parsed = addrSchema.safeParse(address);
   if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  // Agent addresses and the per-chain deposit map are private: harvesting them
+  // across accounts is what turns a shared-address collision into something a
+  // stranger can hunt for.
+  if (!isSessionSelf(c, parsed.data)) {
+    return c.json({ error: 'You can only read your own wallets.', code: 'forbidden' }, 403);
+  }
 
   const wallets = await getAgentWallets(parsed.data);
   if (!wallets) return c.json({ activated: false });
@@ -128,6 +134,11 @@ activationRoutes.get('/wallets', async (c) => {
     return c.json({ error: 'address query param required' }, 400);
   }
   const addr = address.toLowerCase();
+  // Balances are private financial data; the deposit map is the enumeration
+  // primitive described above.
+  if (!isSessionSelf(c, addr)) {
+    return c.json({ error: 'You can only read your own wallets.', code: 'forbidden' }, 403);
+  }
 
   // Server-side cache: the top-up/withdraw card polls this per user every few
   // seconds; a short TTL collapses N tabs to one 3-read on-chain fetch.
@@ -192,6 +203,12 @@ activationRoutes.post(
     body = dripBridgeSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // PROVISIONS a deposit wallet for the named user when one is missing, which
+  // consumes the shared wallet set's per-chain index counter. Left open, a
+  // stranger could advance those counters at will (and read back the address).
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only refuel a deposit wallet for your own account.', code: 'forbidden' }, 403);
   }
   const userAddress = body.address.toLowerCase();
   const chainKey = body.chain ?? 'baseSepolia';
@@ -269,6 +286,12 @@ activationRoutes.post(
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  // Resolves the named address to THAT user's agent wallets and returns them,
+  // so it must be the caller's own account: otherwise it is an unauthenticated
+  // agent-address disclosure on top of a faucet.
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only claim test funds for your own account.', code: 'forbidden' }, 403);
+  }
   const userAddress = body.address.toLowerCase();
 
   let target = userAddress; // identity = the logged-in wallet, funded on Arc
@@ -317,6 +340,9 @@ activationRoutes.post(
     body = fundSourceSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only request test funds for your own account.', code: 'forbidden' }, 403);
   }
   const blockchain = CCTP_CHAINS[body.chain].circleBlockchain;
   // Circle's faucet is keyed by its own blockchain enum, so a web3-only chain

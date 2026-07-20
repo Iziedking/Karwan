@@ -27,6 +27,7 @@ import { usdc as ARC_USDC, readUsdcBalance } from '../chain/contracts.js';
 import {
   CCTP_CHAINS,
   CCTP_CHAIN_KEYS,
+  depositWalletsByChainKey,
   TOKEN_MESSENGER_V2,
   MESSAGE_TRANSMITTER_V2,
   ARC_DOMAIN,
@@ -175,6 +176,18 @@ export const bridgeRoutes = new Hono();
 /// status and tx ids. Lets a user (or operator) see whether a bridge is
 /// approving / burning / relaying / minted / errored instead of guessing. Keyed
 /// off the user's source-chain DCW(s), resolved from their agent-wallet record.
+/// The address that owns a bridge record, for authorization. `owner` is
+/// authoritative when set. Falling back to `mintRecipient` is only sound for an
+/// INBOUND bridge, where the mint lands on the user's own Arc address; on an
+/// OUTBOUND bridge mintRecipient is a DESTINATION-CHAIN address, and because a
+/// Circle wallet address can belong to a different user on a different chain,
+/// accepting it here let a stranger read or re-drive someone else's bridge.
+/// Returns null when ownership cannot be established, which denies access.
+function bridgeOwnerFor(record: { owner?: string; mintRecipient: string; direction?: 'in' | 'out' }): string | null {
+  if (record.owner) return record.owner;
+  return (record.direction ?? 'in') === 'in' ? record.mintRecipient : null;
+}
+
 bridgeRoutes.get('/list', async (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
@@ -191,7 +204,7 @@ bridgeRoutes.get('/list', async (c) => {
   // via mintRecipient.
   const records = await listBridgesForUser({
     owner: address.toLowerCase(),
-    sourceWallets: Object.values(wallets?.bridgeWallets ?? {}).map((w) => w.address),
+    sourceWalletsByChain: depositWalletsByChainKey(wallets?.bridgeWallets),
   });
   return c.json({
     bridges: records.map((b) => ({
@@ -270,8 +283,12 @@ bridgeRoutes.post('/record', async (c) => {
     status: 'minted',
     direction: body.direction ?? 'in',
     appKit: true,
-    // Bind to the signed-in user so a broadened /list can surface it later.
-    bridgeWalletAddress: owner.toLowerCase(),
+    // Bind ownership to `owner`, NOT by writing the identity address into
+    // bridgeWalletAddress. That field is matched against other users' deposit
+    // wallet addresses, and a deposit wallet can sit at another user's identity
+    // address (Circle's per-chain index counter), so using it as an ownership
+    // key is what leaked one user's bridge history to another.
+    owner: owner.toLowerCase(),
     sourceChainKey: key as never,
     ...(body.mintTxHash ? { mintTxHash: body.mintTxHash } : {}),
   });
@@ -868,7 +885,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   // Auth: only the recipient (owner) may re-trigger their bridge.
-  if (!isSessionSelf(c, record.owner ?? record.mintRecipient)) {
+  if (!isSessionSelf(c, bridgeOwnerFor(record) ?? '')) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
   if (record.status === 'minted') {
@@ -1500,7 +1517,7 @@ bridgeRoutes.get('/:bridgeId', async (c) => {
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   // Auth: a bridge record is private to its recipient (the owner). Without
   // this, anyone could read another user's bridge status + tx hashes by id.
-  if (!isSessionSelf(c, record.owner ?? record.mintRecipient)) {
+  if (!isSessionSelf(c, bridgeOwnerFor(record) ?? '')) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
   return c.json({
@@ -1525,7 +1542,7 @@ bridgeRoutes.post('/circle-bridge/:bridgeId/resume', async (c) => {
   const record = await getBridge(bridgeId);
   if (!record) return c.json({ error: 'bridge not found' }, 404);
   // Auth: only the recipient (owner) may resume their bridge.
-  if (!isSessionSelf(c, record.owner ?? record.mintRecipient)) {
+  if (!isSessionSelf(c, bridgeOwnerFor(record) ?? '')) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
   if (record.status === 'minted') {

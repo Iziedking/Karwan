@@ -197,17 +197,25 @@ export async function listPendingBridges(): Promise<BridgeRelay[]> {
 export async function listBridgesForUser(input: {
   /// The caller's verified session address.
   owner: string;
-  /// The caller's own per-chain deposit DCW addresses.
-  sourceWallets: string[];
+  /// The caller's own deposit DCWs, keyed by chain: `{ [sourceChainKey]:
+  /// address }`. Keyed rather than a flat list so step 3 can require the CHAIN
+  /// to match too — an address alone is not unique across chains.
+  sourceWalletsByChain: Record<string, string>;
 }): Promise<BridgeRelay[]> {
   const owner = input.owner.toLowerCase();
-  const sourceWallets = new Set(input.sourceWallets.map((a) => a.toLowerCase()));
+  const byChain = new Map(
+    Object.entries(input.sourceWalletsByChain).map(([chain, a]) => [chain, a.toLowerCase()]),
+  );
   const all = await loadAllBridges();
   return all
     .filter((b) => {
       if (b.owner) return b.owner.toLowerCase() === owner;
       if (b.mintRecipient && b.mintRecipient.toLowerCase() === owner) return true;
-      return !!b.bridgeWalletAddress && sourceWallets.has(b.bridgeWalletAddress.toLowerCase());
+      // Address AND chain must both match. Comparing the address alone would
+      // still admit another user's deposit wallet that happens to share this
+      // address on a different chain.
+      if (!b.bridgeWalletAddress || !b.sourceChainKey) return false;
+      return byChain.get(b.sourceChainKey) === b.bridgeWalletAddress.toLowerCase();
     })
     .sort((a, b) => b.createdAt - a.createdAt);
 }

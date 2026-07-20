@@ -61,6 +61,14 @@ async function refreshRegistry(force = false): Promise<Registry> {
     return registry;
   }
   try {
+    // TRIPWIRE: this map is keyed by address alone and attributes every balance
+    // change to the matched wallet's owner. That is only sound because every
+    // address here is on ARC. Circle derives addresses from a per-chain index
+    // counter in one shared wallet set, so the SAME address can belong to a
+    // DIFFERENT user on a different chain (confirmed in live data). If you ever
+    // add bridgeWallets / x402Wallet / gatewayWallet, or any non-Arc address, to
+    // this registry, you MUST key by `${chain}:${address}` — otherwise credit
+    // notifications silently go to the wrong user.
     const all = await listAllAgentWallets();
     const byAddress = new Map<string, TrackedWallet>();
     const ownerAddresses = new Map<string, Set<string>>();
