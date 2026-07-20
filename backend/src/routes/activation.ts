@@ -15,6 +15,7 @@ import {
   type AgentWallets,
 } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
+import { appendActivity } from '../db/activityLog.js';
 import { isSessionSelf } from '../auth/session.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
@@ -594,6 +595,14 @@ activationRoutes.post('/withdraw', async (c) => {
         txHash: result.txHash,
       },
     });
+    void appendActivity({
+      address: userAddress,
+      kind: 'withdraw',
+      summary: `Withdrew ${body.amountUsdc} USDC from the ${body.agent} agent wallet to ${body.toAddress.toLowerCase()}`,
+      amountUsdc: body.amountUsdc.toString(),
+      txHash: result.txHash,
+      counterparty: body.toAddress.toLowerCase(),
+    });
     logger.info(
       { userAddress, agent: body.agent, toAddress: body.toAddress, txHash: result.txHash },
       'agent wallet withdrawal sent',
@@ -674,6 +683,13 @@ activationRoutes.post('/fund-agent', async (c) => {
         amountUsdc: body.amountUsdc.toString(),
         txHash: result.txHash,
       },
+    });
+    void appendActivity({
+      address: userAddress,
+      kind: 'agent_topup',
+      summary: `Topped up the ${body.agent} agent wallet with ${body.amountUsdc} USDC from the sign-in wallet`,
+      amountUsdc: body.amountUsdc.toString(),
+      txHash: result.txHash,
     });
     logger.info(
       {

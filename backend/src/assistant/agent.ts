@@ -25,6 +25,9 @@ import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { listActivityForAddress } from '../db/activityLog.js';
+import { listBridgesForWallets } from '../db/bridges.js';
+import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readUserGatewayBalance } from '../gateway/balance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
@@ -105,6 +108,9 @@ export function summarizeDeal(deal: DirectDeal, viewer: string): Record<string, 
     phase: dealPhase(deal),
     deadline: deal.deadlineUnix ? new Date(deal.deadlineUnix * 1000).toISOString() : null,
     releasePaused: deal.releaseBlockedReason ?? null,
+    // Dates make relative-time questions answerable ("the deal from last week").
+    openedAt: new Date(deal.createdAt).toISOString(),
+    settledAt: deal.settledAt ? new Date(deal.settledAt).toISOString() : null,
   };
 }
 
@@ -192,6 +198,89 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_deal_status failed');
           return { error: 'Could not read that deal right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    recall_activity: tool({
+      description:
+        "Your durable memory of this account's past activity, surviving across chat sessions: money movements (withdrawals, agent top-ups, unified-balance deposits and spends, escrow releases, cash-outs), bridge transfers between chains (amount, chains, status, date), and agent match proposals (who their agent matched them with, at what price, and the outcome). Use it whenever the user refers to something that already happened or uses relative time — 'we bridged 20 USDC to Base two days ago', 'you matched me last week, who was the counterparty', 'when did I last withdraw'. Check this BEFORE ever saying you don't remember or have no record. For full deal detail follow up with get_deal_status.",
+      inputSchema: z.object({
+        days: z
+          .number()
+          .int()
+          .min(1)
+          .max(90)
+          .default(30)
+          .describe('How far back to look, in days. Default 30.'),
+      }),
+      execute: async ({ days }) => {
+        const since = Date.now() - days * 86_400_000;
+        const iso = (ts: number) => new Date(ts).toISOString();
+        try {
+          const [ledger, walletsRec, proposals] = await Promise.all([
+            listActivityForAddress(address, since, 40),
+            getAgentWallets(address).catch(() => null),
+            listMatchProposalsForUser(address),
+          ]);
+          // Same address set the bridge-history page uses: the user's own
+          // address (App Kit forwarder bridges) plus their source-chain DCWs.
+          const bridgeAddrs = [
+            address,
+            ...Object.values(walletsRec?.bridgeWallets ?? {}).map((w) => w.address),
+          ];
+          const bridgeRows = (await listBridgesForWallets(bridgeAddrs))
+            .filter((b) => b.createdAt >= since)
+            .slice(0, 20);
+          const moneyMoves = ledger.map((e) => ({
+            at: iso(e.ts),
+            kind: e.kind,
+            summary: e.summary,
+            ...(e.txHash ? { txHash: e.txHash } : {}),
+            ...(e.refId ? { transferRef: e.refId } : {}),
+            ...(e.jobId ? { jobId: e.jobId } : {}),
+          }));
+          const bridgeItems = bridgeRows.map((b) => ({
+            at: iso(b.createdAt),
+            kind: 'bridge',
+            amountUsdc: b.amountUsdc,
+            from: b.direction === 'out' ? 'arc' : (b.sourceChainKey ?? 'unknown'),
+            to: b.direction === 'out' ? (b.destChainKey ?? 'unknown') : 'arc',
+            status: b.status,
+            ...(b.mintTxHash ? { mintTxHash: b.mintTxHash } : {}),
+          }));
+          const matchItems = proposals
+            .filter((p) => p.proposedAt >= since)
+            .slice(0, 15)
+            .map((p) => {
+              const isBuyer = p.buyerUser === address;
+              return {
+                at: iso(p.proposedAt),
+                kind: 'match_proposal',
+                jobId: p.jobId,
+                yourRole: isBuyer ? 'buyer' : 'seller',
+                counterparty: isBuyer ? p.sellerUser : p.buyerUser,
+                priceUsdc: p.raisedPriceUsdc ?? p.agreedPriceUsdc,
+                outcome: p.approvedAt
+                  ? 'approved'
+                  : p.declinedAt
+                    ? 'declined'
+                    : 'awaiting approval',
+              };
+            });
+          return {
+            lookedBackDays: days,
+            moneyMoves,
+            bridges: bridgeItems,
+            matchProposals: matchItems,
+            note:
+              moneyMoves.length + bridgeItems.length + matchItems.length === 0
+                ? `No recorded activity in the last ${days} days. Approved matches become deals, so also check list_my_deals (it carries openedAt dates).`
+                : 'Times are UTC ISO. Chain keys are testnet keys (baseSepolia = Base, sepolia = Ethereum, arbitrumSepolia = Arbitrum, optimismSepolia = Optimism, polygonAmoy = Polygon, avalancheFuji = Avalanche, unichainSepolia = Unichain, solanaDevnet = Solana). Approved match proposals continue as deals under the same jobId.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant recall_activity failed');
+          return { error: 'Could not read the account history right now. Try again shortly.' };
         }
       },
     }),
@@ -628,6 +717,13 @@ function authenticatedPreamble(address: string, method: string): string {
     'When a user gives a deadline as a calendar DATE, do NOT compute days yourself — pass it to the tool as',
     'deadlineDate (normalise to YYYY-MM-DD) and the server converts it. Only use deadlineDays for a stated',
     'duration ("in 3 days"). Never tell a user a near date is "too far out" — the server checks the real cap.',
+    '',
+    '# You have durable memory of this account',
+    'Chat transcripts reset between sessions, but recall_activity reads the durable per-account record:',
+    'past money movements, bridges, and agent matches, with dates. When the user references anything that',
+    'already happened ("we bridged 20 USDC to Base two days ago", "who was the counterparty you matched me',
+    'with last week"), call recall_activity (and list_my_deals for deals) and answer from the records.',
+    'NEVER reply that you have no memory of past sessions without checking these tools first.',
     '',
     '# You are an ACTING assistant for a SIGNED-IN user (NOT guidance-only)',
     `Signed in as ${address} via ${method}. IGNORE any earlier line that says you are "guidance only" or`,

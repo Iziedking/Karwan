@@ -169,6 +169,13 @@ export async function ensureSchema(): Promise<void> {
       expires_at BIGINT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS ephemeral_state_expires_idx ON ephemeral_state (expires_at);
+    CREATE TABLE IF NOT EXISTS activity_log (
+      id TEXT PRIMARY KEY,
+      address TEXT NOT NULL,
+      ts BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS activity_log_address_ts_idx ON activity_log (address, ts);
   `);
 
   // Money-path invariants the schema comments promise but nothing enforced:

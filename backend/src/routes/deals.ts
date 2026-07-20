@@ -51,6 +51,7 @@ import {
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { appendActivity } from '../db/activityLog.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
@@ -1808,6 +1809,14 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       // Intermediate milestone on a 3+ part deal. Anchors the next window.
       await patchDeal(jobId, { lastReleaseAt: Date.now(), lastSettleMs: settledInMs });
     }
+    void appendActivity({
+      address: deal.buyer,
+      kind: 'release',
+      summary: `Released milestone ${releasedIndex + 1} on deal ${jobId} to the seller${settled ? ' (final release, deal settled)' : ''}`,
+      jobId,
+      txHash,
+      counterparty: deal.seller,
+    });
     return c.json({ accepted: true, jobId, txHash, settled, settledInMs }, 200);
   } catch (err) {
     const info = classifyAgentError(err);

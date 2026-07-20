@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AppKit } from '@circle-fin/app-kit';
 import { sessionAddress } from '../auth/session.js';
 import { getUserByAddress } from '../db/users.js';
+import { appendActivity } from '../db/activityLog.js';
 import { depositToGateway, readUserGatewayBalance, sweepToUnifiedBalance } from '../gateway/balance.js';
 import { fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
@@ -202,6 +203,13 @@ gatewayRoutes.post('/deposit', async (c) => {
   try {
     const result = await depositToGateway(address, body.amountUsdc, source);
     cache.delete(address); // bust the read cache so the new balance shows on next poll
+    void appendActivity({
+      address,
+      kind: 'gateway_deposit',
+      summary: `Added ${result.amountUsd} USDC to the unified balance from the ${result.source} wallet`,
+      amountUsdc: result.amountUsd.toString(),
+      txHash: result.depositTxHash,
+    });
     return c.json({ ok: true, ...result });
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway deposit failed');
@@ -268,6 +276,13 @@ gatewayRoutes.post('/fund-agent', async (c) => {
   try {
     const result = await fundAgentFromGateway(address, body.agent, body.amountUsdc);
     cache.delete(address); // unified balance dropped; bust the read cache
+    void appendActivity({
+      address,
+      kind: 'gateway_fund_agent',
+      summary: `Funded the ${result.agent} agent with ${result.amountUsd} USDC from the unified balance`,
+      amountUsdc: result.amountUsd.toString(),
+      refId: result.transferId,
+    });
     return c.json({ ok: true, ...result });
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway fund-agent failed');
@@ -303,6 +318,15 @@ gatewayRoutes.post('/cash-out', async (c) => {
   try {
     const result = await cashOutFromGateway(address, body.destChainKey, body.recipient, body.amountUsdc);
     cache.delete(address);
+    void appendActivity({
+      address,
+      kind: 'gateway_cash_out',
+      summary: `Cashed out ${result.amountUsd} USDC from the unified balance to ${result.recipientAddress.toLowerCase()} on ${result.destChainKey}`,
+      amountUsdc: result.amountUsd.toString(),
+      refId: result.transferId,
+      chain: result.destChainKey,
+      counterparty: result.recipientAddress.toLowerCase(),
+    });
     return c.json({ ok: true, ...result });
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway cash-out failed');

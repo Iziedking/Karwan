@@ -10,6 +10,7 @@ import type { MatchProposal } from './matchProposals.js';
 import type { FactoringOffer } from './factoring.js';
 import type { POFinancingLine } from './poFinancing.js';
 import type { DocumentAnchor } from './documentAnchors.js';
+import type { ActivityEntry } from './activityLog.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -257,6 +258,24 @@ export const scoutReads = pgTable(
   },
   (t) => ({
     ownerTsIdx: index('scout_reads_owner_ts_idx').on(t.owner, t.ts),
+  }),
+);
+
+/// Per-user money-movement ledger: withdrawals, agent top-ups, unified-balance
+/// deposits/spends/cash-outs and escrow releases — the moves with no durable
+/// store of their own. Powers the assistant's recall_activity memory. Full
+/// ActivityEntry lives in the JSONB `data` column; (address, ts) serves the
+/// newest-first per-user read.
+export const activityLog = pgTable(
+  'activity_log',
+  {
+    id: text('id').primaryKey(),
+    address: text('address').notNull(),
+    ts: bigint('ts', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<ActivityEntry>().notNull(),
+  },
+  (t) => ({
+    addressTsIdx: index('activity_log_address_ts_idx').on(t.address, t.ts),
   }),
 );
 
