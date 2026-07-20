@@ -428,11 +428,16 @@ activationRoutes.post('/activate', async (c) => {
     // attention, instead of on a routine bridge visit.
     // Ethereum Sepolia + other EVM chains are still lazy-provisioned the
     // first time the user picks them; most users never will.
+    // Only Circle/email accounts get backend deposit wallets. Web3 accounts
+    // bridge from their own connected wallet on every chain and never touch a
+    // backend-signed source DCW, so a deposit wallet is unusable to them AND
+    // its provisioning advances the shared wallet set's per-chain index counter,
+    // which is what causes cross-user address collisions. See
+    // provisionUserBridgeWallet, which also refuses this at the source.
     let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
-    const eagerBridgeChains: Array<typeof BASE_SEPOLIA_BLOCKCHAIN | 'SOL-DEVNET'> = [
-      BASE_SEPOLIA_BLOCKCHAIN,
-      'SOL-DEVNET',
-    ];
+    const isCircleAccount = !!getUserByAddress(userAddress)?.circleIdentityWalletId;
+    const eagerBridgeChains: Array<typeof BASE_SEPOLIA_BLOCKCHAIN | 'SOL-DEVNET'> =
+      isCircleAccount ? [BASE_SEPOLIA_BLOCKCHAIN, 'SOL-DEVNET'] : [];
     for (const chain of eagerBridgeChains) {
       try {
         const wallet = await provisionUserBridgeWallet(userAddress, chain);

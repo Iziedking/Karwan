@@ -204,10 +204,26 @@ export async function provisionUserBridgeWallet(
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
   }
   const refId = userAddress.toLowerCase();
+  const user = getUserByAddress(refId);
   // Resolve the anchor here rather than at each of the seven call sites, so
   // every path that lazily provisions a deposit wallet gets the derived,
   // collision-free address without needing to know about any of this.
-  const anchor = anchorWalletId ?? getUserByAddress(refId)?.circleIdentityWalletId;
+  const anchor = anchorWalletId ?? user?.circleIdentityWalletId;
+
+  // Web3 accounts have no Circle identity record (getUserByAddress is empty for
+  // them). A backend-signed EVM deposit wallet is useless to them — they bridge
+  // from their own connected wallet and never touch the source DCW — and
+  // provisioning one only advances the shared wallet set's per-chain index
+  // counter. That counter advancing lazily, one chain at a time, is exactly what
+  // hands the same index to two different users and collides their addresses.
+  // Refuse at the source so no path, activation or lazy, can grow that problem.
+  // Solana is exempt: it is a separate EOA curve that can never collide with an
+  // EVM index, and the derive path below already skips it.
+  if (!user && !anchorWalletId && blockchain !== SOL_DEVNET_BLOCKCHAIN) {
+    throw new Error(
+      `web3 account ${refId} gets no backend deposit wallet on ${blockchain}; web3 users bridge from their own wallet`,
+    );
+  }
 
   if (anchor && blockchain !== SOL_DEVNET_BLOCKCHAIN) {
     try {
