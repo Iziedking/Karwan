@@ -188,6 +188,43 @@ const YieldClaimedEvent = parseAbiItem(
   'event YieldClaimed(address indexed staker, address indexed to, uint256 amount)',
 );
 
+/// Per-staker yield read, shared by the /me route and the assistant's
+/// recall tools. claimable is a live contract view (cheap, always fresh).
+/// lifetimeClaimed comes from the incremental index (no chain scan), and
+/// credited is derived as claimable + claimed so the three numbers always
+/// reconcile. Throws on chain-read failure; callers decide the fallback.
+export async function readStakerYield(addressRaw: string): Promise<{
+  configured: boolean;
+  claimableUsdc: string;
+  lifetimeCreditedUsdc: string;
+  lifetimeClaimedUsdc: string;
+}> {
+  const distributor = distributorAddress();
+  if (!distributor) {
+    return {
+      configured: false,
+      claimableUsdc: '0',
+      lifetimeCreditedUsdc: '0',
+      lifetimeClaimedUsdc: '0',
+    };
+  }
+  const checksummed = getAddress(addressRaw) as `0x${string}`;
+  const claimable = (await publicClient.readContract({
+    address: distributor,
+    abi: distributorAbi,
+    functionName: 'claimable',
+    args: [checksummed],
+  })) as bigint;
+  const lifetimeClaimed = indexedStakerClaimed(checksummed);
+  const lifetimeCredited = claimable + lifetimeClaimed;
+  return {
+    configured: true,
+    claimableUsdc: formatUnits(claimable, USDC_DECIMALS),
+    lifetimeCreditedUsdc: formatUnits(lifetimeCredited, USDC_DECIMALS),
+    lifetimeClaimedUsdc: formatUnits(lifetimeClaimed, USDC_DECIMALS),
+  };
+}
+
 yieldRoutes.get('/me', async (c) => {
   const distributor = distributorAddress();
   if (!distributor) {
@@ -205,27 +242,9 @@ yieldRoutes.get('/me', async (c) => {
   if (!parsed.success) {
     return c.json({ error: 'address required' }, 400);
   }
-  const checksummed = getAddress(parsed.data) as `0x${string}`;
   try {
-    // claimable is a live contract view (cheap, always fresh). lifetimeClaimed
-    // comes from the incremental index (no chain scan), and credited is derived
-    // as claimable + claimed so the panel's three numbers always reconcile.
-    const claimable = (await publicClient.readContract({
-      address: distributor,
-      abi: distributorAbi,
-      functionName: 'claimable',
-      args: [checksummed],
-    })) as bigint;
-    const lifetimeClaimed = indexedStakerClaimed(checksummed);
-    const lifetimeCredited = claimable + lifetimeClaimed;
-
-    return c.json({
-      configured: true,
-      address: distributor,
-      claimableUsdc: formatUnits(claimable, USDC_DECIMALS),
-      lifetimeCreditedUsdc: formatUnits(lifetimeCredited, USDC_DECIMALS),
-      lifetimeClaimedUsdc: formatUnits(lifetimeClaimed, USDC_DECIMALS),
-    });
+    const snapshot = await readStakerYield(parsed.data);
+    return c.json({ ...snapshot, address: distributor });
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'yield /me read failed');
     return c.json({ error: 'read failed', detail: (err as Error).message }, 502);

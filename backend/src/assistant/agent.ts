@@ -28,6 +28,16 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForWallets } from '../db/bridges.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
+import { activeStakeSummary } from '../reputation/stake.js';
+import { readStakerYield } from '../routes/yield.js';
+import { loadInputs } from '../reputation/signals.js';
+import { compute as computeReputation } from '../reputation/engine.js';
+import { listListingsForSeller, listingStatus } from '../db/listings.js';
+import { getBuyerSnapshot } from '../agents/buyer.js';
+import { getSellerSnapshot } from '../agents/seller.js';
+import { listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
+import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
+import { getProfile } from '../db/profiles.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readUserGatewayBalance } from '../gateway/balance.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
@@ -128,11 +138,12 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [usdc, gas, record, unified] = await Promise.all([
+          const [usdc, gas, record, unified, stake] = await Promise.all([
             readUsdcBalance(address),
             publicClient.getBalance({ address: address as Address }),
             getAgentWallets(address).catch(() => null),
             readUserGatewayBalance(address).catch(() => null),
+            activeStakeSummary(address).catch(() => null),
           ]);
           const agentBal = async (addr?: string) =>
             addr ? formatUnits(await readUsdcBalance(addr), USDC_DECIMALS) : null;
@@ -153,7 +164,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               ? { address: record.sellerAddress, usdc: sellerUsdc }
               : null,
             unifiedBalance: unified ? unified.available.toFixed(2) : null,
-            note: 'Agents trade from the agent wallets. Sale proceeds land in the seller agent; refunds in the buyer agent. The unified balance is a pooled USDC balance you can use to fund either agent.',
+            stakedUsdc: stake && stake.stakeUsdc > 0 ? stake.stakeUsdc.toFixed(2) : null,
+            note: 'Agents trade from the agent wallets. Sale proceeds land in the seller agent; refunds in the buyer agent. The unified balance is a pooled USDC balance you can use to fund either agent. stakedUsdc is USDC locked in the stake vault (null when they have no stake) — use get_my_stake for the full staking picture including yield.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -281,6 +293,328 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant recall_activity failed');
           return { error: 'Could not read the account history right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_my_stake: tool({
+      description:
+        "The signed-in user's full staking picture: total USDC staked in the vault, how much is free vs reserved as insurance against their open deals, how long they've been staking, plus their yield — claimable now, lifetime earned, lifetime claimed. Use for 'what is my staking balance', 'how much have I staked', 'what's my yield', 'can I unstake'. Never guess these numbers.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const [stake, yieldSnap] = await Promise.all([
+            activeStakeSummary(address),
+            readStakerYield(address).catch(() => null),
+          ]);
+          return {
+            stakedUsdc: stake.stakeUsdc.toFixed(2),
+            freeStakeUsdc: stake.freeStakeUsdc.toFixed(2),
+            reservedForDealsUsdc: stake.reservedUsdc.toFixed(2),
+            longestPositionDays: Math.round(stake.stakeDays),
+            yield:
+              yieldSnap && yieldSnap.configured
+                ? {
+                    claimableNowUsdc: yieldSnap.claimableUsdc,
+                    lifetimeEarnedUsdc: yieldSnap.lifetimeCreditedUsdc,
+                    lifetimeClaimedUsdc: yieldSnap.lifetimeClaimedUsdc,
+                  }
+                : null,
+            note: 'Free stake backs new deals as insurance; reserved stake is locked against open deals until they settle. Yield is credited daily from the USYC-backed treasury and claimed at /stake. Staking also feeds the reputation score.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_stake failed');
+          return { error: 'Could not read the stake vault right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_my_reputation: tool({
+      description:
+        "The signed-in user's reputation: score (0-1000), tier (NEW / COLD / ESTABLISHED / STRONG / ELITE), and the record behind it — deals completed, disputes, lifetime volume, stake, account age. Use for 'what is my reputation', 'why is my score low', 'how do I reach the next tier', or when they ask how counterparties see them.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const inputs = await loadInputs(address);
+          const result = computeReputation(inputs);
+          return {
+            score: result.score,
+            tier: result.tier,
+            record: {
+              dealsCompleted: inputs.completedDeals,
+              dealsStarted: inputs.totalStarted,
+              disputes: inputs.disputedCount,
+              failed: inputs.failedCount,
+              cancelsLast90d: inputs.cancelsLast90d,
+              lifetimeVolumeUsdc: inputs.lifetimeVolumeUsdc.toFixed(2),
+              stakeUsdc: inputs.stakeUsdc.toFixed(2),
+              stakeDays: Math.round(inputs.stakeDays),
+              activeDays: inputs.activeDays,
+            },
+            note: 'Tier breakpoints: COLD at 200, ESTABLISHED at 400, STRONG at 600, ELITE at 800. The fastest levers are completing deals cleanly, staking (amount and duration both count), and avoiding cancellations and disputes. Full breakdown lives on /reputation.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_reputation failed');
+          return { error: 'Could not compute the reputation right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_my_market_activity: tool({
+      description:
+        "Everything the signed-in user has live on the market: their posted OFFERS (listings they sell, with status), their posted REQUESTS (buyer-desk auctions, with how many bids came in), and the bids their seller agent is actively negotiating on other people's requests. Use for 'what have I posted', 'any bids on my request', 'what is my agent bidding on', 'is my offer still live'.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const record = await getAgentWallets(address).catch(() => null);
+          const offers = listListingsForSeller(address).slice(0, 15).map((l) => ({
+            id: l.id,
+            title: l.title,
+            askingPriceUsdc: l.askingPriceUsdc,
+            status: l.matchedAt ? 'matched' : listingStatus(l),
+            postedAt: new Date(l.postedAt).toISOString(),
+          }));
+          const requests = record?.buyerAddress
+            ? getBuyerSnapshot(record.buyerAddress).jobs.slice(0, 15).map((j) => ({
+                jobId: j.jobId,
+                budgetUsdc: j.budgetUsdc,
+                deadline: new Date(j.deadlineUnix * 1000).toISOString(),
+                status: j.cancelledAt
+                  ? 'cancelled'
+                  : j.finalized
+                    ? 'matched'
+                    : j.expiredAt
+                      ? 'expired'
+                      : 'collecting bids',
+                bidsReceived: j.bids.length,
+              }))
+            : [];
+          const activeBids = record?.sellerAddress
+            ? getSellerSnapshot(record.sellerAddress).activeBids.slice(0, 15).map((b) => ({
+                jobId: b.jobId,
+                buyerBudgetUsdc: b.budgetUsdc,
+                yourAgentLastBidUsdc: b.lastBidPrice,
+                negotiationRounds: b.counterRounds,
+                finalized: b.finalized,
+              }))
+            : [];
+          return {
+            offers,
+            requests,
+            sellerAgentActiveBids: activeBids,
+            note:
+              offers.length + requests.length + activeBids.length === 0
+                ? 'Nothing live on the market right now. They can post an offer or a request — you can prepare either with the propose tools.'
+                : 'Offers are what they sell; requests are buyer-desk auctions their buyer agent runs; active bids are negotiations their seller agent is in on other buyers’ requests.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_market_activity failed');
+          return { error: 'Could not read the market activity right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    whats_pending: tool({
+      description:
+        "Everything on this account that needs attention or is in flight, across the whole platform: match proposals awaiting approval, deliveries waiting for release, deals waiting on the counterparty, disputes, approaching deadlines, bridges still relaying, factoring offers awaiting a decision, PO-financing lines, and claimable yield. Call this for 'what needs my attention', 'anything pending', 'what's the status of everything', or as a first read when the user seems unsure what to do next.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const [deals, proposals, record, yieldSnap, factSeller, poSeller, poFinancier] =
+            await Promise.all([
+              listDealsForAddress(address),
+              listMatchProposalsForUser(address),
+              getAgentWallets(address).catch(() => null),
+              readStakerYield(address).catch(() => null),
+              listOffersBySeller(address).catch(() => []),
+              listLinesBySeller(address).catch(() => []),
+              listLinesByFinancier(address).catch(() => []),
+            ]);
+          const actionNeeded: string[] = [];
+          const waitingOnOthers: string[] = [];
+          const inFlight: string[] = [];
+
+          for (const p of proposals) {
+            if (p.approvedAt || p.declinedAt) continue;
+            const myRole = p.buyerUser === address ? 'buyer' : 'seller';
+            const awaiting = p.awaitingParty ?? 'seller';
+            const price = p.raisedPriceUsdc ?? p.agreedPriceUsdc;
+            if (awaiting === myRole) {
+              actionNeeded.push(
+                `Match proposal on job ${p.jobId} at ${price} USDC is waiting for YOUR approval or decline.`,
+              );
+            } else {
+              waitingOnOthers.push(
+                `Match proposal on job ${p.jobId} at ${price} USDC is waiting for the ${awaiting} to approve.`,
+              );
+            }
+          }
+
+          const now = Date.now();
+          for (const d of deals) {
+            if (d.settledAt || d.cancelledAt) continue;
+            const isBuyer = d.buyer === address;
+            if (d.disputed) {
+              actionNeeded.push(
+                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is in dispute — the process and timelines are on /docs/disputes.`,
+              );
+            } else if (d.delivered && isBuyer) {
+              actionNeeded.push(
+                `Deal ${d.jobId}: the seller delivered. Review the work and release the ${d.dealAmountUsdc} USDC payment.`,
+              );
+            } else if (d.delivered && !isBuyer) {
+              waitingOnOthers.push(
+                `Deal ${d.jobId}: you delivered; waiting for the buyer to review and release ${d.dealAmountUsdc} USDC.`,
+              );
+            } else if (!d.acceptedAt && !isBuyer && !d.pendingCounterparty) {
+              actionNeeded.push(
+                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is waiting for you to accept the escrow.`,
+              );
+            } else if (
+              !isBuyer &&
+              d.deadlineUnix &&
+              d.deadlineUnix * 1000 - now < 3 * 86_400_000 &&
+              d.deadlineUnix * 1000 > now
+            ) {
+              const daysLeft = Math.max(1, Math.ceil((d.deadlineUnix * 1000 - now) / 86_400_000));
+              actionNeeded.push(
+                `Deal ${d.jobId}: the delivery deadline is in about ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Deliver on time — missing it lets the buyer reclaim and costs reputation.`,
+              );
+            } else {
+              inFlight.push(`Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is in progress.`);
+            }
+          }
+
+          const bridgeAddrs = [
+            address,
+            ...Object.values(record?.bridgeWallets ?? {}).map((w) => w.address),
+          ];
+          for (const b of await listBridgesForWallets(bridgeAddrs)) {
+            if (b.status === 'minted' || b.status === 'error') continue;
+            inFlight.push(
+              `Bridge of ${b.amountUsdc} USDC is still ${b.status} (track it on /bridge).`,
+            );
+          }
+
+          for (const f of factSeller) {
+            if (f.status !== 'offered' || f.expiresAt < now) continue;
+            actionNeeded.push(
+              `Factoring offer on invoice ${f.invoiceId}: ${f.offeredAdvanceUsdc} USDC advance now against ${f.faceValueUsdc} face value — accept or reject before it expires.`,
+            );
+          }
+          for (const l of poSeller) {
+            if (l.state === 'funded' || l.state === 'released') {
+              inFlight.push(
+                `PO financing on invoice ${l.invoiceId}: ${l.principalUsdc} USDC funded, ${l.repayUsdc} USDC repays automatically when the deal settles.`,
+              );
+            }
+          }
+          for (const l of poFinancier) {
+            if (l.state === 'funded' || l.state === 'released') {
+              inFlight.push(
+                `You are financing invoice ${l.invoiceId}: ${l.principalUsdc} USDC out, ${l.repayUsdc} USDC due back.`,
+              );
+            }
+          }
+
+          if (yieldSnap?.configured && Number(yieldSnap.claimableUsdc) > 0) {
+            actionNeeded.push(
+              `${yieldSnap.claimableUsdc} USDC of staking yield is claimable at /stake.`,
+            );
+          }
+
+          return {
+            actionNeeded,
+            waitingOnOthers,
+            inFlight,
+            note:
+              actionNeeded.length + waitingOnOthers.length + inFlight.length === 0
+                ? 'Nothing needs their attention. No open deals, proposals, bridges, financing, or claimable yield.'
+                : 'Lead with actionNeeded, mention the rest only if relevant. Each item names the screen to act on.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant whats_pending failed');
+          return { error: 'Could not build the pending picture right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_my_financing: tool({
+      description:
+        "The signed-in user's SME trade-finance position, both sides: factoring offers on their invoices (as a seller getting early payout) and offers they made (as a financier), plus PO-financing lines funded for them or by them. Use for 'my factoring offers', 'my financing', 'what am I owed', 'what did I fund'. Empty results are normal for pure P2P users.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const [asSellerOffers, asFinancierOffers, sellerLines, financierLines] =
+            await Promise.all([
+              listOffersBySeller(address),
+              listOffersByFinancier(address),
+              listLinesBySeller(address),
+              listLinesByFinancier(address),
+            ]);
+          const offer = (o: (typeof asSellerOffers)[number]) => ({
+            invoiceId: o.invoiceId,
+            advanceUsdc: o.offeredAdvanceUsdc,
+            faceValueUsdc: o.faceValueUsdc,
+            repayUsdc: o.expectedReturnUsdc,
+            discountBps: o.discountBps,
+            status: o.status,
+            offeredAt: new Date(o.offeredAt).toISOString(),
+          });
+          const line = (l: (typeof sellerLines)[number]) => ({
+            invoiceId: l.invoiceId,
+            principalUsdc: l.principalUsdc,
+            repayUsdc: l.repayUsdc,
+            state: l.state,
+            fundedAt: new Date(l.fundedAt).toISOString(),
+          });
+          return {
+            factoringOffersOnMyInvoices: asSellerOffers.slice(0, 10).map(offer),
+            factoringOffersIMade: asFinancierOffers.slice(0, 10).map(offer),
+            poLinesFundingMe: sellerLines.slice(0, 10).map(line),
+            poLinesIFunded: financierLines.slice(0, 10).map(line),
+            note: 'Factoring advances pay sellers early against an accepted invoice; repayment auto-pulls when the deal settles. PO financing fronts the purchase before delivery. Both live on the financing surfaces under /jobs and the financier desk.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_financing failed');
+          return { error: 'Could not read the financing position right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    get_my_profile: tool({
+      description:
+        "The signed-in user's own profile and account setup: display name, account kind (person or business), role, email verification, seller skills and price range, buyer preferences, and whether paid market research is active. Use for 'what does my profile say', 'am I set up as a business', 'what skills do I have listed', or to check setup before advising them.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const p = await getProfile(address);
+          if (!p) {
+            return {
+              profile: null,
+              note: 'No profile yet. They can set one up at /profile — a display name and seller skills make their agent far more matchable.',
+            };
+          }
+          return {
+            displayName: p.displayName,
+            role: p.role,
+            accountKind: p.accountKind ?? 'person',
+            emailVerified: p.emailVerified === true,
+            seller: p.seller
+              ? {
+                  skills: p.seller.skills,
+                  bio: p.seller.bio,
+                  budgetRangeUsdc: [p.seller.minBudgetUsdc, p.seller.maxBudgetUsdc],
+                }
+              : null,
+            buyer: p.buyer ? { maxBudgetUsdc: p.buyer.maxBudgetUsdc } : null,
+            business: p.business ? { onRecord: true } : null,
+            paidResearchActive: p.research?.active === true,
+            note: 'Edits happen on /profile. Seller skills drive what requests their agent bids on; buyer preferences bound what their agent may agree to.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_profile failed');
+          return { error: 'Could not read the profile right now. Try again shortly.' };
         }
       },
     }),
@@ -725,6 +1059,16 @@ function authenticatedPreamble(address: string, method: string): string {
     'with last week"), call recall_activity (and list_my_deals for deals) and answer from the records.',
     'NEVER reply that you have no memory of past sessions without checking these tools first.',
     '',
+    '# You can see EVERYTHING on this account. Route every question to a tool.',
+    'Balances (wallet, agents, unified, gas) -> get_my_balance. Staking + yield -> get_my_stake.',
+    'Reputation score/tier -> get_my_reputation. Deals -> list_my_deals / get_deal_status.',
+    'Open offers, requests, agent bids -> get_my_market_activity. Factoring + PO financing -> get_my_financing.',
+    'Past money moves, bridges, matches -> recall_activity. Profile/setup -> get_my_profile.',
+    'Anything pending or "what should I do" -> whats_pending.',
+    'NEVER answer a question about their account from general knowledge or say the data "isn\'t showing" —',
+    'if one tool comes back empty, think about which OTHER tool actually holds that answer and call it.',
+    'A staking question is get_my_stake even if get_my_balance showed no stake line.',
+    '',
     '# You are an ACTING assistant for a SIGNED-IN user (NOT guidance-only)',
     `Signed in as ${address} via ${method}. IGNORE any earlier line that says you are "guidance only" or`,
     'that you "cannot move funds or act" — for THIS signed-in user you CAN, through the tools below. Every',
@@ -792,10 +1136,10 @@ export async function runAssistantAgent(input: {
       system,
       messages: input.messages,
       tools: buildTools(input.address, input.method, actions),
-      // Allow a few reasoning+tool rounds (e.g. list deals, then read one, then
-      // propose a button), then force a final text answer. A handful of calls max.
-      stopWhen: stepCountIs(5),
-      maxOutputTokens: 700,
+      // Allow a few reasoning+tool rounds (e.g. whats_pending, then read one
+      // deal, then propose a button), then force a final text answer.
+      stopWhen: stepCountIs(6),
+      maxOutputTokens: 900,
     }),
     30_000,
   );
