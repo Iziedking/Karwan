@@ -67,6 +67,15 @@ async function main() {
   );
   if (execute && sweep) console.log('  --sweep is ON: funded old addresses will ALSO be emptied into the new one.\n');
 
+  // CASCADE GUARD. One user's OLD deposit address can be ANOTHER user's
+  // identity address — that is the whole collision this migration exists to
+  // fix. Sweeping in sequence therefore chains: user A's funds land on A's
+  // unified address, and if that address is user B's old deposit wallet, B's
+  // sweep then carries A's money onward to B. That happened on the first run
+  // and mis-delivered 24.946802 USDC. Never sweep FROM an address that is any
+  // account's identity address; archive it and report it for manual handling.
+  const identityAddresses = new Set(all.map((r) => r.userAddress.toLowerCase()));
+
   let planned = 0;
   let alreadyOk = 0;
   let skippedWeb3 = 0;
@@ -128,7 +137,12 @@ async function main() {
           continue;
         }
 
-        if (held > 0 && sweep && key) {
+        const isSomeonesIdentity = identityAddresses.has(old.address.toLowerCase());
+        if (held > 0 && sweep && isSomeonesIdentity) {
+          failures.push(
+            `${rec.userAddress} ${chain}: REFUSED to sweep ${bal} USDC from ${old.address} — that address is another account's identity, so the balance may not be theirs. Archived; handle manually.`,
+          );
+        } else if (held > 0 && sweep && key) {
           // Both wallets are ours, same chain, so this is a plain USDC transfer
           // from the superseded wallet into the unified one.
           try {

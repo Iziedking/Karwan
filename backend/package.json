@@ -21,6 +21,7 @@
     "derive:provision-probe": "tsx --env-file=../.env src/scripts/derive-provision-probe.ts",
     "wallets:unify-audit": "tsx --env-file=../.env src/scripts/wallet-unify-audit.ts",
     "wallets:unify-backfill": "tsx --env-file=../.env src/scripts/wallet-unify-backfill.ts",
+    "wallets:return": "tsx --env-file=../.env src/scripts/wallet-return-misswept.ts",
     "reviewer:create": "tsx --env-file=../.env src/scripts/provision-reviewer-wallet.ts",
     "yield:backfill": "tsx --env-file=../.env src/scripts/yield-backfill.ts",
     "usyc:cron": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
