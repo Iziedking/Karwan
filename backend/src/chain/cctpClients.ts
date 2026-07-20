@@ -1,5 +1,23 @@
-import { createPublicClient, http, formatUnits, type PublicClient } from 'viem';
+import { createPublicClient, http, fallback, formatUnits, type PublicClient } from 'viem';
 import { CCTP_CHAIN_KEYS, CCTP_CHAINS, type CctpChainKey } from './cctpChains.js';
+
+/// Optional private RPC per chain, e.g. CCTP_RPC_URL_SEPOLIA=https://eth-sepolia.g.alchemy.com/v2/KEY
+/// Without one, viem falls back to the chain's public endpoint, which on
+/// Ethereum Sepolia is throttled hard enough that balance reads time out
+/// outright (an audit had 6 of 6 Sepolia reads fail while every other chain
+/// answered). Set the ones you care about; the public endpoint stays as a
+/// backup either way, so a bad key degrades rather than breaks.
+function rpcEnvName(key: CctpChainKey): string {
+  return `CCTP_RPC_URL_${key.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}`;
+}
+
+function transportFor(key: CctpChainKey) {
+  const override = process.env[rpcEnvName(key)]?.trim();
+  const publicHttp = http(undefined, { retryCount: 2, timeout: 10_000 });
+  return override
+    ? fallback([http(override, { retryCount: 2, timeout: 10_000 }), publicHttp])
+    : publicHttp;
+}
 
 /// Lightweight public clients per CCTP chain for source/destination balance and
 /// allowance reads. Created once and reused (viem's HTTP client allocates a
@@ -9,9 +27,15 @@ import { CCTP_CHAIN_KEYS, CCTP_CHAINS, type CctpChainKey } from './cctpChains.js
 export const sourceClients = Object.fromEntries(
   CCTP_CHAIN_KEYS.map((k) => [
     k,
-    createPublicClient({ chain: CCTP_CHAINS[k].viemChain, transport: http() }),
+    createPublicClient({ chain: CCTP_CHAINS[k].viemChain, transport: transportFor(k) }),
   ]),
 ) as Record<CctpChainKey, PublicClient>;
+
+/// Which chains have a private RPC configured. Printed by the audit so a
+/// timed-out read is attributable to a missing key rather than a mystery.
+export function configuredRpcOverrides(): string[] {
+  return CCTP_CHAIN_KEYS.filter((k) => !!process.env[rpcEnvName(k)]?.trim());
+}
 
 const balanceOfAbi = [
   {

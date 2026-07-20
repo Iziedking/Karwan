@@ -15,7 +15,7 @@
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { initUsersStore, getUserByAddress } from '../db/users.js';
 import { ensureSchema, pgEnabled } from '../db/client.js';
-import { readSourceUsdcBalance } from '../chain/cctpClients.js';
+import { readSourceUsdcBalance, configuredRpcOverrides } from '../chain/cctpClients.js';
 import { CCTP_CHAINS, CCTP_CHAIN_KEYS, type CctpChainKey } from '../chain/cctpChains.js';
 
 /// Circle blockchain enum -> our CCTP chain key, for the balance read. Solana
@@ -210,6 +210,15 @@ async function main() {
       console.log(`    ${t.chain.padEnd(16)} ${t.address}  (user ${t.user})`);
     }
     console.log('  Treat these as UNKNOWN, never as empty.');
+    const overrides = configuredRpcOverrides();
+    const chainsAffected = [...new Set(stillUnknown.map((t) => t.key))];
+    const missing = chainsAffected.filter((k) => !overrides.includes(k));
+    if (missing.length > 0) {
+      console.log(
+        `  These chains have NO private RPC configured: ${missing.join(', ')}.\n` +
+          `  Set ${missing.map((k) => `CCTP_RPC_URL_${k.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}`).join(', ')} and re-run.`,
+      );
+    }
   }
 
   // Only meaningful against the real store; a dump carries no users table.
