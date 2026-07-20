@@ -1685,9 +1685,7 @@ interface MessagesShape {
       balanceHere: string;
       gas: string;
       sponsored: string;
-      gasSponsoredNote: string;
       covered: string;
-      gasCoveredNote: string;
       addressLabel: string;
       provisioning: string;
       copy: string;
@@ -1696,6 +1694,14 @@ interface MessagesShape {
       requesting: string;
       testUsdcRequested: string;
       circleFaucet: string;
+    };
+    solanaFund: {
+      addressLabel: string;
+      provisioning: string;
+      note: string;
+      copy: string;
+      copied: string;
+      faucet: string;
     };
     web3Fund: {
       eyebrowTemplate: string;
@@ -5678,16 +5684,14 @@ export const en: MessagesShape = {
     circleFund: {
       badgeFunded: 'FUNDED',
       badgeFundToBridge: 'FUND TO ADD',
-      statusChecking: 'Getting your deposit address ready…',
-      statusEmpty: 'This address is empty. Send USDC here, then add.',
-      statusFunded: 'Funded. You can add money now.',
-      statusSendUsdc: 'Send USDC to this address first, then add.',
+      statusChecking: 'Setting up…',
+      statusEmpty: 'Send USDC here to add.',
+      statusFunded: 'Ready to add.',
+      statusSendUsdc: 'Send USDC here to add.',
       balanceHere: 'Balance here',
       gas: 'Gas',
       sponsored: 'Sponsored',
-      gasSponsoredNote: 'No ETH needed. Karwan covers the network fee, so you only send USDC.',
       covered: 'Covered',
-      gasCoveredNote: 'No ETH needed. Karwan covers the network fee from your deposit wallet, so you only send USDC.',
       addressLabel: 'Your deposit address',
       provisioning: 'setting up…',
       copy: 'COPY',
@@ -5696,6 +5700,14 @@ export const en: MessagesShape = {
       requesting: 'Requesting',
       testUsdcRequested: 'Test USDC requested. It lands here in about a minute.',
       circleFaucet: 'Circle faucet',
+    },
+    solanaFund: {
+      addressLabel: 'Your Solana deposit address',
+      provisioning: 'setting up…',
+      note: 'Send USDC here. Keep a little SOL in it for the Solana network fee.',
+      copy: 'COPY',
+      copied: 'COPIED',
+      faucet: 'Solana faucet',
     },
     web3Fund: {
       eyebrowTemplate: '[:FUND {chain} TO BRIDGE:]',

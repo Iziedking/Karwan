@@ -8,7 +8,7 @@ import {
   useSwitchChain,
   useWalletClient,
 } from 'wagmi';
-import { api, ApiError, type ChainEvent } from '@/core/api';
+import { api, ApiError, type ChainEvent, type AppKitBridgeChainKey } from '@/core/api';
 import {
   ARC_TESTNET,
   SOURCE_CHAINS,
@@ -1106,6 +1106,64 @@ export function useBridges() {
     [patch],
   );
 
+  /// Circle-only Solana path. Same shape as startCircle, but the burn runs
+  /// through App Kit's Circle Wallets adapter (Solana has no hand-rolled CCTP
+  /// pipeline). The user funds their Solana deposit wallet; the backend signs
+  /// the burn and the forwarder mints on Arc, so an email account never needs
+  /// a browser wallet. Web3 users keep signing in Phantom.
+  const startCircleAppKit = useCallback(
+    async (input: {
+      sourceChainKey: AppKitBridgeChainKey;
+      amountUsdc: number;
+      /// Arc destination, so always 0x — the SOURCE is what is non-EVM here.
+      mintRecipient: `0x${string}`;
+      userAddress: string;
+    }) => {
+      const id = `${input.sourceChainKey}-circle-${input.userAddress}-${Date.now()}`;
+      const now = Date.now();
+      setBridges((list) =>
+        [
+          {
+            id,
+            phase: 'burning' as const,
+            sourceChainKey: input.sourceChainKey,
+            amountUsdc: input.amountUsdc.toString(),
+            mintRecipient: input.mintRecipient,
+            startedAt: now,
+            updatedAt: now,
+          },
+          ...list,
+        ].slice(0, MAX_HISTORY),
+      );
+      try {
+        await api.bridgeCircleAppKit({
+          bridgeId: id,
+          address: input.userAddress,
+          sourceChainKey: input.sourceChainKey,
+          amountUsdc: input.amountUsdc,
+          mintRecipient: input.mintRecipient,
+        });
+        patch(id, (b) => ({ ...b, phase: 'burning', error: undefined }));
+      } catch (err) {
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[bridge.startCircleAppKit]', errorToString(err));
+        }
+        const raw = errorToString(err).toLowerCase();
+        // The one real friction on Solana: Circle does not sponsor gas for
+        // transfers that ORIGINATE on Solana, so the deposit wallet needs a
+        // little SOL of its own. Name it plainly instead of "bridge failed".
+        const friendly = raw.includes('failed to fetch')
+          ? 'Could not reach the bridge service. Check your connection and try again.'
+          : raw.includes('insufficient') || raw.includes('sol')
+            ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
+            : 'Bridge could not start. Try again in a moment.';
+        patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+      }
+    },
+    [patch],
+  );
+
   /// Circle bridge-OUT (Arc -> chain). Backend burns from the identity DCW on
   /// Arc and relays the mint on the destination chain (gas sponsored via Gas
   /// Station). Records the bridge locally; the same SSE handlers animate it
@@ -1706,6 +1764,7 @@ export function useBridges() {
     bridges,
     start,
     startCircle,
+    startCircleAppKit,
     startCircleOut,
     startWeb3Out,
     startArcSend,

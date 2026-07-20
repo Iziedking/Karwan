@@ -241,7 +241,7 @@ export function BridgeCard({
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
   const buyerAgent = agents?.buyer ? (agents.buyer as `0x${string}`) : undefined;
   const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
-  const { bridges, startCircle, startAppKitBridge, isActive } = useBridges();
+  const { bridges, startCircle, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
   // True while an add-money bridge is in an early, pre-attestation phase. The
@@ -428,6 +428,11 @@ export function BridgeCard({
   const appKitPath = sourceIsAppKitOnly;
   const walletConnected = isConnected && !!web3Address;
   const walletPath = !appKitPath && walletConnected && !depositMode;
+  // Solana for an EMAIL account: the backend signs the burn from their Solana
+  // deposit wallet through App Kit's Circle Wallets adapter, so they fund an
+  // address and never connect anything. Phantom is now web3-only.
+  const solanaDepositPath = appKitPath && isCircleUser;
+  const solanaWalletPath = appKitPath && !isCircleUser;
   // Circle users default to the deposit path even before the depositMode init
   // effect flips (so the card never flashes a connect prompt while auth loads).
   const depositPath = !appKitPath && isCircleUser && (depositMode || !walletConnected);
@@ -487,9 +492,17 @@ export function BridgeCard({
   const solanaNeedsGas =
     appKitPath && solana.solBalance !== null && solana.solBalance < SOLANA_MIN_SOL;
   const canBridgeSolana =
-    appKitPath &&
+    solanaWalletPath &&
     !!solana.address &&
     !solanaNeedsGas &&
+    typeof amount === 'number' &&
+    amount > 0 &&
+    !!mintRecipient &&
+    recipientReady;
+  // Email accounts: nothing to connect, so the gates are just amount + target.
+  const canBridgeSolanaDeposit =
+    solanaDepositPath &&
+    !!auth.address &&
     typeof amount === 'number' &&
     amount > 0 &&
     !!mintRecipient &&
@@ -511,7 +524,8 @@ export function BridgeCard({
     amount > 0 &&
     !!mintRecipient &&
     recipientReady;
-  const canSubmit = canBridgeSolana || canBridgeCircle || canSwitch || canBurn;
+  const canSubmit =
+    canBridgeSolana || canBridgeSolanaDeposit || canBridgeCircle || canSwitch || canBurn;
 
 
   async function handleSubmit(e: React.FormEvent) {
@@ -519,6 +533,17 @@ export function BridgeCard({
     // Solana: the user signs the burn in their wallet; the forwarder mints on
     // Arc. Recipient is the user's own Arc address (mintRecipient).
     if (appKitPath) {
+      // Email account: the backend signs from their Solana deposit wallet.
+      if (solanaDepositPath && auth.address) {
+        if (!canBridgeSolanaDeposit || !mintRecipient) return;
+        startCircleAppKit({
+          sourceChainKey: sourceKey as 'solanaDevnet',
+          amountUsdc: amount as number,
+          mintRecipient,
+          userAddress: auth.address,
+        });
+        return;
+      }
       if (!canBridgeSolana || !mintRecipient) return;
       startAppKitBridge({ sourceChainKey: sourceKey, amountUsdc: amount as number, mintRecipient });
       return;
@@ -633,9 +658,10 @@ export function BridgeCard({
       </div>
 
       <div className="px-6 pb-6">
-        {appKitPath && (
-          <SolanaConnectCard wallet={solana} copy={bc.solana} />
+        {solanaDepositPath && auth.address && (
+          <SolanaDepositBanner userAddress={auth.address} copy={bc.solanaFund} />
         )}
+        {solanaWalletPath && <SolanaConnectCard wallet={solana} copy={bc.solana} />}
         {depositPath && (
           <CircleSourceFundBanner
             sourceChainKey={sourceKey as CctpChainKey}
@@ -660,7 +686,9 @@ export function BridgeCard({
             setOpen={setSourcePickerOpen}
             eyebrow={bc.eyebrow.sourceChain}
             copy={bc.sourceChain}
-            circlePath={depositPath}
+            // Not depositPath: that is false while Solana is selected, which
+            // would re-enable the six chains no Circle wallet can sign on.
+            circlePath={isCircleUser && (depositMode || !walletConnected)}
           />
 
           {/* AMOUNT INPUT */}
@@ -1605,9 +1633,8 @@ function CircleSourceFundBanner({
             </p>
           </div>
         </div>
-        <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">
-          {gasSponsored ? copy.gasSponsoredNote : copy.gasCoveredNote}
-        </p>
+        {/* No explainer paragraph here. The SPONSORED tag above already says
+            it; a sentence repeating it is one more thing to read past. */}
 
         {/* ADDRESS + ACTIONS */}
         <div className="mt-3 flex items-center justify-between gap-3">
@@ -1669,6 +1696,103 @@ function CircleSourceFundBanner({
             className="mono text-[9px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             {copy.circleFaucet}
+            <ExternalIcon />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/// Solana for an EMAIL account. Circle holds a Solana wallet for the user, so
+/// they fund an address and the backend signs the burn — no Phantom, same shape
+/// as every EVM chain. The one honest difference: Circle does NOT sponsor gas
+/// for transfers that originate on Solana, so this wallet needs a little SOL of
+/// its own. That is stated in one line rather than hidden.
+function SolanaDepositBanner({
+  userAddress,
+  copy,
+}: {
+  userAddress: string;
+  copy: Messages['bridgeCard']['solanaFund'];
+}) {
+  const [address, setAddress] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .bridgeCircleSourceAddress(userAddress, 'solanaDevnet')
+      .then((r) => !cancelled && setAddress(r.address))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userAddress]);
+
+  async function copyAddress() {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      // ignore. clipboard can fail in unfocused tabs.
+    }
+  }
+
+  return (
+    <div
+      className="relative mb-4 overflow-hidden"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+        boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
+      }}
+    >
+      <span
+        aria-hidden
+        className="absolute start-0 top-0 bottom-0 w-[3px]"
+        style={{ background: 'var(--lp-accent)' }}
+      />
+      <div className="px-4 py-3 ps-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              {copy.addressLabel}
+            </p>
+            <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
+              {address ?? copy.provisioning}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={copyAddress}
+            disabled={!address}
+            className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
+            style={{
+              borderTopLeftRadius: 6,
+              borderTopRightRadius: 6,
+              borderBottomLeftRadius: 6,
+              borderBottomRightRadius: 2,
+              color: copied ? TONE_HEX.positive : undefined,
+            }}
+          >
+            {copied ? copy.copied : copy.copy}
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">{copy.note}</p>
+        <div className="mt-1.5">
+          <a
+            href="https://faucet.solana.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="mono text-[9px] uppercase tracking-[0.16em] font-bold inline-flex items-center gap-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+          >
+            {copy.faucet}
             <ExternalIcon />
           </a>
         </div>
