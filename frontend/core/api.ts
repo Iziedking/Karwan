@@ -996,10 +996,7 @@ export interface AssistantConfirmAction {
     | 'cancel_listing'
     | 'stake_usdc'
     | 'claim_yield'
-    | 'fund_agent_direct'
-    | 'gateway_deposit'
-    | 'gateway_fund_agent'
-    | 'gateway_cash_out';
+    | 'fund_agent';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.
@@ -2863,32 +2860,21 @@ export const api = {
   // not keep serving the pre-deposit zero.
   refreshGatewayBalance: () =>
     json<{ ok: true }>('/api/gateway/refresh', { method: 'POST' }),
-  // The user's unified balance (available USD on Arc), owned by their dedicated
-  // Gateway EOA. Null gatewayAddress means they never deposited.
-  gatewayUnified: () =>
-    json<{ available: string; gatewayAddress: string | null }>('/api/gateway/unified'),
-  // Deposit into the unified balance from one of the user's own wallets. 'identity'
-  // (default) is Circle-only; 'buyer'/'seller' agent wallets work for every account
-  // type (the web3 path). Backend-signed. Session-scoped.
-  gatewayDeposit: (amountUsdc: number, source?: 'identity' | 'buyer' | 'seller') =>
-    json<{ ok: true; depositTxHash: string; gatewayAddress: string; amountUsd: number; source: string }>(
-      '/api/gateway/deposit',
-      { method: 'POST', body: JSON.stringify({ amountUsdc, ...(source ? { source } : {}) }) },
-    ),
-  // Sweep loose identity-wallet USDC into the unified balance (the "into balance"
-  // step after a top-up, incl. Solana). Self-healing, session-scoped, Circle-only.
-  gatewaySweep: () =>
-    json<{ ok: true; swept: number; gatewayAddress: string | null }>('/api/gateway/sweep', {
-      method: 'POST',
-    }),
-  // Fund a buyer/seller agent wallet from the unified balance (same-chain Arc
+  // The two spend rails below are PLUMBING, not a feature. Nothing in the UI
+  // offers "use your unified balance" as a choice: the backend decides per move
+  // whether a confirm card's payload routes here or to the wallet path, and the
+  // user sees one balance and one action either way. Deposit and sweep have no
+  // caller on purpose — money is never moved INTO the pool on a user's request,
+  // only spent out of it when it is already there.
+  //
+  // Fund a buyer/seller agent wallet from the pooled balance (same-chain Arc
   // spend, backend-signed). Session-scoped.
   gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number) =>
     json<{ ok: true; agent: 'buyer' | 'seller'; recipientAddress: string; amountUsd: number; transferId?: string }>(
       '/api/gateway/fund-agent',
       { method: 'POST', body: JSON.stringify({ agent, amountUsdc }) },
     ),
-  // Cash out from the unified balance to another chain (cross-chain Gateway spend,
+  // Cash out from the pooled balance to another chain (cross-chain Gateway spend,
   // backend-signed). Works for every account type. Session-scoped.
   gatewayCashOut: (
     destChainKey: 'baseSepolia' | 'arbitrumSepolia' | 'optimismSepolia' | 'sepolia' | 'polygonAmoy',

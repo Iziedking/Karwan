@@ -83,6 +83,11 @@ export interface CashOutPayload {
   amountUsdc: number;
   recipient: string;
   sourceKind: 'identity';
+  /// Which rail carries it, chosen by the backend from where the money sits.
+  /// 'wallet' burns on Arc via CCTP; 'unified' spends the Gateway balance, which
+  /// lands in under a second. The user is never asked and never told: both are
+  /// "cash out" and both arrive at the same address on the same chain.
+  route: MoneyRoute;
 }
 
 /// The deal- and job-lifecycle intents. Every one of these routes re-checks
@@ -126,10 +131,16 @@ export interface StakePayload {
 export interface ClaimYieldPayload {
   address: string;
 }
-export interface FundAgentDirectPayload {
+/// Which of the user's two pockets a move comes out of. Backend-chosen from the
+/// live balances, never model-chosen and never surfaced: the product presents
+/// one wallet and one balance, and this decides the plumbing behind it.
+export type MoneyRoute = 'wallet' | 'unified';
+
+export interface FundAgentPayload {
   address: string;
   agent: 'buyer' | 'seller';
   amountUsdc: number;
+  route: MoneyRoute;
 }
 
 export interface TopUpPayload {
@@ -142,22 +153,6 @@ export interface TopUpPayload {
   sourceChainKey: string;
   amountUsdc: number;
   mintRecipient: string;
-}
-
-/// Both Gateway routes derive the caller from the session, so no address in the
-/// payload. gateway_deposit adds USDC from the identity wallet to the user's
-/// unified balance; gateway_fund_agent moves it from the balance to an agent.
-export interface GatewayDepositPayload {
-  amountUsdc: number;
-}
-export interface GatewayFundAgentPayload {
-  agent: 'buyer' | 'seller';
-  amountUsdc: number;
-}
-export interface GatewayCashOutPayload {
-  destChainKey: string;
-  recipient: string;
-  amountUsdc: number;
 }
 
 interface ConfirmActionBase {
@@ -232,21 +227,9 @@ export interface ClaimYieldConfirm extends ConfirmActionBase {
   intent: 'claim_yield';
   payload: ClaimYieldPayload;
 }
-export interface FundAgentDirectConfirm extends ConfirmActionBase {
-  intent: 'fund_agent_direct';
-  payload: FundAgentDirectPayload;
-}
-export interface GatewayDepositConfirm extends ConfirmActionBase {
-  intent: 'gateway_deposit';
-  payload: GatewayDepositPayload;
-}
-export interface GatewayFundAgentConfirm extends ConfirmActionBase {
-  intent: 'gateway_fund_agent';
-  payload: GatewayFundAgentPayload;
-}
-export interface GatewayCashOutConfirm extends ConfirmActionBase {
-  intent: 'gateway_cash_out';
-  payload: GatewayCashOutPayload;
+export interface FundAgentConfirm extends ConfirmActionBase {
+  intent: 'fund_agent';
+  payload: FundAgentPayload;
 }
 
 /// Discriminated on `intent`, which also tells the frontend which route to call.
@@ -265,10 +248,7 @@ export type ConfirmAction =
   | CancelListingConfirm
   | StakeConfirm
   | ClaimYieldConfirm
-  | FundAgentDirectConfirm
-  | GatewayDepositConfirm
-  | GatewayFundAgentConfirm
-  | GatewayCashOutConfirm;
+  | FundAgentConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -626,6 +606,10 @@ export interface BuildCashOutInput {
   amountUsdc: number;
   /// Pre-formatted USDC string computed by the caller from the on-chain balance.
   balanceAfterUsdc: string;
+  /// Backend-chosen rail. 'unified' settles in under a second, 'wallet' takes the
+  /// CCTP path. Never shown on the card: the user asked to cash out, not to pick
+  /// a bridge.
+  route: MoneyRoute;
 }
 
 /// Build a cash-out (bridge-out) confirm card, or an `{ error }`. Shows the FULL
@@ -651,15 +635,15 @@ export function buildCashOutConfirm(i: BuildCashOutInput): CashOutConfirm | { er
     { label: 'Amount', value: `${i.amountUsdc} USDC` },
     { label: 'To chain', value: i.destChainLabel },
     { label: 'To address', value: dest },
-    { label: 'Left on Arc', value: `${i.balanceAfterUsdc} USDC` },
+    { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
   ];
   return {
     kind: 'confirm',
     id: `cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}:${confirmNonce()}`,
     intent: 'cash_out',
     title: 'Cash out to another chain',
-    summary: `Send ${i.amountUsdc} USDC from your Arc wallet to ${i.destChainLabel}.`,
-    warning: 'This bridges USDC off Arc and cannot be undone. Check the address and chain.',
+    summary: `Send ${i.amountUsdc} USDC from your wallet to ${i.destChainLabel}.`,
+    warning: 'This sends USDC to another chain and cannot be undone. Check the address and chain.',
     fields,
     payload: {
       address: i.caller,
@@ -667,6 +651,7 @@ export function buildCashOutConfirm(i: BuildCashOutInput): CashOutConfirm | { er
       amountUsdc: i.amountUsdc,
       recipient: dest,
       sourceKind: 'identity',
+      route: i.route,
     },
     confirmLabel: 'Cash out',
     cancelLabel: 'Not now',
@@ -929,116 +914,33 @@ export function buildClaimYieldConfirm(i: {
   };
 }
 
-/// Move USDC straight from the identity wallet into an agent wallet. Distinct
-/// from gateway_fund_agent, which spends the unified balance instead.
-export function buildFundAgentDirectConfirm(i: {
+/// Move USDC from the user's balance into an agent wallet. `route` says which
+/// pocket it actually leaves, but the card never mentions it: "From: Your
+/// wallet" is true either way, because the unified balance IS their wallet's
+/// money as far as the product is concerned.
+export function buildFundAgentConfirm(i: {
   caller: string;
   agent: 'buyer' | 'seller';
   amountUsdc: number;
-  walletAfterUsdc: string;
-}): FundAgentDirectConfirm | { error: string } {
+  route: MoneyRoute;
+  balanceAfterUsdc: string;
+}): FundAgentConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   return {
     kind: 'confirm',
-    id: `fund_agent_direct:${i.agent}:${i.amountUsdc}:${confirmNonce()}`,
-    intent: 'fund_agent_direct',
+    id: `fund_agent:${i.agent}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'fund_agent',
     title: `Fund your ${i.agent} agent`,
     summary: `Move ${i.amountUsdc} USDC from your wallet to your ${i.agent} agent so it can trade.`,
     fields: [
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       { label: 'From', value: 'Your wallet' },
       { label: 'To', value: `Your ${i.agent} agent` },
-      { label: 'Wallet after', value: `${i.walletAfterUsdc} USDC` },
+      { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
     ],
-    payload: { address: i.caller, agent: i.agent, amountUsdc: i.amountUsdc },
+    payload: { address: i.caller, agent: i.agent, amountUsdc: i.amountUsdc, route: i.route },
     confirmLabel: 'Fund agent',
     cancelLabel: 'Not now',
   };
 }
 
-/// Build a gateway-deposit confirm card (add USDC from the identity wallet to the
-/// user's unified balance). No stark warning: the balance is theirs and stays
-/// spendable (fund an agent, or cash out). Never throws.
-export function buildGatewayDepositConfirm(i: {
-  amountUsdc: number;
-  balanceAfterUsdc: string;
-}): GatewayDepositConfirm | { error: string } {
-  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
-  return {
-    kind: 'confirm',
-    id: `gateway_deposit:${i.amountUsdc}:${confirmNonce()}`,
-    intent: 'gateway_deposit',
-    title: 'Add to your balance',
-    summary: `Move ${i.amountUsdc} USDC from your wallet into your unified balance, ready to fund your agents.`,
-    fields: [
-      { label: 'Amount', value: `${i.amountUsdc} USDC` },
-      { label: 'From', value: 'Your wallet' },
-      { label: 'To', value: 'Your unified balance' },
-      { label: 'Wallet after', value: `${i.balanceAfterUsdc} USDC` },
-    ],
-    payload: { amountUsdc: i.amountUsdc },
-    confirmLabel: 'Add to balance',
-    cancelLabel: 'Not now',
-  };
-}
-
-/// Build a gateway-fund-agent confirm card (move USDC from the unified balance to
-/// one of the user's agent wallets). Never throws.
-export function buildGatewayFundAgentConfirm(i: {
-  agent: 'buyer' | 'seller';
-  amountUsdc: number;
-  balanceAfterUsdc: string;
-}): GatewayFundAgentConfirm | { error: string } {
-  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
-  return {
-    kind: 'confirm',
-    id: `gateway_fund_agent:${i.agent}:${i.amountUsdc}:${confirmNonce()}`,
-    intent: 'gateway_fund_agent',
-    title: `Fund your ${i.agent} agent`,
-    summary: `Move ${i.amountUsdc} USDC from your unified balance to your ${i.agent} agent wallet so it can trade.`,
-    fields: [
-      { label: 'Amount', value: `${i.amountUsdc} USDC` },
-      { label: 'From', value: 'Your unified balance' },
-      { label: 'To', value: `Your ${i.agent} agent wallet` },
-      { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
-    ],
-    payload: { agent: i.agent, amountUsdc: i.amountUsdc },
-    confirmLabel: 'Fund agent',
-    cancelLabel: 'Not now',
-  };
-}
-
-/// Build a gateway-cash-out confirm card (spend from the unified balance to
-/// another chain). Cross-chain, so a small Gateway fee applies. Shows the full
-/// destination address. Never throws.
-export function buildGatewayCashOutConfirm(i: {
-  destChainKey: string;
-  destChainLabel: string;
-  recipient: string;
-  amountUsdc: number;
-  balanceAfterUsdc: string;
-}): GatewayCashOutConfirm | { error: string } {
-  const to = i.recipient?.trim() ?? '';
-  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
-    return { error: 'That destination address is not a valid 0x address.' };
-  }
-  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
-  const dest = to.toLowerCase();
-  return {
-    kind: 'confirm',
-    id: `gateway_cash_out:${i.destChainKey}:${dest}:${i.amountUsdc}:${confirmNonce()}`,
-    intent: 'gateway_cash_out',
-    title: 'Cash out from your balance',
-    summary: `Send ${i.amountUsdc} USDC from your unified balance to ${i.destChainLabel}.`,
-    warning: 'This bridges USDC to another chain and cannot be undone. Check the address and chain.',
-    fields: [
-      { label: 'Amount', value: `${i.amountUsdc} USDC` },
-      { label: 'To chain', value: i.destChainLabel },
-      { label: 'To address', value: dest },
-      { label: 'Balance after', value: `${i.balanceAfterUsdc} USDC` },
-    ],
-    payload: { destChainKey: i.destChainKey, recipient: dest, amountUsdc: i.amountUsdc },
-    confirmLabel: 'Cash out',
-    cancelLabel: 'Not now',
-  };
-}

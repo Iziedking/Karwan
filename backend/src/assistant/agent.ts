@@ -41,7 +41,7 @@ import { getProfile } from '../db/profiles.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
 import { depositWalletsByChainKey, type CctpChainKey } from '../chain/cctpChains.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
-import { readUserGatewayBalance } from '../gateway/balance.js';
+import { readSpendable, pickRoute, gatewayCanReach, insufficientMessage } from '../gateway/router.js';
 import { diagnoseUserError } from '../llm/supervisor.js';
 import {
   buildNavigateAction,
@@ -59,10 +59,7 @@ import {
   buildCancelListingConfirm,
   buildStakeConfirm,
   buildClaimYieldConfirm,
-  buildFundAgentDirectConfirm,
-  buildGatewayDepositConfirm,
-  buildGatewayFundAgentConfirm,
-  buildGatewayCashOutConfirm,
+  buildFundAgentConfirm,
   hasEquivalentConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
@@ -78,8 +75,8 @@ const CASH_OUT_CHAINS: Record<string, { key: string; label: string; solana?: boo
   ethereum: { key: 'sepolia', label: 'Ethereum' },
   polygon: { key: 'polygonAmoy', label: 'Polygon' },
   // Solana Devnet: verified end-to-end via the bridge-out path (App Kit derives
-  // the recipient ATA from the base58 owner). Only on cash_out (bridge-out), NOT
-  // gateway_cash_out (Gateway spend to Solana is unproven).
+  // the recipient ATA from the base58 owner). CCTP only — a Gateway spend to a
+  // Solana recipient is unproven, which is why gatewayCanReach excludes it.
   solana: { key: 'solanaDevnet', label: 'Solana', solana: true },
 };
 import { logger } from '../logger.js';
@@ -167,15 +164,14 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
   return {
     get_my_balance: tool({
       description:
-        "Read the signed-in user's full money picture on Arc testnet: their sign-in wallet (USDC + native gas), their buyer and seller agent wallets (USDC + address), and their unified balance if they have one. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
+        "Read the signed-in user's money on Arc testnet: their wallet balance, their buyer and seller agent wallets (USDC + address), gas, and any stake. Use this whenever they ask what their balance is, where their money is, how much USDC they have, what their agent wallet addresses are, or whether they can afford something. Never guess a number.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
-          const [usdc, gas, record, unified, stake] = await Promise.all([
-            readUsdcBalance(address),
+          const [spendable, gas, record, stake] = await Promise.all([
+            readSpendable(address),
             publicClient.getBalance({ address: address as Address }),
             getAgentWallets(address).catch(() => null),
-            readUserGatewayBalance(address).catch(() => null),
             activeStakeSummary(address).catch(() => null),
           ]);
           const agentBal = async (addr?: string) =>
@@ -187,7 +183,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           return {
             wallet: {
               address,
-              usdc: formatUnits(usdc, USDC_DECIMALS),
+              // ONE number. Some of it may physically sit in the Gateway pool
+              // rather than the Arc wallet, but that is plumbing the user never
+              // sees: it spends the same, and the backend picks the rail. Never
+              // break this out or mention a second balance.
+              usdc: spendable.totalUsd.toFixed(2),
               gas: formatUnits(gas, NATIVE_DECIMALS),
             },
             buyerAgent: record?.buyerAddress
@@ -196,9 +196,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             sellerAgent: record?.sellerAddress
               ? { address: record.sellerAddress, usdc: sellerUsdc }
               : null,
-            unifiedBalance: unified ? unified.available.toFixed(2) : null,
             stakedUsdc: stake && stake.stakeUsdc > 0 ? stake.stakeUsdc.toFixed(2) : null,
-            note: 'Agents trade from the agent wallets. Sale proceeds land in the seller agent; refunds in the buyer agent. The unified balance is a pooled USDC balance you can use to fund either agent. stakedUsdc is USDC locked in the stake vault (null when they have no stake) — use get_my_stake for the full staking picture including yield.',
+            note: 'wallet.usdc is their whole spendable balance — quote it as one number and never describe it as split across places. Agents trade from the agent wallets. Sale proceeds land in the seller agent; refunds in the buyer agent. stakedUsdc is USDC locked in the stake vault (null when they have no stake) — use get_my_stake for the full staking picture including yield.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
@@ -996,29 +995,35 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     propose_fund_agent: tool({
       description:
-        "Prepare a confirm card to move USDC from the user's main wallet into their buyer or seller agent wallet, so the agent can bid and fund deals. Use for 'fund my buyer agent', 'my agent has no money', or when a match cannot be approved because the buyer agent is short. This is the DIRECT wallet-to-agent move; use propose_gateway_fund_agent only when the money is in their unified balance instead.",
+        "Prepare a confirm card to move USDC from the user's wallet into their buyer or seller agent wallet, so the agent can bid and fund deals. Use for 'fund my buyer agent', 'my agent has no money', or when a match cannot be approved because the buyer agent is short.",
       inputSchema: z.object({
         agent: z.enum(['buyer', 'seller']).describe('Which agent to fund.'),
         amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to move.'),
       }),
       execute: async ({ agent, amountUsdc }) => {
         try {
-          if (method !== 'circle') {
-            return { error: 'Funding an agent from their own wallet needs their signature (they self-custody it). Send them to their profile with propose_navigation (destination "profile"). Note: they CAN fund an agent from their unified balance without signing — propose_gateway_fund_agent — if they have one.' };
-          }
           const record = await getAgentWallets(address).catch(() => null);
           if (!record) {
             return { error: 'They must activate their agent wallets first. Offer a button to their profile (destination "profile").' };
           }
-          const balance = Number(formatUnits(await readUsdcBalance(address), USDC_DECIMALS));
-          if (balance < amountUsdc) {
-            return { error: `Their wallet holds ${balance.toFixed(2)} USDC, less than the ${amountUsdc} they want to move. Tell them the real balance and offer to bring more over (check_top_up_sources).` };
+          const spendable = await readSpendable(address);
+          // A web3 user self-custodies their Arc wallet, so the backend can only
+          // move money it holds for them — which is the pooled balance. Their
+          // wallet leg needs their own signature on the profile screen.
+          const prefer = method === 'circle' ? 'wallet' : 'unified';
+          const route = pickRoute(spendable, amountUsdc, prefer);
+          if (route === 'insufficient') {
+            return { error: `${insufficientMessage(spendable, amountUsdc)} They can bring more over with check_top_up_sources.` };
           }
-          const built = buildFundAgentDirectConfirm({
+          if (route === 'wallet' && method !== 'circle') {
+            return { error: 'Moving money out of their own wallet needs their signature (they self-custody it). Send them to their profile with propose_navigation (destination "profile").' };
+          }
+          const built = buildFundAgentConfirm({
             caller: address,
             agent,
             amountUsdc,
-            walletAfterUsdc: (balance - amountUsdc).toFixed(2),
+            route,
+            balanceAfterUsdc: (spendable.totalUsd - amountUsdc).toFixed(2),
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -1175,7 +1180,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title, note: 'Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_gateway_fund_agent) or send them to add money.' };
+        return { ok: true, shown: built.title, note: 'Posting requires their buyer agent to hold the budget in USDC. If confirm returns an insufficient-balance error, offer to fund the buyer agent (propose_fund_agent) or send them to add money.' };
       },
     }),
 
@@ -1300,13 +1305,6 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to cash out.'),
       }),
       execute: async ({ destChain, toAddress, amountUsdc }) => {
-        // Backend-signed cash-out burns from the user's Arc identity DCW, which
-        // only exists for Circle (email/passkey) accounts. Web3 users hold their
-        // Arc USDC on their own EOA and must sign the burn themselves, so route
-        // them to the bridge screen instead of showing an in-chat card.
-        if (method !== 'circle') {
-          return { error: 'Cashing out from chat is available for email/passkey accounts. This user signed in with a web3 wallet, so they sign the bridge themselves. Send them to the bridge screen with propose_navigation (destination "cash_out").' };
-        }
         const chain = CASH_OUT_CHAINS[destChain];
         if (!chain) return { error: 'That chain is not supported for cash-out.' };
         const to = toAddress.trim();
@@ -1317,24 +1315,26 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         } else if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
           return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
         }
-        let balanceWei: bigint;
+        if (!(amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+
+        let spendable: Awaited<ReturnType<typeof readSpendable>>;
         try {
-          balanceWei = await readUsdcBalance(address);
+          spendable = await readSpendable(address);
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant propose_cash_out balance read failed');
-          return { error: 'Could not read your Arc balance right now. Try again shortly.' };
+          return { error: 'Could not read your balance right now. Try again shortly.' };
         }
-        let amountWei: bigint;
-        try {
-          amountWei = parseUnits(amountUsdc.toString(), USDC_DECIMALS);
-        } catch {
-          return { error: 'That amount is not a valid USDC value.' };
+        // Prefer the pooled balance: it settles in under a second against CCTP's
+        // several minutes, and it is the only rail a web3 user can cash out on
+        // from chat (their Arc wallet needs their own signature). Solana is CCTP
+        // only, so it always falls back to the wallet leg.
+        const prefer = gatewayCanReach(chain.key) ? 'unified' : 'wallet';
+        const route = pickRoute(spendable, amountUsdc, prefer);
+        if (route === 'insufficient') {
+          return { error: insufficientMessage(spendable, amountUsdc) };
         }
-        if (amountWei <= 0n) return { error: 'The amount must be greater than 0.' };
-        if (amountWei > balanceWei) {
-          return {
-            error: `Your Arc wallet holds only ${formatUnits(balanceWei, USDC_DECIMALS)} USDC, less than ${amountUsdc}. Tell them the available balance and suggest a smaller amount.`,
-          };
+        if (route === 'wallet' && method !== 'circle') {
+          return { error: 'Cashing out their own Arc wallet needs their signature (they self-custody it). Send them to the bridge screen with propose_navigation (destination "cash_out").' };
         }
         const built = buildCashOutConfirm({
           caller: address,
@@ -1342,7 +1342,8 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           destChainLabel: chain.label,
           recipient: to,
           amountUsdc,
-          balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
+          route,
+          balanceAfterUsdc: (spendable.totalUsd - amountUsdc).toFixed(2),
         });
         if ('error' in built) return built;
         if (!hasEquivalentConfirm(actions, built)) actions.push(built);
@@ -1350,104 +1351,6 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
-    propose_gateway_deposit: tool({
-      description:
-        "Prepare a confirm card to ADD USDC to the user's unified balance (a pooled USDC balance they can use to fund their agent wallets). Use when they want to add money to their balance / top up their unified balance and have given an amount. Available for email/passkey accounts only; the backend moves it from their sign-in wallet.",
-      inputSchema: z.object({
-        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to add to the unified balance.'),
-      }),
-      execute: async ({ amountUsdc }) => {
-        if (method !== 'circle') {
-          return { error: 'A unified balance is for email/passkey accounts. This user holds their own wallet, so tell them (warmly) that they are in full control, and to trade hands-free they just fund their buyer and seller agent wallets directly from their wallet. Offer a button to their profile (destination "profile") where the agent addresses and funding live.' };
-        }
-        let balanceWei: bigint;
-        try {
-          balanceWei = await readUsdcBalance(address);
-        } catch (err) {
-          logger.warn({ err: (err as Error).message }, 'assistant propose_gateway_deposit balance read failed');
-          return { error: 'Could not read your wallet balance right now. Try again shortly.' };
-        }
-        let amountWei: bigint;
-        try {
-          amountWei = parseUnits(amountUsdc.toString(), USDC_DECIMALS);
-        } catch {
-          return { error: 'That amount is not a valid USDC value.' };
-        }
-        if (amountWei > balanceWei) {
-          return { error: `Your wallet holds only ${formatUnits(balanceWei, USDC_DECIMALS)} USDC, less than ${amountUsdc}. Suggest a smaller amount or adding money first.` };
-        }
-        const built = buildGatewayDepositConfirm({
-          amountUsdc,
-          balanceAfterUsdc: formatUnits(balanceWei - amountWei, USDC_DECIMALS),
-        });
-        if ('error' in built) return built;
-        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title };
-      },
-    }),
-
-    propose_gateway_fund_agent: tool({
-      description:
-        "Prepare a confirm card to FUND one of the user's agent wallets from their unified balance, so the agent can trade. Use when they want to fund / top up their buyer or seller agent from their balance and have given an amount. Requires a funded unified balance.",
-      inputSchema: z.object({
-        agent: z.enum(['buyer', 'seller']).describe('Which agent wallet to fund.'),
-        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to move from the unified balance to the agent.'),
-      }),
-      execute: async ({ agent, amountUsdc }) => {
-        const unified = await readUserGatewayBalance(address).catch(() => null);
-        if (!unified || unified.available <= 0) {
-          return { error: 'They have no unified balance yet. Suggest adding money to their balance first with propose_gateway_deposit (or, for a web3 wallet, funding the agent directly).' };
-        }
-        if (unified.available < amountUsdc) {
-          return { error: `Their unified balance is ${unified.available.toFixed(2)} USDC, less than ${amountUsdc}. Suggest a smaller amount or adding money first.` };
-        }
-        const built = buildGatewayFundAgentConfirm({
-          agent,
-          amountUsdc,
-          balanceAfterUsdc: (unified.available - amountUsdc).toFixed(2),
-        });
-        if ('error' in built) return built;
-        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title };
-      },
-    }),
-
-    propose_gateway_cash_out: tool({
-      description:
-        "Prepare a confirm card to CASH OUT USDC from the user's UNIFIED BALANCE to another blockchain (Base, Arbitrum, Optimism, Ethereum, Polygon). Use when they want to cash out or send USDC from their unified balance to another chain and have given an amount, a chain, and a 0x address. This is distinct from propose_cash_out (which sends from their Arc wallet); use THIS when the money should come from their unified balance. Works for every account type. Requires a funded unified balance.",
-      inputSchema: z.object({
-        destChain: z
-          .enum(['base', 'arbitrum', 'optimism', 'ethereum', 'polygon'])
-          .describe('Destination chain to bridge the USDC to.'),
-        toAddress: z.string().min(1).max(60).describe('Destination address on that chain, a full 0x address.'),
-        amountUsdc: z.number().positive().max(5_000_000).describe('Amount of USDC to cash out.'),
-      }),
-      execute: async ({ destChain, toAddress, amountUsdc }) => {
-        const to = toAddress.trim();
-        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
-          return { error: 'That destination is not a valid 0x address. Ask them to paste the full address.' };
-        }
-        const chain = CASH_OUT_CHAINS[destChain];
-        if (!chain) return { error: 'That chain is not supported for cash-out.' };
-        const unified = await readUserGatewayBalance(address).catch(() => null);
-        if (!unified || unified.available <= 0) {
-          return { error: 'They have no unified balance yet. Suggest adding money to it first with propose_gateway_deposit.' };
-        }
-        if (unified.available < amountUsdc) {
-          return { error: `Their unified balance is ${unified.available.toFixed(2)} USDC, less than ${amountUsdc}. Suggest a smaller amount or adding money first.` };
-        }
-        const built = buildGatewayCashOutConfirm({
-          destChainKey: chain.key,
-          destChainLabel: chain.label,
-          recipient: to,
-          amountUsdc,
-          balanceAfterUsdc: (unified.available - amountUsdc).toFixed(2),
-        });
-        if ('error' in built) return built;
-        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
-        return { ok: true, shown: built.title };
-      },
-    }),
   };
 }
 
@@ -1471,7 +1374,7 @@ function authenticatedPreamble(address: string, method: string): string {
     'NEVER reply that you have no memory of past sessions without checking these tools first.',
     '',
     '# You can see EVERYTHING on this account. Route every question to a tool.',
-    'Balances (wallet, agents, unified, gas) -> get_my_balance. Staking + yield -> get_my_stake.',
+    'Balances (wallet, agents, gas) -> get_my_balance. Staking + yield -> get_my_stake.',
     'Reputation score/tier -> get_my_reputation. Deals -> list_my_deals / get_deal_status.',
     'Open offers, requests, agent bids -> get_my_market_activity. Factoring + PO financing -> get_my_financing.',
     'Past money moves, bridges, matches -> recall_activity. Profile/setup -> get_my_profile.',
@@ -1520,19 +1423,19 @@ function authenticatedPreamble(address: string, method: string): string {
     '  "Done — confirm below." is enough. Often no words are needed at all.',
     '',
     '## What you can do (each via a confirm card):',
-    '- READ (always read before stating a number; never guess): get_my_balance (full money picture — the',
-    '  sign-in wallet, both agent wallets, and the unified balance), list_my_deals, get_deal_status, explain_error.',
+    '- READ (always read before stating a number; never guess): get_my_balance (their wallet balance, both',
+    '  agent wallets, gas, stake), list_my_deals, get_deal_status, explain_error.',
     '- Post a standing OFFER (what they SELL): propose_post_offer(title, description, price). No money, cancelable.',
     '- Post a REQUEST (what they NEED — the agent-mediated deal): propose_post_request(brief, budget, deadlineDays).',
     '  Use this the moment they say "find me a developer", "let the platform look for one", "I need X built".',
     '  Their buyer agent then runs the auction and brings proposals to approve; nothing is paid until they approve.',
     '- RELEASE a milestone to the seller (buyer only, after delivery): propose_release(jobId). FINAL.',
     '- WITHDRAW from an agent wallet to an Arc 0x address: propose_withdraw(agent, toAddress, amount). FINAL.',
-    '- CASH OUT from the Arc wallet to another chain (Base/Arbitrum/Optimism/Ethereum/Polygon/SOLANA):',
-    '  propose_cash_out (0x address for EVM, base58 for Solana). FINAL.',
-    '- UNIFIED BALANCE (the pooled USDC that funds agents hands-free): add to it (propose_gateway_deposit),',
-    '  fund an agent from it (propose_gateway_fund_agent), cash it out to another chain (propose_gateway_cash_out).',
-    '  Prefer propose_gateway_cash_out when they already have a unified balance.',
+    '- CASH OUT to another chain (Base/Arbitrum/Optimism/Ethereum/Polygon/SOLANA): propose_cash_out',
+    '  (0x address for EVM, base58 for Solana). FINAL.',
+    '- FUND an agent so it can trade: propose_fund_agent(agent, amount).',
+    'The user has ONE wallet and ONE balance. Never mention a "unified balance", a "pooled balance", Gateway,',
+    'or where the money physically sits — the backend picks the rail per move and it is not their concern.',
     '- NAVIGATE (propose_navigation) for things chat cannot do yet: top up USDC onto Arc, settings, faucet.',
     '  Show a button; do not just describe the page.',
     '',

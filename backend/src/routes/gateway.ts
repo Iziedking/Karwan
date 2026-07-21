@@ -143,10 +143,22 @@ gatewayRoutes.post('/refresh', async (c) => {
   return c.json({ ok: true });
 });
 
-// --- Unified-balance WRITE side (autonomy Stage 2: deposit + read) ------------
-// Deposit into the user's own Gateway balance (owned by a dedicated EOA DCW), and
-// read it back. Backend-signed from the identity SCA, so Circle-only. Not yet
-// surfaced in the product: the balance becomes spendable in Stage 3.
+// --- Pooled-balance WRITE side ------------------------------------------------
+//
+// THE POOLED BALANCE IS PLUMBING AND MUST STAY THAT WAY. The product presents one
+// wallet and one balance. Underneath, a user's USDC can sit in their Arc identity
+// wallet or in this Gateway pool, and gateway/router.ts picks the rail per move.
+// Nothing here is a user-facing feature: no screen offers "add to your unified
+// balance", no chat intent names it, and get_my_balance reports a single number
+// that already includes it. Do not re-surface it — a second balance to manage is
+// exactly the friction the one-wallet design removes.
+//
+// /deposit and /sweep therefore have no caller in the app. They stay because they
+// are the operator lever for building or recovering a pooled balance by hand, and
+// because /sweep is self-healing for a top-up that landed but was never deposited.
+// Money is spent OUT of the pool automatically (fund-agent, cash-out) and never
+// moved INTO it on a user's request: pre-positioning funds behind a finality delay
+// and a 7-day trustless withdrawal buys nothing when the wallet leg works today.
 
 const depositSchema = z.object({
   amountUsdc: z.number().positive().max(5_000_000),

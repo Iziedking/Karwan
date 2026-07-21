@@ -655,7 +655,24 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       amountUsdc: number;
       recipient: string;
       sourceKind: 'identity';
+      route: 'wallet' | 'unified';
     };
+    // Same user-facing action, two rails. The backend picked the one that fits
+    // where the money sits; a Gateway spend settles in under a second, so when
+    // it is available the copy can promise a faster arrival.
+    if (p.route === 'unified') {
+      const r = await api.gatewayCashOut(
+        p.destChainKey as Parameters<typeof api.gatewayCashOut>[0],
+        p.recipient,
+        p.amountUsdc,
+      );
+      return {
+        successText: 'Cash out sent. It lands on the destination chain in seconds.',
+        viewHref: '/bridge',
+        viewLabel: 'Track it',
+        refId: r.transferId,
+      };
+    }
     // Deterministic bridge id per CARD (action ids are server-nonced, so this is
     // unique per proposed cash-out but STABLE across retries). If the first POST
     // reaches the backend and only the response is lost, "Try again" re-submits
@@ -759,12 +776,24 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       ...(r.txHash ? { txHash: r.txHash } : {}),
     };
   }
-  if (action.intent === 'fund_agent_direct') {
+  if (action.intent === 'fund_agent') {
     const p = action.payload as {
       address: string;
       agent: 'buyer' | 'seller';
       amountUsdc: number;
+      route: 'wallet' | 'unified';
     };
+    // One "fund my agent" for the user; the backend chose which pocket it comes
+    // out of. Both land the same USDC in the same agent wallet.
+    if (p.route === 'unified') {
+      const r = await api.gatewayFundAgent(p.agent, p.amountUsdc);
+      return {
+        successText: `Your ${p.agent} agent is funded.`,
+        viewHref: '/profile#agents',
+        viewLabel: 'Your wallets',
+        refId: r.transferId,
+      };
+    }
     const r = await api.fundAgent({ address: p.address, agent: p.agent, amountUsdc: p.amountUsdc });
     return {
       successText: `Your ${p.agent} agent is funded.`,
@@ -798,30 +827,6 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
       viewHref: '/bridge',
       viewLabel: 'Track it',
       ...(burnTxHash ? { txHash: burnTxHash } : {}),
-    };
-  }
-  if (action.intent === 'gateway_deposit') {
-    const p = action.payload as { amountUsdc: number };
-    const r = await api.gatewayDeposit(p.amountUsdc);
-    return { successText: 'Added to your balance.', viewHref: '/profile', viewLabel: 'View your wallets', txHash: r.depositTxHash };
-  }
-  if (action.intent === 'gateway_fund_agent') {
-    const p = action.payload as { agent: 'buyer' | 'seller'; amountUsdc: number };
-    const r = await api.gatewayFundAgent(p.agent, p.amountUsdc);
-    return { successText: `Your ${p.agent} agent is funded.`, viewHref: '/profile', viewLabel: 'View your wallets', refId: r.transferId };
-  }
-  if (action.intent === 'gateway_cash_out') {
-    const p = action.payload as { destChainKey: string; recipient: string; amountUsdc: number };
-    const r = await api.gatewayCashOut(
-      p.destChainKey as Parameters<typeof api.gatewayCashOut>[0],
-      p.recipient,
-      p.amountUsdc,
-    );
-    return {
-      successText: 'Cash out started. It lands on the destination chain shortly.',
-      viewHref: '/bridge',
-      viewLabel: 'Track it',
-      refId: r.transferId,
     };
   }
   throw new Error('Unknown action');
@@ -874,15 +879,9 @@ function ConfirmCard({
                         ? 'Staking…'
                         : action.intent === 'claim_yield'
                           ? 'Claiming…'
-                          : action.intent === 'fund_agent_direct'
+                          : action.intent === 'fund_agent'
                             ? 'Funding…'
-                            : action.intent === 'gateway_deposit'
-            ? 'Adding…'
-            : action.intent === 'gateway_fund_agent'
-              ? 'Funding…'
-              : action.intent === 'gateway_cash_out'
-                ? 'Cashing out…'
-                : 'Posting…';
+                            : 'Posting…';
 
   async function confirm() {
     if (status === 'running' || status === 'done') return;
