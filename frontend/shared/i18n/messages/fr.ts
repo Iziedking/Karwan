@@ -1878,6 +1878,8 @@ export const fr: Messages = {
     shortTemplate: 'Vous avez {have} groupés. Il en faut {need}.',
   },
   gatewayCard: {
+    soonTag: 'BIENTÔT',
+    soonBody: "Pas encore disponible pour les comptes e-mail. Utilisez CCTP à côté de cet onglet pour déplacer des USDC.",
     tag: '[:SOLDE GROUPÉ:]',
     title: 'Un solde, toutes les chaînes',
     confirmed: 'Confirmé',

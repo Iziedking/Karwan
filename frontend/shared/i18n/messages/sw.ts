@@ -1878,6 +1878,8 @@ export const sw: Messages = {
     shortTemplate: 'Una {have} iliyokusanywa. Hii inahitaji {need}.',
   },
   gatewayCard: {
+    soonTag: 'INAKUJA HIVI KARIBUNI',
+    soonBody: 'Bado haijawa tayari kwa akaunti za barua pepe. Tumia CCTP kando ya kichupo hiki kuhamisha USDC.',
     tag: '[:SALIO LILILOKUSANYWA:]',
     title: 'Salio moja, mnyororo wowote',
     confirmed: 'Imethibitishwa',

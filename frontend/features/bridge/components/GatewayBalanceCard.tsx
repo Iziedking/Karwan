@@ -224,6 +224,7 @@ export function GatewayBalanceCard() {
   const t = useTranslations().gatewayCard;
   const errCopy = useTranslations().chainErrors;
   const auth = useAuth();
+  const isCircleUser = auth.method === 'circle';
   const { address, chain, connector, isConnected } = useAccount();
   const { switchChainAsync } = useSwitchChain();
 
@@ -424,6 +425,41 @@ export function GatewayBalanceCard() {
     } finally {
       setMaxBusy(false);
     }
+  }
+
+  // Gateway accepts only EOA signatures on a burn intent; a Circle account's
+  // wallets are smart accounts, whose EIP-1271 signatures it rejects. So this
+  // rail genuinely cannot work for an email user, and the card used to end on
+  // "Connect a wallet to pool USDC" — asking the one kind of user who signed up
+  // precisely so they would never have to hold a wallet. Say it is not ready for
+  // them instead, and wire it the day an SCA can sign a burn intent.
+  //
+  // Their money is not stranded meanwhile: the backend runs its own pooled
+  // balance for Circle accounts through a delegate EOA, invisibly, and CCTP
+  // beside this tab moves USDC for them today.
+  if (isCircleUser) {
+    return (
+      <div className="p-6 h-full" style={CARD_STYLE}>
+        <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+          {t.tag}
+        </div>
+        <h3 className="mt-2 text-[19px] font-bold tracking-tight">{t.title}</h3>
+        <div
+          className="mt-5 pt-5"
+          style={{ borderTop: '1px solid var(--lp-border-light)' }}
+        >
+          <span
+            className="inline-flex mono text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-1"
+            style={{ background: 'var(--lp-accent)', color: 'var(--lp-dark)', borderRadius: 4 }}
+          >
+            {t.soonTag}
+          </span>
+          <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+            {t.soonBody}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // No top margin and full height: the page owns the column spacing and stretches

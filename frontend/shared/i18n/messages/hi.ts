@@ -1878,6 +1878,8 @@ export const hi: Messages = {
     shortTemplate: 'आपके पास {have} पूल में है। इसके लिए {need} चाहिए।',
   },
   gatewayCard: {
+    soonTag: 'जल्द आ रहा है',
+    soonBody: 'ईमेल खातों के लिए अभी तैयार नहीं। USDC भेजने के लिए इस टैब के बगल में CCTP का उपयोग करें।',
     tag: '[:पूल्ड बैलेंस:]',
     title: 'एक बैलेंस, कोई भी चेन',
     confirmed: 'पुष्ट',
