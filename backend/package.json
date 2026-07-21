@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
+    "check:events-projection": "tsx src/scripts/events-projection-check.ts",
   "solana:bridge-smoke": "tsx --env-file=../.env src/scripts/solana-bridge-smoke.ts",
   "solana:wallet": "tsx --env-file=../.env src/scripts/solana-provision-wallet.ts",
   "arc-solana-smoke": "tsx --env-file=../.env src/scripts/arc-to-solana-smoke.ts",

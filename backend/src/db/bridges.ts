@@ -102,6 +102,30 @@ async function loadAllBridges(): Promise<BridgeRelay[]> {
   return rows;
 }
 
+/// bridgeId -> owning address, for the ONE caller that may see a bridge event's
+/// payload in full. The SSE projection runs per event on the hot path and has
+/// to answer "is this the caller's own money?" synchronously, so it cannot go
+/// to the database. Ownership is resolved exactly as listBridgesForUser
+/// resolves it: an explicit `owner` (set on every bridge-OUT) wins, otherwise
+/// mintRecipient, which for a bridge-IN is always the user's own Arc address.
+///
+/// Process-local by design. It covers bridges created since this process
+/// started, which is every bridge whose events can still be streaming. Bridges
+/// from before a restart are covered by the per-stream seed in routes/events.ts.
+const ownerIndex = new Map<string, string>();
+
+function indexOwner(record: BridgeRelay): void {
+  const owner = record.owner ?? record.mintRecipient;
+  if (owner) ownerIndex.set(record.bridgeId, owner.toLowerCase());
+}
+
+/// Synchronous owner lookup, or undefined when this process has not seen the
+/// bridge. Undefined means "cannot prove ownership", so callers must fall back
+/// to withholding detail, never to granting it.
+export function bridgeOwnerFromIndex(bridgeId: string): string | undefined {
+  return ownerIndex.get(bridgeId);
+}
+
 export async function getBridge(bridgeId: string): Promise<BridgeRelay | null> {
   if (pgEnabled) {
     const rows = await db().select().from(bridges).where(eq(bridges.bridgeId, bridgeId));
@@ -120,7 +144,10 @@ export async function createBridge(
   // Non-terminal existing records (error, stuck relaying) may be overwritten:
   // that is exactly how a recheck re-arms them.
   const existing = await getBridge(input.bridgeId);
-  if (existing && existing.status === 'minted') return existing;
+  if (existing && existing.status === 'minted') {
+    indexOwner(existing);
+    return existing;
+  }
 
   const now = Date.now();
   const { status, ...rest } = input;
@@ -140,12 +167,14 @@ export async function createBridge(
       .values({ bridgeId: record.bridgeId, data: record })
       .onConflictDoUpdate({ target: bridges.bridgeId, set: { data: record } });
     invalidateBridgesCache();
+    indexOwner(record);
     return record;
   }
   const store = loadFile();
   store[record.bridgeId] = record;
   saveFile(store);
   invalidateBridgesCache();
+  indexOwner(record);
   return record;
 }
 
@@ -159,12 +188,14 @@ export async function patchBridge(
   if (pgEnabled) {
     await db().update(bridges).set({ data: next }).where(eq(bridges.bridgeId, bridgeId));
     invalidateBridgesCache();
+    indexOwner(next);
     return next;
   }
   const store = loadFile();
   store[bridgeId] = next;
   saveFile(store);
   invalidateBridgesCache();
+  indexOwner(next);
   return next;
 }
 
