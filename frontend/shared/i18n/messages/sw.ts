@@ -1719,6 +1719,7 @@ export const sw: Messages = {
       bridgeFromTemplate: 'Daraja kutoka {chain}',
       switchToTemplate: 'Badilisha hadi {chain}',
       switchingToTemplate: 'Inabadilisha hadi {chain}…',
+      starting: 'Inaanza…',
       solanaNeedsCircle: 'Daraja la Solana linahitaji akaunti ya Circle',
       connectWallet: 'Unganisha mkoba ili kudaraja',
     },

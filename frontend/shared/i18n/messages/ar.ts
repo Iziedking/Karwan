@@ -1719,6 +1719,7 @@ export const ar: Messages = {
       bridgeFromTemplate: 'الجسر من {chain}',
       switchToTemplate: 'التبديل إلى {chain}',
       switchingToTemplate: 'جارٍ التبديل إلى {chain}…',
+      starting: 'جارٍ البدء…',
       solanaNeedsCircle: 'يحتاج جسر Solana إلى حساب Circle',
       connectWallet: 'اربط المحفظة للجسر',
     },

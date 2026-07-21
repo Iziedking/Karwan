@@ -1719,6 +1719,7 @@ export const hi: Messages = {
       bridgeFromTemplate: '{chain} से ब्रिज करें',
       switchToTemplate: '{chain} पर स्विच करें',
       switchingToTemplate: '{chain} पर स्विच किया जा रहा है…',
+      starting: 'शुरू हो रहा है…',
       solanaNeedsCircle: 'Solana ब्रिज के लिए Circle खाता चाहिए',
       connectWallet: 'ब्रिज के लिए वॉलेट कनेक्ट करें',
     },

@@ -1612,6 +1612,7 @@ interface MessagesShape {
       bridgeFromTemplate: string;
       switchToTemplate: string;
       switchingToTemplate: string;
+      starting: string;
       solanaNeedsCircle: string;
       connectWallet: string;
     };
@@ -5635,6 +5636,7 @@ export const en: MessagesShape = {
       bridgeFromTemplate: 'Add money from {chain}',
       switchToTemplate: 'Switch to {chain}',
       switchingToTemplate: 'Switching to {chain}…',
+      starting: 'Starting…',
       solanaNeedsCircle: 'Solana needs a Circle account',
       connectWallet: 'Connect wallet to add money',
     },

@@ -1719,6 +1719,7 @@ export const fr: Messages = {
       bridgeFromTemplate: 'Passerelle depuis {chain}',
       switchToTemplate: 'Passer à {chain}',
       switchingToTemplate: 'Passage à {chain}…',
+      starting: 'Démarrage…',
       solanaNeedsCircle: 'La passerelle Solana nécessite un compte Circle',
       connectWallet: 'Connecter le portefeuille pour la passerelle',
     },

@@ -852,13 +852,18 @@ export function BridgeCard({
               }}
             >
               <span>
-                {appKitPath || depositPath
-                  ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
-                  : isSwitching
-                    ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
-                    : onWrongChain
-                      ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
-                      : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
+                {/* The label has to change. Leaving it on "Add money from X"
+                    while the transfer runs, with only a 14px arrow spinning,
+                    read as though the click had done nothing. */}
+                {startingBridge
+                  ? bc.submit.starting
+                  : appKitPath || depositPath
+                    ? bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)
+                    : isSwitching
+                      ? bc.submit.switchingToTemplate.replace('{chain}', sourceShortName)
+                      : onWrongChain
+                        ? bc.submit.switchToTemplate.replace('{chain}', sourceShortName)
+                        : bc.submit.bridgeFromTemplate.replace('{chain}', sourceShortName)}
               </span>
               <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
                 {startingBridge ? (
