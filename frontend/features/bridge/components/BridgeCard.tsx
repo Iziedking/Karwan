@@ -5,7 +5,7 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { formatUnits, isAddress } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, type AppKitBridgeChainKey } from '@/core/api';
 import {
   SOURCE_CHAINS,
   APP_KIT_SOURCES,
@@ -241,7 +241,7 @@ export function BridgeCard({
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
   const buyerAgent = agents?.buyer ? (agents.buyer as `0x${string}`) : undefined;
   const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
-  const { bridges, startCircle, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
+  const { bridges, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
@@ -559,10 +559,22 @@ export function BridgeCard({
       return;
     }
     // Deposit path: the backend signs the EVM burn from the provisioned DCW.
+    //
+    // Routed through App Kit + Circle's Forwarding Service, the same path
+    // cash-out and the Solana top-up already use. The hand-rolled alternative
+    // (approve -> depositForBurn -> poll IRIS -> receiveMessage on Arc) is why
+    // an EVM top-up crawled while a cash-out landed in seconds: it owns the
+    // whole relay itself and polls the attestation for up to an hour before it
+    // will admit defeat. The forwarder broadcasts the destination mint instead.
+    //
+    // This does NOT remove the source-chain gas requirement: the burn still
+    // happens on the source chain from the user's deposit wallet, so that
+    // wallet still needs gas there (or a Gas Station policy that covers it).
+    // What it removes is the bespoke relay and its hour-long poll window.
     if (depositPath && auth.address) {
       if (!canBridgeCircle) return;
-      startCircle({
-        sourceChainKey: sourceKey as CctpChainKey,
+      startCircleAppKit({
+        sourceChainKey: sourceKey as AppKitBridgeChainKey,
         amountUsdc: amount as number,
         mintRecipient: mintRecipient as `0x${string}`,
         userAddress: auth.address,

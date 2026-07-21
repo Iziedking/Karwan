@@ -1191,10 +1191,15 @@ export function useBridges() {
         const raw = errorToString(err);
         // The one real friction on Solana: Circle does not sponsor gas for
         // transfers that ORIGINATE on Solana, so the deposit wallet needs a
-        // little SOL of its own. Name it plainly, above the shared mapping.
-        const friendly = /sol|insufficient/i.test(raw)
-          ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
-          : humanTransferError(raw, err instanceof ApiError ? err.detail : undefined);
+        // little SOL of its own. Name it plainly, above the shared mapping —
+        // but ONLY for a Solana source. This starter now carries the EVM
+        // top-ups too, and telling someone bridging from Base to go find SOL
+        // would send them chasing the wrong chain entirely.
+        const isSolanaSource = input.sourceChainKey === 'solanaDevnet';
+        const friendly =
+          isSolanaSource && /sol|insufficient/i.test(raw)
+            ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
+            : humanTransferError(raw, err instanceof ApiError ? err.detail : undefined);
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
