@@ -143,6 +143,19 @@ export interface FundAgentPayload {
   route: MoneyRoute;
 }
 
+/// Web3 top-up. The user signs the source-chain burn in their OWN wallet, so
+/// unlike every other confirm intent this one executes entirely client-side:
+/// the payload is instructions for the browser, not for a backend route. On a
+/// web3 account only the AGENT wallets are backend-signed; anything touching
+/// their own wallet stays in their custody, so the card exists to trigger the
+/// wallet prompt without sending them off to another screen.
+export interface Web3TopUpPayload {
+  sourceChainKey: string;
+  amountUsdc: number;
+  /// Where it lands on Arc. Their own address.
+  mintRecipient: string;
+}
+
 export interface TopUpPayload {
   /// Always the caller's own session address, set by the backend. The
   /// circle-bridge route re-checks isSessionSelf. The burn is signed from the
@@ -195,6 +208,10 @@ export interface TopUpConfirm extends ConfirmActionBase {
   intent: 'top_up_to_arc';
   payload: TopUpPayload;
 }
+export interface Web3TopUpConfirm extends ConfirmActionBase {
+  intent: 'top_up_web3';
+  payload: Web3TopUpPayload;
+}
 export interface ApproveMatchConfirm extends ConfirmActionBase {
   intent: 'approve_match';
   payload: ApproveMatchPayload;
@@ -240,6 +257,7 @@ export type ConfirmAction =
   | WithdrawConfirm
   | CashOutConfirm
   | TopUpConfirm
+  | Web3TopUpConfirm
   | ApproveMatchConfirm
   | DeclineMatchConfirm
   | AcceptDealConfirm
@@ -911,6 +929,37 @@ export function buildClaimYieldConfirm(i: {
     payload: { address: i.caller },
     confirmLabel: 'Claim',
     cancelLabel: 'Later',
+  };
+}
+
+/// Build a web3 top-up card: the user signs the burn in their own wallet when
+/// they tap Confirm. No warning line — nothing moves until their wallet asks
+/// them, which is a stronger gate than anything this card could say.
+export function buildWeb3TopUpConfirm(i: {
+  sourceChainKey: string;
+  sourceChainLabel: string;
+  amountUsdc: number;
+  mintRecipient: string;
+}): Web3TopUpConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  return {
+    kind: 'confirm',
+    id: `top_up_web3:${i.sourceChainKey}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'top_up_web3',
+    title: `Bring ${i.amountUsdc} USDC to Arc`,
+    summary: `From ${i.sourceChainLabel}. Your wallet will ask you to approve it.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: `${i.sourceChainLabel} · your wallet` },
+      { label: 'To', value: 'Your Arc wallet' },
+    ],
+    payload: {
+      sourceChainKey: i.sourceChainKey,
+      amountUsdc: i.amountUsdc,
+      mintRecipient: i.mintRecipient,
+    },
+    confirmLabel: 'Bring it over',
+    cancelLabel: 'Not now',
   };
 }
 

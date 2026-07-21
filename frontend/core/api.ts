@@ -992,6 +992,7 @@ export interface AssistantConfirmAction {
     | 'withdraw_proceeds'
     | 'cash_out'
     | 'top_up_to_arc'
+    | 'top_up_web3'
     | 'approve_match'
     | 'decline_match'
     | 'accept_deal'

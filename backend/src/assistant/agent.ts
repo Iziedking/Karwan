@@ -60,6 +60,7 @@ import {
   buildStakeConfirm,
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
+  buildWeb3TopUpConfirm,
   hasEquivalentConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
@@ -724,8 +725,26 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       }),
       execute: async ({ chain, amountUsdc, to }) => {
         try {
+          // Web3: they hold the USDC themselves, so build a card that opens
+          // their wallet right here. On a web3 account only the AGENT wallets
+          // are backend-signed; anything touching their own wallet stays in
+          // their custody, and that custody is the point, not an obstacle to
+          // route around by sending them to another screen.
           if (method !== 'circle') {
-            return { error: 'Backend-signed top-up is for email/passkey accounts. This user signs their own source-chain burn, so send them to the bridge screen with propose_navigation (destination "top_up") and frame it as them keeping custody.' };
+            const cfgWeb3 = TOP_UP_CHAINS[chain];
+            const builtWeb3 = buildWeb3TopUpConfirm({
+              sourceChainKey: cfgWeb3.key,
+              sourceChainLabel: cfgWeb3.label,
+              amountUsdc,
+              mintRecipient: address,
+            });
+            if ('error' in builtWeb3) return builtWeb3;
+            if (!hasEquivalentConfirm(actions, builtWeb3)) actions.push(builtWeb3);
+            return {
+              ok: true,
+              shown: builtWeb3.title,
+              note: 'They sign this in their own wallet when they tap Confirm. Do not give them a deposit address and do not send them to another screen.',
+            };
           }
           const record = await getAgentWallets(address).catch(() => null);
           if (!record) {

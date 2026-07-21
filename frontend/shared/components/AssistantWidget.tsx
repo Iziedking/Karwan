@@ -1,5 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useBridges } from '@/features/bridge/hooks/useBridge';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -606,7 +609,43 @@ async function pollBurnTxHash(bridgeId: string, attempts = 6): Promise<string | 
 /// intent maps to one existing api method; nothing here signs — for release the
 /// backend's buyer-agent Circle wallet signs, gated by the session. Returns what
 /// to show on success.
-async function runConfirmIntent(action: AssistantConfirmAction): Promise<ConfirmResult> {
+/// Client-side executors a confirm intent may need. Every other intent calls a
+/// session-gated backend route; the web3 top-up is the exception, because the
+/// user signs it in their own wallet and no backend can do that for them.
+interface ConfirmDeps {
+  startWeb3TopUp?: (input: {
+    sourceChainKey: string;
+    amountUsdc: number;
+    mintRecipient: `0x${string}`;
+  }) => Promise<void>;
+}
+
+async function runConfirmIntent(
+  action: AssistantConfirmAction,
+  deps: ConfirmDeps = {},
+): Promise<ConfirmResult> {
+  if (action.intent === 'top_up_web3') {
+    const p = action.payload as {
+      sourceChainKey: string;
+      amountUsdc: number;
+      mintRecipient: string;
+    };
+    if (!deps.startWeb3TopUp) {
+      throw new Error('Open the Add money screen to run this transfer.');
+    }
+    // Opens the wallet. It resolves once the burn is signed and submitted; the
+    // forwarder mints on Arc after that, tracked on the bridge screen.
+    await deps.startWeb3TopUp({
+      sourceChainKey: p.sourceChainKey,
+      amountUsdc: p.amountUsdc,
+      mintRecipient: p.mintRecipient as `0x${string}`,
+    });
+    return {
+      successText: 'Signed. Your USDC lands on Arc in a few minutes.',
+      viewHref: '/bridge',
+      viewLabel: 'Track it',
+    };
+  }
   if (action.intent === 'post_offer') {
     await api.postListing(action.payload as Parameters<typeof api.postListing>[0]);
     return { successText: 'Your offer is live.', viewHref: '/market', viewLabel: 'View on the market' };
@@ -846,6 +885,27 @@ function ConfirmCard({
   onNavigate: () => void;
 }) {
   const router = useRouter();
+  const { startAppKitBridge } = useBridges();
+  const { address: wagmiAddress, connector } = useAccount();
+  const { openConnectModal } = useConnectModal();
+  // Only the web3 top-up needs a client-side executor: the user signs the burn
+  // in their own wallet, which no backend route can do for them. Connecting is
+  // part of the action, not a precondition to bounce them on.
+  const startWeb3TopUp = useCallback(
+    async (input: { sourceChainKey: string; amountUsdc: number; mintRecipient: `0x${string}` }) => {
+      if (!wagmiAddress || !connector) {
+        openConnectModal?.();
+        throw new Error('Connect your wallet, then confirm again.');
+      }
+      await startAppKitBridge({
+        sourceChainKey: input.sourceChainKey as Parameters<typeof startAppKitBridge>[0]['sourceChainKey'],
+        amountUsdc: input.amountUsdc,
+        mintRecipient: input.mintRecipient,
+        getEvmProvider: () => connector.getProvider() as Promise<unknown>,
+      });
+    },
+    [wagmiAddress, connector, openConnectModal, startAppKitBridge],
+  );
   // Seed from the durable store so a card that already ran (or was dismissed)
   // stays in that state across panel close/open and navigation — never reverting
   // to a re-submittable button. A stale 'running' (in-flight when the panel
@@ -866,7 +926,7 @@ function ConfirmCard({
         ? 'Withdrawing…'
         : action.intent === 'cash_out'
           ? 'Cashing out…'
-          : action.intent === 'top_up_to_arc'
+          : action.intent === 'top_up_to_arc' || action.intent === 'top_up_web3'
             ? 'Moving…'
             : action.intent === 'approve_match'
               ? 'Approving…'
@@ -902,7 +962,7 @@ function ConfirmCard({
     setStatus('running');
     setErrMsg('');
     try {
-      const r = await runConfirmIntent(action);
+      const r = await runConfirmIntent(action, { startWeb3TopUp });
       confirmOutcomes.set(action.id, r);
       setResult(r);
       setStatus('done');
