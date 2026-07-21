@@ -5,6 +5,32 @@ const blankToUndefined = (v: unknown) => (v === '' ? undefined : v);
 const optionalAddr = z.preprocess(blankToUndefined, z.string().startsWith('0x').optional());
 const optionalString = z.preprocess(blankToUndefined, z.string().optional());
 
+/// Boolean env flag that REFUSES to fail silently.
+///
+/// The old parser was `v === 'true' || v === '1'`, so anything it did not
+/// recognise became false with no trace. A stray character was enough:
+/// `CIRCLE_GAS_STATION_ENABLED=1.` (one trailing dot) left Gas Station off
+/// across every chain while the operator believed it was on, and the only
+/// symptom was bridges hanging on an unfunded wallet.
+///
+/// Now: accept the spellings people actually type, and when a value is set but
+/// unrecognised, say so loudly and name the variable. Still resolves to false
+/// so a typo cannot take the process down, but it can no longer be invisible.
+function envBool(name: string) {
+  return z.preprocess((v) => {
+    if (v === undefined || v === null || v === '') return false;
+    const raw = String(v).trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(raw)) return true;
+    if (['false', '0', 'no', 'off'].includes(raw)) return false;
+    // eslint-disable-next-line no-console
+    console.error(
+      `[config] ${name}="${String(v)}" is not a boolean. Treating it as FALSE. ` +
+        `Use one of: true, 1, yes, on, false, 0, no, off.`,
+    );
+    return false;
+  }, z.boolean());
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(8787),
@@ -126,10 +152,7 @@ const envSchema = z.object({
   /// sanctions status doesn't move bid to bid). Set 'true' for a live demo so
   /// every match visibly re-pays on chain and the payer wallet's BaseScan
   /// activity proves the spend instead of a stale cached verdict.
-  X402_SCREEN_CACHE_DISABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  X402_SCREEN_CACHE_DISABLED: envBool('X402_SCREEN_CACHE_DISABLED'),
   /// Pre-v2.D KarwanEscrow. Read-only during the 30-day recovery window so
   /// users with funds still locked on the legacy contract (Funded or
   /// pre-v2.D "accepted" but never delivered) can refund / cancel from
@@ -298,7 +321,7 @@ const envSchema = z.object({
   // OFF by default (verification is sensitive). Turn on for pilots and internal
   // testing so a registration reaches 'verified' without the on-chain reviewer
   // wallet being wired. Mirrors FINANCIER_AUTO_APPROVE.
-  BUSINESS_AUTO_APPROVE: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  BUSINESS_AUTO_APPROVE: envBool('BUSINESS_AUTO_APPROVE'),
 
   CIRCLE_API_KEY: optionalString,
   CIRCLE_ENTITY_SECRET: optionalString,
@@ -308,7 +331,7 @@ const envSchema = z.object({
   // sponsored and bridge wallets no longer need native gas. When true the bridge
   // skips its out-of-gas precheck. The sponsorship is the console policy; this
   // flag just tells the code to trust it. See todo #181.
-  CIRCLE_GAS_STATION_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  CIRCLE_GAS_STATION_ENABLED: envBool('CIRCLE_GAS_STATION_ENABLED'),
   // Comma-separated CCTP source-chain keys that the Gas Station policy actually
   // sponsors. The Console policy is per-chain (task #181 sponsored baseSepolia
   // + sepolia only), but the ENABLED flag above is a single bool. Without this
@@ -344,7 +367,7 @@ const envSchema = z.object({
   // destination mint. The two paths coexist behind this flag so the App Kit
   // path can be exercised in isolation and rolled back to the hand-rolled
   // pipeline at any time. Default: false (no behavior change until opt-in).
-  BRIDGE_USE_APP_KIT: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  BRIDGE_USE_APP_KIT: envBool('BRIDGE_USE_APP_KIT'),
 
   /// CCTP relay wallet. The backend signs `receiveMessage(message, attestation)`
   /// on Arc with this Circle DCW to land the mint step of every cross-chain
@@ -410,7 +433,7 @@ const envSchema = z.object({
   // as it lands instead of only on-demand via POST /api/admin/diagnose. OFF by
   // default because each diagnosis is a paid Anthropic call — turn it on once the
   // on-demand diagnoses look reliable. Guardrails below cap the cost.
-  SUPERVISOR_PROACTIVE_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  SUPERVISOR_PROACTIVE_ENABLED: envBool('SUPERVISOR_PROACTIVE_ENABLED'),
   // Rate cap for proactive mode: at most this many diagnoses per rolling window,
   // so an error storm can't run up the bill. Distinct errors past the cap are
   // dropped (counted, not diagnosed); repeats are already collapsed by dedup.
@@ -470,10 +493,7 @@ const envSchema = z.object({
   // atomically on settle now, so there is nothing for this to reconcile on the
   // live contract. Enable it ONLY when KARWAN_REPUTATION_ADDR points at a legacy
   // (non-onlyEscrow) deploy.
-  REPUTATION_RECONCILER_ENABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  REPUTATION_RECONCILER_ENABLED: envBool('REPUTATION_RECONCILER_ENABLED'),
 
   // Escrow v2b settlement lifecycle. OFF by default so the backend keeps its
   // v2.E behaviour (dispute+refund auto-reclaim, refund-based cancel, 5-arg
@@ -482,17 +502,14 @@ const envSchema = z.object({
   // abis/escrow.ts to the v2b shape. When on: fundEscrow threads the per-deal
   // clock, auto-reclaim uses reclaimAfterDeadline, and post-accept cancels run
   // the mutual-cancel handshake instead of the (now pre-accept-only) refund.
-  ESCROW_V2B_ENABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  ESCROW_V2B_ENABLED: envBool('ESCROW_V2B_ENABLED'),
 
   // --- Paytag (@handle counterparties) ---
   // Lets a P2P buyer name their counterparty by Paytag handle instead of an
   // email or a raw address. P2P ONLY: the finance lane (SME) still requires a
   // verified-business counterparty, and a handle is not a verification.
   // Defaults OFF; flip after the P2P rollout is judged.
-  PAYTAG_ENABLED: z.preprocess((v) => v === 'true' || v === '1', z.boolean()),
+  PAYTAG_ENABLED: envBool('PAYTAG_ENABLED'),
   // Paytag's ERC-721 registry on Arc ("Payee Identity Protocol"). Read
   // permissionlessly via our own Arc client, so no API key and no account with
   // them is required. A public constant, not a secret: defaulted so PAYTAG_ENABLED
@@ -516,29 +533,17 @@ const envSchema = z.object({
   // before pricing the opening bid, instead of firing it non-blocking. On
   // timeout it proceeds exactly as today (prices on whatever is already warm).
   // Off = current non-blocking behavior; the opening bid never waits.
-  RESEARCH_AWAIT_ENABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  RESEARCH_AWAIT_ENABLED: envBool('RESEARCH_AWAIT_ENABLED'),
   // The security agent evaluates a proposed match (deterministic checks + an
   // optional paid counterparty overview) and may hold it for human review
   // BEFORE the deal is persisted. Off = matches persist with no gate (today).
-  SECURITY_MATCH_GATE_ENABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  SECURITY_MATCH_GATE_ENABLED: envBool('SECURITY_MATCH_GATE_ENABLED'),
   // The daily trend scout nudges sellers when a trending category overlaps
   // their history. Off = no trend nudges emitted (today).
-  TREND_NUDGES_ENABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  TREND_NUDGES_ENABLED: envBool('TREND_NUDGES_ENABLED'),
   // The user-triggered market scout endpoint (/api/research/scout) is live.
   // Off = the route responds 404/disabled (today).
-  SCOUT_ENABLED: z.preprocess(
-    (v) => v === 'true' || v === '1',
-    z.boolean(),
-  ),
+  SCOUT_ENABLED: envBool('SCOUT_ENABLED'),
 
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
