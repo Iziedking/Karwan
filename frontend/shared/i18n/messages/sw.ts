@@ -446,6 +446,16 @@ export const sw: Messages = {
       filtering: '↳ inachuja',
       events: 'matukio',
     },
+    myMoney: {
+      eyebrow: 'PESA YAKO',
+      count: 'MIAMALA {n}',
+      loading: 'Inapakia…',
+      empty: 'Bado hakuna kitu. Pesa unayoweka, kutuma au kupata itaonekana hapa na risiti.',
+      pending: 'INAENDELEA',
+      failed: 'IMESHINDWA',
+      receipt: 'RISITI',
+      justNow: 'sasa hivi',
+    },
     view: {
       notSignedInEyebrow: 'HUJAINGIA',
       notSignedInBody: 'Ingia kufuatilia kila biashara inayopita kwenye Karwan. Tafuta kwa kitambulisho cha kazi kufuatilia moja maalum.',

@@ -2591,6 +2591,25 @@ export const api = {
         updatedAt: number;
       }>;
     }>(`/api/bridge/list?address=${address}`),
+  /// THE USER'S OWN money ledger: every USDC movement on their account, newest
+  /// first, merged from the activity log and the bridge store by the backend.
+  /// Session-scoped, so no address argument. Distinct from the /activity
+  /// network feed, which is an anonymized pulse and shows nobody's amounts.
+  myActivity: (limit = 100) =>
+    json<{
+      items: Array<{
+        id: string;
+        ts: number;
+        kind: string;
+        summary: string;
+        amountUsdc: string | null;
+        txHash: string | null;
+        refId: string | null;
+        chain: string | null;
+        jobId: string | null;
+        status: 'done' | 'pending' | 'failed';
+      }>;
+    }>(`/api/activity/me?limit=${limit}`),
   /// Record a bridge that completed client-side via the App Kit Forwarding
   /// Service, so it lands in durable history + the main /activity feed. The
   /// backend keys it to the signed-in user; no funds move.
@@ -2874,7 +2893,15 @@ export const api = {
   // Fund a buyer/seller agent wallet from the pooled balance (same-chain Arc
   // spend, backend-signed). Session-scoped.
   gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number) =>
-    json<{ ok: true; agent: 'buyer' | 'seller'; recipientAddress: string; amountUsd: number; transferId?: string }>(
+    json<{
+      ok: true;
+      agent: 'buyer' | 'seller';
+      recipientAddress: string;
+      amountUsd: number;
+      txHash?: string;
+      explorerUrl?: string;
+      transferId?: string;
+    }>(
       '/api/gateway/fund-agent',
       { method: 'POST', body: JSON.stringify({ agent, amountUsdc }) },
     ),
@@ -2885,7 +2912,15 @@ export const api = {
     recipient: string,
     amountUsdc: number,
   ) =>
-    json<{ ok: true; destChainKey: string; recipientAddress: string; amountUsd: number; transferId?: string }>(
+    json<{
+      ok: true;
+      destChainKey: string;
+      recipientAddress: string;
+      amountUsd: number;
+      txHash?: string;
+      explorerUrl?: string;
+      transferId?: string;
+    }>(
       '/api/gateway/cash-out',
       { method: 'POST', body: JSON.stringify({ destChainKey, recipient, amountUsdc }) },
     ),

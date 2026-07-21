@@ -1,6 +1,9 @@
 import { requireAppKit } from '../chain/appKit.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { gatewayAvailableUsd } from '../x402/buyerClient.js';
+import { createBridge } from '../db/bridges.js';
+import { ARC_DOMAIN, type CctpChainKey } from '../chain/cctpChains.js';
+import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
 /// Karwan's unified Gateway balance — SPEND side (autonomy Stage 3).
@@ -72,10 +75,22 @@ export function buildArcSpendParams(input: {
   return buildSpendParams(input);
 }
 
+/// What App Kit hands back from a spend. `txHash` is the MINED destination
+/// transaction and is the receipt worth showing; `transferId` is a Circle
+/// internal reference that resolves on no block explorer. Reading only the
+/// latter is why a pooled-balance move used to end with an unverifiable string.
+interface SpendOutcome {
+  txHash?: string;
+  explorerUrl?: string;
+  transferId?: string;
+}
+
 export interface FundAgentResult {
   agent: 'buyer' | 'seller';
   recipientAddress: string;
   amountUsd: number;
+  txHash?: string;
+  explorerUrl?: string;
   transferId?: string;
 }
 
@@ -110,18 +125,41 @@ export async function fundAgentFromGateway(
     recipientAddress,
     amountUsd,
   });
-  const result = (await kit.unifiedBalance.spend(params as never)) as { transferId?: string };
+  const result = (await kit.unifiedBalance.spend(params as never)) as SpendOutcome;
   logger.info(
-    { userAddress: key, agent, recipientAddress, amountUsd, transferId: result?.transferId },
+    { userAddress: key, agent, recipientAddress, amountUsd, txHash: result?.txHash },
     'gateway: funded agent from unified balance',
   );
-  return { agent, recipientAddress, amountUsd, transferId: result?.transferId };
+  // The same event the direct wallet-to-agent path emits, keyed on `user` so
+  // the SSE projection recognises it as this caller's own money and delivers
+  // the payload intact instead of an empty pulse.
+  bus.emitEvent({
+    type: 'agent.funded',
+    actor: 'buyer',
+    payload: {
+      user: key,
+      agent,
+      address: recipientAddress,
+      amountUsdc: amountUsd.toString(),
+      ...(result?.txHash ? { txHash: result.txHash } : {}),
+    },
+  });
+  return {
+    agent,
+    recipientAddress,
+    amountUsd,
+    txHash: result?.txHash,
+    explorerUrl: result?.explorerUrl,
+    transferId: result?.transferId,
+  };
 }
 
 export interface GatewayCashOutResult {
   destChainKey: string;
   recipientAddress: string;
   amountUsd: number;
+  txHash?: string;
+  explorerUrl?: string;
   transferId?: string;
 }
 
@@ -162,10 +200,62 @@ export async function cashOutFromGateway(
     amountUsd,
     destChain,
   });
-  const result = (await kit.unifiedBalance.spend(params as never)) as { transferId?: string };
+  const result = (await kit.unifiedBalance.spend(params as never)) as SpendOutcome;
+  const dest = recipientAddress.toLowerCase();
   logger.info(
-    { userAddress: key, destChainKey, recipientAddress, amountUsd, transferId: result?.transferId },
+    { userAddress: key, destChainKey, recipientAddress: dest, amountUsd, txHash: result?.txHash },
     'gateway: cashed out from unified balance',
   );
-  return { destChainKey, recipientAddress: recipientAddress.toLowerCase(), amountUsd, transferId: result?.transferId };
+
+  // A pooled cash-out IS a cross-chain transfer, so it belongs in the same
+  // history as every other one. Without this record it existed nowhere the user
+  // could look, while the assistant offered a "Track it" button pointing at
+  // /bridge — a page built from bridge records, and therefore guaranteed to be
+  // empty. Written terminal because App Kit resolves once the destination
+  // transaction is mined.
+  try {
+    await createBridge({
+      bridgeId: `gateway-out-${key}-${result?.transferId ?? result?.txHash ?? Date.now()}`,
+      direction: 'out',
+      owner: key,
+      sourceDomain: ARC_DOMAIN,
+      sourceTxHash: '',
+      amountUsdc: amountUsd.toString(),
+      mintRecipient: dest,
+      destChainKey: destChainKey as CctpChainKey,
+      status: result?.txHash ? 'minted' : 'relaying',
+      ...(result?.txHash ? { mintTxHash: result.txHash } : {}),
+      appKit: true,
+    });
+  } catch (err) {
+    // History is not worth failing a completed transfer over. The money has
+    // moved; log loudly and still return the receipt.
+    logger.error(
+      { userAddress: key, destChainKey, err: (err as Error).message },
+      'gateway: cash-out succeeded but history record failed',
+    );
+  }
+
+  bus.emitEvent({
+    type: 'bridge.minted',
+    actor: 'buyer',
+    payload: {
+      owner: key,
+      destChainKey,
+      amountUsdc: amountUsd.toString(),
+      mintRecipient: dest,
+      ...(result?.txHash ? { txHash: result.txHash } : { alreadyMinted: true }),
+      circle: true,
+      appKit: true,
+    },
+  });
+
+  return {
+    destChainKey,
+    recipientAddress: dest,
+    amountUsd,
+    txHash: result?.txHash,
+    explorerUrl: result?.explorerUrl,
+    transferId: result?.transferId,
+  };
 }

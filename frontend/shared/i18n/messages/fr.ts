@@ -446,6 +446,16 @@ export const fr: Messages = {
       filtering: '↳ filtrage',
       events: 'évènements',
     },
+    myMoney: {
+      eyebrow: 'VOTRE ARGENT',
+      count: '{n} MOUVEMENTS',
+      loading: 'Chargement…',
+      empty: "Rien pour l'instant. L'argent que vous ajoutez, envoyez ou gagnez apparaît ici avec un reçu.",
+      pending: 'EN COURS',
+      failed: 'ÉCHEC',
+      receipt: 'REÇU',
+      justNow: "à l'instant",
+    },
     view: {
       notSignedInEyebrow: 'NON CONNECTÉ',
       notSignedInBody: 'Connectez-vous pour suivre tous les deals qui bougent sur Karwan. Cherchez par job ID pour suivre un deal précis.',

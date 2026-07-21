@@ -14,6 +14,7 @@ import {
   type EventGroup,
 } from '../types';
 import { publicizeEvents } from '../publicFeed';
+import { MyMoneyLedger } from './MyMoneyLedger';
 
 const PAGE_SIZE = 20;
 
@@ -108,6 +109,13 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
   return (
     <div className="space-y-6">
+      {/* The user's own money first. The stream below is a network pulse with
+          every amount and party stripped, so it can never answer "what did I
+          do" — and that is the question someone opening this page is asking. */}
+      <MyMoneyLedger />
+
+      <div className="pt-2 border-t border-[var(--lp-border-light)]" />
+
       <ActivityStats counts={counts} activeGroups={groups} onToggleGroup={toggleGroup} />
 
       <ActivityFilters

@@ -670,7 +670,10 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
         successText: 'Cash out sent. It lands on the destination chain in seconds.',
         viewHref: '/bridge',
         viewLabel: 'Track it',
-        refId: r.transferId,
+        // Prefer the mined hash so the card links a verifiable receipt. The
+        // transfer id is a Circle-internal reference that resolves nowhere, and
+        // showing it alone was what made a completed transfer look unprovable.
+        ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
       };
     }
     // Deterministic bridge id per CARD (action ids are server-nonced, so this is
@@ -791,7 +794,7 @@ async function runConfirmIntent(action: AssistantConfirmAction): Promise<Confirm
         successText: `Your ${p.agent} agent is funded.`,
         viewHref: '/profile#agents',
         viewLabel: 'Your wallets',
-        refId: r.transferId,
+        ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
       };
     }
     const r = await api.fundAgent({ address: p.address, agent: p.agent, amountUsdc: p.amountUsdc });

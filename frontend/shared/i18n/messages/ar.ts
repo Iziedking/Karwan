@@ -446,6 +446,16 @@ export const ar: Messages = {
       filtering: '↳ يصفّي',
       events: 'أحداث',
     },
+    myMoney: {
+      eyebrow: 'أموالك',
+      count: '{n} حركة',
+      loading: 'جارٍ التحميل…',
+      empty: 'لا شيء بعد. الأموال التي تضيفها أو ترسلها أو تكسبها تظهر هنا مع إيصال.',
+      pending: 'قيد التنفيذ',
+      failed: 'فشل',
+      receipt: 'إيصال',
+      justNow: 'الآن',
+    },
     view: {
       notSignedInEyebrow: 'غير مسجّل',
       notSignedInBody: 'سجّل الدخول لمتابعة كل صفقة تتحرك عبر كاروان. ابحث برقم الوظيفة لمتابعة صفقة معيّنة.',

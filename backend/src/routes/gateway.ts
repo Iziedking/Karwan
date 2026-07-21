@@ -291,8 +291,13 @@ gatewayRoutes.post('/fund-agent', async (c) => {
     void appendActivity({
       address,
       kind: 'gateway_fund_agent',
-      summary: `Funded the ${result.agent} agent with ${result.amountUsd} USDC from the unified balance`,
+      // Plain past tense with no plumbing in it: the user has one balance and
+      // one wallet, and where the USDC physically sat is not their concern.
+      summary: `Funded the ${result.agent} agent with ${result.amountUsd} USDC`,
       amountUsdc: result.amountUsd.toString(),
+      // Prefer the mined hash, which resolves on an explorer. transferId is a
+      // Circle-internal reference and only a fallback.
+      ...(result.txHash ? { txHash: result.txHash } : {}),
       refId: result.transferId,
     });
     return c.json({ ok: true, ...result });
@@ -333,8 +338,9 @@ gatewayRoutes.post('/cash-out', async (c) => {
     void appendActivity({
       address,
       kind: 'gateway_cash_out',
-      summary: `Cashed out ${result.amountUsd} USDC from the unified balance to ${result.recipientAddress.toLowerCase()} on ${result.destChainKey}`,
+      summary: `Cashed out ${result.amountUsd} USDC to ${result.recipientAddress.toLowerCase()} on ${result.destChainKey}`,
       amountUsdc: result.amountUsd.toString(),
+      ...(result.txHash ? { txHash: result.txHash } : {}),
       refId: result.transferId,
       chain: result.destChainKey,
       counterparty: result.recipientAddress.toLowerCase(),

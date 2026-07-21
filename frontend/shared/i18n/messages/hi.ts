@@ -446,6 +446,16 @@ export const hi: Messages = {
       filtering: '↳ छाँट रहे हैं',
       events: 'घटनाएँ',
     },
+    myMoney: {
+      eyebrow: 'आपका पैसा',
+      count: '{n} लेनदेन',
+      loading: 'लोड हो रहा है…',
+      empty: 'अभी कुछ नहीं। आप जो पैसा जोड़ते, भेजते या कमाते हैं वह रसीद के साथ यहाँ दिखेगा।',
+      pending: 'चल रहा है',
+      failed: 'विफल',
+      receipt: 'रसीद',
+      justNow: 'अभी',
+    },
     view: {
       notSignedInEyebrow: 'साइन इन नहीं',
       notSignedInBody: 'कारवान पर चलने वाली हर डील देखने के लिए साइन इन करें। किसी विशेष डील को फॉलो करने के लिए जॉब आईडी से खोजें।',

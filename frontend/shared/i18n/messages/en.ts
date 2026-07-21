@@ -438,6 +438,16 @@ interface MessagesShape {
       filtering: string;
       events: string;
     };
+    myMoney: {
+      eyebrow: string;
+      count: string;
+      loading: string;
+      empty: string;
+      pending: string;
+      failed: string;
+      receipt: string;
+      justNow: string;
+    };
     view: {
       notSignedInEyebrow: string;
       notSignedInBody: string;
@@ -4336,6 +4346,16 @@ export const en: MessagesShape = {
       },
       filtering: '↳ filtering',
       events: 'events',
+    },
+    myMoney: {
+      eyebrow: 'YOUR MONEY',
+      count: '{n} MOVES',
+      loading: 'Loading…',
+      empty: 'Nothing yet. Money you add, send, or earn shows up here with a receipt.',
+      pending: 'IN FLIGHT',
+      failed: 'FAILED',
+      receipt: 'RECEIPT',
+      justNow: 'just now',
     },
     view: {
       notSignedInEyebrow: 'NOT SIGNED IN',

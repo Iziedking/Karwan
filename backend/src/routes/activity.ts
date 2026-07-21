@@ -4,8 +4,29 @@ import { listAllBriefs } from '../db/briefs.js';
 import { listAllDeals } from '../db/deals.js';
 import { sessionAddress } from '../auth/session.js';
 import { callerJobIds, buyerJobIds, AUCTION_INTERNAL_TYPES } from '../auth/partyScope.js';
+import { listActivityForAddress } from '../db/activityLog.js';
+import { listBridgesForUser } from '../db/bridges.js';
+import { getAgentWallets } from '../db/agentWallets.js';
+import { depositWalletsByChainKey } from '../chain/cctpChains.js';
+import { logger } from '../logger.js';
 
 export const activityRoutes = new Hono();
+
+/// One row of a user's personal money ledger, normalised across the two stores
+/// that record movements. `status` exists because bridges are the only entries
+/// that can still be in flight; everything else is recorded after it settled.
+export interface PersonalActivityItem {
+  id: string;
+  ts: number;
+  kind: string;
+  summary: string;
+  amountUsdc: string | null;
+  txHash: string | null;
+  refId: string | null;
+  chain: string | null;
+  jobId: string | null;
+  status: 'done' | 'pending' | 'failed';
+}
 
 // Finance-lane jobIds, cached so the public feed can strip business deals to
 // bare events on every poll without re-scanning briefs + deals each time.
@@ -178,4 +199,93 @@ activityRoutes.get('/', async (c) => {
 activityRoutes.get('/finance-jobids', async (c) => {
   const ids = await financeJobIds();
   return c.json({ jobIds: [...ids] });
+});
+
+/// THE USER'S OWN MONEY LEDGER. Every USDC movement on this account, newest
+/// first, in one list.
+///
+/// Distinct from `GET /` above, which is the public network pulse: that feed is
+/// anonymized by design and answers "is the platform alive", not "what did I
+/// do". Until this route existed there was no answer to the second question
+/// anywhere in the product — activity_log rows were written by six routes and
+/// read only by the chat assistant, so a user who wanted to check last week's
+/// withdrawal had nowhere to look.
+///
+/// Two stores back it, because money movements are recorded in two places:
+///   - activity_log: moves with no store of their own (withdrawals, agent
+///     top-ups, milestone releases, pooled-balance moves).
+///   - bridges: cross-chain transfers, which carry their own lifecycle.
+/// They are merged here rather than in the client so one list, one sort order,
+/// and one shape reach the UI.
+///
+/// Session-scoped and never `?address=`: this is the user's full financial
+/// history, the most sensitive read in the app.
+activityRoutes.get('/me', async (c) => {
+  const address = sessionAddress(c);
+  if (!address) return c.json({ error: 'unauthorized' }, 401);
+
+  const limit = Math.min(200, Math.max(1, Number(c.req.query('limit') ?? 100) || 100));
+  // Far enough back to cover the account's whole life on testnet. The limit is
+  // the real bound.
+  const since = 0;
+
+  const [entries, wallets] = await Promise.all([
+    listActivityForAddress(address, since, limit),
+    getAgentWallets(address).catch(() => null),
+  ]);
+
+  // Ownership resolved by the same rule the bridge history modal uses, so the
+  // two surfaces can never disagree about what belongs to this user.
+  let bridges: Awaited<ReturnType<typeof listBridgesForUser>> = [];
+  try {
+    bridges = await listBridgesForUser({
+      owner: address,
+      sourceWalletsByChain: depositWalletsByChainKey(wallets?.bridgeWallets),
+    });
+  } catch (err) {
+    // A bridge-store failure must not blank the rest of the ledger.
+    logger.warn({ address, err: (err as Error).message }, 'activity/me: bridge read failed');
+  }
+
+  const items: PersonalActivityItem[] = [
+    ...entries.map((e) => ({
+      id: e.id,
+      ts: e.ts,
+      kind: e.kind as string,
+      summary: e.summary,
+      amountUsdc: e.amountUsdc ?? null,
+      txHash: e.txHash ?? null,
+      refId: e.refId ?? null,
+      chain: e.chain ?? null,
+      jobId: e.jobId ?? null,
+      status: 'done' as const,
+    })),
+    ...bridges.map((b) => {
+      const out = b.direction === 'out';
+      const chain = (out ? b.destChainKey : b.sourceChainKey) ?? null;
+      return {
+        id: b.bridgeId,
+        ts: b.createdAt,
+        kind: out ? 'cash_out' : 'top_up',
+        // Written here rather than at record time because a bridge's meaning
+        // changes as it progresses; activity_log rows are already past tense.
+        summary: out
+          ? `Cashed out ${b.amountUsdc} USDC to ${chain ?? 'another chain'}`
+          : `Added ${b.amountUsdc} USDC from ${chain ?? 'another chain'}`,
+        amountUsdc: b.amountUsdc,
+        // The burn is the receipt the user can verify first; the mint hash
+        // lands later and is the better one once it exists.
+        txHash: b.mintTxHash || b.sourceTxHash || null,
+        refId: null,
+        chain,
+        jobId: null,
+        status:
+          b.status === 'minted' ? ('done' as const)
+          : b.status === 'error' ? ('failed' as const)
+          : ('pending' as const),
+      };
+    }),
+  ].sort((a, b) => b.ts - a.ts);
+
+  return c.json({ items: items.slice(0, limit) });
 });
