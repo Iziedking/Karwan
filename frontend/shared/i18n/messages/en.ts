@@ -1698,6 +1698,8 @@ interface MessagesShape {
     solanaFund: {
       addressLabel: string;
       provisioning: string;
+      setupFailed: string;
+      retry: string;
       note: string;
       copy: string;
       copied: string;
@@ -5704,6 +5706,8 @@ export const en: MessagesShape = {
     solanaFund: {
       addressLabel: 'Your Solana deposit address',
       provisioning: 'setting up…',
+      setupFailed: 'Could not set up your Solana address. Tap to try again.',
+      retry: 'Retry',
       note: 'Send USDC here. Keep a little SOL in it for the Solana network fee.',
       copy: 'COPY',
       copied: 'COPIED',

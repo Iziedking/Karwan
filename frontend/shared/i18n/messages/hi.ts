@@ -1805,6 +1805,8 @@ export const hi: Messages = {
     solanaFund: {
       addressLabel: 'आपका Solana जमा पता',
       provisioning: 'सेट अप हो रहा है…',
+      setupFailed: 'आपका Solana पता सेट नहीं हो सका. फिर से कोशिश करने के लिए टैप करें.',
+      retry: 'फिर कोशिश करें',
       note: 'यहाँ USDC भेजें. Solana नेटवर्क शुल्क के लिए इसमें थोड़ा SOL रखें.',
       copy: 'कॉपी',
       copied: 'कॉपी हुआ',

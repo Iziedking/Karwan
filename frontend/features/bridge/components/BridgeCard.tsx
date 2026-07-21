@@ -1672,17 +1672,24 @@ function SolanaDepositBanner({
   copy: Messages['bridgeCard']['solanaFund'];
 }) {
   const [address, setAddress] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [copied, setCopied] = useState(false);
+  // Solana is a separate EOA curve, so its deposit address can't be the user's
+  // unified EVM address — it has to be provisioned on its own. Circle's SOL-DEVNET
+  // create call sometimes never returns; a silent catch here left the card stuck
+  // on "setting up…" forever. Surface the failure and let the user retry.
   useEffect(() => {
     let cancelled = false;
+    setFailed(false);
     api
       .bridgeCircleSourceAddress(userAddress, 'solanaDevnet')
       .then((r) => !cancelled && setAddress(r.address))
-      .catch(() => {});
+      .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
     };
-  }, [userAddress]);
+  }, [userAddress, attempt]);
 
   async function copyAddress() {
     if (!address) return;
@@ -1719,25 +1726,44 @@ function SolanaDepositBanner({
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {copy.addressLabel}
             </p>
-            <p className="mt-0.5 mono text-[12px] tabular-nums text-[var(--lp-dark)] truncate">
-              {address ?? copy.provisioning}
+            <p
+              className="mt-0.5 mono text-[12px] tabular-nums truncate"
+              style={{ color: failed && !address ? TONE_HEX.warning : 'var(--lp-dark)' }}
+            >
+              {address ?? (failed ? copy.setupFailed : copy.provisioning)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={copyAddress}
-            disabled={!address}
-            className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
-            style={{
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
-              color: copied ? TONE_HEX.positive : undefined,
-            }}
-          >
-            {copied ? copy.copied : copy.copy}
-          </button>
+          {failed && !address ? (
+            <button
+              type="button"
+              onClick={() => setAttempt((n) => n + 1)}
+              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-black/15"
+              style={{
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {copy.retry}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={copyAddress}
+              disabled={!address}
+              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
+              style={{
+                borderTopLeftRadius: 6,
+                borderTopRightRadius: 6,
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 2,
+                color: copied ? TONE_HEX.positive : undefined,
+              }}
+            >
+              {copied ? copy.copied : copy.copy}
+            </button>
+          )}
         </div>
         <p className="mt-2 text-[11px] leading-snug text-[var(--lp-text-sub)]">{copy.note}</p>
         <div className="mt-1.5">

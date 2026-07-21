@@ -1805,6 +1805,8 @@ export const ar: Messages = {
     solanaFund: {
       addressLabel: 'عنوان الإيداع الخاص بك على Solana',
       provisioning: 'جارٍ الإعداد…',
+      setupFailed: 'تعذّر إعداد عنوان Solana الخاص بك. اضغط لإعادة المحاولة.',
+      retry: 'إعادة المحاولة',
       note: 'أرسل USDC هنا. احتفظ بقليل من SOL فيه لرسوم شبكة Solana.',
       copy: 'نسخ',
       copied: 'تم النسخ',

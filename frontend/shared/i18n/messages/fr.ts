@@ -1805,6 +1805,8 @@ export const fr: Messages = {
     solanaFund: {
       addressLabel: 'Votre adresse de dépôt Solana',
       provisioning: 'configuration…',
+      setupFailed: 'Impossible de configurer votre adresse Solana. Touchez pour réessayer.',
+      retry: 'Réessayer',
       note: 'Envoyez des USDC ici. Gardez-y un peu de SOL pour les frais du réseau Solana.',
       copy: 'COPIER',
       copied: 'COPIÉ',

@@ -1805,6 +1805,8 @@ export const sw: Messages = {
     solanaFund: {
       addressLabel: 'Anwani yako ya kuweka Solana',
       provisioning: 'inaandaliwa…',
+      setupFailed: 'Imeshindwa kuandaa anwani yako ya Solana. Gusa ujaribu tena.',
+      retry: 'Jaribu tena',
       note: 'Tuma USDC hapa. Weka SOL kidogo ndani yake kwa ada ya mtandao wa Solana.',
       copy: 'NAKILI',
       copied: 'IMENAKILIWA',
