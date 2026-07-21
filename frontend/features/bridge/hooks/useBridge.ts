@@ -359,7 +359,13 @@ function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): Brid
   const restored: BridgeRecord[] = [];
   for (const r of remote) {
     if (known.has(r.bridgeId)) continue;
-    if (!r.sourceChainKey) continue; // missing chain context, unrenderable
+    // A record's chain context lives in a different column per direction: an
+    // in-bridge stores where it came FROM, an out-bridge where it goes TO. The
+    // client keeps both in `sourceChainKey` (for an out-bridge that means the
+    // destination). Reading only r.sourceChainKey discarded every cash-out as
+    // "unrenderable", which is why they never came back in Transfer history.
+    const chainKey = r.direction === 'out' ? r.destChainKey : r.sourceChainKey;
+    if (!chainKey) continue; // missing chain context, unrenderable
     /// The mintRecipient is the eventual mint destination. For 'in'
     /// bridges that's the user's Arc wallet (the row needs it to render
     /// the MINTS TO band). If the backend doesn't have it (older records
@@ -369,7 +375,7 @@ function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): Brid
       id: r.bridgeId,
       phase: phaseFromBackendStatus(r.status),
       direction: r.direction,
-      sourceChainKey: r.sourceChainKey as BridgeRecord['sourceChainKey'],
+      sourceChainKey: chainKey as BridgeRecord['sourceChainKey'],
       amountUsdc: r.amountUsdc,
       mintRecipient: r.mintRecipient as `0x${string}`,
       approveTxHash: (r.sourceTxHash ?? undefined) as `0x${string}` | undefined,

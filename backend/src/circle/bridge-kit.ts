@@ -416,6 +416,11 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
         actor: 'buyer',
         payload: {
           bridgeId: input.bridgeId,
+          // The client keys the burn receipt off sourceTxHash. Omitting it (as
+          // this path did) left a cash-out with no verifiable hash to link.
+          sourceTxHash: values.txHash,
+          amountUsdc: input.amountUsdc,
+          mintRecipient: input.recipient,
           destChainKey: input.destChainKey,
           circle: true,
           appKit: true,
@@ -442,6 +447,13 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
         actor: 'buyer',
         payload: {
           bridgeId: input.bridgeId,
+          // Without txHash the client cannot reach 'done': it falls through to
+          // the "no hash yet" branch and the row spins in minting forever. The
+          // forwarder reports 'forwarded' without a hash sometimes, so send
+          // alreadyMinted in that case to close the row honestly.
+          ...(values.txHash ? { txHash: values.txHash } : { alreadyMinted: true }),
+          amountUsdc: input.amountUsdc,
+          mintRecipient: input.recipient,
           destChainKey: input.destChainKey,
           circle: true,
           appKit: true,
