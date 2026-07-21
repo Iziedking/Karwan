@@ -1760,6 +1760,7 @@ interface MessagesShape {
     shortTemplate: string;
   };
   gatewayCard: {
+    connectCta: string;
     soonTag: string;
     soonBody: string;
     tag: string;
@@ -5796,6 +5797,7 @@ export const en: MessagesShape = {
     shortTemplate: 'You have {have} pooled. This needs {need}.',
   },
   gatewayCard: {
+    connectCta: 'Connect wallet',
     soonTag: 'COMING SOON',
     soonBody: 'Not ready for email accounts yet. Use CCTP beside this tab to move USDC today.',
     tag: '[:POOLED BALANCE:]',

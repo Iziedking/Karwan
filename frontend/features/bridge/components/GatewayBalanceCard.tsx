@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useAccount, useBalance, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
 import { api, type GatewayBalance } from '@/core/api';
@@ -226,6 +227,7 @@ export function GatewayBalanceCard() {
   const auth = useAuth();
   const isCircleUser = auth.method === 'circle';
   const { address, chain, connector, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
   const { switchChainAsync } = useSwitchChain();
 
   const [balance, setBalance] = useState<GatewayBalance | null>(null);
@@ -494,7 +496,29 @@ export function GatewayBalanceCard() {
         style={{ borderTop: '1px solid var(--lp-border-light)' }}
       >
         {!isConnected ? (
-          <p className="text-[13px] text-[var(--lp-text-sub)]">{t.connect}</p>
+          // A web3 user's SIWE cookie outlives the wagmi connection, so after a
+          // reload they are signed in but not connected. This used to be a bare
+          // sentence telling them to connect with no way to do it from here.
+          <div className="space-y-3">
+            <p className="text-[13px] text-[var(--lp-text-sub)]">{t.connect}</p>
+            <button
+              type="button"
+              onClick={() => openConnectModal?.()}
+              disabled={!openConnectModal}
+              className="px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              style={{
+                background: 'var(--lp-accent)',
+                color: 'var(--lp-dark)',
+                borderTopLeftRadius: 12,
+                borderTopRightRadius: 12,
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 4,
+                boxShadow: '0 3px 0 rgba(0,0,0,0.22)',
+              }}
+            >
+              {t.connectCta}
+            </button>
+          </div>
         ) : (
           <>
             <ChainDropdown

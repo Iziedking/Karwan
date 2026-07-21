@@ -1879,6 +1879,7 @@ export const ar: Messages = {
     shortTemplate: 'لديك {have} مجمّعة. هذا يتطلب {need}.',
   },
   gatewayCard: {
+    connectCta: 'اربط المحفظة',
     soonTag: 'قريبًا',
     soonBody: 'غير متاح بعد لحسابات البريد الإلكتروني. استخدم CCTP بجانب هذا التبويب لنقل USDC.',
     tag: '[:الرصيد المجمّع:]',
