@@ -3831,6 +3831,7 @@ export const ar: Messages = {
       yourWallet: 'محفظتك',
       addressInvalid: '• [:خطأ:] العنوان غير صالح',
       submitTemplate: 'إرسال إلى {dest}',
+      sending: 'جارٍ الإرسال…',
     },
     activityEyebrow: 'النشاط',
     clearActivity: 'مسح',

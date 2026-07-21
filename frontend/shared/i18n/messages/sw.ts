@@ -3831,6 +3831,7 @@ export const sw: Messages = {
       yourWallet: 'Wallet yako',
       addressInvalid: '• [:HITILAFU:] anwani si halali',
       submitTemplate: 'Tuma kwa {dest}',
+      sending: 'Inatuma…',
     },
     activityEyebrow: 'SHUGHULI',
     clearActivity: 'Futa',

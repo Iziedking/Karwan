@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortHash, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -122,6 +122,27 @@ export function BridgeActivityStrip({
 }) {
   const msgs = useTranslations();
   const [now, setNow] = useState(() => Date.now());
+  // Bring a newly-started transfer into view. The strip sits under the form, so
+  // on a short screen a submit pushed a row in below the fold and the click read
+  // as though nothing had happened. Only fires for an id we have not seen, so
+  // it never yanks the page while the user is reading.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const seenRef = useRef<Set<string> | null>(null);
+  const newestId = records[0]?.id ?? null;
+  useEffect(() => {
+    if (!newestId) return;
+    // First render seeds the set without scrolling: existing rows are history,
+    // not something that just happened.
+    if (seenRef.current === null) {
+      seenRef.current = new Set(records.map((r) => r.id));
+      return;
+    }
+    if (seenRef.current.has(newestId)) return;
+    seenRef.current.add(newestId);
+    stripRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // records is intentionally not a dep: only the newest id should trigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newestId]);
   // Re-evaluate expiry on a slow tick so finished rows fall off on their own.
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -139,7 +160,7 @@ export function BridgeActivityStrip({
   const clearableIds = visible.map((b) => b.id);
 
   return (
-    <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
+    <div ref={stripRef} className="mt-7 pt-5 border-t border-[var(--lp-border-light)] scroll-mt-24">
       <div className="flex items-center justify-between gap-3">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {msgs.bridgeCard.eyebrow.activity}

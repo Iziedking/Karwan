@@ -3831,6 +3831,7 @@ export const fr: Messages = {
       yourWallet: 'Votre portefeuille',
       addressInvalid: '• [:ERR:] adresse invalide',
       submitTemplate: 'Envoyer vers {dest}',
+      sending: 'Envoi…',
     },
     activityEyebrow: 'ACTIVITÉ',
     clearActivity: 'Effacer',

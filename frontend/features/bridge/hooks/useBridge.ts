@@ -23,6 +23,7 @@ import {
   type AnySourceChainKey,
 } from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
+import { humanTransferError } from '../errors';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -325,6 +326,30 @@ function writeSharedBridges(
   for (const cb of sharedBridgesSubscribers) cb();
 }
 
+/// Addresses whose localStorage slice has already been folded into the shared
+/// store. The store is module-level and shared, but the hydrate effect runs per
+/// COMPONENT, and it used to call setBridges(loadFromStorage(...)) — replacing
+/// the whole slice. Every consumer that mounted later therefore wiped the store
+/// back to whatever was on disk: opening the History modal, or switching to the
+/// dynamically-imported cash-out card, destroyed any record created since the
+/// last write. A transfer started seconds earlier simply vanished. Hydrate once
+/// per address, and merge.
+const hydratedAddresses = new Set<string>();
+
+/// Fold stored records into whatever is already in memory. In-memory wins on a
+/// collision: it may carry live SSE progress that disk does not.
+function mergeStoredBridges(
+  current: BridgeRecord[],
+  stored: BridgeRecord[],
+): BridgeRecord[] {
+  if (stored.length === 0) return current;
+  if (current.length === 0) return stored;
+  const known = new Set(current.map((b) => b.id));
+  const extra = stored.filter((b) => !known.has(b.id));
+  if (extra.length === 0) return current;
+  return [...current, ...extra].sort((a, b) => b.startedAt - a.startedAt);
+}
+
 function subscribeSharedBridges(cb: () => void): () => void {
   sharedBridgesSubscribers.add(cb);
   return () => {
@@ -381,7 +406,9 @@ function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): Brid
       approveTxHash: (r.sourceTxHash ?? undefined) as `0x${string}` | undefined,
       burnTxHash: (r.sourceTxHash ?? undefined) as `0x${string}` | undefined,
       mintTxHash: (r.mintTxHash ?? undefined) as `0x${string}` | undefined,
-      error: r.error ?? undefined,
+      // The backend persists the raw internal failure on the record. Never
+      // render it: map it on the way in.
+      error: r.error ? humanTransferError(r.error) : undefined,
       startedAt: r.createdAt,
       updatedAt: r.updatedAt,
     });
@@ -497,16 +524,21 @@ export function useBridges() {
     | null
   >(null);
 
-  // Hydrate from localStorage once the user's identity address is known.
+  // Hydrate from localStorage once per ADDRESS, not once per component. A
+  // second consumer mounting must never reset what the first one is holding.
   useEffect(() => {
     if (!identityAddress) {
-      setBridges([]);
       setHydratedFor(null);
       return;
     }
-    setBridges(loadFromStorage(identityAddress));
-    setHydratedFor(identityAddress.toLowerCase());
-  }, [identityAddress]);
+    const key = identityAddress.toLowerCase();
+    if (!hydratedAddresses.has(key)) {
+      hydratedAddresses.add(key);
+      const stored = loadFromStorage(identityAddress);
+      setBridges((current) => mergeStoredBridges(current, stored));
+    }
+    setHydratedFor(key);
+  }, [identityAddress, setBridges]);
 
   /// After localStorage hydrate, pull the backend's bridge history (every
   /// Circle bridge ever started against this identity) and merge any
@@ -859,7 +891,7 @@ export function useBridges() {
           patch(id, (b) => ({
             ...b,
             phase: 'error',
-            error: `Recheck failed. ${raw.slice(0, 140) || 'Try again in a moment.'}`,
+            error: humanTransferError(raw),
           }));
         }
         return;
@@ -1101,11 +1133,8 @@ export function useBridges() {
         // so show it. Collapsing every 4xx into "try again in a moment" told
         // people to retry a bridge that could never succeed and buried the one
         // sentence that said what to fix.
-        const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : '';
-        const raw = errorToString(err).toLowerCase();
-        const friendly = raw.includes('failed to fetch')
-          ? 'Could not reach the bridge service. Check your connection and try again.'
-          : detail || 'Bridge could not start. Try again in a moment.';
+        const detail = err instanceof ApiError ? err.detail : undefined;
+        const friendly = humanTransferError(errorToString(err), detail);
         patch(id, (b) => ({
           ...b,
           phase: 'error',
@@ -1159,16 +1188,13 @@ export function useBridges() {
           // eslint-disable-next-line no-console
           console.warn('[bridge.startCircleAppKit]', errorToString(err));
         }
-        const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : '';
-        const raw = errorToString(err).toLowerCase();
+        const raw = errorToString(err);
         // The one real friction on Solana: Circle does not sponsor gas for
         // transfers that ORIGINATE on Solana, so the deposit wallet needs a
-        // little SOL of its own. Name it plainly instead of "bridge failed".
-        const friendly = raw.includes('failed to fetch')
-          ? 'Could not reach the bridge service. Check your connection and try again.'
-          : raw.includes('insufficient') || raw.includes('sol')
-            ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
-            : detail || 'Bridge could not start. Try again in a moment.';
+        // little SOL of its own. Name it plainly, above the shared mapping.
+        const friendly = /sol|insufficient/i.test(raw)
+          ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
+          : humanTransferError(raw, err instanceof ApiError ? err.detail : undefined);
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
@@ -1213,13 +1239,10 @@ export function useBridges() {
           // eslint-disable-next-line no-console
           console.warn('[bridge.startCircleOut]', errorToString(err));
         }
-        const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : '';
-        const raw = errorToString(err).toLowerCase();
-        const friendly = raw.includes('insufficient')
-          ? 'Your Arc balance is short. Lower the amount and try again.'
-          : raw.includes('failed to fetch')
-            ? 'Could not reach the bridge service. Try again in a moment.'
-            : detail || 'Bridge-out could not start. Try again in a moment.';
+        const friendly = humanTransferError(
+          errorToString(err),
+          err instanceof ApiError ? err.detail : undefined,
+        );
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },

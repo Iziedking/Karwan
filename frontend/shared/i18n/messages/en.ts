@@ -3607,6 +3607,7 @@ interface MessagesShape {
       yourWallet: string;
       addressInvalid: string;
       submitTemplate: string;
+      sending: string;
     };
     activityEyebrow: string;
     clearActivity: string;
@@ -7837,6 +7838,7 @@ export const en: MessagesShape = {
       yourWallet: 'Your wallet',
       addressInvalid: '• [:ERR:] not a valid address',
       submitTemplate: 'Cash out to {dest}',
+      sending: 'Sending…',
     },
     activityEyebrow: 'ACTIVITY',
     clearActivity: 'Clear',

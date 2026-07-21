@@ -53,6 +53,13 @@ export function BridgeOutCard() {
   const hidden = useHiddenActivityBridgeIds(auth.address ?? null);
   // All outbound records; the activity strip does the recency + hidden filter.
   const outBridges = bridges.filter((b) => b.direction === 'out');
+  // True from the instant the user submits: startCircleOut/startWeb3Out push
+  // the record before awaiting anything, so this flips synchronously with the
+  // click. Without it the button stayed cold through the whole request and the
+  // click read as "nothing happened".
+  const sending = outBridges.some(
+    (b) => b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning',
+  );
 
   const [destKey, setDestKey] = useState<DestKey>('arc');
   const [open, setOpen] = useState(false);
@@ -383,7 +390,8 @@ export function BridgeOutCard() {
 
             <button
               type="submit"
-              disabled={!canSubmit}
+              disabled={!canSubmit || sending}
+              aria-busy={sending}
               className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               style={{
                 background: 'var(--lp-accent)',
@@ -392,14 +400,24 @@ export function BridgeOutCard() {
                 borderTopRightRadius: 14,
                 borderBottomLeftRadius: 14,
                 borderBottomRightRadius: 4,
-                boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
+                boxShadow: canSubmit && !sending ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
+                opacity: sending ? 0.75 : undefined,
               }}
             >
-              <span>{t.form.submitTemplate.replace('{dest}', destShort)}</span>
+              <span>
+                {sending ? t.form.sending : t.form.submitTemplate.replace('{dest}', destShort)}
+              </span>
               <span aria-hidden className="inline-flex transition-transform group-hover:translate-x-0.5">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                {sending ? (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="animate-spin">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.8" strokeOpacity="0.25" />
+                    <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
               </span>
             </button>
 

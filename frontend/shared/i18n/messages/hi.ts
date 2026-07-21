@@ -3831,6 +3831,7 @@ export const hi: Messages = {
       yourWallet: 'आपका वॉलेट',
       addressInvalid: '• [:त्रुटि:] पता मान्य नहीं',
       submitTemplate: '{dest} पर भेजें',
+      sending: 'भेजा जा रहा है…',
     },
     activityEyebrow: 'गतिविधि',
     clearActivity: 'साफ़ करें',
