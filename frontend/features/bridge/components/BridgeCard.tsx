@@ -244,13 +244,6 @@ export function BridgeCard({
   const { bridges, startCircle, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
-  // True while an add-money bridge is in an early, pre-attestation phase. The
-  // record is created the instant the user submits (before the App Kit dynamic
-  // import and the wallet popup), so this drives the submit button's loading
-  // state through that gap, where the user previously saw no feedback.
-  const startingBridge = inBridgesAll.some(
-    (b) => b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning',
-  );
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
   /// localStorage so a dismiss survives reload, but never written to the
   /// shared useBridges store. The bridge history modal (a separate
@@ -268,6 +261,19 @@ export function BridgeCard({
   /// the canonical entry point; Base felt arbitrary and was confusing a
   /// new user who expected the first tile to be selected.
   const [sourceKey, setSourceKey] = useState<AnySourceChainKey>('sepolia');
+  // True while an add-money bridge from THIS source chain is in an early,
+  // pre-attestation phase. The record is created the instant the user submits,
+  // so this drives the button's loading state through that gap.
+  //
+  // Scoped to the selected chain on purpose: the source pipeline polls for up
+  // to an hour before giving up, so one transfer stuck on Ethereum used to
+  // disable the button for every other chain too, reading "Starting…" for a
+  // transfer the user was not even looking at.
+  const startingBridge = inBridgesAll.some(
+    (b) =>
+      b.sourceChainKey === sourceKey &&
+      (b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning'),
+  );
   const [amount, setAmount] = useState<number | ''>('');
   /// Source-chain dropdown, previously a 6-tile grid that took too much
   /// vertical space and felt cluttered next to the slim BRIDGE FROM ARC

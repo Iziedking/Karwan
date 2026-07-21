@@ -655,7 +655,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     check_top_up_sources: tool({
       description:
-        "Check what USDC is already sitting in the user's own deposit wallets on other chains (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain) — the wallets Karwan holds for them, whose addresses are shown as 'your deposit address'. Call this BEFORE proposing a top-up, and whenever they say 'move X from <chain> to Arc' or ask why their money hasn't arrived. Money in one of these wallets can be moved to Arc with no action from them at all; money in an outside wallet (their own MetaMask, an exchange) has to be sent to the deposit address first, because Karwan cannot touch a wallet it does not hold.",
+        "EMAIL/PASSKEY ACCOUNTS ONLY. Check what USDC is already sitting in the user's own deposit wallets on other chains (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain) — the wallets Karwan holds for them. Call this BEFORE proposing a top-up, and whenever they say 'move X from <chain> to Arc' or ask why their money hasn't arrived. Money in one of these wallets can be moved to Arc with no action from them at all; money in an outside wallet has to be sent to the deposit address first, because Karwan cannot touch a wallet it does not hold. For a web3 user this tool returns an error: they hold their own USDC and bridge it themselves.",
       inputSchema: z.object({
         chain: z
           .enum(TOP_UP_CHAIN_NAMES)
@@ -664,6 +664,20 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       }),
       execute: async ({ chain }) => {
         try {
+          // A web3 user must never be handed a deposit address. They hold their
+          // own USDC on the source chain and can bridge it in ONE signed
+          // transaction from the bridge screen. Pointing them at a custodial
+          // deposit wallet instead tells them to make an extra transfer, wait
+          // for it to land, and come back — strictly more steps, more risk, and
+          // it contradicts the rule that web3 accounts get no deposit wallets.
+          // propose_top_up already refuses them; this is where the model was
+          // learning the address in the first place.
+          if (method !== 'circle') {
+            return {
+              error:
+                'This user signs in with their own wallet, so Karwan holds no deposit wallets for them and there is nothing to check. They already hold the USDC on that chain: send them to the bridge screen with propose_navigation (destination "top_up"), where they pick the chain and sign one transaction. Frame it as them keeping custody, not as a limitation. Never give them a deposit address.',
+            };
+          }
           const record = await getAgentWallets(address).catch(() => null);
           if (!record) {
             return { error: 'They must activate their wallets first. Offer a button to their profile (destination "profile").' };
@@ -1393,11 +1407,22 @@ function authenticatedPreamble(address: string, method: string): string {
     'A staking question is get_my_stake even if get_my_balance showed no stake line.',
     '',
     '# Moving money IN (top up). Do it, do not explain rails.',
-    'When they say "move 20 USDC from Base to Arc", "top me up", or "bring my money over": call',
-    'check_top_up_sources, then propose_top_up. If their deposit wallet on that chain holds it, the card',
-    'moves it and the backend signs everything. If it does NOT hold it, the money is in an outside wallet',
-    'Karwan cannot touch: give them that chain\'s deposit address, say to send USDC there, and offer to',
-    'move it across the moment it lands. Sending them to a page is the LAST resort, never the first answer.',
+    ...(circle
+      ? [
+          'When they say "move 20 USDC from Base to Arc", "top me up", or "bring my money over": call',
+          'check_top_up_sources, then propose_top_up. If their deposit wallet on that chain holds it, the card',
+          'moves it and the backend signs everything. If it does NOT hold it, the money is in an outside wallet',
+          'Karwan cannot touch: give them that chain\'s deposit address, say to send USDC there, and offer to',
+          'move it across the moment it lands. Sending them to a page is the LAST resort, never the first answer.',
+        ]
+      : [
+          'THIS USER HOLDS THEIR OWN WALLET. They already have the USDC on the source chain, and moving',
+          'it is ONE transaction they sign on the bridge screen. So when they say "bridge 10 USDC from',
+          'Ethereum to Arc": send them straight there with propose_navigation (destination "top_up").',
+          'Do NOT call check_top_up_sources, do NOT give them a deposit address, and never tell them to',
+          'send money to another address first. That detour exists only for email accounts, and for them',
+          'it is slower and riskier. Say it warmly: they keep custody, and it costs them one signature.',
+        ]),
     'NEVER present "Circle Gateway vs CCTP" as a choice, and never make them pick a rail. Those are',
     'plumbing names. They asked to move money — move it, and say it in their words ("on its way to Arc").',
     '',
