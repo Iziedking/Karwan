@@ -1090,12 +1090,16 @@ export function useBridges() {
           // eslint-disable-next-line no-console
           console.warn('[bridge.startCircle]', errorToString(err));
         }
+        // The route's `detail` is prose written for this exact failure ("has
+        // 0.0 ETH on Ethereum Sepolia, not enough to pay the bridge gas..."),
+        // so show it. Collapsing every 4xx into "try again in a moment" told
+        // people to retry a bridge that could never succeed and buried the one
+        // sentence that said what to fix.
+        const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : '';
         const raw = errorToString(err).toLowerCase();
         const friendly = raw.includes('failed to fetch')
           ? 'Could not reach the bridge service. Check your connection and try again.'
-          : raw.includes('insufficient')
-            ? 'Source-chain wallet is short on funds. Top it up and try again.'
-            : 'Bridge could not start. Try again in a moment.';
+          : detail || 'Bridge could not start. Try again in a moment.';
         patch(id, (b) => ({
           ...b,
           phase: 'error',
@@ -1149,6 +1153,7 @@ export function useBridges() {
           // eslint-disable-next-line no-console
           console.warn('[bridge.startCircleAppKit]', errorToString(err));
         }
+        const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : '';
         const raw = errorToString(err).toLowerCase();
         // The one real friction on Solana: Circle does not sponsor gas for
         // transfers that ORIGINATE on Solana, so the deposit wallet needs a
@@ -1157,7 +1162,7 @@ export function useBridges() {
           ? 'Could not reach the bridge service. Check your connection and try again.'
           : raw.includes('insufficient') || raw.includes('sol')
             ? 'Your Solana deposit wallet needs a little SOL to pay the network fee. Send some SOL to that address and try again.'
-            : 'Bridge could not start. Try again in a moment.';
+            : detail || 'Bridge could not start. Try again in a moment.';
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
@@ -1202,12 +1207,13 @@ export function useBridges() {
           // eslint-disable-next-line no-console
           console.warn('[bridge.startCircleOut]', errorToString(err));
         }
+        const detail = err instanceof ApiError && typeof err.detail === 'string' ? err.detail : '';
         const raw = errorToString(err).toLowerCase();
         const friendly = raw.includes('insufficient')
           ? 'Your Arc balance is short. Lower the amount and try again.'
           : raw.includes('failed to fetch')
             ? 'Could not reach the bridge service. Try again in a moment.'
-            : 'Bridge-out could not start. Try again in a moment.';
+            : detail || 'Bridge-out could not start. Try again in a moment.';
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },

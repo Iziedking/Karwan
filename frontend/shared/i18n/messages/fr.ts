@@ -1793,6 +1793,7 @@ export const fr: Messages = {
       gas: 'Gaz',
       sponsored: 'Sponsorisé',
       covered: 'Couvert',
+      needed: 'Requis ici',
       addressLabel: 'Votre adresse Circle sur la chaîne source',
       provisioning: 'provisionnement…',
       copy: 'COPIER',

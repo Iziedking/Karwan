@@ -1793,6 +1793,7 @@ export const hi: Messages = {
       gas: 'गैस',
       sponsored: 'प्रायोजित',
       covered: 'कवर किया गया',
+      needed: 'यहाँ चाहिए',
       addressLabel: 'आपका स्रोत-चेन Circle पता',
       provisioning: 'प्रावधान हो रहा है…',
       copy: 'कॉपी',

@@ -1212,7 +1212,11 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       return c.json(
         {
           error: 'bridge wallet out of gas',
-          detail: `Bridge wallet has ${formatUnits(gasBalance, 18)} ${chainCfg.nativeSymbol} on ${chainCfg.name}, not enough to pay the bridge gas. Tap "Top up gas" on the Wallets panel (or send testnet ${chainCfg.nativeSymbol} to this address), then retry.`,
+          // Name the address and the amount. This used to point at a "Top up
+          // gas" button on the Wallets panel that has never existed, so the one
+          // actionable line in the whole failure told the user to press
+          // something they could not find.
+          detail: `Your ${chainCfg.name} deposit wallet holds ${formatUnits(gasBalance, 18)} ${chainCfg.nativeSymbol}, which is not enough to pay the network fee there. Send a small amount of testnet ${chainCfg.nativeSymbol} to ${bridgeWalletAddress}, then try again.`,
           bridgeWalletAddress,
           sourceChainKey: body.sourceChainKey,
           gasBalance: formatUnits(gasBalance, 18),
@@ -1418,7 +1422,7 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
         return c.json(
           {
             error: 'bridge wallet under-funded',
-            detail: `Bridge wallet has ${formatUnits(usdcBalance, USDC_DECIMALS)} USDC on ${chain.name} but needs ${body.amountUsdc}. Send USDC to this address and retry.`,
+            detail: `Your ${chain.name} deposit wallet holds ${formatUnits(usdcBalance, USDC_DECIMALS)} USDC but this transfer needs ${body.amountUsdc}. Send USDC to ${bridgeWalletAddress}, then try again.`,
             bridgeWalletAddress,
             sourceChainKey: body.sourceChainKey,
           },
@@ -1430,7 +1434,7 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
         return c.json(
           {
             error: 'bridge wallet out of gas',
-            detail: `Bridge wallet has ${formatUnits(gasBalance, 18)} ${evmChainCfg.nativeSymbol} on ${chain.name}, not enough for the bridge.`,
+            detail: `Your ${chain.name} deposit wallet holds ${formatUnits(gasBalance, 18)} ${evmChainCfg.nativeSymbol}, which is not enough to pay the network fee there. Send a small amount of testnet ${evmChainCfg.nativeSymbol} to ${bridgeWalletAddress}, then try again.`,
             bridgeWalletAddress,
             sourceChainKey: body.sourceChainKey,
           },
@@ -1673,6 +1677,15 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
       );
     }
   }
+  // Resolved exactly as the bridge route's gas precheck resolves it, so the
+  // card can only claim sponsorship the backend will actually honour. Asserting
+  // it from a static list on the frontend is what let the banner say "gas
+  // sponsored" and the bridge then 409 for an empty gas tank.
+  const sponsoredChains = config.CIRCLE_GAS_STATION_SPONSORED_CHAINS;
+  const gasSponsored =
+    config.CIRCLE_GAS_STATION_ENABLED &&
+    (sponsoredChains.length === 0 || sponsoredChains.includes(parsed.data.sourceChainKey));
+
   try {
     const sourceClient = sourceClients[parsed.data.sourceChainKey];
     const [usdcBalance, gasBalance] = await Promise.all([
@@ -1689,6 +1702,7 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
       sourceChainKey: parsed.data.sourceChainKey,
       usdcBalance: formatUnits(usdcBalance, USDC_DECIMALS),
       gasBalance: formatUnits(gasBalance, 18),
+      gasSponsored,
     });
   } catch (err) {
     return c.json(
@@ -1697,6 +1711,7 @@ bridgeRoutes.get('/circle-bridge/wallet', async (c) => {
         sourceChainKey: parsed.data.sourceChainKey,
         usdcBalance: null,
         gasBalance: null,
+        gasSponsored,
         error: 'balance read failed',
         detail: (err as Error).message,
       },
@@ -1757,8 +1772,21 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
   const wallets = await getAgentWallets(userAddress);
   if (!wallets) return c.json({ error: 'activate first' }, 409);
 
+  // Whether Gas Station actually covers THIS chain, resolved the same way the
+  // bridge route's gas precheck resolves it. The card used to assert "gas
+  // sponsored" from a hardcoded chain list on the frontend, which promised
+  // sponsorship the operator had not configured — so the user read "sponsored"
+  // and then got a 409 for an empty gas tank. One source of truth: the backend
+  // that enforces it.
+  const sponsoredList = config.CIRCLE_GAS_STATION_SPONSORED_CHAINS;
+  const gasSponsored =
+    config.CIRCLE_GAS_STATION_ENABLED &&
+    (sponsoredList.length === 0 || sponsoredList.includes(sourceChainKey));
+
   const existing = wallets.bridgeWallets?.[circleBlockchain];
-  if (existing) return c.json({ address: existing.address, blockchain: circleBlockchain });
+  if (existing) {
+    return c.json({ address: existing.address, blockchain: circleBlockchain, gasSponsored });
+  }
 
   try {
     const created = await provisionUserBridgeWallet(
@@ -1773,7 +1801,7 @@ bridgeRoutes.get('/circle-source-address', async (c) => {
       },
     };
     await saveAgentWallets(next);
-    return c.json({ address: created.address, blockchain: circleBlockchain });
+    return c.json({ address: created.address, blockchain: circleBlockchain, gasSponsored });
   } catch (err) {
     return c.json(
       { error: 'lazy provisioning failed', detail: (err as Error).message },

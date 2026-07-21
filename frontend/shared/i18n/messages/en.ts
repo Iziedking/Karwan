@@ -1686,6 +1686,7 @@ interface MessagesShape {
       gas: string;
       sponsored: string;
       covered: string;
+      needed: string;
       addressLabel: string;
       provisioning: string;
       copy: string;
@@ -5694,6 +5695,7 @@ export const en: MessagesShape = {
       gas: 'Gas',
       sponsored: 'Sponsored',
       covered: 'Covered',
+      needed: 'Needed here',
       addressLabel: 'Your deposit address',
       provisioning: 'setting up…',
       copy: 'COPY',

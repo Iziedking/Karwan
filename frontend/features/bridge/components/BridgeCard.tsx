@@ -12,7 +12,7 @@ import {
   APP_KIT_SOURCE_KEYS,
   GAS_FAUCETS,
   CIRCLE_SOURCE_KEYS,
-  CIRCLE_GAS_SPONSORED_KEYS,
+
   SOLANA_MIN_SOL,
   USDC_FAUCET,
   isAppKitOnlyChainKey,
@@ -356,6 +356,7 @@ export function BridgeCard({
     address: string;
     usdcBalance: string | null;
     gasBalance: string | null;
+    gasSponsored: boolean;
   } | null>(null);
   useEffect(() => {
     // Only provision + poll the source-chain DCW when the user has opted into
@@ -390,6 +391,9 @@ export function BridgeCard({
               address: r.bridgeWalletAddress,
               usdcBalance: r.usdcBalance,
               gasBalance: r.gasBalance,
+              // Absent on an older backend: assume NOT sponsored rather than
+              // promise something that may not be true.
+              gasSponsored: r.gasSponsored === true,
             });
         })
         .catch(() => {
@@ -666,7 +670,7 @@ export function BridgeCard({
           <CircleSourceFundBanner
             sourceChainKey={sourceKey as CctpChainKey}
             wallet={circleWallet}
-            gasSponsored={CIRCLE_GAS_SPONSORED_KEYS.has(sourceKey)}
+            gasSponsored={circleWallet?.gasSponsored ?? false}
             copy={bc.circleFund}
           />
         )}
@@ -1511,16 +1515,23 @@ function CircleSourceFundBanner({
 }: {
   sourceChainKey: SourceChainConfig['key'];
   wallet: { address: string; usdcBalance: string | null; gasBalance: string | null } | null;
-  /// Whether this source chain has a Circle Gas Station policy (paymaster). When
-  /// false Karwan still covers the fee by funding the deposit wallet, but the
-  /// banner says "covered" not "sponsored" so it can't imply a policy that isn't
-  /// configured for the chain.
+  /// Whether Gas Station really covers this chain, as reported by the backend
+  /// that enforces it. When false Karwan pays the fee by funding the deposit
+  /// wallet instead — but if that wallet is actually dry the banner has to say
+  /// so, because the bridge will refuse and the user deserves to know before
+  /// they press the button, not after.
   gasSponsored: boolean;
   copy: Messages['bridgeCard']['circleFund'];
 }) {
   const [claiming, setClaiming] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const address = wallet?.address ?? null;
+
+  // The bridge route refuses below ~0.0002 native, so mirror that threshold
+  // here. Only meaningful once a balance has actually been read: a null is
+  // "not known yet", not "empty".
+  const gasDry =
+    !gasSponsored && wallet?.gasBalance != null && Number(wallet.gasBalance) < 0.0002;
 
   // In-app USDC top-up straight to this source-chain Circle wallet, so the user
   // never leaves the page. USDC only: Circle users don't need native gas here
@@ -1615,9 +1626,9 @@ function CircleSourceFundBanner({
             </p>
             <p
               className="mt-0.5 mono text-[11px] uppercase tracking-[0.12em] leading-none"
-              style={{ color: TONE_HEX.positive }}
+              style={{ color: gasDry ? TONE_HEX.warning : TONE_HEX.positive }}
             >
-              {gasSponsored ? copy.sponsored : copy.covered}
+              {gasSponsored ? copy.sponsored : gasDry ? copy.needed : copy.covered}
             </p>
           </div>
         </div>

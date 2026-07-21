@@ -1793,6 +1793,7 @@ export const sw: Messages = {
       gas: 'Gesi',
       sponsored: 'Imedhaminiwa',
       covered: 'Imegharamiwa',
+      needed: 'Inahitajika hapa',
       addressLabel: 'Anwani yako ya Circle ya mnyororo wa chanzo',
       provisioning: 'inatolewa…',
       copy: 'NAKILI',

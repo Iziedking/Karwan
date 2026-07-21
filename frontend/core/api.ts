@@ -2617,6 +2617,10 @@ export const api = {
       sourceChainKey: BridgeChainKey;
       usdcBalance: string | null;
       gasBalance: string | null;
+      /// Whether Gas Station actually covers this chain, per the operator's
+      /// configuration. The card must never claim sponsorship from its own
+      /// list: only the backend knows what is really enabled.
+      gasSponsored?: boolean;
     }>(
       `/api/bridge/circle-bridge/wallet?address=${address}&sourceChainKey=${sourceChainKey}`,
     ),

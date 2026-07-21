@@ -1793,6 +1793,7 @@ export const ar: Messages = {
       gas: 'الغاز',
       sponsored: 'مكفول',
       covered: 'مُغطّى',
+      needed: 'مطلوب هنا',
       addressLabel: 'عنوانك على سلسلة المصدر في Circle',
       provisioning: 'جارٍ التوفير…',
       copy: 'نسخ',
