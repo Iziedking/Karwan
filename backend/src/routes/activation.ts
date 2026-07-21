@@ -405,8 +405,8 @@ activationRoutes.post('/activate', async (c) => {
     // float), so a repeat activate tops up agents that were provisioned before
     // the seed shipped, or while the operator wallet was empty. This is the
     // backfill path for any account, person or business, that activated unfunded.
-    void seedAgentFromOperator(existing.buyerAddress);
-    void seedAgentFromOperator(existing.sellerAddress);
+    void seedAgentFromOperator(existing.buyerAddress, { owner: userAddress, agent: 'buyer' });
+    void seedAgentFromOperator(existing.sellerAddress, { owner: userAddress, agent: 'seller' });
     return c.json({ activated: true, agents: agentsPayload(existing) });
   }
 
@@ -470,8 +470,8 @@ activationRoutes.post('/activate', async (c) => {
     // user lands ready to trade. This is the reliable funding path: the public
     // faucet is rate-limited on testnet and absent on mainnet. Best-effort,
     // idempotent (skips an already-funded agent), and never blocks activation.
-    void seedAgentFromOperator(record.buyerAddress);
-    void seedAgentFromOperator(record.sellerAddress);
+    void seedAgentFromOperator(record.buyerAddress, { owner: userAddress, agent: 'buyer' });
+    void seedAgentFromOperator(record.sellerAddress, { owner: userAddress, agent: 'seller' });
 
     // Legacy fallback: top up from the user's own identity wallet when it holds
     // funds (e.g. a Circle user who already topped up). The operator seed above
@@ -843,6 +843,13 @@ async function transferFromIdentity(
         txHash: result.txHash,
         seed: true,
       },
+    });
+    void appendActivity({
+      address: userAddress,
+      kind: 'agent_seed',
+      summary: `Moved ${amountUsdc} USDC from your wallet into your ${agent} agent at setup`,
+      amountUsdc: amountUsdc.toString(),
+      txHash: result.txHash,
     });
     logger.info({ userAddress, agent, amountUsdc, txHash: result.txHash }, 'agent seeded from identity');
   } catch (err) {

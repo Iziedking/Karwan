@@ -33,6 +33,13 @@ const cases: Array<{ name: string; e: KarwanEvent; caller: string | null; bridge
   { name: "another user's wallet credit", e: ev('wallet.credited', { owner: THEM, amountUsdc: '5' }), caller: ME, bridges: [], full: false },
   // Case-insensitivity: addresses arrive checksummed from some emitters.
   { name: 'checksummed owner still matches', e: ev('wallet.credited', { owner: ME.toUpperCase() }), caller: ME, bridges: [], full: true },
+  // Types added since: yield, seeding, and agent spends all key on a user.
+  { name: 'my yield claim', e: ev('yield.claimed', { address: ME, amountUsdc: '3' }), caller: ME, bridges: [], full: true },
+  { name: "another user's yield claim", e: ev('yield.claimed', { address: THEM, amountUsdc: '3' }), caller: ME, bridges: [], full: false },
+  { name: 'my agent seed', e: ev('agent.funded', { user: ME, seed: true, amountUsdc: '2' }), caller: ME, bridges: [], full: true },
+  { name: "another user's agent seed", e: ev('agent.funded', { user: THEM, seed: true }), caller: ME, bridges: [], full: false },
+  { name: 'my scout spend', e: ev('agent.paid', { user: ME, amountUsd: 0.05 }), caller: ME, bridges: [], full: true },
+  { name: "another user's scout spend", e: ev('agent.paid', { user: THEM, amountUsd: 0.05 }), caller: ME, bridges: [], full: false },
   // Deal scoping must be untouched by the new branch.
   { name: 'my deal as buyer', e: ev('escrow.released', { buyer: ME, amountUsdc: '5' }), caller: ME, bridges: [], full: true },
   { name: "another user's deal", e: ev('escrow.released', { buyer: THEM, amountUsdc: '5' }), caller: ME, bridges: [], full: false },

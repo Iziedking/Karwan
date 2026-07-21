@@ -4,6 +4,8 @@ import { arcTestnet, arcTransport } from './client.js';
 import { usdc, readUsdcBalance } from './contracts.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { bus } from '../events.js';
+import { appendActivity } from '../db/activityLog.js';
 
 const USDC_DECIMALS = 6;
 
@@ -39,6 +41,11 @@ function runOnOperator<T>(fn: () => Promise<T>): Promise<T> {
 /// never throws into the caller. Activation must never hinge on it.
 export async function seedAgentFromOperator(
   toAddress: string,
+  /// Who the agent belongs to. Optional only so existing callers keep
+  /// compiling; pass it. Without it the seed lands silently and the user finds
+  /// USDC in a wallet with nothing anywhere explaining where it came from,
+  /// which is a fair trust question with no in-product answer.
+  meta?: { owner: string; agent: 'buyer' | 'seller' },
 ): Promise<{ ok: boolean; txHash?: string; reason?: string }> {
   const key = config.AGENT_SEED_PRIVATE_KEY;
   if (!key) return { ok: false, reason: 'no AGENT_SEED_PRIVATE_KEY set' };
@@ -78,6 +85,28 @@ export async function seedAgentFromOperator(
       }),
     );
     logger.info({ to, amountUsdc: amount, txHash }, 'agent seeded from operator wallet');
+    if (meta) {
+      const owner = meta.owner.toLowerCase();
+      bus.emitEvent({
+        type: 'agent.funded',
+        actor: 'platform',
+        payload: {
+          user: owner,
+          agent: meta.agent,
+          agentAddress: to.toLowerCase(),
+          amountUsdc: String(amount),
+          txHash,
+          seed: true,
+        },
+      });
+      void appendActivity({
+        address: owner,
+        kind: 'agent_seed',
+        summary: `Karwan seeded your ${meta.agent} agent with ${amount} USDC to cover its first transactions`,
+        amountUsdc: String(amount),
+        txHash,
+      });
+    }
     return { ok: true, txHash };
   } catch (err) {
     logger.warn({ to, err: (err as Error).message }, 'agent seed transfer failed');

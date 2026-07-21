@@ -958,8 +958,8 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       sellerAgents = await saveAgentWallets({ userAddress: deal.seller, ...provisioned });
       // Seed the freshly-provisioned agents with the operator gas float so they
       // can act on this deal. Best-effort + idempotent, same as activation.
-      void seedAgentFromOperator(sellerAgents.buyerAddress);
-      void seedAgentFromOperator(sellerAgents.sellerAddress);
+      void seedAgentFromOperator(sellerAgents.buyerAddress, { owner: sellerAgents.userAddress, agent: 'buyer' });
+      void seedAgentFromOperator(sellerAgents.sellerAddress, { owner: sellerAgents.userAddress, agent: 'seller' });
       bus.emitEvent({
         type: 'agent.activated',
         actor: 'platform',

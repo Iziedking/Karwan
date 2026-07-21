@@ -114,8 +114,8 @@ adminRoutes.post('/agent-seed/:address', async (c) => {
   const wallets = await getAgentWallets(address);
   if (!wallets) return c.json({ error: 'no agent wallets for this address' }, 404);
   const [buyer, seller] = await Promise.all([
-    seedAgentFromOperator(wallets.buyerAddress),
-    seedAgentFromOperator(wallets.sellerAddress),
+    seedAgentFromOperator(wallets.buyerAddress, { owner: wallets.userAddress, agent: 'buyer' }),
+    seedAgentFromOperator(wallets.sellerAddress, { owner: wallets.userAddress, agent: 'seller' }),
   ]);
   return c.json({ address, buyer, seller });
 });

@@ -13,6 +13,7 @@ import {
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf } from '../auth/session.js';
 import { bus } from '../events.js';
+import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
 
 /// USDC is exposed as a 6-decimal ERC-20 on Arc. Same scale the escrow uses.
@@ -324,6 +325,16 @@ vaultRoutes.post('/deposit', async (c) => {
         depositTxHash: depositResult.txHash,
       },
     });
+    // /stake reads live positions off chain, which answers "how much is
+    // staked" but not "when did I stake it, and for how much". Without a
+    // durable row the deposit had no history the user could revisit.
+    void appendActivity({
+      address: body.address,
+      kind: 'stake',
+      summary: `Staked ${body.amountUsdc} USDC`,
+      amountUsdc: body.amountUsdc.toString(),
+      txHash: depositResult.txHash,
+    });
     logger.info(
       { address: body.address, amountUsdc: body.amountUsdc, depositTxHash: depositResult.txHash },
       'vault deposit confirmed (Circle identity DCW)',
@@ -441,6 +452,21 @@ async function positionActionRoute(
     void refreshVaultScan().catch((err) =>
       logger.warn({ err: (err as Error).message }, 'post-action vault scan refresh failed'),
     );
+    // Only the claim actually moves USDC back to the user; request and cancel
+    // change a position's state. Record all three, because "when did I start
+    // the cooldown" is exactly the question the position view cannot answer.
+    void appendActivity({
+      address: body.address,
+      kind: fn === 'claim' ? 'unstake' : 'stake',
+      summary:
+        fn === 'claim'
+          ? `Claimed ${principalUsdc ?? ''} USDC of unstaked principal`.replace('  ', ' ')
+          : fn === 'requestWithdraw'
+            ? `Started unstaking ${principalUsdc ?? 'your'} USDC`
+            : `Cancelled unstaking ${principalUsdc ?? 'your'} USDC`,
+      ...(principalUsdc !== null ? { amountUsdc: principalUsdc } : {}),
+      txHash: result.txHash,
+    });
     logger.info(
       { address: body.address, positionId: positionIdStr, fn, txHash: result.txHash },
       'vault action confirmed (Circle identity DCW)',

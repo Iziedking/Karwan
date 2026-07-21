@@ -62,14 +62,35 @@ async function financeJobIds(): Promise<Set<string>> {
 // activity feed or their notification bell.
 const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy', 'financier'] as const;
 
-function isParty(event: KarwanEvent, caller: string): boolean {
+/// Keys naming the single user a money event belongs to when there is no deal
+/// to be a party to: agent funding and withdrawals (`user`), staking and yield
+/// (`address`), wallet credits and debits (`owner`). The notification bell has
+/// always listed these types as notifiable, but this backfill filtered on
+/// PARTY_KEYS alone, so none of them could ever match and the bell's own
+/// money-event handling was unreachable.
+const OWNER_KEYS = ['owner', 'user', 'address'] as const;
+
+function matchesKey(
+  event: KarwanEvent,
+  caller: string,
+  keys: readonly string[],
+): boolean {
   const payload = event.payload as Record<string, unknown> | undefined;
   if (!payload) return false;
-  for (const k of PARTY_KEYS) {
+  for (const k of keys) {
     const v = payload[k];
     if (typeof v === 'string' && v.toLowerCase() === caller) return true;
   }
   return false;
+}
+
+function isParty(event: KarwanEvent, caller: string): boolean {
+  return matchesKey(event, caller, PARTY_KEYS);
+}
+
+/// The caller's own money moving, outside any deal.
+function isOwnMoney(event: KarwanEvent, caller: string): boolean {
+  return matchesKey(event, caller, OWNER_KEYS);
 }
 
 // The general/public feed shows trade activity (requests, bids, negotiation,
@@ -177,7 +198,9 @@ activityRoutes.get('/', async (c) => {
   }
   const events = base.filter((e) => {
     const inScope =
-      isParty(e, caller) || (!!e.jobId && callerJobs.has(e.jobId.toLowerCase()));
+      isParty(e, caller) ||
+      isOwnMoney(e, caller) ||
+      (!!e.jobId && callerJobs.has(e.jobId.toLowerCase()));
     if (!inScope) return false;
     // Seller-side privacy: the caller is a party to this job but not its buyer,
     // so the competitive auction internals (rival bids, scores, counters, the

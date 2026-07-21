@@ -67,6 +67,9 @@ const DIRECT_TYPES = new Set([
   'deal.auto_released',
   'escrow.settled',
   'deal.disputed',
+  // An arbiter splitting the escrow is the single most consequential thing that
+  // can happen to a deal without either party doing it. It notified nobody.
+  'escrow.resolved',
   'deal.cancelled',
   'deal.cancel.proposed',
   'deal.cancel.declined',
@@ -106,6 +109,7 @@ const MONEY_DIRECT_OWNER_KEY: Record<string, 'address' | 'user'> = {
   'vault.cooldown.completed': 'address',
   'agent.funded': 'user',
   'agent.withdrawal': 'user',
+  'yield.claimed': 'address',
   // Reputation tier-up routes to the subject address, same shape as vault.
   'reputation.tier-up': 'address',
 };
@@ -190,6 +194,7 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.auto_released': 'both',
   'escrow.settled': 'both',
   'deal.disputed': 'both',
+  'escrow.resolved': 'both',
   'deal.cancelled': 'both',
   'deal.cancel.proposed': 'both', // special-cased to the counterparty below
   'deal.cancel.declined': 'both', // special-cased to the proposer below
@@ -409,6 +414,15 @@ function summaryFor(
       return 'Deal settled in full. Reputation recorded on chain.';
     case 'deal.disputed':
       return 'Deal moved to dispute. Resolution is off-platform.';
+    case 'escrow.resolved': {
+      // sellerBps is the arbiter's split in basis points. Say the outcome
+      // plainly: "resolved" alone does not tell either party who got paid.
+      const bps = typeof payload?.sellerBps === 'number' ? payload.sellerBps : null;
+      if (bps === null) return 'An arbiter resolved the dispute and the escrow was paid out.';
+      if (bps === 0) return 'An arbiter resolved the dispute. The full amount was refunded to the buyer.';
+      if (bps >= 10000) return 'An arbiter resolved the dispute. The full amount was released to the seller.';
+      return `An arbiter resolved the dispute and split the escrow, ${bps / 100}% to the seller.`;
+    }
     case 'deal.cancelled':
       return 'Deal cancelled and refunded.';
     case 'deal.cancel.proposed':

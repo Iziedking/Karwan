@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { formatUnits } from 'viem';
 import { config } from '../config.js';
+import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
 import { viewerAddress } from '../auth/session.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -119,7 +120,17 @@ researchRoutes.post('/activate', async (c) => {
         agent: 'research',
         amountUsdc: String(RESEARCH_ACTIVATION_USDC),
         scope: 'agent-research-activation',
+        // The hash was already in hand and left out of the event, so the only
+        // copy of it lived in a response body the user sees once.
+        txHash: tx.txHash,
       },
+    });
+    void appendActivity({
+      address: owner,
+      kind: 'agent_spend',
+      summary: `Paid ${RESEARCH_ACTIVATION_USDC} USDC to activate agent market research`,
+      amountUsdc: String(RESEARCH_ACTIVATION_USDC),
+      txHash: tx.txHash,
     });
     logger.info({ owner, txHash: tx.txHash }, 'agent research activated');
     return c.json({ ...state, txHash: tx.txHash });
@@ -223,6 +234,17 @@ researchRoutes.post('/scout', async (c) => {
         keywords,
       },
     });
+    // Small, but it is still the user's USDC leaving an agent wallet, and the
+    // x402 panel that renders it is transient. A row keeps it accountable.
+    if (read.paidUsd) {
+      void appendActivity({
+        address: key,
+        kind: 'agent_spend',
+        summary: `Your scout agent paid ${read.paidUsd} USDC for a market read on "${keywords}"`,
+        amountUsdc: String(read.paidUsd),
+        ...(read.txHash ? { txHash: read.txHash } : {}),
+      });
+    }
   }
 
   await saveScoutRead({ id: randomUUID(), owner, ts: now, read });
