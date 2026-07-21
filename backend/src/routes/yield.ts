@@ -8,6 +8,8 @@ import { publicClient } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf } from '../auth/session.js';
+import { appendActivity } from '../db/activityLog.js';
+import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 
@@ -561,7 +563,30 @@ yieldRoutes.post('/claim', async (c) => {
       },
       'yield.claim',
     );
-    return c.json({ ok: true, txHash: tx?.txHash ?? null });
+    // This route moved real USDC and, until now, left nothing behind but a log
+    // line on failure. A user who claimed and later questioned the amount had
+    // nothing to point at. Record it on both axes: the event drives the live
+    // balance toast, the entry puts it in their ledger permanently.
+    const claimedUsdc = formatUnits(claimable, USDC_DECIMALS);
+    bus.emitEvent({
+      type: 'yield.claimed',
+      actor: 'buyer',
+      payload: {
+        // `address` is an OWNER_KEY, so the SSE projection delivers this to the
+        // claimant with its payload intact rather than as an empty pulse.
+        address,
+        amountUsdc: claimedUsdc,
+        ...(tx?.txHash ? { txHash: tx.txHash } : {}),
+      },
+    });
+    void appendActivity({
+      address,
+      kind: 'yield_claim',
+      summary: `Claimed ${claimedUsdc} USDC of earned yield`,
+      amountUsdc: claimedUsdc,
+      ...(tx?.txHash ? { txHash: tx.txHash } : {}),
+    });
+    return c.json({ ok: true, txHash: tx?.txHash ?? null, amountUsdc: claimedUsdc });
   } catch (err) {
     logger.warn({ err: (err as Error).message, address }, 'yield claim failed');
     return c.json({ error: 'claim failed', detail: (err as Error).message }, 502);

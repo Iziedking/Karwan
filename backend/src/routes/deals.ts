@@ -2394,6 +2394,16 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
       cancelledAt: Date.now(),
       cancelKind: 'unilateral',
       cancelReason: reason,
+      refundTxHash,
+    });
+    void appendActivity({
+      address: deal.buyer,
+      kind: 'refund',
+      summary: `Reclaimed ${deal.dealAmountUsdc} USDC from the deal the seller did not deliver`,
+      amountUsdc: deal.dealAmountUsdc,
+      txHash: refundTxHash,
+      jobId,
+      counterparty: deal.seller?.toLowerCase(),
     });
     bus.emitEvent({
       type: 'deal.cancelled',
@@ -2655,6 +2665,22 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
       cancelReason: proposal.reason,
       cancellationProposal: undefined,
       ...(disputeLoser ? { disputeLoser } : {}),
+      // A release pays the seller and belongs on the settlement hash; anything
+      // else returned the buyer's money and belongs on the refund hash.
+      ...(isReleaseFromDispute ? {} : { refundTxHash: finalTxHash }),
+    });
+    // Whoever received the money gets the row. Both sides can already see the
+    // deal page; this is the entry in their own ledger.
+    void appendActivity({
+      address: isReleaseFromDispute ? deal.seller : deal.buyer,
+      kind: isReleaseFromDispute ? 'release' : 'refund',
+      summary: isReleaseFromDispute
+        ? `Received ${deal.dealAmountUsdc} USDC from a resolved dispute`
+        : `Refunded ${deal.dealAmountUsdc} USDC from a cancelled deal`,
+      amountUsdc: deal.dealAmountUsdc,
+      txHash: finalTxHash,
+      jobId,
+      counterparty: (isReleaseFromDispute ? deal.buyer : deal.seller)?.toLowerCase(),
     });
     // A dispute that resolved in the seller's favour also lands funds in their
     // wallet, so drive the financing repayment now. A refund resolution leaves

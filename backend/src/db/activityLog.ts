@@ -18,7 +18,9 @@ export type ActivityKind =
   | 'gateway_deposit'
   | 'gateway_fund_agent'
   | 'gateway_cash_out'
-  | 'release';
+  | 'release'
+  | 'yield_claim'
+  | 'refund';
 
 /// One recorded money movement on a user's account. `address` is always the
 /// session identity the route verified — never a client-supplied value — so a

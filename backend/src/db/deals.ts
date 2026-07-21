@@ -292,6 +292,13 @@ export interface DirectDeal {
   delayAppealCount?: number;
   settledAt?: number;
   fundTxHash?: string;
+  /// The on-chain transaction that returned the buyer's escrow: a refund, a
+  /// deadline reclaim, a mutual cancel, or a dispute resolution. Persisted
+  /// alongside fundTxHash because it was previously computed, returned in the
+  /// response, and then dropped — so the receipt for the money coming BACK
+  /// survived only until the user closed the tab, which is exactly the moment
+  /// they most want to prove they were repaid.
+  refundTxHash?: string;
   /// How this deal originated:
   /// - 'direct' : opened straight from /buyer "I have a seller", no auction.
   /// - 'agent'  : settled out of the managed auction and negotiation flow.

@@ -517,6 +517,10 @@ export interface DirectDeal {
   /// deal back to a "pending" stage and reappear in the pending bands.
   settledAt?: number;
   fundTxHash?: string;
+  /// The transaction that returned the buyer's escrow (refund, deadline
+  /// reclaim, mutual cancel, dispute resolution). Absent on deals that
+  /// settled normally, and on ones cancelled before this was persisted.
+  refundTxHash?: string;
   createdAt: number;
   updatedAt: number;
   reviewWindowMs?: number;

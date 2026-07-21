@@ -1086,18 +1086,35 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             )}
           </div>
         </div>
-        {deal.fundTxHash && (
+        {(deal.fundTxHash || deal.refundTxHash) && (
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-1.5 text-[11px]">
-            <a
-              href={ARC_EXPLORER_TX(deal.fundTxHash)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
-            >
-              <span>{dd.fundingTxLabel}</span>
-              <span className="tabular-nums">{shortHash(deal.fundTxHash)}</span>
-              <ExternalIcon />
-            </a>
+            {deal.fundTxHash && (
+              <a
+                href={ARC_EXPLORER_TX(deal.fundTxHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
+              >
+                <span>{dd.fundingTxLabel}</span>
+                <span className="tabular-nums">{shortHash(deal.fundTxHash)}</span>
+                <ExternalIcon />
+              </a>
+            )}
+            {/* The money coming BACK needs a receipt at least as much as the
+                money going in. This hash used to exist only in the response to
+                the cancel request, so it was gone the moment the page reloaded. */}
+            {deal.refundTxHash && (
+              <a
+                href={ARC_EXPLORER_TX(deal.refundTxHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
+              >
+                <span>{dd.refundTxLabel}</span>
+                <span className="tabular-nums">{shortHash(deal.refundTxHash)}</span>
+                <ExternalIcon />
+              </a>
+            )}
           </div>
         )}
       </Band>

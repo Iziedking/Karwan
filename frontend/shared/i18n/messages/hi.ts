@@ -2121,6 +2121,7 @@ export const hi: Messages = {
       cancelCta: 'रद्दीकरण सुझाएँ',
     },
     fundingTxLabel: 'फंडिंग TX',
+    refundTxLabel: 'रिफंड टीएक्स',
     chat: {
       eyebrow: 'चैट',
       titleLead: 'अपने',

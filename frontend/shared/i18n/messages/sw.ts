@@ -2121,6 +2121,7 @@ export const sw: Messages = {
       cancelCta: 'Pendekeza kughairi',
     },
     fundingTxLabel: 'TX YA UFADHILI',
+    refundTxLabel: 'TX YA MAREJESHO',
     chat: {
       eyebrow: 'GUMZO',
       titleLead: 'Zungumza na',

@@ -2121,6 +2121,7 @@ export const ar: Messages = {
       cancelCta: 'اقترح إلغاءً',
     },
     fundingTxLabel: 'معاملة التمويل',
+    refundTxLabel: 'معاملة الاسترداد',
     chat: {
       eyebrow: 'محادثة',
       titleLead: 'حدّث',

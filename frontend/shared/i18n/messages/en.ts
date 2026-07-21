@@ -2000,6 +2000,7 @@ interface MessagesShape {
       cancelCta: string;
     };
     fundingTxLabel: string;
+    refundTxLabel: string;
     chat: {
       eyebrow: string;
       titleLead: string;
@@ -6033,6 +6034,7 @@ export const en: MessagesShape = {
       cancelCta: 'Propose cancellation',
     },
     fundingTxLabel: 'FUNDING TX',
+    refundTxLabel: 'REFUND TX',
     chat: {
       eyebrow: 'CHAT',
       titleLead: 'Talk to your',

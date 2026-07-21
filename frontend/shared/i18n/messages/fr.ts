@@ -2121,6 +2121,7 @@ export const fr: Messages = {
       cancelCta: 'Proposer une annulation',
     },
     fundingTxLabel: 'TX DE FINANCEMENT',
+    refundTxLabel: 'TX DE REMBOURSEMENT',
     chat: {
       eyebrow: 'CHAT',
       titleLead: 'Parlez à votre',

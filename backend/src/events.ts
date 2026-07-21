@@ -118,6 +118,9 @@ export type KarwanEventType =
   | 'vault.withdraw.cancelled'
   | 'vault.claimed'
   | 'vault.cooldown.completed'
+  /// Yield paid out to a staker. Carries `address` (the claimant) so the SSE
+  /// projection recognises it as their own money.
+  | 'yield.claimed'
   | 'cashout.arc.completed'
   | 'wallet.credited'
   | 'wallet.debited'
