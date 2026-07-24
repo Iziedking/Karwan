@@ -993,6 +993,7 @@ export interface AssistantConfirmAction {
     | 'cash_out'
     | 'top_up_to_arc'
     | 'top_up_web3'
+    | 'cash_out_web3'
     | 'approve_match'
     | 'decline_match'
     | 'accept_deal'

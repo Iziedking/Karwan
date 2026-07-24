@@ -156,6 +156,15 @@ export interface Web3TopUpPayload {
   mintRecipient: string;
 }
 
+/// Web3 cash-out. The mirror of Web3TopUpPayload: the user signs an Arc burn in
+/// their OWN wallet, the forwarder mints on the destination chain. Runs entirely
+/// client-side, so the payload is instructions for the browser.
+export interface Web3CashOutPayload {
+  destChainKey: string;
+  recipient: string;
+  amountUsdc: number;
+}
+
 export interface TopUpPayload {
   /// Always the caller's own session address, set by the backend. The
   /// circle-bridge route re-checks isSessionSelf. The burn is signed from the
@@ -212,6 +221,10 @@ export interface Web3TopUpConfirm extends ConfirmActionBase {
   intent: 'top_up_web3';
   payload: Web3TopUpPayload;
 }
+export interface Web3CashOutConfirm extends ConfirmActionBase {
+  intent: 'cash_out_web3';
+  payload: Web3CashOutPayload;
+}
 export interface ApproveMatchConfirm extends ConfirmActionBase {
   intent: 'approve_match';
   payload: ApproveMatchPayload;
@@ -258,6 +271,7 @@ export type ConfirmAction =
   | CashOutConfirm
   | TopUpConfirm
   | Web3TopUpConfirm
+  | Web3CashOutConfirm
   | ApproveMatchConfirm
   | DeclineMatchConfirm
   | AcceptDealConfirm
@@ -929,6 +943,41 @@ export function buildClaimYieldConfirm(i: {
     payload: { address: i.caller },
     confirmLabel: 'Claim',
     cancelLabel: 'Later',
+  };
+}
+
+/// Build a web3 cash-out card: the user signs an Arc burn in their own wallet
+/// when they tap Confirm, and the forwarder mints on the destination chain.
+/// Shows the full destination address; carries a warning because it leaves Arc
+/// and cannot be undone. Never throws.
+export function buildWeb3CashOutConfirm(i: {
+  destChainKey: string;
+  destChainLabel: string;
+  recipient: string;
+  amountUsdc: number;
+}): Web3CashOutConfirm | { error: string } {
+  const to = i.recipient?.trim() ?? '';
+  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+    return { error: 'That destination address is not a valid 0x address.' };
+  }
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  const dest = to.toLowerCase();
+  return {
+    kind: 'confirm',
+    id: `cash_out_web3:${i.destChainKey}:${dest}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'cash_out_web3',
+    title: `Bridge ${i.amountUsdc} USDC to ${i.destChainLabel}`,
+    summary: `From your Arc wallet. Your wallet will ask you to approve it.`,
+    warning: 'This sends USDC off Arc and cannot be undone. Check the address and chain.',
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: 'Your Arc wallet' },
+      { label: 'To chain', value: i.destChainLabel },
+      { label: 'To address', value: dest },
+    ],
+    payload: { destChainKey: i.destChainKey, recipient: dest, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Bring it over',
+    cancelLabel: 'Not now',
   };
 }
 

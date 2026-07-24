@@ -618,6 +618,11 @@ interface ConfirmDeps {
     amountUsdc: number;
     mintRecipient: `0x${string}`;
   }) => Promise<void>;
+  startWeb3CashOut?: (input: {
+    destChainKey: string;
+    recipient: `0x${string}`;
+    amountUsdc: number;
+  }) => Promise<void>;
 }
 
 async function runConfirmIntent(
@@ -642,6 +647,28 @@ async function runConfirmIntent(
     });
     return {
       successText: 'Signed. Your USDC lands on Arc in a few minutes.',
+      viewHref: '/bridge',
+      viewLabel: 'Track it',
+    };
+  }
+  if (action.intent === 'cash_out_web3') {
+    const p = action.payload as {
+      destChainKey: string;
+      recipient: string;
+      amountUsdc: number;
+    };
+    if (!deps.startWeb3CashOut) {
+      throw new Error('Open the Cash out screen to run this transfer.');
+    }
+    // Opens the wallet for the Arc burn; the forwarder mints on the destination
+    // chain. Resolves once signed and submitted.
+    await deps.startWeb3CashOut({
+      destChainKey: p.destChainKey,
+      recipient: p.recipient as `0x${string}`,
+      amountUsdc: p.amountUsdc,
+    });
+    return {
+      successText: 'Signed. It lands on the destination chain in a few minutes.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
     };
@@ -885,7 +912,7 @@ function ConfirmCard({
   onNavigate: () => void;
 }) {
   const router = useRouter();
-  const { startAppKitBridge } = useBridges();
+  const { startAppKitBridge, startWeb3Out } = useBridges();
   const { address: wagmiAddress, connector } = useAccount();
   const { openConnectModal } = useConnectModal();
   // Only the web3 top-up needs a client-side executor: the user signs the burn
@@ -905,6 +932,24 @@ function ConfirmCard({
       });
     },
     [wagmiAddress, connector, openConnectModal, startAppKitBridge],
+  );
+  // The mirror: an Arc burn signed in their own wallet, forwarder mints on the
+  // destination chain. Same connect-as-part-of-the-action shape.
+  const startWeb3CashOut = useCallback(
+    async (input: { destChainKey: string; recipient: `0x${string}`; amountUsdc: number }) => {
+      if (!wagmiAddress || !connector) {
+        openConnectModal?.();
+        throw new Error('Connect your wallet, then confirm again.');
+      }
+      await startWeb3Out({
+        destChainKey: input.destChainKey as Parameters<typeof startWeb3Out>[0]['destChainKey'],
+        amountUsdc: input.amountUsdc,
+        recipient: input.recipient,
+        userAddress: wagmiAddress,
+        getEvmProvider: () => connector.getProvider() as Promise<unknown>,
+      });
+    },
+    [wagmiAddress, connector, openConnectModal, startWeb3Out],
   );
   // Seed from the durable store so a card that already ran (or was dismissed)
   // stays in that state across panel close/open and navigation — never reverting
@@ -926,7 +971,9 @@ function ConfirmCard({
         ? 'Withdrawing…'
         : action.intent === 'cash_out'
           ? 'Cashing out…'
-          : action.intent === 'top_up_to_arc' || action.intent === 'top_up_web3'
+          : action.intent === 'top_up_to_arc' ||
+              action.intent === 'top_up_web3' ||
+              action.intent === 'cash_out_web3'
             ? 'Moving…'
             : action.intent === 'approve_match'
               ? 'Approving…'
@@ -962,7 +1009,7 @@ function ConfirmCard({
     setStatus('running');
     setErrMsg('');
     try {
-      const r = await runConfirmIntent(action, { startWeb3TopUp });
+      const r = await runConfirmIntent(action, { startWeb3TopUp, startWeb3CashOut });
       confirmOutcomes.set(action.id, r);
       setResult(r);
       setStatus('done');

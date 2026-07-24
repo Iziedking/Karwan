@@ -61,6 +61,7 @@ import {
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
   buildWeb3TopUpConfirm,
+  buildWeb3CashOutConfirm,
   hasEquivalentConfirm,
   NAVIGATE_DESTINATIONS,
   type AssistantAction,
@@ -203,6 +204,79 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_my_balance failed');
           return { error: 'Could not read the balance from the chain right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    list_bridge_sources: tool({
+      description:
+        "Read EVERY place this user holds USDC that could fund a bridge, so you can show them the options and ask which one to move from. Call this FIRST whenever they want to bridge, cash out, top up, or move USDC across chains and have NOT already named a source. Returns their Arc wallet, their buyer and seller agent wallets, and their USDC on each other chain (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain), each with a balance and a `signer` field. `signer: 'user'` means they sign it in their own wallet (a web3 user's own funds); `signer: 'backend'` means Karwan signs it for them with no popup (email accounts, and everyone's agent wallets). Present the ones with a balance, with amounts, and ask which to bridge from. Then call propose_bridge.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const record = await getAgentWallets(address).catch(() => null);
+          const isCircle = method === 'circle';
+          // A web3 user signs anything that leaves their OWN wallet; an email
+          // user's identity wallet is a backend DCW, so Karwan signs it. Agent
+          // wallets are backend DCWs for EVERYONE, so those are always backend.
+          const mainSigner = isCircle ? 'backend' : 'user';
+
+          const arcMain = Number(formatUnits(await readUsdcBalance(address), USDC_DECIMALS));
+          const agentBal = async (addr?: string) =>
+            addr ? Number(formatUnits(await readUsdcBalance(addr), USDC_DECIMALS)) : null;
+          const [buyerUsdc, sellerUsdc] = await Promise.all([
+            agentBal(record?.buyerAddress),
+            agentBal(record?.sellerAddress),
+          ]);
+
+          // Other-chain USDC. For a web3 user this reads their OWN connected
+          // wallet (self-custodied, they sign). For an email user it reads the
+          // deposit DCW Karwan holds for them (backend signs). Either way the
+          // address that holds it is the same `address` on the EOA side, or the
+          // per-chain deposit wallet on the DCW side. A slow chain resolves to
+          // null rather than blocking the whole list.
+          const chainRows = await Promise.all(
+            (Object.keys(TOP_UP_CHAINS) as Array<keyof typeof TOP_UP_CHAINS>).map(async (name) => {
+              const cfg = TOP_UP_CHAINS[name];
+              const holder = isCircle
+                ? record?.bridgeWallets?.[cfg.circleBlockchain]?.address
+                : address;
+              if (!holder) return { chain: cfg.label, chainName: name, usdc: null, signer: mainSigner };
+              const bal = await readSourceUsdcBalance(cfg.key, holder).catch(() => null);
+              return {
+                chain: cfg.label,
+                chainName: name,
+                usdc: bal === null ? null : Number(bal).toFixed(2),
+                signer: mainSigner,
+              };
+            }),
+          );
+
+          const funded = [
+            arcMain > 0,
+            (buyerUsdc ?? 0) > 0,
+            (sellerUsdc ?? 0) > 0,
+            ...chainRows.map((r) => r.usdc !== null && Number(r.usdc) > 0),
+          ].some(Boolean);
+
+          return {
+            arcWallet: { label: 'Your main wallet (Arc)', usdc: arcMain.toFixed(2), signer: mainSigner },
+            buyerAgent:
+              record?.buyerAddress != null
+                ? { label: 'Your buyer agent', usdc: buyerUsdc?.toFixed(2) ?? '0', signer: 'backend' }
+                : null,
+            sellerAgent:
+              record?.sellerAddress != null
+                ? { label: 'Your seller agent', usdc: sellerUsdc?.toFixed(2) ?? '0', signer: 'backend' }
+                : null,
+            otherChains: chainRows,
+            note: funded
+              ? 'Show the funded ones with amounts and ask which to bridge from, unless they already named a source. Then call propose_bridge with that source. Agent-wallet and email sources move with no popup; a web3 user signs their own wallet in the chat card.'
+              : 'No USDC anywhere yet. Tell them plainly, and offer to help them add some (propose_navigation destination "add_money", or point a web3 user at their own wallet).',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant list_bridge_sources failed');
+          return { error: 'Could not read the balances right now. Try again shortly.' };
         }
       },
     }),
@@ -1384,6 +1458,126 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    propose_bridge: tool({
+      description:
+        "THE bridge tool. Prepare a confirm card that moves USDC between Arc and another chain, and does the WHOLE thing in the chat — no sending them to another screen. Call it after list_bridge_sources, once you know the source, the amount, and the other chain. `direction` 'toArc' brings money from another chain INTO Arc; 'fromArc' sends Arc money OUT to another chain. `source` is which wallet it leaves: 'main' (their own/identity wallet) or 'buyerAgent'/'sellerAgent'. When the card is tapped: an email account and any agent wallet move with no popup (backend-signed) and return a receipt; a web3 user's OWN wallet opens a wallet prompt right in the chat for them to sign. Always shows a confirm card first, whichever the case.",
+      inputSchema: z.object({
+        direction: z.enum(['toArc', 'fromArc']).describe('toArc = bring money into Arc; fromArc = send Arc money out.'),
+        chain: z
+          .enum(['base', 'ethereum', 'optimism', 'arbitrum', 'polygon', 'avalanche', 'unichain'])
+          .describe('The OTHER chain (never Arc): where the money comes from (toArc) or goes to (fromArc).'),
+        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to move.'),
+        source: z
+          .enum(['main', 'buyerAgent', 'sellerAgent'])
+          .optional()
+          .describe("Which wallet it leaves. Defaults to their main wallet."),
+        toAddress: z
+          .string()
+          .max(60)
+          .optional()
+          .describe("fromArc only: destination 0x address. Defaults to their own wallet."),
+      }),
+      execute: async ({ direction, chain, amountUsdc, source, toAddress }) => {
+        try {
+          const src = source ?? 'main';
+          const record = await getAgentWallets(address).catch(() => null);
+
+          // An agent wallet's money lives on Arc and its bridge-out is scoped to
+          // deals on the backend, so a general "bridge from my agent" is not a
+          // clean one-step move. Bring it to the main wallet first (one backend
+          // step, no popup), then bridge from there — a real path, not a dead
+          // end.
+          if (src !== 'main') {
+            return {
+              error: `To bridge from the ${src === 'buyerAgent' ? 'buyer' : 'seller'} agent, first move that USDC to their main wallet with propose_withdraw, then bridge from the main wallet. Offer to do the withdraw now.`,
+            };
+          }
+
+          if (direction === 'toArc') {
+            const cfg = TOP_UP_CHAINS[chain];
+            if (method !== 'circle') {
+              // Web3: they hold it on that chain themselves and sign in the card.
+              const builtW = buildWeb3TopUpConfirm({
+                sourceChainKey: cfg.key,
+                sourceChainLabel: cfg.label,
+                amountUsdc,
+                mintRecipient: address,
+              });
+              if ('error' in builtW) return builtW;
+              if (!hasEquivalentConfirm(actions, builtW)) actions.push(builtW);
+              return { ok: true, shown: builtW.title, note: 'They sign this in their own wallet on tap. No deposit address, no other screen.' };
+            }
+            // Email: the backend signs from their deposit DCW, so the wallet has
+            // to actually hold the amount first.
+            if (!record) {
+              return { error: 'They must activate their wallets first. Offer a button to their profile (destination "profile").' };
+            }
+            const wallet = record.bridgeWallets?.[cfg.circleBlockchain];
+            if (!wallet) {
+              return { error: `They have no ${cfg.label} deposit wallet yet. Send them to top_up with propose_navigation so it gets created, then they fund it.` };
+            }
+            const bal = await readSourceUsdcBalance(cfg.key, wallet.address);
+            if (bal === null) return { error: `Could not read their ${cfg.label} balance right now. Ask them to try again shortly.` };
+            if (Number(bal) < amountUsdc) {
+              return { error: `Their ${cfg.label} deposit wallet holds ${bal} USDC, less than ${amountUsdc}. Money in an outside wallet has to be sent to their ${cfg.label} deposit address (${wallet.address}) first — Karwan can only move what it holds.` };
+            }
+            const builtE = buildTopUpConfirm({
+              caller: address,
+              sourceChainKey: cfg.key,
+              sourceChainLabel: cfg.label,
+              amountUsdc,
+              mintRecipient: address,
+              destinationLabel: 'Your Arc wallet',
+            });
+            if ('error' in builtE) return builtE;
+            if (!hasEquivalentConfirm(actions, builtE)) actions.push(builtE);
+            return { ok: true, shown: builtE.title };
+          }
+
+          // direction === 'fromArc' (cash out)
+          const outCfg = CASH_OUT_CHAINS[chain];
+          if (!outCfg) return { error: 'That chain is not supported for cash-out.' };
+          const to = (toAddress ?? address).trim();
+          if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+            return { error: 'That destination is not a valid 0x address. Ask them to paste the full address, or default to their own wallet.' };
+          }
+          if (method !== 'circle') {
+            // Web3: they sign the Arc burn in their own wallet, in the card.
+            const builtW = buildWeb3CashOutConfirm({
+              destChainKey: outCfg.key,
+              destChainLabel: outCfg.label,
+              recipient: to,
+              amountUsdc,
+            });
+            if ('error' in builtW) return builtW;
+            if (!hasEquivalentConfirm(actions, builtW)) actions.push(builtW);
+            return { ok: true, shown: builtW.title, note: 'They sign the Arc burn in their own wallet on tap. Stays in the chat.' };
+          }
+          // Email: backend-signed via the existing cash-out rail (router picks
+          // wallet vs pooled). Reuse the balance-checked builder.
+          const spendable = await readSpendable(address);
+          const prefer = gatewayCanReach(outCfg.key) ? 'unified' : 'wallet';
+          const route = pickRoute(spendable, amountUsdc, prefer);
+          if (route === 'insufficient') return { error: insufficientMessage(spendable, amountUsdc) };
+          const builtE = buildCashOutConfirm({
+            caller: address,
+            destChainKey: outCfg.key,
+            destChainLabel: outCfg.label,
+            recipient: to,
+            amountUsdc,
+            route,
+            balanceAfterUsdc: (spendable.totalUsd - amountUsdc).toFixed(2),
+          });
+          if ('error' in builtE) return builtE;
+          if (!hasEquivalentConfirm(actions, builtE)) actions.push(builtE);
+          return { ok: true, shown: builtE.title };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_bridge failed');
+          return { error: 'Could not prepare that bridge right now. Try again shortly.' };
+        }
+      },
+    }),
+
   };
 }
 
@@ -1425,25 +1619,20 @@ function authenticatedPreamble(address: string, method: string): string {
     'if one tool comes back empty, think about which OTHER tool actually holds that answer and call it.',
     'A staking question is get_my_stake even if get_my_balance showed no stake line.',
     '',
-    '# Moving money IN (top up). Do it, do not explain rails.',
-    ...(circle
-      ? [
-          'When they say "move 20 USDC from Base to Arc", "top me up", or "bring my money over": call',
-          'check_top_up_sources, then propose_top_up. If their deposit wallet on that chain holds it, the card',
-          'moves it and the backend signs everything. If it does NOT hold it, the money is in an outside wallet',
-          'Karwan cannot touch: give them that chain\'s deposit address, say to send USDC there, and offer to',
-          'move it across the moment it lands. Sending them to a page is the LAST resort, never the first answer.',
-        ]
-      : [
-          'THIS USER HOLDS THEIR OWN WALLET. They already have the USDC on the source chain, and moving',
-          'it is ONE transaction they sign on the bridge screen. So when they say "bridge 10 USDC from',
-          'Ethereum to Arc": send them straight there with propose_navigation (destination "top_up").',
-          'Do NOT call check_top_up_sources, do NOT give them a deposit address, and never tell them to',
-          'send money to another address first. That detour exists only for email accounts, and for them',
-          'it is slower and riskier. Say it warmly: they keep custody, and it costs them one signature.',
-        ]),
+    '# BRIDGING is the whole job, done in the chat. Never send them to the bridge page.',
+    'Any "bridge X to <chain>", "cash out", "top me up", "move USDC to Arc / off Arc" is one flow:',
+    '1. If they did NOT name a source, call list_bridge_sources, show the wallets that hold USDC with',
+    '   their amounts, and ask which one to bridge from. If they DID name one (or only one is funded),',
+    '   skip the question.',
+    '2. Call propose_bridge(direction, chain, amountUsdc, source). direction "toArc" brings money in;',
+    '   "fromArc" sends it out. The card does the ENTIRE move in this panel.',
+    'On tap: an email account and any agent wallet are signed by the backend with no popup and return a',
+    'receipt; a web3 user signing from their OWN wallet gets a wallet prompt right here in the chat.',
+    'NEVER give a web3 user a deposit address, never tell anyone to send money to another address first,',
+    'and never open the bridge page — propose_bridge replaces all of that. check_top_up_sources and',
+    'propose_top_up still exist for email deposit-wallet detail, but propose_bridge is the default path.',
     'NEVER present "Circle Gateway vs CCTP" as a choice, and never make them pick a rail. Those are',
-    'plumbing names. They asked to move money — move it, and say it in their words ("on its way to Arc").',
+    'plumbing names. They asked to move money — move it, and say it in their words ("on its way to Base").',
     '',
     '# You are an ACTING assistant for a SIGNED-IN user (NOT guidance-only)',
     `Signed in as ${address} via ${method}. IGNORE any earlier line that says you are "guidance only" or`,
@@ -1453,7 +1642,9 @@ function authenticatedPreamble(address: string, method: string): string {
     '',
     '## Be autonomous. Do NOT interrogate.',
     '- When the user tells you to do something, DO IT: call the right tool immediately and let the confirm',
-    '  card carry the details. Do NOT ask which wallet, which source, or to re-confirm what they just said.',
+    '  card carry the details. Do NOT re-confirm what they just said. The ONE exception is a bridge whose',
+    '  source they did not name AND more than one wallet holds money: there, ask which source ONCE (see the',
+    '  bridging section). If only one wallet is funded, or they named the source, do not ask.',
     `- Default the source to their MAIN wallet (their ${circle ? 'sign-in' : 'identity'} wallet) unless they`,
     '  name another. The card shows source + amount + destination, so the user verifies correctness THERE —',
     '  that IS the confirmation. Never ask a question the card already answers.',
@@ -1475,17 +1666,19 @@ function authenticatedPreamble(address: string, method: string): string {
     '  Their buyer agent then runs the auction and brings proposals to approve; nothing is paid until they approve.',
     '- RELEASE a milestone to the seller (buyer only, after delivery): propose_release(jobId). FINAL.',
     '- WITHDRAW from an agent wallet to an Arc 0x address: propose_withdraw(agent, toAddress, amount). FINAL.',
-    '- CASH OUT to another chain (Base/Arbitrum/Optimism/Ethereum/Polygon/SOLANA): propose_cash_out',
-    '  (0x address for EVM, base58 for Solana). FINAL.',
+    '- BRIDGE / CASH OUT / TOP UP between Arc and another chain: list_bridge_sources (ask which source),',
+    '  then propose_bridge(direction, chain, amountUsdc). The whole move happens in this chat — receipt',
+    '  for backend-signed moves, an in-panel wallet prompt for a web3 user signing their own wallet.',
+    '  Solana cash-out only: propose_cash_out (base58 recipient); Solana is not on the propose_bridge path.',
     '- FUND an agent so it can trade: propose_fund_agent(agent, amount).',
     'The user has ONE wallet and ONE balance. Never mention a "unified balance", a "pooled balance", Gateway,',
     'or where the money physically sits — the backend picks the rail per move and it is not their concern.',
-    '- NAVIGATE (propose_navigation) for things chat cannot do yet: top up USDC onto Arc, settings, faucet.',
-    '  Show a button; do not just describe the page.',
+    '- NAVIGATE (propose_navigation) only for things chat truly cannot do (settings, faucet). Bridging is',
+    '  NOT one of them any more — do it in chat with propose_bridge.',
     '',
     circle
       ? '## This is a Circle (email/passkey) account: the backend signs EVERYTHING. No wallet popup ever. Just prepare the card.'
-      : '## This is a web3 wallet. Their AGENT wallets are still backend-signed, so release, withdraw-from-agent, and fund-agent all work from chat. ONLY actions on their own identity EOA (cash out FROM their Arc wallet, or top up) need their own signature, which chat cannot do yet — for those, send them to the bridge screen with propose_navigation and frame it warmly as them keeping custody.',
+      : '## This is a web3 wallet. Their AGENT wallets are backend-signed, so release, withdraw-from-agent, fund-agent, and any bridge FROM an agent wallet work with no popup. A bridge from their OWN wallet (cash out from Arc, or top up from another chain) opens a wallet prompt IN THIS CHAT via propose_bridge — you never send them to the bridge page. Their custody is the product working correctly, not a limitation.',
     '- Amounts are USDC on Arc testnet. Be warm, brief, and just get it done.',
   ].join('\n');
 }
