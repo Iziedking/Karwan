@@ -16,6 +16,7 @@ import {
   SOLANA_MIN_SOL,
   USDC_FAUCET,
   isAppKitOnlyChainKey,
+  appKitBridgeSupportsSource,
   type SourceChainConfig,
   type AppKitSourceConfig,
   type AnySourceChainKey,
@@ -241,7 +242,7 @@ export function BridgeCard({
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
   const buyerAgent = agents?.buyer ? (agents.buyer as `0x${string}`) : undefined;
   const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
-  const { bridges, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
+  const { bridges, startCircle, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
@@ -573,12 +574,27 @@ export function BridgeCard({
     // What it removes is the bespoke relay and its hour-long poll window.
     if (depositPath && auth.address) {
       if (!canBridgeCircle) return;
-      startCircleAppKit({
-        sourceChainKey: sourceKey as AppKitBridgeChainKey,
-        amountUsdc: amount as number,
-        mintRecipient: mintRecipient as `0x${string}`,
-        userAddress: auth.address,
-      });
+      // App Kit + forwarder is the fast path, but its route only accepts the
+      // five App-Kit-supported chains. The other CCTP chains (Avalanche,
+      // Unichain, Sei, Sonic, World Chain, HyperEVM) have no App Kit bridge, so
+      // sending them there is a 400 "invalid body" and the click does nothing.
+      // Route those through the hand-rolled pipeline, which accepts every CCTP
+      // chain. Slower, but real, until App Kit covers them.
+      if (appKitBridgeSupportsSource(sourceKey)) {
+        startCircleAppKit({
+          sourceChainKey: sourceKey as AppKitBridgeChainKey,
+          amountUsdc: amount as number,
+          mintRecipient: mintRecipient as `0x${string}`,
+          userAddress: auth.address,
+        });
+      } else {
+        startCircle({
+          sourceChainKey: sourceKey as CctpChainKey,
+          amountUsdc: amount as number,
+          mintRecipient: mintRecipient as `0x${string}`,
+          userAddress: auth.address,
+        });
+      }
       return;
     }
     // Connect-wallet path.

@@ -70,13 +70,15 @@ function BridgePageInner() {
   const c = useTranslations().bridgeChooser;
   const { agents } = useActivation();
   const params = useSearchParams();
-  const [rail, setRail] = useState<Rail>('gateway');
+  // CCTP is the default: it works for every account today, while Gateway is
+  // coming-soon for email users and only usable by a connected web3 wallet.
+  // Landing on Gateway showed most users a rail they cannot use.
+  const [rail, setRail] = useState<Rail>('cctp');
   const [direction, setDirection] = useState<Direction>('in');
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // ?rail=cctp deep-links the bridge. The Gateway top-up buttons elsewhere in
-  // the app open ?rail=gateway when the pool is short, which is already default,
-  // but honour it explicitly so the link keeps working if the default changes.
+  // ?rail=gateway deep-links the Gateway view (the web3 pool buttons use it);
+  // ?rail=cctp is the default. Honour either so existing links keep working.
   useEffect(() => {
     const r = params.get('rail');
     if (r === 'cctp' || r === 'gateway') setRail(r);

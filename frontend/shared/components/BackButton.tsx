@@ -1,28 +1,51 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { isLandingRoute } from '@/shared/utils/routes';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// A back control that lives in the top nav, left of the rail. It is deliberately
-/// history-aware: the app home (/app) is the root, so it never renders there, and
-/// launching the app from the landing page puts landing directly behind home —
-/// we never hand the user back onto the marketing site. Everywhere else it goes
-/// back one step (router.back) when there is a real in-app previous route, and
-/// falls back to home on a cold load / refresh where the in-app history was lost.
+/// A back control in the top nav. It returns the user to the route they actually
+/// came FROM, not to a fixed home.
+///
+/// The previous version trailed the last route in component refs. Those reset on
+/// any hard load, so a page reached by refresh or by a direct link (the assistant
+/// links to /bridge, for one) had no remembered previous route and every "back"
+/// dumped the user on /app. We keep an in-app route stack in sessionStorage
+/// instead: it survives reloads within the tab, so back goes where they came from
+/// no matter how they arrived.
+const STACK_KEY = 'karwan.nav.stack';
+
+function readStack(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.sessionStorage.getItem(STACK_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStack(stack: string[]): void {
+  try {
+    window.sessionStorage.setItem(STACK_KEY, JSON.stringify(stack.slice(-20)));
+  } catch {
+    /* private mode / quota — degrade to home-only back */
+  }
+}
+
 export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
 
-  // The nav is mounted once in the root layout and survives soft navigations, so
-  // these refs persist across route changes. `prevRef` trails one step behind the
-  // current route, which is exactly what router.back() targets.
-  const prevRef = useRef<string | null>(null);
-  const lastRef = useRef<string | null>(null);
+  // Record each in-app route as it is entered. Landing routes never enter the
+  // stack, so back can never hand the user to the marketing site, and a repeated
+  // path (re-render on the same route) is not pushed twice.
   useEffect(() => {
-    prevRef.current = lastRef.current;
-    lastRef.current = pathname;
+    if (isLandingRoute(pathname)) return;
+    const stack = readStack();
+    if (stack[stack.length - 1] === pathname) return;
+    writeStack([...stack, pathname]);
   }, [pathname]);
 
   // Home is the root and landing renders its own chrome, so no back control on
@@ -30,12 +53,19 @@ export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   if (isLandingRoute(pathname) || pathname === '/app') return null;
 
   function goBack() {
-    const prev = prevRef.current;
-    // A real in-app previous route (not landing) → step back. Otherwise land on
-    // home: this covers a cold load / refresh (history lost) and the launch-from-
-    // landing case, so the button never returns the user to the marketing site.
-    if (prev && !isLandingRoute(prev)) router.back();
-    else router.push('/app');
+    const stack = readStack();
+    // Drop the current route, then walk back past any repeats of it to the last
+    // genuinely different in-app route.
+    let i = stack.length - 1;
+    while (i >= 0 && stack[i] === pathname) i--;
+    const target = i >= 0 ? stack[i] : null;
+    if (target && !isLandingRoute(target)) {
+      writeStack(stack.slice(0, i)); // pop past the target so the next back steps again
+      router.push(target);
+    } else {
+      writeStack([]);
+      router.push('/app');
+    }
   }
 
   // The lane matches the page's first band: dark on the dark heroes (most

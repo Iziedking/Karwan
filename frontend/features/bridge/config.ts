@@ -210,6 +210,20 @@ export function isAppKitOnlyChainKey(k: string): k is AppKitOnlyChainKey {
   return k in APP_KIT_SOURCES;
 }
 
+/// The five EVM chains the App Kit bridge route actually accepts as a SOURCE.
+/// The other CCTP chains have no App Kit bridge and must use the hand-rolled
+/// pipeline; routing them to App Kit is a 400. Mirrors CircleBridgeChainKey.
+const APP_KIT_BRIDGE_SOURCE_KEYS = new Set([
+  'sepolia',
+  'optimismSepolia',
+  'arbitrumSepolia',
+  'baseSepolia',
+  'polygonAmoy',
+]);
+export function appKitBridgeSupportsSource(k: string): boolean {
+  return APP_KIT_BRIDGE_SOURCE_KEYS.has(k);
+}
+
 // Native-gas testnet faucets per source chain. Only web3 users need these (they
 // pay their own source-chain burn gas). Circle users don't pay gas: on Gas-
 // Station chains (CIRCLE_GAS_SPONSORED_KEYS) the paymaster covers it, on the rest
