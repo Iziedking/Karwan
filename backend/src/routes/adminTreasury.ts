@@ -74,7 +74,7 @@ async function readTreasury(addr: string | undefined, label: string): Promise<Tr
   }
   const usdcAddr = config.USDC_ADDR as `0x${string}`;
   /// Read each field independently so an oracle-gated `totalReserves`
-  /// (which reverts pre-whitelist on v3) doesn't take the whole card
+  /// (which reverts pre-whitelist on entitled) doesn't take the whole card
   /// down. The admin needs at least `owner` to know whether to expose
   /// the payout form; everything else is nice-to-have display data.
   const [usdcSettled, totalReservesSettled, ownerSettled, keeperSettled] = await Promise.allSettled([
@@ -157,22 +157,29 @@ adminTreasuryRoutes.get('/', async (c) => {
   const usycAddr =
     cfg.KARWAN_TREASURY_USYC_ADDR ?? cfg.KARWAN_TREASURY_V3_ADDR;
 
-  /// Labels reflect the post-2026-06-06 state. The whitelisted contract
-  /// (stored in KARWAN_TREASURY_USYC_ADDR) subscribes real Hashnote USYC.
-  /// The legacy live treasury keeps the "fees flow here" tag only until
-  /// the escrow gets redeployed with the whitelisted treasury baked into
-  /// its immutable `treasury` slot.
+  /// The v2 escrow deployed 2026-07-25 bakes the new treasury into its
+  /// immutable `treasury` slot, so fees now land there. Hashnote entitlement
+  /// does not transfer with a redeploy, so the older treasury still holds the
+  /// only address allowed to subscribe USYC. Both are wired to the same real
+  /// teller and oracle; only the entitlement is missing.
+  ///
+  /// Until a second entitlement round lands, fee income accumulates in a
+  /// treasury that cannot earn on it. The labels say so rather than implying
+  /// the split is transitional bookkeeping.
   const sameAddress =
     !!liveAddr && !!usycAddr && liveAddr.toLowerCase() === usycAddr.toLowerCase();
 
-  const [live, v3] = await Promise.all([
-    readTreasury(liveAddr, sameAddress ? 'live (real USYC, whitelisted)' : 'live (fees flow here)'),
-    readTreasury(usycAddr, 'real USYC (whitelisted)'),
+  const [live, entitled] = await Promise.all([
+    readTreasury(
+      liveAddr,
+      sameAddress ? 'live, fees and USYC' : 'live, fees flow here. Cannot subscribe USYC yet',
+    ),
+    readTreasury(usycAddr, 'holds the USYC entitlement. No longer receives fees'),
   ]);
 
   return c.json({
     live,
-    v3,
+    entitled,
     usdc: config.USDC_ADDR,
   });
 });

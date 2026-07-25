@@ -24,11 +24,11 @@ type TreasuryView = {
 
 type TreasuriesResp = {
   live: TreasuryView;
-  v3: TreasuryView;
+  entitled: TreasuryView;
   usdc: string;
 };
 
-type WhichTreasury = 'live' | 'v3';
+type WhichTreasury = 'live' | 'entitled';
 
 const treasuryAbi = [
   {
@@ -236,25 +236,28 @@ function TreasuryConsole({ token, onClearToken }: { token: string; onClearToken:
 
         {data ? (
           (() => {
-            /// When KARWAN_TREASURY_CONTRACT_ADDR has been swapped to point
-            /// at the whitelisted USYC treasury (the V4 contract), the two
-            /// addresses match. Render a single card and hide the drain
-            /// control, since there is nothing left to drain.
+            /// Two cards while fee income and the USYC entitlement live on
+            /// different treasuries. A redeploy moves where fees land but the
+            /// Hashnote entitlement stays with the address that earned it, so
+            /// the drain control is how fees reach the treasury that can
+            /// actually subscribe. Once the fee treasury has its own
+            /// entitlement the addresses converge, and this collapses to one
+            /// card with nothing left to drain.
             const merged =
               !!data.live.address &&
-              !!data.v3.address &&
-              data.live.address.toLowerCase() === data.v3.address.toLowerCase();
+              !!data.entitled.address &&
+              data.live.address.toLowerCase() === data.entitled.address.toLowerCase();
             return (
               <>
                 <WalletStrip />
                 <section className={`mt-6 grid gap-4 ${merged ? '' : 'lg:grid-cols-2'}`}>
                   <TreasuryCard which="live" view={data.live} onTx={refresh} />
                   {!merged && (
-                    <TreasuryCard which="v3" view={data.v3} onTx={refresh} />
+                    <TreasuryCard which="entitled" view={data.entitled} onTx={refresh} />
                   )}
                 </section>
                 {!merged && (
-                  <DrainControl live={data.live} v3={data.v3} onTx={refresh} />
+                  <DrainControl live={data.live} entitled={data.entitled} onTx={refresh} />
                 )}
               </>
             );
@@ -477,11 +480,11 @@ function PayoutForm({
 
 function DrainControl({
   live,
-  v3,
+  entitled,
   onTx,
 }: {
   live: TreasuryView;
-  v3: TreasuryView;
+  entitled: TreasuryView;
   onTx: () => void;
 }) {
   const { address } = useAccount();
@@ -494,7 +497,7 @@ function DrainControl({
   const [steps, setSteps] = useState<ActionLog[]>([]);
 
   const liveConfigured = !!live.address && !live.error;
-  const v3Configured = !!v3.address && !v3.error;
+  const v3Configured = !!entitled.address && !entitled.error;
   const liveOwnerMatches =
     !!address && !!live.owner && address.toLowerCase() === live.owner.toLowerCase();
 
@@ -531,7 +534,7 @@ function DrainControl({
       await arcClient.waitForTransactionReceipt({ hash: payoutHash });
       patchStep(step1.id, { status: 'done' });
 
-      const v3Addr = v3.address as `0x${string}`;
+      const v3Addr = entitled.address as `0x${string}`;
       const allowance = (await arcClient.readContract({
         address: ARC_USDC_ADDRESS,
         abi: usdcAbi,
@@ -539,7 +542,7 @@ function DrainControl({
         args: [address, v3Addr],
       })) as bigint;
       if (allowance < amountWei) {
-        const step2 = { id: crypto.randomUUID(), kind: 'drain-step-2-approve' as const, status: 'pending' as const, message: `approve v3 to pull ${amount} USDC` };
+        const step2 = { id: crypto.randomUUID(), kind: 'drain-step-2-approve' as const, status: 'pending' as const, message: `approve entitled to pull ${amount} USDC` };
         pushStep(step2);
         const approveHash = await walletClient.writeContract({
           address: ARC_USDC_ADDRESS,
@@ -554,7 +557,7 @@ function DrainControl({
         patchStep(step2.id, { status: 'done' });
       }
 
-      const step3 = { id: crypto.randomUUID(), kind: 'drain-step-2-deposit' as const, status: 'pending' as const, message: `deposit ${amount} USDC into v3` };
+      const step3 = { id: crypto.randomUUID(), kind: 'drain-step-2-deposit' as const, status: 'pending' as const, message: `deposit ${amount} USDC into entitled` };
       pushStep(step3);
       const depositHash = await walletClient.writeContract({
         address: v3Addr,
@@ -581,13 +584,13 @@ function DrainControl({
     } finally {
       setBusy(false);
     }
-  }, [walletClient, address, arcClient, chainId, valid, amount, live.address, v3.address, onTx]);
+  }, [walletClient, address, arcClient, chainId, valid, amount, live.address, entitled.address, onTx]);
 
   return (
     <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5">
-      <h2 className="text-sm font-semibold tracking-tight">Drain live to v3</h2>
+      <h2 className="text-sm font-semibold tracking-tight">Move fees to the entitled treasury</h2>
       <p className="mt-1 text-[11px] text-zinc-500">
-        Two-step: live.payout(you, amount), then v3.deposit(amount) (with USDC approve if needed). Requires
+        Two-step: live.payout(you, amount), then entitled.deposit(amount) (with USDC approve if needed). Requires
         you to be the live treasury owner.
       </p>
 
