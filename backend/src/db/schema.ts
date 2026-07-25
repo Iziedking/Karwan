@@ -11,6 +11,7 @@ import type { FactoringOffer } from './factoring.js';
 import type { POFinancingLine } from './poFinancing.js';
 import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
+import type { AssistantUsage } from './assistantUsage.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -278,6 +279,15 @@ export const activityLog = pgTable(
     addressTsIdx: index('activity_log_address_ts_idx').on(t.address, t.ts),
   }),
 );
+
+/// Per-user assistant quota. One row per address; the rolling day and week
+/// counters live in `data` with their period labels, so a rollover is a label
+/// comparison on read rather than a scheduled reset.
+export const assistantUsage = pgTable('assistant_usage', {
+  address: text('address').primaryKey(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  data: jsonb('data').$type<AssistantUsage>().notNull(),
+});
 
 /// Short-lived auth state (WebAuthn challenges, OTP hashes, SIWE nonces,
 /// Telegram link tokens), namespaced in the key. Durable so a deploy doesn't

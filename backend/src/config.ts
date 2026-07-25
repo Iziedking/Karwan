@@ -553,6 +553,14 @@ const envSchema = z.object({
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
 
+  // Per-user assistant caps, counted on UTC day and UTC week boundaries. The
+  // assistant costs real model spend per message and is now sign-in only, so
+  // these bound one account rather than one IP: an IP limit is both evadable
+  // and unfair to shared connections. A rejected message does not consume
+  // quota.
+  ASSISTANT_DAILY_CAP: z.coerce.number().int().positive().default(30),
+  ASSISTANT_WEEKLY_CAP: z.coerce.number().int().positive().default(120),
+
   // Extra browser origins allowed to make credentialed cross-origin calls,
   // comma-separated and exact (scheme + host, no trailing slash), e.g.
   // "https://karwan-git-preview-acme.vercel.app,https://staging.karwan.site".

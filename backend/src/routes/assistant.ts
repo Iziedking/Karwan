@@ -6,6 +6,7 @@ import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { readSession } from '../auth/session.js';
 import { assistantAgentEnabled, runAssistantAgent } from '../assistant/agent.js';
+import { consumeAssistantQuota } from '../db/assistantUsage.js';
 
 /// In-app support assistant. Grounded in the Karwan knowledge base; answers
 /// product questions and hands users direct in-app links.
@@ -267,6 +268,15 @@ assistantRoutes.post(
   '/chat',
   rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'assistant-chat' }),
   async (c) => {
+  // Sign-in required. The assistant spends real model budget per message and
+  // previously answered anonymously, so anyone could run it indefinitely with
+  // no account behind the cost. It is also the surface that prepares money
+  // actions, and those are meaningless without a session to bind them to.
+  const session = readSession(c);
+  if (!session) {
+    return c.json({ error: 'not authenticated', code: 'assistant_signin_required' }, 401);
+  }
+
   const provs = assistantProviders();
   if (provs.length === 0) {
     return c.json({ error: 'assistant-unavailable' }, 503);
@@ -289,13 +299,39 @@ assistantRoutes.post(
     return c.json({ error: 'no user message' }, 400);
   }
 
-  // Signed-in path: run the authenticated tool-calling loop so the assistant can
-  // read this user's own balance and deals and answer from real numbers. Bound to
-  // the cryptographically-verified session address, never a client param. On any
-  // failure, fall through to the anonymous provider chain so the user still gets
-  // an answer (just without account lookups).
-  const session = readSession(c);
-  if (session && assistantAgentEnabled()) {
+  // Quota is charged once the message is known to be well-formed, and only
+  // when it is within both caps, so a rejected turn never eats a slot the
+  // user got no answer for. The IP limiter above still handles bursts; this
+  // bounds sustained use per account.
+  const quota = await consumeAssistantQuota(
+    session.address,
+    config.ASSISTANT_DAILY_CAP,
+    config.ASSISTANT_WEEKLY_CAP,
+  );
+  if (!quota.allowed) {
+    if (quota.resetAt) {
+      c.header('Retry-After', String(Math.max(1, Math.ceil((quota.resetAt - Date.now()) / 1000))));
+    }
+    return c.json(
+      {
+        error:
+          quota.scope === 'day'
+            ? 'You have reached today\'s assistant limit. It resets at midnight UTC.'
+            : 'You have reached this week\'s assistant limit. It resets Monday.',
+        code: 'assistant_quota_exhausted',
+        scope: quota.scope,
+        resetAt: quota.resetAt,
+      },
+      429,
+    );
+  }
+
+  // Authenticated tool-calling loop so the assistant can read this user's own
+  // balance and deals and answer from real numbers. Bound to the
+  // cryptographically-verified session address, never a client param. On
+  // failure it falls through to the plain provider chain, which still answers
+  // from the knowledge base but without account lookups.
+  if (assistantAgentEnabled()) {
     try {
       const { text, actions } = await runAssistantAgent({
         address: session.address.toLowerCase(),

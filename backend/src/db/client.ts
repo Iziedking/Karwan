@@ -176,6 +176,11 @@ export async function ensureSchema(): Promise<void> {
       data JSONB NOT NULL
     );
     CREATE INDEX IF NOT EXISTS activity_log_address_ts_idx ON activity_log (address, ts);
+    CREATE TABLE IF NOT EXISTS assistant_usage (
+      address TEXT PRIMARY KEY,
+      updated_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
   `);
 
   // Money-path invariants the schema comments promise but nothing enforced:

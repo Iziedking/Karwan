@@ -263,9 +263,15 @@ export function AssistantWidget() {
   const isLive = convoId !== null;
   const showHandoffButton = handoffEnabled === true && !isLive && humanSuggested;
 
-  // The Ask launcher never shows on the landing/marketing pages. Hooks above all
-  // run so its poll state stays intact when the user enters the app.
+  // The Ask launcher never shows on the landing/marketing pages, and never
+  // before sign-in: the assistant answers from the caller's own balances and
+  // deals and can prepare money actions, none of which mean anything without a
+  // session, and the backend now refuses anonymous calls outright. Waiting on
+  // isLoading avoids flashing the launcher during the web3 reconnect window
+  // and then pulling it away. Hooks above all run either way so the poll state
+  // stays intact once the user does sign in.
   if (isLandingRoute(pathname)) return null;
+  if (auth.isLoading || !auth.isAuthenticated) return null;
 
   return (
     <>
