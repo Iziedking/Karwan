@@ -3009,6 +3009,7 @@ export const ar: Messages = {
       topTier: 'الفئة العليا',
     },
     vault: { tag: 'إيداعك', heading: 'الخزينة' },
+    legacyNudge: { body: 'لديك {amount} USDC على الخزنة السابقة.', link: 'استردها' },
     ladder: {
       tag: 'سلم الفئات',
       headingPrefix: 'ما الذي يفتحه',

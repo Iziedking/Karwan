@@ -3009,6 +3009,7 @@ export const fr: Messages = {
       topTier: 'Palier max',
     },
     vault: { tag: 'VOTRE DÉPÔT', heading: 'Coffre' },
+    legacyNudge: { body: 'Vous avez {amount} USDC sur le coffre précédent.', link: 'Récupérer' },
     ladder: {
       tag: 'PALIERS',
       headingPrefix: 'Ce que le dépôt',

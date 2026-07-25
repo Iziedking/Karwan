@@ -2888,6 +2888,9 @@ interface MessagesShape {
       topTier: string;
     };
     vault: { tag: string; heading: string };
+    /// Shown only when this wallet still holds a position on a superseded
+    /// vault, so a migration does not read as funds having vanished.
+    legacyNudge: { body: string; link: string };
     ladder: {
       tag: string;
       headingPrefix: string;
@@ -6984,6 +6987,7 @@ export const en: MessagesShape = {
       topTier: 'Top tier',
     },
     vault: { tag: 'YOUR STAKE', heading: 'Vault' },
+    legacyNudge: { body: 'You have {amount} USDC on the previous vault.', link: 'Recover it' },
     ladder: {
       tag: 'TIER LADDER',
       headingPrefix: 'What stake',

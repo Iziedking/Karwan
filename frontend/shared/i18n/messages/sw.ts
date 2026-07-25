@@ -3009,6 +3009,7 @@ export const sw: Messages = {
       topTier: 'Daraja la juu',
     },
     vault: { tag: 'STAKE YAKO', heading: 'Hazina' },
+    legacyNudge: { body: 'Una {amount} USDC kwenye vault ya awali.', link: 'Irejeshe' },
     ladder: {
       tag: 'NGAZI YA MADARAJA',
       headingPrefix: 'Stake hufungua',

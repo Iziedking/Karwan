@@ -3009,6 +3009,7 @@ export const hi: Messages = {
       topTier: 'शीर्ष श्रेणी',
     },
     vault: { tag: 'आपका स्टेक', heading: 'वॉल्ट' },
+    legacyNudge: { body: 'पिछले वॉल्ट पर आपके {amount} USDC हैं.', link: 'वापस लें' },
     ladder: {
       tag: 'श्रेणी सीढ़ी',
       headingPrefix: 'स्टेक से क्या',

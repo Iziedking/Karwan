@@ -16,6 +16,7 @@ import { StakeCard } from '@/features/reputation/components/StakeCard';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
 import { UsycReservesWidget } from '@/features/reputation/components/UsycReservesWidget';
 import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPanel';
+import { LegacyStakeNudge } from '@/features/reputation/components/LegacyStakeNudge';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { TIER_HUE } from '@/features/reputation/tierColors';
@@ -199,7 +200,7 @@ function StakePageInner() {
         </div>
       </Band>
 
-      {/* STAKE INTERFACE: the same KarwanVault card used on /profile. */}
+      {/* STAKE INTERFACE: deposit + withdraw against the live KarwanVault. */}
       <Band tone="light" compact>
         <SectionTag>{sp.vault.tag}</SectionTag>
         <HeroHeadline size="md">
@@ -208,6 +209,7 @@ function StakePageInner() {
         </HeroHeadline>
         <div className="mt-10">
           <StakeCard />
+          <LegacyStakeNudge />
         </div>
       </Band>
 
